@@ -100,6 +100,41 @@
    - 29-89 EUR/Monat fuer permanenten Sponsored Pin
    - Exklusiver Marker in Teamfarben auf der Map
 
+---
+
+## Rewarded Ad Gamification (Statt stumpfes "Video = XP")
+
+### 1. Supply Drop (Reale Lootbox) - FAVORIT
+- Video schauen = Paket spawnt 1.5km entfernt auf Karte
+- Verschwindet nach 45 Min
+- Enthaelt seltene Icons oder massive Team-Macht
+- = Geocaching auf Steroiden
+
+### 2. Adrenalin-Boost (Farb-Multiplikator) - FAVORIT
+- Video vor dem Lauf = 30 Min Boost aktiviert
+- Dickerer/leuchtenderer Neon-Schweif
+- Doppelte XP + doppelte Team-Punkte
+- FOMO-Effekt: Uhr tickt, maximale Motivation
+
+### 3. Titan-Schild (Territorium verteidigen)
+- Video = Schild ins Inventar
+- Bei naechstem Walk auf Strasse ablegen
+- 48h Schutz gegen feindliche Uebernahme
+- Revier-Stolz Motivation
+
+### 4. Drohnen-Scan (Geheimnisse aufdecken)
+- Video = 10 Min Radar-Hack
+- Versteckte "Glitch-Zonen" leuchten auf (Parks, Nebenstrassen)
+- Extrem viel XP in diesen Zonen
+- Bricht Routine auf, neue Routen
+
+### DB-Tabellen fuer Rewarded Features
+- supply_drops: id, user_id, lat, lng, expires_at, contents, claimed
+- active_boosts: id, user_id, boost_type, multiplier, expires_at
+- inventory_items: id, user_id, item_type, item_data, used
+
+---
+
 ### Technische Umsetzung
 - Running Points als Supabase-Tabelle (nicht hardcoded)
 - Geschaefte ueber Admin-Panel hinzufuegen
