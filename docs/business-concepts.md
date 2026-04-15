@@ -135,7 +135,32 @@
 
 ---
 
-### Technische Umsetzung
+---
+
+## AdMob Monetarisierung (Hybride Strategie)
+
+### 1. Rewarded Video (Hoechste Auszahlung: eCPM 10-25 EUR)
+- Ort: Icon-Shop im Profil-Tab
+- 100% freiwillig, Nutzer lieben es
+- Verknuepft mit Supply Drops / Boosts
+
+### 2. Banner Ad (Stetiges Grundeinkommen)
+- Ort: Ranking-Tab und Teams-Tab (unten)
+- NICHT auf der Karte (versehentliche Klicks)
+- CPM + CPC automatisch von Google optimiert
+
+### 3. Interstitial (Vollbild, nach Eroberung)
+- Ort: Nach "Eroberung abschliessen" + Erfolgs-Popup
+- NUR bei Strecken ueber 1km (nicht nach Mini-Laeufen)
+- Hohe Toleranz wegen Dopamin-Ausschuettung
+- Sehr lukrativ (hohe Klickraten)
+
+### Wichtig: Waehrend Entwicklung NUR Test-IDs!
+- Echte Ads erst nach Play Store Release
+- Sonst sperrt Google das Entwicklerkonto
+- Web: Google AdSense statt AdMob
+
+### Technische Umsetzung Running Points
 - Running Points als Supabase-Tabelle (nicht hardcoded)
 - Geschaefte ueber Admin-Panel hinzufuegen
 - GPS-Radius Trigger (20m)
