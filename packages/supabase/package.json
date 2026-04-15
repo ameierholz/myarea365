@@ -1,0 +1,10 @@
+{
+  "name": "@myarea365/supabase",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "gen:types": "supabase gen types typescript --project-id dqxfbsgusydmaaxdrgxx > ../shared/src/types/database.ts"
+  }
+}
