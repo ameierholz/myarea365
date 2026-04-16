@@ -263,10 +263,381 @@ export const DEMO_RUNNERS: Record<string, DemoRunnerProfile> = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════
+//  ERWEITERTE MAP-FEATURES (alles Demo, später Supabase-Realtime)
+// ═══════════════════════════════════════════════════════════
+
+// Zentrum für Demo — Berlin Prenzlauer Berg
+const DEMO_CENTER = { lat: 52.5400, lng: 13.4100 };
+
+// Geschlossene Territorien (Polygon-Gebiete wo Straßenzüge einen Ring bilden)
+export type ClaimedArea = {
+  id: string;
+  name: string;
+  polygon: Array<{ lat: number; lng: number }>; // geschlossener Ring
+  owner_type: "me" | "crew" | "enemy_crew" | "enemy_solo";
+  owner_name: string;
+  owner_color: string;
+  faction: "syndicate" | "vanguard" | null;
+  level: 1 | 2 | 3;                              // Upgrade-Stufe
+  captured_at: string;                            // ISO-Datum
+  passive_power_per_day: number;                  // Macht/Tag
+  buff_type: "xp_multiplier" | "shield" | "radar" | "speed" | "none";
+  buff_value: number;                             // 1.5, 2, etc.
+  contributors: string[];                         // Usernames die beigetragen haben
+};
+
+// Legacy-Konstante (nicht mehr direkt genutzt, siehe generateDemoMapData)
+export const DEMO_CLAIMED_AREAS_LEGACY: ClaimedArea[] = [
+  {
+    id: "area-1",
+    name: "Kollwitz-Bastion",
+    polygon: [
+      { lat: 52.5390, lng: 13.4085 },
+      { lat: 52.5395, lng: 13.4085 },
+      { lat: 52.5395, lng: 13.4100 },
+      { lat: 52.5390, lng: 13.4100 },
+    ],
+    owner_type: "me",
+    owner_name: "Du",
+    owner_color: "#22D1C3",
+    faction: "syndicate",
+    level: 2,
+    captured_at: "2026-03-15",
+    passive_power_per_day: 25,
+    buff_type: "xp_multiplier",
+    buff_value: 1.5,
+    contributors: ["Du"],
+  },
+  {
+    id: "area-2",
+    name: "Rykestr-Festung",
+    polygon: [
+      { lat: 52.5405, lng: 13.4110 },
+      { lat: 52.5418, lng: 13.4105 },
+      { lat: 52.5420, lng: 13.4125 },
+      { lat: 52.5408, lng: 13.4130 },
+    ],
+    owner_type: "crew",
+    owner_name: "Syndicate-Squad",
+    owner_color: "#22D1C3",
+    faction: "syndicate",
+    level: 3,
+    captured_at: "2026-02-28",
+    passive_power_per_day: 50,
+    buff_type: "shield",
+    buff_value: 48,
+    contributors: ["Du", "KiezKönig", "Pacer99"],
+  },
+  {
+    id: "area-3",
+    name: "Schönhauser-Territorium",
+    polygon: [
+      { lat: 52.5370, lng: 13.4070 },
+      { lat: 52.5380, lng: 13.4065 },
+      { lat: 52.5385, lng: 13.4080 },
+      { lat: 52.5375, lng: 13.4085 },
+    ],
+    owner_type: "enemy_crew",
+    owner_name: "Kreuzberg Kollektiv",
+    owner_color: "#a855f7",
+    faction: "vanguard",
+    level: 2,
+    captured_at: "2026-03-01",
+    passive_power_per_day: 25,
+    buff_type: "radar",
+    buff_value: 10,
+    contributors: ["NeonFuchs"],
+  },
+];
+
+// Supply Drops (durch Rewarded Ads gespawnte Loot-Pakete)
+export type SupplyDrop = {
+  id: string;
+  lat: number;
+  lng: number;
+  expires_at: string;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  content_xp: number;
+  content_marker_id?: string;
+};
+
+export const DEMO_SUPPLY_DROPS_LEGACY: SupplyDrop[] = [
+  {
+    id: "drop-1",
+    lat: 52.5410, lng: 13.4095,
+    expires_at: new Date(Date.now() + 32 * 60 * 1000).toISOString(), // 32 min
+    rarity: "rare",
+    content_xp: 250,
+    content_marker_id: "hedgehog",
+  },
+  {
+    id: "drop-2",
+    lat: 52.5385, lng: 13.4120,
+    expires_at: new Date(Date.now() + 18 * 60 * 1000).toISOString(),
+    rarity: "epic",
+    content_xp: 750,
+  },
+];
+
+// Glitch-Zonen (versteckte Bonus-XP-Gebiete, aufgedeckt durch Drohnen-Scan)
+export type GlitchZone = {
+  id: string;
+  lat: number;
+  lng: number;
+  radius_m: number;
+  xp_multiplier: number;
+  expires_at: string;
+};
+
+export const DEMO_GLITCH_ZONES_LEGACY: GlitchZone[] = [
+  {
+    id: "glitch-1",
+    lat: 52.5425, lng: 13.4075,
+    radius_m: 80,
+    xp_multiplier: 3,
+    expires_at: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
+  },
+];
+
+// Runner auf der Karte — sowohl Crew-Mitglieder als auch andere Läufer
+export type MapRunner = {
+  id: string;
+  username: string;
+  lat: number;
+  lng: number;
+  is_walking: boolean;
+  current_km: number;
+  color: string;                          // eigene Team-Farbe
+  is_crew_member: boolean;                // wenn true → besondere Kennzeichnung
+  crew_color?: string;                    // Farbe der eigenen Crew wenn Mitglied
+  faction: "syndicate" | "vanguard";
+  marker_icon: string;                    // equipped Map-Icon (Emoji)
+};
+
+// Legacy-Alias (alte Komponenten)
+export type CrewMember = MapRunner;
+
+// Missionen — tägliche + wöchentliche Ziele
+export type Mission = {
+  id: string;
+  type: "daily" | "weekly";
+  name: string;
+  description: string;
+  icon: string;
+  progress: number;
+  target: number;
+  reward_xp: number;
+  lat?: number; // falls ortsgebunden
+  lng?: number;
+};
+
+export const DEMO_MISSIONS: Mission[] = [
+  { id: "m1", type: "daily", name: "3 neue Straßen",     description: "Erlaufe 3 Straßen die du noch nie betreten hast",   icon: "🆕", progress: 1, target: 3, reward_xp: 300 },
+  { id: "m2", type: "daily", name: "5 km sammeln",       description: "Schaffe heute insgesamt 5 km",                       icon: "📏", progress: 2.3, target: 5, reward_xp: 200 },
+  { id: "m3", type: "weekly", name: "Kiez-Sweep",        description: "10 verschiedene Straßen in 7 Tagen erobern",         icon: "🧹", progress: 4, target: 10, reward_xp: 1500 },
+  { id: "m4", type: "weekly", name: "Gebiet einkreisen", description: "Schließe einen Straßen-Ring um einen Block",         icon: "🔒", progress: 0, target: 1, reward_xp: 2000 },
+];
+
+// Boost-Shop — gegen XP kaufbare Items
+export type Boost = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  cost_xp: number;
+  duration_label: string;
+  accent: string;
+};
+
+export const DEMO_BOOSTS: Boost[] = [
+  { id: "b1", name: "2× XP Boost",        description: "30 Minuten doppelte XP bei allen Territorien",     icon: "⚡", cost_xp: 500,   duration_label: "30 min",   accent: "#FFD700" },
+  { id: "b2", name: "Territoriums-Schild", description: "48 Stunden Schutz vor Angriffen auf dein Gebiet", icon: "🛡️", cost_xp: 1200,  duration_label: "48 std",   accent: "#5ddaf0" },
+  { id: "b3", name: "Nebelgranate",       description: "2 Stunden unsichtbar auf der Karte",               icon: "💨", cost_xp: 800,   duration_label: "2 std",    accent: "#a855f7" },
+  { id: "b4", name: "Drohnen-Scan",       description: "Deckt 10 Minuten lang Glitch-Zonen auf",           icon: "📡", cost_xp: 600,   duration_label: "10 min",   accent: "#22D1C3" },
+  { id: "b5", name: "Sprint-Modus",       description: "1 Stunde 1.3× XP für jeden gelaufenen km",         icon: "💨", cost_xp: 400,   duration_label: "1 std",    accent: "#FF6B4A" },
+  { id: "b6", name: "Radar-Störsender",   description: "24h — halbiert feindliche XP in deinem Gebiet",    icon: "📶", cost_xp: 1500,  duration_label: "24 std",   accent: "#FF2D78" },
+];
+
+// Happy Hour — Zeitfenster mit XP-Multiplikator
+export type HappyHour = {
+  active: boolean;
+  multiplier: number;
+  ends_at: string;
+  label: string;
+};
+
+export function getCurrentHappyHour(): HappyHour {
+  // Demo: Happy Hour zwischen 18-19 Uhr Deutsche Zeit
+  const now = new Date();
+  const h = now.getHours();
+  if (h === 18) {
+    const end = new Date(now);
+    end.setHours(19, 0, 0, 0);
+    return { active: true, multiplier: 2, ends_at: end.toISOString(), label: "Abend-Rush" };
+  }
+  if (h === 7) {
+    const end = new Date(now);
+    end.setHours(8, 0, 0, 0);
+    return { active: true, multiplier: 2, ends_at: end.toISOString(), label: "Morgen-Boost" };
+  }
+  // Demo-Fallback: immer aktiv für Test-Zwecke
+  return {
+    active: true,
+    multiplier: 2,
+    ends_at: new Date(now.getTime() + 47 * 60 * 1000).toISOString(),
+    label: "Power Hour",
+  };
+}
+
+// Demo-Daten um User-Position herum generieren (kleine lat/lng-Deltas)
+// Erzeugt 3 Polygon-Territorien, 3 Supply Drops, 1 Glitch-Zone und 8 Runner
+export function generateDemoMapData(center: { lat: number; lng: number }) {
+  const d = 0.0020; // ~200m Offset
+  const { lat: cLat, lng: cLng } = center;
+
+  // Polygone folgen einem jagged "Straßen-Muster" — mehrere Eckpunkte mit
+  // unregelmäßigen Winkeln (so wie Straßenzüge tatsächlich um Blöcke laufen).
+  // Später via OSM/Mapbox Street-Snap berechnet aus der tatsächlich gelaufenen Polyline.
+  const claimed_areas: ClaimedArea[] = [
+    {
+      id: "area-1",
+      name: "Kiez-Bastion",
+      polygon: [
+        { lat: cLat + d * 0.30, lng: cLng - d * 0.80 },
+        { lat: cLat + d * 0.55, lng: cLng - d * 0.82 }, // Straßen-Ecke
+        { lat: cLat + d * 0.58, lng: cLng - d * 0.60 },
+        { lat: cLat + d * 0.85, lng: cLng - d * 0.58 }, // Kreuzung
+        { lat: cLat + d * 0.88, lng: cLng - d * 0.20 },
+        { lat: cLat + d * 1.00, lng: cLng - d * 0.18 },
+        { lat: cLat + d * 1.02, lng: cLng + d * 0.18 },
+        { lat: cLat + d * 0.70, lng: cLng + d * 0.20 },
+        { lat: cLat + d * 0.68, lng: cLng + d * 0.05 }, // Querstraße
+        { lat: cLat + d * 0.32, lng: cLng + d * 0.03 },
+      ],
+      owner_type: "me",
+      owner_name: "Du",
+      owner_color: "#22D1C3",
+      faction: "syndicate",
+      level: 2,
+      captured_at: "2026-03-15",
+      passive_power_per_day: 25,
+      buff_type: "xp_multiplier",
+      buff_value: 1.5,
+      contributors: ["Du"],
+    },
+    {
+      id: "area-2",
+      name: "Crew-Festung",
+      polygon: [
+        { lat: cLat - d * 0.30, lng: cLng + d * 0.50 },
+        { lat: cLat - d * 0.15, lng: cLng + d * 0.48 },
+        { lat: cLat - d * 0.12, lng: cLng + d * 0.72 },
+        { lat: cLat + d * 0.08, lng: cLng + d * 0.74 }, // Ecke
+        { lat: cLat + d * 0.22, lng: cLng + d * 0.40 },
+        { lat: cLat + d * 0.40, lng: cLng + d * 0.42 },
+        { lat: cLat + d * 0.42, lng: cLng + d * 1.10 }, // lange Straße
+        { lat: cLat + d * 0.25, lng: cLng + d * 1.45 },
+        { lat: cLat - d * 0.02, lng: cLng + d * 1.48 },
+        { lat: cLat - d * 0.10, lng: cLng + d * 1.20 },
+        { lat: cLat - d * 0.28, lng: cLng + d * 0.88 },
+      ],
+      owner_type: "crew",
+      owner_name: "Syndicate-Squad",
+      owner_color: "#22D1C3",
+      faction: "syndicate",
+      level: 3,
+      captured_at: "2026-02-28",
+      passive_power_per_day: 50,
+      buff_type: "shield",
+      buff_value: 48,
+      contributors: ["Du", "KiezKönig", "Pacer99"],
+    },
+    {
+      id: "area-3",
+      name: "Feindliches Gebiet",
+      polygon: [
+        { lat: cLat - d * 1.20, lng: cLng - d * 0.80 },
+        { lat: cLat - d * 1.00, lng: cLng - d * 0.90 },
+        { lat: cLat - d * 0.70, lng: cLng - d * 0.85 },
+        { lat: cLat - d * 0.52, lng: cLng - d * 0.70 }, // Diagonale (Pfad)
+        { lat: cLat - d * 0.40, lng: cLng - d * 0.88 },
+        { lat: cLat - d * 0.18, lng: cLng - d * 0.60 },
+        { lat: cLat - d * 0.22, lng: cLng - d * 0.25 },
+        { lat: cLat - d * 0.55, lng: cLng - d * 0.15 },
+        { lat: cLat - d * 0.85, lng: cLng - d * 0.18 },
+        { lat: cLat - d * 1.05, lng: cLng - d * 0.40 },
+      ],
+      owner_type: "enemy_crew",
+      owner_name: "Kreuzberg Kollektiv",
+      owner_color: "#a855f7",
+      faction: "vanguard",
+      level: 2,
+      captured_at: "2026-03-01",
+      passive_power_per_day: 25,
+      buff_type: "radar",
+      buff_value: 10,
+      contributors: ["NeonFuchs"],
+    },
+  ];
+
+  const supply_drops: SupplyDrop[] = [
+    {
+      id: "drop-1",
+      lat: cLat + d * 0.5, lng: cLng + d * 0.2,
+      expires_at: new Date(Date.now() + 32 * 60 * 1000).toISOString(),
+      rarity: "rare",
+      content_xp: 250,
+      content_marker_id: "hedgehog",
+    },
+    {
+      id: "drop-2",
+      lat: cLat - d * 0.6, lng: cLng + d * 0.8,
+      expires_at: new Date(Date.now() + 18 * 60 * 1000).toISOString(),
+      rarity: "epic",
+      content_xp: 750,
+    },
+    {
+      id: "drop-3",
+      lat: cLat + d * 0.9, lng: cLng - d * 0.4,
+      expires_at: new Date(Date.now() + 44 * 60 * 1000).toISOString(),
+      rarity: "legendary",
+      content_xp: 1500,
+    },
+  ];
+
+  const glitch_zones: GlitchZone[] = [
+    {
+      id: "glitch-1",
+      lat: cLat + d * 1.2, lng: cLng + d * 0.3,
+      radius_m: 80,
+      xp_multiplier: 3,
+      expires_at: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
+    },
+  ];
+
+  // Alle Runner (Crew + Solo) um User-Position — jeder mit equippedem Map-Icon
+  const runners: MapRunner[] = [
+    // Crew-Mitglieder (Syndicate)
+    { id: "r1", username: "KiezKönig",  lat: cLat + d * 0.4, lng: cLng + d * 0.3,  is_walking: true,  current_km: 2.3, color: "#22D1C3", is_crew_member: true,  crew_color: "#22D1C3", faction: "syndicate", marker_icon: "🦅" },
+    { id: "r2", username: "Pacer99",    lat: cLat + d * 0.7, lng: cLng - d * 0.1,  is_walking: false, current_km: 0,   color: "#22D1C3", is_crew_member: true,  crew_color: "#22D1C3", faction: "syndicate", marker_icon: "🏃" },
+    // Fremde Vanguard-Fraktion
+    { id: "r3", username: "NeonFuchs",  lat: cLat - d * 0.7, lng: cLng - d * 0.5,  is_walking: true,  current_km: 4.1, color: "#a855f7", is_crew_member: false,                       faction: "vanguard",  marker_icon: "🔥" },
+    { id: "r4", username: "Strider",    lat: cLat - d * 0.3, lng: cLng + d * 1.2,  is_walking: true,  current_km: 1.8, color: "#FF2D78", is_crew_member: false,                       faction: "vanguard",  marker_icon: "⚡" },
+    { id: "r5", username: "WalkerJane", lat: cLat + d * 1.1, lng: cLng + d * 0.6,  is_walking: false, current_km: 0,   color: "#FF6B4A", is_crew_member: false,                       faction: "vanguard",  marker_icon: "🚶" },
+    // Solo-Läufer Syndicate aber keine eigene Crew
+    { id: "r6", username: "DriftGhost", lat: cLat - d * 0.5, lng: cLng + d * 0.9,  is_walking: true,  current_km: 3.2, color: "#5ddaf0", is_crew_member: false,                       faction: "syndicate", marker_icon: "🐺" },
+    { id: "r7", username: "NightRun42", lat: cLat + d * 0.2, lng: cLng - d * 1.3,  is_walking: false, current_km: 0,   color: "#5ddaf0", is_crew_member: false,                       faction: "syndicate", marker_icon: "🛸" },
+  ];
+
+  return { claimed_areas, supply_drops, glitch_zones, runners };
+}
+
 // Live-Metriken auf der Karte (Demo — später aus Supabase Realtime)
 export const DEMO_MAP_LIVE = {
   runners_in_zip:   7,              // PLZ-Gebiet
   zip:              "10437",
+  district:         "Prenzlauer Berg",
   runners_in_city:  143,             // Stadt gesamt
   city:             "Berlin",
   // Aktueller Angriff auf einen Straßenzug (während Walk)

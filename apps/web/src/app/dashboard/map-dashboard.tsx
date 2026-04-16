@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
+import { snapToRoads } from "@/lib/snap-to-roads";
 import {
   getCurrentRank,
   getNextRank,
@@ -27,9 +28,13 @@ import {
   DEMO_STATS,
   DEMO_MAP_LIVE,
   DEMO_RUNNERS,
+  generateDemoMapData,
+  DEMO_MISSIONS,
+  DEMO_BOOSTS,
   generateDemoRecentRuns,
+  getCurrentHappyHour,
 } from "@/lib/game-config";
-import type { DemoRunnerProfile } from "@/lib/game-config";
+import type { DemoRunnerProfile, ClaimedArea, Boost } from "@/lib/game-config";
 
 interface Profile {
   id: string;
@@ -112,6 +117,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [savedTerritories, setSavedTerritories] = useState<Coord[][]>([]);
   const [territoryCount, setTerritoryCount] = useState(0);
   const [viewingRunner, setViewingRunner] = useState<string | null>(null);
+  const [viewingArea, setViewingArea] = useState<string | null>(null);
+  const [boostShopOpen, setBoostShopOpen] = useState(false);
+  const [overviewMode, setOverviewMode] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [snapping, setSnapping] = useState(false);
+  const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
 
   // Crew
   const [myCrew, setMyCrew] = useState<Crew | null>(null);
@@ -194,22 +205,33 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       return;
     }
 
+    // Snap-to-Roads: GPS-Trace auf tatsächliche Straßen/Gehwege ausrichten.
+    // Fallback auf rohe GPS-Daten wenn Service nicht verfügbar.
+    setSnapping(true);
+    const snapped = await snapToRoads(activeRoute);
+    setSnapping(false);
+
+    const finalRoute = snapped?.path ?? activeRoute;
+    const finalDistance = snapped?.distance_m ?? Math.round(distance);
+    const finalDuration = snapped?.duration_s ?? elapsed;
+    const finalStreet = snapped?.streets[0] ?? currentStreet;
+
     if (profile) {
       const { error } = await supabase.from("territories").insert({
         user_id: profile.id,
         crew_id: profile.current_crew_id,
-        street_name: currentStreet,
-        route: activeRoute,
-        distance_m: Math.round(distance),
-        duration_s: elapsed,
+        street_name: finalStreet,
+        route: finalRoute,
+        distance_m: Math.round(finalDistance),
+        duration_s: Math.round(finalDuration),
         xp_earned: XP_PER_TERRITORY,
       });
 
       if (!error) {
         const newXp = (profile.xp || 0) + XP_PER_TERRITORY;
-        const newDistance = (profile.total_distance_m || 0) + Math.round(distance);
+        const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
         const newWalks = (profile.total_walks || 0) + 1;
-        const newCal = (profile.total_calories || 0) + Math.round(distance * 0.06);
+        const newCal = (profile.total_calories || 0) + Math.round(finalDistance * 0.06);
 
         await supabase.from("users").update({
           xp: newXp,
@@ -225,10 +247,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           total_walks: newWalks,
           total_calories: newCal,
         });
-        setSavedTerritories((prev) => [...prev, activeRoute]);
+        setSavedTerritories((prev) => [...prev, finalRoute]);
         setTerritoryCount((c) => c + 1);
 
-        alert(`🎉 Straßenzug erobert!\n+${XP_PER_TERRITORY} XP`);
+        const streets = snapped?.streets.length ? `\n${snapped.streets.slice(0, 3).join(" · ")}` : "";
+        alert(`🎉 Straßenzug erobert!${streets}\n+${XP_PER_TERRITORY} XP`);
       }
     }
     setActiveRoute([]);
@@ -241,8 +264,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     setActiveRoute([]);
   };
 
+  const [userCenter, setUserCenter] = useState<{ lat: number; lng: number } | null>(null);
+
   const onLocationUpdate = useCallback(
     (lng: number, lat: number) => {
+      // Demo-Daten nur EINMAL beim allerersten GPS-Fix um die User-Position verankern.
+      // Danach bleiben Runner, Drops und Territorien an den gesetzten lat/lng fest,
+      // damit sie beim Zoom/Walk nicht mit wandern.
+      setUserCenter((prev) => prev ?? { lat, lng });
+
       if (!walking) return;
       const now = Date.now();
 
@@ -265,6 +295,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     },
     [walking]
   );
+
+  // Demo-Daten um User-Position (fällt auf Berlin-Prenzlauer Berg zurück falls keine Pos)
+  const demoMap = useMemo(
+    () => generateDemoMapData(userCenter || { lat: 52.5400, lng: 13.4100 }),
+    [userCenter]
+  );
+
+  // Recenter-Trigger (Counter)
+  const [recenterAt, setRecenterAt] = useState(0);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -303,31 +342,95 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               lightId={equippedLight}
               activeRoute={activeRoute}
               savedTerritories={savedTerritories}
+              claimedAreas={demoMap.claimed_areas}
+              supplyDrops={[]}
+              glitchZones={[]}
+              crewMembers={[]}
+              onAreaClick={setViewingArea}
+              overviewMode={overviewMode}
+              recenterAt={recenterAt}
+              lightPreset={lightPreset}
             />
+
+            {/* Snap-Loading-Indikator */}
+            {snapping && (
+              <div style={{
+                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                zIndex: 60,
+                background: "rgba(18, 26, 46, 0.92)",
+                backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                padding: "18px 24px", borderRadius: 18,
+                border: `1px solid ${PRIMARY}66`,
+                boxShadow: `0 0 28px ${PRIMARY}66`,
+                display: "flex", alignItems: "center", gap: 12,
+                color: "#FFF", fontSize: 14, fontWeight: 800,
+              }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 10,
+                  border: `3px solid ${PRIMARY}`,
+                  borderTopColor: "transparent",
+                  animation: "snapSpin 0.8s linear infinite",
+                }} />
+                <span>Route wird auf Straßen ausgerichtet…</span>
+                <style>{`@keyframes snapSpin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            )}
+
+            {/* Happy Hour Banner (oben zentriert) */}
+            <HappyHourBanner />
 
             {/* Live-Info-Panel (oben links) */}
             <MapLivePanel teamColor={teamColor} onViewRunner={setViewingRunner} />
 
-            {/* cheatContainer: top 50 right 20 */}
-            {!walking && (
-              <div style={{ position: "absolute", top: 20, right: 20, zIndex: 50 }}>
+            {/* Map-Controls (rechts oben Stack) */}
+            <div style={{
+              position: "absolute", top: 20, right: 20, zIndex: 50,
+              display: "flex", flexDirection: "column", gap: 8,
+            }}>
+              <MapIconButton
+                icon="📍"
+                label="Auf mich zentrieren"
+                onClick={() => setRecenterAt(Date.now())}
+                accent="#4ade80"
+              />
+              <MapIconButton
+                icon={
+                  lightPreset === "auto" ? "🕐" :
+                  lightPreset === "dawn" ? "🌅" :
+                  lightPreset === "day" ? "☀️" :
+                  lightPreset === "dusk" ? "🌆" : "🌙"
+                }
+                label="Tageszeit"
+                onClick={() => {
+                  const order: Array<typeof lightPreset> = ["auto", "day", "dusk", "night", "dawn"];
+                  const idx = order.indexOf(lightPreset);
+                  setLightPreset(order[(idx + 1) % order.length]);
+                }}
+                accent="#FFD700"
+              />
+              <MapIconButton
+                icon={overviewMode ? "🎯" : "🗺️"}
+                label={overviewMode ? "Zurück" : "Übersicht"}
+                onClick={() => setOverviewMode(!overviewMode)}
+                active={overviewMode}
+              />
+              <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={DEMO_MISSIONS.length} />
+              <MapIconButton icon="⚡" label="Boost-Shop" onClick={() => setBoostShopOpen(true)} accent="#FFD700" />
+              {!walking && (
                 <button
                   onClick={clearMap}
                   style={{
-                    background: BORDER,
-                    padding: "12px 16px",
-                    borderRadius: 20,
-                    border: `1px solid ${ACCENT}`,
-                    color: ACCENT,
-                    fontSize: 12,
-                    fontWeight: "bold",
-                    cursor: "pointer",
+                    background: "rgba(18, 26, 46, 0.6)",
+                    backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                    padding: "8px 12px", borderRadius: 12,
+                    border: `1px solid ${ACCENT}66`,
+                    color: ACCENT, fontSize: 11, fontWeight: 700, cursor: "pointer",
                   }}
                 >
                   🗑 Karte leeren
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* mapActionOverlay: bottom 30 */}
             <div style={{ position: "absolute", bottom: 30, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", zIndex: 50, pointerEvents: "none" }}>
@@ -489,6 +592,31 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           myFaction={profile?.faction || "syndicate"}
           onClose={() => setViewingRunner(null)}
         />
+      )}
+
+      {/* Territory-Detail-Modal */}
+      {viewingArea && demoMap.claimed_areas.find((a) => a.id === viewingArea) && (
+        <AreaDetailModal
+          area={demoMap.claimed_areas.find((a) => a.id === viewingArea)!}
+          onClose={() => setViewingArea(null)}
+          onViewRunner={(username) => {
+            setViewingArea(null);
+            setViewingRunner(username);
+          }}
+        />
+      )}
+
+      {/* Boost-Shop-Modal */}
+      {boostShopOpen && (
+        <BoostShopModal
+          currentXp={profile?.xp || 0}
+          onClose={() => setBoostShopOpen(false)}
+        />
+      )}
+
+      {/* Missionen-Modal */}
+      {missionsOpen && (
+        <MissionsModal onClose={() => setMissionsOpen(false)} />
       )}
     </div>
   );
@@ -1335,7 +1463,7 @@ function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRu
       <style>{`@keyframes livePanelPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:0.5} }`}</style>
 
       {/* Runner-Zähler */}
-      {row("👥", live.runners_in_zip, `im Kiez (${live.zip})`, teamColor)}
+      {row("👥", live.runners_in_zip, `in ${live.district}`, teamColor)}
       {row("🏙️", live.runners_in_city, `in ${live.city}`, "#5ddaf0")}
 
       {/* Divider */}
@@ -1560,6 +1688,371 @@ function RunnerStat({ emoji, value, label, unit, color }: {
       <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
         <span style={{ color, fontSize: 20, fontWeight: 900 }}>{value}</span>
         {unit && <span style={{ color: MUTED, fontSize: 11, fontWeight: 600 }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+ * HAPPY HOUR Banner + Map-Buttons + Area/Boost/Mission-Modals
+ * ═══════════════════════════════════════════════════════ */
+
+function HappyHourBanner() {
+  const hh = getCurrentHappyHour();
+  const [remaining, setRemaining] = useState("");
+
+  useEffect(() => {
+    if (!hh.active) return;
+    const tick = () => {
+      const diff = new Date(hh.ends_at).getTime() - Date.now();
+      if (diff <= 0) { setRemaining("0:00"); return; }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setRemaining(`${m}:${s.toString().padStart(2, "0")}`);
+    };
+    tick();
+    const int = setInterval(tick, 1000);
+    return () => clearInterval(int);
+  }, [hh.active, hh.ends_at]);
+
+  if (!hh.active) return null;
+
+  return (
+    <div style={{
+      position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)",
+      zIndex: 55, pointerEvents: "none",
+      padding: "8px 16px", borderRadius: 20,
+      background: "linear-gradient(90deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 74, 0.2))",
+      backdropFilter: "blur(18px) saturate(180%)",
+      WebkitBackdropFilter: "blur(18px) saturate(180%)",
+      border: "1px solid rgba(255, 215, 0, 0.6)",
+      boxShadow: "0 0 24px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+      display: "flex", alignItems: "center", gap: 10,
+      animation: "happyHourPulse 2s ease-in-out infinite",
+    }}>
+      <span style={{ fontSize: 18 }}>⚡</span>
+      <div>
+        <span style={{ color: "#FFD700", fontSize: 12, fontWeight: 900, letterSpacing: 1 }}>
+          {hh.label.toUpperCase()} · {hh.multiplier}× XP
+        </span>
+        <span style={{ color: "#FFF", fontSize: 11, fontWeight: 600, marginLeft: 10 }}>
+          noch {remaining}
+        </span>
+      </div>
+      <style>{`@keyframes happyHourPulse { 0%,100%{box-shadow:0 0 24px rgba(255,215,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)} 50%{box-shadow:0 0 36px rgba(255,215,0,0.7), inset 0 1px 0 rgba(255,255,255,0.3)} }`}</style>
+    </div>
+  );
+}
+
+function MapIconButton({ icon, label, onClick, active, accent, badge }: {
+  icon: string; label: string; onClick: () => void; active?: boolean; accent?: string; badge?: number;
+}) {
+  const color = accent || (active ? PRIMARY : "#FFF");
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        width: 48, height: 48, borderRadius: 14,
+        background: active ? `${color}28` : "rgba(18, 26, 46, 0.55)",
+        backdropFilter: "blur(16px) saturate(160%)",
+        WebkitBackdropFilter: "blur(16px) saturate(160%)",
+        border: active ? `1px solid ${color}` : "1px solid rgba(255,255,255,0.14)",
+        cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        position: "relative",
+        fontSize: 20,
+        boxShadow: active ? `0 0 14px ${color}66` : "0 4px 14px rgba(0,0,0,0.3)",
+        transition: "all 0.15s",
+      }}
+    >
+      {icon}
+      {badge !== undefined && badge > 0 && (
+        <div style={{
+          position: "absolute", top: -4, right: -4,
+          minWidth: 18, height: 18, borderRadius: 9,
+          background: ACCENT, color: "#FFF",
+          fontSize: 10, fontWeight: 900,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "0 5px",
+          boxShadow: `0 0 8px ${ACCENT}88`,
+        }}>{badge}</div>
+      )}
+    </button>
+  );
+}
+
+function AreaDetailModal({ area, onClose, onViewRunner }: {
+  area: ClaimedArea;
+  onClose: () => void;
+  onViewRunner: (username: string) => void;
+}) {
+  const ownerLabel: Record<string, string> = {
+    me: "Dein Territorium",
+    crew: "Crew-Territorium",
+    enemy_crew: "Feindliches Crew-Territorium",
+    enemy_solo: "Feindlicher Solo-Läufer",
+  };
+  const buffLabel: Record<string, string> = {
+    xp_multiplier: `${area.buff_value}× XP in diesem Gebiet`,
+    shield:        `${area.buff_value}h Schild-Schutz`,
+    radar:         `${area.buff_value}% Radar-Reichweite`,
+    speed:         `${area.buff_value}× Bewegungs-Boost`,
+    none:          "Kein Buff",
+  };
+  const isOwn = area.owner_type === "me" || area.owner_type === "crew";
+  const captured = new Date(area.captured_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });
+
+  return (
+    <Modal
+      title={area.name}
+      subtitle={ownerLabel[area.owner_type]}
+      icon={isOwn ? "🏰" : "⚔️"}
+      accent={area.owner_color}
+      onClose={onClose}
+    >
+      {/* Owner & Level */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 14px", borderRadius: 12, marginBottom: 14,
+        background: `${area.owner_color}15`,
+        border: `1px solid ${area.owner_color}55`,
+      }}>
+        <div style={{
+          width: 46, height: 46, borderRadius: 12,
+          background: `linear-gradient(135deg, ${area.owner_color}55, ${area.owner_color}22)`,
+          border: `1px solid ${area.owner_color}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 24, boxShadow: `0 0 14px ${area.owner_color}66`,
+        }}>{area.level === 3 ? "🏰" : area.level === 2 ? "🏛" : "🏠"}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#FFF", fontSize: 15, fontWeight: 800 }}>{area.owner_name}</div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
+            {"★".repeat(area.level)}{"☆".repeat(3 - area.level)} · Level {area.level}
+          </div>
+        </div>
+      </div>
+
+      {/* Buff */}
+      <div style={{
+        padding: "12px 14px", borderRadius: 12, marginBottom: 14,
+        background: "linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(70, 82, 122, 0.4))",
+        border: "1px solid rgba(255, 215, 0, 0.3)",
+      }}>
+        <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
+          ⚡ AKTIVER BUFF
+        </div>
+        <div style={{ color: "#FFF", fontSize: 14, fontWeight: 700 }}>{buffLabel[area.buff_type]}</div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <RunnerStat emoji="⚡" value={area.passive_power_per_day.toString()} label="Macht / Tag" color={PRIMARY} />
+        <RunnerStat emoji="👥" value={area.contributors.length.toString()} label="Beteiligte" color="#5ddaf0" />
+      </div>
+
+      {/* Contributors */}
+      <div style={{
+        padding: "12px 14px", borderRadius: 12, marginBottom: 14,
+        background: "rgba(70, 82, 122, 0.45)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>
+          MITWIRKENDE
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {area.contributors.map((c) => {
+            const canView = c !== "Du" && !!DEMO_RUNNERS[c];
+            return (
+              <button
+                key={c}
+                onClick={canView ? () => onViewRunner(c) : undefined}
+                disabled={!canView}
+                style={{
+                  padding: "5px 12px", borderRadius: 10,
+                  background: `${area.owner_color}22`,
+                  border: `1px solid ${area.owner_color}55`,
+                  color: area.owner_color, fontSize: 12, fontWeight: 700,
+                  cursor: canView ? "pointer" : "default",
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  if (canView) e.currentTarget.style.background = `${area.owner_color}44`;
+                }}
+                onMouseLeave={(e) => {
+                  if (canView) e.currentTarget.style.background = `${area.owner_color}22`;
+                }}
+              >
+                {c}
+                {canView && <span style={{ fontSize: 9, opacity: 0.7 }}>→</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ textAlign: "center", color: MUTED, fontSize: 11, fontStyle: "italic" }}>
+        Erobert am {captured}
+      </div>
+
+      {isOwn && area.level < 3 && (
+        <button
+          onClick={() => alert(`Upgrade auf Level ${area.level + 1} für ${(area.level * 2000).toLocaleString()} XP – kommt bald`)}
+          style={{
+            width: "100%", marginTop: 16, padding: "12px 18px", borderRadius: 12,
+            background: `linear-gradient(135deg, ${area.owner_color}, ${PRIMARY})`,
+            border: "none", cursor: "pointer",
+            color: BG_DEEP, fontSize: 14, fontWeight: 900,
+            boxShadow: `0 4px 16px ${area.owner_color}66`,
+          }}
+        >
+          ⬆ UPGRADE AUF LEVEL {area.level + 1} ({(area.level * 2000).toLocaleString()} XP)
+        </button>
+      )}
+    </Modal>
+  );
+}
+
+function BoostShopModal({ currentXp, onClose }: { currentXp: number; onClose: () => void }) {
+  return (
+    <Modal
+      title="Boost-Shop"
+      subtitle={`Dein Guthaben: ${currentXp.toLocaleString()} XP`}
+      icon="⚡"
+      accent="#FFD700"
+      onClose={onClose}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {DEMO_BOOSTS.map((b) => (
+          <BoostRow key={b.id} boost={b} affordable={currentXp >= b.cost_xp} onBuy={() => {
+            if (currentXp >= b.cost_xp) alert(`✓ ${b.name} gekauft! (${b.duration_label} aktiv) – Wird serverseitig scharfgeschaltet sobald Backend steht.`);
+            else alert(`Nicht genug XP. Du brauchst noch ${(b.cost_xp - currentXp).toLocaleString()} XP.`);
+          }} />
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+function BoostRow({ boost: b, affordable, onBuy }: { boost: Boost; affordable: boolean; onBuy: () => void }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "12px 14px", borderRadius: 14,
+      background: affordable
+        ? `linear-gradient(135deg, ${b.accent}18, rgba(70, 82, 122, 0.5))`
+        : "rgba(70, 82, 122, 0.35)",
+      border: affordable ? `1px solid ${b.accent}66` : "1px solid rgba(255,255,255,0.08)",
+      opacity: affordable ? 1 : 0.7,
+    }}>
+      <div style={{
+        width: 48, height: 48, borderRadius: 14,
+        background: `${b.accent}25`,
+        border: `1px solid ${b.accent}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 24, flexShrink: 0,
+        boxShadow: affordable ? `0 0 10px ${b.accent}55` : "none",
+      }}>{b.icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800 }}>{b.name}</div>
+        <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>{b.description}</div>
+        <div style={{ color: b.accent, fontSize: 10, fontWeight: 700, marginTop: 3 }}>Dauer: {b.duration_label}</div>
+      </div>
+      <button
+        onClick={onBuy}
+        disabled={!affordable}
+        style={{
+          padding: "8px 12px", borderRadius: 10, flexShrink: 0,
+          background: affordable ? b.accent : "rgba(255,255,255,0.06)",
+          border: "none", cursor: affordable ? "pointer" : "not-allowed",
+          color: affordable ? BG_DEEP : MUTED,
+          fontSize: 12, fontWeight: 900,
+          boxShadow: affordable ? `0 2px 10px ${b.accent}55` : "none",
+        }}
+      >
+        {b.cost_xp.toLocaleString()} XP
+      </button>
+    </div>
+  );
+}
+
+function MissionsModal({ onClose }: { onClose: () => void }) {
+  const daily = DEMO_MISSIONS.filter((m) => m.type === "daily");
+  const weekly = DEMO_MISSIONS.filter((m) => m.type === "weekly");
+  return (
+    <Modal
+      title="Missionen"
+      subtitle="Tägliche & Wöchentliche Ziele"
+      icon="🎯"
+      accent="#FF6B4A"
+      onClose={onClose}
+    >
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "#FF6B4A", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+          ⏰ TÄGLICH
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {daily.map((m) => <MissionRow key={m.id} mission={m} />)}
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: 12, color: "#FFD700", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+          🗓️ WÖCHENTLICH
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {weekly.map((m) => <MissionRow key={m.id} mission={m} />)}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function MissionRow({ mission: m }: { mission: typeof DEMO_MISSIONS[number] }) {
+  const pct = Math.min(100, (m.progress / m.target) * 100);
+  const done = m.progress >= m.target;
+  const accent = m.type === "daily" ? "#FF6B4A" : "#FFD700";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "12px 14px", borderRadius: 14,
+      background: done
+        ? `linear-gradient(90deg, ${accent}28, rgba(70, 82, 122, 0.5))`
+        : "rgba(70, 82, 122, 0.45)",
+      border: done ? `1px solid ${accent}88` : "1px solid rgba(255,255,255,0.08)",
+      boxShadow: done ? `0 0 14px ${accent}33` : "none",
+    }}>
+      <div style={{
+        width: 42, height: 42, borderRadius: 21,
+        background: `${accent}22`, border: `1px solid ${accent}66`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 22, flexShrink: 0,
+      }}>{m.icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <span style={{ color: "#FFF", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</span>
+          <span style={{ color: accent, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+            {typeof m.progress === "number" ? m.progress.toFixed(m.progress % 1 === 0 ? 0 : 1) : m.progress}/{m.target}
+          </span>
+        </div>
+        <div style={{ color: MUTED, fontSize: 10, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.description}</div>
+        <div style={{ marginTop: 6, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: `${pct}%`,
+            background: `linear-gradient(90deg, ${accent}, ${PRIMARY})`,
+            borderRadius: 3, boxShadow: `0 0 6px ${accent}88`,
+            transition: "width 0.6s ease-out",
+          }} />
+        </div>
+      </div>
+      <div style={{
+        padding: "3px 8px", borderRadius: 8, flexShrink: 0,
+        background: done ? accent : `${accent}22`,
+        border: `1px solid ${accent}`,
+      }}>
+        <span style={{ color: done ? BG_DEEP : accent, fontSize: 10, fontWeight: 900 }}>
+          {done ? "✓ " : ""}+{m.reward_xp} XP
+        </span>
       </div>
     </div>
   );

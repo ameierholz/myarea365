@@ -1,28 +1,40 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
-import { LIVE_OTHER_RUNNERS, UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
+import type { ClaimedArea, SupplyDrop, GlitchZone, MapRunner } from "@/lib/game-config";
 
-const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "";
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
+mapboxgl.accessToken = MAPBOX_TOKEN;
+
 const FALLBACK = { lat: 52.6000, lng: 13.3565 };
 
-// 1:1 mapStyleDark aus der alten App
-const MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-  { featureType: "poi.business", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.government", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.school", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.medical", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.place_of_worship", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.sports_complex", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.attraction", stylers: [{ visibility: "off" }] },
-];
+// Marker-Animationen EINMAL global im <head> injecten (verhindert Flickering bei Zoom)
+if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-animations")) {
+  const style = document.createElement("style");
+  style.id = "mapbox-marker-animations";
+  style.textContent = `
+    @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
+    @keyframes runnerRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
+    @keyframes runnerBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+    @keyframes dropPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+  `;
+  document.head.appendChild(style);
+}
+
+// Eigener MyArea365-Style (Fork von Mapbox Standard mit unseren Brand-Farben)
+const MAPBOX_STYLE = "mapbox://styles/ameierholz/cmo21mgoa010201s9bi6xdooe";
+
+// LightPreset automatisch basierend auf Tageszeit
+function getCurrentLightPreset(): "dawn" | "day" | "dusk" | "night" {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 8)   return "dawn";
+  if (h >= 8 && h < 18)  return "day";
+  if (h >= 18 && h < 21) return "dusk";
+  return "night";
+}
 
 interface AppMapProps {
   onLocationUpdate?: (lng: number, lat: number) => void;
@@ -33,69 +45,100 @@ interface AppMapProps {
   lightId?: string;
   activeRoute?: Array<{ lat: number; lng: number }>;
   savedTerritories?: Array<Array<{ lat: number; lng: number }>>;
+  claimedAreas?: ClaimedArea[];
+  supplyDrops?: SupplyDrop[];
+  glitchZones?: GlitchZone[];
+  crewMembers?: MapRunner[];
+  onAreaClick?: (areaId: string) => void;
+  onDropClick?: (dropId: string) => void;
+  overviewMode?: boolean;
+  recenterAt?: number;
+  lightPreset?: "dawn" | "day" | "dusk" | "night" | "auto";
 }
 
-// Emoji-Marker für MICH (nur das Icon, mit Glow)
-function emojiMarkerHtml(emoji: string, color: string, isRunning: boolean) {
+// Helper: Polygon als GeoJSON-Feature (geschlossener Ring)
+function polygonFeature(area: ClaimedArea) {
+  const ring = [...area.polygon.map((p) => [p.lng, p.lat]), [area.polygon[0].lng, area.polygon[0].lat]];
+  return {
+    type: "Feature" as const,
+    geometry: { type: "Polygon" as const, coordinates: [ring] },
+    properties: {
+      id: area.id,
+      color: area.owner_color,
+      fillOpacity: area.owner_type === "me" || area.owner_type === "crew" ? 0.12 : 0.07,
+      strokeWeight: area.level === 3 ? 3.5 : area.level === 2 ? 3 : 2.5,
+    },
+  };
+}
+
+// Eigenes Marker-DOM (Emoji mit Glow)
+function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
-  return `
-    <div style="position:relative;display:flex;align-items:center;justify-content:center;width:${size + 20}px;height:${size + 20}px">
-      <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}80;${isRunning ? "animation:mePulse 1.5s ease-in-out infinite" : ""}"></div>
-      <span style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}80)">${emoji}</span>
-    </div>
-    <style>@keyframes mePulse{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.15);opacity:0.5}}</style>
+  const el = document.createElement("div");
+  el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 20}px;height:${size + 20}px;pointer-events:none`;
+  el.innerHTML = `
+    <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
+    <span style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
+    <style>@keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}</style>
   `;
+  return el;
 }
 
-// Andere Runner: kleiner Emoji-Marker in Team-Farbe
-function otherRunnerHtml(emoji: string, color: string) {
-  return `
-    <div style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px">
-      <div style="position:absolute;width:36px;height:36px;border-radius:50%;background:${color}20;box-shadow:0 0 12px ${color}60"></div>
-      <span style="position:relative;font-size:26px;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.7))">${emoji}</span>
+function buildRunnerMarkerEl(r: MapRunner): HTMLDivElement {
+  const isCrew = r.is_crew_member;
+  const size = isCrew ? 52 : 42;
+  const iconSize = isCrew ? 30 : 24;
+  const el = document.createElement("div");
+  el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 12}px;height:${size + 12}px`;
+
+  const crewRing = isCrew
+    ? `<div style="position:absolute;width:${size - 2}px;height:${size - 2}px;border-radius:50%;border:2.5px solid ${r.color};box-shadow:0 0 14px ${r.color}aa, inset 0 0 8px ${r.color}44"></div>`
+    : "";
+  const crewStar = isCrew
+    ? `<div style="position:absolute;top:-5px;right:-5px;width:19px;height:19px;border-radius:50%;background:${r.color};border:1.5px solid #0F1115;display:flex;align-items:center;justify-content:center;font-size:10px;color:#0F1115;box-shadow:0 0 8px ${r.color};z-index:2">★</div>`
+    : "";
+  const walkRipple = r.is_walking
+    ? `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;border:2px solid ${r.color}cc;animation:runnerRipple 1.6s ease-out infinite"></div>`
+    : "";
+  const walkBadge = r.is_walking
+    ? `<div style="position:absolute;bottom:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#0F1115;border:1.5px solid #4ade80;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px #4ade80aa;animation:runnerBob 0.6s ease-in-out infinite alternate;z-index:2">🏃</div>`
+    : "";
+
+  el.innerHTML = `
+    ${walkRipple}
+    ${crewRing}
+    <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 30% 30%, ${r.color}55, ${r.color}22);border:1px solid ${r.color}88;box-shadow:0 0 12px ${r.color}88, inset 0 0 10px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center">
+      <span style="font-size:${iconSize}px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)) drop-shadow(0 0 6px ${r.color}88)">${r.marker_icon}</span>
     </div>
+    ${crewStar}
+    ${walkBadge}
+    <style>
+      @keyframes runnerRipple{0%{transform:scale(1);opacity:0.8}100%{transform:scale(1.8);opacity:0}}
+      @keyframes runnerBob{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+    </style>
   `;
+  return el;
 }
 
-function createMarkerOverlay(
-  pos: google.maps.LatLng,
-  html: string
-): google.maps.OverlayView & { setPosition: (p: google.maps.LatLng) => void } {
-  class Overlay extends google.maps.OverlayView {
-    private div: HTMLDivElement | null = null;
-    constructor(private pos: google.maps.LatLng) {
-      super();
-    }
-    onAdd() {
-      this.div = document.createElement("div");
-      this.div.style.position = "absolute";
-      this.div.style.transform = "translate(-50%, -50%)";
-      this.div.style.pointerEvents = "none";
-      this.div.innerHTML = html;
-      this.getPanes()?.overlayMouseTarget.appendChild(this.div);
-    }
-    draw() {
-      if (!this.div) return;
-      const p = this.getProjection()?.fromLatLngToDivPixel(this.pos);
-      if (p) {
-        this.div.style.left = p.x + "px";
-        this.div.style.top = p.y + "px";
-      }
-    }
-    onRemove() {
-      this.div?.remove();
-      this.div = null;
-    }
-    setPosition(pos: google.maps.LatLng) {
-      this.pos = pos;
-      this.draw();
-    }
-  }
-  return new Overlay(pos) as google.maps.OverlayView & { setPosition: (p: google.maps.LatLng) => void };
+function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
+  const rarityColor: Record<string, string> = {
+    common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legendary: "#FFD700",
+  };
+  const color = rarityColor[drop.rarity] || "#5ddaf0";
+  const el = document.createElement("div");
+  el.style.cssText = "position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:56px;cursor:pointer";
+  el.innerHTML = `
+    <div style="position:absolute;width:52px;height:52px;border-radius:50%;background:${color}25;box-shadow:0 0 22px ${color}cc;animation:dropPulse 1.6s ease-in-out infinite"></div>
+    <div style="position:absolute;width:38px;height:38px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 12px rgba(255,255,255,0.4)">
+      <span style="font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5))">🎁</span>
+    </div>
+    <style>@keyframes dropPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:0.5}}</style>
+  `;
+  return el;
 }
 
-function LocationTracker({
+export function AppMap({
   onLocationUpdate,
   trackingActive,
   teamColor = "#5ddaf0",
@@ -103,189 +146,170 @@ function LocationTracker({
   lightId = "classic",
   activeRoute = [],
   savedTerritories = [],
+  claimedAreas = [],
+  supplyDrops = [],
+  glitchZones = [],
+  crewMembers = [],
+  onAreaClick,
+  onDropClick,
+  overviewMode = false,
+  recenterAt,
+  lightPreset = "auto",
 }: AppMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [mapReady, setMapReady] = useState(false);
+
   const myEmoji = UNLOCKABLE_MARKERS.find((m) => m.id === markerId)?.icon || "👣";
   const light = RUNNER_LIGHTS.find((l) => l.id === lightId) || RUNNER_LIGHTS[0];
-  const map = useMap();
-  const [pos, setPos] = useState<google.maps.LatLngLiteral | null>(null);
+
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const locatedRef = useRef(false);
   const watchRef = useRef<number | null>(null);
-  const meMarkerRef = useRef<(google.maps.OverlayView & { setPosition: (p: google.maps.LatLng) => void }) | null>(null);
-  const otherMarkersRef = useRef<google.maps.OverlayView[]>([]);
-  const activeLinesRef = useRef<google.maps.Polyline[]>([]);
-  const territoryPolylinesRef = useRef<google.maps.Polyline[]>([]);
+  const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
 
-  // My marker (Emoji mit Glow)
+  // Map initialisieren
   useEffect(() => {
-    if (!map || !pos) return;
-    const html = emojiMarkerHtml(myEmoji, teamColor, !!trackingActive);
-
-    meMarkerRef.current?.setMap(null);
-    const overlay = createMarkerOverlay(new google.maps.LatLng(pos.lat, pos.lng), html);
-    overlay.setMap(map);
-    meMarkerRef.current = overlay;
-
-    return () => {
-      meMarkerRef.current?.setMap(null);
-      meMarkerRef.current = null;
-    };
-  }, [map, pos, teamColor, myEmoji, trackingActive]);
-
-  // Other runners
-  useEffect(() => {
-    if (!map) return;
-    otherMarkersRef.current.forEach((m) => m.setMap(null));
-    otherMarkersRef.current = [];
-
-    const emojis = ["🏃", "🚶", "🥾"];
-    LIVE_OTHER_RUNNERS.forEach((r, i) => {
-      const html = otherRunnerHtml(emojis[i % emojis.length], r.team_color);
-      const overlay = createMarkerOverlay(new google.maps.LatLng(r.lat, r.lng), html);
-      overlay.setMap(map);
-      otherMarkersRef.current.push(overlay);
-    });
-
-    return () => {
-      otherMarkersRef.current.forEach((m) => m.setMap(null));
-      otherMarkersRef.current = [];
-    };
-  }, [map]);
-
-  // Active route mit Runner Light (gradient + glow)
-  useEffect(() => {
-    if (!map) return;
-    activeLinesRef.current.forEach((l) => l.setMap(null));
-    activeLinesRef.current = [];
-
-    if (trackingActive && activeRoute.length > 0) {
-      const path = activeRoute.map((p) => ({ lat: p.lat, lng: p.lng }));
-      const colors = light.gradient;
-      const width = light.width;
-
-      // Outer Glow (breit, transparent)
-      activeLinesRef.current.push(
-        new google.maps.Polyline({
-          map,
-          path,
-          strokeColor: colors[0],
-          strokeOpacity: 0.25,
-          strokeWeight: width + 14,
-          zIndex: 1,
-        })
-      );
-
-      // Mid Glow
-      activeLinesRef.current.push(
-        new google.maps.Polyline({
-          map,
-          path,
-          strokeColor: colors[0],
-          strokeOpacity: 0.45,
-          strokeWeight: width + 6,
-          zIndex: 2,
-        })
-      );
-
-      if (colors.length === 1) {
-        // Single color line
-        activeLinesRef.current.push(
-          new google.maps.Polyline({
-            map,
-            path,
-            strokeColor: colors[0],
-            strokeOpacity: 1,
-            strokeWeight: width,
-            zIndex: 3,
-          })
-        );
-      } else {
-        // Gradient: Pfad in Segmente aufteilen, jedes Segment bekommt eine Farbe
-        const segments = Math.max(colors.length * 4, path.length - 1);
-        const step = (path.length - 1) / segments;
-
-        for (let i = 0; i < segments; i++) {
-          const startIdx = Math.floor(i * step);
-          const endIdx = Math.min(Math.ceil((i + 1) * step), path.length - 1);
-          if (endIdx <= startIdx) continue;
-
-          const segPath = path.slice(startIdx, endIdx + 1);
-          const t = i / (segments - 1);
-          const colorIdx = Math.min(Math.floor(t * colors.length), colors.length - 1);
-          const color = colors[colorIdx];
-
-          activeLinesRef.current.push(
-            new google.maps.Polyline({
-              map,
-              path: segPath,
-              strokeColor: color,
-              strokeOpacity: 1,
-              strokeWeight: width,
-              zIndex: 3,
-            })
-          );
-        }
-      }
+    if (!containerRef.current || mapRef.current) return;
+    if (!MAPBOX_TOKEN) {
+      console.warn("NEXT_PUBLIC_MAPBOX_TOKEN fehlt!");
+      return;
     }
 
-    return () => {
-      activeLinesRef.current.forEach((l) => l.setMap(null));
-      activeLinesRef.current = [];
-    };
-  }, [map, activeRoute, trackingActive, light]);
+    const map = new mapboxgl.Map({
+      container: containerRef.current,
+      style: MAPBOX_STYLE,
+      center: [FALLBACK.lng, FALLBACK.lat],
+      zoom: 16,          // höheres Default-Zoom → Fassaden-Details sichtbar
+      pitch: 62,         // stärkere 3D-Perspektive für dramatischere Gebäude
+      bearing: -20,
+      attributionControl: false,
+    });
 
-  // Saved territories (Glow + Main-Line in Light-Farbe)
-  useEffect(() => {
-    if (!map) return;
-    territoryPolylinesRef.current.forEach((p) => p.setMap(null));
-    territoryPolylinesRef.current = [];
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
 
-    savedTerritories.forEach((territory) => {
-      const path = territory.map((p) => ({ lat: p.lat, lng: p.lng }));
-      const color = light.gradient[0];
+    map.on("style.load", () => {
+      const preset = lightPreset === "auto" ? getCurrentLightPreset() : lightPreset;
+      try {
+        map.setConfigProperty("basemap", "lightPreset", preset);
+        map.setConfigProperty("basemap", "show3dObjects", true);
+        map.setConfigProperty("basemap", "showPointOfInterestLabels", false);
+        map.setConfigProperty("basemap", "showTransitLabels", false);
+        map.setConfigProperty("basemap", "showRoadLabels", true);
+        map.setConfigProperty("basemap", "showPlaceLabels", true);
+      } catch (e) {
+        console.warn("Mapbox Standard-Config konnte nicht gesetzt werden:", e);
+      }
 
-      territoryPolylinesRef.current.push(
-        new google.maps.Polyline({
-          map,
-          path,
-          strokeColor: color,
-          strokeOpacity: 0.35,
-          strokeWeight: light.width + 8,
-          zIndex: 1,
-        })
-      );
-      territoryPolylinesRef.current.push(
-        new google.maps.Polyline({
-          map,
-          path,
-          strokeColor: color,
-          strokeOpacity: 1,
-          strokeWeight: light.width + 2,
-          zIndex: 2,
-        })
-      );
+      // ═══ Custom 3D-Buildings mit Cyberpunk-Emissive-Look ═══
+      try {
+        const style = map.getStyle();
+        const hasMapbox = !!style?.sources?.["mapbox"];
+        const hasComposite = !!style?.sources?.["composite"];
+        const sourceName = hasComposite ? "composite" : (hasMapbox ? "mapbox" : null);
+
+        if (sourceName && !map.getLayer("neon-buildings")) {
+          map.addLayer({
+            id: "neon-buildings",
+            source: sourceName,
+            "source-layer": "building",
+            filter: ["all",
+              ["==", ["get", "extrude"], "true"],
+              ["!=", ["get", "underground"], "true"],
+            ],
+            type: "fill-extrusion",
+            minzoom: 13,
+            paint: {
+              // Farben variieren per Gebäude-ID → Neon-Mix aus Brand-Farben
+              "fill-extrusion-color": [
+                "interpolate",
+                ["linear"],
+                ["%", ["coalesce", ["id"], 0], 7],
+                0, "#2a3060",   // dunkles Indigo
+                1, "#3d4a8a",   // mid Indigo
+                2, "#2a4d6e",   // Petrol
+                3, "#6a3a8a",   // Violett
+                4, "#3a5580",   // Stahl-Blau
+                5, "#4a3570",   // dunkles Purple
+                6, "#2a3a5c",   // Slate
+                7, "#3d4a8a",
+              ],
+              "fill-extrusion-height": ["get", "height"],
+              "fill-extrusion-base": ["get", "min_height"],
+              "fill-extrusion-opacity": 0.92,
+              // Emissive = Gebäude strahlen leicht (simuliert Fenster-Lichter)
+              "fill-extrusion-emissive-strength": 0.55,
+              // Ambient Occlusion für realistische Schatten in Ecken
+              "fill-extrusion-ambient-occlusion-intensity": 0.85,
+              "fill-extrusion-ambient-occlusion-radius": 3.5,
+              // Flood-Light unten am Gebäude = Neon-Schein auf Straße
+              "fill-extrusion-flood-light-color": "#22D1C3",
+              "fill-extrusion-flood-light-intensity": 0.35,
+              "fill-extrusion-flood-light-wall-radius": 12,
+              "fill-extrusion-flood-light-ground-radius": 18,
+              "fill-extrusion-vertical-gradient": true,
+            } as mapboxgl.FillExtrusionLayerSpecification["paint"],
+          });
+        }
+      } catch (e) {
+        console.warn("Neon-Buildings-Layer fehlgeschlagen:", e);
+      }
+
+      mapRef.current = map;
+      setMapReady(true);
     });
 
     return () => {
-      territoryPolylinesRef.current.forEach((p) => p.setMap(null));
-      territoryPolylinesRef.current = [];
+      map.remove();
+      mapRef.current = null;
     };
-  }, [map, savedTerritories, light]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Map wird nur einmal erzeugt — LightPreset-Änderungen über setConfigProperty
 
+  // Auto-Update LightPreset alle 5 Minuten wenn auf "auto"
+  useEffect(() => {
+    if (!mapReady || lightPreset !== "auto") return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const update = () => {
+      try {
+        map.setConfigProperty("basemap", "lightPreset", getCurrentLightPreset());
+      } catch { /* style evtl. gerade im Transition */ }
+    };
+    const interval = setInterval(update, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [mapReady, lightPreset]);
+
+  // Explizit gewählter lightPreset
+  useEffect(() => {
+    if (!mapReady || lightPreset === "auto") return;
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      map.setConfigProperty("basemap", "lightPreset", lightPreset);
+    } catch { /* ignore */ }
+  }, [mapReady, lightPreset]);
+
+  // Geolocation
   const handlePosition = useCallback(
     (geoPos: GeolocationPosition) => {
       const newPos = { lat: geoPos.coords.latitude, lng: geoPos.coords.longitude };
       setPos(newPos);
       onLocationUpdate?.(newPos.lng, newPos.lat);
 
+      const map = mapRef.current;
       if (map && !locatedRef.current) {
-        map.panTo(newPos);
-        map.setZoom(17);
+        map.flyTo({ center: [newPos.lng, newPos.lat], zoom: 17, pitch: 50, duration: 900 });
         locatedRef.current = true;
       } else if (map && trackingActive) {
-        map.panTo(newPos);
+        map.panTo([newPos.lng, newPos.lat], { duration: 600 });
       }
     },
-    [map, trackingActive, onLocationUpdate]
+    [onLocationUpdate, trackingActive]
   );
 
   useEffect(() => {
@@ -300,32 +324,289 @@ function LocationTracker({
     };
   }, [handlePosition]);
 
-  return null;
-}
+  // Recenter
+  useEffect(() => {
+    if (!mapReady || !recenterAt || !pos) return;
+    mapRef.current?.flyTo({ center: [pos.lng, pos.lat], zoom: 17, pitch: 50, duration: 900 });
+  }, [recenterAt, mapReady, pos]);
 
-function MapInner(props: AppMapProps) {
-  return (
-    <Map
-      defaultCenter={FALLBACK}
-      defaultZoom={15}
-      gestureHandling="greedy"
-      disableDefaultUI
-      zoomControl
-      clickableIcons={false}
-      styles={MAP_STYLE}
-      style={{ width: "100%", height: "100%" }}
-    >
-      <LocationTracker {...props} />
-    </Map>
-  );
-}
+  // Overview-Mode: Zoom raus + Pitch zurück auf flach
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    if (overviewMode) {
+      map.flyTo({ zoom: 13, pitch: 0, duration: 900 });
+    } else if (pos) {
+      map.flyTo({ center: [pos.lng, pos.lat], zoom: 17, pitch: 50, duration: 900 });
+    }
+  }, [overviewMode, mapReady, pos]);
 
-export function AppMap(props: AppMapProps) {
+  // Eigenes Marker
+  useEffect(() => {
+    if (!mapReady || !pos) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    selfMarkerRef.current?.remove();
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive);
+    selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
+      .setLngLat([pos.lng, pos.lat])
+      .addTo(map);
+
+    return () => {
+      selfMarkerRef.current?.remove();
+      selfMarkerRef.current = null;
+    };
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive]);
+
+  // Runner
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    runnerMarkersRef.current.forEach((m) => m.remove());
+    runnerMarkersRef.current = [];
+
+    crewMembers.forEach((r) => {
+      const el = buildRunnerMarkerEl(r);
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([r.lng, r.lat])
+        .addTo(map);
+      runnerMarkersRef.current.push(marker);
+    });
+
+    return () => {
+      runnerMarkersRef.current.forEach((m) => m.remove());
+      runnerMarkersRef.current = [];
+    };
+  }, [mapReady, crewMembers]);
+
+  // Drops
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    dropMarkersRef.current.forEach((m) => m.remove());
+    dropMarkersRef.current = [];
+
+    supplyDrops.forEach((drop) => {
+      const el = buildDropMarkerEl(drop);
+      el.addEventListener("click", () => onDropClick?.(drop.id));
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([drop.lng, drop.lat])
+        .addTo(map);
+      dropMarkersRef.current.push(marker);
+    });
+
+    return () => {
+      dropMarkersRef.current.forEach((m) => m.remove());
+      dropMarkersRef.current = [];
+    };
+  }, [mapReady, supplyDrops, onDropClick]);
+
+  // Claimed Areas (Polygon Fill + Stroke)
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const sourceId = "claimed-areas";
+    const fillId = "claimed-areas-fill";
+    const strokeId = "claimed-areas-stroke";
+
+    const data = {
+      type: "FeatureCollection" as const,
+      features: claimedAreas.map(polygonFeature),
+    };
+
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: fillId,
+        type: "fill",
+        source: sourceId,
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": ["get", "fillOpacity"],
+          "fill-emissive-strength": 0.3,
+        } as mapboxgl.FillLayerSpecification["paint"],
+      });
+      // Weicher Glow unter der Haupt-Linie — stark emissive damit es bei Night leuchtet
+      map.addLayer({
+        id: strokeId + "-glow",
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": ["*", ["get", "strokeWeight"], 4],
+          "line-opacity": 0.55,
+          "line-blur": 5,
+          "line-emissive-strength": 1.0,
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+      // Scharfe Haupt-Linie ebenfalls emissive
+      map.addLayer({
+        id: strokeId,
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": ["get", "strokeWeight"],
+          "line-opacity": 1,
+          "line-emissive-strength": 1.0,
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+      map.on("click", fillId, (e) => {
+        const f = e.features?.[0];
+        if (f && onAreaClick) onAreaClick(f.properties?.id as string);
+      });
+      map.on("mouseenter", fillId, () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", fillId, () => { map.getCanvas().style.cursor = ""; });
+    }
+  }, [mapReady, claimedAreas, onAreaClick]);
+
+  // Glitch-Zonen
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const sourceId = "glitch-zones";
+    const layerId = "glitch-zones-fill";
+
+    const data = {
+      type: "FeatureCollection" as const,
+      features: glitchZones.map((z) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [z.lng, z.lat] },
+        properties: { radius: z.radius_m },
+      })),
+    };
+
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: layerId,
+        type: "circle",
+        source: sourceId,
+        paint: {
+          "circle-radius": [
+            "interpolate", ["exponential", 2], ["zoom"],
+            10, ["/", ["get", "radius"], 30],
+            20, ["/", ["get", "radius"], 0.1],
+          ],
+          "circle-color": "#a855f7",
+          "circle-opacity": 0.18,
+          "circle-stroke-color": "#a855f7",
+          "circle-stroke-width": 2,
+          "circle-stroke-opacity": 0.8,
+        },
+      });
+    }
+  }, [mapReady, glitchZones]);
+
+  // Active Route
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const sourceId = "active-route";
+    const glowId = "active-route-glow";
+    const mainId = "active-route-main";
+    const showLine = trackingActive && activeRoute.length > 0;
+
+    const data = {
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: showLine ? activeRoute.map((p) => [p.lng, p.lat]) : [],
+      },
+      properties: {},
+    };
+
+    const color = light.gradient[0];
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: glowId, type: "line", source: sourceId,
+        paint: { "line-color": color, "line-opacity": 0.3, "line-width": light.width + 10, "line-blur": 4 },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: mainId, type: "line", source: sourceId,
+        paint: { "line-color": color, "line-opacity": 1, "line-width": light.width },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+    }
+    if (map.getLayer(mainId)) {
+      map.setPaintProperty(glowId, "line-color", color);
+      map.setPaintProperty(mainId, "line-color", color);
+      map.setPaintProperty(mainId, "line-width", light.width);
+      map.setPaintProperty(glowId, "line-width", light.width + 10);
+    }
+  }, [mapReady, activeRoute, trackingActive, light]);
+
+  // Saved Territories
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const sourceId = "saved-territories";
+    const glowId = "saved-territories-glow";
+    const mainId = "saved-territories-main";
+
+    const color = light.gradient[0];
+    const data = {
+      type: "FeatureCollection" as const,
+      features: savedTerritories.map((t) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "LineString" as const,
+          coordinates: t.map((p) => [p.lng, p.lat]),
+        },
+        properties: {},
+      })),
+    };
+
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: glowId, type: "line", source: sourceId,
+        paint: { "line-color": color, "line-opacity": 0.35, "line-width": light.width + 8, "line-blur": 3 },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: mainId, type: "line", source: sourceId,
+        paint: { "line-color": color, "line-opacity": 1, "line-width": light.width + 2 },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+    }
+    if (map.getLayer(mainId)) {
+      map.setPaintProperty(glowId, "line-color", color);
+      map.setPaintProperty(mainId, "line-color", color);
+    }
+  }, [mapReady, savedTerritories, light]);
+
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <APIProvider apiKey={GOOGLE_MAPS_KEY}>
-        <MapInner {...props} />
-      </APIProvider>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>
   );
 }
