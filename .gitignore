@@ -42,3 +42,5 @@ pnpm-debug.log*
 *.p12
 *.key
 *.mobileprovision
+
+.vercel

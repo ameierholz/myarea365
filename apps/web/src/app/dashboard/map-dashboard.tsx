@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
@@ -12,10 +11,12 @@ import {
   reverseGeocode,
   FACTIONS,
   UNLOCKABLE_MARKERS,
+  RUNNER_LIGHTS,
   CREW_COLORS,
   XP_PER_TERRITORY,
   MIN_ROUTE_POINTS,
-  LIVE_OTHER_RUNNERS,
+  UNITS,
+  LANGUAGES,
 } from "@/lib/game-config";
 
 interface Profile {
@@ -28,9 +29,29 @@ interface Profile {
   total_walks: number;
   total_calories: number;
   streak_days: number;
+  streak_best: number;
   team_color: string;
   faction: string;
   current_crew_id: string | null;
+  equipped_marker_id: string;
+  equipped_light_id: string;
+  longest_run_m: number;
+  longest_run_s: number;
+  setting_units: string;
+  setting_language: string;
+  setting_notifications: boolean;
+  setting_sound: boolean;
+  setting_auto_pause: boolean;
+  setting_privacy_public: boolean;
+}
+
+interface Territory {
+  id: string;
+  street_name: string | null;
+  distance_m: number;
+  duration_s: number;
+  xp_earned: number;
+  created_at: string;
 }
 
 interface Crew {
@@ -44,33 +65,35 @@ interface Crew {
   member_count: number;
 }
 
-interface Coord {
-  lat: number;
-  lng: number;
-}
+interface Coord { lat: number; lng: number; }
 
-type TabId = "karte" | "ranking" | "crew" | "shops" | "profil";
+type TabId = "profil" | "map" | "crew" | "shops" | "ranking";
 
-const TABS: { id: TabId; emoji: string; label: string }[] = [
-  { id: "karte",   emoji: "🗺️",  label: "Karte"   },
-  { id: "ranking", emoji: "🏆",  label: "Ranking" },
-  { id: "crew",    emoji: "👥",  label: "Crew"    },
-  { id: "shops",   emoji: "🏪",  label: "Shops"   },
-  { id: "profil",  emoji: "⚡",  label: "Profil"  },
-];
+/* ═══════════════════════════════════════════════════════
+ * 1:1 Farb-Konstanten aus alter App (styles.ts)
+ * ═══════════════════════════════════════════════════════ */
+const BG = "#0F1115";
+const CARD = "#16181D";
+const BORDER = "#2A2A2A";
+const MUTED = "#888";
+const TEXT_SOFT = "#BBB";
+const PRIMARY = "#5ddaf0";
+const ACCENT = "#ef7169";
 
 export function MapDashboard({ profile: initialProfile }: { profile: Profile | null }) {
   const router = useRouter();
   const supabase = createClient();
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
-  const [activeTab, setActiveTab] = useState<TabId>("karte");
-  const [equippedMarker, setEquippedMarker] = useState("👣");
+  const [activeTab, setActiveTab] = useState<TabId>("map");
+  const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
+  const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
+  const [recentRuns, setRecentRuns] = useState<Territory[]>([]);
 
   // Walk state
   const [walking, setWalking] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [currentStreet, setCurrentStreet] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<Coord[]>([]);
   const [savedTerritories, setSavedTerritories] = useState<Coord[][]>([]);
@@ -84,48 +107,45 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const lastPosRef = useRef<Coord | null>(null);
   const lastGeoRef = useRef<number>(0);
 
-  // Auto-equip highest unlocked marker
+  // Load recent runs when profile changes
   useEffect(() => {
     if (!profile) return;
-    const available = UNLOCKABLE_MARKERS.filter((m) => m.cost <= (profile.xp || 0));
-    if (available.length > 0) setEquippedMarker(available[available.length - 1].icon);
-  }, [profile?.xp]);
+    (async () => {
+      const { data } = await supabase
+        .from("territories")
+        .select("id, street_name, distance_m, duration_s, xp_earned, created_at")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (data) setRecentRuns(data as Territory[]);
+    })();
+  }, [profile?.id]);
 
   // Load crew + territories
   useEffect(() => {
     if (!profile) return;
-
     (async () => {
-      // Count territories
       const { count } = await supabase
         .from("territories")
         .select("*", { count: "exact", head: true })
         .eq("user_id", profile.id);
       setTerritoryCount(count || 0);
 
-      // Load saved territory routes
       const { data: terrData } = await supabase
         .from("territories")
         .select("route")
         .eq("user_id", profile.id)
         .limit(50);
-      if (terrData) {
-        setSavedTerritories(terrData.map((t: { route: Coord[] }) => t.route));
-      }
+      if (terrData) setSavedTerritories(terrData.map((t: { route: Coord[] }) => t.route));
 
-      // Load crew
       if (profile.current_crew_id) {
         const { data: crewData } = await supabase
-          .from("crews")
-          .select("*")
-          .eq("id", profile.current_crew_id)
-          .single();
+          .from("crews").select("*").eq("id", profile.current_crew_id).single();
         if (crewData) setMyCrew(crewData);
       }
     })();
   }, [profile?.id, profile?.current_crew_id]);
 
-  // Load leaderboard when tab active
   useEffect(() => {
     if (activeTab !== "ranking") return;
     (async () => {
@@ -154,13 +174,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     timerRef.current = null;
 
     if (activeRoute.length < MIN_ROUTE_POINTS) {
-      alert("Lauf zu kurz! Du musst dich etwas mehr bewegen, um eine Straße zu erobern.");
+      alert("Lauf zu kurz! Du musst dich etwas mehr bewegen.");
       setActiveRoute([]);
       setCurrentStreet(null);
       return;
     }
 
-    // Save territory to DB
     if (profile) {
       const { error } = await supabase.from("territories").insert({
         user_id: profile.id,
@@ -173,21 +192,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       });
 
       if (!error) {
-        // Update user XP
         const newXp = (profile.xp || 0) + XP_PER_TERRITORY;
         const newDistance = (profile.total_distance_m || 0) + Math.round(distance);
         const newWalks = (profile.total_walks || 0) + 1;
         const newCal = (profile.total_calories || 0) + Math.round(distance * 0.06);
 
-        await supabase
-          .from("users")
-          .update({
-            xp: newXp,
-            total_distance_m: newDistance,
-            total_walks: newWalks,
-            total_calories: newCal,
-          })
-          .eq("id", profile.id);
+        await supabase.from("users").update({
+          xp: newXp,
+          total_distance_m: newDistance,
+          total_walks: newWalks,
+          total_calories: newCal,
+        }).eq("id", profile.id);
 
         setProfile({
           ...profile,
@@ -202,16 +217,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         alert(`🎉 Straßenzug erobert!\n+${XP_PER_TERRITORY} XP`);
       }
     }
-
     setActiveRoute([]);
     setCurrentStreet(null);
+  };
+
+  const clearMap = () => {
+    if (!confirm("Karte wirklich leeren?")) return;
+    setSavedTerritories([]);
+    setActiveRoute([]);
   };
 
   const onLocationUpdate = useCallback(
     (lng: number, lat: number) => {
       if (!walking) return;
-
       const now = Date.now();
+
       if (lastPosRef.current) {
         const d = haversine(lastPosRef.current.lat, lastPosRef.current.lng, lat, lng);
         if (d > 3) {
@@ -224,7 +244,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         lastPosRef.current = { lat, lng };
       }
 
-      // Reverse geocode every 5 seconds max
       if (now - lastGeoRef.current > 5000) {
         lastGeoRef.current = now;
         reverseGeocode(lat, lng).then(setCurrentStreet);
@@ -232,10 +251,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     },
     [walking]
   );
-
-  const fmt = (s: number) =>
-    `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
-  const fmtDist = (m: number) => (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -245,279 +260,728 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const p = profile;
   const currentRank = getCurrentRank(p?.xp || 0);
-  const nextRank = getNextRank(p?.xp || 0);
-  const teamColor = myCrew?.color || p?.team_color || "#22D1C3";
+  const teamColor = myCrew?.color || p?.team_color || PRIMARY;
 
   return (
-    <div style={{ height: "100dvh", width: "100%", display: "flex", flexDirection: "column", background: "#0B0E13" }}>
-
-      {/* ═══ Main content ═══ */}
+    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", background: BG }}>
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
-        {/* KARTE */}
-        {activeTab === "karte" && (
+        {/* ══ MAP TAB ══ */}
+        {activeTab === "map" && (
           <>
             <AppMap
               onLocationUpdate={onLocationUpdate}
               trackingActive={walking}
               teamColor={teamColor}
-              markerEmoji={equippedMarker}
               username={p?.display_name || p?.username || "Ich"}
+              markerId={equippedMarker}
+              lightId={equippedLight}
               activeRoute={activeRoute}
               savedTerritories={savedTerritories}
             />
 
-            {/* Top pills */}
-            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 50, display: "flex", justifyContent: "space-between", pointerEvents: "none" }}>
-              <GlassPill>
-                <Image src="/logo.png" alt="" width={22} height={22} className="rounded-full" />
-                <span className="text-xs font-bold">{p?.display_name || p?.username}</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black" style={{ background: `${currentRank.color}25`, color: currentRank.color }}>
-                  {currentRank.name}
-                </span>
-              </GlassPill>
-              <div style={{ display: "flex", gap: 6 }}>
-                <GlassPill>
-                  <span className="text-xs">⚡</span>
-                  <span className="text-xs font-black text-xp">{p?.xp || 0}</span>
-                </GlassPill>
-                <GlassPill>
-                  <span className="text-xs">🏁</span>
-                  <span className="text-xs font-black">{territoryCount}</span>
-                </GlassPill>
-              </div>
-            </div>
-
-            {/* Live Walk HUD */}
-            {walking && (
-              <div style={{ position: "absolute", top: 64, left: 12, right: 12, zIndex: 50, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-                <div className="flex items-center rounded-2xl overflow-hidden" style={glassStyle}>
-                  <HudCell emoji="⏱" value={fmt(elapsed)} label="Zeit" />
-                  <div className="w-px self-stretch bg-white/10" />
-                  <HudCell emoji="👣" value={fmtDist(distance)} label="Distanz" />
-                  <div className="w-px self-stretch bg-white/10" />
-                  <HudCell emoji="🎯" value={`${activeRoute.length}`} label="Punkte" />
-                </div>
+            {/* cheatContainer: top 50 right 20 */}
+            {!walking && (
+              <div style={{ position: "absolute", top: 20, right: 20, zIndex: 50 }}>
+                <button
+                  onClick={clearMap}
+                  style={{
+                    background: BORDER,
+                    padding: "12px 16px",
+                    borderRadius: 20,
+                    border: `1px solid ${ACCENT}`,
+                    color: ACCENT,
+                    fontSize: 12,
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                  }}
+                >
+                  🗑 Karte leeren
+                </button>
               </div>
             )}
 
-            {/* Current street badge */}
-            {walking && currentStreet && (
-              <div style={{ position: "absolute", top: 140, left: 12, right: 12, zIndex: 50, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ ...glassStyle, border: `1px solid ${teamColor}40` }}>
-                  <span style={{ color: teamColor }}>📍</span>
-                  <span className="text-sm font-bold" style={{ color: teamColor }}>{currentStreet}</span>
+            {/* mapActionOverlay: bottom 30 */}
+            <div style={{ position: "absolute", bottom: 30, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", zIndex: 50, pointerEvents: "none" }}>
+              {walking && currentStreet && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  background: "rgba(0,0,0,0.8)",
+                  padding: "12px 20px",
+                  borderRadius: 25,
+                  border: `1px solid ${teamColor}`,
+                  marginBottom: 15,
+                }}>
+                  <span style={{ color: "#FFF", fontWeight: "bold", fontSize: 14 }}>📍 {currentStreet}</span>
+                  <span style={{ marginLeft: 10, color: "#FFF" }}>⏳</span>
                 </div>
-              </div>
-            )}
-
-            {/* Eroberung Button */}
-            <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, zIndex: 50, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
+              )}
               <button
                 onClick={walking ? stopWalk : startWalk}
-                className="flex items-center gap-2.5 px-8 py-4 rounded-full font-bold text-lg text-white active:scale-95 transition-transform"
                 style={{
+                  background: walking ? ACCENT : teamColor,
+                  padding: "18px 40px",
+                  borderRadius: 35,
+                  border: "none",
+                  color: BG,
+                  fontWeight: "bold",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 5px rgba(0,0,0,0.3)",
                   pointerEvents: "auto",
-                  background: walking
-                    ? "linear-gradient(135deg, #FF2D78 0%, #E0246A 50%, #FF2D78 100%)"
-                    : `linear-gradient(135deg, ${teamColor} 0%, ${teamColor}cc 50%, ${teamColor} 100%)`,
-                  boxShadow: `0 4px 25px ${walking ? "#FF2D7860" : `${teamColor}60`}, inset 0 1px 0 rgba(255,255,255,0.2)`,
                 }}
               >
-                <span className="text-xl">{walking ? "⏹" : "▶"}</span>
                 {walking ? "Eroberung abschließen" : "Eroberung starten"}
               </button>
             </div>
           </>
         )}
 
-        {/* RANKING */}
-        {activeTab === "ranking" && (
-          <div className="h-full overflow-y-auto p-4" style={{ background: "#0B0E13" }}>
-            <RankingTab profile={p} leaderboard={leaderboard} />
-          </div>
-        )}
-
-        {/* CREW */}
-        {activeTab === "crew" && (
-          <div className="h-full overflow-y-auto" style={{ background: "#0B0E13" }}>
-            <CrewTab profile={p} myCrew={myCrew} setMyCrew={setMyCrew} setProfile={setProfile} />
-          </div>
-        )}
-
-        {/* SHOPS */}
-        {activeTab === "shops" && (
-          <div className="h-full overflow-y-auto p-4" style={{ background: "#0B0E13" }}>
-            <ShopsTab />
-          </div>
-        )}
-
-        {/* PROFIL */}
+        {/* ══ PROFIL TAB ══ */}
         {activeTab === "profil" && (
-          <div className="h-full overflow-y-auto p-4" style={{ background: "#0B0E13" }}>
+          <div style={{ height: "100%", overflowY: "auto" }}>
             <ProfilTab
               profile={p}
+              setProfile={setProfile}
               equippedMarker={equippedMarker}
               setEquippedMarker={setEquippedMarker}
+              equippedLight={equippedLight}
+              setEquippedLight={setEquippedLight}
+              recentRuns={recentRuns}
               territoryCount={territoryCount}
               currentStreet={currentStreet}
               walking={walking}
               myCrew={myCrew}
               onLogout={handleLogout}
               currentRank={currentRank}
-              nextRank={nextRank}
             />
+          </div>
+        )}
+
+        {/* ══ CREW TAB ══ */}
+        {activeTab === "crew" && (
+          <div style={{ height: "100%", overflowY: "auto" }}>
+            <CrewTab profile={p} myCrew={myCrew} setMyCrew={setMyCrew} setProfile={setProfile} />
+          </div>
+        )}
+
+        {/* ══ SHOPS TAB ══ */}
+        {activeTab === "shops" && (
+          <div style={{ height: "100%", overflowY: "auto" }}>
+            <ShopsTab />
+          </div>
+        )}
+
+        {/* ══ RANKING TAB ══ */}
+        {activeTab === "ranking" && (
+          <div style={{ height: "100%", overflowY: "auto" }}>
+            <RankingTab profile={p} leaderboard={leaderboard} />
           </div>
         )}
       </div>
 
-      {/* ═══ Tab Bar – outside map container, guaranteed clickable ═══ */}
-      <div
-        className="safe-bottom shrink-0"
-        style={{
-          background: "rgba(14,17,23,0.95)",
-          backdropFilter: "blur(30px) saturate(1.5)",
-          WebkitBackdropFilter: "blur(30px) saturate(1.5)",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          position: "relative",
-          zIndex: 1000,
-        }}
-      >
-        <div className="flex items-stretch">
-          {TABS.map((tab) => {
-            const active = activeTab === tab.id;
+      {/* ══ BOTTOM NAV ══ */}
+      <div style={{
+        display: "flex",
+        flexDirection: "row",
+        background: "#1C1F26",
+        paddingBottom: 20,
+        paddingTop: 12,
+        borderTop: `1px solid #2A2E36`,
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
+      }}>
+        {[
+          { id: "profil",  label: "Profil",  icon: "👤" },
+          { id: "map",     label: "Karte",   icon: "🗺️" },
+          { id: "crew",    label: "Crew",    icon: "👥" },
+          { id: "shops",   label: "Shops",   icon: "🏪" },
+          { id: "ranking", label: "Ranking", icon: "🏆" },
+        ].map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as TabId)}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: "6px 0",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                position: "relative",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              {active && (
+                <div style={{
+                  position: "absolute",
+                  top: -12,
+                  left: "30%",
+                  right: "30%",
+                  height: 3,
+                  borderRadius: 3,
+                  background: PRIMARY,
+                  boxShadow: `0 0 12px ${PRIMARY}`,
+                }} />
+              )}
+              <span style={{
+                fontSize: active ? 24 : 20,
+                lineHeight: 1,
+                filter: active ? "none" : "grayscale(0.5) opacity(0.6)",
+                transition: "all 0.2s",
+              }}>
+                {tab.icon}
+              </span>
+              <span style={{
+                color: active ? PRIMARY : MUTED,
+                fontSize: 11,
+                fontWeight: active ? "bold" : 600,
+                textAlign: "center",
+                letterSpacing: 0.3,
+              }}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+ * PROFIL TAB (1:1 alte App)
+ * ═══════════════════════════════════════════════════════ */
+
+function ProfilTab({
+  profile: p,
+  setProfile,
+  equippedMarker,
+  setEquippedMarker,
+  equippedLight,
+  setEquippedLight,
+  recentRuns,
+  territoryCount,
+  currentStreet,
+  walking,
+  myCrew,
+  onLogout,
+  currentRank,
+}: {
+  profile: Profile | null;
+  setProfile: (p: Profile) => void;
+  equippedMarker: string;
+  setEquippedMarker: (s: string) => void;
+  equippedLight: string;
+  setEquippedLight: (s: string) => void;
+  recentRuns: Territory[];
+  territoryCount: number;
+  currentStreet: string | null;
+  walking: boolean;
+  myCrew: Crew | null;
+  onLogout: () => void;
+  currentRank: { name: string; color: string };
+}) {
+  const supabase = createClient();
+  const userXp = p?.xp || 0;
+  const teamColor = myCrew?.color || p?.team_color || PRIMARY;
+  const nextRank = getNextRank(userXp);
+  const xpToNext = nextRank ? nextRank.minXp - userXp : 0;
+  const pctToNext = nextRank ? Math.round(((userXp - (currentRank as { minXp?: number }).minXp!) / (nextRank.minXp - (currentRank as { minXp?: number }).minXp!)) * 100) : 100;
+
+  // Current marker icon
+  const currentMarker = UNLOCKABLE_MARKERS.find((m) => m.id === equippedMarker) || UNLOCKABLE_MARKERS[0];
+  const currentLight = RUNNER_LIGHTS.find((l) => l.id === equippedLight) || RUNNER_LIGHTS[0];
+
+  const avgPace = p?.total_distance_m && p.total_distance_m > 0 && p.total_walks > 0
+    ? ((p.total_walks * 60) / (p.total_distance_m / 1000)).toFixed(1)
+    : "—";
+  const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
+
+  const handleRewardedAd = () => {
+    if (confirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
+      alert("Danke! Du hast 250 XP erhalten! (Simulation)");
+    }
+  };
+
+  async function equipMarker(id: string) {
+    setEquippedMarker(id);
+    if (p) await supabase.from("users").update({ equipped_marker_id: id }).eq("id", p.id);
+  }
+
+  async function equipLight(id: string) {
+    setEquippedLight(id);
+    if (p) await supabase.from("users").update({ equipped_light_id: id }).eq("id", p.id);
+  }
+
+  async function updateSetting(key: string, value: boolean | string) {
+    if (!p) return;
+    await supabase.from("users").update({ [key]: value }).eq("id", p.id);
+    setProfile({ ...p, [key]: value } as Profile);
+  }
+
+  function fmtDuration(s: number) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}:${sec.toString().padStart(2, "0")} min` : `${sec}s`;
+  }
+
+  function fmtDate(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+
+  return (
+    <div style={{ background: BG, paddingBottom: 30 }}>
+      {/* ═══ HEADER mit Gradient ═══ */}
+      <div style={{
+        background: `linear-gradient(180deg, ${currentRank.color}20 0%, ${BG} 100%)`,
+        paddingTop: 40, paddingBottom: 30, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div style={{
+            width: 110, height: 110, borderRadius: 55,
+            border: `4px solid ${teamColor}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "#22262E", marginBottom: 12,
+            boxShadow: `0 0 40px ${currentRank.color}40`,
+          }}>
+            <span style={{ fontSize: 50 }}>{currentMarker.icon}</span>
+          </div>
+          <div style={{ fontSize: 10, color: MUTED, fontWeight: "bold", letterSpacing: 2 }}>RUNNER NAME</div>
+          <div style={{ fontSize: 30, fontWeight: 900, color: "#FFF", marginTop: 4 }}>
+            {p?.display_name || p?.username || "Eroberer"}
+          </div>
+          <div style={{ color: MUTED, fontSize: 13, marginTop: 2 }}>@{p?.username}</div>
+
+          <div style={{
+            marginTop: 12, paddingLeft: 16, paddingRight: 16, paddingTop: 7, paddingBottom: 7,
+            borderRadius: 20, background: currentRank.color,
+            boxShadow: `0 4px 20px ${currentRank.color}50`,
+          }}>
+            <span style={{ color: BG, fontWeight: 900, fontSize: 13 }}>
+              {currentRank.name} · {userXp.toLocaleString()} XP
+            </span>
+          </div>
+
+          {/* XP Progress */}
+          {nextRank && (
+            <div style={{ width: "100%", maxWidth: 360, marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: MUTED, marginBottom: 6 }}>
+                <span>→ {nextRank.name}</span>
+                <span>{xpToNext.toLocaleString()} XP</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 4, background: "#22262E", overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", width: `${pctToNext}%`,
+                  background: `linear-gradient(90deg, ${currentRank.color}, ${nextRank.color})`,
+                  borderRadius: 4,
+                }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ paddingLeft: 20, paddingRight: 20 }}>
+
+        {/* QUICK STATS ROW */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 6 }}>
+          <QuickStat value={territoryCount.toString()} label="Territorien" color={teamColor} />
+          <QuickStat value={(p?.total_walks || 0).toString()} label="Walks" color={PRIMARY} />
+          <QuickStat value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="km" color={ACCENT} />
+          <QuickStat value={(p?.streak_days || 0).toString()} label="Streak 🔥" color="#FFD700" />
+        </div>
+
+        {/* ═══ MAP-ICONS (10 Stück) ═══ */}
+        <div style={{ width: "100%", marginTop: 25, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE MAP-ICONS</div>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+              {UNLOCKABLE_MARKERS.filter(m => m.cost <= userXp).length} / {UNLOCKABLE_MARKERS.length} freigeschaltet
+            </div>
+          </div>
+          <button
+            onClick={handleRewardedAd}
+            style={{
+              background: "rgba(93, 218, 240, 0.1)",
+              paddingTop: 8, paddingBottom: 8, paddingLeft: 14, paddingRight: 14,
+              borderRadius: 15,
+              border: `1px solid ${PRIMARY}`,
+              display: "flex", alignItems: "center", gap: 6,
+              cursor: "pointer",
+            }}
+          >
+            <span>📺</span>
+            <span style={{ color: PRIMARY, fontSize: 11, fontWeight: "bold" }}>+250 XP</span>
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "row", paddingTop: 10, paddingBottom: 10, overflowX: "auto", gap: 10 }}>
+          {UNLOCKABLE_MARKERS.map((marker) => {
+            const isUnlocked = userXp >= marker.cost;
+            const isEquipped = equippedMarker === marker.id;
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 active:scale-90 transition-transform relative cursor-pointer"
-                style={{ WebkitTapHighlightColor: "transparent" }}
+                key={marker.id}
+                onClick={() => {
+                  if (isUnlocked) equipMarker(marker.id);
+                  else alert(`🔒 Du brauchst ${marker.cost.toLocaleString()} XP für "${marker.name}"`);
+                }}
+                style={{
+                  background: isEquipped ? `${PRIMARY}15` : "#22262E",
+                  padding: 14, borderRadius: 16,
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  minWidth: 90, maxWidth: 90,
+                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid #2A2E36",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  boxShadow: isEquipped ? `0 0 20px ${PRIMARY}40` : "none",
+                }}
               >
-                {active && (
-                  <div
-                    className="absolute top-0 inset-x-4 h-0.5 rounded-full"
-                    style={{ background: "#22D1C3", boxShadow: "0 0 8px #22D1C3" }}
-                  />
+                <span style={{ fontSize: 32, marginBottom: 6, opacity: isUnlocked ? 1 : 0.25 }}>{marker.icon}</span>
+                <span style={{ color: "#FFF", fontSize: 11, fontWeight: "bold", marginBottom: 4 }}>{marker.name}</span>
+                {isUnlocked ? (
+                  <span style={{ fontSize: 10, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
+                    {isEquipped ? "✓ AKTIV" : "Frei"}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 9, fontWeight: "bold", color: ACCENT }}>🔒 {marker.cost >= 1000 ? `${marker.cost/1000}k` : marker.cost}</span>
                 )}
-                <span
-                  style={{
-                    fontSize: active ? 28 : 24,
-                    lineHeight: 1,
-                    filter: active ? "none" : "grayscale(1) opacity(0.4)",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {tab.emoji}
-                </span>
-                <span
-                  className="text-[10px] font-bold"
-                  style={{ color: active ? "#22D1C3" : "rgba(255,255,255,0.4)" }}
-                >
-                  {tab.label}
-                </span>
               </button>
             );
           })}
         </div>
-      </div>
-    </div>
-  );
-}
 
-/* ═══════════════════════════════════════════════════════════
-   Shared Styles & Components
-   ═══════════════════════════════════════════════════════════ */
-
-const glassStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.06)",
-  backdropFilter: "blur(40px) saturate(1.8)",
-  WebkitBackdropFilter: "blur(40px) saturate(1.8)",
-  border: "1px solid rgba(255,255,255,0.12)",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
-};
-
-function GlassPill({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-auto" style={glassStyle}>
-      {children}
-    </div>
-  );
-}
-
-function HudCell({ emoji, value, label }: { emoji: string; value: string; label: string }) {
-  return (
-    <div className="px-4 py-2.5 text-center">
-      <div className="text-sm">{emoji}</div>
-      <div className="text-lg font-mono font-black">{value}</div>
-      <div className="text-[8px] text-white/50 uppercase tracking-widest">{label}</div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Ranking Tab
-   ═══════════════════════════════════════════════════════════ */
-
-function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; leaderboard: Profile[] }) {
-  const medals: Record<number, string> = { 0: "🥇", 1: "🥈", 2: "🥉" };
-
-  return (
-    <div className="max-w-md mx-auto space-y-3 pb-4">
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="text-2xl font-black flex items-center gap-2">🏆 Top Eroberer</h2>
-          <p className="text-xs text-white/40 mt-1">Die Legenden der Straßen</p>
+        {/* ═══ RUNNER LIGHTS (10 Schweif-Varianten) ═══ */}
+        <div style={{ width: "100%", marginTop: 25, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE RUNNER LIGHTS</div>
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+            Schweif beim Laufen · {RUNNER_LIGHTS.filter(l => l.cost <= userXp).length} / {RUNNER_LIGHTS.length} freigeschaltet
+          </div>
         </div>
-      </div>
 
-      {leaderboard.length === 0 ? (
-        <div className="p-6 rounded-2xl text-center" style={glassStyle}>
-          <p className="text-sm text-white/50">Keine Daten verfügbar</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {leaderboard.map((entry, i) => {
-            const isMe = entry.id === p?.id;
+        <div style={{ display: "flex", flexDirection: "row", paddingTop: 10, paddingBottom: 10, overflowX: "auto", gap: 10 }}>
+          {RUNNER_LIGHTS.map((light) => {
+            const isUnlocked = userXp >= light.cost;
+            const isEquipped = equippedLight === light.id;
+            const gradientCss = light.gradient.length > 1
+              ? `linear-gradient(90deg, ${light.gradient.join(", ")})`
+              : light.color;
             return (
-              <div
-                key={entry.id}
-                className={`flex items-center gap-3 p-3.5 rounded-2xl ${isMe ? "ring-2 ring-primary/60" : ""}`}
-                style={glassStyle}
+              <button
+                key={light.id}
+                onClick={() => {
+                  if (isUnlocked) equipLight(light.id);
+                  else alert(`🔒 Du brauchst ${light.cost.toLocaleString()} XP für "${light.name}"`);
+                }}
+                style={{
+                  background: isEquipped ? `${PRIMARY}15` : "#22262E",
+                  padding: 14, borderRadius: 16,
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  minWidth: 100, maxWidth: 100,
+                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid #2A2E36",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  boxShadow: isEquipped ? `0 0 20px ${PRIMARY}40` : "none",
+                }}
               >
-                <div className="w-8 text-center text-lg">
-                  {medals[i] || <span className="text-sm text-white/40 font-black">{i + 1}</span>}
-                </div>
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-white"
-                  style={{
-                    background: `linear-gradient(135deg, ${entry.team_color || "#22D1C3"}, ${entry.team_color || "#22D1C3"}80)`,
-                  }}
-                >
-                  {(entry.display_name || entry.username || "?")[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold truncate">
-                    {entry.display_name || entry.username}
-                    {isMe && <span className="ml-2 text-[10px] text-primary">(Du)</span>}
-                  </div>
-                  <div className="text-[10px] text-white/40">Lv.{entry.level || 1}</div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-black text-xp">{(entry.xp || 0).toLocaleString()}</span>
-                  <span className="text-xs">⚡</span>
-                </div>
-              </div>
+                <div style={{
+                  width: 60, height: light.width,
+                  borderRadius: light.width / 2,
+                  background: gradientCss,
+                  opacity: isUnlocked ? 1 : 0.3,
+                  marginBottom: 8, marginTop: 8,
+                  boxShadow: isUnlocked ? `0 0 12px ${light.color}80` : "none",
+                }} />
+                <span style={{ color: "#FFF", fontSize: 11, fontWeight: "bold", marginBottom: 4 }}>{light.name}</span>
+                {isUnlocked ? (
+                  <span style={{ fontSize: 10, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
+                    {isEquipped ? "✓ AKTIV" : "Frei"}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 9, fontWeight: "bold", color: ACCENT }}>🔒 {light.cost >= 1000 ? `${light.cost/1000}k` : light.cost}</span>
+                )}
+              </button>
             );
           })}
         </div>
-      )}
+
+        {/* ═══ DEINE CREW ═══ */}
+        <SectionHeader title="DEINE CREW" />
+        <div style={{
+          display: "flex", flexDirection: "row", background: "#22262E",
+          padding: 20, borderRadius: 18, alignItems: "center",
+        }}>
+          <div style={{ width: 22, height: 44, borderRadius: 11, marginRight: 15, background: myCrew?.color || "#333" }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>
+              {myCrew ? myCrew.name : "Keine Crew"}
+            </div>
+            <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+              {myCrew ? `Revier: PLZ ${myCrew.zip}` : "Werde jetzt aktiv!"}
+            </div>
+          </div>
+          {myCrew && (
+            <div style={{
+              padding: "4px 10px", borderRadius: 12,
+              background: `${myCrew.color}20`, border: `1px solid ${myCrew.color}40`,
+            }}>
+              <span style={{ color: myCrew.color, fontSize: 10, fontWeight: "bold" }}>
+                {p?.faction === "vanguard" ? "VANGUARD" : "SYNDICATE"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ═══ LIVE STATUS ═══ */}
+        <SectionHeader title="LIVE STATUS" />
+        <div style={{
+          background: walking ? `${teamColor}15` : "#22262E",
+          padding: 20, borderRadius: 18, width: "100%",
+          border: walking ? `1px solid ${teamColor}` : "1px solid #2A2E36",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: 4,
+              background: walking ? "#4ade80" : MUTED,
+              boxShadow: walking ? "0 0 8px #4ade80" : "none",
+            }} />
+            <span style={{ color: TEXT_SOFT, fontSize: 13 }}>
+              {walking ? "Läuft gerade" : "Kein aktiver Lauf"}
+            </span>
+          </div>
+          <div style={{
+            fontSize: 18, fontWeight: "bold",
+            color: walking ? teamColor : MUTED,
+          }}>
+            {walking ? currentStreet || "Suche Position..." : "Klicke auf Karte, um zu starten"}
+          </div>
+        </div>
+
+        {/* ═══ LETZTE RUNS ═══ */}
+        <SectionHeader title="LETZTE RUNS" />
+        {recentRuns.length === 0 ? (
+          <div style={{ background: "#22262E", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid #2A2E36" }}>
+            Noch keine Runs. Starte deine erste Eroberung auf der Karte!
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {recentRuns.map((run) => (
+              <div key={run.id} style={{
+                background: "#22262E", padding: 16, borderRadius: 16,
+                display: "flex", alignItems: "center", gap: 14,
+                border: "1px solid #2A2E36",
+              }}>
+                <div style={{
+                  width: 46, height: 46, borderRadius: 23,
+                  background: `${teamColor}20`, border: `1px solid ${teamColor}40`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <span style={{ fontSize: 22 }}>🏁</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: "#FFF", fontSize: 14, fontWeight: "bold", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {run.street_name || "Unbekannter Weg"}
+                  </div>
+                  <div style={{ color: MUTED, fontSize: 11, marginTop: 3 }}>
+                    {fmtDate(run.created_at)} · {(run.distance_m / 1000).toFixed(2)} km · {fmtDuration(run.duration_s)}
+                  </div>
+                </div>
+                <div style={{ color: PRIMARY, fontSize: 13, fontWeight: "bold" }}>+{run.xp_earned}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══ GESUNDHEITSDATEN ═══ */}
+        <SectionHeader title="GESUNDHEITSDATEN" />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <StatBox emoji="👣" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="KM Gesamt" />
+          <StatBox emoji="🔥" value={(p?.total_calories || 0).toLocaleString()} label="KCAL Verbrannt" />
+          <StatBox emoji="🏃" value={(p?.total_walks || 0).toString()} label="Walks" />
+          <StatBox emoji="⚡" value={`${p?.streak_days || 0} Tage`} label="Aktuelle Streak" />
+          <StatBox emoji="🏆" value={`${p?.streak_best || 0} Tage`} label="Beste Streak" />
+          <StatBox emoji="📏" value={`${longestKm} km`} label="Längster Run" />
+          <StatBox emoji="⏱" value={avgPace + "'"} label="Ø Pace/km" />
+          <StatBox emoji="🎯" value={territoryCount.toString()} label="Territorien" />
+        </div>
+
+        {/* ═══ EINSTELLUNGEN ═══ */}
+        <SectionHeader title="EINSTELLUNGEN" />
+        <div style={{ background: "#22262E", borderRadius: 18, width: "100%", overflow: "hidden", border: "1px solid #2A2E36" }}>
+          <SettingRow label="🔔 Benachrichtigungen" checked={p?.setting_notifications ?? true} onChange={(v) => updateSetting("setting_notifications", v)} />
+          <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
+          <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
+          <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
+
+          <SettingSelect
+            label="📏 Einheiten"
+            value={p?.setting_units || "metric"}
+            options={UNITS.map(u => ({ id: u.id, label: u.label }))}
+            onChange={(v) => updateSetting("setting_units", v)}
+          />
+          <SettingSelect
+            label="🌐 Sprache"
+            value={p?.setting_language || "de"}
+            options={LANGUAGES.map(l => ({ id: l.id, label: l.label }))}
+            onChange={(v) => updateSetting("setting_language", v)}
+            last
+          />
+        </div>
+
+        {/* ═══ ACCOUNT ═══ */}
+        <SectionHeader title="ACCOUNT" />
+        <div style={{ background: "#22262E", borderRadius: 18, width: "100%", overflow: "hidden", border: "1px solid #2A2E36" }}>
+          <button
+            onClick={() => alert("Profil bearbeiten – kommt bald")}
+            style={{
+              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+              borderBottom: "1px solid #2A2E36",
+            }}
+          >
+            <span style={{ color: "#FFF", fontSize: 15 }}>✏️ Profil bearbeiten</span>
+            <span style={{ color: MUTED }}>›</span>
+          </button>
+          <button
+            onClick={() => alert("Privatsphäre – kommt bald")}
+            style={{
+              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+              borderBottom: "1px solid #2A2E36",
+            }}
+          >
+            <span style={{ color: "#FFF", fontSize: 15 }}>🔒 Privatsphäre & Daten</span>
+            <span style={{ color: MUTED }}>›</span>
+          </button>
+          <button
+            onClick={() => alert("Hilfe – kommt bald")}
+            style={{
+              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+              borderBottom: "1px solid #2A2E36",
+            }}
+          >
+            <span style={{ color: "#FFF", fontSize: 15 }}>❓ Hilfe & Support</span>
+            <span style={{ color: MUTED }}>›</span>
+          </button>
+          <button
+            onClick={onLogout}
+            style={{
+              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+            }}
+          >
+            <span style={{ color: ACCENT, fontSize: 15, fontWeight: "bold" }}>🚪 Ausloggen</span>
+          </button>
+        </div>
+
+        <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 20 }}>
+          MyArea365 · v0.1 · Made with ❤️ in Berlin
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   Crew Tab
-   ═══════════════════════════════════════════════════════════ */
+function QuickStat({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <div style={{
+      background: "#22262E", padding: "14px 8px", borderRadius: 14,
+      display: "flex", flexDirection: "column", alignItems: "center",
+      border: "1px solid #2A2E36",
+    }}>
+      <span style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{value}</span>
+      <span style={{ fontSize: 10, color: MUTED, marginTop: 4, textAlign: "center" }}>{label}</span>
+    </div>
+  );
+}
+
+function StatBox({ emoji, value, label }: { emoji: string; value: string; label: string }) {
+  return (
+    <div style={{ background: "#22262E", padding: 18, borderRadius: 16, border: "1px solid #2A2E36" }}>
+      <div style={{ fontSize: 22, marginBottom: 6 }}>{emoji}</div>
+      <div style={{ fontSize: 20, fontWeight: 900, color: "#FFF" }}>{value}</div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 4, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</div>
+    </div>
+  );
+}
+
+function SettingRow({ label, checked, onChange, last }: { label: string; checked: boolean; onChange: (v: boolean) => void; last?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+      borderBottom: last ? "none" : "1px solid #2A2E36",
+    }}>
+      <span style={{ color: "#FFF", fontSize: 15 }}>{label}</span>
+      <button
+        onClick={() => onChange(!checked)}
+        style={{
+          width: 44, height: 26, borderRadius: 13,
+          background: checked ? PRIMARY : "#2A2E36",
+          border: "none", cursor: "pointer",
+          position: "relative", transition: "background 0.2s",
+        }}
+      >
+        <div style={{
+          position: "absolute", top: 3, left: checked ? 22 : 3,
+          width: 20, height: 20, borderRadius: 10,
+          background: "#FFF", transition: "left 0.2s",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+        }} />
+      </button>
+    </div>
+  );
+}
+
+function SettingSelect({ label, value, options, onChange, last }: { label: string; value: string; options: { id: string; label: string }[]; onChange: (v: string) => void; last?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+      borderBottom: last ? "none" : "1px solid #2A2E36",
+    }}>
+      <span style={{ color: "#FFF", fontSize: 15 }}>{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          background: "#2A2E36", color: "#FFF", border: "none",
+          padding: "6px 12px", borderRadius: 8, fontSize: 13,
+          cursor: "pointer",
+        }}
+      >
+        {options.map((o) => (
+          <option key={o.id} value={o.id} style={{ background: "#2A2E36" }}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <div style={{ width: "100%", marginBottom: 10, marginTop: 25 }}>
+      <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>{title}</div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+ * CREW TAB (1:1 alte App – Fraktions-Header + Gründen + Dashboard)
+ * ═══════════════════════════════════════════════════════ */
 
 function CrewTab({
   profile: p,
@@ -535,62 +999,35 @@ function CrewTab({
   const [newName, setNewName] = useState("");
   const [newZip, setNewZip] = useState("");
   const [newColor, setNewColor] = useState<string>(CREW_COLORS[0]);
-  const [error, setError] = useState("");
 
   async function handleCreate() {
-    setError("");
-    if (!newName.trim() || !newZip.trim()) {
-      setError("Name und PLZ erforderlich");
-      return;
-    }
+    if (!newName.trim() || !newZip.trim()) return alert("Bitte Name und PLZ eingeben");
     if (!p) return;
 
-    const { data, error: createErr } = await supabase
-      .from("crews")
-      .insert({
-        name: newName.trim(),
-        zip: newZip.trim(),
-        color: newColor,
-        owner_id: p.id,
-        faction: p.faction || "syndicate",
-      })
-      .select()
-      .single();
+    const { data, error } = await supabase.from("crews").insert({
+      name: newName.trim(), zip: newZip.trim(), color: newColor,
+      owner_id: p.id, faction: p.faction || "syndicate",
+    }).select().single();
 
-    if (createErr) {
-      setError(createErr.message);
-      return;
-    }
+    if (error) return alert(error.message);
 
-    // Add self as admin member
-    await supabase.from("crew_members").insert({
-      crew_id: data.id,
-      user_id: p.id,
-      role: "admin",
-    });
-
-    // Update user with current_crew_id + team_color
-    await supabase
-      .from("users")
-      .update({ current_crew_id: data.id, team_color: newColor })
-      .eq("id", p.id);
+    await supabase.from("crew_members").insert({ crew_id: data.id, user_id: p.id, role: "admin" });
+    await supabase.from("users").update({ current_crew_id: data.id, team_color: newColor }).eq("id", p.id);
 
     setMyCrew(data);
     setProfile({ ...p, current_crew_id: data.id, team_color: newColor });
     setCreating(false);
+    alert(`✅ Crew "${newName}" gegründet!`);
   }
 
   async function handleLeave() {
     if (!p || !myCrew) return;
-    if (!confirm(`"${myCrew.name}" wirklich verlassen?`)) return;
+    if (!confirm(`"${myCrew.name}" wirklich verlassen/auflösen?`)) return;
 
     await supabase.from("crew_members").delete().eq("crew_id", myCrew.id).eq("user_id", p.id);
-
-    // If owner, delete crew
     if (myCrew.owner_id === p.id) {
       await supabase.from("crews").delete().eq("id", myCrew.id);
     }
-
     await supabase.from("users").update({ current_crew_id: null }).eq("id", p.id);
 
     setMyCrew(null);
@@ -598,365 +1035,339 @@ function CrewTab({
   }
 
   return (
-    <>
-      {/* Faction Battle Header */}
-      <div className="p-6 pb-8" style={{ background: "linear-gradient(180deg, #141820, #0B0E13)" }}>
-        <h2 className="text-xl font-black text-center">Fraktions-Macht</h2>
-        <p className="text-[11px] text-white/40 text-center mt-1 mb-5">Stadtweite Kontrolle</p>
-
-        <div className="flex items-center justify-around mb-3">
-          <div className="text-center">
-            <div className="text-base font-black" style={{ color: FACTIONS[0].color }}>
-              {FACTIONS[0].name}
-            </div>
-            <div className="text-xs text-white/50 mt-1">{FACTIONS[0].power.toLocaleString()} ⚡</div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 40 }}>
+      {/* factionWarHeader */}
+      <div style={{
+        padding: 30, paddingTop: 50, background: CARD,
+        display: "flex", flexDirection: "column", alignItems: "center",
+        borderBottom: `1px solid ${BORDER}`, width: "100%",
+      }}>
+        <div style={{ fontSize: 24, color: "#FFF", fontWeight: "bold" }}>Fraktions-Macht</div>
+        <div style={{ color: MUTED, marginTop: 5, marginBottom: 20 }}>Stadtweite Kontrolle</div>
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", width: "100%", justifyContent: "space-between", marginBottom: 15 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: "bold", color: FACTIONS[0].color, textAlign: "center" }}>{FACTIONS[0].name}</div>
+            <div style={{ color: MUTED, fontSize: 14, marginTop: 4 }}>{FACTIONS[0].power.toLocaleString()} ⚡</div>
           </div>
-          <div className="text-sm font-black text-white/30 px-3">VS</div>
-          <div className="text-center">
-            <div className="text-base font-black" style={{ color: FACTIONS[1].color }}>
-              {FACTIONS[1].name}
-            </div>
-            <div className="text-xs text-white/50 mt-1">{FACTIONS[1].power.toLocaleString()} ⚡</div>
+          <div style={{ color: MUTED, fontWeight: 900, fontSize: 20, paddingLeft: 15, paddingRight: 15 }}>VS</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: "bold", color: FACTIONS[1].color, textAlign: "center" }}>{FACTIONS[1].name}</div>
+            <div style={{ color: MUTED, fontSize: 14, marginTop: 4 }}>{FACTIONS[1].power.toLocaleString()} ⚡</div>
           </div>
         </div>
-
-        <div className="flex h-2.5 rounded-full overflow-hidden">
-          <div style={{ width: "47%", background: FACTIONS[0].color }} />
-          <div style={{ width: "53%", background: FACTIONS[1].color }} />
+        <div style={{ width: "100%", height: 12, borderRadius: 6, display: "flex", flexDirection: "row", overflow: "hidden" }}>
+          <div style={{ width: "47%", height: "100%", background: FACTIONS[0].color }} />
+          <div style={{ width: "53%", height: "100%", background: FACTIONS[1].color }} />
         </div>
       </div>
 
-      <div className="p-4 max-w-md mx-auto">
+      {/* Content */}
+      <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 30, width: "100%", maxWidth: 500 }}>
         {!myCrew && !creating && (
-          <div className="p-6 rounded-2xl text-center" style={glassStyle}>
-            <div className="text-4xl mb-3">🏃‍♂️🏃‍♀️</div>
-            <h3 className="text-lg font-bold mb-1">Du bist ein Freelancer</h3>
-            <p className="text-sm text-white/50 mb-5">
-              Gründe deine eigene Crew oder schließe dich einer an, um gemeinsam zu erobern.
-            </p>
+          <div style={{ background: CARD, padding: 25, borderRadius: 20, display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+            <div style={{ color: "#FFF", fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>Du bist ein Freelancer</div>
+            <div style={{ color: MUTED, textAlign: "center", marginBottom: 25, lineHeight: "22px" }}>
+              Schließe dich einer Crew an oder gründe dein eigenes lokales Team, um gemeinsam Gebiete zu erobern.
+            </div>
             <button
               onClick={() => setCreating(true)}
-              className="w-full py-3 rounded-xl font-bold text-bg mb-2"
-              style={{ background: "linear-gradient(135deg, #22D1C3, #1AB5A8)" }}
+              style={{
+                padding: "18px 40px", borderRadius: 35,
+                background: PRIMARY, width: "100%", marginBottom: 15,
+                color: BG, fontWeight: "bold", fontSize: 16,
+                border: "none", cursor: "pointer",
+              }}
             >
               Eigene Crew gründen
             </button>
-            <button className="w-full py-3 rounded-xl font-bold text-primary border border-primary/30">
+            <button
+              style={{
+                padding: "18px 40px", borderRadius: 35,
+                background: BORDER, width: "100%",
+                color: PRIMARY, fontWeight: "bold", fontSize: 16,
+                border: `1px solid ${PRIMARY}`, cursor: "pointer",
+              }}
+            >
               Einladungscode eingeben
             </button>
           </div>
         )}
 
         {!myCrew && creating && (
-          <div className="p-5 rounded-2xl space-y-3" style={glassStyle}>
-            <h3 className="text-lg font-black">Neue Crew gründen</h3>
+          <div style={{ background: CARD, padding: 25, borderRadius: 20, width: "100%" }}>
+            <div style={{ color: "#FFF", fontSize: 22, fontWeight: "bold", marginBottom: 20 }}>Neue Crew gründen</div>
 
-            <div>
-              <label className="text-[11px] font-bold text-primary uppercase tracking-wider">Crew-Name</label>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="z.B. Kiez Läufer"
-                className="w-full mt-1 px-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-sm focus:outline-none focus:border-primary/50"
-              />
+            <div style={{ color: PRIMARY, fontSize: 12, fontWeight: "bold", marginBottom: 8, marginTop: 10 }}>Crew Name</div>
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="z.B. Kiez Läufer"
+              style={{
+                background: CARD, color: "#FFF", padding: 16, borderRadius: 12,
+                marginBottom: 15, border: `1px solid #333`, width: "100%",
+              }}
+            />
+
+            <div style={{ color: PRIMARY, fontSize: 12, fontWeight: "bold", marginBottom: 8, marginTop: 10 }}>Einsatzgebiet (PLZ)</div>
+            <input
+              value={newZip}
+              onChange={(e) => setNewZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              placeholder="z.B. 13435"
+              style={{
+                background: CARD, color: "#FFF", padding: 16, borderRadius: 12,
+                marginBottom: 15, border: `1px solid #333`, width: "100%",
+              }}
+            />
+
+            <div style={{ color: PRIMARY, fontSize: 12, fontWeight: "bold", marginBottom: 8, marginTop: 10 }}>Crew Farbe</div>
+            <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginTop: 10, marginBottom: 10 }}>
+              {CREW_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setNewColor(c)}
+                  style={{
+                    width: 50, height: 50, borderRadius: 25,
+                    background: c,
+                    border: newColor === c ? "3px solid #FFF" : "none",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
             </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-primary uppercase tracking-wider">Einsatzgebiet (PLZ)</label>
-              <input
-                value={newZip}
-                onChange={(e) => setNewZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                placeholder="z.B. 13435"
-                className="w-full mt-1 px-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-sm focus:outline-none focus:border-primary/50"
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-primary uppercase tracking-wider">Crew-Farbe</label>
-              <div className="flex gap-2 mt-2">
-                {CREW_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setNewColor(c)}
-                    className="w-10 h-10 rounded-full transition-transform active:scale-95"
-                    style={{
-                      background: c,
-                      border: newColor === c ? "3px solid white" : "none",
-                      boxShadow: newColor === c ? `0 0 16px ${c}80` : "none",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {error && <p className="text-xs text-danger text-center">{error}</p>}
 
             <button
               onClick={handleCreate}
-              className="w-full py-3 rounded-xl font-bold text-bg mt-2"
-              style={{ background: `linear-gradient(135deg, ${newColor}, ${newColor}cc)` }}
+              style={{
+                padding: "18px 40px", borderRadius: 35,
+                background: newColor, width: "100%", marginTop: 20,
+                color: BG, fontWeight: "bold", fontSize: 16,
+                border: "none", cursor: "pointer",
+              }}
             >
               Crew registrieren
             </button>
-            <button onClick={() => setCreating(false)} className="w-full py-2 text-sm text-white/50">
+            <button
+              onClick={() => setCreating(false)}
+              style={{
+                marginTop: 20, width: "100%",
+                background: "transparent", border: "none",
+                color: MUTED, cursor: "pointer",
+              }}
+            >
               Abbrechen
             </button>
           </div>
         )}
 
         {myCrew && (
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl" style={{ ...glassStyle, borderTop: `4px solid ${myCrew.color}` }}>
-              <h3 className="text-2xl font-black">{myCrew.name}</h3>
-              <p className="text-sm text-white/50 mt-1">Revier: {myCrew.zip}</p>
-              <div className="flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full bg-white/5 w-fit">
-                <span className="text-xs text-white/50">Code:</span>
-                <span className="text-xs font-mono font-bold text-primary">{myCrew.invite_code}</span>
+          <div>
+            <div style={{
+              background: CARD, padding: 25, borderRadius: 20, width: "100%",
+              borderTop: `4px solid ${myCrew.color}`,
+            }}>
+              <div style={{ color: "#FFF", fontSize: 28, fontWeight: 900, marginBottom: 5 }}>{myCrew.name}</div>
+              <div style={{ color: MUTED, fontSize: 14, fontWeight: 600 }}>Revier: {myCrew.zip}</div>
+              <div style={{ marginTop: 12, color: MUTED, fontSize: 12 }}>
+                Einladungscode: <span style={{ color: PRIMARY, fontFamily: "monospace", fontWeight: "bold" }}>{myCrew.invite_code}</span>
               </div>
             </div>
 
-            <button
-              onClick={() => navigator.clipboard.writeText(myCrew.invite_code)}
-              className="w-full py-3 rounded-xl font-bold text-bg"
-              style={{ background: `linear-gradient(135deg, ${myCrew.color}, ${myCrew.color}cc)` }}
-            >
-              + Einladungscode kopieren
-            </button>
-
-            <div className="pt-4">
-              <button onClick={handleLeave} className="w-full py-2 text-sm text-accent underline">
-                Crew {myCrew.owner_id === p?.id ? "auflösen" : "verlassen"}
+            <div style={{ display: "flex", flexDirection: "row", marginTop: 15, marginBottom: 30 }}>
+              <button
+                onClick={() => navigator.clipboard.writeText(myCrew.invite_code)}
+                style={{
+                  padding: "12px 20px", borderRadius: 10,
+                  background: myCrew.color, flex: 1,
+                  color: BG, fontWeight: "bold", border: "none", cursor: "pointer",
+                }}
+              >
+                + Einladungscode kopieren
               </button>
             </div>
+
+            <button
+              onClick={handleLeave}
+              style={{
+                marginTop: 30, width: "100%",
+                background: "transparent", border: "none",
+                color: ACCENT, textDecoration: "underline", cursor: "pointer",
+              }}
+            >
+              Crew auflösen / verlassen
+            </button>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+ * RANKING TAB (1:1 alte App)
+ * ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+ * SHOPS TAB (Lokale Geschäfte – Kiez-Deals)
+ * ═══════════════════════════════════════════════════════ */
+
+function ShopsTab() {
+  const categories = [
+    { icon: "☕", name: "Café & Bäcker" },
+    { icon: "🛍️", name: "Sport & Mode" },
+    { icon: "🥗", name: "Gesundheit" },
+    { icon: "🍔", name: "Gastro" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 40 }}>
+      {/* Header */}
+      <div style={{
+        padding: 30, paddingTop: 50, background: CARD,
+        display: "flex", flexDirection: "column", alignItems: "center",
+        borderBottom: `1px solid ${BORDER}`, width: "100%",
+      }}>
+        <div style={{ fontSize: 24, color: "#FFF", fontWeight: "bold" }}>Kiez-Deals</div>
+        <div style={{ color: MUTED, marginTop: 5, marginBottom: 20 }}>XP gegen echte Rabatte</div>
+
+        <div style={{ display: "flex", flexDirection: "row", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          {categories.map((c) => (
+            <div key={c.name} style={{
+              background: BG, padding: "8px 14px", borderRadius: 20,
+              border: `1px solid ${BORDER}`,
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <span>{c.icon}</span>
+              <span style={{ color: "#FFF", fontSize: 12, fontWeight: 600 }}>{c.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: 20, width: "100%", maxWidth: 500 }}>
+        {/* Coming Soon Card */}
+        <div style={{
+          background: CARD, padding: 25, borderRadius: 20,
+          display: "flex", flexDirection: "column", alignItems: "center", width: "100%",
+          marginBottom: 20,
+        }}>
+          <div style={{ fontSize: 50, marginBottom: 15 }}>🎁</div>
+          <div style={{ color: "#FFF", fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>
+            Bald verfügbar
+          </div>
+          <div style={{ color: MUTED, textAlign: "center", marginBottom: 20, lineHeight: "22px" }}>
+            Wir suchen gerade lokale Partner in deiner Stadt. Sobald die ersten Geschäfte dabei sind, kannst du hier deine XP gegen echte Rabatte einlösen.
+          </div>
+          <div style={{
+            paddingLeft: 15, paddingRight: 15, paddingTop: 6, paddingBottom: 6,
+            borderRadius: 15,
+            background: "rgba(239, 113, 105, 0.1)",
+            border: `1px solid ${ACCENT}`,
+          }}>
+            <span style={{ color: ACCENT, fontSize: 12, fontWeight: "bold" }}>COMING SOON</span>
+          </div>
+        </div>
+
+        {/* Wie funktioniert's */}
+        <div style={{ width: "100%", marginBottom: 10, marginTop: 10 }}>
+          <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>WIE ES FUNKTIONIERT</div>
+        </div>
+        <div style={{ background: CARD, padding: 20, borderRadius: 18, width: "100%" }}>
+          {[
+            { num: "01", title: "Lauf in der Nähe", desc: "Komme in den GPS-Radius eines Partner-Geschäfts (20m)" },
+            { num: "02", title: "Check-in via QR", desc: "Scanne den QR-Code an der Theke – Anwesenheit bewiesen" },
+            { num: "03", title: "Rabatt kassieren", desc: "Zeige den Screen an der Kasse und löse deine XP ein" },
+          ].map((step) => (
+            <div key={step.num} style={{
+              display: "flex", flexDirection: "row", alignItems: "flex-start",
+              paddingBottom: 16, marginBottom: 16,
+              borderBottom: `1px solid ${BORDER}`,
+            }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 16,
+                background: `${PRIMARY}20`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginRight: 12,
+              }}>
+                <span style={{ color: PRIMARY, fontSize: 11, fontWeight: "bold" }}>{step.num}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#FFF", fontSize: 14, fontWeight: "bold", marginBottom: 2 }}>{step.title}</div>
+                <div style={{ color: MUTED, fontSize: 12, lineHeight: "18px" }}>{step.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Partner-CTA */}
+        <div style={{ width: "100%", marginBottom: 10, marginTop: 25 }}>
+          <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>FÜR GESCHÄFTE</div>
+        </div>
+        <div style={{ background: CARD, padding: 25, borderRadius: 20, width: "100%" }}>
+          <div style={{ color: "#FFF", fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
+            Du hast ein Geschäft?
+          </div>
+          <div style={{ color: MUTED, marginBottom: 20, lineHeight: "22px", fontSize: 13 }}>
+            Bringe Läufer direkt zu deiner Tür. Pay-per-Visit ab 0,50 € – nur wenn jemand wirklich bei dir ankommt. Keine Flyer, kein Blindschuss.
+          </div>
+          <button
+            onClick={() => alert("Partner-Anfrage: Bitte kontaktiere a.meierholz@gmail.com")}
+            style={{
+              padding: "16px 40px", borderRadius: 12,
+              background: PRIMARY, width: "100%",
+              color: BG, fontWeight: "bold", fontSize: 15,
+              border: "none", cursor: "pointer",
+            }}
+          >
+            Als Partner bewerben
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+ * RANKING TAB (1:1 alte App)
+ * ═══════════════════════════════════════════════════════ */
+
+function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; leaderboard: Profile[] }) {
+  return (
+    <>
+      <div style={{ padding: 20, paddingTop: 40, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ fontSize: 24, color: "#FFF", fontWeight: "bold" }}>Top Einzel-Eroberer</div>
+        <div style={{ color: MUTED, marginTop: 5, marginBottom: 20 }}>Die Legenden der Straßen</div>
+      </div>
+      <div style={{ padding: 20 }}>
+        {leaderboard.length === 0 ? (
+          <div style={{ background: CARD, padding: 20, borderRadius: 15, textAlign: "center", color: MUTED }}>
+            Keine Daten verfügbar
+          </div>
+        ) : (
+          leaderboard.map((entry, i) => {
+            const isMe = entry.id === p?.id;
+            return (
+              <div
+                key={entry.id}
+                style={{
+                  display: "flex", flexDirection: "row", alignItems: "center",
+                  background: CARD, padding: 15, borderRadius: 15, marginBottom: 10,
+                  border: isMe ? `1px solid ${PRIMARY}` : "none",
+                }}
+              >
+                <span style={{ color: ACCENT, fontWeight: "bold", width: 30, fontSize: 16 }}>#{i + 1}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#FFF", fontWeight: "bold", fontSize: 16 }}>
+                    {entry.display_name || entry.username}
+                    {isMe && <span style={{ color: PRIMARY, fontSize: 10, marginLeft: 8 }}>(Du)</span>}
+                  </div>
+                </div>
+                <span style={{ color: PRIMARY, fontWeight: "bold" }}>{entry.xp || 0} XP</span>
+              </div>
+            );
+          })
         )}
       </div>
     </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Shops Tab (Platzhalter bis Vertragspartner da sind)
-   ═══════════════════════════════════════════════════════════ */
-
-function ShopsTab() {
-  return (
-    <div className="max-w-md mx-auto space-y-3 pb-4">
-      <h2 className="text-2xl font-black flex items-center gap-2">🏪 Lokale Geschäfte</h2>
-      <p className="text-xs text-white/40">XP gegen echte Rabatte</p>
-
-      <div className="p-6 rounded-2xl text-center mt-4" style={glassStyle}>
-        <div className="text-4xl mb-3">🎁💰</div>
-        <h3 className="text-lg font-bold mb-1">Bald verfügbar</h3>
-        <p className="text-sm text-white/50 mb-4">
-          Wir suchen gerade lokale Partner in deiner Stadt. Sobald die ersten dabei sind, kannst du hier deine XP gegen echte Rabatte einlösen.
-        </p>
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-xs text-accent font-semibold">
-          Coming soon
-        </div>
-      </div>
-
-      <div className="p-4 rounded-2xl mt-3" style={glassStyle}>
-        <h4 className="text-sm font-bold mb-2">Du hast ein Geschäft?</h4>
-        <p className="text-xs text-white/50 mb-3">
-          Bringe Läufer zu deiner Tür – Pay-per-Visit ab 0,50 €. Keine Flyer, kein Blindschuss.
-        </p>
-        <button className="w-full py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold">
-          Als Partner bewerben
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Profil Tab
-   ═══════════════════════════════════════════════════════════ */
-
-function ProfilTab({
-  profile: p,
-  equippedMarker,
-  setEquippedMarker,
-  territoryCount,
-  currentStreet,
-  walking,
-  myCrew,
-  onLogout,
-  currentRank,
-  nextRank,
-}: {
-  profile: Profile | null;
-  equippedMarker: string;
-  setEquippedMarker: (s: string) => void;
-  territoryCount: number;
-  currentStreet: string | null;
-  walking: boolean;
-  myCrew: Crew | null;
-  onLogout: () => void;
-  currentRank: { name: string; color: string; minXp: number };
-  nextRank: { name: string; color: string; minXp: number } | null;
-}) {
-  const userXp = p?.xp || 0;
-  const xpToNext = nextRank ? nextRank.minXp - userXp : 0;
-  const pctToNext = nextRank ? ((userXp - currentRank.minXp) / (nextRank.minXp - currentRank.minXp)) * 100 : 100;
-
-  return (
-    <div className="max-w-md mx-auto space-y-4 pb-4">
-      {/* Header */}
-      <div className="flex flex-col items-center text-center pt-2">
-        <div
-          className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-3"
-          style={{
-            background: "#141820",
-            border: `4px solid ${currentRank.color}`,
-            boxShadow: `0 0 30px ${currentRank.color}40`,
-          }}
-        >
-          {equippedMarker}
-        </div>
-        <div className="text-[10px] font-black text-white/40 tracking-[0.2em]">RUNNER NAME</div>
-        <div className="text-2xl font-black">{p?.display_name || p?.username || "Eroberer"}</div>
-        <div
-          className="mt-2 px-4 py-1.5 rounded-full text-xs font-black text-bg"
-          style={{ background: currentRank.color }}
-        >
-          {currentRank.name} · {userXp.toLocaleString()} XP
-        </div>
-
-        {/* XP Progress to next rank */}
-        {nextRank && (
-          <div className="w-full max-w-xs mt-4">
-            <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
-              <span>→ {nextRank.name}</span>
-              <span>{xpToNext.toLocaleString()} XP</span>
-            </div>
-            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${pctToNext}%`,
-                  background: `linear-gradient(90deg, ${currentRank.color}, ${nextRank.color})`,
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Map Icons */}
-      <Section title="DEINE MAP-ICONS">
-        <div className="grid grid-cols-4 gap-2">
-          {UNLOCKABLE_MARKERS.map((m) => {
-            const unlocked = userXp >= m.cost;
-            const equipped = equippedMarker === m.icon;
-            return (
-              <button
-                key={m.id}
-                onClick={() =>
-                  unlocked ? setEquippedMarker(m.icon) : alert(`🔒 Gesperrt: ${m.cost} XP benötigt`)
-                }
-                className="p-2.5 rounded-xl text-center transition-all active:scale-95"
-                style={{
-                  background: equipped ? "rgba(34,209,195,0.15)" : "rgba(255,255,255,0.03)",
-                  border: equipped ? "2px solid #22D1C3" : "1px solid rgba(255,255,255,0.05)",
-                  opacity: unlocked ? 1 : 0.35,
-                }}
-              >
-                <div className="text-2xl mb-1">{unlocked ? m.icon : "🔒"}</div>
-                <div className="text-[9px] font-bold">{m.name}</div>
-                {!unlocked && <div className="text-[8px] text-white/40 mt-0.5">{m.cost.toLocaleString()} XP</div>}
-                {equipped && <div className="text-[8px] text-primary font-bold mt-0.5">AKTIV</div>}
-              </button>
-            );
-          })}
-        </div>
-      </Section>
-
-      {/* Crew */}
-      <Section title="DEINE CREW">
-        <div className="flex items-center gap-3 p-4 rounded-2xl" style={glassStyle}>
-          <div
-            className="w-3 h-12 rounded-full"
-            style={{ background: myCrew?.color || "#333" }}
-          />
-          <div className="flex-1">
-            <div className="text-base font-bold">{myCrew ? myCrew.name : "Keine Crew"}</div>
-            <div className="text-xs text-white/40 mt-0.5">
-              {myCrew ? `PLZ ${myCrew.zip}` : "Werde jetzt aktiv!"}
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* Live Status */}
-      <Section title="LIVE STATUS">
-        <div
-          className="p-4 rounded-2xl"
-          style={{
-            ...glassStyle,
-            border: walking ? `1px solid ${currentRank.color}40` : glassStyle.border,
-          }}
-        >
-          <div className="text-xs text-white/50">Aktueller Straßenzug</div>
-          <div
-            className="text-base font-bold mt-1"
-            style={{ color: walking ? currentRank.color : "rgba(255,255,255,0.3)" }}
-          >
-            {walking ? currentStreet || "Wird ermittelt..." : "Kein aktiver Lauf"}
-          </div>
-        </div>
-      </Section>
-
-      {/* Territorium */}
-      <Section title="DEIN TERRITORIUM">
-        <div className="p-4 rounded-2xl flex items-center justify-between" style={glassStyle}>
-          <span className="text-sm text-white/70">Gewonnene Straßenzüge</span>
-          <span className="text-3xl font-black" style={{ color: currentRank.color }}>
-            {territoryCount}
-          </span>
-        </div>
-      </Section>
-
-      {/* Gesundheitsdaten */}
-      <Section title="GESUNDHEITSDATEN">
-        <div className="grid grid-cols-2 gap-3">
-          <StatBox emoji="👣" label="KM Gesamt" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} />
-          <StatBox emoji="🔥" label="KCAL" value={`${p?.total_calories || 0}`} />
-          <StatBox emoji="🏃" label="Walks" value={`${p?.total_walks || 0}`} />
-          <StatBox emoji="⚡" label="Streak" value={`${p?.streak_days || 0}d`} />
-        </div>
-      </Section>
-
-      {/* Einstellungen */}
-      <Section title="EINSTELLUNGEN">
-        <button
-          onClick={onLogout}
-          className="w-full p-4 rounded-2xl text-left flex items-center gap-3 text-accent font-semibold"
-          style={glassStyle}
-        >
-          <span>🚪</span>
-          <span>Ausloggen</span>
-        </button>
-      </Section>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] font-black text-primary tracking-[0.2em] mb-2 px-1">{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function StatBox({ emoji, label, value }: { emoji: string; label: string; value: string }) {
-  return (
-    <div className="p-4 rounded-2xl" style={glassStyle}>
-      <div className="text-xl mb-1">{emoji}</div>
-      <div className="text-xl font-black">{value}</div>
-      <div className="text-[10px] text-white/40 uppercase tracking-wider">{label}</div>
-    </div>
   );
 }

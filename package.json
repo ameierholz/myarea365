@@ -11,6 +11,7 @@
     "vercel-build": "turbo build --filter=web"
   },
   "devDependencies": {
+    "next": "16.1.6",
     "turbo": "^2",
     "typescript": "^5"
   },
