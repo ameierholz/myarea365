@@ -25,8 +25,11 @@ import {
   ACHIEVEMENTS,
   DEMO_MODE,
   DEMO_STATS,
+  DEMO_MAP_LIVE,
+  DEMO_RUNNERS,
   generateDemoRecentRuns,
 } from "@/lib/game-config";
+import type { DemoRunnerProfile } from "@/lib/game-config";
 
 interface Profile {
   id: string;
@@ -108,6 +111,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [activeRoute, setActiveRoute] = useState<Coord[]>([]);
   const [savedTerritories, setSavedTerritories] = useState<Coord[][]>([]);
   const [territoryCount, setTerritoryCount] = useState(0);
+  const [viewingRunner, setViewingRunner] = useState<string | null>(null);
 
   // Crew
   const [myCrew, setMyCrew] = useState<Crew | null>(null);
@@ -301,6 +305,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               savedTerritories={savedTerritories}
             />
 
+            {/* Live-Info-Panel (oben links) */}
+            <MapLivePanel teamColor={teamColor} onViewRunner={setViewingRunner} />
+
             {/* cheatContainer: top 50 right 20 */}
             {!walking && (
               <div style={{ position: "absolute", top: 20, right: 20, zIndex: 50 }}>
@@ -375,6 +382,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               walking={walking}
               myCrew={myCrew}
               onLogout={handleLogout}
+              onSwitchToMap={() => setActiveTab("map")}
+              distance={distance}
             />
           </div>
         )}
@@ -472,6 +481,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           );
         })}
       </div>
+
+      {/* Runner-Profil-Modal (öffnet beim Klick auf Angreifer) */}
+      {viewingRunner && DEMO_RUNNERS[viewingRunner] && (
+        <RunnerProfileModal
+          runner={DEMO_RUNNERS[viewingRunner]}
+          myFaction={profile?.faction || "syndicate"}
+          onClose={() => setViewingRunner(null)}
+        />
+      )}
     </div>
   );
 }
@@ -493,6 +511,8 @@ function ProfilTab({
   walking,
   myCrew,
   onLogout,
+  onSwitchToMap,
+  distance,
 }: {
   profile: Profile | null;
   setProfile: (p: Profile) => void;
@@ -506,6 +526,8 @@ function ProfilTab({
   walking: boolean;
   myCrew: Crew | null;
   onLogout: () => void;
+  onSwitchToMap: () => void;
+  distance: number;
 }) {
   const supabase = createClient();
 
@@ -526,8 +548,9 @@ function ProfilTab({
   const nextRank = getNextRank(userXp);
   const xpToNext = nextRank ? nextRank.minXp - userXp : 0;
   const currentRankLive = getCurrentRank(userXp);
+  // Bar-Fortschritt: total XP / Ziel-XP (passt zu "noch X XP")
   const pctToNext = nextRank
-    ? Math.round(((userXp - currentRankLive.minXp) / (nextRank.minXp - currentRankLive.minXp)) * 100)
+    ? Math.round((userXp / nextRank.minXp) * 100)
     : 100;
 
   // Current marker icon
@@ -539,7 +562,7 @@ function ProfilTab({
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
-  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide">(null);
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements">(null);
 
   const handleRewardedAd = () => {
     if (confirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
@@ -577,36 +600,44 @@ function ProfilTab({
   // Rang-basiertes Motto (persönliches Motto-Feld kommt später via DB-Migration)
   const mottos: Record<string, string> = {
     "Straßen-Scout":      "Jeder Weg beginnt mit dem ersten Schritt.",
+    "Kiez-Wanderer":      "Schritt für Schritt näher zum Kiez.",
+    "Block-Kundschafter": "Jede Straße ein neuer Datenpunkt.",
     "Stadt-Pionier":      "Ich erkunde, was andere übersehen.",
+    "Bezirks-Entdecker":  "Mein Bezirk, meine Karte.",
     "Viertel-Boss":       "Mein Kiez, meine Regeln.",
+    "Kiez-König":         "Unangefochten auf meinen Straßen.",
     "Metropolen-Legende": "Die Stadt gehört denen, die sie erlaufen.",
+    "Urbaner Mythos":     "Von mir erzählen die Laternen.",
+    "Straßen-Gott":       "Ich bin der Puls der Stadt.",
   };
   const motto = mottos[currentRankLive.name] || mottos["Straßen-Scout"];
 
   // Achievements: Unlock-Status live berechnen aus Profilstats
+  const stats = {
+    longest_km:   (p?.longest_run_m || 0) / 1000,
+    lifetime_km:  (p?.total_distance_m || 0) / 1000,
+    territories:  effectiveTerritoryCount,
+    streak_best:  p?.streak_best || 0,
+    total_walks:  p?.total_walks || 0,
+  };
   const achievementStatus = ACHIEVEMENTS.map((a) => {
-    const lifetimeKm = (p?.total_distance_m || 0) / 1000;
-    const longestKmNum = (p?.longest_run_m || 0) / 1000;
-    let current = 0, target = 1, unit = "", displayFmt = (v: number) => v.toFixed(0);
-    switch (a.id) {
-      case "first_5k":
-        current = longestKmNum; target = 5; unit = "km"; displayFmt = (v) => v.toFixed(1); break;
-      case "first_10k":
-        current = longestKmNum; target = 10; unit = "km"; displayFmt = (v) => v.toFixed(1); break;
-      case "ten_territories":
-        current = effectiveTerritoryCount; target = 10; unit = ""; break;
-      case "streak_30":
-        current = p?.streak_best || 0; target = 30; unit = "Tage"; break;
-      case "lifetime_100k":
-        current = lifetimeKm; target = 100; unit = "km"; displayFmt = (v) => v.toFixed(1); break;
-      case "hundred_territories":
-        current = effectiveTerritoryCount; target = 100; unit = ""; break;
-    }
-    const pct = Math.min(100, (current / target) * 100);
-    const unlocked = current >= target;
-    return { ...a, unlocked, current, target, unit, pct, displayFmt };
+    const current = stats[a.stat];
+    const pct = Math.min(100, (current / a.target) * 100);
+    const unlocked = current >= a.target;
+    const displayFmt = a.unit === "km"
+      ? (v: number) => v.toFixed(1)
+      : (v: number) => Math.floor(v).toString();
+    return { ...a, unlocked, current, pct, displayFmt };
   });
   const achievementsUnlocked = achievementStatus.filter((a) => a.unlocked).length;
+
+  // Priorisierung: unlocked zuerst, dann höchster Progress → top 5 für Liste
+  const sortedAchievements = [...achievementStatus].sort((a, b) => {
+    if (a.unlocked && !b.unlocked) return -1;
+    if (!a.unlocked && b.unlocked) return 1;
+    return b.pct - a.pct;
+  });
+  const topAchievements = sortedAchievements.slice(0, 5);
 
   return (
     <div style={{ background: BG, paddingBottom: 30 }}>
@@ -691,11 +722,60 @@ function ProfilTab({
           </div>
           <style>{`@keyframes rankShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }`}</style>
 
-          {/* Next Rank Hint */}
+          {/* Next Rank — animierter Balken mit klaren Anker-Werten */}
           {nextRank && (
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 10, textAlign: "center" }}>
-              <span style={{ color: nextRank.color, fontWeight: "bold" }}>→ {nextRank.name}</span>
-              <span> in {xpToNext.toLocaleString()} XP</span>
+            <div style={{ width: "100%", maxWidth: 340, marginTop: 14 }}>
+              {/* XP-Anker oberhalb des Balkens */}
+              <div style={{
+                display: "flex", justifyContent: "space-between",
+                marginBottom: 5, fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
+              }}>
+                <span style={{ color: currentRankLive.color }}>
+                  {userXp.toLocaleString()} XP
+                </span>
+                <span style={{ color: nextRank.color }}>
+                  {nextRank.minXp.toLocaleString()} XP
+                </span>
+              </div>
+
+              {/* Balken */}
+              <div style={{
+                height: 10, borderRadius: 5,
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                overflow: "hidden", position: "relative",
+              }}>
+                <div style={{
+                  height: "100%", width: `${pctToNext}%`,
+                  background: `linear-gradient(90deg, ${currentRankLive.color}, ${nextRank.color})`,
+                  borderRadius: 5,
+                  boxShadow: `0 0 10px ${nextRank.color}99`,
+                  transition: "width 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
+                  position: "relative",
+                  overflow: "hidden",
+                }}>
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
+                    backgroundSize: "200% 100%",
+                    animation: "rankBarShimmer 2.2s linear infinite",
+                  }} />
+                </div>
+              </div>
+              <style>{`@keyframes rankBarShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+
+              {/* Nächster Rang + verbleibende XP */}
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "baseline",
+                marginTop: 6, fontSize: 11, fontWeight: 600,
+              }}>
+                <span style={{ color: nextRank.color, fontWeight: 700 }}>
+                  → {nextRank.name}
+                </span>
+                <span style={{ color: MUTED }}>
+                  noch <span style={{ color: "#FFF", fontWeight: 800 }}>{xpToNext.toLocaleString()}</span> XP
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -703,39 +783,38 @@ function ProfilTab({
 
       <div style={{ paddingLeft: 20, paddingRight: 20 }}>
 
-        {/* QUICK STATS ROW — mit animiertem Zähler */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 6 }}>
-          <QuickStat value={effectiveTerritoryCount.toString()} targetNumber={effectiveTerritoryCount} label="Territorien" color={teamColor} />
-          <QuickStat value={(p?.total_walks || 0).toString()} targetNumber={p?.total_walks || 0} label="Läufe" color={PRIMARY} />
-          <QuickStat value={((p?.total_distance_m || 0) / 1000).toFixed(1)} targetNumber={(p?.total_distance_m || 0) / 1000} decimals={1} label="km" color={ACCENT} />
-          <QuickStat value={(p?.streak_days || 0).toString()} targetNumber={p?.streak_days || 0} label="Serie 🔥" color="#FFD700" />
-        </div>
+        {/* ═══ TODAY HERO — Live-Status + heutige Zahlen + Wochen-Trend + CTA ═══ */}
+        <TodayHero
+          walking={walking}
+          currentStreet={currentStreet}
+          currentDistance={distance}
+          runs={effectiveRecentRuns}
+          streak={p?.streak_days || 0}
+          teamColor={teamColor}
+          onSwitchToMap={onSwitchToMap}
+        />
 
-        {/* ═══ PERSÖNLICHE REKORDE ═══ */}
-        <SectionHeader title="PERSÖNLICHE REKORDE" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <RecordCard emoji="📏" label="Längster Lauf" value={`${longestKm} km`} color={PRIMARY} />
-          <RecordCard emoji="🔥" label="Beste Serie" value={`${p?.streak_best || 0} Tage`} color="#FFD700" />
-          <RecordCard emoji="🏆" label="Territorien gesamt" value={effectiveTerritoryCount.toString()} color={teamColor} />
-          <RecordCard emoji="🌍" label="Gesamt-KM" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} color={ACCENT} />
-        </div>
-
-        {/* ═══ ERFOLGE ═══ */}
+        {/* ═══ ERFOLGE (Top 5 als Balken + Modal für Rest) ═══ */}
         <SectionHeader
           title="ERFOLGE"
           action={
-            <span style={{
-              color: PRIMARY, fontSize: 13, fontWeight: 800,
-              background: `${PRIMARY}22`, border: `1px solid ${PRIMARY}55`,
-              borderRadius: 12, padding: "4px 10px",
-            }}>
-              {achievementsUnlocked} / {ACHIEVEMENTS.length}
-            </span>
+            <button
+              onClick={() => setOpenModal("achievements")}
+              style={{
+                background: `${PRIMARY}22`, border: `1px solid ${PRIMARY}88`,
+                borderRadius: 14, padding: "6px 12px",
+                color: PRIMARY, fontSize: 12, fontWeight: 800, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              <span>{achievementsUnlocked} / {ACHIEVEMENTS.length}</span>
+              <span>→</span>
+            </button>
           }
         />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          {achievementStatus.map((a) => (
-            <AchievementBadge
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {topAchievements.map((a) => (
+            <AchievementRow
               key={a.id}
               icon={a.icon}
               name={a.name}
@@ -750,13 +829,13 @@ function ProfilTab({
           ))}
         </div>
 
-        {/* ═══ AKTIVITÄT (kompakt) ═══ */}
-        <SectionHeader title="AKTIVITÄT · 13 WOCHEN" />
+        {/* ═══ AKTIVITÄT (aktueller Monat, zentriert) ═══ */}
+        <SectionHeader title="AKTUELLER MONAT" />
         <div style={{
-          background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, padding: 12,
+          background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 16,
           border: "1px solid rgba(255, 255, 255, 0.1)",
         }}>
-          <CalendarHeatmap runs={effectiveRecentRuns} color={teamColor} />
+          <MonthlyCalendar runs={effectiveRecentRuns} color={teamColor} />
         </div>
 
         {/* ═══ MAP-ICONS (10 Stück) ═══ */}
@@ -900,30 +979,6 @@ function ProfilTab({
           )}
         </div>
 
-        {/* ═══ LIVE STATUS ═══ */}
-        <SectionHeader title="LIVE STATUS" />
-        <div style={{
-          background: walking ? `${teamColor}15` : "rgba(70, 82, 122, 0.45)",
-          padding: 20, borderRadius: 18, width: "100%",
-          border: walking ? `1px solid ${teamColor}` : "1px solid rgba(255, 255, 255, 0.1)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: 4,
-              background: walking ? "#4ade80" : MUTED,
-              boxShadow: walking ? "0 0 8px #4ade80" : "none",
-            }} />
-            <span style={{ color: TEXT_SOFT, fontSize: 13 }}>
-              {walking ? "Läuft gerade" : "Kein aktiver Lauf"}
-            </span>
-          </div>
-          <div style={{
-            fontSize: 18, fontWeight: "bold",
-            color: walking ? teamColor : MUTED,
-          }}>
-            {walking ? currentStreet || "Suche Position..." : "Klicke auf Karte, um zu starten"}
-          </div>
-        </div>
 
         {/* ═══ LETZTE LÄUFE ═══ */}
         <SectionHeader title="LETZTE LÄUFE" />
@@ -1016,22 +1071,25 @@ function ProfilTab({
 
       {/* ═══════════ MODALS ═══════════ */}
       {openModal === "health" && (
-        <Modal title="Gesundheitsdaten" onClose={() => setOpenModal(null)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <StatBox emoji="👣" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="KM gesamt" />
-            <StatBox emoji="🔥" value={(p?.total_calories || 0).toLocaleString()} label="KCAL verbrannt" />
-            <StatBox emoji="🏃" value={(p?.total_walks || 0).toString()} label="Läufe" />
-            <StatBox emoji="⚡" value={`${p?.streak_days || 0} Tage`} label="Aktuelle Serie" />
-            <StatBox emoji="🏆" value={`${p?.streak_best || 0} Tage`} label="Beste Serie" />
-            <StatBox emoji="📏" value={`${longestKm} km`} label="Längster Lauf" />
-            <StatBox emoji="⏱" value={avgPace + "'"} label="Ø Pace/km" />
-            <StatBox emoji="🎯" value={effectiveTerritoryCount.toString()} label="Territorien" />
-          </div>
+        <Modal
+          title="Gesundheitsdaten"
+          subtitle="Dein kompletter Fitness-Überblick"
+          icon="💪"
+          accent={PRIMARY}
+          onClose={() => setOpenModal(null)}
+        >
+          <HealthDashboard
+            profile={p}
+            runs={effectiveRecentRuns}
+            territoryCount={effectiveTerritoryCount}
+            teamColor={teamColor}
+            achievements={achievementStatus}
+          />
         </Modal>
       )}
 
       {openModal === "settings" && (
-        <Modal title="Einstellungen" onClose={() => setOpenModal(null)}>
+        <Modal title="Einstellungen" subtitle="Deine App-Präferenzen" icon="⚙️" accent="#5ddaf0" onClose={() => setOpenModal(null)}>
           <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
             <SettingRow label="🔔 Benachrichtigungen" checked={p?.setting_notifications ?? true} onChange={(v) => updateSetting("setting_notifications", v)} />
             <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
@@ -1055,7 +1113,7 @@ function ProfilTab({
       )}
 
       {openModal === "account" && (
-        <Modal title="Account" onClose={() => setOpenModal(null)}>
+        <Modal title="Account" subtitle="Profil, Daten & Sicherheit" icon="👤" accent="#a855f7" onClose={() => setOpenModal(null)}>
           <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
             <AccountRow label="✏️ Profil bearbeiten" onClick={() => alert("Profil bearbeiten – kommt bald")} />
             <AccountRow label="🔒 Privatsphäre & Daten" onClick={() => alert("Privatsphäre – kommt bald")} />
@@ -1065,8 +1123,41 @@ function ProfilTab({
         </Modal>
       )}
 
+      {openModal === "achievements" && (
+        <Modal
+          title="Alle Erfolge"
+          subtitle={`${achievementsUnlocked} von ${ACHIEVEMENTS.length} freigeschaltet`}
+          icon="🏆"
+          accent="#FFD700"
+          onClose={() => setOpenModal(null)}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {sortedAchievements.map((a) => (
+              <AchievementRow
+                key={a.id}
+                icon={a.icon}
+                name={a.name}
+                xp={a.xp}
+                unlocked={a.unlocked}
+                current={a.current}
+                target={a.target}
+                unit={a.unit}
+                pct={a.pct}
+                displayFmt={a.displayFmt}
+              />
+            ))}
+          </div>
+        </Modal>
+      )}
+
       {openModal === "xpguide" && (
-        <Modal title="Wofür gibt es XP?" onClose={() => setOpenModal(null)}>
+        <Modal
+          title="Wofür gibt es XP?"
+          subtitle="Alle Quellen für Erfahrungspunkte"
+          icon="⭐"
+          accent="#FFD700"
+          onClose={() => setOpenModal(null)}
+        >
           <div style={{ color: TEXT_SOFT, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>
             Je mehr du dich bewegst, desto mehr XP sammelst du. Hier alle Quellen:
           </div>
@@ -1196,133 +1287,565 @@ function RecordCard({ emoji, label, value, color }: { emoji: string; label: stri
   );
 }
 
-function AchievementBadge({ icon, name, xp, unlocked, current, target, unit, pct, displayFmt }: {
+function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRunner: (username: string) => void }) {
+  const live = DEMO_MAP_LIVE;
+  const aa = live.active_attack;
+  const ta = live.territory_attack;
+
+  const row = (icon: string, value: React.ReactNode, label: string, accent?: string) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
+      <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>{icon}</span>
+      <span style={{
+        color: accent || "#FFF", fontSize: 15, fontWeight: 900, minWidth: 28,
+        textShadow: accent ? `0 0 8px ${accent}88` : "none",
+      }}>{value}</span>
+      <span style={{ color: MUTED, fontSize: 11, fontWeight: 600, flex: 1 }}>{label}</span>
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: "absolute", top: 20, left: 20, zIndex: 40,
+      minWidth: 200, maxWidth: 240,
+      background: "rgba(18, 26, 46, 0.38)",
+      backdropFilter: "blur(20px) saturate(180%)",
+      WebkitBackdropFilter: "blur(20px) saturate(180%)",
+      borderRadius: 14,
+      border: "1px solid rgba(255, 255, 255, 0.12)",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
+      padding: "10px 12px",
+      pointerEvents: "none",
+    }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        marginBottom: 4, paddingBottom: 6,
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{
+          width: 6, height: 6, borderRadius: 3,
+          background: "#4ade80",
+          boxShadow: "0 0 8px #4ade80",
+          animation: "livePanelPulse 1.6s ease-in-out infinite",
+        }} />
+        <span style={{
+          color: "#4ade80", fontSize: 9, fontWeight: 800, letterSpacing: 1.5,
+        }}>LIVE</span>
+      </div>
+      <style>{`@keyframes livePanelPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:0.5} }`}</style>
+
+      {/* Runner-Zähler */}
+      {row("👥", live.runners_in_zip, `im Kiez (${live.zip})`, teamColor)}
+      {row("🏙️", live.runners_in_city, `in ${live.city}`, "#5ddaf0")}
+
+      {/* Divider */}
+      <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
+
+      {/* Aktueller Angriff (Straßenzug im Lauf) */}
+      <AttackIndicator
+        active={aa.active}
+        icon="⚔️"
+        labelActive="ANGRIFF!"
+        labelInactive="Kein Angriff"
+        street={aa.street_name}
+        attacker={aa.attacker_username}
+        attackerColor={aa.attacker_color}
+        alertColor="#FF2D78"
+        onViewRunner={onViewRunner}
+      />
+
+      {/* Territorium-Angriff */}
+      <AttackIndicator
+        active={ta.active}
+        icon="🛡️"
+        labelActive="TERRITORIUM!"
+        labelInactive="Gebiete sicher"
+        street={ta.street_name}
+        attacker={ta.attacker_username}
+        attackerColor={ta.attacker_color}
+        alertColor="#FF6B4A"
+        onViewRunner={onViewRunner}
+      />
+    </div>
+  );
+}
+
+function AttackIndicator({ active, icon, labelActive, labelInactive, street, attacker, attackerColor, alertColor, onViewRunner }: {
+  active: boolean;
+  icon: string;
+  labelActive: string;
+  labelInactive: string;
+  street: string;
+  attacker: string;
+  attackerColor: string;
+  alertColor: string;
+  onViewRunner: (username: string) => void;
+}) {
+  return (
+    <div style={{
+      padding: "6px 8px",
+      borderRadius: 10,
+      margin: "4px 0",
+      background: active ? `${alertColor}22` : "transparent",
+      border: active ? `1px solid ${alertColor}88` : "1px solid transparent",
+      boxShadow: active ? `0 0 10px ${alertColor}66` : "none",
+      animation: active ? "attackPulse 1.4s ease-in-out infinite" : "none",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 13 }}>{icon}</span>
+        <span style={{
+          color: active ? alertColor : MUTED,
+          fontSize: 10, fontWeight: 800, letterSpacing: 0.5, flex: 1,
+        }}>
+          {active ? labelActive : labelInactive}
+        </span>
+      </div>
+      {active && (
+        <div style={{ marginTop: 3, paddingLeft: 19 }}>
+          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {street}
+          </div>
+          <button
+            onClick={() => onViewRunner(attacker)}
+            style={{
+              pointerEvents: "auto", // Panel hat pointerEvents:none, Button braucht es explizit
+              background: "transparent", border: "none", padding: "2px 0",
+              cursor: "pointer", textAlign: "left",
+              color: attackerColor, fontSize: 10, fontWeight: 700,
+              textDecoration: "underline", textDecorationStyle: "dotted",
+              textUnderlineOffset: 3,
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+              maxWidth: "100%",
+            }}
+          >
+            ← {attacker}
+          </button>
+        </div>
+      )}
+      {active && (
+        <style>{`@keyframes attackPulse { 0%,100%{box-shadow:0 0 10px ${alertColor}66} 50%{box-shadow:0 0 22px ${alertColor}cc} }`}</style>
+      )}
+    </div>
+  );
+}
+
+function RunnerProfileModal({ runner, myFaction, onClose }: {
+  runner: DemoRunnerProfile;
+  myFaction: string;
+  onClose: () => void;
+}) {
+  const isEnemy = runner.faction !== myFaction;
+  const relationColor = isEnemy ? "#FF2D78" : "#4ade80";
+  const memberSince = new Date(runner.member_since).toLocaleDateString("de-DE", {
+    month: "short", year: "numeric",
+  });
+
+  return (
+    <Modal
+      title={runner.display_name}
+      subtitle={`@${runner.username} · ${runner.last_seen}`}
+      icon={runner.marker_icon}
+      accent={runner.team_color}
+      onClose={onClose}
+    >
+      {/* Friend/Foe Banner */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "10px 14px", borderRadius: 12, marginBottom: 16,
+        background: `${relationColor}15`,
+        border: `1px solid ${relationColor}66`,
+      }}>
+        <span style={{ fontSize: 18 }}>{isEnemy ? "⚔️" : "🤝"}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: relationColor, fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>
+            {isEnemy ? "FEINDLICHE FRAKTION" : "VERBÜNDETE FRAKTION"}
+          </div>
+          <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 1 }}>
+            {runner.faction === "vanguard" ? "Vanguard" : "Syndicate"}
+            {runner.crew_name && (
+              <> · Crew: <span style={{ color: runner.crew_color || "#FFF", fontWeight: 700 }}>{runner.crew_name}</span></>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Rang */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 14px", borderRadius: 12, marginBottom: 16,
+        background: "rgba(70, 82, 122, 0.45)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 12,
+          background: `linear-gradient(135deg, ${runner.rank_color}44, ${runner.rank_color}18)`,
+          border: `1px solid ${runner.rank_color}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: `0 0 14px ${runner.rank_color}55`,
+        }}>
+          <span style={{ fontSize: 22 }}>🏆</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>RANG</div>
+          <div style={{ color: runner.rank_color, fontSize: 16, fontWeight: 900 }}>
+            {runner.rank_name}
+          </div>
+          <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 700, marginTop: 2 }}>
+            {runner.xp.toLocaleString()} XP
+          </div>
+        </div>
+      </div>
+
+      {/* Stats-Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        <RunnerStat emoji="🏆" value={runner.territories.toString()} label="Territorien" color={runner.team_color} />
+        <RunnerStat emoji="🌍" value={runner.total_km.toFixed(1)} label="KM gesamt" unit="km" color="#5ddaf0" />
+        <RunnerStat emoji="🔥" value={runner.streak_days.toString()} label="Akt. Serie" unit="Tage" color="#FFD700" />
+        <RunnerStat emoji="⭐" value={runner.streak_best.toString()} label="Beste Serie" unit="Tage" color="#FF6B4A" />
+      </div>
+
+      {/* Equipment */}
+      <div style={{
+        display: "flex", gap: 10, padding: "10px 14px", borderRadius: 12, marginBottom: 16,
+        background: "rgba(70, 82, 122, 0.45)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 20,
+            background: `${runner.team_color}22`,
+            border: `1px solid ${runner.team_color}`,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+          }}>{runner.marker_icon}</div>
+          <div>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>MAP-ICON</div>
+          </div>
+        </div>
+        <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 40, height: 16, borderRadius: 8,
+            background: runner.light_color,
+            boxShadow: `0 0 12px ${runner.light_color}aa`,
+          }} />
+          <div>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>LIGHT</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mitglied seit */}
+      <div style={{
+        textAlign: "center", color: MUTED, fontSize: 11, fontStyle: "italic",
+      }}>
+        Mitglied seit {memberSince}
+      </div>
+    </Modal>
+  );
+}
+
+function RunnerStat({ emoji, value, label, unit, color }: {
+  emoji: string; value: string; label: string; unit?: string; color: string;
+}) {
+  return (
+    <div style={{
+      padding: "12px 14px", borderRadius: 12,
+      background: "rgba(70, 82, 122, 0.45)",
+      border: "1px solid rgba(255,255,255,0.08)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+        <span style={{ fontSize: 16 }}>{emoji}</span>
+        <span style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>{label}</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+        <span style={{ color, fontSize: 20, fontWeight: 900 }}>{value}</span>
+        {unit && <span style={{ color: MUTED, fontSize: 11, fontWeight: 600 }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function TodayHero({ walking, currentStreet, currentDistance, runs, streak, teamColor, onSwitchToMap }: {
+  walking: boolean;
+  currentStreet: string | null;
+  currentDistance: number;
+  runs: Territory[];
+  streak: number;
+  teamColor: string;
+  onSwitchToMap: () => void;
+}) {
+  const now = new Date();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const todayKey = now.toISOString().slice(0, 10);
+
+  // KM heute
+  const todayKm = runs
+    .filter((r) => r.created_at.slice(0, 10) === todayKey)
+    .reduce((s, r) => s + r.distance_m, 0) / 1000;
+
+  // Wochen-Trend: km pro Tag letzte 7 Tage (älteste → heute)
+  const weekKm: { label: string; km: number; isToday: boolean }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * msPerDay);
+    const key = d.toISOString().slice(0, 10);
+    const km = runs
+      .filter((r) => r.created_at.slice(0, 10) === key)
+      .reduce((s, r) => s + r.distance_m, 0) / 1000;
+    weekKm.push({
+      label: d.toLocaleDateString("de-DE", { weekday: "narrow" }),
+      km,
+      isToday: i === 0,
+    });
+  }
+  const maxWeekKm = Math.max(0.1, ...weekKm.map((w) => w.km));
+  const weekTotal = weekKm.reduce((s, w) => s + w.km, 0);
+
+  // Live-km während Walk: distance ist in Metern
+  const liveKm = currentDistance / 1000;
+
+  return (
+    <div style={{
+      marginTop: 4,
+      background: walking
+        ? `linear-gradient(135deg, ${teamColor}25 0%, rgba(70, 82, 122, 0.5) 80%)`
+        : "linear-gradient(135deg, rgba(34, 209, 195, 0.12) 0%, rgba(70, 82, 122, 0.5) 80%)",
+      borderRadius: 20,
+      border: walking ? `1px solid ${teamColor}88` : "1px solid rgba(255, 255, 255, 0.12)",
+      boxShadow: walking
+        ? `0 0 24px ${teamColor}55, inset 0 1px 0 rgba(255,255,255,0.08)`
+        : "0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08)",
+      padding: 18,
+      position: "relative", overflow: "hidden",
+    }}>
+      {/* Status-Zeile */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div style={{
+          width: 10, height: 10, borderRadius: 5,
+          background: walking ? "#4ade80" : teamColor,
+          boxShadow: walking ? "0 0 12px #4ade80, 0 0 24px #4ade8066" : `0 0 10px ${teamColor}99`,
+          animation: walking ? "livePulse 1.4s ease-in-out infinite" : "none",
+          flexShrink: 0,
+        }} />
+        <div style={{
+          color: walking ? "#4ade80" : teamColor,
+          fontSize: 11, fontWeight: 800, letterSpacing: 1.2, flexShrink: 0,
+        }}>
+          {walking ? "LÄUFT GERADE" : "BEREIT ZUM START"}
+        </div>
+        {walking && currentStreet && (
+          <div style={{
+            color: TEXT_SOFT, fontSize: 13, fontWeight: 600,
+            flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            · {currentStreet}
+          </div>
+        )}
+      </div>
+      <style>{`@keyframes livePulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.55} }`}</style>
+
+      {/* Haupt-Zahlen: Heute + Serie + Wochen-Trend */}
+      <div style={{ display: "flex", gap: 18, alignItems: "flex-start", marginBottom: 16 }}>
+
+        {/* Heute (großes km) */}
+        <div style={{ flex: "0 0 auto" }}>
+          <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 2 }}>
+            {walking ? "JETZT" : "HEUTE"}
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <span style={{
+              fontSize: 38, fontWeight: 900, color: "#FFF", lineHeight: 1,
+              textShadow: walking ? `0 0 16px ${teamColor}aa` : "none",
+            }}>
+              {(walking ? liveKm : todayKm).toFixed(1)}
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>km</span>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ width: 1, alignSelf: "stretch", background: "rgba(255,255,255,0.1)" }} />
+
+        {/* Serie */}
+        <div style={{ flex: "0 0 auto" }}>
+          <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 2 }}>
+            SERIE 🔥
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <span style={{
+              fontSize: 38, fontWeight: 900, color: streak > 0 ? "#FFD700" : "#FFF", lineHeight: 1,
+              textShadow: streak > 0 ? "0 0 14px rgba(255, 215, 0, 0.6)" : "none",
+            }}>
+              {streak}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: MUTED }}>
+              {streak === 1 ? "Tag" : "Tage"}
+            </span>
+          </div>
+        </div>
+
+        {/* Wochen-Trend Mini-Chart */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4,
+          }}>
+            <span style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>DIESE WOCHE</span>
+            <span style={{ color: teamColor, fontSize: 12, fontWeight: 800 }}>
+              {weekTotal.toFixed(1)} km
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 44 }}>
+            {weekKm.map((w, i) => {
+              const h = w.km > 0 ? Math.max(10, (w.km / maxWeekKm) * 100) : 6;
+              return (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <div style={{
+                    width: "100%", height: `${h}%`,
+                    background: w.km > 0
+                      ? `linear-gradient(180deg, ${teamColor}, ${teamColor}55)`
+                      : "rgba(255,255,255,0.08)",
+                    borderRadius: 2,
+                    boxShadow: w.km > 0 ? `0 0 6px ${teamColor}99` : "none",
+                    border: w.isToday ? `1px solid ${w.km > 0 ? "#FFF" : teamColor}` : "none",
+                  }} />
+                  <span style={{
+                    fontSize: 8, color: w.isToday ? teamColor : MUTED,
+                    fontWeight: w.isToday ? 800 : 600,
+                  }}>{w.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Button */}
+      <button
+        onClick={onSwitchToMap}
+        style={{
+          width: "100%",
+          padding: "13px 18px", borderRadius: 14,
+          background: walking
+            ? `linear-gradient(135deg, #4ade80, ${teamColor})`
+            : `linear-gradient(135deg, ${teamColor}, ${PRIMARY})`,
+          border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+          color: BG_DEEP, fontSize: 15, fontWeight: 900, letterSpacing: 0.5,
+          boxShadow: `0 8px 24px ${teamColor}55, inset 0 1px 0 rgba(255,255,255,0.3)`,
+          transition: "transform 0.12s ease-out",
+        }}
+        onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.98)"}
+        onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+      >
+        <span style={{ fontSize: 18 }}>{walking ? "🗺️" : "🏃"}</span>
+        <span>{walking ? "ZUR KARTE — LAUF VERFOLGEN" : "JETZT LOSLAUFEN"}</span>
+        <span style={{ fontSize: 16 }}>→</span>
+      </button>
+    </div>
+  );
+}
+
+function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, displayFmt }: {
   icon: string; name: string; xp: number; unlocked: boolean;
   current: number; target: number; unit: string; pct: number;
   displayFmt: (v: number) => string;
 }) {
-  const accentColor = unlocked ? "#FFD700" : PRIMARY;
+  const accent = unlocked ? "#FFD700" : PRIMARY;
   return (
     <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "12px 14px", borderRadius: 14,
       background: unlocked
-        ? `linear-gradient(135deg, ${accentColor}28 0%, rgba(70, 82, 122, 0.55) 60%)`
-        : "rgba(70, 82, 122, 0.38)",
-      padding: 16, borderRadius: 18,
-      border: unlocked ? `1px solid ${accentColor}88` : "1px solid rgba(255,255,255,0.08)",
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-      position: "relative", overflow: "hidden",
-      boxShadow: unlocked
-        ? `0 0 20px ${accentColor}40, inset 0 1px 0 rgba(255,255,255,0.1)`
-        : "inset 0 1px 0 rgba(255,255,255,0.04)",
+        ? `linear-gradient(90deg, ${accent}26 0%, rgba(70, 82, 122, 0.5) 70%)`
+        : "rgba(70, 82, 122, 0.4)",
+      border: unlocked ? `1px solid ${accent}80` : "1px solid rgba(255,255,255,0.08)",
+      boxShadow: unlocked ? `0 0 14px ${accent}33` : "none",
     }}>
-      {/* Unlocked Shine-Effekt oben */}
-      {unlocked && (
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 40,
-          background: `radial-gradient(ellipse at 50% 0%, ${accentColor}50, transparent 70%)`,
-          pointerEvents: "none",
-        }} />
-      )}
-
-      {/* Badge-Icon in Kreis */}
+      {/* Icon-Circle */}
       <div style={{
-        width: 54, height: 54, borderRadius: 27,
+        width: 42, height: 42, borderRadius: 21,
         background: unlocked
-          ? `radial-gradient(circle at 30% 30%, ${accentColor}55, ${accentColor}22)`
+          ? `radial-gradient(circle at 30% 30%, ${accent}55, ${accent}22)`
           : "rgba(255,255,255,0.05)",
-        border: unlocked ? `2px solid ${accentColor}` : "1.5px solid rgba(255,255,255,0.15)",
+        border: unlocked ? `1.5px solid ${accent}` : "1px solid rgba(255,255,255,0.15)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 28,
-        filter: unlocked
-          ? `drop-shadow(0 0 10px ${accentColor}aa)`
-          : "grayscale(0.85) opacity(0.4)",
-        position: "relative", zIndex: 1,
+        fontSize: 22, flexShrink: 0, position: "relative",
+        filter: unlocked ? `drop-shadow(0 0 8px ${accent}aa)` : "grayscale(0.85) opacity(0.5)",
       }}>
         {icon}
         {!unlocked && (
           <div style={{
-            position: "absolute", bottom: -4, right: -4,
-            width: 22, height: 22, borderRadius: 11,
-            background: "rgba(15, 17, 21, 0.9)",
-            border: "1px solid rgba(255,255,255,0.2)",
+            position: "absolute", bottom: -3, right: -3,
+            width: 18, height: 18, borderRadius: 9,
+            background: "rgba(15,17,21,0.9)", border: "1px solid rgba(255,255,255,0.2)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11,
+            fontSize: 9,
           }}>🔒</div>
         )}
       </div>
 
-      {/* Name */}
-      <div style={{
-        color: unlocked ? "#FFF" : TEXT_SOFT,
-        fontSize: 13, fontWeight: 800, textAlign: "center",
-        lineHeight: 1.2, minHeight: 32, display: "flex", alignItems: "center",
-      }}>{name}</div>
-
-      {/* Progress */}
-      <div style={{ width: "100%", marginTop: 2 }}>
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+          <span style={{
+            color: unlocked ? "#FFF" : TEXT_SOFT,
+            fontSize: 14, fontWeight: 800,
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>{name}</span>
+          <span style={{ color: accent, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+            {displayFmt(current)} / {displayFmt(target)}{unit ? ` ${unit}` : ""}
+          </span>
+        </div>
         <div style={{
-          height: 6, borderRadius: 3,
+          marginTop: 6, height: 6, borderRadius: 3,
           background: "rgba(255,255,255,0.08)", overflow: "hidden",
         }}>
           <div style={{
             height: "100%", width: `${pct}%`,
-            background: unlocked
-              ? `linear-gradient(90deg, ${accentColor}, #FF6B4A)`
-              : `linear-gradient(90deg, ${PRIMARY}, ${accentColor})`,
+            background: `linear-gradient(90deg, ${PRIMARY}, ${accent})`,
             borderRadius: 3,
-            boxShadow: `0 0 8px ${accentColor}80`,
+            boxShadow: `0 0 8px ${accent}80`,
             transition: "width 0.8s ease-out",
           }} />
         </div>
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          marginTop: 5, fontSize: 10.5, fontWeight: 700,
-        }}>
-          <span style={{ color: unlocked ? accentColor : TEXT_SOFT }}>
-            {displayFmt(current)}{unit ? ` ${unit}` : ""}
-          </span>
-          <span style={{ color: MUTED }}>
-            / {displayFmt(target)}{unit ? ` ${unit}` : ""}
-          </span>
-        </div>
       </div>
 
-      {/* XP Belohnung */}
+      {/* XP Badge */}
       <div style={{
-        marginTop: 2, padding: "3px 10px", borderRadius: 10,
-        background: unlocked ? `${accentColor}30` : "rgba(255,255,255,0.05)",
-        border: unlocked ? `1px solid ${accentColor}80` : "1px solid rgba(255,255,255,0.1)",
+        padding: "3px 8px", borderRadius: 10, flexShrink: 0,
+        background: unlocked ? `${accent}35` : "rgba(255,255,255,0.06)",
+        border: unlocked ? `1px solid ${accent}` : "1px solid rgba(255,255,255,0.1)",
       }}>
         <span style={{
-          color: unlocked ? accentColor : MUTED,
-          fontSize: 11, fontWeight: 800,
+          color: unlocked ? accent : MUTED,
+          fontSize: 10, fontWeight: 800,
         }}>
-          {unlocked ? `✓ +${xp.toLocaleString()} XP` : `+${xp.toLocaleString()} XP`}
+          {unlocked ? "✓ " : ""}+{xp.toLocaleString()} XP
         </span>
       </div>
     </div>
   );
 }
 
-function CalendarHeatmap({ runs, color }: { runs: Territory[]; color: string }) {
-  // Gruppiere Runs nach Tag (YYYY-MM-DD) und summiere Distanz
-  const dayMap = new Map<string, number>();
-  for (const r of runs) {
-    const day = r.created_at.slice(0, 10);
-    dayMap.set(day, (dayMap.get(day) || 0) + r.distance_m);
-  }
-
-  // 13 Wochen (91 Tage) rückwärts
-  const days: { date: string; km: number }[] = [];
+function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) {
   const today = new Date();
-  for (let i = 90; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    days.push({ date: key, km: (dayMap.get(key) || 0) / 1000 });
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const lastOfMonth = new Date(year, month + 1, 0);
+  const daysInMonth = lastOfMonth.getDate();
+  const firstWeekday = (firstOfMonth.getDay() + 6) % 7; // Mo=0
+
+  // km pro Tag aggregieren
+  const kmMap = new Map<number, number>();
+  for (const r of runs) {
+    const d = new Date(r.created_at);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      kmMap.set(day, (kmMap.get(day) || 0) + r.distance_m);
+    }
   }
 
-  // Intensität: 0 / 0.001-1km / 1-3km / 3-6km / >6km
   const intensity = (km: number): number => {
     if (km === 0) return 0;
     if (km < 1) return 1;
@@ -1331,69 +1854,86 @@ function CalendarHeatmap({ runs, color }: { runs: Territory[]; color: string }) 
     return 4;
   };
   const bgFor = (lvl: number) => {
-    if (lvl === 0) return "rgba(255,255,255,0.06)";
+    if (lvl === 0) return "rgba(255,255,255,0.05)";
     const alpha = 0.25 + lvl * 0.2;
     return `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
   };
 
-  // Weekday offset (Mon=0)
-  const firstDay = new Date(days[0].date);
-  const weekdayOffset = (firstDay.getDay() + 6) % 7;
+  const monthName = firstOfMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+  const weekdays = ["M", "D", "M", "D", "F", "S", "S"];
+  const todayDay = today.getDate();
+  const activeDays = Array.from(kmMap.values()).filter((v) => v > 0).length;
+  const totalKm = Array.from(kmMap.values()).reduce((s, v) => s + v, 0) / 1000;
 
-  // Baue 7x13 Grid
-  const cells: ({ date: string; km: number } | null)[] = Array(weekdayOffset).fill(null).concat(days);
-  while (cells.length < 7 * 13) cells.push(null);
-
-  const activeDays = days.filter((d) => d.km > 0).length;
-  const totalKm = days.reduce((s, d) => s + d.km, 0);
+  // Zellen
+  const cells: (number | null)[] = Array(firstWeekday).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-      {/* Kompakter Heatmap-Grid — feste 10px Zellen */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(13, 10px)",
-        gridTemplateRows: "repeat(7, 10px)",
-        gridAutoFlow: "column",
-        gap: 2,
-        flexShrink: 0,
-      }}>
-        {cells.map((cell, i) => (
-          <div
-            key={i}
-            title={cell ? `${cell.date}: ${cell.km.toFixed(2)} km` : ""}
-            style={{
-              width: 10, height: 10, borderRadius: 2,
-              background: cell ? bgFor(intensity(cell.km)) : "transparent",
-              boxShadow: cell && cell.km > 0 ? `0 0 3px ${color}66` : "none",
-            }}
-          />
-        ))}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+      {/* Header */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ color: "#FFF", fontSize: 16, fontWeight: 800, textTransform: "capitalize" }}>
+          {monthName}
+        </div>
+        <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
+          {activeDays} aktive Tage · {totalKm.toFixed(1)} km
+        </div>
       </div>
 
-      {/* Summary rechts daneben */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 120 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{activeDays}</span>
-          <span style={{ color: MUTED, fontSize: 11 }}>aktive Tage</span>
-        </div>
-        <div style={{ color: color, fontSize: 13, fontWeight: 700 }}>
-          {totalKm.toFixed(1)} km gesamt
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 9, color: MUTED }}>
-          <span>–</span>
-          {[0, 1, 2, 3, 4].map((lvl) => (
-            <div key={lvl} style={{
-              width: 9, height: 9, borderRadius: 2,
-              background: bgFor(lvl),
-            }} />
+      {/* Grid */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {/* Wochentage */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 32px)", gap: 4 }}>
+          {weekdays.map((w, i) => (
+            <div key={i} style={{
+              textAlign: "center", fontSize: 10, fontWeight: 700,
+              color: MUTED, letterSpacing: 0.5,
+            }}>{w}</div>
           ))}
-          <span>+</span>
         </div>
+        {/* Tage */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 32px)", gap: 4 }}>
+          {cells.map((day, i) => {
+            if (day === null) return <div key={i} />;
+            const km = (kmMap.get(day) || 0) / 1000;
+            const isToday = day === todayDay;
+            const isFuture = day > todayDay;
+            return (
+              <div
+                key={i}
+                title={km > 0 ? `${day}.: ${km.toFixed(2)} km` : `${day}.`}
+                style={{
+                  width: 32, height: 32, borderRadius: 6,
+                  background: isFuture ? "rgba(255,255,255,0.03)" : bgFor(intensity(km)),
+                  border: isToday ? `2px solid ${color}` : "1px solid rgba(255,255,255,0.06)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11, fontWeight: km > 0 ? 800 : 500,
+                  color: isFuture ? MUTED : (km > 0 ? "#FFF" : TEXT_SOFT),
+                  boxShadow: km > 0 ? `0 0 6px ${color}66` : "none",
+                  opacity: isFuture ? 0.35 : 1,
+                }}
+              >
+                {day}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legende */}
+      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: MUTED }}>
+        <span>Weniger</span>
+        {[0, 1, 2, 3, 4].map((lvl) => (
+          <div key={lvl} style={{ width: 10, height: 10, borderRadius: 2, background: bgFor(lvl) }} />
+        ))}
+        <span>Mehr</span>
       </div>
     </div>
   );
 }
+
 
 function StatBox({ emoji, value, label }: { emoji: string; value: string; label: string }) {
   return (
@@ -1510,6 +2050,493 @@ function AccountRow({ label, onClick, danger, last }: { label: string; onClick: 
   );
 }
 
+/* ═══════════════════════════════════════════════════════
+ * HEALTH DASHBOARD — vollständiges Fitness-Statistik-Modal
+ * ═══════════════════════════════════════════════════════ */
+
+type HealthPeriod = "week" | "month" | "year" | "all";
+
+function HealthDashboard({ profile: p, runs, territoryCount, teamColor, achievements }: {
+  profile: Profile | null;
+  runs: Territory[];
+  territoryCount: number;
+  teamColor: string;
+  achievements: Array<{ id: string; name: string; icon: string; unlocked: boolean; pct: number; current: number; target: number; unit: string; xp: number; displayFmt: (v: number) => string }>;
+}) {
+  const [period, setPeriod] = useState<HealthPeriod>("month");
+  const [weeklyGoalKm, setWeeklyGoalKm] = useState<number>(() => {
+    if (typeof window === "undefined") return 10;
+    return Number(localStorage.getItem("health_weekly_goal_km") || 10);
+  });
+
+  const now = new Date();
+  const msPerDay = 24 * 60 * 60 * 1000;
+
+  // Perioden-Grenzen
+  const periodDays = period === "week" ? 7 : period === "month" ? 30 : period === "year" ? 365 : 365 * 10;
+  const periodStart = new Date(now.getTime() - periodDays * msPerDay);
+  const prevPeriodStart = new Date(now.getTime() - 2 * periodDays * msPerDay);
+
+  const inPeriod = runs.filter((r) => new Date(r.created_at) >= periodStart);
+  const inPrevPeriod = runs.filter((r) => {
+    const d = new Date(r.created_at);
+    return d >= prevPeriodStart && d < periodStart;
+  });
+
+  const sumKm = (arr: Territory[]) => arr.reduce((s, r) => s + r.distance_m, 0) / 1000;
+  const sumSec = (arr: Territory[]) => arr.reduce((s, r) => s + r.duration_s, 0);
+
+  const kmNow = sumKm(inPeriod);
+  const kmPrev = sumKm(inPrevPeriod);
+  const walksNow = inPeriod.length;
+  const walksPrev = inPrevPeriod.length;
+
+  // Kcal-Schätzung: ~70 kcal pro km (moderates Joggen, 70kg)
+  const kcalNow = kmNow * 70;
+  const kcalPrev = kmPrev * 70;
+
+  const secNow = sumSec(inPeriod);
+  const secPrev = sumSec(inPrevPeriod);
+
+  const uniqueDaysNow = new Set(inPeriod.map((r) => r.created_at.slice(0, 10))).size;
+
+  // Lauf-Stats
+  const avgDistance = walksNow > 0 ? kmNow / walksNow : 0;
+  const avgDurationMin = walksNow > 0 ? secNow / walksNow / 60 : 0;
+  const avgPaceMinPerKm = kmNow > 0 ? (secNow / 60) / kmNow : 0;
+  const longest = inPeriod.reduce((max, r) => r.distance_m > max ? r.distance_m : max, 0) / 1000;
+  const shortest = inPeriod.length > 0 ? inPeriod.reduce((min, r) => r.distance_m < min ? r.distance_m : min, Infinity) / 1000 : 0;
+  const fastestPace = inPeriod.reduce((best, r) => {
+    if (r.distance_m < 500) return best; // Nur relevante Distanzen
+    const pace = (r.duration_s / 60) / (r.distance_m / 1000);
+    return pace < best ? pace : best;
+  }, Infinity);
+
+  // Tageszeit-Verteilung (4 Slots)
+  const timeSlots = { morgens: 0, mittags: 0, abends: 0, nachts: 0 };
+  inPeriod.forEach((r) => {
+    const h = new Date(r.created_at).getHours();
+    if (h >= 5 && h < 11) timeSlots.morgens++;
+    else if (h >= 11 && h < 17) timeSlots.mittags++;
+    else if (h >= 17 && h < 22) timeSlots.abends++;
+    else timeSlots.nachts++;
+  });
+
+  // Wochentag-Verteilung
+  const weekdayData = [0, 0, 0, 0, 0, 0, 0]; // Mo=0
+  inPeriod.forEach((r) => {
+    const wd = (new Date(r.created_at).getDay() + 6) % 7;
+    weekdayData[wd] += r.distance_m / 1000;
+  });
+
+  // Chart-Daten: Balken über Zeitraum
+  const chartBuckets = period === "week" ? 7 : period === "month" ? 30 : 12;
+  const bucketKm: number[] = new Array(chartBuckets).fill(0);
+  const bucketLabels: string[] = [];
+  if (period === "year") {
+    // 12 Monate
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      bucketLabels.push(d.toLocaleDateString("de-DE", { month: "short" }));
+    }
+    inPeriod.forEach((r) => {
+      const d = new Date(r.created_at);
+      const mDiff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+      const idx = 11 - mDiff;
+      if (idx >= 0 && idx < 12) bucketKm[idx] += r.distance_m / 1000;
+    });
+  } else {
+    // Tages-Buckets
+    for (let i = chartBuckets - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * msPerDay);
+      bucketLabels.push(d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }));
+    }
+    inPeriod.forEach((r) => {
+      const d = new Date(r.created_at);
+      const daysAgo = Math.floor((now.getTime() - d.getTime()) / msPerDay);
+      const idx = chartBuckets - 1 - daysAgo;
+      if (idx >= 0 && idx < chartBuckets) bucketKm[idx] += r.distance_m / 1000;
+    });
+  }
+  const maxBucket = Math.max(1, ...bucketKm);
+
+  // Weekly-Goal Progress (letzte 7 Tage)
+  const last7Days = runs.filter((r) => new Date(r.created_at) >= new Date(now.getTime() - 7 * msPerDay));
+  const weeklyKm = sumKm(last7Days);
+  const weeklyPct = Math.min(100, (weeklyKm / weeklyGoalKm) * 100);
+
+  // Lifetime Total für Äquivalente
+  const lifetimeKm = (p?.total_distance_m || 0) / 1000;
+  const lifetimeKcal = p?.total_calories || Math.round(lifetimeKm * 70);
+  const estimatedSteps = Math.round(lifetimeKm * 1300);
+  const savedCo2Kg = (lifetimeKm * 120) / 1000; // 120g/km vs Auto
+
+  // Achievements: nächste 3 die am nächsten am Unlock sind
+  const nextMilestones = achievements
+    .filter((a) => !a.unlocked)
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 3);
+
+  const deltaPct = (n: number, prev: number) => {
+    if (prev === 0 && n === 0) return 0;
+    if (prev === 0) return 100;
+    return Math.round(((n - prev) / prev) * 100);
+  };
+
+  const periodLabel: Record<HealthPeriod, string> = {
+    week: "7 Tage",
+    month: "30 Tage",
+    year: "12 Monate",
+    all: "Gesamt",
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* ═══ Period-Tabs ═══ */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6,
+        background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, padding: 4,
+      }}>
+        {(["week", "month", "year", "all"] as HealthPeriod[]).map((pp) => (
+          <button
+            key={pp}
+            onClick={() => setPeriod(pp)}
+            style={{
+              padding: "8px 4px", borderRadius: 11, border: "none", cursor: "pointer",
+              background: period === pp
+                ? `linear-gradient(135deg, ${PRIMARY}, ${teamColor})`
+                : "transparent",
+              color: period === pp ? BG_DEEP : TEXT_SOFT,
+              fontSize: 12, fontWeight: 800,
+              boxShadow: period === pp ? `0 4px 14px ${PRIMARY}50` : "none",
+              transition: "all 0.15s",
+            }}
+          >
+            {periodLabel[pp]}
+          </button>
+        ))}
+      </div>
+
+      {/* ═══ Haupt-Kennzahlen mit Delta ═══ */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <HealthHeroStat emoji="📏" value={kmNow.toFixed(1)} unit="km" label="Gelaufen" delta={deltaPct(kmNow, kmPrev)} color={PRIMARY} />
+        <HealthHeroStat emoji="🏃" value={walksNow.toString()} unit="" label="Läufe" delta={deltaPct(walksNow, walksPrev)} color="#5ddaf0" />
+        <HealthHeroStat emoji="🔥" value={Math.round(kcalNow).toLocaleString()} unit="kcal" label="Verbrannt" delta={deltaPct(kcalNow, kcalPrev)} color="#FF6B4A" />
+        <HealthHeroStat emoji="📅" value={uniqueDaysNow.toString()} unit={`/ ${periodDays}`} label="Aktive Tage" delta={0} color="#FFD700" hideDelta />
+      </div>
+
+      {/* ═══ Chart: km-Verlauf ═══ */}
+      <HealthSection title="KM-VERLAUF" emoji="📈">
+        <div style={{
+          display: "flex", alignItems: "flex-end", gap: 3,
+          height: 130, padding: "10px 4px 0",
+        }}>
+          {bucketKm.map((km, i) => (
+            <div
+              key={i}
+              title={`${bucketLabels[i]}: ${km.toFixed(2)} km`}
+              style={{
+                flex: 1,
+                height: `${Math.max(2, (km / maxBucket) * 100)}%`,
+                background: km > 0
+                  ? `linear-gradient(180deg, ${teamColor}, ${teamColor}66)`
+                  : "rgba(255,255,255,0.06)",
+                borderRadius: 3,
+                boxShadow: km > 0 ? `0 0 6px ${teamColor}aa` : "none",
+                minHeight: 2,
+                transition: "height 0.5s ease-out",
+              }}
+            />
+          ))}
+        </div>
+        <div style={{
+          display: "flex", justifyContent: "space-between",
+          marginTop: 6, fontSize: 9, color: MUTED,
+        }}>
+          <span>{bucketLabels[0]}</span>
+          <span>Heute</span>
+        </div>
+      </HealthSection>
+
+      {/* ═══ Wöchentliches Ziel ═══ */}
+      <HealthSection title="WÖCHENTLICHES ZIEL" emoji="🎯" action={
+        <div style={{ display: "flex", gap: 4 }}>
+          {[5, 10, 20, 50].map((g) => (
+            <button
+              key={g}
+              onClick={() => {
+                setWeeklyGoalKm(g);
+                if (typeof window !== "undefined") localStorage.setItem("health_weekly_goal_km", String(g));
+              }}
+              style={{
+                padding: "3px 8px", borderRadius: 8,
+                background: weeklyGoalKm === g ? `${PRIMARY}33` : "rgba(255,255,255,0.05)",
+                border: weeklyGoalKm === g ? `1px solid ${PRIMARY}` : "1px solid rgba(255,255,255,0.1)",
+                color: weeklyGoalKm === g ? PRIMARY : MUTED,
+                fontSize: 10, fontWeight: 800, cursor: "pointer",
+              }}
+            >
+              {g}km
+            </button>
+          ))}
+        </div>
+      }>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>
+            {weeklyKm.toFixed(1)} / {weeklyGoalKm} km
+          </span>
+          <span style={{ color: weeklyPct >= 100 ? "#4ade80" : PRIMARY, fontSize: 15, fontWeight: 800, alignSelf: "center" }}>
+            {weeklyPct >= 100 ? "✓ Geschafft!" : `${Math.round(weeklyPct)}%`}
+          </span>
+        </div>
+        <div style={{ height: 10, borderRadius: 5, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: `${weeklyPct}%`,
+            background: weeklyPct >= 100
+              ? "linear-gradient(90deg, #4ade80, #22D1C3)"
+              : `linear-gradient(90deg, ${PRIMARY}, ${ACCENT})`,
+            borderRadius: 5,
+            boxShadow: `0 0 10px ${PRIMARY}80`,
+            transition: "width 0.8s ease-out",
+          }} />
+        </div>
+      </HealthSection>
+
+      {/* ═══ Lauf-Statistiken ═══ */}
+      <HealthSection title="LAUF-STATISTIKEN" emoji="🏃">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <MiniStat label="Ø Distanz" value={avgDistance.toFixed(1)} unit="km" />
+          <MiniStat label="Ø Dauer" value={avgDurationMin.toFixed(0)} unit="min" />
+          <MiniStat label="Ø Pace" value={avgPaceMinPerKm > 0 ? avgPaceMinPerKm.toFixed(1) : "—"} unit="min/km" />
+          <MiniStat label="Längster" value={longest.toFixed(1)} unit="km" />
+          <MiniStat label="Kürzester" value={shortest > 0 ? shortest.toFixed(1) : "—"} unit="km" />
+          <MiniStat label="Schnellste" value={isFinite(fastestPace) ? fastestPace.toFixed(1) : "—"} unit="min/km" />
+        </div>
+      </HealthSection>
+
+      {/* ═══ Wochentag-Verteilung ═══ */}
+      <HealthSection title="WANN LÄUFST DU?" emoji="📆">
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100, marginBottom: 6 }}>
+          {weekdayData.map((km, i) => {
+            const max = Math.max(0.1, ...weekdayData);
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ fontSize: 9, color: MUTED, fontWeight: 700 }}>{km.toFixed(1)}</div>
+                <div style={{
+                  width: "100%", height: `${Math.max(4, (km / max) * 100)}%`, minHeight: 4,
+                  background: km > 0
+                    ? `linear-gradient(180deg, ${teamColor}, ${teamColor}55)`
+                    : "rgba(255,255,255,0.05)",
+                  borderRadius: 4,
+                  boxShadow: km > 0 ? `0 0 6px ${teamColor}66` : "none",
+                }} />
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
+            <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 10, color: MUTED, fontWeight: 700 }}>{d}</div>
+          ))}
+        </div>
+      </HealthSection>
+
+      {/* ═══ Tageszeit-Verteilung ═══ */}
+      <HealthSection title="TAGESZEIT" emoji="🌅">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+          <TimeSlot icon="🌅" label="Morgens" count={timeSlots.morgens} total={walksNow} color="#FFD700" />
+          <TimeSlot icon="☀️" label="Mittags" count={timeSlots.mittags} total={walksNow} color="#FF6B4A" />
+          <TimeSlot icon="🌆" label="Abends" count={timeSlots.abends} total={walksNow} color="#a855f7" />
+          <TimeSlot icon="🌙" label="Nachts" count={timeSlots.nachts} total={walksNow} color="#5ddaf0" />
+        </div>
+      </HealthSection>
+
+      {/* ═══ Kalorien & Äquivalente ═══ */}
+      <HealthSection title="KALORIEN-ÄQUIVALENTE" emoji="🍕" subtitle={`Lifetime: ${lifetimeKcal.toLocaleString()} kcal`}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <Equivalent icon="🍕" count={(lifetimeKcal / 285).toFixed(1)} label="Pizza-Stücke" />
+          <Equivalent icon="🍌" count={Math.round(lifetimeKcal / 105).toString()} label="Bananen" />
+          <Equivalent icon="🍫" count={Math.round(lifetimeKcal / 235).toString()} label="Schokoriegel" />
+          <Equivalent icon="🥨" count={Math.round(lifetimeKcal / 340).toString()} label="Brezeln" />
+        </div>
+      </HealthSection>
+
+      {/* ═══ Geografie & Umwelt ═══ */}
+      <HealthSection title="GEOGRAFIE & UMWELT" emoji="🌍">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <MiniStat label="Territorien" value={territoryCount.toString()} unit="" big />
+          <MiniStat label="Einzigartige Straßen" value={new Set(runs.map((r) => r.street_name).filter(Boolean)).size.toString()} unit="" big />
+          <MiniStat label="Geschätzte Schritte" value={estimatedSteps.toLocaleString()} unit="" big />
+          <MiniStat label="CO₂-Ersparnis" value={savedCo2Kg.toFixed(1)} unit="kg" big />
+        </div>
+        <div style={{
+          marginTop: 10, padding: "10px 12px", borderRadius: 12,
+          background: "rgba(34, 209, 195, 0.08)",
+          border: "1px solid rgba(34, 209, 195, 0.2)",
+          fontSize: 11, color: TEXT_SOFT, lineHeight: 1.5,
+        }}>
+          💚 Du hast {savedCo2Kg.toFixed(1)} kg CO₂ eingespart, indem du nicht Auto gefahren bist. Das entspricht ca. {(savedCo2Kg / 0.12).toFixed(0)} km nicht-gefahrener Strecke im Schnitt-PKW.
+        </div>
+      </HealthSection>
+
+      {/* ═══ Nächste Meilensteine ═══ */}
+      {nextMilestones.length > 0 && (
+        <HealthSection title="NÄCHSTE MEILENSTEINE" emoji="🎖️">
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {nextMilestones.map((m) => (
+              <div key={m.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px", borderRadius: 12,
+                background: "rgba(70, 82, 122, 0.45)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}>
+                <span style={{ fontSize: 22 }}>{m.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ color: "#FFF", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</span>
+                    <span style={{ color: PRIMARY, fontSize: 11, fontWeight: 800 }}>
+                      {m.displayFmt(m.current)} / {m.displayFmt(m.target)}{m.unit ? ` ${m.unit}` : ""}
+                    </span>
+                  </div>
+                  <div style={{ marginTop: 4, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", width: `${m.pct}%`,
+                      background: `linear-gradient(90deg, ${PRIMARY}, #FFD700)`,
+                      borderRadius: 3, boxShadow: `0 0 6px ${PRIMARY}88`,
+                    }} />
+                  </div>
+                </div>
+                <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>+{m.xp.toLocaleString()} XP</span>
+              </div>
+            ))}
+          </div>
+        </HealthSection>
+      )}
+
+      {/* ═══ Medizinischer Disclaimer ═══ */}
+      <div style={{
+        padding: "10px 12px", borderRadius: 12,
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        fontSize: 10.5, color: MUTED, lineHeight: 1.5, fontStyle: "italic",
+      }}>
+        ℹ️ Kalorien- und Schritt-Angaben sind Schätzwerte auf Basis deiner gelaufenen Distanz (~70 kcal/km, ~1.300 Schritte/km). Für medizinisch relevante Daten nutze zertifizierte Geräte.
+      </div>
+    </div>
+  );
+}
+
+function HealthHeroStat({ emoji, value, unit, label, delta, color, hideDelta }: {
+  emoji: string; value: string; unit: string; label: string; delta: number; color: string; hideDelta?: boolean;
+}) {
+  const deltaColor = delta > 0 ? "#4ade80" : delta < 0 ? "#FF6B4A" : MUTED;
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${color}15 0%, rgba(70, 82, 122, 0.5) 70%)`,
+      padding: 14, borderRadius: 14,
+      border: `1px solid ${color}44`,
+      boxShadow: `0 0 14px ${color}22`,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontSize: 22 }}>{emoji}</span>
+        {!hideDelta && delta !== 0 && (
+          <span style={{
+            fontSize: 10, fontWeight: 800, color: deltaColor,
+            padding: "2px 6px", borderRadius: 8,
+            background: `${deltaColor}18`, border: `1px solid ${deltaColor}55`,
+          }}>
+            {delta > 0 ? "↑" : "↓"} {Math.abs(delta)}%
+          </span>
+        )}
+      </div>
+      <div style={{ display: "baseline", gap: 4 }}>
+        <span style={{ fontSize: 26, fontWeight: 900, color: "#FFF" }}>{value}</span>
+        {unit && <span style={{ fontSize: 12, color: MUTED, fontWeight: 700, marginLeft: 4 }}>{unit}</span>}
+      </div>
+      <div style={{ fontSize: 11, color: MUTED, marginTop: 3, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+    </div>
+  );
+}
+
+function HealthSection({ title, emoji, subtitle, action, children }: {
+  title: string; emoji?: string; subtitle?: string;
+  action?: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      background: "rgba(70, 82, 122, 0.38)",
+      borderRadius: 14, padding: 14,
+      border: "1px solid rgba(255,255,255,0.08)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 11, color: PRIMARY, fontWeight: 800, letterSpacing: 1 }}>
+            {emoji && <span style={{ marginRight: 6 }}>{emoji}</span>}
+            {title}
+          </div>
+          {subtitle && <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{subtitle}</div>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, unit, big }: { label: string; value: string; unit: string; big?: boolean }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.04)",
+      padding: big ? "10px 12px" : "8px 10px",
+      borderRadius: 10,
+      border: "1px solid rgba(255,255,255,0.06)",
+    }}>
+      <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, marginBottom: 3 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+        <span style={{ fontSize: big ? 18 : 15, fontWeight: 900, color: "#FFF" }}>{value}</span>
+        {unit && <span style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}>{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function TimeSlot({ icon, label, count, total, color }: {
+  icon: string; label: string; count: number; total: number; color: string;
+}) {
+  const pct = total > 0 ? (count / total) * 100 : 0;
+  return (
+    <div style={{
+      padding: 10, borderRadius: 12,
+      background: count > 0 ? `${color}15` : "rgba(255,255,255,0.04)",
+      border: count > 0 ? `1px solid ${color}55` : "1px solid rgba(255,255,255,0.06)",
+      textAlign: "center",
+    }}>
+      <div style={{ fontSize: 20, marginBottom: 3 }}>{icon}</div>
+      <div style={{ fontSize: 16, fontWeight: 900, color: count > 0 ? color : MUTED }}>{count}</div>
+      <div style={{ fontSize: 9, color: MUTED, marginTop: 2, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 9, color: count > 0 ? color : MUTED, fontWeight: 700, marginTop: 2 }}>{Math.round(pct)}%</div>
+    </div>
+  );
+}
+
+function Equivalent({ icon, count, label }: { icon: string; count: string; label: string }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 12px", borderRadius: 12,
+      background: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.06)",
+    }}>
+      <span style={{ fontSize: 24 }}>{icon}</span>
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: "#FFD700" }}>{count}</div>
+        <div style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
 function XpGuideSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 18 }}>
@@ -1543,60 +2570,132 @@ function XpGuideRow({ icon, label, xp, last }: { icon: string; label: string; xp
   );
 }
 
-function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+function Modal({ title, icon, subtitle, accent, children, onClose }: {
+  title: string;
+  icon?: string;
+  subtitle?: string;
+  accent?: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  const accentColor = accent || PRIMARY;
+
+  // Escape zum Schließen
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
   return (
     <div
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, zIndex: 100,
-        background: "rgba(8, 16, 36, 0.75)",
-        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-        padding: 0,
+        background: "radial-gradient(at 50% 50%, rgba(15, 26, 52, 0.85), rgba(8, 12, 24, 0.92))",
+        backdropFilter: "blur(14px) saturate(150%)",
+        WebkitBackdropFilter: "blur(14px) saturate(150%)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "20px",
+        animation: "modalBackdropFade 0.22s ease-out",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 640,
-          maxHeight: "85dvh",
-          background: "rgba(30, 42, 68, 0.92)",
-          backdropFilter: "blur(24px) saturate(180%)",
-          WebkitBackdropFilter: "blur(24px) saturate(180%)",
-          borderTopLeftRadius: 28, borderTopRightRadius: 28,
-          border: "1px solid rgba(255, 255, 255, 0.12)",
-          borderBottom: "none",
-          padding: "24px 20px 32px",
-          overflowY: "auto",
-          boxShadow: "0 -20px 60px rgba(0, 0, 0, 0.4)",
+          width: "100%", maxWidth: 540,
+          maxHeight: "90dvh",
+          position: "relative",
+          background: `
+            radial-gradient(at 0% 0%, ${accentColor}22 0%, transparent 45%),
+            radial-gradient(at 100% 100%, ${ACCENT}18 0%, transparent 50%),
+            linear-gradient(180deg, rgba(45, 58, 90, 0.94), rgba(26, 36, 58, 0.96))
+          `,
+          backdropFilter: "blur(30px) saturate(180%)",
+          WebkitBackdropFilter: "blur(30px) saturate(180%)",
+          borderRadius: 24,
+          border: "1px solid rgba(255, 255, 255, 0.16)",
+          overflow: "hidden",
+          boxShadow: `
+            0 30px 80px rgba(0, 0, 0, 0.55),
+            0 0 0 1px rgba(255, 255, 255, 0.04),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12)
+          `,
+          animation: "modalScaleIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)",
+          display: "flex", flexDirection: "column",
         }}
       >
-        {/* Drag handle */}
+        {/* Top Accent Gradient Bar */}
         <div style={{
-          width: 40, height: 4, borderRadius: 2,
-          background: "rgba(255,255,255,0.2)", margin: "0 auto 18px",
+          height: 3,
+          background: `linear-gradient(90deg, transparent 0%, ${accentColor} 20%, ${ACCENT} 80%, transparent 100%)`,
+          boxShadow: `0 0 12px ${accentColor}88`,
         }} />
 
+        {/* Header */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          marginBottom: 18,
+          display: "flex", alignItems: "center", gap: 14,
+          padding: "20px 22px 16px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
         }}>
-          <h2 style={{ color: "#FFF", fontSize: 22, fontWeight: 900, margin: 0 }}>{title}</h2>
+          {icon && (
+            <div style={{
+              width: 48, height: 48, borderRadius: 14,
+              background: `linear-gradient(135deg, ${accentColor}44, ${accentColor}18)`,
+              border: `1px solid ${accentColor}66`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 24,
+              boxShadow: `0 0 18px ${accentColor}40, inset 0 1px 0 rgba(255,255,255,0.15)`,
+              flexShrink: 0,
+            }}>{icon}</div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{
+              color: "#FFF", fontSize: 20, fontWeight: 900, margin: 0,
+              letterSpacing: 0.3,
+            }}>{title}</h2>
+            {subtitle && (
+              <div style={{
+                color: MUTED, fontSize: 12, marginTop: 3, fontWeight: 500,
+              }}>{subtitle}</div>
+            )}
+          </div>
           <button
             onClick={onClose}
             style={{
-              width: 36, height: 36, borderRadius: 18,
-              background: "rgba(255,255,255,0.08)", border: "none",
-              color: "#FFF", fontSize: 20, cursor: "pointer",
+              width: 36, height: 36, borderRadius: 12,
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#FFF", fontSize: 22, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+              transition: "background 0.15s",
             }}
-          >
-            ×
-          </button>
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+          >×</button>
         </div>
 
-        {children}
+        {/* Body */}
+        <div style={{
+          padding: "20px 22px 26px",
+          overflowY: "auto",
+          flex: 1,
+        }}>
+          {children}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes modalBackdropFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes modalScaleIn {
+          from { opacity: 0; transform: scale(0.92) translateY(12px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
