@@ -171,7 +171,7 @@ export function InlineAuth() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg font-bold hover:bg-primary-dim disabled:opacity-50 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 transition-colors"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />

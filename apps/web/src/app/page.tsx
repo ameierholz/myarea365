@@ -85,7 +85,7 @@ export default function LandingPage() {
             </a>
             <a
               href="#start"
-              className="text-sm px-4 py-2 rounded-lg bg-primary text-bg font-semibold hover:bg-primary-dim transition-colors"
+              className="text-sm px-4 py-2 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim transition-colors"
             >
               Loslegen
             </a>

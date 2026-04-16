@@ -29,7 +29,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="theme-color" content="#0B0E13" />
+        <meta name="theme-color" content="#1b2436" />
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
         {children}

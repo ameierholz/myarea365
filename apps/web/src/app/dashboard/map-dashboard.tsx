@@ -17,6 +17,15 @@ import {
   MIN_ROUTE_POINTS,
   UNITS,
   LANGUAGES,
+  XP_PER_KM,
+  XP_PER_WALK,
+  XP_REWARDED_AD,
+  XP_KIEZ_CHECKIN,
+  XP_CREW_WIN,
+  ACHIEVEMENTS,
+  DEMO_MODE,
+  DEMO_STATS,
+  generateDemoRecentRuns,
 } from "@/lib/game-config";
 
 interface Profile {
@@ -72,13 +81,14 @@ type TabId = "profil" | "map" | "crew" | "shops" | "ranking";
 /* ═══════════════════════════════════════════════════════
  * 1:1 Farb-Konstanten aus alter App (styles.ts)
  * ═══════════════════════════════════════════════════════ */
-const BG = "#0F1115";
-const CARD = "#16181D";
-const BORDER = "#2A2A2A";
-const MUTED = "#888";
-const TEXT_SOFT = "#BBB";
-const PRIMARY = "#5ddaf0";
-const ACCENT = "#ef7169";
+const BG = "transparent"; // Dashboard-Gradient scheint durch
+const BG_DEEP = "#0F1115"; // für dunklen Text auf hellen Buttons
+const CARD = "rgba(41, 51, 73, 0.55)";
+const BORDER = "rgba(255, 255, 255, 0.14)";
+const MUTED = "#a8b4cf";
+const TEXT_SOFT = "#dde3f5";
+const PRIMARY = "#22D1C3";
+const ACCENT = "#FF2D78";
 
 export function MapDashboard({ profile: initialProfile }: { profile: Profile | null }) {
   const router = useRouter();
@@ -263,7 +273,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const teamColor = myCrew?.color || p?.team_color || PRIMARY;
 
   return (
-    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", background: BG }}>
+    <div style={{
+      height: "100dvh",
+      display: "flex",
+      flexDirection: "column",
+      background: `
+        radial-gradient(at 12% 18%, rgba(34, 209, 195, 0.4) 0%, transparent 42%),
+        radial-gradient(at 88% 82%, rgba(93, 218, 240, 0.32) 0%, transparent 48%),
+        radial-gradient(at 100% 0%, rgba(255, 45, 120, 0.12) 0%, transparent 38%),
+        radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.14) 0%, transparent 42%),
+        linear-gradient(135deg, #0d2142 0%, #1e3f7a 50%, #091833 100%)
+      `,
+    }}>
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
         {/* ══ MAP TAB ══ */}
@@ -324,7 +345,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   padding: "18px 40px",
                   borderRadius: 35,
                   border: "none",
-                  color: BG,
+                  color: BG_DEEP,
                   fontWeight: "bold",
                   fontSize: 16,
                   cursor: "pointer",
@@ -354,7 +375,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               walking={walking}
               myCrew={myCrew}
               onLogout={handleLogout}
-              currentRank={currentRank}
             />
           </div>
         )}
@@ -385,18 +405,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       <div style={{
         display: "flex",
         flexDirection: "row",
-        background: "#1C1F26",
-        paddingBottom: 20,
-        paddingTop: 12,
-        borderTop: `1px solid #2A2E36`,
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
+        background: "transparent",
+        paddingBottom: 4,
+        paddingTop: 8,
       }}>
         {[
-          { id: "profil",  label: "Profil",  icon: "👤" },
-          { id: "map",     label: "Karte",   icon: "🗺️" },
-          { id: "crew",    label: "Crew",    icon: "👥" },
-          { id: "shops",   label: "Shops",   icon: "🏪" },
-          { id: "ranking", label: "Ranking", icon: "🏆" },
+          { id: "profil",  label: "Profil",  icon: "👤", color: "#22D1C3" }, // Teal
+          { id: "map",     label: "Karte",   icon: "🗺️", color: "#5ddaf0" }, // Cyan
+          { id: "crew",    label: "Crew",    icon: "👥", color: "#FF2D78" }, // Magenta
+          { id: "shops",   label: "Shops",   icon: "🏪", color: "#FFD700" }, // Gold
+          { id: "ranking", label: "Ranking", icon: "🏆", color: "#FF6B4A" }, // Coral
         ].map((tab) => {
           const active = activeTab === tab.id;
           return (
@@ -412,7 +430,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 4,
+                gap: 0,
                 position: "relative",
                 WebkitTapHighlightColor: "transparent",
               }}
@@ -420,29 +438,33 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               {active && (
                 <div style={{
                   position: "absolute",
-                  top: -12,
-                  left: "30%",
-                  right: "30%",
+                  top: -16,
+                  left: "28%",
+                  right: "28%",
                   height: 3,
                   borderRadius: 3,
-                  background: PRIMARY,
-                  boxShadow: `0 0 12px ${PRIMARY}`,
+                  background: tab.color,
+                  boxShadow: `0 0 14px ${tab.color}`,
                 }} />
               )}
               <span style={{
-                fontSize: active ? 24 : 20,
+                fontSize: active ? 38 : 30,
                 lineHeight: 1,
-                filter: active ? "none" : "grayscale(0.5) opacity(0.6)",
+                filter: active
+                  ? `drop-shadow(0 0 10px ${tab.color}cc) drop-shadow(0 0 20px ${tab.color}66)`
+                  : "grayscale(0.3) opacity(0.75)",
+                transform: active ? "translateY(-2px) scale(1.05)" : "none",
                 transition: "all 0.2s",
               }}>
                 {tab.icon}
               </span>
               <span style={{
-                color: active ? PRIMARY : MUTED,
-                fontSize: 11,
-                fontWeight: active ? "bold" : 600,
+                color: active ? tab.color : MUTED,
+                fontSize: 12,
+                fontWeight: active ? 800 : 600,
                 textAlign: "center",
                 letterSpacing: 0.3,
+                textShadow: active ? `0 0 12px ${tab.color}80` : "none",
               }}>
                 {tab.label}
               </span>
@@ -459,7 +481,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
  * ═══════════════════════════════════════════════════════ */
 
 function ProfilTab({
-  profile: p,
+  profile: origP,
   setProfile,
   equippedMarker,
   setEquippedMarker,
@@ -471,7 +493,6 @@ function ProfilTab({
   walking,
   myCrew,
   onLogout,
-  currentRank,
 }: {
   profile: Profile | null;
   setProfile: (p: Profile) => void;
@@ -485,14 +506,29 @@ function ProfilTab({
   walking: boolean;
   myCrew: Crew | null;
   onLogout: () => void;
-  currentRank: { name: string; color: string };
 }) {
   const supabase = createClient();
+
+  // ═══ DEMO-OVERLAY: zeigt realistische Werte falls DEMO_MODE=true und Profil leer ═══
+  const isEmptyProfile = !origP || ((origP.xp || 0) === 0 && (origP.total_walks || 0) === 0);
+  const p: Profile | null = DEMO_MODE && isEmptyProfile && origP
+    ? ({ ...origP, ...DEMO_STATS } as Profile)
+    : origP;
+  const effectiveRecentRuns: Territory[] = DEMO_MODE && isEmptyProfile && recentRuns.length === 0
+    ? generateDemoRecentRuns() as Territory[]
+    : recentRuns;
+  const effectiveTerritoryCount = DEMO_MODE && isEmptyProfile && territoryCount === 0
+    ? DEMO_STATS.territory_count
+    : territoryCount;
+
   const userXp = p?.xp || 0;
   const teamColor = myCrew?.color || p?.team_color || PRIMARY;
   const nextRank = getNextRank(userXp);
   const xpToNext = nextRank ? nextRank.minXp - userXp : 0;
-  const pctToNext = nextRank ? Math.round(((userXp - (currentRank as { minXp?: number }).minXp!) / (nextRank.minXp - (currentRank as { minXp?: number }).minXp!)) * 100) : 100;
+  const currentRankLive = getCurrentRank(userXp);
+  const pctToNext = nextRank
+    ? Math.round(((userXp - currentRankLive.minXp) / (nextRank.minXp - currentRankLive.minXp)) * 100)
+    : 100;
 
   // Current marker icon
   const currentMarker = UNLOCKABLE_MARKERS.find((m) => m.id === equippedMarker) || UNLOCKABLE_MARKERS[0];
@@ -502,6 +538,8 @@ function ProfilTab({
     ? ((p.total_walks * 60) / (p.total_distance_m / 1000)).toFixed(1)
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
+
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide">(null);
 
   const handleRewardedAd = () => {
     if (confirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
@@ -536,53 +574,128 @@ function ProfilTab({
     return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   }
 
+  // Rang-basiertes Motto (persönliches Motto-Feld kommt später via DB-Migration)
+  const mottos: Record<string, string> = {
+    "Straßen-Scout":      "Jeder Weg beginnt mit dem ersten Schritt.",
+    "Stadt-Pionier":      "Ich erkunde, was andere übersehen.",
+    "Viertel-Boss":       "Mein Kiez, meine Regeln.",
+    "Metropolen-Legende": "Die Stadt gehört denen, die sie erlaufen.",
+  };
+  const motto = mottos[currentRankLive.name] || mottos["Straßen-Scout"];
+
+  // Achievements: Unlock-Status live berechnen aus Profilstats
+  const achievementStatus = ACHIEVEMENTS.map((a) => {
+    const lifetimeKm = (p?.total_distance_m || 0) / 1000;
+    const longestKmNum = (p?.longest_run_m || 0) / 1000;
+    let current = 0, target = 1, unit = "", displayFmt = (v: number) => v.toFixed(0);
+    switch (a.id) {
+      case "first_5k":
+        current = longestKmNum; target = 5; unit = "km"; displayFmt = (v) => v.toFixed(1); break;
+      case "first_10k":
+        current = longestKmNum; target = 10; unit = "km"; displayFmt = (v) => v.toFixed(1); break;
+      case "ten_territories":
+        current = effectiveTerritoryCount; target = 10; unit = ""; break;
+      case "streak_30":
+        current = p?.streak_best || 0; target = 30; unit = "Tage"; break;
+      case "lifetime_100k":
+        current = lifetimeKm; target = 100; unit = "km"; displayFmt = (v) => v.toFixed(1); break;
+      case "hundred_territories":
+        current = effectiveTerritoryCount; target = 100; unit = ""; break;
+    }
+    const pct = Math.min(100, (current / target) * 100);
+    const unlocked = current >= target;
+    return { ...a, unlocked, current, target, unit, pct, displayFmt };
+  });
+  const achievementsUnlocked = achievementStatus.filter((a) => a.unlocked).length;
+
   return (
     <div style={{ background: BG, paddingBottom: 30 }}>
-      {/* ═══ HEADER mit Gradient ═══ */}
+      {/* ═══ HERO — Cover + Avatar mit XP-Ring + Hologramm-Marker ═══ */}
       <div style={{
-        background: `linear-gradient(180deg, ${currentRank.color}20 0%, ${BG} 100%)`,
-        paddingTop: 40, paddingBottom: 30, paddingLeft: 20, paddingRight: 20,
+        position: "relative",
+        background: `
+          radial-gradient(at 50% 0%, ${currentRankLive.color}30 0%, transparent 55%),
+          linear-gradient(180deg, ${currentRankLive.color}12 0%, transparent 100%)
+        `,
+        paddingTop: 36, paddingBottom: 28, paddingLeft: 20, paddingRight: 20,
       }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{
-            width: 110, height: 110, borderRadius: 55,
-            border: `4px solid ${teamColor}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: "#22262E", marginBottom: 12,
-            boxShadow: `0 0 40px ${currentRank.color}40`,
-          }}>
-            <span style={{ fontSize: 50 }}>{currentMarker.icon}</span>
+
+          {/* Avatar mit SVG Progress Ring */}
+          <div style={{ position: "relative", width: 160, height: 160, marginBottom: 14 }}>
+            <XpProgressRing
+              size={160}
+              stroke={8}
+              pct={pctToNext}
+              colorFrom={currentRankLive.color}
+              colorTo={nextRank?.color || currentRankLive.color}
+            />
+            {/* Avatar selbst */}
+            <div style={{
+              position: "absolute",
+              top: 14, left: 14, right: 14, bottom: 14,
+              borderRadius: "50%",
+              background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), rgba(70, 82, 122, 0.5))`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `inset 0 0 30px rgba(0,0,0,0.3), 0 0 35px ${currentRankLive.color}40`,
+              border: `2px solid ${teamColor}`,
+            }}>
+              <span style={{ fontSize: 66, filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.4))" }}>
+                {currentMarker.icon}
+              </span>
+            </div>
+
+            {/* Hologramm des equipped Runner-Lights (unten) */}
+            <div style={{
+              position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)",
+              width: 70, height: currentLight.width + 4,
+              borderRadius: (currentLight.width + 4) / 2,
+              background: currentLight.gradient.length > 1
+                ? `linear-gradient(90deg, ${currentLight.gradient.join(", ")})`
+                : currentLight.color,
+              boxShadow: `0 0 20px ${currentLight.color}cc, 0 0 40px ${currentLight.color}66`,
+              opacity: 0.95,
+            }} />
           </div>
-          <div style={{ fontSize: 10, color: MUTED, fontWeight: "bold", letterSpacing: 2 }}>RUNNER NAME</div>
-          <div style={{ fontSize: 30, fontWeight: 900, color: "#FFF", marginTop: 4 }}>
+
+          <div style={{ fontSize: 10, color: MUTED, fontWeight: "bold", letterSpacing: 2, marginTop: 10 }}>LÄUFER</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF", marginTop: 4, textAlign: "center" }}>
             {p?.display_name || p?.username || "Eroberer"}
           </div>
           <div style={{ color: MUTED, fontSize: 13, marginTop: 2 }}>@{p?.username}</div>
 
+          {/* Motto */}
           <div style={{
-            marginTop: 12, paddingLeft: 16, paddingRight: 16, paddingTop: 7, paddingBottom: 7,
-            borderRadius: 20, background: currentRank.color,
-            boxShadow: `0 4px 20px ${currentRank.color}50`,
+            color: TEXT_SOFT, fontSize: 13, marginTop: 8,
+            fontStyle: "italic", textAlign: "center", maxWidth: 340,
+          }}>{motto}</div>
+
+          {/* Holographic Rank Badge */}
+          <div style={{
+            marginTop: 14, paddingLeft: 18, paddingRight: 18, paddingTop: 8, paddingBottom: 8,
+            borderRadius: 22,
+            background: `
+              linear-gradient(90deg,
+                ${currentRankLive.color} 0%,
+                #fff 50%,
+                ${currentRankLive.color} 100%
+              )
+            `,
+            backgroundSize: "200% 100%",
+            animation: "rankShimmer 3s linear infinite",
+            boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
           }}>
-            <span style={{ color: BG, fontWeight: 900, fontSize: 13 }}>
-              {currentRank.name} · {userXp.toLocaleString()} XP
+            <span style={{ color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
+              {currentRankLive.name} · {userXp.toLocaleString()} XP
             </span>
           </div>
+          <style>{`@keyframes rankShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }`}</style>
 
-          {/* XP Progress */}
+          {/* Next Rank Hint */}
           {nextRank && (
-            <div style={{ width: "100%", maxWidth: 360, marginTop: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: MUTED, marginBottom: 6 }}>
-                <span>→ {nextRank.name}</span>
-                <span>{xpToNext.toLocaleString()} XP</span>
-              </div>
-              <div style={{ height: 8, borderRadius: 4, background: "#22262E", overflow: "hidden" }}>
-                <div style={{
-                  height: "100%", width: `${pctToNext}%`,
-                  background: `linear-gradient(90deg, ${currentRank.color}, ${nextRank.color})`,
-                  borderRadius: 4,
-                }} />
-              </div>
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 10, textAlign: "center" }}>
+              <span style={{ color: nextRank.color, fontWeight: "bold" }}>→ {nextRank.name}</span>
+              <span> in {xpToNext.toLocaleString()} XP</span>
             </div>
           )}
         </div>
@@ -590,19 +703,67 @@ function ProfilTab({
 
       <div style={{ paddingLeft: 20, paddingRight: 20 }}>
 
-        {/* QUICK STATS ROW */}
+        {/* QUICK STATS ROW — mit animiertem Zähler */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 6 }}>
-          <QuickStat value={territoryCount.toString()} label="Territorien" color={teamColor} />
-          <QuickStat value={(p?.total_walks || 0).toString()} label="Walks" color={PRIMARY} />
-          <QuickStat value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="km" color={ACCENT} />
-          <QuickStat value={(p?.streak_days || 0).toString()} label="Streak 🔥" color="#FFD700" />
+          <QuickStat value={effectiveTerritoryCount.toString()} targetNumber={effectiveTerritoryCount} label="Territorien" color={teamColor} />
+          <QuickStat value={(p?.total_walks || 0).toString()} targetNumber={p?.total_walks || 0} label="Läufe" color={PRIMARY} />
+          <QuickStat value={((p?.total_distance_m || 0) / 1000).toFixed(1)} targetNumber={(p?.total_distance_m || 0) / 1000} decimals={1} label="km" color={ACCENT} />
+          <QuickStat value={(p?.streak_days || 0).toString()} targetNumber={p?.streak_days || 0} label="Serie 🔥" color="#FFD700" />
+        </div>
+
+        {/* ═══ PERSÖNLICHE REKORDE ═══ */}
+        <SectionHeader title="PERSÖNLICHE REKORDE" />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <RecordCard emoji="📏" label="Längster Lauf" value={`${longestKm} km`} color={PRIMARY} />
+          <RecordCard emoji="🔥" label="Beste Serie" value={`${p?.streak_best || 0} Tage`} color="#FFD700" />
+          <RecordCard emoji="🏆" label="Territorien gesamt" value={effectiveTerritoryCount.toString()} color={teamColor} />
+          <RecordCard emoji="🌍" label="Gesamt-KM" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} color={ACCENT} />
+        </div>
+
+        {/* ═══ ERFOLGE ═══ */}
+        <SectionHeader
+          title="ERFOLGE"
+          action={
+            <span style={{
+              color: PRIMARY, fontSize: 13, fontWeight: 800,
+              background: `${PRIMARY}22`, border: `1px solid ${PRIMARY}55`,
+              borderRadius: 12, padding: "4px 10px",
+            }}>
+              {achievementsUnlocked} / {ACHIEVEMENTS.length}
+            </span>
+          }
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {achievementStatus.map((a) => (
+            <AchievementBadge
+              key={a.id}
+              icon={a.icon}
+              name={a.name}
+              xp={a.xp}
+              unlocked={a.unlocked}
+              current={a.current}
+              target={a.target}
+              unit={a.unit}
+              pct={a.pct}
+              displayFmt={a.displayFmt}
+            />
+          ))}
+        </div>
+
+        {/* ═══ AKTIVITÄT (kompakt) ═══ */}
+        <SectionHeader title="AKTIVITÄT · 13 WOCHEN" />
+        <div style={{
+          background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, padding: 12,
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+        }}>
+          <CalendarHeatmap runs={effectiveRecentRuns} color={teamColor} />
         </div>
 
         {/* ═══ MAP-ICONS (10 Stück) ═══ */}
         <div style={{ width: "100%", marginTop: 25, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
-            <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE MAP-ICONS</div>
-            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+            <div style={{ fontSize: 15, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE MAP-ICONS</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
               {UNLOCKABLE_MARKERS.filter(m => m.cost <= userXp).length} / {UNLOCKABLE_MARKERS.length} freigeschaltet
             </div>
           </div>
@@ -634,24 +795,24 @@ function ProfilTab({
                   else alert(`🔒 Du brauchst ${marker.cost.toLocaleString()} XP für "${marker.name}"`);
                 }}
                 style={{
-                  background: isEquipped ? `${PRIMARY}15` : "#22262E",
+                  background: isEquipped ? `${PRIMARY}15` : "rgba(70, 82, 122, 0.45)",
                   padding: 14, borderRadius: 16,
                   display: "flex", flexDirection: "column", alignItems: "center",
                   minWidth: 90, maxWidth: 90,
-                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid #2A2E36",
+                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid rgba(255, 255, 255, 0.1)",
                   cursor: "pointer",
                   flexShrink: 0,
                   boxShadow: isEquipped ? `0 0 20px ${PRIMARY}40` : "none",
                 }}
               >
-                <span style={{ fontSize: 32, marginBottom: 6, opacity: isUnlocked ? 1 : 0.25 }}>{marker.icon}</span>
-                <span style={{ color: "#FFF", fontSize: 11, fontWeight: "bold", marginBottom: 4 }}>{marker.name}</span>
+                <span style={{ fontSize: 36, marginBottom: 8, opacity: isUnlocked ? 1 : 0.25 }}>{marker.icon}</span>
+                <span style={{ color: "#FFF", fontSize: 13, fontWeight: "bold", marginBottom: 5 }}>{marker.name}</span>
                 {isUnlocked ? (
-                  <span style={{ fontSize: 10, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
+                  <span style={{ fontSize: 12, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
                     {isEquipped ? "✓ AKTIV" : "Frei"}
                   </span>
                 ) : (
-                  <span style={{ fontSize: 9, fontWeight: "bold", color: ACCENT }}>🔒 {marker.cost >= 1000 ? `${marker.cost/1000}k` : marker.cost}</span>
+                  <span style={{ fontSize: 12, fontWeight: "bold", color: "#FFD700" }}>🔒 {marker.cost >= 1000 ? `${marker.cost/1000}k` : marker.cost}</span>
                 )}
               </button>
             );
@@ -660,8 +821,8 @@ function ProfilTab({
 
         {/* ═══ RUNNER LIGHTS (10 Schweif-Varianten) ═══ */}
         <div style={{ width: "100%", marginTop: 25, marginBottom: 10 }}>
-          <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE RUNNER LIGHTS</div>
-          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+          <div style={{ fontSize: 15, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE RUNNER LIGHTS</div>
+          <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
             Schweif beim Laufen · {RUNNER_LIGHTS.filter(l => l.cost <= userXp).length} / {RUNNER_LIGHTS.length} freigeschaltet
           </div>
         </div>
@@ -681,11 +842,11 @@ function ProfilTab({
                   else alert(`🔒 Du brauchst ${light.cost.toLocaleString()} XP für "${light.name}"`);
                 }}
                 style={{
-                  background: isEquipped ? `${PRIMARY}15` : "#22262E",
+                  background: isEquipped ? `${PRIMARY}15` : "rgba(70, 82, 122, 0.45)",
                   padding: 14, borderRadius: 16,
                   display: "flex", flexDirection: "column", alignItems: "center",
                   minWidth: 100, maxWidth: 100,
-                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid #2A2E36",
+                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid rgba(255, 255, 255, 0.1)",
                   cursor: "pointer",
                   flexShrink: 0,
                   boxShadow: isEquipped ? `0 0 20px ${PRIMARY}40` : "none",
@@ -699,13 +860,13 @@ function ProfilTab({
                   marginBottom: 8, marginTop: 8,
                   boxShadow: isUnlocked ? `0 0 12px ${light.color}80` : "none",
                 }} />
-                <span style={{ color: "#FFF", fontSize: 11, fontWeight: "bold", marginBottom: 4 }}>{light.name}</span>
+                <span style={{ color: "#FFF", fontSize: 13, fontWeight: "bold", marginBottom: 5 }}>{light.name}</span>
                 {isUnlocked ? (
-                  <span style={{ fontSize: 10, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
+                  <span style={{ fontSize: 12, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
                     {isEquipped ? "✓ AKTIV" : "Frei"}
                   </span>
                 ) : (
-                  <span style={{ fontSize: 9, fontWeight: "bold", color: ACCENT }}>🔒 {light.cost >= 1000 ? `${light.cost/1000}k` : light.cost}</span>
+                  <span style={{ fontSize: 12, fontWeight: "bold", color: "#FFD700" }}>🔒 {light.cost >= 1000 ? `${light.cost/1000}k` : light.cost}</span>
                 )}
               </button>
             );
@@ -715,7 +876,7 @@ function ProfilTab({
         {/* ═══ DEINE CREW ═══ */}
         <SectionHeader title="DEINE CREW" />
         <div style={{
-          display: "flex", flexDirection: "row", background: "#22262E",
+          display: "flex", flexDirection: "row", background: "rgba(70, 82, 122, 0.45)",
           padding: 20, borderRadius: 18, alignItems: "center",
         }}>
           <div style={{ width: 22, height: 44, borderRadius: 11, marginRight: 15, background: myCrew?.color || "#333" }} />
@@ -742,9 +903,9 @@ function ProfilTab({
         {/* ═══ LIVE STATUS ═══ */}
         <SectionHeader title="LIVE STATUS" />
         <div style={{
-          background: walking ? `${teamColor}15` : "#22262E",
+          background: walking ? `${teamColor}15` : "rgba(70, 82, 122, 0.45)",
           padding: 20, borderRadius: 18, width: "100%",
-          border: walking ? `1px solid ${teamColor}` : "1px solid #2A2E36",
+          border: walking ? `1px solid ${teamColor}` : "1px solid rgba(255, 255, 255, 0.1)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <div style={{
@@ -764,19 +925,19 @@ function ProfilTab({
           </div>
         </div>
 
-        {/* ═══ LETZTE RUNS ═══ */}
-        <SectionHeader title="LETZTE RUNS" />
-        {recentRuns.length === 0 ? (
-          <div style={{ background: "#22262E", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid #2A2E36" }}>
-            Noch keine Runs. Starte deine erste Eroberung auf der Karte!
+        {/* ═══ LETZTE LÄUFE ═══ */}
+        <SectionHeader title="LETZTE LÄUFE" />
+        {effectiveRecentRuns.length === 0 ? (
+          <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+            Noch keine Läufe. Starte deine erste Eroberung auf der Karte!
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {recentRuns.map((run) => (
+            {effectiveRecentRuns.slice(0, 5).map((run) => (
               <div key={run.id} style={{
-                background: "#22262E", padding: 16, borderRadius: 16,
+                background: "rgba(70, 82, 122, 0.45)", padding: 16, borderRadius: 16,
                 display: "flex", alignItems: "center", gap: 14,
-                border: "1px solid #2A2E36",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
               }}>
                 <div style={{
                   width: 46, height: 46, borderRadius: 23,
@@ -800,117 +961,443 @@ function ProfilTab({
           </div>
         )}
 
-        {/* ═══ GESUNDHEITSDATEN ═══ */}
-        <SectionHeader title="GESUNDHEITSDATEN" />
+        {/* ═══ GESUNDHEITSDATEN (nur 2 Kennzahlen, Rest im Modal) ═══ */}
+        <SectionHeader
+          title="GESUNDHEITSDATEN"
+          action={
+            <button
+              onClick={() => setOpenModal("health")}
+              style={{
+                background: "transparent", border: `1px solid ${PRIMARY}`,
+                borderRadius: 14, padding: "6px 14px", color: PRIMARY,
+                fontSize: 12, fontWeight: "bold", cursor: "pointer",
+              }}
+            >
+              Mehr Details →
+            </button>
+          }
+        />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <StatBox emoji="👣" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="KM Gesamt" />
           <StatBox emoji="🔥" value={(p?.total_calories || 0).toLocaleString()} label="KCAL Verbrannt" />
-          <StatBox emoji="🏃" value={(p?.total_walks || 0).toString()} label="Walks" />
-          <StatBox emoji="⚡" value={`${p?.streak_days || 0} Tage`} label="Aktuelle Streak" />
-          <StatBox emoji="🏆" value={`${p?.streak_best || 0} Tage`} label="Beste Streak" />
-          <StatBox emoji="📏" value={`${longestKm} km`} label="Längster Run" />
-          <StatBox emoji="⏱" value={avgPace + "'"} label="Ø Pace/km" />
-          <StatBox emoji="🎯" value={territoryCount.toString()} label="Territorien" />
         </div>
 
-        {/* ═══ EINSTELLUNGEN ═══ */}
-        <SectionHeader title="EINSTELLUNGEN" />
-        <div style={{ background: "#22262E", borderRadius: 18, width: "100%", overflow: "hidden", border: "1px solid #2A2E36" }}>
-          <SettingRow label="🔔 Benachrichtigungen" checked={p?.setting_notifications ?? true} onChange={(v) => updateSetting("setting_notifications", v)} />
-          <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
-          <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
-          <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
-
-          <SettingSelect
-            label="📏 Einheiten"
-            value={p?.setting_units || "metric"}
-            options={UNITS.map(u => ({ id: u.id, label: u.label }))}
-            onChange={(v) => updateSetting("setting_units", v)}
+        {/* ═══ EINSTELLUNGEN, ACCOUNT, XP-GUIDE, SHARE als Modal-Trigger ═══ */}
+        <div style={{ marginTop: 30, display: "flex", flexDirection: "column", gap: 10 }}>
+          <ModalTriggerButton
+            icon="📤"
+            label="Profil teilen"
+            onClick={async () => {
+              const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} XP\n${effectiveTerritoryCount} Territorien · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
+              const shareData = {
+                title: "Mein MyArea365 Profil",
+                text: shareText,
+                url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de",
+              };
+              try {
+                if (navigator.share) {
+                  await navigator.share(shareData);
+                } else {
+                  await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`);
+                  alert("Profil-Text in Zwischenablage kopiert!");
+                }
+              } catch { /* User hat abgebrochen */ }
+            }}
           />
-          <SettingSelect
-            label="🌐 Sprache"
-            value={p?.setting_language || "de"}
-            options={LANGUAGES.map(l => ({ id: l.id, label: l.label }))}
-            onChange={(v) => updateSetting("setting_language", v)}
-            last
-          />
-        </div>
-
-        {/* ═══ ACCOUNT ═══ */}
-        <SectionHeader title="ACCOUNT" />
-        <div style={{ background: "#22262E", borderRadius: 18, width: "100%", overflow: "hidden", border: "1px solid #2A2E36" }}>
-          <button
-            onClick={() => alert("Profil bearbeiten – kommt bald")}
-            style={{
-              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-              borderBottom: "1px solid #2A2E36",
-            }}
-          >
-            <span style={{ color: "#FFF", fontSize: 15 }}>✏️ Profil bearbeiten</span>
-            <span style={{ color: MUTED }}>›</span>
-          </button>
-          <button
-            onClick={() => alert("Privatsphäre – kommt bald")}
-            style={{
-              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-              borderBottom: "1px solid #2A2E36",
-            }}
-          >
-            <span style={{ color: "#FFF", fontSize: 15 }}>🔒 Privatsphäre & Daten</span>
-            <span style={{ color: MUTED }}>›</span>
-          </button>
-          <button
-            onClick={() => alert("Hilfe – kommt bald")}
-            style={{
-              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-              borderBottom: "1px solid #2A2E36",
-            }}
-          >
-            <span style={{ color: "#FFF", fontSize: 15 }}>❓ Hilfe & Support</span>
-            <span style={{ color: MUTED }}>›</span>
-          </button>
-          <button
-            onClick={onLogout}
-            style={{
-              width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-              paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-              background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-            }}
-          >
-            <span style={{ color: ACCENT, fontSize: 15, fontWeight: "bold" }}>🚪 Ausloggen</span>
-          </button>
+          <ModalTriggerButton icon="⭐" label="Wofür gibt es XP?" onClick={() => setOpenModal("xpguide")} />
+          <ModalTriggerButton icon="⚙️" label="Einstellungen" onClick={() => setOpenModal("settings")} />
+          <ModalTriggerButton icon="👤" label="Account" onClick={() => setOpenModal("account")} />
         </div>
 
         <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 20 }}>
           MyArea365 · v0.1 · Made with ❤️ in Berlin
         </div>
       </div>
+
+      {/* ═══════════ MODALS ═══════════ */}
+      {openModal === "health" && (
+        <Modal title="Gesundheitsdaten" onClose={() => setOpenModal(null)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <StatBox emoji="👣" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="KM gesamt" />
+            <StatBox emoji="🔥" value={(p?.total_calories || 0).toLocaleString()} label="KCAL verbrannt" />
+            <StatBox emoji="🏃" value={(p?.total_walks || 0).toString()} label="Läufe" />
+            <StatBox emoji="⚡" value={`${p?.streak_days || 0} Tage`} label="Aktuelle Serie" />
+            <StatBox emoji="🏆" value={`${p?.streak_best || 0} Tage`} label="Beste Serie" />
+            <StatBox emoji="📏" value={`${longestKm} km`} label="Längster Lauf" />
+            <StatBox emoji="⏱" value={avgPace + "'"} label="Ø Pace/km" />
+            <StatBox emoji="🎯" value={effectiveTerritoryCount.toString()} label="Territorien" />
+          </div>
+        </Modal>
+      )}
+
+      {openModal === "settings" && (
+        <Modal title="Einstellungen" onClose={() => setOpenModal(null)}>
+          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+            <SettingRow label="🔔 Benachrichtigungen" checked={p?.setting_notifications ?? true} onChange={(v) => updateSetting("setting_notifications", v)} />
+            <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
+            <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
+            <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
+            <SettingSelect
+              label="📏 Einheiten"
+              value={p?.setting_units || "metric"}
+              options={UNITS.map(u => ({ id: u.id, label: u.label }))}
+              onChange={(v) => updateSetting("setting_units", v)}
+            />
+            <SettingSelect
+              label="🌐 Sprache"
+              value={p?.setting_language || "de"}
+              options={LANGUAGES.map(l => ({ id: l.id, label: l.label }))}
+              onChange={(v) => updateSetting("setting_language", v)}
+              last
+            />
+          </div>
+        </Modal>
+      )}
+
+      {openModal === "account" && (
+        <Modal title="Account" onClose={() => setOpenModal(null)}>
+          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+            <AccountRow label="✏️ Profil bearbeiten" onClick={() => alert("Profil bearbeiten – kommt bald")} />
+            <AccountRow label="🔒 Privatsphäre & Daten" onClick={() => alert("Privatsphäre – kommt bald")} />
+            <AccountRow label="❓ Hilfe & Support" onClick={() => alert("Hilfe – kommt bald")} />
+            <AccountRow label="🚪 Ausloggen" onClick={onLogout} danger last />
+          </div>
+        </Modal>
+      )}
+
+      {openModal === "xpguide" && (
+        <Modal title="Wofür gibt es XP?" onClose={() => setOpenModal(null)}>
+          <div style={{ color: TEXT_SOFT, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>
+            Je mehr du dich bewegst, desto mehr XP sammelst du. Hier alle Quellen:
+          </div>
+
+          <XpGuideSection title="🏃 Pro Aktivität">
+            <XpGuideRow icon="📍" label="Territorium erobert" xp={`+${XP_PER_TERRITORY}`} />
+            <XpGuideRow icon="📏" label="Pro gelaufener km" xp={`+${XP_PER_KM}`} />
+            <XpGuideRow icon="✅" label="Walk abgeschlossen" xp={`+${XP_PER_WALK} Base`} last />
+          </XpGuideSection>
+
+          <XpGuideSection title="🔥 Tages-Streak">
+            <XpGuideRow icon="2️⃣" label="Tag 2–3" xp="+25 / Tag" />
+            <XpGuideRow icon="4️⃣" label="Tag 4–6" xp="+50 / Tag" />
+            <XpGuideRow icon="7️⃣" label="Tag 7–9" xp="+100 / Tag" />
+            <XpGuideRow icon="🔟" label="Ab Tag 10" xp="+200 / Tag" last />
+          </XpGuideSection>
+
+          <XpGuideSection title="🏆 Achievements (einmalig)">
+            {ACHIEVEMENTS.map((a, i) => (
+              <XpGuideRow
+                key={a.id}
+                icon={a.icon}
+                label={a.name}
+                xp={`+${a.xp.toLocaleString()}`}
+                last={i === ACHIEVEMENTS.length - 1}
+              />
+            ))}
+          </XpGuideSection>
+
+          <XpGuideSection title="🎁 Bonus-Quellen">
+            <XpGuideRow icon="📺" label="Rewarded Ad (Supply Drop / Boost)" xp={`+${XP_REWARDED_AD}`} />
+            <XpGuideRow icon="🏪" label="Kiez-Deal Check-in" xp={`+${XP_KIEZ_CHECKIN}`} />
+            <XpGuideRow icon="👥" label="Crew-Sieg im Wochen-Ranking" xp={`+${XP_CREW_WIN}`} last />
+          </XpGuideSection>
+
+          <div style={{ color: MUTED, fontSize: 12, marginTop: 16, textAlign: "center", fontStyle: "italic" }}>
+            XP schaltet neue Ränge, Map-Icons und Runner Lights frei.
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
 
-function QuickStat({ value, label, color }: { value: string; label: string; color: string }) {
+function QuickStat({ value, targetNumber, decimals, label, color }: {
+  value: string;
+  targetNumber?: number;
+  decimals?: number;
+  label: string;
+  color: string;
+}) {
+  const animated = useCountUp(targetNumber ?? 0, 1000, decimals ?? 0);
+  const display = targetNumber !== undefined ? animated : value;
   return (
     <div style={{
-      background: "#22262E", padding: "14px 8px", borderRadius: 14,
+      background: "rgba(70, 82, 122, 0.45)", padding: "14px 8px", borderRadius: 14,
       display: "flex", flexDirection: "column", alignItems: "center",
-      border: "1px solid #2A2E36",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
     }}>
+      <span style={{ fontSize: 26, fontWeight: 900, color, lineHeight: 1 }}>{display}</span>
+      <span style={{ fontSize: 13, color: MUTED, marginTop: 6, textAlign: "center", fontWeight: 600 }}>{label}</span>
+    </div>
+  );
+}
+
+function useCountUp(target: number, duration = 1000, decimals = 0): string {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    const from = 0;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(from + (target - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return decimals > 0 ? value.toFixed(decimals) : Math.floor(value).toLocaleString();
+}
+
+function XpProgressRing({ size, stroke, pct, colorFrom, colorTo }: {
+  size: number; stroke: number; pct: number; colorFrom: string; colorTo: string;
+}) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.max(0, Math.min(1, pct / 100)));
+  const gradientId = `xp-ring-${colorFrom.replace("#", "")}-${colorTo.replace("#", "")}`;
+  return (
+    <svg width={size} height={size} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={colorFrom} />
+          <stop offset="100%" stopColor={colorTo} />
+        </linearGradient>
+      </defs>
+      {/* Track */}
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+      {/* Progress */}
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke={`url(#${gradientId})`} strokeWidth={stroke}
+        strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 1s ease-out", filter: `drop-shadow(0 0 6px ${colorFrom})` }} />
+    </svg>
+  );
+}
+
+function RecordCard({ emoji, label, value, color }: { emoji: string; label: string; value: string; color: string }) {
+  return (
+    <div style={{
+      background: "rgba(70, 82, 122, 0.45)",
+      padding: 16, borderRadius: 16,
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      display: "flex", flexDirection: "column", gap: 6,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 22 }}>{emoji}</span>
+        <span style={{ color: MUTED, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+          {label}
+        </span>
+      </div>
       <span style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{value}</span>
-      <span style={{ fontSize: 10, color: MUTED, marginTop: 4, textAlign: "center" }}>{label}</span>
+    </div>
+  );
+}
+
+function AchievementBadge({ icon, name, xp, unlocked, current, target, unit, pct, displayFmt }: {
+  icon: string; name: string; xp: number; unlocked: boolean;
+  current: number; target: number; unit: string; pct: number;
+  displayFmt: (v: number) => string;
+}) {
+  const accentColor = unlocked ? "#FFD700" : PRIMARY;
+  return (
+    <div style={{
+      background: unlocked
+        ? `linear-gradient(135deg, ${accentColor}28 0%, rgba(70, 82, 122, 0.55) 60%)`
+        : "rgba(70, 82, 122, 0.38)",
+      padding: 16, borderRadius: 18,
+      border: unlocked ? `1px solid ${accentColor}88` : "1px solid rgba(255,255,255,0.08)",
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+      position: "relative", overflow: "hidden",
+      boxShadow: unlocked
+        ? `0 0 20px ${accentColor}40, inset 0 1px 0 rgba(255,255,255,0.1)`
+        : "inset 0 1px 0 rgba(255,255,255,0.04)",
+    }}>
+      {/* Unlocked Shine-Effekt oben */}
+      {unlocked && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, height: 40,
+          background: `radial-gradient(ellipse at 50% 0%, ${accentColor}50, transparent 70%)`,
+          pointerEvents: "none",
+        }} />
+      )}
+
+      {/* Badge-Icon in Kreis */}
+      <div style={{
+        width: 54, height: 54, borderRadius: 27,
+        background: unlocked
+          ? `radial-gradient(circle at 30% 30%, ${accentColor}55, ${accentColor}22)`
+          : "rgba(255,255,255,0.05)",
+        border: unlocked ? `2px solid ${accentColor}` : "1.5px solid rgba(255,255,255,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 28,
+        filter: unlocked
+          ? `drop-shadow(0 0 10px ${accentColor}aa)`
+          : "grayscale(0.85) opacity(0.4)",
+        position: "relative", zIndex: 1,
+      }}>
+        {icon}
+        {!unlocked && (
+          <div style={{
+            position: "absolute", bottom: -4, right: -4,
+            width: 22, height: 22, borderRadius: 11,
+            background: "rgba(15, 17, 21, 0.9)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 11,
+          }}>🔒</div>
+        )}
+      </div>
+
+      {/* Name */}
+      <div style={{
+        color: unlocked ? "#FFF" : TEXT_SOFT,
+        fontSize: 13, fontWeight: 800, textAlign: "center",
+        lineHeight: 1.2, minHeight: 32, display: "flex", alignItems: "center",
+      }}>{name}</div>
+
+      {/* Progress */}
+      <div style={{ width: "100%", marginTop: 2 }}>
+        <div style={{
+          height: 6, borderRadius: 3,
+          background: "rgba(255,255,255,0.08)", overflow: "hidden",
+        }}>
+          <div style={{
+            height: "100%", width: `${pct}%`,
+            background: unlocked
+              ? `linear-gradient(90deg, ${accentColor}, #FF6B4A)`
+              : `linear-gradient(90deg, ${PRIMARY}, ${accentColor})`,
+            borderRadius: 3,
+            boxShadow: `0 0 8px ${accentColor}80`,
+            transition: "width 0.8s ease-out",
+          }} />
+        </div>
+        <div style={{
+          display: "flex", justifyContent: "space-between",
+          marginTop: 5, fontSize: 10.5, fontWeight: 700,
+        }}>
+          <span style={{ color: unlocked ? accentColor : TEXT_SOFT }}>
+            {displayFmt(current)}{unit ? ` ${unit}` : ""}
+          </span>
+          <span style={{ color: MUTED }}>
+            / {displayFmt(target)}{unit ? ` ${unit}` : ""}
+          </span>
+        </div>
+      </div>
+
+      {/* XP Belohnung */}
+      <div style={{
+        marginTop: 2, padding: "3px 10px", borderRadius: 10,
+        background: unlocked ? `${accentColor}30` : "rgba(255,255,255,0.05)",
+        border: unlocked ? `1px solid ${accentColor}80` : "1px solid rgba(255,255,255,0.1)",
+      }}>
+        <span style={{
+          color: unlocked ? accentColor : MUTED,
+          fontSize: 11, fontWeight: 800,
+        }}>
+          {unlocked ? `✓ +${xp.toLocaleString()} XP` : `+${xp.toLocaleString()} XP`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CalendarHeatmap({ runs, color }: { runs: Territory[]; color: string }) {
+  // Gruppiere Runs nach Tag (YYYY-MM-DD) und summiere Distanz
+  const dayMap = new Map<string, number>();
+  for (const r of runs) {
+    const day = r.created_at.slice(0, 10);
+    dayMap.set(day, (dayMap.get(day) || 0) + r.distance_m);
+  }
+
+  // 13 Wochen (91 Tage) rückwärts
+  const days: { date: string; km: number }[] = [];
+  const today = new Date();
+  for (let i = 90; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    days.push({ date: key, km: (dayMap.get(key) || 0) / 1000 });
+  }
+
+  // Intensität: 0 / 0.001-1km / 1-3km / 3-6km / >6km
+  const intensity = (km: number): number => {
+    if (km === 0) return 0;
+    if (km < 1) return 1;
+    if (km < 3) return 2;
+    if (km < 6) return 3;
+    return 4;
+  };
+  const bgFor = (lvl: number) => {
+    if (lvl === 0) return "rgba(255,255,255,0.06)";
+    const alpha = 0.25 + lvl * 0.2;
+    return `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
+  };
+
+  // Weekday offset (Mon=0)
+  const firstDay = new Date(days[0].date);
+  const weekdayOffset = (firstDay.getDay() + 6) % 7;
+
+  // Baue 7x13 Grid
+  const cells: ({ date: string; km: number } | null)[] = Array(weekdayOffset).fill(null).concat(days);
+  while (cells.length < 7 * 13) cells.push(null);
+
+  const activeDays = days.filter((d) => d.km > 0).length;
+  const totalKm = days.reduce((s, d) => s + d.km, 0);
+
+  return (
+    <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+      {/* Kompakter Heatmap-Grid — feste 10px Zellen */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(13, 10px)",
+        gridTemplateRows: "repeat(7, 10px)",
+        gridAutoFlow: "column",
+        gap: 2,
+        flexShrink: 0,
+      }}>
+        {cells.map((cell, i) => (
+          <div
+            key={i}
+            title={cell ? `${cell.date}: ${cell.km.toFixed(2)} km` : ""}
+            style={{
+              width: 10, height: 10, borderRadius: 2,
+              background: cell ? bgFor(intensity(cell.km)) : "transparent",
+              boxShadow: cell && cell.km > 0 ? `0 0 3px ${color}66` : "none",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Summary rechts daneben */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 120 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+          <span style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{activeDays}</span>
+          <span style={{ color: MUTED, fontSize: 11 }}>aktive Tage</span>
+        </div>
+        <div style={{ color: color, fontSize: 13, fontWeight: 700 }}>
+          {totalKm.toFixed(1)} km gesamt
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 9, color: MUTED }}>
+          <span>–</span>
+          {[0, 1, 2, 3, 4].map((lvl) => (
+            <div key={lvl} style={{
+              width: 9, height: 9, borderRadius: 2,
+              background: bgFor(lvl),
+            }} />
+          ))}
+          <span>+</span>
+        </div>
+      </div>
     </div>
   );
 }
 
 function StatBox({ emoji, value, label }: { emoji: string; value: string; label: string }) {
   return (
-    <div style={{ background: "#22262E", padding: 18, borderRadius: 16, border: "1px solid #2A2E36" }}>
+    <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 18, borderRadius: 16, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
       <div style={{ fontSize: 22, marginBottom: 6 }}>{emoji}</div>
       <div style={{ fontSize: 20, fontWeight: 900, color: "#FFF" }}>{value}</div>
       <div style={{ fontSize: 10, color: MUTED, marginTop: 4, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</div>
@@ -923,14 +1410,14 @@ function SettingRow({ label, checked, onChange, last }: { label: string; checked
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "center",
       paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-      borderBottom: last ? "none" : "1px solid #2A2E36",
+      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
     }}>
       <span style={{ color: "#FFF", fontSize: 15 }}>{label}</span>
       <button
         onClick={() => onChange(!checked)}
         style={{
           width: 44, height: 26, borderRadius: 13,
-          background: checked ? PRIMARY : "#2A2E36",
+          background: checked ? PRIMARY : "rgba(255, 255, 255, 0.1)",
           border: "none", cursor: "pointer",
           position: "relative", transition: "background 0.2s",
         }}
@@ -951,30 +1438,165 @@ function SettingSelect({ label, value, options, onChange, last }: { label: strin
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "center",
       paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-      borderBottom: last ? "none" : "1px solid #2A2E36",
+      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
     }}>
       <span style={{ color: "#FFF", fontSize: 15 }}>{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{
-          background: "#2A2E36", color: "#FFF", border: "none",
+          background: "rgba(255, 255, 255, 0.1)", color: "#FFF", border: "none",
           padding: "6px 12px", borderRadius: 8, fontSize: 13,
           cursor: "pointer",
         }}
       >
         {options.map((o) => (
-          <option key={o.id} value={o.id} style={{ background: "#2A2E36" }}>{o.label}</option>
+          <option key={o.id} value={o.id} style={{ background: "rgba(255, 255, 255, 0.1)" }}>{o.label}</option>
         ))}
       </select>
     </div>
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
-    <div style={{ width: "100%", marginBottom: 10, marginTop: 25 }}>
+    <div style={{
+      width: "100%", marginBottom: 10, marginTop: 25,
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+    }}>
       <div style={{ fontSize: 12, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>{title}</div>
+      {action}
+    </div>
+  );
+}
+
+function ModalTriggerButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "16px 20px", borderRadius: 18,
+        background: "rgba(70, 82, 122, 0.45)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        cursor: "pointer", color: "#FFF", fontSize: 15, fontWeight: 600,
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 20 }}>{icon}</span>
+        {label}
+      </span>
+      <span style={{ color: MUTED, fontSize: 20 }}>›</span>
+    </button>
+  );
+}
+
+function AccountRow({ label, onClick, danger, last }: { label: string; onClick: () => void; danger?: boolean; last?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "16px 20px",
+        background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+        borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+      }}
+    >
+      <span style={{
+        color: danger ? ACCENT : "#FFF", fontSize: 15, fontWeight: danger ? "bold" : 500,
+      }}>{label}</span>
+      {!danger && <span style={{ color: MUTED }}>›</span>}
+    </button>
+  );
+}
+
+function XpGuideSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 13, color: PRIMARY, fontWeight: "bold", letterSpacing: 1, marginBottom: 8 }}>
+        {title}
+      </div>
+      <div style={{
+        background: "rgba(70, 82, 122, 0.45)",
+        borderRadius: 14, overflow: "hidden",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function XpGuideRow({ icon, label, xp, last }: { icon: string; label: string; xp: string; last?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "12px 16px",
+      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 18 }}>{icon}</span>
+        <span style={{ color: "#FFF", fontSize: 14 }}>{label}</span>
+      </div>
+      <span style={{ color: "#FFD700", fontSize: 14, fontWeight: "bold" }}>{xp}</span>
+    </div>
+  );
+}
+
+function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 100,
+        background: "rgba(8, 16, 36, 0.75)",
+        backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+        padding: 0,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 640,
+          maxHeight: "85dvh",
+          background: "rgba(30, 42, 68, 0.92)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          borderTopLeftRadius: 28, borderTopRightRadius: 28,
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderBottom: "none",
+          padding: "24px 20px 32px",
+          overflowY: "auto",
+          boxShadow: "0 -20px 60px rgba(0, 0, 0, 0.4)",
+        }}
+      >
+        {/* Drag handle */}
+        <div style={{
+          width: 40, height: 4, borderRadius: 2,
+          background: "rgba(255,255,255,0.2)", margin: "0 auto 18px",
+        }} />
+
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: 18,
+        }}>
+          <h2 style={{ color: "#FFF", fontSize: 22, fontWeight: 900, margin: 0 }}>{title}</h2>
+          <button
+            onClick={onClose}
+            style={{
+              width: 36, height: 36, borderRadius: 18,
+              background: "rgba(255,255,255,0.08)", border: "none",
+              color: "#FFF", fontSize: 20, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {children}
+      </div>
     </div>
   );
 }
@@ -1074,7 +1696,7 @@ function CrewTab({
               style={{
                 padding: "18px 40px", borderRadius: 35,
                 background: PRIMARY, width: "100%", marginBottom: 15,
-                color: BG, fontWeight: "bold", fontSize: 16,
+                color: BG_DEEP, fontWeight: "bold", fontSize: 16,
                 border: "none", cursor: "pointer",
               }}
             >
@@ -1140,7 +1762,7 @@ function CrewTab({
               style={{
                 padding: "18px 40px", borderRadius: 35,
                 background: newColor, width: "100%", marginTop: 20,
-                color: BG, fontWeight: "bold", fontSize: 16,
+                color: BG_DEEP, fontWeight: "bold", fontSize: 16,
                 border: "none", cursor: "pointer",
               }}
             >
@@ -1178,7 +1800,7 @@ function CrewTab({
                 style={{
                   padding: "12px 20px", borderRadius: 10,
                   background: myCrew.color, flex: 1,
-                  color: BG, fontWeight: "bold", border: "none", cursor: "pointer",
+                  color: BG_DEEP, fontWeight: "bold", border: "none", cursor: "pointer",
                 }}
               >
                 + Einladungscode kopieren
@@ -1315,7 +1937,7 @@ function ShopsTab() {
             style={{
               padding: "16px 40px", borderRadius: 12,
               background: PRIMARY, width: "100%",
-              color: BG, fontWeight: "bold", fontSize: 15,
+              color: BG_DEEP, fontWeight: "bold", fontSize: 15,
               border: "none", cursor: "pointer",
             }}
           >

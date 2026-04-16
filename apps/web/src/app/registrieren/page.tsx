@@ -96,7 +96,7 @@ export default function RegisterPage() {
             </p>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-primary text-bg font-semibold hover:bg-primary-dim transition-colors"
+              className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim transition-colors"
             >
               Zum Login
             </Link>
@@ -197,7 +197,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg font-semibold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
