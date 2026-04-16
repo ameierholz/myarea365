@@ -14,18 +14,19 @@ export const FACTIONS = [
   { id: "vanguard",  name: "Vanguard",  color: "#ef7169", power: 14200 },
 ] as const;
 
-// 10 Map-Icons (Marker-Skins)
+// 11 Map-Icons (Marker-Skins) — nur Geh-/Lauf-themed, keine motorisierten oder zu schnellen Icons
 export const UNLOCKABLE_MARKERS = [
-  { id: "foot",     icon: "👣",  cost: 0,      name: "Basic"     },
-  { id: "runner",   icon: "🏃",  cost: 500,    name: "Athlet"    },
-  { id: "skate",    icon: "🛹",  cost: 2000,   name: "Skater"    },
-  { id: "bike",     icon: "🚴",  cost: 5000,   name: "Biker"     },
-  { id: "rocket",   icon: "🚀",  cost: 10000,  name: "Rakete"    },
-  { id: "lightning", icon: "⚡", cost: 15000,  name: "Blitz"     },
-  { id: "ufo",      icon: "🛸",  cost: 25000,  name: "Alien"     },
-  { id: "phoenix",  icon: "🔥",  cost: 50000,  name: "Phoenix"   },
-  { id: "dragon",   icon: "🐉",  cost: 75000,  name: "Drache"    },
-  { id: "crown",    icon: "👑",  cost: 100000, name: "Legende"   },
+  { id: "foot",      icon: "👣",  cost: 0,      name: "Basic"     },
+  { id: "walker",    icon: "🚶",  cost: 250,    name: "Wanderer"  },
+  { id: "runner",    icon: "🏃",  cost: 500,    name: "Athlet"    },
+  { id: "hiker",     icon: "🥾",  cost: 2000,   name: "Hiker"     },
+  { id: "sneaker",   icon: "👟",  cost: 5000,   name: "Sneaker"   },
+  { id: "rocket",    icon: "🚀",  cost: 10000,  name: "Rakete"    },
+  { id: "lightning", icon: "⚡",  cost: 15000,  name: "Blitz"     },
+  { id: "ufo",       icon: "🛸",  cost: 25000,  name: "Alien"     },
+  { id: "phoenix",   icon: "🔥",  cost: 50000,  name: "Phoenix"   },
+  { id: "dragon",    icon: "🐉",  cost: 75000,  name: "Drache"    },
+  { id: "crown",     icon: "👑",  cost: 100000, name: "Legende"   },
 ] as const;
 
 // 10 Runner Lights (Schweif-Varianten)

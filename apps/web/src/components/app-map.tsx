@@ -137,7 +137,7 @@ function LocationTracker({
     otherMarkersRef.current.forEach((m) => m.setMap(null));
     otherMarkersRef.current = [];
 
-    const emojis = ["🏃", "🚴", "🛹"];
+    const emojis = ["🏃", "🚶", "🥾"];
     LIVE_OTHER_RUNNERS.forEach((r, i) => {
       const html = otherRunnerHtml(emojis[i % emojis.length], r.team_color);
       const overlay = createMarkerOverlay(new google.maps.LatLng(r.lat, r.lng), html);
