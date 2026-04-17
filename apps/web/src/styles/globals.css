@@ -50,9 +50,11 @@ html.reduced-motion * {
   transition-duration: 0.001ms !important;
   scroll-behavior: auto !important;
 }
+html { color-scheme: dark; }
 html.light {
   color-scheme: light;
 }
+select option { background-color: #1A1D23; color: #F0F0F0; }
 html.light body {
   filter: invert(0.92) hue-rotate(180deg);
 }

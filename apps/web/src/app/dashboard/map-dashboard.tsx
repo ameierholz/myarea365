@@ -3197,7 +3197,7 @@ function SettingSelect({ label, value, options, onChange, last }: { label: strin
         }}
       >
         {options.map((o) => (
-          <option key={o.id} value={o.id} style={{ background: "rgba(255, 255, 255, 0.1)" }}>{o.label}</option>
+          <option key={o.id} value={o.id} style={{ background: "#1A1D23", color: "#FFF" }}>{o.label}</option>
         ))}
       </select>
     </div>
