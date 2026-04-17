@@ -137,9 +137,11 @@ export function Select({ name, value, defaultValue, onChange, children, classNam
   );
 }
 
-export function Textarea({ name, defaultValue, placeholder, rows = 4, className = "" }: {
+export function Textarea({ name, defaultValue, value, onChange, placeholder, rows = 4, className = "" }: {
   name?: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
   rows?: number;
   className?: string;
@@ -148,6 +150,8 @@ export function Textarea({ name, defaultValue, placeholder, rows = 4, className 
     <textarea
       name={name}
       defaultValue={defaultValue}
+      value={value}
+      onChange={onChange}
       placeholder={placeholder}
       rows={rows}
       className={`w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-[#8b8fa3] focus:outline-none focus:border-[#22D1C3]/50 ${className}`}

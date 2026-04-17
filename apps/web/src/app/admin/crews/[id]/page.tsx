@@ -38,14 +38,17 @@ export default async function CrewDetailPage({ params }: { params: Promise<{ id:
         <Card className="md:col-span-2">
           <h2 className="font-bold mb-3">Mitglieder</h2>
           <Table headers={["Runner", "Rolle", "Beigetreten", "km gesamt"]}>
-            {(members ?? []).map((m: { user_id: string; role: string; joined_at: string; users: { username?: string; display_name?: string; total_distance_m?: number } | null }) => (
-              <Tr key={m.user_id}>
-                <Td><Link href={`/admin/runners/${m.user_id}`} className="text-white hover:text-[#22D1C3]">{m.users?.display_name ?? m.users?.username}</Link></Td>
-                <Td><Badge tone={m.role === "owner" ? "warning" : "neutral"}>{m.role}</Badge></Td>
-                <Td>{new Date(m.joined_at).toLocaleDateString("de-DE")}</Td>
-                <Td>{((m.users?.total_distance_m ?? 0) / 1000).toFixed(1)} km</Td>
-              </Tr>
-            ))}
+            {((members ?? []) as unknown as Array<{ user_id: string; role: string; joined_at: string; users: { username?: string; display_name?: string; total_distance_m?: number } | { username?: string; display_name?: string; total_distance_m?: number }[] | null }>).map((m) => {
+              const u = Array.isArray(m.users) ? m.users[0] : m.users;
+              return (
+                <Tr key={m.user_id}>
+                  <Td><Link href={`/admin/runners/${m.user_id}`} className="text-white hover:text-[#22D1C3]">{u?.display_name ?? u?.username}</Link></Td>
+                  <Td><Badge tone={m.role === "owner" ? "warning" : "neutral"}>{m.role}</Badge></Td>
+                  <Td>{new Date(m.joined_at).toLocaleDateString("de-DE")}</Td>
+                  <Td>{((u?.total_distance_m ?? 0) / 1000).toFixed(1)} km</Td>
+                </Tr>
+              );
+            })}
           </Table>
         </Card>
       </div>

@@ -28,15 +28,16 @@ export default async function DealsPage() {
       </div>
 
       <Table headers={["Shop", "Deal", "XP", "Einlösungen", "Läuft ab", "Status"]}>
-        {(deals ?? []).map((d: { id: string; shop_id: string; title: string; xp_cost?: number; max_redemptions?: number; redemption_count?: number; active_until?: string; active?: boolean; local_businesses: { name?: string; city?: string } | null }) => {
+        {((deals ?? []) as unknown as Array<{ id: string; shop_id: string; title: string; xp_cost?: number; max_redemptions?: number; redemption_count?: number; active_until?: string; active?: boolean; local_businesses: { name?: string; city?: string } | { name?: string; city?: string }[] | null }>).map((d) => {
           const isActive = d.active && (!d.active_until || new Date(d.active_until) > new Date());
+          const lb = Array.isArray(d.local_businesses) ? d.local_businesses[0] : d.local_businesses;
           return (
             <Tr key={d.id}>
               <Td>
-                {d.local_businesses?.name ? (
+                {lb?.name ? (
                   <Link href={`/admin/shops/${d.shop_id}`} className="text-white hover:text-[#22D1C3]">
-                    <div className="font-bold">{d.local_businesses.name}</div>
-                    <div className="text-xs text-[#8b8fa3]">{d.local_businesses?.city ?? ""}</div>
+                    <div className="font-bold">{lb.name}</div>
+                    <div className="text-xs text-[#8b8fa3]">{lb.city ?? ""}</div>
                   </Link>
                 ) : (
                   <span className="text-[#8b8fa3]">Shop gelöscht</span>
