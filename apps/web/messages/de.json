@@ -1,0 +1,62 @@
+{
+  "Common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "continue": "Weiter",
+    "back": "Zurück",
+    "loading": "Lädt…",
+    "error": "Fehler",
+    "yes": "Ja",
+    "no": "Nein",
+    "settings": "Einstellungen",
+    "language": "Sprache"
+  },
+  "Nav": {
+    "profile": "Profil",
+    "map": "Karte",
+    "crew": "Crew",
+    "shops": "Shops",
+    "ranking": "Ranking"
+  },
+  "Auth": {
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "signOut": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "forgotPassword": "Passwort vergessen?",
+    "verifyEmail": "Bitte bestätige deine E-Mail-Adresse",
+    "welcomeTitle": "Willkommen bei MyArea365",
+    "welcomeSubtitle": "Erobere deine Stadt – gemeinsam"
+  },
+  "Profile": {
+    "title": "Profil",
+    "username": "Benutzername",
+    "displayName": "Anzeigename",
+    "faction": "Fraktion",
+    "level": "Level",
+    "xp": "XP",
+    "streak": "Streak",
+    "units": "Einheiten",
+    "unitsMetric": "Metrisch (km, kg)",
+    "unitsImperial": "Imperial (mi, lb)",
+    "notifications": "Benachrichtigungen",
+    "privacy": "Privatsphäre",
+    "privacyPublic": "Profil öffentlich",
+    "sound": "Sound",
+    "autoPause": "Auto-Pause bei Stillstand"
+  },
+  "Account": {
+    "title": "Account",
+    "changeEmail": "E-Mail ändern",
+    "changePassword": "Passwort ändern",
+    "exportData": "Meine Daten exportieren",
+    "deleteAccount": "Account löschen",
+    "deleteConfirm": "Account wirklich löschen? Dies kann nicht rückgängig gemacht werden."
+  },
+  "Language": {
+    "title": "Sprache wählen",
+    "auto": "Automatisch (Browser)"
+  }
+}

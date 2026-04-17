@@ -6,6 +6,20 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
 import type { ClaimedArea, SupplyDrop, GlitchZone, MapRunner } from "@/lib/game-config";
 
+export type ShopPin = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  icon: string;        // emoji (☕, 🛍️, 🥗 …)
+  color?: string;      // pin color
+  deal_text?: string;  // z.B. "Gratis Cappuccino ab 3 km"
+  address?: string;    // volle Adresse
+  hours?: string;      // Öffnungszeiten
+  phone?: string;
+  spotlight?: boolean; // leuchtet/pulsiert
+};
+
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
@@ -20,12 +34,30 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     @keyframes runnerRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
     @keyframes runnerBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
     @keyframes dropPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
+    @keyframes shopSpotlight {
+      0%,100% { box-shadow: 0 0 18px #FFD70088, 0 0 36px #FFD70044; transform: scale(1); }
+      50%     { box-shadow: 0 0 30px #FFD700dd, 0 0 60px #FFD70088; transform: scale(1.08); }
+    }
+    @keyframes shopSpotlightHalo {
+      0%,100% { transform: scale(1); opacity: 0.55; }
+      50%     { transform: scale(1.45); opacity: 0; }
+    }
+    @keyframes shopSpotlightRing {
+      0%,100% { transform: scale(0.9); opacity: 0.9; box-shadow: 0 0 30px #FFD700dd; }
+      50%     { transform: scale(1.15); opacity: 0.5; box-shadow: 0 0 55px #FFD700ff; }
+    }
+    @keyframes shopSpotlightRays { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes shopSpotlightLabel {
+      0%,100% { opacity: 0.9; transform: translateY(0); }
+      50%     { opacity: 1;   transform: translateY(-2px); }
+    }
+    @keyframes shopBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
   `;
   document.head.appendChild(style);
 }
 
 // Eigener MyArea365-Style (Fork von Mapbox Standard mit unseren Brand-Farben)
-const MAPBOX_STYLE = "mapbox://styles/ameierholz/cmo21mgoa010201s9bi6xdooe";
+const MAPBOX_STYLE = "mapbox://styles/mapbox/standard";
 
 // LightPreset automatisch basierend auf Tageszeit
 function getCurrentLightPreset(): "dawn" | "day" | "dusk" | "night" {
@@ -49,8 +81,10 @@ interface AppMapProps {
   supplyDrops?: SupplyDrop[];
   glitchZones?: GlitchZone[];
   crewMembers?: MapRunner[];
+  shops?: ShopPin[];
   onAreaClick?: (areaId: string) => void;
   onDropClick?: (dropId: string) => void;
+  onShopClick?: (shopId: string) => void;
   overviewMode?: boolean;
   recenterAt?: number;
   lightPreset?: "dawn" | "day" | "dusk" | "night" | "auto";
@@ -138,6 +172,38 @@ function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
   return el;
 }
 
+function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
+  const color = shop.color || "#FFD700";
+  const el = document.createElement("div");
+  el.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto";
+
+  let spotlightLayers = "";
+  let spotlightLabel = "";
+  if (shop.spotlight) {
+    spotlightLayers = `
+      <!-- outer soft halo pulse -->
+      <div style="position:absolute;top:-28px;left:50%;margin-left:-54px;width:108px;height:108px;border-radius:50%;background:radial-gradient(circle,#FFD70066 0%,#FFD70022 45%,transparent 70%);animation:shopSpotlightHalo 2.2s ease-in-out infinite;pointer-events:none"></div>
+      <!-- middle halo ring -->
+      <div style="position:absolute;top:-14px;left:50%;margin-left:-38px;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle,#FFD70099 0%,#FFD70044 50%,transparent 75%);animation:shopSpotlightHalo 2.2s ease-in-out infinite 0.4s;pointer-events:none"></div>
+      <!-- rotating light rays behind -->
+      <div style="position:absolute;top:-22px;left:50%;margin-left:-45px;width:90px;height:90px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,#FFD70088 15deg,transparent 35deg,transparent 90deg,#FFD70066 110deg,transparent 140deg,transparent 210deg,#FFD70088 230deg,transparent 260deg,transparent 330deg,#FFD70066 350deg,transparent 360deg);animation:shopSpotlightRays 6s linear infinite;pointer-events:none;opacity:0.7;filter:blur(2px)"></div>
+      <!-- inner bright ring -->
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-28px;width:56px;height:56px;border-radius:50%;background:transparent;border:2px solid #FFD700cc;animation:shopSpotlightRing 1.6s ease-in-out infinite;pointer-events:none"></div>
+    `;
+    spotlightLabel = `<div style="position:absolute;top:-38px;left:50%;transform:translateX(-50%);padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#FFD700,#FF6B4A);color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,0.45);animation:shopSpotlightLabel 1.6s ease-in-out infinite;white-space:nowrap">⭐ SPOTLIGHT</div>`;
+  }
+
+  el.innerHTML = `
+    ${spotlightLayers}
+    ${spotlightLabel}
+    <div style="position:relative;width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:2.5px solid #FFF;box-shadow:0 4px 10px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 22px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2">
+      <span style="transform:rotate(45deg);font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">${shop.icon}</span>
+    </div>
+    <div style="margin-top:2px;padding:2px 6px;border-radius:8px;background:rgba(15,17,21,0.85);border:1px solid ${color}88;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2">${shop.name}</div>
+  `;
+  return el;
+}
+
 export function AppMap({
   onLocationUpdate,
   trackingActive,
@@ -150,8 +216,10 @@ export function AppMap({
   supplyDrops = [],
   glitchZones = [],
   crewMembers = [],
+  shops = [],
   onAreaClick,
   onDropClick,
+  onShopClick,
   overviewMode = false,
   recenterAt,
   lightPreset = "auto",
@@ -169,6 +237,7 @@ export function AppMap({
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const shopMarkersRef = useRef<mapboxgl.Marker[]>([]);
 
   // Map initialisieren
   useEffect(() => {
@@ -202,60 +271,6 @@ export function AppMap({
         map.setConfigProperty("basemap", "showPlaceLabels", true);
       } catch (e) {
         console.warn("Mapbox Standard-Config konnte nicht gesetzt werden:", e);
-      }
-
-      // ═══ Custom 3D-Buildings mit Cyberpunk-Emissive-Look ═══
-      try {
-        const style = map.getStyle();
-        const hasMapbox = !!style?.sources?.["mapbox"];
-        const hasComposite = !!style?.sources?.["composite"];
-        const sourceName = hasComposite ? "composite" : (hasMapbox ? "mapbox" : null);
-
-        if (sourceName && !map.getLayer("neon-buildings")) {
-          map.addLayer({
-            id: "neon-buildings",
-            source: sourceName,
-            "source-layer": "building",
-            filter: ["all",
-              ["==", ["get", "extrude"], "true"],
-              ["!=", ["get", "underground"], "true"],
-            ],
-            type: "fill-extrusion",
-            minzoom: 13,
-            paint: {
-              // Farben variieren per Gebäude-ID → Neon-Mix aus Brand-Farben
-              "fill-extrusion-color": [
-                "interpolate",
-                ["linear"],
-                ["%", ["coalesce", ["id"], 0], 7],
-                0, "#2a3060",   // dunkles Indigo
-                1, "#3d4a8a",   // mid Indigo
-                2, "#2a4d6e",   // Petrol
-                3, "#6a3a8a",   // Violett
-                4, "#3a5580",   // Stahl-Blau
-                5, "#4a3570",   // dunkles Purple
-                6, "#2a3a5c",   // Slate
-                7, "#3d4a8a",
-              ],
-              "fill-extrusion-height": ["get", "height"],
-              "fill-extrusion-base": ["get", "min_height"],
-              "fill-extrusion-opacity": 0.92,
-              // Emissive = Gebäude strahlen leicht (simuliert Fenster-Lichter)
-              "fill-extrusion-emissive-strength": 0.55,
-              // Ambient Occlusion für realistische Schatten in Ecken
-              "fill-extrusion-ambient-occlusion-intensity": 0.85,
-              "fill-extrusion-ambient-occlusion-radius": 3.5,
-              // Flood-Light unten am Gebäude = Neon-Schein auf Straße
-              "fill-extrusion-flood-light-color": "#22D1C3",
-              "fill-extrusion-flood-light-intensity": 0.35,
-              "fill-extrusion-flood-light-wall-radius": 12,
-              "fill-extrusion-flood-light-ground-radius": 18,
-              "fill-extrusion-vertical-gradient": true,
-            } as mapboxgl.FillExtrusionLayerSpecification["paint"],
-          });
-        }
-      } catch (e) {
-        console.warn("Neon-Buildings-Layer fehlgeschlagen:", e);
       }
 
       mapRef.current = map;
@@ -293,6 +308,8 @@ export function AppMap({
       map.setConfigProperty("basemap", "lightPreset", lightPreset);
     } catch { /* ignore */ }
   }, [mapReady, lightPreset]);
+
+
 
   // Geolocation
   const handlePosition = useCallback(
@@ -406,6 +423,30 @@ export function AppMap({
       dropMarkersRef.current = [];
     };
   }, [mapReady, supplyDrops, onDropClick]);
+
+  // Shops
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    shopMarkersRef.current.forEach((m) => m.remove());
+    shopMarkersRef.current = [];
+
+    shops.forEach((shop) => {
+      const el = buildShopMarkerEl(shop);
+      el.addEventListener("click", () => onShopClick?.(shop.id));
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([shop.lng, shop.lat])
+        .addTo(map);
+      shopMarkersRef.current.push(marker);
+    });
+
+    return () => {
+      shopMarkersRef.current.forEach((m) => m.remove());
+      shopMarkersRef.current = [];
+    };
+  }, [mapReady, shops, onShopClick]);
 
   // Claimed Areas (Polygon Fill + Stroke)
   useEffect(() => {

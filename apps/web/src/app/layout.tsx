@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -18,13 +20,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
   return (
-    <html lang="de" className="dark h-full">
+    <html lang={locale} className="dark h-full">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -32,7 +36,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#1b2436" />
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
-        {children}
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
         <Analytics />
         <SpeedInsights />
       </body>

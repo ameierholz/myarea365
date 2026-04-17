@@ -17,9 +17,27 @@ export const RUNNER_RANKS = [
 ] as const;
 
 export const FACTIONS = [
-  { id: "syndicate", name: "Syndicate", color: "#5ddaf0", power: 12500 },
-  { id: "vanguard",  name: "Vanguard",  color: "#ef7169", power: 14200 },
+  {
+    id: "syndicate",
+    name: "Nachtpuls",
+    short: "NP",
+    color: "#22D1C3",
+    icon: "🌙",
+    motto: "Strategie. Rhythmus. Stille Siege.",
+    power: 12500,
+  },
+  {
+    id: "vanguard",
+    name: "Sonnenwacht",
+    short: "SW",
+    color: "#FF6B4A",
+    icon: "☀️",
+    motto: "Mut. Tempo. Offene Wege.",
+    power: 14200,
+  },
 ] as const;
+
+export type FactionId = "syndicate" | "vanguard";
 
 // 20 Map-Icons — exponentielle Kostenkurve (~×1.6 pro Stufe), Endgame nur für Hardcore
 export const UNLOCKABLE_MARKERS = [
@@ -69,7 +87,533 @@ export const RUNNER_LIGHTS = [
   { id: "cosmic",   name: "Kosmos",     cost: 1500000,   color: "#22d3ee", gradient: ["#312e81", "#7c3aed", "#22d3ee", "#ec4899"],      width: 13 },
 ] as const;
 
-export const CREW_COLORS = ["#5ddaf0", "#ef7169", "#FFD700", "#a855f7"] as const;
+export const CREW_COLORS = [
+  "#5ddaf0", // Cyan
+  "#ef7169", // Koralle
+  "#FFD700", // Gold
+  "#a855f7", // Violett
+  "#22D1C3", // Teal
+  "#FF2D78", // Pink
+  "#4ade80", // Neon-Grün
+  "#F97316", // Orange
+] as const;
+
+/* ═══════════════════════════════════════════════════════
+ * CREW-TYPEN — Wer läuft zusammen?
+ * ═══════════════════════════════════════════════════════ */
+export type CrewTypeId =
+  | "friends"
+  | "family"
+  | "school"
+  | "work"
+  | "sports"
+  | "neighborhood"
+  | "open";
+
+export type CrewType = {
+  id: CrewTypeId;
+  icon: string;
+  name: string;
+  tagline: string;
+  description: string;
+};
+
+export const CREW_TYPES: CrewType[] = [
+  {
+    id: "friends",
+    icon: "🎉",
+    name: "Freundeskreis",
+    tagline: "Kumpels vereint",
+    description: "Deine engsten Freunde — gemeinsam Kilometer sammeln, gegenseitig pushen, Spaß haben.",
+  },
+  {
+    id: "family",
+    icon: "👨‍👩‍👧",
+    name: "Familie",
+    tagline: "Alle Generationen",
+    description: "Eltern, Kids, Opa und Oma — Familien-Challenges bringen alle zusammen in Bewegung.",
+  },
+  {
+    id: "school",
+    icon: "🎓",
+    name: "Schule / Uni",
+    tagline: "Klasse oder Campus",
+    description: "Deine Klasse, Stufe oder Kommilitonen. Wer schafft mehr Gebiete — eure Schule oder die Rivalen?",
+  },
+  {
+    id: "work",
+    icon: "💼",
+    name: "Arbeitskollegen",
+    tagline: "Team-Fitness statt Mittagspause",
+    description: "Nach Feierabend oder in der Mittagspause zusammen laufen — schweißt mehr als Meetings.",
+  },
+  {
+    id: "sports",
+    icon: "🏃",
+    name: "Sportverein",
+    tagline: "Verein & Trainingsgruppe",
+    description: "Lauftreff, Walking-Gruppe, Triathlon-Team — nutzt euren Zusammenhalt auch außerhalb des Trainings.",
+  },
+  {
+    id: "neighborhood",
+    icon: "🏘️",
+    name: "Nachbarschaft",
+    tagline: "Dein Kiez, deine Crew",
+    description: "Nachbarn, die sich sonst nur kurz grüßen — werdet zum Kiez-Team das den Block dominiert.",
+  },
+  {
+    id: "open",
+    icon: "🌐",
+    name: "Offene Community",
+    tagline: "Jeder ist willkommen",
+    description: "Offen für alle — trefft neue Leute, baut eine lokale Bewegungs-Community auf.",
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+ * CREW PRIVACY
+ * ═══════════════════════════════════════════════════════ */
+export type CrewPrivacy = "open" | "invite" | "closed";
+export const CREW_PRIVACY_OPTIONS: { id: CrewPrivacy; label: string; hint: string; icon: string }[] = [
+  { id: "open",   icon: "🌍", label: "Öffentlich",    hint: "Jeder kann beitreten" },
+  { id: "invite", icon: "🔑", label: "Per Einladung", hint: "Nur mit Einladungs-Code" },
+  { id: "closed", icon: "🔒", label: "Geschlossen",   hint: "Admin muss freigeben" },
+];
+
+/* ═══════════════════════════════════════════════════════
+ * DEMO: CREW-MITGLIEDER, CHALLENGES, EVENTS, CHAT, NEARBY
+ * ═══════════════════════════════════════════════════════ */
+export type CrewMemberRole = "admin" | "captain" | "member";
+export type CrewMember = {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_emoji: string;
+  role: CrewMemberRole;
+  weekly_km: number;
+  weekly_xp: number;
+  rank_name: string;
+  online: boolean;
+};
+
+export const DEMO_CREW_MEMBERS: CrewMember[] = [
+  { id: "m1", username: "NeonFuchs",   display_name: "Lena K.",     avatar_emoji: "🦊", role: "admin",   weekly_km: 24.3, weekly_xp: 1820, rank_name: "Kiez-König",         online: true  },
+  { id: "m2", username: "Pacer99",     display_name: "Jonas B.",    avatar_emoji: "🚀", role: "captain", weekly_km: 18.7, weekly_xp: 1410, rank_name: "Bezirks-Entdecker",  online: true  },
+  { id: "m3", username: "KiezKönig",   display_name: "Sam M.",      avatar_emoji: "👑", role: "captain", weekly_km: 16.2, weekly_xp: 1230, rank_name: "Viertel-Boss",       online: false },
+  { id: "m4", username: "StadtPuma",   display_name: "Ines R.",     avatar_emoji: "🐆", role: "member",  weekly_km: 12.8, weekly_xp: 980,  rank_name: "Stadt-Pionier",      online: true  },
+  { id: "m5", username: "Schrittzahl", display_name: "Tim H.",      avatar_emoji: "👟", role: "member",  weekly_km: 9.4,  weekly_xp: 720,  rank_name: "Block-Kundschafter", online: false },
+  { id: "m6", username: "WegFinder",   display_name: "Aylin S.",    avatar_emoji: "🧭", role: "member",  weekly_km: 7.1,  weekly_xp: 540,  rank_name: "Kiez-Wanderer",      online: false },
+];
+
+export type CrewChallenge = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  target: number;
+  current: number;
+  unit: string;
+  reward_xp: number;
+  ends_at: string; // ISO
+};
+
+export const DEMO_CREW_CHALLENGES: CrewChallenge[] = [
+  {
+    id: "c1",
+    title: "Wochen-Ziel: 150 km",
+    description: "Gemeinsam 150 km in dieser Woche — jeder Schritt zählt.",
+    icon: "🔥",
+    target: 150, current: 88.5, unit: "km",
+    reward_xp: 2500,
+    ends_at: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "c2",
+    title: "Revier-Sperre",
+    description: "20 Territorien im Crew-Revier sichern, bevor jemand angreift.",
+    icon: "🛡️",
+    target: 20, current: 13, unit: "Gebiete",
+    reward_xp: 1800,
+    ends_at: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: "c3",
+    title: "Früh-Vögel",
+    description: "5 Läufe vor 8 Uhr morgens — die Crew gewinnt den Tag.",
+    icon: "🌅",
+    target: 5, current: 2, unit: "Läufe",
+    reward_xp: 900,
+    ends_at: new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString(),
+  },
+];
+
+export type CrewEvent = {
+  id: string;
+  title: string;
+  when_iso: string;
+  meeting_point: string;
+  lat: number;
+  lng: number;
+  attendees: number;
+  host_username: string;
+  distance_km: number;
+  pace: string;
+  note?: string;
+};
+
+export const DEMO_CREW_EVENTS: CrewEvent[] = [
+  {
+    id: "e1",
+    title: "Feierabend-Runde durch den Kiez",
+    when_iso: new Date(Date.now() + 1 * 24 * 3600 * 1000).toISOString(),
+    meeting_point: "Wasserturm Prenzlauer Berg",
+    lat: 52.5361, lng: 13.4076,
+    attendees: 7,
+    host_username: "NeonFuchs",
+    distance_km: 6,
+    pace: "entspannt (6:30 min/km)",
+    note: "Wer Lust hat, kommt danach noch ins Späti ums Eck.",
+  },
+  {
+    id: "e2",
+    title: "Samstag-Long-Run",
+    when_iso: new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString(),
+    meeting_point: "Mauerpark Haupteingang",
+    lat: 52.5418, lng: 13.4023,
+    attendees: 4,
+    host_username: "Pacer99",
+    distance_km: 12,
+    pace: "moderat (5:45 min/km)",
+  },
+];
+
+export type CrewChatMessage = {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_emoji: string;
+  text: string;
+  ts_iso: string;
+};
+
+export const DEMO_CREW_CHAT: CrewChatMessage[] = [
+  { id: "x1", username: "NeonFuchs",   display_name: "Lena",  avatar_emoji: "🦊", text: "Jemand Bock auf Morgenrunde?",                       ts_iso: new Date(Date.now() - 60 * 55 * 1000).toISOString() },
+  { id: "x2", username: "Pacer99",     display_name: "Jonas", avatar_emoji: "🚀", text: "Ich bin dabei, 7 Uhr am Wasserturm?",                ts_iso: new Date(Date.now() - 40 * 60 * 1000).toISOString() },
+  { id: "x3", username: "StadtPuma",   display_name: "Ines",  avatar_emoji: "🐆", text: "Zu früh 😭 aber heute Abend gern!",                  ts_iso: new Date(Date.now() - 22 * 60 * 1000).toISOString() },
+  { id: "x4", username: "NeonFuchs",   display_name: "Lena",  avatar_emoji: "🦊", text: "Ok dann 19 Uhr gleiche Stelle — wir brauchen noch 2 Territorien für die Wochen-Challenge!", ts_iso: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
+];
+
+export type NearbyCrew = {
+  id: string;
+  name: string;
+  type: CrewTypeId;
+  color: string;
+  continent: string;  // "Europa", "Nordamerika", "Asien", …
+  country: string;    // "Deutschland", "France", "USA", …
+  state: string;      // Bundesland / Region: "Berlin", "Bayern", "Île-de-France", …
+  region: string;     // Stadt/Ort: "Berlin", "München", "Paris", …
+  city: string;       // Bezirk / Stadtteil: "Pankow", "Altstadt", "Le Marais", …
+  zip: string;        // PLZ-Gebiet: "10405"
+  faction: FactionId; // Fraktions-Zugehörigkeit
+  member_count: number;
+  weekly_km: number;
+  privacy: CrewPrivacy;
+  motto: string;
+  distance_km: number;
+};
+
+export const DEMO_NEARBY_CREWS: NearbyCrew[] = [
+  // ═══ DEUTSCHLAND ═══
+  // Berlin / Pankow
+  { id: "n1",  name: "Kiez Läufer 13435",   type: "neighborhood", color: "#22D1C3", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Pankow",            zip: "13435", faction: "syndicate", member_count: 18, weekly_km: 312,  privacy: "open",   motto: "Ein Kiez, eine Crew.",                 distance_km: 0.4 },
+  { id: "n2",  name: "Prenzl'Pack",         type: "friends",      color: "#a855f7", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Pankow",            zip: "10405", faction: "vanguard", member_count: 8,  weekly_km: 124,  privacy: "invite", motto: "Small but fast.",                      distance_km: 2.1 },
+  { id: "n3",  name: "MIT Pankow",          type: "work",         color: "#FFD700", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Pankow",            zip: "13187", faction: "syndicate", member_count: 14, weekly_km: 210,  privacy: "closed", motto: "Lunchtime legends.",                   distance_km: 3.5 },
+  { id: "n4",  name: "Weißensee Walker",    type: "neighborhood", color: "#4ade80", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Pankow",            zip: "13086", faction: "syndicate", member_count: 22, weekly_km: 380,  privacy: "open",   motto: "Vom Weißen See bis Buchholz.",         distance_km: 5.2 },
+  // Berlin / Mitte
+  { id: "n5",  name: "Alex-Runners",        type: "open",         color: "#FF2D78", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Mitte",             zip: "10178", faction: "vanguard", member_count: 42, weekly_km: 890,  privacy: "open",   motto: "Vom Alex bis zum Ring.",               distance_km: 1.2 },
+  { id: "n6",  name: "Laufteam Humboldt",   type: "school",       color: "#4ade80", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Mitte",             zip: "10117", faction: "syndicate", member_count: 27, weekly_km: 480,  privacy: "open",   motto: "Uni-Running ohne Klausur.",            distance_km: 4.0 },
+  // Berlin / Kreuzberg
+  { id: "n7",  name: "Kreuzkölln Runners",  type: "open",         color: "#F97316", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Kreuzberg",         zip: "10999", faction: "vanguard", member_count: 56, weekly_km: 1120, privacy: "open",   motto: "Never early, always there.",           distance_km: 7.1 },
+  { id: "n8",  name: "SO36 Family Runs",    type: "family",       color: "#ef7169", continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",    city: "Kreuzberg",         zip: "10997", faction: "vanguard", member_count: 11, weekly_km: 98,   privacy: "invite", motto: "Eltern, Kids, Kilometer.",             distance_km: 7.5 },
+  // München
+  { id: "n9",  name: "Isar-Squad",          type: "open",         color: "#22D1C3", continent: "Europa", country: "Deutschland", state: "Bayern",              region: "München",   city: "Altstadt",          zip: "80331", faction: "syndicate", member_count: 63, weekly_km: 1320, privacy: "open",   motto: "An der Isar entlang, immer.",          distance_km: 510 },
+  { id: "n10", name: "Marienplatz Mittag",  type: "work",         color: "#5ddaf0", continent: "Europa", country: "Deutschland", state: "Bayern",              region: "München",   city: "Altstadt",          zip: "80333", faction: "vanguard", member_count: 19, weekly_km: 230,  privacy: "closed", motto: "Statt Schnitzel lieber Sprint.",       distance_km: 510 },
+  { id: "n11", name: "TSV Pasing",          type: "sports",       color: "#FFD700", continent: "Europa", country: "Deutschland", state: "Bayern",              region: "München",   city: "Pasing",            zip: "81241", faction: "syndicate", member_count: 87, weekly_km: 1910, privacy: "open",   motto: "Verein läuft weiter — draußen.",       distance_km: 514 },
+  // Hamburg
+  { id: "n12", name: "Alster-Crew",         type: "open",         color: "#a855f7", continent: "Europa", country: "Deutschland", state: "Hamburg",             region: "Hamburg",   city: "Harvestehude",      zip: "20149", faction: "syndicate", member_count: 51, weekly_km: 980,  privacy: "open",   motto: "Die Alster ist unser Wohnzimmer.",     distance_km: 255 },
+  { id: "n13", name: "HafenCity Runners",   type: "work",         color: "#FF2D78", continent: "Europa", country: "Deutschland", state: "Hamburg",             region: "Hamburg",   city: "HafenCity",         zip: "20457", faction: "vanguard", member_count: 28, weekly_km: 520,  privacy: "invite", motto: "Elphi in Sicht, los!",                 distance_km: 256 },
+  // Köln
+  { id: "n14", name: "Rheinauhafen Rebels", type: "friends",      color: "#4ade80", continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Köln",      city: "Altstadt-Süd",      zip: "50678", faction: "vanguard", member_count: 14, weekly_km: 220,  privacy: "invite", motto: "Am Rhein, aber flott.",                distance_km: 475 },
+  { id: "n15", name: "Domstürmer",          type: "open",         color: "#F97316", continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Köln",      city: "Altstadt-Nord",     zip: "50667", faction: "syndicate", member_count: 73, weekly_km: 1440, privacy: "open",   motto: "Rund um den Dom in unter 10.",         distance_km: 473 },
+  // Leipzig
+  { id: "n16", name: "Connewitz Collective",type: "neighborhood", color: "#22D1C3", continent: "Europa", country: "Deutschland", state: "Sachsen",             region: "Leipzig",   city: "Connewitz",         zip: "04277", faction: "vanguard", member_count: 34, weekly_km: 620,  privacy: "open",   motto: "Südvorstadt bis Connewitz.",           distance_km: 149 },
+
+  // ═══ ÖSTERREICH ═══
+  { id: "n17", name: "Wiener Schleife",     type: "open",         color: "#5ddaf0", continent: "Europa", country: "Österreich",  state: "Wien",                region: "Wien",      city: "Innere Stadt",      zip: "1010",  faction: "vanguard", member_count: 45, weekly_km: 820,  privacy: "open",   motto: "Ringrunde in 40.",                     distance_km: 520 },
+  { id: "n18", name: "Salzach Sprinter",    type: "sports",       color: "#FFD700", continent: "Europa", country: "Österreich",  state: "Salzburg",            region: "Salzburg",  city: "Altstadt",          zip: "5020",  faction: "syndicate", member_count: 22, weekly_km: 410,  privacy: "open",   motto: "Mozart rennt mit.",                    distance_km: 610 },
+
+  // ═══ SCHWEIZ ═══
+  { id: "n19", name: "Limmat Striders",     type: "open",         color: "#ef7169", continent: "Europa", country: "Schweiz",     state: "Zürich",              region: "Zürich",    city: "Altstadt",          zip: "8001", faction: "syndicate", member_count: 38, weekly_km: 760,  privacy: "open",   motto: "Vom See bis Üetliberg.",               distance_km: 730 },
+
+  // ═══ FRANKREICH ═══
+  { id: "n20", name: "Marais Runners",      type: "friends",      color: "#a855f7", continent: "Europa", country: "France",      state: "Île-de-France",       region: "Paris",     city: "Le Marais",         zip: "75004", faction: "vanguard", member_count: 29, weekly_km: 540,  privacy: "open",   motto: "Croissant after, promis.",             distance_km: 1050 },
+  { id: "n21", name: "Seine Sunset Crew",   type: "open",         color: "#FF2D78", continent: "Europa", country: "France",      state: "Île-de-France",       region: "Paris",     city: "Quartier Latin",    zip: "75005", faction: "syndicate", member_count: 66, weekly_km: 1280, privacy: "open",   motto: "Cours au bord de la Seine.",           distance_km: 1050 },
+  { id: "n22", name: "Vieux-Lyon Legs",     type: "neighborhood", color: "#22D1C3", continent: "Europa", country: "France",      state: "Auvergne-Rhône-Alpes", region: "Lyon",    city: "Vieux-Lyon",        zip: "69005", faction: "vanguard", member_count: 18, weekly_km: 290,  privacy: "invite", motto: "Montées et descentes.",                distance_km: 890 },
+
+  // ═══ NIEDERLANDE ═══
+  { id: "n23", name: "Vondelpark Pack",     type: "open",         color: "#F97316", continent: "Europa", country: "Nederland",   state: "Noord-Holland",       region: "Amsterdam", city: "Oud-Zuid",          zip: "1071", faction: "syndicate", member_count: 81, weekly_km: 1560, privacy: "open",   motto: "Loopjes door de stad.",                distance_km: 650 },
+
+  // ═══ SPANIEN ═══
+  { id: "n24", name: "Barrio Running BCN",  type: "open",         color: "#FFD700", continent: "Europa", country: "España",      state: "Catalunya",           region: "Barcelona", city: "El Born",           zip: "08003", faction: "vanguard", member_count: 54, weekly_km: 1040, privacy: "open",   motto: "De la playa a Montjuïc.",              distance_km: 1500 },
+  { id: "n25", name: "Madrid Retiro Crew",  type: "open",         color: "#FF2D78", continent: "Europa", country: "España",      state: "Comunidad de Madrid", region: "Madrid",    city: "Retiro",            zip: "28009", faction: "vanguard", member_count: 47, weekly_km: 880,  privacy: "open",   motto: "Vueltas al parque, sin parar.",        distance_km: 1870 },
+
+  // ═══ ITALIEN ═══
+  { id: "n26", name: "Tevere Strider",      type: "open",         color: "#ef7169", continent: "Europa", country: "Italia",      state: "Lazio",               region: "Roma",      city: "Trastevere",        zip: "00153", faction: "syndicate", member_count: 39, weekly_km: 720,  privacy: "open",   motto: "Corri lungo il Tevere.",               distance_km: 1280 },
+  { id: "n27", name: "Navigli Nightrun",    type: "friends",      color: "#a855f7", continent: "Europa", country: "Italia",      state: "Lombardia",           region: "Milano",    city: "Navigli",           zip: "20143", faction: "vanguard", member_count: 24, weekly_km: 390,  privacy: "invite", motto: "Aperitivo dopo, sempre.",              distance_km: 1050 },
+
+  // ═══ UK ═══
+  { id: "n28", name: "Regent's Park Pacers",type: "open",         color: "#4ade80", continent: "Europa", country: "United Kingdom", state: "England",          region: "London",    city: "Camden",            zip: "NW1",   faction: "vanguard", member_count: 94, weekly_km: 1820, privacy: "open",   motto: "Rain or shine.",                       distance_km: 1100 },
+  { id: "n29", name: "Shoreditch Squad",    type: "work",         color: "#5ddaf0", continent: "Europa", country: "United Kingdom", state: "England",          region: "London",    city: "Shoreditch",        zip: "E1",    faction: "syndicate", member_count: 31, weekly_km: 580,  privacy: "closed", motto: "Startup founders need cardio.",        distance_km: 1105 },
+
+  // ═══ USA ═══
+  { id: "n30", name: "Central Park Crew",   type: "open",         color: "#FFD700", continent: "Nordamerika", country: "USA",         state: "New York",            region: "New York",  city: "Upper West Side",   zip: "10024", faction: "syndicate", member_count: 128, weekly_km: 2410, privacy: "open",  motto: "The loop is life.",                    distance_km: 6400 },
+  { id: "n31", name: "Venice Beach Runners",type: "friends",      color: "#22D1C3", continent: "Nordamerika", country: "USA",         state: "California",          region: "Los Angeles", city: "Venice",          zip: "90291", faction: "vanguard", member_count: 52, weekly_km: 970,  privacy: "open",   motto: "Boardwalk or nothing.",                distance_km: 9400 },
+
+  // ═══ JAPAN ═══
+  { id: "n32", name: "Shibuya Sprinters",   type: "open",         color: "#FF2D78", continent: "Asien", country: "日本 Japan",  state: "Tokyo-to",            region: "Tokyo",     city: "Shibuya",           zip: "150-0002", faction: "syndicate", member_count: 76, weekly_km: 1380, privacy: "open", motto: "クロスして走る。",                     distance_km: 9000 },
+
+  // ═══ THAILAND (Urlaub!) ═══
+  { id: "n33", name: "Bangkok Lumphini",    type: "open",         color: "#F97316", continent: "Asien", country: "Thailand",    state: "Bangkok",             region: "Bangkok",   city: "Pathum Wan",        zip: "10330", faction: "vanguard", member_count: 42, weekly_km: 760,  privacy: "open",   motto: "5 Uhr morgens, bevor es zu heiß wird.", distance_km: 8500 },
+  { id: "n34", name: "Phuket Morning Run",  type: "open",         color: "#22D1C3", continent: "Asien", country: "Thailand",    state: "Phuket",              region: "Phuket",    city: "Patong",            zip: "83150", faction: "syndicate", member_count: 15, weekly_km: 240,  privacy: "open",   motto: "Urlaubs-Modus aktiv.",                 distance_km: 8900 },
+];
+
+// Aggregationen: Hilfsfunktionen um die Hierarchie für die UI zu bauen
+export type GeoBucket<T = NearbyCrew> = {
+  key: string;
+  label: string;
+  crews: T[];
+  child_count: number;
+};
+
+// ISO-2-Codes für Flag-Bilder (via flagcdn.com)
+const COUNTRY_ISO: Record<string, string> = {
+  "Deutschland": "de",
+  "Österreich": "at",
+  "Schweiz": "ch",
+  "France": "fr",
+  "Nederland": "nl",
+  "España": "es",
+  "Italia": "it",
+  "United Kingdom": "gb",
+  "USA": "us",
+  "日本 Japan": "jp",
+  "Thailand": "th",
+};
+export function isoForCountry(country: string): string | null {
+  return COUNTRY_ISO[country] || null;
+}
+// Emoji für Kontinent (Welt-Globus)
+const CONTINENT_EMOJI: Record<string, string> = {
+  "Europa": "🌍",
+  "Nordamerika": "🌎",
+  "Südamerika": "🌎",
+  "Asien": "🌏",
+  "Afrika": "🌍",
+  "Ozeanien": "🌏",
+};
+export function emojiForContinent(continent: string): string {
+  return CONTINENT_EMOJI[continent] || "🌐";
+}
+
+// ═══ LIGA-SYSTEM ═══
+export type LeagueTier = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  minWeeklyKm: number;
+};
+export const LEAGUE_TIERS: LeagueTier[] = [
+  { id: "bronze",   name: "Bronze",   icon: "🥉", color: "#CD7F32", minWeeklyKm: 0     },
+  { id: "silver",   name: "Silber",   icon: "🥈", color: "#C0C8D8", minWeeklyKm: 200   },
+  { id: "gold",     name: "Gold",     icon: "🥇", color: "#FFD700", minWeeklyKm: 500   },
+  { id: "diamond",  name: "Diamant",  icon: "💎", color: "#5ddaf0", minWeeklyKm: 1000  },
+  { id: "legend",   name: "Legende",  icon: "👑", color: "#FF2D78", minWeeklyKm: 2000  },
+];
+export function leagueTierFor(weeklyKm: number): LeagueTier {
+  let best = LEAGUE_TIERS[0];
+  for (const t of LEAGUE_TIERS) {
+    if (weeklyKm >= t.minWeeklyKm) best = t;
+  }
+  return best;
+}
+export function nextLeagueTier(current: LeagueTier): LeagueTier | null {
+  const i = LEAGUE_TIERS.findIndex((t) => t.id === current.id);
+  return i >= 0 && i < LEAGUE_TIERS.length - 1 ? LEAGUE_TIERS[i + 1] : null;
+}
+
+// ═══ SAISON — Kalendermonat (synchron mit Health-Monats-Challenge) ═══
+const MONTHS_DE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+export function currentSeason(): {
+  key: string;          // "2026-04"
+  label: string;        // "April 2026"
+  month: number;        // 0..11
+  year: number;
+  startISO: string;
+  endISO: string;
+  daysLeft: number;
+  daysTotal: number;
+} {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 1); // exklusiv = 1. des Folgemonats
+  const daysTotal = Math.round((end.getTime() - start.getTime()) / (24 * 3600 * 1000));
+  const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (24 * 3600 * 1000)));
+  return {
+    key: `${year}-${String(month + 1).padStart(2, "0")}`,
+    label: `${MONTHS_DE[month]} ${year}`,
+    month, year,
+    startISO: start.toISOString(),
+    endISO: end.toISOString(),
+    daysLeft, daysTotal,
+  };
+}
+
+export function previousSeasonLabel(): string {
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return `${MONTHS_DE[prev.getMonth()]} ${prev.getFullYear()}`;
+}
+
+// Demo: Liga-Ergebnis der Vormonats-Saison (in echt aus DB)
+export const DEMO_LAST_SEASON_TIER_ID = "silver";
+
+// ═══ DEMO RUNNER-BESTENLISTE (mit Geo-Hierarchie) ═══
+export type RankingRunner = {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_emoji: string;
+  crew_name: string | null;
+  crew_color: string | null;
+  rank_name: string;
+  weekly_km: number;
+  weekly_xp: number;
+  total_xp: number;
+  continent: string;
+  country: string;
+  state: string;
+  region: string;
+  city: string;
+  zip: string;
+};
+
+export const DEMO_RANKING_RUNNERS: RankingRunner[] = [
+  { id: "r1",  username: "NeonFuchs",   display_name: "Lena K.",   avatar_emoji: "🦊", crew_name: "Kiez Läufer 13435", crew_color: "#22D1C3", rank_name: "Kiez-König",        weekly_km: 48.2, weekly_xp: 2820, total_xp: 184_200, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13435" },
+  { id: "r2",  username: "Pacer99",     display_name: "Jonas B.",  avatar_emoji: "🚀", crew_name: "Prenzl'Pack",       crew_color: "#a855f7", rank_name: "Bezirks-Entdecker", weekly_km: 42.1, weekly_xp: 2410, total_xp: 156_800, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "10405" },
+  { id: "r3",  username: "KiezKönig",   display_name: "Sam M.",    avatar_emoji: "👑", crew_name: "Alex-Runners",      crew_color: "#FF2D78", rank_name: "Viertel-Boss",      weekly_km: 38.6, weekly_xp: 2230, total_xp: 142_100, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Mitte",           zip: "10178" },
+  { id: "r4",  username: "StadtPuma",   display_name: "Ines R.",   avatar_emoji: "🐆", crew_name: "Kiez Läufer 13435", crew_color: "#22D1C3", rank_name: "Stadt-Pionier",     weekly_km: 31.8, weekly_xp: 1980, total_xp: 98_400,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13435" },
+  { id: "r5",  username: "Schrittzahl", display_name: "Tim H.",    avatar_emoji: "👟", crew_name: "Weißensee Walker",  crew_color: "#4ade80", rank_name: "Block-Kundschafter",weekly_km: 24.4, weekly_xp: 1520, total_xp: 67_300,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13086" },
+  { id: "r6",  username: "WegFinder",   display_name: "Aylin S.",  avatar_emoji: "🧭", crew_name: null,                crew_color: null,       rank_name: "Kiez-Wanderer",     weekly_km: 19.1, weekly_xp: 1240, total_xp: 41_200,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Kreuzberg",       zip: "10999" },
+  { id: "r7",  username: "BockBube",    display_name: "Max R.",    avatar_emoji: "🐐", crew_name: "Kreuzkölln Runners",crew_color: "#F97316", rank_name: "Metropolen-Legende",weekly_km: 58.7, weekly_xp: 3320, total_xp: 312_400, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Kreuzberg",       zip: "10999" },
+  { id: "r8",  username: "IsarFlow",    display_name: "Klara M.",  avatar_emoji: "🌊", crew_name: "Isar-Squad",        crew_color: "#22D1C3", rank_name: "Kiez-König",        weekly_km: 46.3, weekly_xp: 2680, total_xp: 178_000, continent: "Europa", country: "Deutschland", state: "Bayern",  region: "München",   city: "Altstadt",        zip: "80331" },
+  { id: "r9",  username: "WiesnWolf",   display_name: "Sepp B.",   avatar_emoji: "🐺", crew_name: "TSV Pasing",        crew_color: "#FFD700", rank_name: "Viertel-Boss",      weekly_km: 35.2, weekly_xp: 2020, total_xp: 121_000, continent: "Europa", country: "Deutschland", state: "Bayern",  region: "München",   city: "Pasing",          zip: "81241" },
+  { id: "r10", username: "AlsterOtter", display_name: "Finn K.",   avatar_emoji: "🦦", crew_name: "Alster-Crew",       crew_color: "#a855f7", rank_name: "Stadt-Pionier",     weekly_km: 28.9, weekly_xp: 1720, total_xp: 88_400,  continent: "Europa", country: "Deutschland", state: "Hamburg", region: "Hamburg",   city: "Harvestehude",    zip: "20149" },
+  { id: "r11", username: "DomSprinter", display_name: "Lukas H.",  avatar_emoji: "⛪", crew_name: "Domstürmer",        crew_color: "#F97316", rank_name: "Kiez-König",        weekly_km: 40.1, weekly_xp: 2340, total_xp: 154_000, continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Köln", city: "Altstadt-Nord", zip: "50667" },
+  { id: "r12", username: "WienerLinie", display_name: "Anna G.",   avatar_emoji: "🎻", crew_name: "Wiener Schleife",   crew_color: "#5ddaf0", rank_name: "Bezirks-Entdecker", weekly_km: 37.7, weekly_xp: 2180, total_xp: 134_200, continent: "Europa", country: "Österreich",  state: "Wien",    region: "Wien",      city: "Innere Stadt",    zip: "1010" },
+  { id: "r13", username: "ZürichZen",   display_name: "Noah S.",   avatar_emoji: "🏔️", crew_name: "Limmat Striders",   crew_color: "#ef7169", rank_name: "Viertel-Boss",      weekly_km: 33.4, weekly_xp: 1960, total_xp: 112_000, continent: "Europa", country: "Schweiz",     state: "Zürich",  region: "Zürich",    city: "Altstadt",        zip: "8001" },
+  { id: "r14", username: "MaraisMover", display_name: "Léa D.",    avatar_emoji: "🥐", crew_name: "Marais Runners",    crew_color: "#a855f7", rank_name: "Stadt-Pionier",     weekly_km: 26.8, weekly_xp: 1620, total_xp: 76_000,  continent: "Europa", country: "France",      state: "Île-de-France", region: "Paris", city: "Le Marais",      zip: "75004" },
+  { id: "r15", username: "SeineSprint", display_name: "Hugo M.",   avatar_emoji: "🗼", crew_name: "Seine Sunset Crew", crew_color: "#FF2D78", rank_name: "Viertel-Boss",      weekly_km: 34.3, weekly_xp: 1990, total_xp: 118_300, continent: "Europa", country: "France",      state: "Île-de-France", region: "Paris", city: "Quartier Latin", zip: "75005" },
+  { id: "r16", username: "VondelVibes", display_name: "Sanne J.",  avatar_emoji: "🚲", crew_name: "Vondelpark Pack",   crew_color: "#F97316", rank_name: "Metropolen-Legende",weekly_km: 52.1, weekly_xp: 3010, total_xp: 242_100, continent: "Europa", country: "Nederland",   state: "Noord-Holland", region: "Amsterdam", city: "Oud-Zuid", zip: "1071" },
+  { id: "r17", username: "RamblasRun",  display_name: "Pau V.",    avatar_emoji: "⚽", crew_name: "Barrio Running BCN",crew_color: "#FFD700", rank_name: "Kiez-König",        weekly_km: 43.9, weekly_xp: 2520, total_xp: 164_400, continent: "Europa", country: "España",      state: "Catalunya", region: "Barcelona", city: "El Born",      zip: "08003" },
+  { id: "r18", username: "ColiseumCat", display_name: "Giulia F.", avatar_emoji: "🏛️", crew_name: "Tevere Strider",    crew_color: "#ef7169", rank_name: "Bezirks-Entdecker", weekly_km: 36.2, weekly_xp: 2080, total_xp: 128_900, continent: "Europa", country: "Italia",      state: "Lazio",   region: "Roma",      city: "Trastevere",      zip: "00153" },
+  { id: "r19", username: "ThamesTempo", display_name: "Oliver P.", avatar_emoji: "🎯", crew_name: "Regent's Park Pacers", crew_color: "#4ade80", rank_name: "Urbaner Mythos", weekly_km: 67.3, weekly_xp: 3840, total_xp: 412_000, continent: "Europa", country: "United Kingdom", state: "England", region: "London",  city: "Camden",       zip: "NW1" },
+  { id: "r20", username: "CentralCorre",display_name: "Mia R.",    avatar_emoji: "🍎", crew_name: "Central Park Crew", crew_color: "#FFD700", rank_name: "Straßen-Gott",      weekly_km: 74.8, weekly_xp: 4280, total_xp: 520_000, continent: "Nordamerika", country: "USA",    state: "New York", region: "New York", city: "Upper West Side", zip: "10024" },
+  { id: "r21", username: "VeniceWave",  display_name: "Cole B.",   avatar_emoji: "🌴", crew_name: "Venice Beach Runners", crew_color: "#22D1C3", rank_name: "Kiez-König",    weekly_km: 45.1, weekly_xp: 2590, total_xp: 168_400, continent: "Nordamerika", country: "USA",    state: "California", region: "Los Angeles", city: "Venice",      zip: "90291" },
+  { id: "r22", username: "ShibuyaZen",  display_name: "Aiko T.",   avatar_emoji: "🏯", crew_name: "Shibuya Sprinters", crew_color: "#FF2D78", rank_name: "Viertel-Boss",      weekly_km: 39.4, weekly_xp: 2270, total_xp: 148_100, continent: "Asien", country: "日本 Japan",    state: "Tokyo-to", region: "Tokyo",    city: "Shibuya",         zip: "150-0002" },
+  { id: "r23", username: "LumpiniLap",  display_name: "Somchai P.",avatar_emoji: "🥭", crew_name: "Bangkok Lumphini",  crew_color: "#F97316", rank_name: "Stadt-Pionier",     weekly_km: 29.4, weekly_xp: 1780, total_xp: 92_400,  continent: "Asien", country: "Thailand",       state: "Bangkok", region: "Bangkok",   city: "Pathum Wan",      zip: "10330" },
+  { id: "r24", username: "PhuketPace",  display_name: "Niran K.",  avatar_emoji: "🌊", crew_name: "Phuket Morning Run",crew_color: "#22D1C3", rank_name: "Kiez-Wanderer",     weekly_km: 16.4, weekly_xp: 1010, total_xp: 34_200,  continent: "Asien", country: "Thailand",       state: "Phuket",  region: "Phuket",    city: "Patong",          zip: "83150" },
+];
+
+// ═══ FACTION-POWER-AGGREGATION ═══
+export type FactionPower = { syndicate: number; vanguard: number };
+export function factionPowerForCrews(crews: NearbyCrew[]): FactionPower {
+  const out: FactionPower = { syndicate: 0, vanguard: 0 };
+  for (const c of crews) out[c.faction] += c.weekly_km;
+  return out;
+}
+
+// ═══ CREW-FEED (Activity-Stream) ═══
+export type CrewFeedEventType =
+  | "run_completed" | "challenge_done" | "member_joined"
+  | "rank_up" | "territory_taken" | "milestone" | "birthday";
+
+export type CrewFeedItem = {
+  id: string;
+  type: CrewFeedEventType;
+  username?: string;
+  avatar_emoji?: string;
+  text: string;
+  accent?: string;
+  ts_iso: string;
+  reactions?: { emoji: string; count: number }[];
+};
+
+export const DEMO_CREW_FEED: CrewFeedItem[] = [
+  { id: "f1", type: "rank_up",         username: "NeonFuchs",   avatar_emoji: "🦊", text: "ist zu **Kiez-König** aufgestiegen", accent: "#FFD700", ts_iso: new Date(Date.now() - 14 * 60000).toISOString(), reactions: [{ emoji: "🔥", count: 5 }, { emoji: "👏", count: 3 }] },
+  { id: "f2", type: "territory_taken", username: "Pacer99",     avatar_emoji: "🚀", text: "hat **Danziger Straße** erobert",    accent: "#22D1C3", ts_iso: new Date(Date.now() - 42 * 60000).toISOString(), reactions: [{ emoji: "🏆", count: 4 }] },
+  { id: "f3", type: "challenge_done",                                                text: "Crew-Challenge **Früh-Vögel** abgeschlossen — +900 XP 🎉", accent: "#FF6B4A", ts_iso: new Date(Date.now() - 3 * 3600000).toISOString(), reactions: [{ emoji: "🎉", count: 8 }, { emoji: "💪", count: 2 }] },
+  { id: "f4", type: "run_completed",   username: "StadtPuma",   avatar_emoji: "🐆", text: "hat **8.4 km in 42:30** gelaufen",   accent: "#22D1C3", ts_iso: new Date(Date.now() - 5 * 3600000).toISOString() },
+  { id: "f5", type: "member_joined",   username: "WegFinder",   avatar_emoji: "🧭", text: "ist der Crew beigetreten",           accent: "#a855f7", ts_iso: new Date(Date.now() - 22 * 3600000).toISOString(), reactions: [{ emoji: "👋", count: 6 }] },
+  { id: "f6", type: "milestone",                                                     text: "Crew hat **3000 km** insgesamt erreicht 🏅", accent: "#FFD700", ts_iso: new Date(Date.now() - 2 * 24 * 3600000).toISOString(), reactions: [{ emoji: "🔥", count: 12 }] },
+  { id: "f7", type: "birthday",        username: "Schrittzahl", avatar_emoji: "👟", text: "feiert heute **1 Jahr** in der Crew 🎂", accent: "#FF2D78", ts_iso: new Date(Date.now() - 3 * 24 * 3600000).toISOString(), reactions: [{ emoji: "🎂", count: 7 }] },
+];
+
+// ═══ RIVALS — Crews als Erzfeinde ═══
+export type RivalDuel = {
+  rival_name: string;
+  rival_color: string;
+  rival_weekly_km: number;
+  our_weekly_km: number;
+  ends_at: string;
+  prize: string;
+};
+export const DEMO_RIVAL_DUEL: RivalDuel = {
+  rival_name: "Weißensee Walker",
+  rival_color: "#4ade80",
+  rival_weekly_km: 76.4,
+  our_weekly_km: 88.5,
+  ends_at: new Date(Date.now() + 3 * 24 * 3600000).toISOString(),
+  prize: "+1200 XP + Territorium-Bonus",
+};
+
+export function groupCrewsByLevel(
+  crews: NearbyCrew[],
+  level: "continent" | "country" | "state" | "region" | "city" | "zip",
+): GeoBucket[] {
+  const map = new Map<string, NearbyCrew[]>();
+  for (const c of crews) {
+    const key = c[level];
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(c);
+  }
+  return Array.from(map.entries())
+    .map(([key, list]) => ({ key, label: key, crews: list, child_count: list.length }))
+    .sort((a, b) => b.child_count - a.child_count);
+}
+
+export const DEMO_CREW_STATS = {
+  weekly_rank_city: 14,
+  all_time_rank_city: 38,
+  total_territories: 87,
+  weekly_territories: 13,
+  total_km: 3420,
+  weekly_km: 88.5,
+  faction_contrib: 2.4, // % Beitrag zur Fraktions-Macht
+};
 
 // XP rewards — zentrale Quelle für alle XP-Vergaben
 export const XP_PER_TERRITORY = 500;
@@ -415,8 +959,8 @@ export type MapRunner = {
   marker_icon: string;                    // equipped Map-Icon (Emoji)
 };
 
-// Legacy-Alias (alte Komponenten)
-export type CrewMember = MapRunner;
+// Legacy-Alias (alte Komponenten) — wurde durch CrewMember-Typ oben ersetzt.
+export type MapCrewMemberLegacy = MapRunner;
 
 // Missionen — tägliche + wöchentliche Ziele
 export type Mission = {
@@ -693,9 +1237,16 @@ export function generateDemoRecentRuns() {
     const distance = 800 + Math.floor(Math.random() * 5500);
     const duration = Math.floor(distance / (2.8 + Math.random() * 1.2));
     const xp = 500 + Math.floor(distance / 1000) * 50;
+    // 2–4 Straßen pro Lauf (realistisch bei 1–6 km), kommasepariert
+    const streetCount = 2 + Math.floor(Math.random() * 3);
+    const startIdx = i % DEMO_STREETS.length;
+    const streetSlice: string[] = [];
+    for (let j = 0; j < streetCount; j++) {
+      streetSlice.push(DEMO_STREETS[(startIdx + j) % DEMO_STREETS.length]);
+    }
     runs.push({
       id: `demo-${i}`,
-      street_name: DEMO_STREETS[i % DEMO_STREETS.length],
+      street_name: streetSlice.join(", "),
       distance_m: distance,
       duration_s: duration,
       xp_earned: xp,

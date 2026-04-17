@@ -1,0 +1,62 @@
+{
+  "Common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "back": "Back",
+    "loading": "Loading…",
+    "error": "Error",
+    "yes": "Yes",
+    "no": "No",
+    "settings": "Settings",
+    "language": "Language"
+  },
+  "Nav": {
+    "profile": "Profile",
+    "map": "Map",
+    "crew": "Crew",
+    "shops": "Shops",
+    "ranking": "Ranking"
+  },
+  "Auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "verifyEmail": "Please verify your email address",
+    "welcomeTitle": "Welcome to MyArea365",
+    "welcomeSubtitle": "Conquer your city – together"
+  },
+  "Profile": {
+    "title": "Profile",
+    "username": "Username",
+    "displayName": "Display name",
+    "faction": "Faction",
+    "level": "Level",
+    "xp": "XP",
+    "streak": "Streak",
+    "units": "Units",
+    "unitsMetric": "Metric (km, kg)",
+    "unitsImperial": "Imperial (mi, lb)",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "privacyPublic": "Public profile",
+    "sound": "Sound",
+    "autoPause": "Auto-pause when idle"
+  },
+  "Account": {
+    "title": "Account",
+    "changeEmail": "Change email",
+    "changePassword": "Change password",
+    "exportData": "Export my data",
+    "deleteAccount": "Delete account",
+    "deleteConfirm": "Really delete your account? This cannot be undone."
+  },
+  "Language": {
+    "title": "Choose language",
+    "auto": "Automatic (browser)"
+  }
+}
