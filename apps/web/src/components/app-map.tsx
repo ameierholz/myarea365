@@ -239,6 +239,7 @@ export function AppMap({
 
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const locatedRef = useRef(false);
+  const userInteractedRef = useRef(false);
   const watchRef = useRef<number | null>(null);
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -373,7 +374,7 @@ export function AppMap({
       if (map && !locatedRef.current) {
         map.flyTo({ center: [newPos.lng, newPos.lat], zoom: 17, pitch: 50, duration: 900 });
         locatedRef.current = true;
-      } else if (map && trackingActive) {
+      } else if (map && trackingActive && !userInteractedRef.current) {
         map.panTo([newPos.lng, newPos.lat], { duration: 600 });
       }
     },
@@ -392,11 +393,30 @@ export function AppMap({
     };
   }, [handlePosition]);
 
-  // Recenter
+  // Recenter (expliziter Klick) → Auto-Follow wieder aktivieren
   useEffect(() => {
     if (!mapReady || !recenterAt || !pos) return;
+    userInteractedRef.current = false;
     mapRef.current?.flyTo({ center: [pos.lng, pos.lat], zoom: 17, pitch: 50, duration: 900 });
   }, [recenterAt, mapReady, pos]);
+
+  // User-Gesten erkennen → Auto-Follow deaktivieren
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const mark = () => { userInteractedRef.current = true; };
+    map.on("dragstart", mark);
+    map.on("zoomstart", mark);
+    map.on("rotatestart", mark);
+    map.on("pitchstart", mark);
+    return () => {
+      map.off("dragstart", mark);
+      map.off("zoomstart", mark);
+      map.off("rotatestart", mark);
+      map.off("pitchstart", mark);
+    };
+  }, [mapReady]);
 
   // Overview-Mode: Zoom raus + Pitch zurück auf flach
   useEffect(() => {
