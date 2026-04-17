@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle2, Users as UsersIcon } from "lucide-react";
+import { Mail, Lock, User, Loader2, AlertCircle, Users as UsersIcon } from "lucide-react";
 
 const FACTIONS = [
   { id: "syndicate", name: "Nachtpuls",    icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus · Stille Siege" },
@@ -11,6 +12,7 @@ const FACTIONS = [
 ] as const;
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,7 +23,6 @@ export default function RegisterPage() {
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleRegister(e: React.FormEvent) {
@@ -79,40 +80,8 @@ export default function RegisterPage() {
       });
     }
 
-    setSuccess(true);
+    router.push(`/registrierung-bestaetigen?email=${encodeURIComponent(email)}`);
     setLoading(false);
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md text-center">
-          <Link href="/" className="block mb-10">
-            <span className="text-3xl font-bold tracking-tight">
-              My<span className="text-primary">Area</span>365
-            </span>
-          </Link>
-
-          <div className="p-8 rounded-2xl bg-bg-card border border-border">
-            <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Fast geschafft!</h1>
-            <p className="text-text-muted mb-4 leading-relaxed">
-              Wir haben dir eine Bestätigungsmail an <strong className="text-text">{email}</strong> geschickt.
-            </p>
-            <p className="text-text-muted text-sm mb-6 leading-relaxed">
-              Klicke auf den Link in der Mail um deinen Account zu aktivieren.
-              Falls du nichts findest — schau im Spam-Ordner.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim transition-colors"
-            >
-              Zum Login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (

@@ -99,7 +99,7 @@ export function InlineAuth() {
       });
     }
 
-    setSuccess("Bestätigungsmail gesendet! Prüfe dein Postfach.");
+    router.push(`/registrierung-bestaetigen?email=${encodeURIComponent(email)}`);
     setLoading(false);
   }
 
