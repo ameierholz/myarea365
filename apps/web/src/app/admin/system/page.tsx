@@ -13,7 +13,6 @@ export default async function SystemPage() {
     { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", label: "Supabase Anon", ok: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY },
     { key: "SUPABASE_SERVICE_ROLE_KEY", label: "Service Role", ok: !!process.env.SUPABASE_SERVICE_ROLE_KEY },
     { key: "NEXT_PUBLIC_MAPBOX_TOKEN", label: "Mapbox Token", ok: !!process.env.NEXT_PUBLIC_MAPBOX_TOKEN },
-    { key: "RESEND_API_KEY", label: "Resend API", ok: !!process.env.RESEND_API_KEY },
   ];
 
   const [{ count: totalUsers }, { count: totalWalks }, { count: totalTerritories }] = await Promise.all([
