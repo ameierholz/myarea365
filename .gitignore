@@ -44,3 +44,7 @@ pnpm-debug.log*
 *.mobileprovision
 
 .vercel
+
+# Supabase CLI state
+supabase/.temp/
+.claude/scheduled_tasks.lock
