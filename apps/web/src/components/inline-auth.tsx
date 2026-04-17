@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, Info } from "lucide-react";
+
+const FACTIONS = [
+  { id: "syndicate", name: "Nachtpuls",   icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus" },
+  { id: "vanguard",  name: "Sonnenwacht", icon: "☀️", color: "#FF6B4A", motto: "Mut · Tempo" },
+] as const;
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -22,6 +28,10 @@ export function InlineAuth() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [faction, setFaction] = useState<"syndicate" | "vanguard" | null>(null);
+  const [newsletter, setNewsletter] = useState(false); // DSGVO: Opt-in, nicht vorausgewählt
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [showFactionInfo, setShowFactionInfo] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,9 +40,7 @@ export function InlineAuth() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
@@ -40,21 +48,19 @@ export function InlineAuth() {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
 
+    if (mode === "register") {
+      if (!faction) return setError("Bitte wähle eine Fraktion.");
+      if (!acceptTerms) return setError("Bitte akzeptiere AGB und Datenschutz.");
+    }
+
+    setLoading(true);
     const supabase = createClient();
 
     if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setError(
-          error.message === "Invalid login credentials"
-            ? "E-Mail oder Passwort falsch."
-            : error.message
-        );
+        setError(error.message === "Invalid login credentials" ? "E-Mail oder Passwort falsch." : error.message);
         setLoading(false);
         return;
       }
@@ -63,45 +69,33 @@ export function InlineAuth() {
       return;
     }
 
-    // Register
-    if (username.length < 3) {
-      setError("Runner-Name: mindestens 3 Zeichen.");
-      setLoading(false);
-      return;
-    }
+    if (username.length < 3) { setError("Runner-Name: mindestens 3 Zeichen."); setLoading(false); return; }
 
     const { data: existing } = await supabase
-      .from("users")
-      .select("id")
-      .eq("username", username.toLowerCase())
-      .single();
-
-    if (existing) {
-      setError("Dieser Runner-Name ist bereits vergeben.");
-      setLoading(false);
-      return;
-    }
+      .from("users").select("id").eq("username", username.toLowerCase()).maybeSingle();
+    if (existing) { setError("Dieser Runner-Name ist vergeben."); setLoading(false); return; }
 
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: {
-        data: { username: username.toLowerCase(), display_name: username },
+        data: {
+          username: username.toLowerCase(),
+          display_name: username,
+          faction,
+          newsletter_opt_in: newsletter,
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-      return;
-    }
+    if (signUpError) { setError(signUpError.message); setLoading(false); return; }
 
     if (data.user) {
       await supabase.from("users").insert({
         id: data.user.id,
         username: username.toLowerCase(),
         display_name: username,
+        faction,
+        newsletter_opt_in: newsletter,
       });
     }
 
@@ -110,8 +104,7 @@ export function InlineAuth() {
   }
 
   return (
-    <div className="w-full max-w-sm mx-auto">
-      {/* Google Button */}
+    <div className="w-full max-w-sm sm:max-w-md mx-auto">
       <button
         onClick={handleGoogle}
         className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg bg-white text-gray-800 font-semibold text-sm hover:bg-gray-100 transition-colors mb-3"
@@ -120,7 +113,6 @@ export function InlineAuth() {
         Mit Google {mode === "register" ? "registrieren" : "anmelden"}
       </button>
 
-      {/* Divider */}
       <div className="flex items-center gap-3 mb-3">
         <div className="flex-1 h-px bg-border" />
         <span className="text-xs text-text-muted">oder per E-Mail</span>
@@ -130,83 +122,132 @@ export function InlineAuth() {
       <form onSubmit={handleSubmit} className="space-y-2.5">
         {mode === "register" && (
           <input
-            type="text"
-            required
-            minLength={3}
-            maxLength={24}
+            type="text" required minLength={3} maxLength={24}
             value={username}
-            onChange={(e) =>
-              setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))
-            }
+            onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
             placeholder="Runner-Name wählen"
             className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
           />
         )}
 
         <input
-          type="email"
-          required
-          value={email}
+          type="email" required value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="E-Mail"
           className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
         />
         <input
-          type="password"
-          required
-          minLength={6}
-          value={password}
+          type="password" required minLength={mode === "register" ? 8 : 6} value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Passwort (min. 6 Zeichen)"
+          placeholder={mode === "register" ? "Passwort (min. 8 Zeichen)" : "Passwort"}
           className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
         />
 
-        {error && (
-          <p className="text-xs text-danger text-center">{error}</p>
+        {mode === "register" && (
+          <>
+            {/* Fraktion */}
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-text-muted">Fraktion wählen</label>
+                <button
+                  type="button"
+                  onClick={() => setShowFactionInfo((v) => !v)}
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-dim"
+                >
+                  <Info className="w-3 h-3" />
+                  {showFactionInfo ? "Schließen" : "Was ist das?"}
+                </button>
+              </div>
+              {showFactionInfo && (
+                <div className="absolute right-0 -top-2 -translate-y-full z-40 w-72 p-3 rounded-lg bg-bg-elevated border border-primary/60 text-[11px] text-text-muted leading-relaxed text-left shadow-2xl">
+                  <b className="text-text">2 weltweite Teams</b>, die sich jede Saison duellieren. Deine km zählen für
+                  deine Fraktion — weltweit, pro Land, Stadt, PLZ. Trotzdem eigene Crew möglich.
+                  <span className="block mt-1 text-danger font-semibold">Nicht änderbar nach Registrierung.</span>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                {FACTIONS.map((f) => {
+                  const active = faction === f.id;
+                  return (
+                    <button
+                      key={f.id} type="button" onClick={() => setFaction(f.id)}
+                      className={`p-2.5 rounded-lg border text-left transition-all backdrop-blur-sm ${active ? "border-transparent" : "border-border hover:border-primary/30 bg-bg-elevated/60"}`}
+                      style={{
+                        background: active ? `${f.color}22` : undefined,
+                        borderColor: active ? f.color : undefined,
+                        boxShadow: active ? `0 0 12px ${f.color}33` : undefined,
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-base">{f.icon}</span>
+                        <span className="font-bold text-xs" style={{ color: active ? f.color : undefined }}>{f.name}</span>
+                      </div>
+                      <div className="text-[10px] text-text-muted">{f.motto}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Newsletter — DSGVO: NICHT vorausgewählt */}
+            <label className="flex items-start gap-2 cursor-pointer pt-1">
+              <input
+                type="checkbox" checked={newsletter}
+                onChange={(e) => setNewsletter(e.target.checked)}
+                className="mt-0.5 w-3.5 h-3.5 rounded border-border accent-primary"
+              />
+              <span className="text-[11px] text-text-muted leading-relaxed">
+                Ja, ich will den <b className="text-text">Kiez-Newsletter</b> (max. 1× / Monat, jederzeit abbestellbar).
+              </span>
+            </label>
+
+            {/* AGB & Datenschutz */}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox" checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 w-3.5 h-3.5 rounded border-border accent-primary"
+              />
+              <span className="text-[11px] text-text-muted leading-relaxed">
+                Ich akzeptiere die{" "}
+                <Link href="/agb" className="text-primary hover:underline">AGB</Link>
+                {" und die "}
+                <Link href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</Link>.
+              </span>
+            </label>
+          </>
         )}
-        {success && (
-          <p className="text-xs text-primary text-center">{success}</p>
-        )}
+
+        {error && <p className="text-xs text-danger text-center">{error}</p>}
+        {success && <p className="text-xs text-primary text-center">{success}</p>}
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 transition-colors"
+          disabled={loading || (mode === "register" && (!faction || !acceptTerms))}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              {mode === "register" ? "Kostenlos starten" : "Anmelden"}
-              <ArrowRight className="w-4 h-4" />
-            </>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+            <>{mode === "register" ? "Kostenlos starten" : "Anmelden"} <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
       </form>
 
       <p className="text-center text-xs text-text-muted mt-2.5">
         {mode === "register" ? (
-          <>
-            Schon dabei?{" "}
-            <button
-              onClick={() => { setMode("login"); setError(""); setSuccess(""); }}
-              className="text-primary hover:text-primary-dim font-medium transition-colors"
-            >
-              Anmelden
-            </button>
-          </>
+          <>Schon dabei? <button onClick={() => { setMode("login"); setError(""); setSuccess(""); }} className="text-primary hover:text-primary-dim font-medium transition-colors">Anmelden</button></>
         ) : (
-          <>
-            Neu hier?{" "}
-            <button
-              onClick={() => { setMode("register"); setError(""); setSuccess(""); }}
-              className="text-primary hover:text-primary-dim font-medium transition-colors"
-            >
-              Kostenlos registrieren
-            </button>
-          </>
+          <>Neu hier? <button onClick={() => { setMode("register"); setError(""); setSuccess(""); }} className="text-primary hover:text-primary-dim font-medium transition-colors">Kostenlos registrieren</button></>
         )}
       </p>
+
+      {/* Legal-Links — immer sichtbar */}
+      <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-text-muted">
+        <Link href="/agb" className="hover:text-primary transition-colors">AGB</Link>
+        <span>·</span>
+        <Link href="/datenschutz" className="hover:text-primary transition-colors">Datenschutz</Link>
+        <span>·</span>
+        <Link href="/impressum" className="hover:text-primary transition-colors">Impressum</Link>
+      </div>
     </div>
   );
 }

@@ -42,6 +42,27 @@ body {
   background: transparent !important;
 }
 
+/* Präferenz-gesteuerte Klassen */
+html.no-animations *,
+html.reduced-motion * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html.light {
+  color-scheme: light;
+}
+html.light body {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+html.light img, html.light video, html.light canvas, html.light [style*="url("] {
+  filter: invert(1) hue-rotate(180deg);
+}
+html[data-save="1"] img, html[data-save="1"] video {
+  filter: contrast(0.95) brightness(0.95);
+}
+
 /* Milchig-glasige Karten: greifen automatisch bei Inline-Style-Farben */
 div[style*="rgba(41, 51, 73"],
 div[style*="rgba(70, 82, 122"],

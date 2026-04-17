@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "@/styles/globals.css";
+import { PrefsBoot } from "@/components/prefs-boot";
 
 export const metadata: Metadata = {
   title: {
@@ -36,6 +37,7 @@ export default async function RootLayout({
         <meta name="theme-color" content="#1b2436" />
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
+        <PrefsBoot />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

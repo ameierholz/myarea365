@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Dein Lauf-Monat {{month_label}} — MyArea365</title>
+</head>
+<body style="margin:0;padding:0;background:#0F1115;color:#F0F0F0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#0F1115;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;">
+
+        <tr>
+          <td align="center" style="padding:0 0 16px;">
+            <div style="font-size:11px;color:#a8b4cf;letter-spacing:1.5px;font-weight:800;">
+              DEINE LAUF-STATISTIK · {{month_label}}
+            </div>
+          </td>
+        </tr>
+
+        <!-- Hero -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#22D1C322 0%,#FF2D7822 100%);border-radius:20px 20px 0 0;padding:40px 32px 32px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:8px;">🏁</div>
+            <h1 style="margin:0 0 8px;font-size:26px;font-weight:900;color:#FFF;line-height:1.2;">
+              Stark gelaufen, {{display_name}}!
+            </h1>
+            <p style="margin:0;font-size:15px;color:#dde3f5;line-height:1.5;">
+              {{month_label}} ist rum — hier deine Zahlen.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Big Stat -->
+        <tr>
+          <td style="background:#1A1D23;padding:28px 32px 10px;text-align:center;">
+            <p style="margin:0 0 4px;font-size:12px;color:#a8b4cf;font-weight:800;letter-spacing:1px;">GESAMT-STRECKE</p>
+            <div style="font-size:56px;font-weight:900;color:#22D1C3;line-height:1;text-shadow:0 0 20px rgba(34,209,195,0.35);">{{user_km}} km</div>
+            <p style="margin:8px 0 0;font-size:13px;color:#dde3f5;">
+              das sind <b style="color:#FFF;">{{user_steps}} Schritte</b> und <b style="color:#FFF;">{{user_kcal}} kcal</b>
+            </p>
+          </td>
+        </tr>
+
+        <!-- KPI Grid -->
+        <tr>
+          <td style="background:#1A1D23;padding:14px 32px 16px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+              <tr>
+                <td width="33%" valign="top" style="padding:8px;">
+                  <div style="background:rgba(34,209,195,0.1);border:1px solid rgba(34,209,195,0.3);border-radius:12px;padding:12px 10px;text-align:center;">
+                    <div style="font-size:20px;">🏃</div>
+                    <div style="color:#22D1C3;font-size:22px;font-weight:900;margin-top:2px;">{{user_runs}}</div>
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">LÄUFE</div>
+                  </div>
+                </td>
+                <td width="33%" valign="top" style="padding:8px;">
+                  <div style="background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:12px;padding:12px 10px;text-align:center;">
+                    <div style="font-size:20px;">⚡</div>
+                    <div style="color:#FFD700;font-size:22px;font-weight:900;margin-top:2px;">+{{user_xp}}</div>
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">XP</div>
+                  </div>
+                </td>
+                <td width="33%" valign="top" style="padding:8px;">
+                  <div style="background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.3);border-radius:12px;padding:12px 10px;text-align:center;">
+                    <div style="font-size:20px;">🗺️</div>
+                    <div style="color:#FF2D78;font-size:22px;font-weight:900;margin-top:2px;">{{user_territories}}</div>
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">TERRITORIEN</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td width="33%" valign="top" style="padding:8px;">
+                  <div style="background:rgba(255,107,74,0.1);border:1px solid rgba(255,107,74,0.3);border-radius:12px;padding:12px 10px;text-align:center;">
+                    <div style="font-size:20px;">🔥</div>
+                    <div style="color:#FF6B4A;font-size:22px;font-weight:900;margin-top:2px;">{{user_streak}}</div>
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">STREAK-TAGE</div>
+                  </div>
+                </td>
+                <td width="33%" valign="top" style="padding:8px;">
+                  <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:12px;padding:12px 10px;text-align:center;">
+                    <div style="font-size:20px;">⏱️</div>
+                    <div style="color:#a855f7;font-size:22px;font-weight:900;margin-top:2px;">{{user_duration}}</div>
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">AKTIV</div>
+                  </div>
+                </td>
+                <td width="33%" valign="top" style="padding:8px;">
+                  <div style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);border-radius:12px;padding:12px 10px;text-align:center;">
+                    <div style="font-size:20px;">🎯</div>
+                    <div style="color:#4ade80;font-size:22px;font-weight:900;margin-top:2px;">{{user_avg_pace}}</div>
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">Ø PACE</div>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Runner-Rang (Liga ist Crew-Sache) -->
+        <tr>
+          <td style="background:#1A1D23;padding:8px 32px 20px;">
+            <div style="background:linear-gradient(135deg,rgba(34,209,195,0.1) 0%,rgba(255,45,120,0.1) 100%);border:1px solid rgba(34,209,195,0.3);border-radius:14px;padding:16px;">
+              <p style="margin:0 0 10px;font-size:11px;font-weight:800;color:#22D1C3;letter-spacing:1.5px;">🏆 DEIN RANG — {{user_rank_label}}</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td valign="top" style="padding:4px 8px 4px 0;">
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">🌍 LAND</div>
+                    <div style="color:#FFF;font-size:16px;font-weight:900;margin-top:1px;">#{{rank_country}} <span style="color:{{rank_country_trend_color}};font-size:11px;font-weight:800;">{{rank_country_trend}}</span></div>
+                  </td>
+                  <td valign="top" style="padding:4px 8px;">
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">🏛️ BUNDESLAND</div>
+                    <div style="color:#FFF;font-size:16px;font-weight:900;margin-top:1px;">#{{rank_state}} <span style="color:{{rank_state_trend_color}};font-size:11px;font-weight:800;">{{rank_state_trend}}</span></div>
+                  </td>
+                  <td valign="top" style="padding:4px 0 4px 8px;">
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">🏙️ STADT</div>
+                    <div style="color:#FFF;font-size:16px;font-weight:900;margin-top:1px;">#{{rank_city}} <span style="color:{{rank_city_trend_color}};font-size:11px;font-weight:800;">{{rank_city_trend}}</span></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td valign="top" style="padding:12px 8px 4px 0;">
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">🗺️ BEZIRK</div>
+                    <div style="color:#FFF;font-size:16px;font-weight:900;margin-top:1px;">#{{rank_district}} <span style="color:{{rank_district_trend_color}};font-size:11px;font-weight:800;">{{rank_district_trend}}</span></div>
+                  </td>
+                  <td valign="top" style="padding:12px 8px 4px;">
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">📍 PLZ</div>
+                    <div style="color:#FFF;font-size:16px;font-weight:900;margin-top:1px;">#{{rank_zip}} <span style="color:{{rank_zip_trend_color}};font-size:11px;font-weight:800;">{{rank_zip_trend}}</span></div>
+                  </td>
+                  <td valign="top" style="padding:12px 0 4px 8px;">
+                    <div style="color:#a8b4cf;font-size:10px;font-weight:700;letter-spacing:0.5px;">🌐 WELTWEIT</div>
+                    <div style="color:#FFF;font-size:16px;font-weight:900;margin-top:1px;">#{{rank_world}} <span style="color:{{rank_world_trend_color}};font-size:11px;font-weight:800;">{{rank_world_trend}}</span></div>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:#a8b4cf;">
+                <span style="color:#4ade80;">↑ grün</span> = aufgestiegen · <span style="color:#ef7169;">↓ rot</span> = gefallen · <span style="color:#FFD700;">= gelb</span> = gleich
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Nächster Meilenstein -->
+        <tr>
+          <td style="background:#1A1D23;padding:8px 32px 20px;">
+            <div style="background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.3);border-radius:14px;padding:16px;">
+              <p style="margin:0 0 6px;font-size:11px;font-weight:800;color:#FFD700;letter-spacing:1.5px;">🎯 NÄCHSTER MEILENSTEIN</p>
+              <h3 style="margin:0 0 6px;font-size:16px;font-weight:900;color:#FFF;">{{next_milestone_title}}</h3>
+              <p style="margin:0 0 10px;font-size:13px;color:#dde3f5;line-height:1.5;">{{next_milestone_body}}</p>
+              <div style="height:8px;background:rgba(0,0,0,0.4);border-radius:4px;overflow:hidden;">
+                <div style="height:100%;width:{{next_milestone_pct}}%;background:linear-gradient(90deg,#FFD700,#FF6B4A);"></div>
+              </div>
+              <div style="color:#a8b4cf;font-size:11px;margin-top:5px;">{{next_milestone_progress}}</div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Neue Achievements -->
+        <tr>
+          <td style="background:#1A1D23;padding:8px 32px 20px;">
+            <p style="margin:0 0 10px;font-size:11px;font-weight:800;color:#a855f7;letter-spacing:1.5px;">🏅 FREIGESCHALTET IM {{month_label_upper}}</p>
+            <div style="color:#dde3f5;font-size:13px;line-height:1.7;">{{achievements_unlocked}}</div>
+          </td>
+        </tr>
+
+        <!-- Bester Lauf -->
+        <tr>
+          <td style="background:#1A1D23;padding:8px 32px 20px;">
+            <p style="margin:0 0 10px;font-size:11px;font-weight:800;color:#4ade80;letter-spacing:1.5px;">✨ DEIN HIGHLIGHT-LAUF</p>
+            <div style="background:rgba(255,255,255,0.03);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.08);">
+              <div style="color:#FFF;font-weight:900;font-size:14px;">{{best_run_street}}</div>
+              <div style="color:#a8b4cf;font-size:12px;margin-top:4px;">
+                {{best_run_date}} · {{best_run_km}} km · {{best_run_duration}} · Pace {{best_run_pace}}
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Wie du dich schlägst -->
+        <tr>
+          <td style="background:#1A1D23;padding:0 32px 16px;">
+            <p style="margin:0 0 10px;font-size:11px;font-weight:800;color:#4ade80;letter-spacing:1.5px;">📊 WIE DU DICH SCHLÄGST</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:10px;">
+              <tr>
+                <td valign="top" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td style="color:#a8b4cf;font-size:12px;">vs. letzter Monat</td>
+                      <td align="right" style="color:{{trend_month_color}};font-size:14px;font-weight:900;">{{trend_month}}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td style="color:#a8b4cf;font-size:12px;">vs. Crew-Durchschnitt</td>
+                      <td align="right" style="color:{{trend_crew_color}};font-size:14px;font-weight:900;">{{trend_crew}}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td valign="top" style="padding:8px 0;">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td style="color:#a8b4cf;font-size:12px;">vs. Crew-Champion 🏆 {{crew_champ_name}}</td>
+                      <td align="right" style="color:{{trend_champ_color}};font-size:14px;font-weight:900;">{{trend_champ}}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- In Reichweite — Herausforderung -->
+        <tr>
+          <td style="background:#1A1D23;padding:0 32px 20px;">
+            <div style="background:linear-gradient(135deg,#FF2D7814 0%,#FF6B4A14 100%);border:1px solid #FF2D7844;border-radius:14px;padding:16px;">
+              <p style="margin:0 0 6px;font-size:11px;font-weight:800;color:#FF2D78;letter-spacing:1.5px;">🎯 IN REICHWEITE</p>
+              <p style="margin:0 0 10px;color:#FFF;font-size:14px;font-weight:800;line-height:1.4;">{{stretch_goal_title}}</p>
+              <p style="margin:0;color:#dde3f5;font-size:12px;line-height:1.55;">{{stretch_goal_body}}</p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Motivations-Block -->
+        <tr>
+          <td style="background:#1A1D23;padding:0 32px 24px;">
+            <div style="background:linear-gradient(135deg,#4ade8014 0%,transparent 100%);border:1px solid #4ade8044;border-radius:14px;padding:16px;text-align:center;">
+              <p style="margin:0 0 6px;font-size:13px;color:#4ade80;font-weight:800;">{{motivation_headline}}</p>
+              <p style="margin:0;color:#a8b4cf;font-size:12px;line-height:1.55;">
+                {{motivation_body}}
+              </p>
+            </div>
+          </td>
+        </tr>
+
+        <!-- CTA -->
+        <tr>
+          <td style="background:#1A1D23;padding:0 32px 28px;text-align:center;">
+            <a href="https://myarea365.de/dashboard/?tab=profil" style="display:inline-block;padding:14px 28px;background:#22D1C3;color:#0F1115;font-weight:900;font-size:14px;text-decoration:none;border-radius:12px;">
+              Volle Statistik im Profil ansehen →
+            </a>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#1A1D23;border-radius:0 0 20px 20px;padding:20px 32px;text-align:center;font-size:11px;color:#a8b4cf;line-height:1.6;">
+            <p style="margin:0 0 8px;">Los geht's in den neuen Monat 🏃</p>
+            <p style="margin:0;">
+              <a href="https://myarea365.de" style="color:#a8b4cf;text-decoration:underline;">myarea365.de</a> ·
+              <a href="https://myarea365.de/datenschutz" style="color:#a8b4cf;text-decoration:underline;">Datenschutz</a> ·
+              <a href="{{unsubscribe_url}}" style="color:#a8b4cf;text-decoration:underline;">Monats-Report abbestellen</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

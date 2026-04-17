@@ -981,16 +981,22 @@ function ProfilTab({
           <div style={{
             marginTop: 14, paddingLeft: 18, paddingRight: 18, paddingTop: 8, paddingBottom: 8,
             borderRadius: 22,
-            backgroundImage: `linear-gradient(90deg, ${currentRankLive.color} 0%, #fff 50%, ${currentRankLive.color} 100%)`,
-            backgroundSize: "200% 100%",
-            animation: "rankShimmer 3s linear infinite",
+            background: currentRankLive.color,
+            position: "relative",
+            overflow: "hidden",
             boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
           }}>
-            <span style={{ color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
+            <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
               {currentRankLive.name} · {userXp.toLocaleString()} XP
             </span>
+            <span style={{
+              position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",
+              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
+              animation: "rankShimmer 4s ease-in-out infinite",
+              pointerEvents: "none",
+            }} />
           </div>
-          <style>{`@keyframes rankShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }`}</style>
+          <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 
           {/* Next Rank — animierter Balken mit klaren Anker-Werten */}
           {nextRank && (
@@ -1485,34 +1491,18 @@ function ProfilTab({
 
       {openModal === "settings" && (
         <Modal title="Einstellungen" subtitle="Deine App-Präferenzen" icon="⚙️" accent="#5ddaf0" onClose={() => setOpenModal(null)}>
-          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, padding: 16, marginBottom: 12, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-            <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 8 }}>
-              🌐 SPRACHE
-            </div>
-            <LanguageSwitcher />
-            <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
-              Weitere Sprachen folgen: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …
-            </div>
-          </div>
-          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-            <SettingRow label="🔔 Benachrichtigungen" checked={p?.setting_notifications ?? true} onChange={(v) => updateSetting("setting_notifications", v)} />
-            <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
-            <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
-            <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
-            <SettingSelect
-              label="📏 Einheiten"
-              value={p?.setting_units || "metric"}
-              options={UNITS.map(u => ({ id: u.id, label: u.label }))}
-              onChange={(v) => updateSetting("setting_units", v)}
-            />
-            <SettingSelect
-              label="🌐 Sprache"
-              value={p?.setting_language || "de"}
-              options={LANGUAGES.map(l => ({ id: l.id, label: l.label }))}
-              onChange={(v) => updateSetting("setting_language", v)}
-              last
-            />
-          </div>
+          <AppSettingsContent
+            p={p}
+            updateSetting={updateSetting}
+            onLogout={onLogout}
+            onExportData={() => {
+              const blob = new Blob([JSON.stringify({ profile: p, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = `myarea365-daten-${Date.now()}.json`; a.click();
+              URL.revokeObjectURL(url);
+            }}
+          />
         </Modal>
       )}
 
@@ -1653,21 +1643,15 @@ function XpProgressRing({ size, stroke, pct, colorFrom, colorTo }: {
   const offset = c * (1 - Math.max(0, Math.min(1, pct / 100)));
   const gradientId = `xp-ring-${colorFrom.replace("#", "")}-${colorTo.replace("#", "")}`;
   return (
-    <svg width={size} height={size} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}>
-      <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={colorFrom} />
-          <stop offset="100%" stopColor={colorTo} />
-        </linearGradient>
-      </defs>
-      {/* Track */}
+    <svg width={size} height={size} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)", overflow: "visible" }}>
+      {/* Track — dezente Rang-Farbe */}
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
-      {/* Progress */}
+        stroke={`${colorFrom}33`} strokeWidth={stroke} />
+      {/* Progress — satte Farbe, butt-Cap → kein Bump */}
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={`url(#${gradientId})`} strokeWidth={stroke}
-        strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset}
-        style={{ transition: "stroke-dashoffset 1s ease-out", filter: `drop-shadow(0 0 6px ${colorFrom})` }} />
+        stroke={colorFrom} strokeWidth={stroke}
+        strokeLinecap="butt" strokeDasharray={c} strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 1s ease-out" }} />
     </svg>
   );
 }
@@ -3217,6 +3201,354 @@ function SettingSelect({ label, value, options, onChange, last }: { label: strin
         ))}
       </select>
     </div>
+  );
+}
+
+function SettingsGroup({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 16px", borderRadius: 14,
+          background: "rgba(70, 82, 122, 0.55)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          color: "#FFF", fontSize: 13, fontWeight: 800, letterSpacing: 0.5,
+          cursor: "pointer", textAlign: "left",
+        }}
+      >
+        <span>{title}</span>
+        <span style={{ fontSize: 14, color: "#a8b4cf", transition: "transform 0.2s", display: "inline-block", transform: open ? "rotate(90deg)" : "rotate(0deg)" }}>›</span>
+      </button>
+      {open && (
+        <div style={{
+          background: "rgba(70, 82, 122, 0.35)", borderRadius: 14, overflow: "hidden",
+          border: "1px solid rgba(255, 255, 255, 0.08)", marginTop: 4,
+        }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingAction({ label, value, onClick, danger, last }: { label: string; value?: string; onClick: () => void; danger?: boolean; last?: boolean }) {
+  return (
+    <button onClick={onClick} style={{
+      width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+      paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+      background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+      color: danger ? "#ef7169" : "#FFF",
+    }}>
+      <span style={{ fontSize: 15 }}>{label}</span>
+      <span style={{ fontSize: 13, color: "#a8b4cf" }}>{value ?? "›"}</span>
+    </button>
+  );
+}
+
+function useLocalPref<T extends string | boolean>(key: string, fallback: T): [T, (v: T) => void] {
+  const [v, setV] = useState<T>(fallback);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`pref:${key}`);
+      if (raw !== null) setV(JSON.parse(raw) as T);
+    } catch {}
+  }, [key]);
+  const set = (val: T) => {
+    setV(val);
+    // via prefs-Modul speichern (persistiert + löst Side-Effects aus)
+    import("@/lib/prefs").then(({ setPref }) => setPref(key as never, val));
+  };
+  return [v, set];
+}
+
+function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
+  p: Profile | null;
+  updateSetting: (key: string, value: boolean | string) => Promise<void>;
+  onExportData: () => void;
+  onLogout: () => void;
+}) {
+  // Benachrichtigungen
+  const [pushEnabled, setPushEnabled] = useLocalPref("notif_push", true);
+  const [notifCrewChat, setNotifCrewChat] = useLocalPref("notif_crew_chat", true);
+  const [notifCrewEvents, setNotifCrewEvents] = useLocalPref("notif_crew_events", true);
+  const [notifDuels, setNotifDuels] = useLocalPref("notif_duels", true);
+  const [notifAchievements, setNotifAchievements] = useLocalPref("notif_achievements", true);
+  const [notifRankUp, setNotifRankUp] = useLocalPref("notif_rank_up", true);
+  const [notifShopDeals, setNotifShopDeals] = useLocalPref("notif_shop_deals", true);
+  const [notifStreakWarn, setNotifStreakWarn] = useLocalPref("notif_streak_warn", true);
+  const [notifQuietMode, setNotifQuietMode] = useLocalPref("notif_quiet_mode", true);
+  const [quietStart, setQuietStart] = useLocalPref<string>("notif_quiet_start", "22");
+  const [quietEnd, setQuietEnd] = useLocalPref<string>("notif_quiet_end", "7");
+
+  // E-Mail
+  const [emailWeekly, setEmailWeekly] = useLocalPref("email_weekly", false);
+  const [emailMonthly, setEmailMonthly] = useLocalPref("email_monthly", true);
+  const [emailNewsletter, setEmailNewsletter] = useLocalPref("email_newsletter", false);
+  const [emailFlashDeals, setEmailFlashDeals] = useLocalPref("email_flash_deals", false);
+
+  // Privatsphäre
+  const [leaderboardVisible, setLeaderboardVisible] = useLocalPref("privacy_leaderboard", true);
+  const [liveLocationCrew, setLiveLocationCrew] = useLocalPref("privacy_live_crew", true);
+  const [publicTerritories, setPublicTerritories] = useLocalPref("privacy_territories", true);
+  const [publicRoutes, setPublicRoutes] = useLocalPref("privacy_routes", false);
+  const [searchable, setSearchable] = useLocalPref("privacy_searchable", true);
+  const [allowCrewInvites, setAllowCrewInvites] = useLocalPref("privacy_crew_invites", true);
+  const [allowFriends, setAllowFriends] = useLocalPref("privacy_friends", true);
+
+  // Tracking & Lauf
+  const [gpsAccuracy, setGpsAccuracy] = useLocalPref<string>("track_gps", "high");
+  const [snapToRoads, setSnapToRoads] = useLocalPref("track_snap", true);
+  const [wakeLock, setWakeLock] = useLocalPref("track_wakelock", true);
+  const [paceAnnounce, setPaceAnnounce] = useLocalPref("track_pace_announce", false);
+  const [paceVoice, setPaceVoice] = useLocalPref<string>("track_voice", "female");
+  const [paceInterval, setPaceInterval] = useLocalPref<string>("track_pace_interval", "1");
+  const [autoStart, setAutoStart] = useLocalPref("track_autostart", false);
+
+  // Darstellung
+  const [theme, setTheme] = useLocalPref<string>("display_theme", "dark");
+  const [mapStyle, setMapStyle] = useLocalPref<string>("display_mapstyle", "standard");
+  const [buildings3d, setBuildings3d] = useLocalPref("display_3d", true);
+  const [reducedMotion, setReducedMotion] = useLocalPref("display_reduced_motion", false);
+  const [animations, setAnimations] = useLocalPref("display_animations", true);
+  const [fontSize, setFontSize] = useLocalPref<string>("display_font", "normal");
+  const [accentColor, setAccentColor] = useLocalPref<string>("display_accent", "teal");
+
+  // Sound & Haptik
+  const [musicDuringRun, setMusicDuringRun] = useLocalPref("sound_music", false);
+  const [haptics, setHaptics] = useLocalPref("sound_haptics", true);
+  const [achievementSound, setAchievementSound] = useLocalPref("sound_achievement", true);
+
+  // Performance
+  const [dataMode, setDataMode] = useLocalPref<string>("perf_data", "full");
+  const [mapPreload, setMapPreload] = useLocalPref("perf_preload", true);
+  const [backgroundSync, setBackgroundSync] = useLocalPref("perf_bg_sync", true);
+  const [offlineMode, setOfflineMode] = useLocalPref("perf_offline", false);
+
+  // Werbung
+  const [personalizedDeals, setPersonalizedDeals] = useLocalPref("ads_personalized", true);
+  const [anonymousStats, setAnonymousStats] = useLocalPref("ads_anon_stats", true);
+
+  // Beta
+  const [betaFeatures, setBetaFeatures] = useLocalPref("app_beta", false);
+
+  return (
+    <>
+      <SettingsGroup title="🌐 SPRACHE & EINHEITEN">
+        <div style={{ padding: 16, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          <LanguageSwitcher />
+          <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
+            Weitere Sprachen folgen: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …
+          </div>
+        </div>
+        <SettingSelect
+          label="📏 Einheiten"
+          value={p?.setting_units || "metric"}
+          options={UNITS.map(u => ({ id: u.id, label: u.label }))}
+          onChange={(v) => updateSetting("setting_units", v)}
+          last
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="🔔 BENACHRICHTIGUNGEN (PUSH)">
+        <SettingRow label="Push aktivieren" checked={pushEnabled} onChange={async (v) => {
+          if (v) {
+            const { requestPushPermission } = await import("@/lib/prefs");
+            const ok = await requestPushPermission();
+            if (!ok) { alert("Browser hat Push-Benachrichtigungen abgelehnt. Bitte in den Browser-Einstellungen erlauben."); return; }
+          }
+          setPushEnabled(v);
+        }} />
+        <SettingRow label="💬 Crew-Chat" checked={notifCrewChat} onChange={setNotifCrewChat} />
+        <SettingRow label="📅 Crew-Events & Treffen" checked={notifCrewEvents} onChange={setNotifCrewEvents} />
+        <SettingRow label="⚔️ Rival-Duell gestartet" checked={notifDuels} onChange={setNotifDuels} />
+        <SettingRow label="🏆 Achievement freigeschaltet" checked={notifAchievements} onChange={setNotifAchievements} />
+        <SettingRow label="⭐ Neuer Rang erreicht" checked={notifRankUp} onChange={setNotifRankUp} />
+        <SettingRow label="🏪 Shop-Deal in der Nähe" checked={notifShopDeals} onChange={setNotifShopDeals} />
+        <SettingRow label="🔥 Streak läuft ab" checked={notifStreakWarn} onChange={setNotifStreakWarn} />
+        <SettingRow label="🌙 Ruhe-Modus (Nacht)" checked={notifQuietMode} onChange={setNotifQuietMode} />
+        <SettingSelect
+          label="⏰ Ruhe ab"
+          value={quietStart}
+          options={Array.from({ length: 24 }, (_, i) => ({ id: String(i), label: `${i}:00` }))}
+          onChange={setQuietStart}
+        />
+        <SettingSelect
+          label="⏰ Ruhe bis"
+          value={quietEnd}
+          options={Array.from({ length: 24 }, (_, i) => ({ id: String(i), label: `${i}:00` }))}
+          onChange={setQuietEnd}
+          last
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="📧 E-MAIL-BENACHRICHTIGUNGEN">
+        <SettingRow label="📊 Wöchentlicher Report" checked={emailWeekly} onChange={setEmailWeekly} />
+        <SettingRow label="🏁 Monats-Statistik" checked={emailMonthly} onChange={setEmailMonthly} />
+        <SettingRow label="📬 Kiez-Newsletter (monatlich)" checked={emailNewsletter} onChange={setEmailNewsletter} />
+        <SettingRow label="⚡ Flash-Deals von Shops" checked={emailFlashDeals} onChange={setEmailFlashDeals} last />
+      </SettingsGroup>
+
+      <SettingsGroup title="🔒 PRIVATSPHÄRE">
+        <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
+        <SettingRow label="🏆 Auf Leaderboard erscheinen" checked={leaderboardVisible} onChange={setLeaderboardVisible} />
+        <SettingRow label="📍 Live-Position in Crew teilen" checked={liveLocationCrew} onChange={setLiveLocationCrew} />
+        <SettingRow label="🗺️ Territorien öffentlich" checked={publicTerritories} onChange={setPublicTerritories} />
+        <SettingRow label="🏃 Lauf-Routen öffentlich" checked={publicRoutes} onChange={setPublicRoutes} />
+        <SettingRow label="🔎 Per Runner-Name findbar" checked={searchable} onChange={setSearchable} />
+        <SettingRow label="👥 Crew-Einladungen zulassen" checked={allowCrewInvites} onChange={setAllowCrewInvites} />
+        <SettingRow label="🤝 Freundschaftsanfragen" checked={allowFriends} onChange={setAllowFriends} last />
+      </SettingsGroup>
+
+      <SettingsGroup title="🏃 TRACKING & LAUF">
+        <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
+        <SettingRow label="🔆 Bildschirm-Wachhalten (Wake-Lock)" checked={wakeLock} onChange={setWakeLock} />
+        <SettingRow label="🧲 Snap-to-Roads" checked={snapToRoads} onChange={setSnapToRoads} />
+        <SettingRow label="🎬 Auto-Start bei Bewegung" checked={autoStart} onChange={setAutoStart} />
+        <SettingSelect
+          label="📡 GPS-Genauigkeit"
+          value={gpsAccuracy}
+          options={[
+            { id: "high", label: "Hoch (Akku ↓)" },
+            { id: "balanced", label: "Ausgewogen" },
+            { id: "low", label: "Spar-Modus" },
+          ]}
+          onChange={setGpsAccuracy}
+        />
+        <SettingRow label="🔊 Pace-Ansage (pro km)" checked={paceAnnounce} onChange={setPaceAnnounce} />
+        <SettingSelect
+          label="🗣️ Ansage-Stimme"
+          value={paceVoice}
+          options={[
+            { id: "female", label: "Weiblich" },
+            { id: "male", label: "Männlich" },
+            { id: "neutral", label: "Neutral" },
+          ]}
+          onChange={setPaceVoice}
+        />
+        <SettingSelect
+          label="⏱️ Ansage-Intervall"
+          value={paceInterval}
+          options={[
+            { id: "0.5", label: "Alle 500 m" },
+            { id: "1", label: "Jeden km" },
+            { id: "2", label: "Alle 2 km" },
+            { id: "5", label: "Alle 5 km" },
+          ]}
+          onChange={setPaceInterval}
+          last
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="🎨 DARSTELLUNG">
+        <SettingSelect
+          label="🎭 Theme"
+          value={theme}
+          options={[
+            { id: "dark", label: "Dunkel" },
+            { id: "light", label: "Hell" },
+            { id: "system", label: "System folgen" },
+          ]}
+          onChange={setTheme}
+        />
+        <SettingSelect
+          label="🗺️ Map-Style"
+          value={mapStyle}
+          options={[
+            { id: "standard", label: "Standard 3D" },
+            { id: "satellite", label: "Satellit" },
+            { id: "neon", label: "Neon Nacht" },
+            { id: "minimal", label: "Minimal" },
+          ]}
+          onChange={setMapStyle}
+        />
+        <SettingSelect
+          label="🎨 Akzent-Farbe"
+          value={accentColor}
+          options={[
+            { id: "teal", label: "Teal (Standard)" },
+            { id: "pink", label: "Pink" },
+            { id: "gold", label: "Gold" },
+            { id: "violet", label: "Violett" },
+          ]}
+          onChange={setAccentColor}
+        />
+        <SettingRow label="🏢 3D-Gebäude anzeigen" checked={buildings3d} onChange={setBuildings3d} />
+        <SettingRow label="✨ Animationen" checked={animations} onChange={setAnimations} />
+        <SettingRow label="♿ Bewegungen reduzieren" checked={reducedMotion} onChange={setReducedMotion} />
+        <SettingSelect
+          label="🔠 Schriftgröße"
+          value={fontSize}
+          options={[
+            { id: "small", label: "Klein" },
+            { id: "normal", label: "Normal" },
+            { id: "large", label: "Groß" },
+            { id: "xlarge", label: "Sehr groß" },
+          ]}
+          onChange={setFontSize}
+          last
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="🔊 SOUND & HAPTIK">
+        <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
+        <SettingRow label="🏆 Achievement-Sound" checked={achievementSound} onChange={setAchievementSound} />
+        <SettingRow label="🎵 Musik während Lauf" checked={musicDuringRun} onChange={setMusicDuringRun} />
+        <SettingRow label="📳 Haptik / Vibration" checked={haptics} onChange={setHaptics} last />
+      </SettingsGroup>
+
+      <SettingsGroup title="⚡ PERFORMANCE & AKKU">
+        <SettingSelect
+          label="📶 Daten-Modus"
+          value={dataMode}
+          options={[
+            { id: "full", label: "Voll (Standard)" },
+            { id: "saver", label: "Spar-Modus" },
+            { id: "wifi", label: "Nur WLAN" },
+          ]}
+          onChange={setDataMode}
+        />
+        <SettingRow label="🗺️ Map-Tiles vorladen" checked={mapPreload} onChange={setMapPreload} />
+        <SettingRow label="🔄 Hintergrund-Sync" checked={backgroundSync} onChange={setBackgroundSync} />
+        <SettingRow label="📴 Offline-Modus" checked={offlineMode} onChange={setOfflineMode} last />
+      </SettingsGroup>
+
+      <SettingsGroup title="💰 WERBUNG & PARTNER">
+        <SettingRow label="🎯 Personalisierte Shop-Vorschläge" checked={personalizedDeals} onChange={setPersonalizedDeals} />
+        <SettingRow label="📊 Anonyme Nutzungsstatistik" checked={anonymousStats} onChange={setAnonymousStats} last />
+      </SettingsGroup>
+
+      <SettingsGroup title="🧪 BETA">
+        <SettingRow label="🚀 Beta-Features aktivieren" checked={betaFeatures} onChange={setBetaFeatures} last />
+      </SettingsGroup>
+
+      <SettingsGroup title="📦 DATEN & KONTO">
+        <SettingAction label="📥 Meine Daten exportieren (DSGVO)" onClick={onExportData} />
+        <SettingAction label="🧹 Cache leeren" value="2,4 MB" onClick={() => {
+          try { Object.keys(localStorage).filter(k => k.startsWith("cache:")).forEach(k => localStorage.removeItem(k)); } catch {}
+          alert("Cache geleert");
+        }} />
+        <SettingAction label="🚪 Ausloggen" onClick={onLogout} danger />
+        <SettingAction label="⚠️ Konto löschen" value="" onClick={() => {
+          if (confirm("Konto wirklich löschen? Alle Daten gehen verloren.")) {
+            alert("Account-Löschung per E-Mail an support@myarea365.de anfordern.");
+          }
+        }} danger last />
+      </SettingsGroup>
+
+      <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, padding: "8px 0 4px", lineHeight: 1.6 }}>
+        MyArea365 · v0.9.0 (Beta)<br />
+        <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>Support kontaktieren</a>
+        {" · "}
+        <a href="/datenschutz" style={{ color: "#22D1C3" }}>Datenschutz</a>
+        {" · "}
+        <a href="/agb" style={{ color: "#22D1C3" }}>AGB</a>
+      </div>
+    </>
   );
 }
 
@@ -7281,7 +7613,7 @@ function ShopsRunnerView() {
           und du bekommst <b style={{ color: "#FFD700" }}>1.000 Bonus-XP</b>, sobald er live ist.
         </div>
         <button
-          onClick={() => alert("Shop-Empfehlung: a.meierholz@gmail.com — Name + Stadt genügt.")}
+          onClick={() => alert("Shop-Empfehlung: partner@myarea365.de — Name + Stadt genügt.")}
           style={{
             marginTop: 14, padding: "10px 22px", borderRadius: 12,
             background: PRIMARY, color: BG_DEEP,
@@ -7342,7 +7674,7 @@ function ShopsPartnerView() {
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
             <button
-              onClick={() => alert("Partner-Anmeldung: Bitte kontaktiere a.meierholz@gmail.com — Self-Service-Onboarding folgt.")}
+              onClick={() => alert("Partner-Anmeldung: Bitte kontaktiere partner@myarea365.de — Self-Service-Onboarding folgt.")}
               style={{
                 padding: "14px 26px", borderRadius: 14,
                 background: PRIMARY, color: BG_DEEP,
@@ -7352,7 +7684,7 @@ function ShopsPartnerView() {
               🚀 Jetzt Shop anmelden
             </button>
             <button
-              onClick={() => alert("Demo-Termin: a.meierholz@gmail.com")}
+              onClick={() => alert("Demo-Termin: partner@myarea365.de")}
               style={{
                 padding: "14px 22px", borderRadius: 14,
                 background: "rgba(0,0,0,0.35)", color: "#FFF",
@@ -7848,7 +8180,7 @@ function ShopsPartnerView() {
                 </div>
               )}
               <button
-                onClick={() => alert(`${p.name}-Paket wählen — Kontakt: a.meierholz@gmail.com`)}
+                onClick={() => alert(`${p.name}-Paket wählen — Kontakt: partner@myarea365.de`)}
                 style={{
                   ...primaryBtnStyle(p.color),
                   marginTop: 14, opacity: p.highlight ? 1 : 0.9,
@@ -7951,7 +8283,7 @@ function ShopsPartnerView() {
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
-            onClick={() => alert("Partner-Onboarding: a.meierholz@gmail.com")}
+            onClick={() => alert("Partner-Onboarding: partner@myarea365.de")}
             style={{ ...primaryBtnStyle(PRIMARY), width: "auto" }}
           >
             🚀 Shop anmelden
@@ -7969,7 +8301,7 @@ function ShopsPartnerView() {
             👀 Demo-Dashboard ansehen
           </a>
           <button
-            onClick={() => alert("Kontakt: a.meierholz@gmail.com · +49 …")}
+            onClick={() => alert("Kontakt: partner@myarea365.de · +49 …")}
             style={{ ...outlineBtnStyle(), width: "auto" }}
           >
             📞 Rückruf

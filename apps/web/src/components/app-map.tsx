@@ -58,6 +58,12 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
 
 // Eigener MyArea365-Style (Fork von Mapbox Standard mit unseren Brand-Farben)
 const MAPBOX_STYLE = "mapbox://styles/mapbox/standard";
+const MAP_STYLES: Record<string, string> = {
+  standard: "mapbox://styles/mapbox/standard",
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  neon: "mapbox://styles/mapbox/navigation-night-v1",
+  minimal: "mapbox://styles/mapbox/light-v11",
+};
 
 // LightPreset automatisch basierend auf Tageszeit
 function getCurrentLightPreset(): "dawn" | "day" | "dusk" | "night" {
@@ -308,6 +314,51 @@ export function AppMap({
       map.setConfigProperty("basemap", "lightPreset", lightPreset);
     } catch { /* ignore */ }
   }, [mapReady, lightPreset]);
+
+  // Map-Style aus App-Präferenz live wechseln
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      try {
+        const styleKey = (localStorage.getItem("pref:display_mapstyle") || "\"standard\"").replace(/"/g, "");
+        const styleUrl = MAP_STYLES[styleKey] || MAP_STYLES.standard;
+        if (map.getStyle()?.sprite !== styleUrl) map.setStyle(styleUrl);
+      } catch { /* ignore */ }
+    };
+    apply();
+    const onPref = (e: Event) => {
+      const { key } = (e as CustomEvent).detail || {};
+      if (key === "display_mapstyle" || key === "display_3d") apply();
+    };
+    window.addEventListener("pref-change", onPref);
+    return () => window.removeEventListener("pref-change", onPref);
+  }, [mapReady]);
+
+  // 3D-Gebäude Toggle
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      try {
+        const enabled = (localStorage.getItem("pref:display_3d") ?? "true") !== "false";
+        map.setConfigProperty("basemap", "show3dObjects", enabled);
+      } catch { /* style evtl. nicht Standard */ }
+    };
+    apply();
+    const onPref = (e: Event) => {
+      const { key } = (e as CustomEvent).detail || {};
+      if (key === "display_3d") apply();
+    };
+    window.addEventListener("pref-change", onPref);
+    map.on("style.load", apply);
+    return () => {
+      window.removeEventListener("pref-change", onPref);
+      map.off("style.load", apply);
+    };
+  }, [mapReady]);
 
 
 

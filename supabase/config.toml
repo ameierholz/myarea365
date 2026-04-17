@@ -1,0 +1,7 @@
+project_id = "dqxfbsgusydmaaxdrgxx"
+
+[functions.send-welcome-email]
+verify_jwt = false
+
+[functions.send-monthly-stats]
+verify_jwt = false
