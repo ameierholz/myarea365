@@ -8,7 +8,7 @@ export default async function RunnersPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const sb = await createClient();
 
-  let q = sb.from("users").select("id, username, display_name, faction, total_distance_m, total_walks, role, is_banned, shadow_banned, created_at, last_seen_at").order("created_at", { ascending: false }).limit(200);
+  let q = sb.from("users").select("id, username, display_name, faction, total_distance_m, total_walks, role, is_banned, shadow_banned, created_at").order("created_at", { ascending: false }).limit(200);
 
   if (sp.q) q = q.or(`username.ilike.%${sp.q}%,display_name.ilike.%${sp.q}%`);
   if (sp.faction) q = q.eq("faction", sp.faction);

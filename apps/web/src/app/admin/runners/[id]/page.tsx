@@ -41,7 +41,6 @@ export default async function RunnerDetailPage({ params }: { params: Promise<{ i
               {!user.is_banned && !user.shadow_banned && <Badge tone="success">Aktiv</Badge>}
             </Row>
             <Row label="Registriert">{new Date(user.created_at).toLocaleString("de-DE")}</Row>
-            <Row label="Zuletzt gesehen">{user.last_seen_at ? new Date(user.last_seen_at).toLocaleString("de-DE") : "—"}</Row>
             <Row label="Newsletter">{user.email_notif_newsletter ? "✅" : "—"}</Row>
             <Row label="Monats-Stats">{user.email_notif_monthly ? "✅" : "—"}</Row>
           </dl>

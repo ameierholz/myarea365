@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
     { data: recent },
   ] = await Promise.all([
     sb.from("users").select("id", { count: "exact", head: true }),
-    sb.from("users").select("id", { count: "exact", head: true }).gte("last_seen_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString()),
+    sb.from("walks").select("user_id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString()),
     sb.from("users").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()),
     sb.from("groups").select("id", { count: "exact", head: true }),
     sb.from("local_businesses").select("id", { count: "exact", head: true }),
