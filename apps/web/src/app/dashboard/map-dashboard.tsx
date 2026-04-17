@@ -3273,68 +3273,68 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
   onLogout: () => void;
 }) {
   // Benachrichtigungen
-  const [pushEnabled, setPushEnabled] = useLocalPref("notif_push", true);
-  const [notifCrewChat, setNotifCrewChat] = useLocalPref("notif_crew_chat", true);
-  const [notifCrewEvents, setNotifCrewEvents] = useLocalPref("notif_crew_events", true);
-  const [notifDuels, setNotifDuels] = useLocalPref("notif_duels", true);
-  const [notifAchievements, setNotifAchievements] = useLocalPref("notif_achievements", true);
-  const [notifRankUp, setNotifRankUp] = useLocalPref("notif_rank_up", true);
-  const [notifShopDeals, setNotifShopDeals] = useLocalPref("notif_shop_deals", true);
-  const [notifStreakWarn, setNotifStreakWarn] = useLocalPref("notif_streak_warn", true);
-  const [notifQuietMode, setNotifQuietMode] = useLocalPref("notif_quiet_mode", true);
+  const [pushEnabled, setPushEnabled] = useLocalPref<boolean>("notif_push", true);
+  const [notifCrewChat, setNotifCrewChat] = useLocalPref<boolean>("notif_crew_chat", true);
+  const [notifCrewEvents, setNotifCrewEvents] = useLocalPref<boolean>("notif_crew_events", true);
+  const [notifDuels, setNotifDuels] = useLocalPref<boolean>("notif_duels", true);
+  const [notifAchievements, setNotifAchievements] = useLocalPref<boolean>("notif_achievements", true);
+  const [notifRankUp, setNotifRankUp] = useLocalPref<boolean>("notif_rank_up", true);
+  const [notifShopDeals, setNotifShopDeals] = useLocalPref<boolean>("notif_shop_deals", true);
+  const [notifStreakWarn, setNotifStreakWarn] = useLocalPref<boolean>("notif_streak_warn", true);
+  const [notifQuietMode, setNotifQuietMode] = useLocalPref<boolean>("notif_quiet_mode", true);
   const [quietStart, setQuietStart] = useLocalPref<string>("notif_quiet_start", "22");
   const [quietEnd, setQuietEnd] = useLocalPref<string>("notif_quiet_end", "7");
 
   // E-Mail
-  const [emailWeekly, setEmailWeekly] = useLocalPref("email_weekly", false);
-  const [emailMonthly, setEmailMonthly] = useLocalPref("email_monthly", true);
-  const [emailNewsletter, setEmailNewsletter] = useLocalPref("email_newsletter", false);
-  const [emailFlashDeals, setEmailFlashDeals] = useLocalPref("email_flash_deals", false);
+  const [emailWeekly, setEmailWeekly] = useLocalPref<boolean>("email_weekly", false);
+  const [emailMonthly, setEmailMonthly] = useLocalPref<boolean>("email_monthly", true);
+  const [emailNewsletter, setEmailNewsletter] = useLocalPref<boolean>("email_newsletter", false);
+  const [emailFlashDeals, setEmailFlashDeals] = useLocalPref<boolean>("email_flash_deals", false);
 
   // Privatsphäre
-  const [leaderboardVisible, setLeaderboardVisible] = useLocalPref("privacy_leaderboard", true);
-  const [liveLocationCrew, setLiveLocationCrew] = useLocalPref("privacy_live_crew", true);
-  const [publicTerritories, setPublicTerritories] = useLocalPref("privacy_territories", true);
-  const [publicRoutes, setPublicRoutes] = useLocalPref("privacy_routes", false);
-  const [searchable, setSearchable] = useLocalPref("privacy_searchable", true);
-  const [allowCrewInvites, setAllowCrewInvites] = useLocalPref("privacy_crew_invites", true);
-  const [allowFriends, setAllowFriends] = useLocalPref("privacy_friends", true);
+  const [leaderboardVisible, setLeaderboardVisible] = useLocalPref<boolean>("privacy_leaderboard", true);
+  const [liveLocationCrew, setLiveLocationCrew] = useLocalPref<boolean>("privacy_live_crew", true);
+  const [publicTerritories, setPublicTerritories] = useLocalPref<boolean>("privacy_territories", true);
+  const [publicRoutes, setPublicRoutes] = useLocalPref<boolean>("privacy_routes", false);
+  const [searchable, setSearchable] = useLocalPref<boolean>("privacy_searchable", true);
+  const [allowCrewInvites, setAllowCrewInvites] = useLocalPref<boolean>("privacy_crew_invites", true);
+  const [allowFriends, setAllowFriends] = useLocalPref<boolean>("privacy_friends", true);
 
   // Tracking & Lauf
   const [gpsAccuracy, setGpsAccuracy] = useLocalPref<string>("track_gps", "high");
-  const [snapToRoads, setSnapToRoads] = useLocalPref("track_snap", true);
-  const [wakeLock, setWakeLock] = useLocalPref("track_wakelock", true);
-  const [paceAnnounce, setPaceAnnounce] = useLocalPref("track_pace_announce", false);
+  const [snapToRoads, setSnapToRoads] = useLocalPref<boolean>("track_snap", true);
+  const [wakeLock, setWakeLock] = useLocalPref<boolean>("track_wakelock", true);
+  const [paceAnnounce, setPaceAnnounce] = useLocalPref<boolean>("track_pace_announce", false);
   const [paceVoice, setPaceVoice] = useLocalPref<string>("track_voice", "female");
   const [paceInterval, setPaceInterval] = useLocalPref<string>("track_pace_interval", "1");
-  const [autoStart, setAutoStart] = useLocalPref("track_autostart", false);
+  const [autoStart, setAutoStart] = useLocalPref<boolean>("track_autostart", false);
 
   // Darstellung
   const [theme, setTheme] = useLocalPref<string>("display_theme", "dark");
   const [mapStyle, setMapStyle] = useLocalPref<string>("display_mapstyle", "standard");
-  const [buildings3d, setBuildings3d] = useLocalPref("display_3d", true);
-  const [reducedMotion, setReducedMotion] = useLocalPref("display_reduced_motion", false);
-  const [animations, setAnimations] = useLocalPref("display_animations", true);
+  const [buildings3d, setBuildings3d] = useLocalPref<boolean>("display_3d", true);
+  const [reducedMotion, setReducedMotion] = useLocalPref<boolean>("display_reduced_motion", false);
+  const [animations, setAnimations] = useLocalPref<boolean>("display_animations", true);
   const [fontSize, setFontSize] = useLocalPref<string>("display_font", "normal");
   const [accentColor, setAccentColor] = useLocalPref<string>("display_accent", "teal");
 
   // Sound & Haptik
-  const [musicDuringRun, setMusicDuringRun] = useLocalPref("sound_music", false);
-  const [haptics, setHaptics] = useLocalPref("sound_haptics", true);
-  const [achievementSound, setAchievementSound] = useLocalPref("sound_achievement", true);
+  const [musicDuringRun, setMusicDuringRun] = useLocalPref<boolean>("sound_music", false);
+  const [haptics, setHaptics] = useLocalPref<boolean>("sound_haptics", true);
+  const [achievementSound, setAchievementSound] = useLocalPref<boolean>("sound_achievement", true);
 
   // Performance
   const [dataMode, setDataMode] = useLocalPref<string>("perf_data", "full");
-  const [mapPreload, setMapPreload] = useLocalPref("perf_preload", true);
-  const [backgroundSync, setBackgroundSync] = useLocalPref("perf_bg_sync", true);
-  const [offlineMode, setOfflineMode] = useLocalPref("perf_offline", false);
+  const [mapPreload, setMapPreload] = useLocalPref<boolean>("perf_preload", true);
+  const [backgroundSync, setBackgroundSync] = useLocalPref<boolean>("perf_bg_sync", true);
+  const [offlineMode, setOfflineMode] = useLocalPref<boolean>("perf_offline", false);
 
   // Werbung
-  const [personalizedDeals, setPersonalizedDeals] = useLocalPref("ads_personalized", true);
-  const [anonymousStats, setAnonymousStats] = useLocalPref("ads_anon_stats", true);
+  const [personalizedDeals, setPersonalizedDeals] = useLocalPref<boolean>("ads_personalized", true);
+  const [anonymousStats, setAnonymousStats] = useLocalPref<boolean>("ads_anon_stats", true);
 
   // Beta
-  const [betaFeatures, setBetaFeatures] = useLocalPref("app_beta", false);
+  const [betaFeatures, setBetaFeatures] = useLocalPref<boolean>("app_beta", false);
 
   return (
     <>
