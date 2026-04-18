@@ -664,24 +664,52 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Arena-Glow (lila, nur bei arena=true via circle-opacity case — robuster als filter)
+      // Spotlight-Glow: 3 stacked circle-Layer fuer Corona-Effekt
       map.addLayer({
-        id: LYR_ARENA_GLOW, type: "circle", source: SRC,
+        id: LYR_GLOW + "-outer", type: "circle", source: SRC,
         paint: {
-          "circle-color": "#a855f7",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 16, 15, 48, 18, 76],
-          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.55, 0],
-          "circle-blur": 0.8,
+          "circle-color": "#FFD700",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 28, 15, 80, 18, 130],
+          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.18, 0],
+          "circle-blur": 1.4,
         },
       });
-      // Spotlight-Glow (gold, oben drueber)
       map.addLayer({
         id: LYR_GLOW, type: "circle", source: SRC,
         paint: {
           "circle-color": "#FFD700",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 20, 15, 56, 18, 90],
-          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.6, 0],
-          "circle-blur": 1.0,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 18, 15, 50, 18, 82],
+          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.5, 0],
+          "circle-blur": 0.9,
+        },
+      });
+      map.addLayer({
+        id: LYR_GLOW + "-core", type: "circle", source: SRC,
+        paint: {
+          "circle-color": "#FFF3A0",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 15, 28, 18, 46],
+          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.55, 0],
+          "circle-blur": 0.4,
+        },
+      });
+
+      // Arena-Glow: lila Doppel-Ring
+      map.addLayer({
+        id: LYR_ARENA_GLOW + "-outer", type: "circle", source: SRC,
+        paint: {
+          "circle-color": "#a855f7",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 24, 15, 70, 18, 110],
+          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.2, 0],
+          "circle-blur": 1.2,
+        },
+      });
+      map.addLayer({
+        id: LYR_ARENA_GLOW, type: "circle", source: SRC,
+        paint: {
+          "circle-color": "#a855f7",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 15, 40, 18, 64],
+          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.45, 0],
+          "circle-blur": 0.7,
         },
       });
       // Drop-Pin via Full-Color-Image (enthaelt Gradient + Border + Shadow + Emoji)
@@ -747,7 +775,7 @@ export function AppMap({
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onShopClick(id);
         };
-        [LYR_PIN, LYR_LABEL, LYR_BADGE, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
+        [LYR_PIN, LYR_LABEL, LYR_BADGE, LYR_GLOW, LYR_GLOW + "-outer", LYR_GLOW + "-core", LYR_ARENA_GLOW, LYR_ARENA_GLOW + "-outer"].forEach((l) => {
           map.on("click", l, onClick);
           map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
           map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
@@ -767,24 +795,40 @@ export function AppMap({
         const opSpotlight = 0.42 + phase * 0.22;
         const opArena     = 0.38 + phase * 0.18;
         const r = (base: number) => base + phase * (base * 0.2);
+        const phase2 = Math.sin(t * 0.06 + 1.5); // zweite Phase fuer Outer-Ring (versetzt)
         try {
+          // Spotlight: 3 Layer mit versetzter Phase fuer Corona-Effekt
           if (map.getLayer(LYR_GLOW)) {
             map.setPaintProperty(LYR_GLOW, "circle-opacity",
               ["case", ["==", ["get", "spotlight"], true], opSpotlight, 0]
             );
             map.setPaintProperty(LYR_GLOW, "circle-radius", [
-              "interpolate", ["linear"], ["zoom"],
-              11, r(20), 15, r(56), 18, r(90),
+              "interpolate", ["linear"], ["zoom"], 11, r(18), 15, r(50), 18, r(82),
             ]);
           }
+          if (map.getLayer(LYR_GLOW + "-outer")) {
+            map.setPaintProperty(LYR_GLOW + "-outer", "circle-opacity",
+              ["case", ["==", ["get", "spotlight"], true], 0.12 + phase2 * 0.12, 0]
+            );
+          }
+          if (map.getLayer(LYR_GLOW + "-core")) {
+            map.setPaintProperty(LYR_GLOW + "-core", "circle-opacity",
+              ["case", ["==", ["get", "spotlight"], true], 0.55 + phase * 0.25, 0]
+            );
+          }
+          // Arena: Doppelring
           if (map.getLayer(LYR_ARENA_GLOW)) {
             map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity",
               ["case", ["==", ["get", "arena"], true], opArena, 0]
             );
             map.setPaintProperty(LYR_ARENA_GLOW, "circle-radius", [
-              "interpolate", ["linear"], ["zoom"],
-              11, r(16), 15, r(48), 18, r(76),
+              "interpolate", ["linear"], ["zoom"], 11, r(14), 15, r(40), 18, r(64),
             ]);
+          }
+          if (map.getLayer(LYR_ARENA_GLOW + "-outer")) {
+            map.setPaintProperty(LYR_ARENA_GLOW + "-outer", "circle-opacity",
+              ["case", ["==", ["get", "arena"], true], 0.15 + phase2 * 0.12, 0]
+            );
           }
         } catch { cancelled = true; return; }
         requestAnimationFrame(pulse);
@@ -799,7 +843,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return; // Map bereits zerstoert → nichts zu tun
       try {
-        [LYR_BADGE, LYR_LABEL, LYR_PIN, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
+        [LYR_BADGE, LYR_LABEL, LYR_PIN, LYR_GLOW + "-core", LYR_GLOW, LYR_GLOW + "-outer", LYR_ARENA_GLOW, LYR_ARENA_GLOW + "-outer"].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
