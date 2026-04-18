@@ -430,23 +430,29 @@ export function AppMap({
     }
   }, [overviewMode, mapReady, pos]);
 
-  // Eigenes Marker
+  // Eigenes Marker — Instanz wiederverwenden, nur Position updaten
   useEffect(() => {
     if (!mapReady || !pos) return;
     const map = mapRef.current;
     if (!map) return;
 
-    selfMarkerRef.current?.remove();
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive);
-    selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
-      .setLngLat([pos.lng, pos.lat])
-      .addTo(map);
+    if (!selfMarkerRef.current) {
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive);
+      selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([pos.lng, pos.lat])
+        .addTo(map);
+    } else {
+      selfMarkerRef.current.setLngLat([pos.lng, pos.lat]);
+    }
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive]);
 
+  // Cleanup beim Unmount
+  useEffect(() => {
     return () => {
       selfMarkerRef.current?.remove();
       selfMarkerRef.current = null;
     };
-  }, [mapReady, pos, teamColor, myEmoji, trackingActive]);
+  }, []);
 
   // Runner
   useEffect(() => {
