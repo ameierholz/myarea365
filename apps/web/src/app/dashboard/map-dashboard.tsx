@@ -1528,12 +1528,47 @@ function ProfilTab({
       )}
 
       {openModal === "account" && (
-        <Modal title="Account" subtitle="Profil, Daten & Sicherheit" icon="👤" accent="#a855f7" onClose={() => setOpenModal(null)}>
-          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-            <AccountRow label="✏️ Profil bearbeiten" onClick={() => alert("Profil bearbeiten – kommt bald")} />
-            <AccountRow label="🔒 Privatsphäre & Daten" onClick={() => alert("Privatsphäre – kommt bald")} />
-            <AccountRow label="❓ Hilfe & Support" onClick={() => alert("Hilfe – kommt bald")} />
-            <AccountRow label="🚪 Ausloggen" onClick={onLogout} danger last />
+        <Modal title="Account" subtitle="Stammdaten, Sicherheit & Datenverwaltung" icon="🔐" accent="#a855f7" onClose={() => setOpenModal(null)}>
+          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>🔐 STAMMDATEN</div>
+          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
+            <AccountRow label="📧 E-Mail-Adresse ändern" onClick={async () => {
+              const newEmail = prompt("Neue E-Mail-Adresse:");
+              if (!newEmail) return;
+              const { error } = await supabase.auth.updateUser({ email: newEmail });
+              if (error) alert("Fehler: " + error.message);
+              else alert("Bestätigungs-Mail an beide Adressen gesendet.");
+            }} />
+            <AccountRow label="🔑 Passwort ändern" onClick={async () => {
+              const newPw = prompt("Neues Passwort (min. 8 Zeichen):");
+              if (!newPw || newPw.length < 8) { if (newPw) alert("Mindestens 8 Zeichen."); return; }
+              const { error } = await supabase.auth.updateUser({ password: newPw });
+              if (error) alert("Fehler: " + error.message);
+              else alert("Passwort geändert.");
+            }} last />
+          </div>
+
+          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>📦 DATEN</div>
+          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
+            <AccountRow label="📥 Meine Daten exportieren (DSGVO)" onClick={() => {
+              const blob = new Blob([JSON.stringify({ profile: p, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = `myarea365-daten-${Date.now()}.json`; a.click();
+              URL.revokeObjectURL(url);
+            }} last />
+          </div>
+
+          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>🚪 SESSION</div>
+          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
+            <AccountRow label="🚪 Ausloggen" onClick={onLogout} danger />
+            <AccountRow label="⚠️ Konto löschen" onClick={() => {
+              if (!confirm("Konto wirklich löschen? Alle Daten gehen unwiderruflich verloren.")) return;
+              alert("Account-Löschung per E-Mail an support@myarea365.de anfordern. (Automatisierter Flow folgt.)");
+            }} danger last />
+          </div>
+
+          <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
+            <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>Support kontaktieren</a>
           </div>
         </Modal>
       )}
@@ -3552,27 +3587,16 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
         <SettingRow label="🚀 Beta-Features aktivieren" checked={betaFeatures} onChange={setBetaFeatures} last />
       </SettingsGroup>
 
-      <SettingsGroup title="📦 DATEN & KONTO">
-        <SettingAction label="📥 Meine Daten exportieren (DSGVO)" onClick={onExportData} />
-        <SettingAction label="🧹 Cache leeren" value="2,4 MB" onClick={() => {
+      <SettingsGroup title="🧹 CACHE">
+        <SettingAction label="Cache leeren" value="2,4 MB" onClick={() => {
           try { Object.keys(localStorage).filter(k => k.startsWith("cache:")).forEach(k => localStorage.removeItem(k)); } catch {}
           alert("Cache geleert");
-        }} />
-        <SettingAction label="🚪 Ausloggen" onClick={onLogout} danger />
-        <SettingAction label="⚠️ Konto löschen" value="" onClick={() => {
-          if (confirm("Konto wirklich löschen? Alle Daten gehen verloren.")) {
-            alert("Account-Löschung per E-Mail an support@myarea365.de anfordern.");
-          }
-        }} danger last />
+        }} last />
       </SettingsGroup>
 
       <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, padding: "8px 0 4px", lineHeight: 1.6 }}>
-        MyArea365 · v0.9.0 (Beta)<br />
-        <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>Support kontaktieren</a>
-        {" · "}
-        <a href="/datenschutz" style={{ color: "#22D1C3" }}>Datenschutz</a>
-        {" · "}
-        <a href="/agb" style={{ color: "#22D1C3" }}>AGB</a>
+        Für E-Mail-Änderung, Passwort, Daten-Export, Logout → <b>Account</b><br />
+        MyArea365 · v0.9.0 (Beta) · <a href="/datenschutz" style={{ color: "#22D1C3" }}>Datenschutz</a> · <a href="/agb" style={{ color: "#22D1C3" }}>AGB</a>
       </div>
     </>
   );
