@@ -564,36 +564,78 @@ export function AppMap({
     const SRC = "shops-source";
     const LYR_GLOW    = "shops-spotlight-glow";
     const LYR_PIN     = "shops-pin-drop";
-    const LYR_ICON    = "shops-pin-icon";
     const LYR_LABEL   = "shops-pin-label";
 
-    // Drop-Pin-SVG als SDF-Image registrieren, damit wir es via icon-color
-    // pro Shop einfaerben koennen. SDF = Signed Distance Field, kann getintet werden.
-    const PIN_IMG = "shop-pin-drop";
-    if (!map.hasImage(PIN_IMG)) {
-      const size = 128; // high-res fuer scharfes Downsampling
+    // Fuer jeden Shop ein eigenes Pin-Image generieren (Color + Emoji + Gradient + Border)
+    // Mapbox downsampled das high-res Image beim Zoomen → immer scharf
+    function darken(hex: string, amt = 0.25): string {
+      const c = hex.replace("#", "");
+      const r = Math.max(0, Math.round(parseInt(c.slice(0,2),16) * (1-amt)));
+      const g = Math.max(0, Math.round(parseInt(c.slice(2,4),16) * (1-amt)));
+      const b = Math.max(0, Math.round(parseInt(c.slice(4,6),16) * (1-amt)));
+      return `rgb(${r},${g},${b})`;
+    }
+    function buildShopPinImage(color: string, icon: string): ImageData | null {
+      const W = 256, H = 320;
       const canvas = document.createElement("canvas");
-      canvas.width = size; canvas.height = size;
+      canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // Tear-Drop-Pin zeichnen (weiss — wird via icon-color getintet)
-        ctx.fillStyle = "#FFFFFF";
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.beginPath();
-        // Bottom-tip
-        const cx = size / 2;
-        const cy = size * 0.42;
-        const r = size * 0.36;
-        const tipY = size * 0.95;
-        // Oberer Halbkreis + Tropfen-Spitze
-        ctx.moveTo(cx, tipY);
-        ctx.bezierCurveTo(cx - r * 0.9, cy + r * 0.9, cx - r, cy + r * 0.2, cx - r, cy);
-        ctx.arc(cx, cy, r, Math.PI, 0, false);
-        ctx.bezierCurveTo(cx + r, cy + r * 0.2, cx + r * 0.9, cy + r * 0.9, cx, tipY);
-        ctx.closePath();
-        ctx.fill();
-        const imgData = ctx.getImageData(0, 0, size, size);
-        map.addImage(PIN_IMG, imgData, { sdf: true });
+      if (!ctx) return null;
+
+      // Shadow unter dem Pin
+      ctx.shadowColor = "rgba(0,0,0,0.45)";
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 10;
+
+      // Drop-Pin-Pfad (tear-drop mit runder Top + spitzer Bottom)
+      const cx = W / 2;
+      const cy = W * 0.5; // Circle center
+      const r  = W * 0.42;
+      const tipY = H - 12;
+      ctx.beginPath();
+      ctx.moveTo(cx, tipY);
+      ctx.bezierCurveTo(cx - r * 1.05, cy + r * 0.9, cx - r, cy + r * 0.1, cx - r, cy);
+      ctx.arc(cx, cy, r, Math.PI, 0, false);
+      ctx.bezierCurveTo(cx + r, cy + r * 0.1, cx + r * 1.05, cy + r * 0.9, cx, tipY);
+      ctx.closePath();
+
+      // Gradient fill
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, darken(color, 0.25));
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Weisser Border — Shadow deaktivieren
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.stroke();
+
+      // Innerer Kreis (weiss) fuer Emoji-Bubble
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fill();
+
+      // Emoji
+      ctx.font = `${Math.round(r * 1.1)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#0F1115";
+      ctx.fillText(icon, cx, cy + 4);
+
+      return ctx.getImageData(0, 0, W, H);
+    }
+
+    // Jedem Shop sein eigenes Image registrieren, keyed by color + icon
+    const imageKeyFor = (s: ShopPin) => `shop-pin-${s.color ?? "default"}-${s.icon ?? "none"}`.replace(/[^a-zA-Z0-9-]/g, "_");
+    for (const s of shops) {
+      const key = imageKeyFor(s);
+      if (!map.hasImage(key)) {
+        const img = buildShopPinImage(s.color || "#FFD700", s.icon || "📍");
+        if (img) map.addImage(key, img, { pixelRatio: 2 });
       }
     }
 
@@ -605,7 +647,7 @@ export function AppMap({
         properties: {
           id: s.id,
           name: s.name,
-          icon: s.icon,
+          image_key: imageKeyFor(s),
           color: s.color || "#FFD700",
           spotlight: !!s.spotlight,
         },
@@ -629,37 +671,15 @@ export function AppMap({
           "circle-blur": 1.2,
         },
       });
-      // Drop-Pin via SDF-Icon (Tintbar durch icon-color → shop.color)
+      // Drop-Pin via Full-Color-Image (enthaelt Gradient + Border + Shadow + Emoji)
       map.addLayer({
         id: LYR_PIN, type: "symbol", source: SRC,
         layout: {
-          "icon-image": PIN_IMG,
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.12, 13, 0.26, 15, 0.42, 18, 0.62],
+          "icon-image": ["get", "image_key"],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.12, 13, 0.22, 15, 0.35, 18, 0.52],
           "icon-anchor": "bottom",
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
-        },
-        paint: {
-          "icon-color": ["get", "color"],
-          "icon-halo-color": "#FFFFFF",
-          "icon-halo-width": 1.8,
-        },
-      });
-      // Emoji/Icon oben im Pin (Offset nach oben, weil Pin-Anchor bottom)
-      map.addLayer({
-        id: LYR_ICON, type: "symbol", source: SRC,
-        layout: {
-          "text-field": ["get", "icon"],
-          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 5, 13, 11, 15, 18, 18, 28],
-          "text-offset": ["interpolate", ["linear"], ["zoom"], 10, ["literal", [0, -1.2]], 18, ["literal", [0, -1.6]]],
-          "text-anchor": "center",
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
-        },
-        paint: {
-          "text-halo-color": "rgba(0,0,0,0.4)",
-          "text-halo-width": 1.0,
         },
       });
       // Name-Label unter dem Pin, erst ab zoom 14 sichtbar
@@ -687,7 +707,7 @@ export function AppMap({
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onShopClick(id);
         };
-        [LYR_PIN, LYR_ICON, LYR_LABEL, LYR_GLOW].forEach((l) => {
+        [LYR_PIN, LYR_LABEL, LYR_GLOW].forEach((l) => {
           map.on("click", l, onClick);
           map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
           map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
@@ -718,7 +738,7 @@ export function AppMap({
     return () => {
       const raf = (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf;
       if (raf) cancelAnimationFrame(raf);
-      [LYR_LABEL, LYR_ICON, LYR_PIN, LYR_GLOW].forEach((l) => {
+      [LYR_LABEL, LYR_PIN, LYR_GLOW].forEach((l) => {
         if (map.getLayer(l)) map.removeLayer(l);
       });
       if (map.getSource(SRC)) map.removeSource(SRC);
