@@ -210,6 +210,20 @@ function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
   return el;
 }
 
+/**
+ * Wraps existing marker content in an inner element with [data-zoom-scale]
+ * so transform:scale can be applied without overwriting Mapbox's translate.
+ * Idempotent — no-op if already wrapped.
+ */
+function wrapForZoomScale(el: HTMLElement): void {
+  if (el.querySelector(':scope > [data-zoom-scale="1"]')) return;
+  const inner = document.createElement("div");
+  inner.dataset.zoomScale = "1";
+  inner.style.cssText = "display:inline-block;transform-origin:center;transition:transform 0.15s ease-out";
+  while (el.firstChild) inner.appendChild(el.firstChild);
+  el.appendChild(inner);
+}
+
 function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   const color = shop.color || "#FFD700";
   // Outer wrapper: Mapbox setzt translate() hier drauf → NICHT selbst anfassen
@@ -500,6 +514,7 @@ export function AppMap({
 
     if (!selfMarkerRef.current) {
       const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive);
+      wrapForZoomScale(el);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
@@ -512,6 +527,7 @@ export function AppMap({
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
     const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive);
+    wrapForZoomScale(el);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
     if (map) {
@@ -541,6 +557,7 @@ export function AppMap({
 
     crewMembers.forEach((r) => {
       const el = buildRunnerMarkerEl(r);
+      wrapForZoomScale(el);
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([r.lng, r.lat])
         .addTo(map);
@@ -564,6 +581,7 @@ export function AppMap({
 
     supplyDrops.forEach((drop) => {
       const el = buildDropMarkerEl(drop);
+      wrapForZoomScale(el);
       el.addEventListener("click", () => onDropClick?.(drop.id));
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([drop.lng, drop.lat])
@@ -595,8 +613,20 @@ export function AppMap({
       shopMarkersRef.current.push(marker);
     });
 
-    // Zoom-responsives Skalieren aller Shop-Marker — inner div skalieren,
-    // damit Mapbox's Positions-Transform nicht ueberschrieben wird.
+    return () => {
+      shopMarkersRef.current.forEach((m) => m.remove());
+      shopMarkersRef.current = [];
+    };
+  }, [mapReady, shops, onShopClick]);
+
+  // Globaler Zoom-Scaling-Effect: skaliert ALLE Marker (Self, Runner, Drops, Shops)
+  // anhand des aktuellen Map-Zooms. Label-Fade fuer Shop-Namen.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const container = map.getContainer();
+
     const applyZoomScale = () => {
       const zoom = map.getZoom();
       let scale = 1;
@@ -605,23 +635,26 @@ export function AppMap({
       else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
       else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
       const showLabel = zoom >= 14;
-      for (const marker of shopMarkersRef.current) {
-        const el = marker.getElement();
-        const inner = el.querySelector('[data-shop-scale="1"]') as HTMLElement | null;
-        if (inner) inner.style.transform = `scale(${scale.toFixed(2)})`;
-        const label = el.querySelector('[data-shop-label="1"]') as HTMLElement | null;
-        if (label) label.style.opacity = showLabel ? "1" : "0";
-      }
+      const scaleStr = `scale(${scale.toFixed(2)})`;
+      container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
+        el.style.transform = scaleStr;
+      });
+      container.querySelectorAll<HTMLElement>('[data-shop-label="1"]').forEach((el) => {
+        el.style.opacity = showLabel ? "1" : "0";
+      });
     };
     applyZoomScale();
     map.on("zoom", applyZoomScale);
-
+    // Marker werden oft NACH Zoom-Ende hinzugefuegt (neuer Shop etc.) → auch beim moveend neu skalieren
+    map.on("moveend", applyZoomScale);
+    const mo = new MutationObserver(() => applyZoomScale());
+    mo.observe(container, { childList: true, subtree: true });
     return () => {
       map.off("zoom", applyZoomScale);
-      shopMarkersRef.current.forEach((m) => m.remove());
-      shopMarkersRef.current = [];
+      map.off("moveend", applyZoomScale);
+      mo.disconnect();
     };
-  }, [mapReady, shops, onShopClick]);
+  }, [mapReady]);
 
   // Claimed Areas (Polygon Fill + Stroke)
   useEffect(() => {
