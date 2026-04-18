@@ -1,6 +1,7 @@
 "use client";
 
 import { RARITY_META, statsAtLevel, xpForLevel, type GuardianWithArchetype } from "@/lib/guardian";
+import { GuardianAvatar } from "@/components/guardian-avatar";
 
 export function GuardianCard({ guardian, compact = false, onClick }: {
   guardian: GuardianWithArchetype;
@@ -25,7 +26,9 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
           cursor: onClick ? "pointer" : "default",
         }}
       >
-        <span style={{ fontSize: 32 }}>{guardian.archetype.emoji}</span>
+        <div style={{ width: 52, height: 65, flexShrink: 0 }}>
+          <GuardianAvatar archetype={guardian.archetype} size={52} animation="idle" />
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>
             {rarity.label.toUpperCase()} · Lv {guardian.level}
@@ -65,13 +68,8 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-        <div style={{
-          width: 70, height: 70, borderRadius: 35,
-          background: `radial-gradient(circle, ${rarity.glow}, transparent)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          border: `2px solid ${rarity.color}88`,
-        }}>
-          <span style={{ fontSize: 40 }}>{guardian.archetype.emoji}</span>
+        <div style={{ width: 120, height: 150, flexShrink: 0 }}>
+          <GuardianAvatar archetype={guardian.archetype} size={120} animation="idle" />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>
