@@ -55,8 +55,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     @keyframes shopBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
     @keyframes spotlightBadgeShimmer {
-      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,215,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6); transform: translateY(0) scale(1); }
-      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,215,0,0.95), inset 0 1px 0 rgba(255,255,255,0.8); transform: translateY(-2px) scale(1.06); }
+      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,215,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6); filter: brightness(1); }
+      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,215,0,0.95), inset 0 1px 0 rgba(255,255,255,0.8); filter: brightness(1.12); }
     }
     @keyframes spotlightBadgeStar {
       0%,100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
@@ -86,7 +86,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-shop-aura {
       position: relative;
-      width: 72px; height: 72px;
+      width: 58px; height: 58px;
       pointer-events: none;
       transform-origin: center center;
       will-change: transform;
@@ -346,7 +346,7 @@ export function AppMap({
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string }>>([]);
+  const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string; el: HTMLElement }>>([]);
   const spotlightAuraMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
 
   // Map initialisieren
@@ -779,8 +779,8 @@ export function AppMap({
     spotlightBadgeMarkersRef.current = [];
     spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightAuraMarkersRef.current = [];
-    shops.filter((s) => s.spotlight).forEach((s) => {
-      // Aura: outer fuer Mapbox-Position, inner fuer CSS-Animation/Scale
+    // Arena-Shops bekommen die rotierende Gold-Aura
+    shops.filter((s) => s.arena).forEach((s) => {
       const auraOuter = document.createElement("div");
       auraOuter.style.pointerEvents = "none";
       const auraInner = document.createElement("div");
@@ -789,8 +789,9 @@ export function AppMap({
       const auraMarker = new mapboxgl.Marker({ element: auraOuter, anchor: "center", offset: [0, 0] })
         .setLngLat([s.lng, s.lat]).addTo(map);
       spotlightAuraMarkersRef.current.push({ marker: auraMarker, el: auraInner });
-
-      // Badge: outer fuer Mapbox, inner fuer Shimmer-Animation
+    });
+    // Spotlight-Shops bekommen das Gold-Badge
+    shops.filter((s) => s.spotlight).forEach((s) => {
       const badgeOuter = document.createElement("div");
       badgeOuter.style.pointerEvents = "none";
       const badgeInner = document.createElement("div");
@@ -799,7 +800,7 @@ export function AppMap({
       badgeOuter.appendChild(badgeInner);
       const badgeMarker = new mapboxgl.Marker({ element: badgeOuter, anchor: "bottom", offset: [0, -40] })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      spotlightBadgeMarkersRef.current.push({ marker: badgeMarker, shopId: s.id });
+      spotlightBadgeMarkersRef.current.push({ marker: badgeMarker, shopId: s.id, el: badgeInner });
     });
     // Zoom-Handler: Badge-Offset + Aura-Offset + Aura-Scale an Pin-Groesse koppeln
     const updateMarkerGeometry = () => {
@@ -810,9 +811,14 @@ export function AppMap({
         zoom < 15 ? 0.06 + ((zoom - 13) / 2) * 0.04 :
         zoom < 18 ? 0.10 + ((zoom - 15) / 3) * 0.06 : 0.16;
       const pinHeight = 1280 * iconSize / 4;
-      // Badge schwebt 6px ueber Pin-Top
+      // Badge schwebt 6px ueber Pin-Top und skaliert mit
       const badgeOffY = -(pinHeight + 6);
-      spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.setOffset([0, badgeOffY]));
+      const badgeScale = Math.max(0.55, Math.min(1.0, pinHeight / 40));
+      spotlightBadgeMarkersRef.current.forEach(({ marker, el }) => {
+        marker.setOffset([0, badgeOffY]);
+        el.style.transform = `scale(${badgeScale.toFixed(2)})`;
+        el.style.transformOrigin = "center bottom";
+      });
       // Aura sitzt auf Pin-Body-Mitte, skaliert mit Pin-Groesse
       const auraOffY = -(pinHeight / 2);
       const auraScale = Math.max(0.3, Math.min(1.1, pinHeight / 35));
