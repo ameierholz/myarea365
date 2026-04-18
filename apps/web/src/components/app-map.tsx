@@ -226,9 +226,9 @@ function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, sup
       : supporterTier === "bronze"
         ? { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", border: "#CD7F32", icon: "★", shadow: "0 0 8px #CD7F32cc" }
         : null;
-  // Chip sitzt oben-rechts AUSSERHALB des Kreises (diagonal angedockt)
+  // Chip sitzt oben-rechts klar AUSSERHALB des Kreises
   const supporterChip = tierCfg
-    ? `<div style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:10px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
+    ? `<div style="position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:11px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
     : "";
   const auraLayer = auraActive
     ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>
@@ -842,8 +842,8 @@ export function AppMap({
       const hideBeam  = zoom < 10;
       const hideBadge = zoom < 10;
       const hideAura  = zoom < 13;
-      // Badge schwebt 6px ueber Pin-Top und skaliert mit
-      const badgeOffY = -(pinHeight + 6);
+      // Badge-Bottom sitzt unmittelbar am Pin-Top (kein Extra-Gap)
+      const badgeOffY = -pinHeight;
       const badgeScale = Math.max(0.22, Math.min(1.0, pinHeight / 50));
       spotlightBadgeMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, badgeOffY]);
@@ -853,9 +853,9 @@ export function AppMap({
         el.style.transition = "opacity 0.25s";
       });
       // Arena-Badge: gleiche Position wie Spotlight. Wenn Shop BEIDES hat,
-      // sitzt ARENA oben, SPOTLIGHT darunter (badgeStackOffset = ~badgeHeight+gap).
-      const arenaBaseOffY = -(pinHeight + 6);
-      const badgeStackOffset = 24 * badgeScale + 4;
+      // sitzt ARENA oben, SPOTLIGHT darunter (badgeStackOffset = ~badgeHeight, 0 Gap).
+      const arenaBaseOffY = -pinHeight;
+      const badgeStackOffset = 22 * badgeScale;
       const arenaScale = badgeScale;
       spotlightAuraMarkersRef.current.forEach(({ marker, el, stacked }) => {
         const offY = stacked ? arenaBaseOffY - badgeStackOffset : arenaBaseOffY;
@@ -866,7 +866,7 @@ export function AppMap({
         el.style.transition = "opacity 0.25s";
       });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
-      const beamOffY = -(pinHeight + 6);
+      const beamOffY = -pinHeight;
       const beamScale = Math.max(0.25, Math.min(1.0, pinHeight / 50));
       spotlightBeamMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, beamOffY]);
