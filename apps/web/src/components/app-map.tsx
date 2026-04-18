@@ -103,7 +103,7 @@ interface AppMapProps {
   mapTheme?: string | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Territorium) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
-  claimedStreets?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
+  claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
   ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>;
   onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
 }
@@ -844,7 +844,10 @@ export function AppMap({
       features: claimedStreets.map((s) => ({
         type: "Feature" as const,
         id: s.id,
-        geometry: { type: "LineString" as const, coordinates: s.geom.map((p) => [p.lng, p.lat]) },
+        geometry: {
+          type: "MultiLineString" as const,
+          coordinates: s.geoms.map((g) => g.map((p) => [p.lng, p.lat])),
+        },
         properties: { id: s.id, is_mine: s.is_mine, is_crew: s.is_crew },
       })),
     };
@@ -856,7 +859,7 @@ export function AppMap({
         id: layerId, type: "line", source: sourceId,
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FF6B4A", "#8B8FA3"],
-          "line-opacity": 0.9,
+          "line-opacity": 0.95,
           "line-width": 6,
         },
         layout: { "line-cap": "round", "line-join": "round" },

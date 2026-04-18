@@ -188,7 +188,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   // 3-Ebenen-Modell: DB-geladene Layer fuer Karte
   const [walkedSegments, setWalkedSegments] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
-  const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
+  const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>>([]);
   const [ownedTerritories, setOwnedTerritories] = useState<Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>>([]);
   const [ownershipQuery, setOwnershipQuery] = useState<{ type: "segment" | "street" | "territory"; id: string } | null>(null);
 
@@ -221,34 +221,38 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const myCrewId = profile.current_crew_id ?? null;
     (async () => {
       const [segsRes, streetsRes, terrsRes] = await Promise.all([
-        supabase.from("street_segments").select("id, user_id, crew_id, geom").limit(500),
+        supabase.from("street_segments").select("id, user_id, crew_id, street_name, geom").limit(2000),
         supabase.from("streets_claimed").select("id, user_id, crew_id, street_name"),
         supabase.from("territory_polygons").select("id, owner_user_id, owner_crew_id, polygon, status").eq("status", "active"),
       ]);
       if (cancelled) return;
 
-      if (segsRes.data) {
-        setWalkedSegments(
-          (segsRes.data as Array<{ id: string; user_id: string; crew_id: string | null; geom: Array<{ lat: number; lng: number }> }>).map((s) => ({
-            id: s.id,
-            geom: s.geom,
-            is_mine: s.user_id === profile.id,
-            is_crew: !!(myCrewId && s.crew_id === myCrewId),
-          })),
-        );
-      }
+      type SegRow = { id: string; user_id: string; crew_id: string | null; street_name: string | null; geom: Array<{ lat: number; lng: number }> };
+      const allSegs = (segsRes.data ?? []) as SegRow[];
+
+      setWalkedSegments(
+        allSegs.map((s) => ({
+          id: s.id,
+          geom: s.geom,
+          is_mine: s.user_id === profile.id,
+          is_crew: !!(myCrewId && s.crew_id === myCrewId),
+        })),
+      );
+
       if (streetsRes.data) {
-        // Straßenzüge: verknüpfe Segment-Geometry per street_name (vereinfacht)
-        const segsForStreets = (segsRes.data ?? []) as Array<{ id: string; user_id: string; crew_id: string | null; geom: Array<{ lat: number; lng: number }> }>;
-        const byUserStreet = new Map<string, Array<{ lat: number; lng: number }>>();
-        for (const s of segsForStreets) {
-          const key = s.id;
-          byUserStreet.set(key, s.geom);
+        // Segmente per (user_id, street_name) buendeln damit Straßenzuege MultiLineString bekommen
+        const byKey = new Map<string, Array<Array<{ lat: number; lng: number }>>>();
+        for (const s of allSegs) {
+          if (!s.street_name) continue;
+          const k = `${s.user_id}|${s.street_name}`;
+          const arr = byKey.get(k) ?? [];
+          arr.push(s.geom);
+          byKey.set(k, arr);
         }
         setClaimedStreets(
           (streetsRes.data as Array<{ id: string; user_id: string; crew_id: string | null; street_name: string }>).map((row) => ({
             id: row.id,
-            geom: [], // Straßenzug-Geometrie wird aus Segmenten ueber street_name/user_id erzeugt — V2
+            geoms: byKey.get(`${row.user_id}|${row.street_name}`) ?? [],
             is_mine: row.user_id === profile.id,
             is_crew: !!(myCrewId && row.crew_id === myCrewId),
           })),
