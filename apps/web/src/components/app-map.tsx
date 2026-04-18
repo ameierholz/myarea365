@@ -739,25 +739,7 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Arena-Shops bekommen pulsierenden magenta Outline-Ring am Pin-Body
-      const haloTranslate: mapboxgl.ExpressionSpecification = [
-        "interpolate", ["linear"], ["zoom"],
-        12, ["literal", [0, -7]],
-        15, ["literal", [0, -16]],
-        18, ["literal", [0, -25]],
-      ];
-      map.addLayer({
-        id: "shops-arena-ring", type: "circle", source: SRC,
-        paint: {
-          "circle-color": "rgba(0,0,0,0)",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 9, 15, 24, 18, 42],
-          "circle-opacity": 0,
-          "circle-stroke-color": "#FF2D78",
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 12, 1.5, 15, 2.8, 18, 4.5],
-          "circle-stroke-opacity": ["case", ["==", ["get", "arena"], true], 0.9, 0],
-          "circle-translate": haloTranslate,
-        },
-      });
+      // Arena-Indikator ist jetzt nur noch das ARENA-Badge (DOM) - kein Ring mehr
       map.addLayer({
         id: LYR_PIN, type: "symbol", source: SRC,
         layout: {
@@ -798,30 +780,6 @@ export function AppMap({
         });
       }
 
-      // Pulse-Animation fuer Arena-Ring (pulsierendes Rot am Pin)
-      let cancelled = false;
-      let t = 0;
-      const pulse = () => {
-        if (cancelled) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!(map as any).style) { cancelled = true; return; }
-        t += 1;
-        const p = Math.sin(t * 0.07);
-        try {
-          if (map.getLayer("shops-arena-ring")) {
-            map.setPaintProperty("shops-arena-ring", "circle-stroke-opacity",
-              ["case", ["==", ["get", "arena"], true], 0.75 + p * 0.25, 0]);
-            map.setPaintProperty("shops-arena-ring", "circle-radius",
-              ["interpolate", ["linear"], ["zoom"],
-                12, 9 + p * 1.2,
-                15, 24 + p * 3,
-                18, 42 + p * 5]);
-          }
-        } catch { cancelled = true; return; }
-        requestAnimationFrame(pulse);
-      };
-      requestAnimationFrame(pulse);
-      (map as unknown as { __pulseCancel?: () => void }).__pulseCancel = () => { cancelled = true; };
     }
 
     // ── CSS-DOM-Marker fuer Spotlight-Shops: rotierende Gold-Aura + Badge ──
@@ -921,8 +879,6 @@ export function AppMap({
     map.on("zoom", updateMarkerGeometry);
 
     return () => {
-      const cancel = (map as unknown as { __pulseCancel?: () => void }).__pulseCancel;
-      if (cancel) cancel();
       map.off("zoom", updateMarkerGeometry);
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
@@ -933,7 +889,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_PIN, "shops-arena-ring"].forEach((l) => {
+        [LYR_LABEL, LYR_PIN].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
