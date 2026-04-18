@@ -641,20 +641,24 @@ export function streakBonusXp(streakDays: number): number {
 export type AchievementStatKey =
   | "longest_km"
   | "lifetime_km"
-  | "territories"
+  | "territories"      // echte geschlossene Polygone (territory_polygons)
+  | "segments"         // Straßenabschnitte (street_segments)
+  | "streets"          // vollständig gelaufene Straßen (streets_claimed)
   | "streak_best"
   | "total_walks";
 
 // Achievements — einmalige Belohnungen
 export type AchievementCategory =
-  | "distance" | "endurance" | "explorer" | "streak" | "consistency" | "speed" | "elite";
+  | "distance" | "endurance" | "explorer" | "pathfinder" | "streetboss" | "streak" | "consistency" | "speed" | "elite";
 
 export type AchievementTier = "easy" | "medium" | "hard" | "epic" | "legend";
 
 export const ACHIEVEMENT_CATEGORIES: { id: AchievementCategory; name: string; icon: string; color: string; description: string }[] = [
   { id: "distance",    name: "Strecken-Champion", icon: "🏃",  color: "#22D1C3", description: "Längste Einzel-Läufe" },
   { id: "endurance",   name: "Welt-Bummler",      icon: "🌍",  color: "#4ade80", description: "Gesamt-Kilometer" },
-  { id: "explorer",    name: "Territorium-Herr",  icon: "🗺️",  color: "#a855f7", description: "Eroberte Straßenzüge" },
+  { id: "pathfinder",  name: "Weg-Erkunder",      icon: "🛤️",  color: "#22D1C3", description: "Straßenabschnitte" },
+  { id: "streetboss",  name: "Straßen-Komplettist", icon: "🛣️", color: "#FF6B4A", description: "Komplett gelaufene Straßen" },
+  { id: "explorer",    name: "Territorium-Herr",  icon: "🗺️",  color: "#a855f7", description: "Geschlossene Gebiete" },
   { id: "streak",      name: "Durchhalter",       icon: "🔥",  color: "#FF6B4A", description: "Tägliche Serien" },
   { id: "consistency", name: "Stammgast",         icon: "📅",  color: "#FFD700", description: "Anzahl Läufe insgesamt" },
   { id: "speed",       name: "Tempo-Jäger",       icon: "⚡",  color: "#5ddaf0", description: "Marathon-Distanzen" },
@@ -736,6 +740,27 @@ export const ACHIEVEMENTS: Array<{
   { id: "exp_8",   name: "500 Territorien",       xp: 12000, icon: "🏆", stat: "territories", target: 500,  unit: "", category: "explorer", tier: "epic" },
   { id: "exp_15",  name: "750 Territorien",       xp: 17000, icon: "🏆", stat: "territories", target: 750,  unit: "", category: "explorer", tier: "epic" },
   { id: "exp_9",   name: "1.000 Territorien",     xp: 25000, icon: "💎", stat: "territories", target: 1000, unit: "", category: "explorer", tier: "legend" },
+
+  // 🛤️ Weg-Erkunder (segments) — Straßenabschnitte
+  { id: "seg_1",   name: "Erster Abschnitt",       xp: 20,    icon: "🛤️", stat: "segments",    target: 1,    unit: "", category: "pathfinder", tier: "easy" },
+  { id: "seg_2",   name: "10 Abschnitte",          xp: 80,    icon: "🛤️", stat: "segments",    target: 10,   unit: "", category: "pathfinder", tier: "easy" },
+  { id: "seg_3",   name: "25 Abschnitte",          xp: 180,   icon: "🛤️", stat: "segments",    target: 25,   unit: "", category: "pathfinder", tier: "easy" },
+  { id: "seg_4",   name: "50 Abschnitte",          xp: 380,   icon: "🛤️", stat: "segments",    target: 50,   unit: "", category: "pathfinder", tier: "medium" },
+  { id: "seg_5",   name: "100 Abschnitte",         xp: 800,   icon: "🛤️", stat: "segments",    target: 100,  unit: "", category: "pathfinder", tier: "medium" },
+  { id: "seg_6",   name: "250 Abschnitte",         xp: 2000,  icon: "🛤️", stat: "segments",    target: 250,  unit: "", category: "pathfinder", tier: "hard" },
+  { id: "seg_7",   name: "500 Abschnitte",         xp: 4000,  icon: "🛤️", stat: "segments",    target: 500,  unit: "", category: "pathfinder", tier: "hard" },
+  { id: "seg_8",   name: "1.000 Abschnitte",       xp: 8000,  icon: "🛤️", stat: "segments",    target: 1000, unit: "", category: "pathfinder", tier: "epic" },
+  { id: "seg_9",   name: "2.500 Abschnitte",       xp: 18000, icon: "🛤️", stat: "segments",    target: 2500, unit: "", category: "pathfinder", tier: "legend" },
+
+  // 🛣️ Straßen-Komplettist (streets) — vollständig gelaufene Straßen
+  { id: "str1_1",  name: "Erste Straße komplett",  xp: 80,    icon: "🛣️", stat: "streets",     target: 1,    unit: "", category: "streetboss", tier: "easy" },
+  { id: "str1_2",  name: "5 Straßen komplett",     xp: 300,   icon: "🛣️", stat: "streets",     target: 5,    unit: "", category: "streetboss", tier: "easy" },
+  { id: "str1_3",  name: "10 Straßen komplett",    xp: 600,   icon: "🛣️", stat: "streets",     target: 10,   unit: "", category: "streetboss", tier: "medium" },
+  { id: "str1_4",  name: "25 Straßen komplett",    xp: 1500,  icon: "🛣️", stat: "streets",     target: 25,   unit: "", category: "streetboss", tier: "medium" },
+  { id: "str1_5",  name: "50 Straßen komplett",    xp: 3200,  icon: "🛣️", stat: "streets",     target: 50,   unit: "", category: "streetboss", tier: "hard" },
+  { id: "str1_6",  name: "100 Straßen komplett",   xp: 6500,  icon: "🛣️", stat: "streets",     target: 100,  unit: "", category: "streetboss", tier: "hard" },
+  { id: "str1_7",  name: "250 Straßen komplett",   xp: 15000, icon: "🛣️", stat: "streets",     target: 250,  unit: "", category: "streetboss", tier: "epic" },
+  { id: "str1_8",  name: "500 Straßen komplett",   xp: 30000, icon: "🛣️", stat: "streets",     target: 500,  unit: "", category: "streetboss", tier: "legend" },
 
   // 🔥 Durchhalter (streak_best)
   { id: "str_1",   name: "2 Tage in Folge",       xp: 60,    icon: "🕯️", stat: "streak_best", target: 2,   unit: "Tage", category: "streak", tier: "easy" },

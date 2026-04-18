@@ -1053,6 +1053,8 @@ function ProfilTab({
     longest_km:   (p?.longest_run_m || 0) / 1000,
     lifetime_km:  (p?.total_distance_m || 0) / 1000,
     territories:  effectiveTerritoryCount,
+    segments:     (p as { segments_total?: number } | null)?.segments_total ?? 0,
+    streets:      (p as { streets_total?: number } | null)?.streets_total ?? 0,
     streak_best:  p?.streak_best || 0,
     total_walks:  p?.total_walks || 0,
   };

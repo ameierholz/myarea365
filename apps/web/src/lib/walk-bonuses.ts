@@ -61,13 +61,22 @@ export async function computeAndApplyWalkBonuses(
   const totalMult = happyHourMult * boostMult * crewBoostMult;
   const finalXp = Math.round((baseXp + streakBonus) * totalMult);
 
+  // Echte Zähler aus 3-Ebenen-Modell holen
+  const [{ count: segmentCount }, { count: streetCount }, { count: polyCount }] = await Promise.all([
+    sb.from("street_segments").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    sb.from("streets_claimed").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    sb.from("territory_polygons").select("id", { count: "exact", head: true }).eq("claimed_by_user_id", userId),
+  ]);
+
   // Stats nach dem Walk (für Achievement-Check)
   const newStats = {
     total_walks: (user?.total_walks ?? 0) + 1,
     total_distance_m: (user?.total_distance_m ?? 0) + walkDistanceM,
     longest_run_m: Math.max(user?.longest_run_m ?? 0, walkDistanceM),
     streak_best: Math.max(user?.streak_best ?? 0, streak),
-    territories: territoriesCount,
+    territories: polyCount ?? territoriesCount,
+    segments: segmentCount ?? 0,
+    streets: streetCount ?? 0,
   };
 
   // Bestehende Achievements laden
@@ -83,6 +92,8 @@ export async function computeAndApplyWalkBonuses(
     const current = statKey === "lifetime_km" ? newStats.total_distance_m / 1000
       : statKey === "longest_km" ? newStats.longest_run_m / 1000
       : statKey === "territories" ? newStats.territories
+      : statKey === "segments" ? newStats.segments
+      : statKey === "streets" ? newStats.streets
       : statKey === "streak_best" ? newStats.streak_best
       : statKey === "total_walks" ? newStats.total_walks
       : 0;
