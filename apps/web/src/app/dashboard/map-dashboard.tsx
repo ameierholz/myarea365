@@ -200,6 +200,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         const { data: crewData } = await supabase
           .from("crews").select("*").eq("id", profile.current_crew_id).single();
         if (crewData) setMyCrew(crewData);
+      } else if (["admin", "super_admin"].includes(profile.role)) {
+        // Admin-Accounts starten automatisch mit Demo-Crew für Verwaltungs-Tests
+        setMyCrew({
+          id: "demo-crew-kaelthor",
+          name: "Kaelthors Kiez-Crew",
+          zip: "13435",
+          color: "#22D1C3",
+          owner_id: profile.id,
+          faction: profile.faction || "syndicate",
+          invite_code: "KAEL-DEMO",
+          member_count: 6,
+        });
       }
     })();
   }, [profile?.id, profile?.current_crew_id]);
