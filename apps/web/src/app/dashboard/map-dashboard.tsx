@@ -11,7 +11,7 @@ import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-mo
 import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
-import { GuardianHelpButton } from "@/components/guardian-help-modal";
+import { GuardianHelpButton, GuardianGuideBanner } from "@/components/guardian-help-modal";
 import { GuardianEquipmentPanel } from "@/components/guardian-equipment";
 import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
@@ -1336,6 +1336,7 @@ function ProfilTab({
 
         {/* ═══ WÄCHTER ═══ */}
         <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
+        <GuardianGuideBanner />
         <ProfileGuardianBlock userId={p?.id ?? null} />
 
         {/* ═══ AUSRÜSTUNG ═══ */}
