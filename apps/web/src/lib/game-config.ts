@@ -12,8 +12,8 @@ export const RUNNER_RANKS = [
   { id: 6,  name: "Viertel-Boss",        minXp: 300000,    color: "#FF6B4A" },
   { id: 7,  name: "Kiez-König",          minXp: 800000,    color: "#FF2D78" },
   { id: 8,  name: "Metropolen-Legende",  minXp: 1500000,   color: "#FFD700" },
-  { id: 9,  name: "Urbaner Mythos",      minXp: 3000000,   color: "#e0e7ff" },
-  { id: 10, name: "Straßen-Gott",        minXp: 6000000,   color: "#FFFFFF" },
+  { id: 9,  name: "Urbaner Mythos",      minXp: 2000000,   color: "#e0e7ff" },
+  { id: 10, name: "Straßen-Gott",        minXp: 3000000,   color: "#FFFFFF" },
 ] as const;
 
 export const FACTIONS = [
