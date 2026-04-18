@@ -33,6 +33,8 @@ export async function GET(req: Request) {
   let myCrewId: string | null = null;
   let myCrewEligible = false;
   let myCrewLastRedemption: string | null = null;
+  let iRedeemedMyself = false;
+  let myLastRedemption: string | null = null;
 
   if (auth?.user) {
     const { data: profile } = await sb.from("users")
@@ -40,6 +42,23 @@ export async function GET(req: Request) {
       .eq("id", auth.user.id)
       .maybeSingle<{ current_crew_id: string | null }>();
     myCrewId = profile?.current_crew_id ?? null;
+
+    // Habe ICH selber in 7T hier eingeloest?
+    const since = new Date(Date.now() - 7 * 86400000).toISOString();
+    const { data: myRed } = await sb.from("deal_redemptions")
+      .select("verified_at")
+      .eq("user_id", auth.user.id)
+      .eq("business_id", businessId)
+      .eq("status", "verified")
+      .gte("verified_at", since)
+      .order("verified_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ verified_at: string }>();
+    if (myRed) {
+      iRedeemedMyself = true;
+      myLastRedemption = myRed.verified_at;
+    }
+
     if (myCrewId && arenaActive) {
       const { data: eligibility } = await sb.rpc("arena_eligibility", {
         p_crew_id: myCrewId,
@@ -86,6 +105,8 @@ export async function GET(req: Request) {
     my_crew_id: myCrewId,
     my_crew_eligible: myCrewEligible,
     my_crew_last_redemption_at: myCrewLastRedemption,
+    i_redeemed_myself: iRedeemedMyself,
+    my_last_redemption_at: myLastRedemption,
     recent_battles: recentBattles,
   });
 }

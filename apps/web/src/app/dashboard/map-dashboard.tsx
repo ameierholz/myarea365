@@ -2870,7 +2870,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   const [hoverRating, setHoverRating] = useState(0);
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [arenaOpen, setArenaOpen] = useState(false);
-  const [arenaStatus, setArenaStatus] = useState<{ arena: { id: string } | null; my_crew_eligible: boolean } | null>(null);
+  const [arenaStatus, setArenaStatus] = useState<{ arena: { id: string } | null; my_crew_eligible: boolean; i_redeemed_myself: boolean } | null>(null);
   const [reviewText, setReviewText] = useState("");
   const [showReview, setShowReview] = useState(false);
 
@@ -2993,13 +2993,17 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                 <span style={{ padding: "2px 8px", borderRadius: 999, background: "rgba(74,222,128,0.25)", color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>LIVE</span>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
-                {arenaStatus.my_crew_eligible ? (
+                {arenaStatus.i_redeemed_myself ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Deine Crew hat hier eingelöst — du darfst kämpfen, XP für deinen Wächter holen und Gegner herausfordern.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 7 Tagen hier eingelöst — tritt ein, fordere Gegner heraus und hol dir XP für deinen Wächter.
+                  </>
+                ) : arenaStatus.my_crew_eligible ? (
+                  <>
+                    <b style={{ color: "#4ade80" }}>✓ Zugang über deine Crew.</b> Ein Mitglied deiner Crew hat hier eingelöst — du darfst mitkämpfen.
                   </>
                 ) : (
                   <>
-                    <b style={{ color: "#FF6B4A" }}>🔒 Arena gesperrt.</b> Mindestens 1 Mitglied deiner Crew muss hier erst einen Deal einlösen — danach habt ihr 7 Tage Zugang zur Kampf-Arena.
+                    <b style={{ color: "#FF6B4A" }}>🔒 Arena gesperrt.</b> Löse zuerst einen Deal in diesem Shop ein — danach hast du 7 Tage Zugang zur Kampf-Arena.
                   </>
                 )}
               </div>
