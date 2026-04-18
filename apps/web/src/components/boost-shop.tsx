@@ -15,6 +15,18 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
   async function buy(sku: string, name: string, price: number) {
     setLoading(sku);
     try {
+      // Stripe-Checkout wenn konfiguriert (NEXT_PUBLIC_STRIPE_ENABLED=1)
+      if (process.env.NEXT_PUBLIC_STRIPE_ENABLED === "1") {
+        const res = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sku, name, amount_cents: price }),
+        });
+        const json = await res.json();
+        if (json.url) { window.location.href = json.url; return; }
+        throw new Error(json.error ?? "Checkout fehlgeschlagen");
+      }
+      // Demo-Fallback (wenn Stripe nicht aktiv):
       const { data, error } = await sb.from("purchases").insert({
         user_id: userId, product_sku: sku, product_name: name, amount_cents: price, status: "pending",
       }).select("id").single();

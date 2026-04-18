@@ -25,6 +25,20 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
   async function purchase() {
     setLoading(true);
     try {
+      if (process.env.NEXT_PUBLIC_STRIPE_ENABLED === "1") {
+        const res = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            sku: active.sku, name: active.name, amount_cents: active.price, crew_id: crewId,
+          }),
+        });
+        const json = await res.json();
+        if (json.url) { window.location.href = json.url; return; }
+        throw new Error(json.error ?? "Checkout fehlgeschlagen");
+      }
+
+      // Demo-Fallback
       const { data, error } = await sb.from("purchases").insert({
         user_id: userId,
         crew_id: crewId,
@@ -36,8 +50,6 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
       }).select("id").single();
       if (error) throw error;
 
-      // Simulation: Stripe-Checkout folgt später.
-      // Für Demo: sofort als completed markieren + Premium gewähren
       const expiresAt = active.duration_days
         ? new Date(Date.now() + active.duration_days * 86400000).toISOString()
         : null;
@@ -55,7 +67,7 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
           plan_expires_at: expiresAt,
         }).eq("id", crewId);
       }
-      appAlert("Upgrade aktiv! (Stripe-Integration folgt — hier nur Demo.)");
+      appAlert("Upgrade aktiv! (Demo-Modus — Stripe kann mit STRIPE_SECRET_KEY aktiviert werden)");
       onClose();
       location.reload();
     } catch (e) {
