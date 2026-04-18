@@ -585,50 +585,74 @@ export function AppMap({
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
       const cx = W / 2, cy = W * 0.5, r = W * 0.40, tipY = H - 48;
-      ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = 80; ctx.shadowOffsetY = 36;
+      // Dramatischer Schlagschatten
+      ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 100; ctx.shadowOffsetY = 48;
       ctx.beginPath();
       ctx.moveTo(cx, tipY);
       ctx.bezierCurveTo(cx - r * 1.05, cy + r * 0.9, cx - r, cy + r * 0.1, cx - r, cy);
       ctx.arc(cx, cy, r, Math.PI, 0, false);
       ctx.bezierCurveTo(cx + r, cy + r * 0.1, cx + r * 1.05, cy + r * 0.9, cx, tipY);
       ctx.closePath();
-      const grad = ctx.createLinearGradient(W * 0.25, 0, W * 0.75, H);
-      grad.addColorStop(0, color); grad.addColorStop(0.55, color); grad.addColorStop(1, darken(color, 0.38));
+      // Fett saturierter Farbverlauf
+      const grad = ctx.createLinearGradient(W * 0.2, 0, W * 0.8, H);
+      grad.addColorStop(0, color); grad.addColorStop(0.45, color); grad.addColorStop(1, darken(color, 0.5));
       ctx.fillStyle = grad; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.lineWidth = 36; ctx.strokeStyle = "#FFFFFF"; ctx.stroke();
-      const gloss = ctx.createRadialGradient(cx, cy - r * 0.4, 0, cx, cy - r * 0.4, r * 0.95);
-      gloss.addColorStop(0, "rgba(255,255,255,0.5)"); gloss.addColorStop(0.4, "rgba(255,255,255,0.2)"); gloss.addColorStop(1, "rgba(255,255,255,0)");
+      // Weißer Border
+      ctx.lineWidth = 40; ctx.strokeStyle = "#FFFFFF"; ctx.stroke();
+      // Dunkler Innen-Border für mehr Kontrast
+      ctx.lineWidth = 6; ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.stroke();
+      // Starker Glanz oben
+      const gloss = ctx.createRadialGradient(cx - r * 0.15, cy - r * 0.55, 0, cx - r * 0.15, cy - r * 0.55, r * 1.0);
+      gloss.addColorStop(0, "rgba(255,255,255,0.65)"); gloss.addColorStop(0.35, "rgba(255,255,255,0.25)"); gloss.addColorStop(1, "rgba(255,255,255,0)");
       ctx.fillStyle = gloss; ctx.fill();
-      ctx.beginPath(); ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
+      // Emoji-Bubble mit Glow-Ring
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.4)"; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.66, 0, Math.PI * 2);
       ctx.fillStyle = "#FFFFFF"; ctx.fill();
+      ctx.restore();
+      // Farbiger Innen-Ring um Emoji
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.66, 0, Math.PI * 2);
+      ctx.lineWidth = 8; ctx.strokeStyle = color; ctx.stroke();
+      // Emoji
       ctx.font = `${Math.round(r * 1.3)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#0F1115";
       ctx.fillText(icon, cx, cy + r * 0.05);
       return ctx.getImageData(0, 0, W, H);
     }
     function buildBadge(label: string, from: string, to: string): ImageData | null {
-      const H = 160, pad = 96;
+      const H = 320, pad = 140;
       const m = document.createElement("canvas").getContext("2d");
       if (!m) return null;
-      m.font = `900 88px Inter, system-ui, sans-serif`;
+      m.font = `900 160px Inter, system-ui, sans-serif`;
       const W = Math.round(m.measureText(label).width + pad * 2);
       const canvas = document.createElement("canvas");
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
-      ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = 32; ctx.shadowOffsetY = 12;
+      // Dramatischer Shadow
+      ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 56; ctx.shadowOffsetY = 20;
       const rad = H / 2;
       ctx.beginPath();
       ctx.moveTo(rad, 0); ctx.lineTo(W - rad, 0);
       ctx.arc(W - rad, rad, rad, -Math.PI / 2, Math.PI / 2);
       ctx.lineTo(rad, H); ctx.arc(rad, rad, rad, Math.PI / 2, -Math.PI / 2);
       ctx.closePath();
-      const g = ctx.createLinearGradient(0, 0, W, 0);
+      // Gradient-Fill
+      const g = ctx.createLinearGradient(0, 0, W, H);
       g.addColorStop(0, from); g.addColorStop(1, to);
       ctx.fillStyle = g; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      ctx.font = `900 88px Inter, system-ui, sans-serif`;
+      // Weißer Border
+      ctx.lineWidth = 10; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.stroke();
+      // Highlight oben
+      const hl = ctx.createLinearGradient(0, 0, 0, H * 0.5);
+      hl.addColorStop(0, "rgba(255,255,255,0.5)"); hl.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = hl; ctx.fill();
+      // Text mit Shadow
+      ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+      ctx.font = `900 160px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#0F1115";
       ctx.fillText(label, W / 2, H / 2 + 4);
       return ctx.getImageData(0, 0, W, H);
@@ -643,8 +667,6 @@ export function AppMap({
       }
     }
     if (!map.hasImage("badge-spotlight")) { const b = buildBadge("⭐ SPOTLIGHT", "#FFD700", "#FF8A3C"); if (b) map.addImage("badge-spotlight", b, { pixelRatio: 4 }); }
-    if (!map.hasImage("badge-arena"))     { const b = buildBadge("⚔️ ARENA",     "#c084fc", "#FF2D78"); if (b) map.addImage("badge-arena",     b, { pixelRatio: 4 }); }
-    if (!map.hasImage("badge-both"))      { const b = buildBadge("⭐ SPOTLIGHT ⚔️ ARENA", "#FFD700", "#c084fc"); if (b) map.addImage("badge-both", b, { pixelRatio: 4 }); }
 
     const geojson = {
       type: "FeatureCollection" as const,
@@ -664,31 +686,32 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
+      // Halo-Prio: Arena gewinnt (lila/pink) → Spotlight (gold) nur wenn NICHT Arena
       map.addLayer({
         id: LYR_HALO_OUTER, type: "circle", source: SRC,
         paint: {
-          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFD700", "#a855f7"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 18, 15, 55, 18, 95],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.22, 0],
-          "circle-blur": 1.1,
+          "circle-color": ["case", ["==", ["get", "arena"], true], "#a855f7", "#FFD700"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 22, 15, 65, 18, 110],
+          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.28, 0],
+          "circle-blur": 1.2,
         },
       });
       map.addLayer({
         id: LYR_HALO_MID, type: "circle", source: SRC,
         paint: {
-          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFD700", "#a855f7"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 12, 15, 38, 18, 64],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.55, 0],
-          "circle-blur": 0.7,
+          "circle-color": ["case", ["==", ["get", "arena"], true], "#FF2D78", "#FFD700"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 14, 15, 44, 18, 74],
+          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.60, 0],
+          "circle-blur": 0.65,
         },
       });
       map.addLayer({
         id: LYR_HALO_CORE, type: "circle", source: SRC,
         paint: {
-          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFF3A0", "#d8b4fe"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 7, 15, 22, 18, 38],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.65, 0],
-          "circle-blur": 0.25,
+          "circle-color": ["case", ["==", ["get", "arena"], true], "#c084fc", "#FFF3A0"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 8, 15, 25, 18, 42],
+          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.72, 0],
+          "circle-blur": 0.2,
         },
       });
       map.addLayer({
@@ -704,23 +727,15 @@ export function AppMap({
       map.addLayer({
         id: LYR_BADGE, type: "symbol", source: SRC,
         layout: {
-          "icon-image": [
-            "case",
-            ["all", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], "badge-both",
-            ["==", ["get", "spotlight"], true], "badge-spotlight",
-            ["==", ["get", "arena"], true], "badge-arena",
-            "badge-spotlight",
-          ],
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.05, 15, 0.10, 18, 0.15],
-          "icon-offset": [0, -900],
+          "icon-image": "badge-spotlight",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.18, 15, 0.42, 18, 0.68],
+          "icon-offset": [0, -380],
           "icon-anchor": "bottom",
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
         },
         paint: {
-          "icon-opacity": ["case",
-            ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 1, 0,
-          ],
+          "icon-opacity": ["case", ["==", ["get", "spotlight"], true], 1, 0],
         },
       });
       map.addLayer({
