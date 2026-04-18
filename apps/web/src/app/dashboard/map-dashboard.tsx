@@ -30,6 +30,8 @@ import {
   RUNNER_LIGHTS,
   CREW_COLORS,
   XP_PER_TERRITORY,
+  XP_PER_SEGMENT,
+  XP_PER_STREET_CLAIMED,
   MIN_ROUTE_POINTS,
   UNITS,
   LANGUAGES,
@@ -285,15 +287,54 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const finalStreet = snapped?.streets[0] ?? currentStreet;
 
     if (profile) {
-      // Base-XP: Territorium + km-Bonus (XP_PER_KM * km) + Walk-Basis
       const km = finalDistance / 1000;
       const kmXp = Math.round(XP_PER_KM * km);
-      let baseXp = XP_PER_TERRITORY + kmXp + XP_PER_WALK;
 
-      // Doppel-Claim-Charge verbrauchen (verdoppelt das Territorium-XP)
+      // 1) Walk-Row zuerst anlegen, damit wir walk_id haben
+      const { data: walkRow, error: walkErr } = await supabase.from("territories").insert({
+        user_id: profile.id,
+        crew_id: profile.current_crew_id,
+        street_name: finalStreet,
+        route: finalRoute,
+        distance_m: Math.round(finalDistance),
+        duration_s: Math.round(finalDuration),
+        xp_earned: 0, // wird unten mit echtem Wert ueberschrieben
+      }).select("id").single<{ id: string }>();
+
+      if (walkErr || !walkRow) {
+        appAlert("Lauf konnte nicht gespeichert werden.");
+        setActiveRoute([]);
+        setCurrentStreet(null);
+        return;
+      }
+
+      // 2) Segment/Strassenzug/Polygon-Detection serverseitig
+      type SegmentsResp = {
+        total_new: number;
+        total_length_m: number;
+        newly_claimed_streets: Array<{ street_name: string; segments_count: number; total_length_m: number }>;
+        new_territory: { id: string; area_m2: number } | null;
+      };
+      let segResp: SegmentsResp = { total_new: 0, total_length_m: 0, newly_claimed_streets: [], new_territory: null };
+      try {
+        const res = await fetch("/api/walk/segments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ trace: finalRoute, walk_id: walkRow.id }),
+        });
+        if (res.ok) segResp = await res.json() as SegmentsResp;
+      } catch {}
+
+      // 3) Base-XP aus 3-Ebenen-Modell
+      const segmentsXp = segResp.total_new * XP_PER_SEGMENT;
+      const streetsXp = segResp.newly_claimed_streets.length * XP_PER_STREET_CLAIMED;
+      const territoryXp = segResp.new_territory ? XP_PER_TERRITORY : 0;
+      let baseXp = segmentsXp + streetsXp + territoryXp + kmXp + XP_PER_WALK;
+
+      // Doppel-Claim-Charge verdoppelt das Territorium-XP (V1)
       const doubleClaimCharges = (profile as unknown as { double_claim_charges?: number }).double_claim_charges ?? 0;
-      if (doubleClaimCharges > 0) {
-        baseXp += XP_PER_TERRITORY;
+      if (doubleClaimCharges > 0 && territoryXp > 0) {
+        baseXp += territoryXp;
         await supabase.from("users").update({ double_claim_charges: doubleClaimCharges - 1 }).eq("id", profile.id);
       }
 
@@ -308,15 +349,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
       const totalXpGained = bonuses.finalXp + bonuses.achievementXp;
 
-      const { error } = await supabase.from("territories").insert({
-        user_id: profile.id,
-        crew_id: profile.current_crew_id,
-        street_name: finalStreet,
-        route: finalRoute,
-        distance_m: Math.round(finalDistance),
-        duration_s: Math.round(finalDuration),
+      // 4) Walk-Row aktualisieren mit echten Werten
+      const { error } = await supabase.from("territories").update({
         xp_earned: totalXpGained,
-      });
+        segments_claimed: segResp.total_new,
+        streets_claimed: segResp.newly_claimed_streets.length,
+        polygons_claimed: segResp.new_territory ? 1 : 0,
+      }).eq("id", walkRow.id);
 
       if (!error) {
         const newXp = (profile.xp || 0) + totalXpGained;
@@ -342,10 +381,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           longest_run_m: newLongest,
         });
         setSavedTerritories((prev) => [...prev, finalRoute]);
-        setTerritoryCount((c) => c + 1);
+        if (segResp.new_territory) setTerritoryCount((c) => c + 1);
 
-        // Victory-Dance triggern
-        if ((profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
+        // Victory-Dance triggern (nur bei echtem Territorium)
+        if (segResp.new_territory && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
           setVictoryTrigger((v) => v + 1);
         }
 
@@ -354,7 +393,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           duration_s: Math.round(finalDuration),
           xp_earned: bonuses.finalXp,
           streets: snapped?.streets ?? (finalStreet ? [finalStreet] : []),
-          territory_count: 1,
+          segment_count: segResp.total_new,
+          street_count: segResp.newly_claimed_streets.length,
+          territory_count: segResp.new_territory ? 1 : 0,
           bonuses: {
             streakBonus: bonuses.streakBonus,
             happyHourMult: bonuses.happyHourMult,

@@ -10,6 +10,8 @@ export type WalkSummary = {
   duration_s: number;
   xp_earned: number;
   streets: string[];
+  segment_count: number;
+  street_count: number;
   territory_count: number;
   bonuses?: {
     streakBonus: number;
@@ -173,8 +175,19 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   <span style={{ color: "#a8b4cf", fontSize: 10 }}>(Bonus übersprungen)</span>
                 )}
               </div>
-              <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 4 }}>
-                {summary.territory_count}× Territorium erobert
+              <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap", fontSize: 11 }}>
+                {summary.segment_count > 0 && (
+                  <span style={{ color: "#22D1C3" }}>🛤️ {summary.segment_count}× Abschnitt</span>
+                )}
+                {summary.street_count > 0 && (
+                  <span style={{ color: "#FF6B4A" }}>🛣️ {summary.street_count}× Straßenzug</span>
+                )}
+                {summary.territory_count > 0 && (
+                  <span style={{ color: "#FFD700", fontWeight: 800 }}>🏆 {summary.territory_count}× Territorium</span>
+                )}
+                {summary.segment_count === 0 && summary.street_count === 0 && summary.territory_count === 0 && (
+                  <span style={{ color: "#a8b4cf" }}>Keine neuen Abschnitte</span>
+                )}
               </div>
             </div>
 
