@@ -816,23 +816,32 @@ export function AppMap({
     }
 
     // ── CSS-DOM-Marker fuer Spotlight-Shops: rotierende Gold-Aura + Badge ──
-    // Alte entfernen
+    // WICHTIG: Mapbox setzt transform: translate(...) auf das Marker-Element.
+    // Eigene transform/animations MUESSEN auf einem INNER-Div laufen, sonst wird
+    // Mapbox' Positionierung ueberschrieben und Marker rutschen weg.
     spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightBadgeMarkersRef.current = [];
     spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightAuraMarkersRef.current = [];
-    // Neue erstellen (Aura zuerst damit Badge visuell oben liegt in DOM-Stack)
     shops.filter((s) => s.spotlight).forEach((s) => {
-      const auraEl = document.createElement("div");
-      auraEl.className = "ma365-shop-aura";
-      const auraMarker = new mapboxgl.Marker({ element: auraEl, anchor: "center", offset: [0, 0] })
+      // Aura: outer fuer Mapbox-Position, inner fuer CSS-Animation/Scale
+      const auraOuter = document.createElement("div");
+      auraOuter.style.pointerEvents = "none";
+      const auraInner = document.createElement("div");
+      auraInner.className = "ma365-shop-aura";
+      auraOuter.appendChild(auraInner);
+      const auraMarker = new mapboxgl.Marker({ element: auraOuter, anchor: "center", offset: [0, 0] })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      spotlightAuraMarkersRef.current.push({ marker: auraMarker, el: auraEl });
+      spotlightAuraMarkersRef.current.push({ marker: auraMarker, el: auraInner });
 
-      const badgeEl = document.createElement("div");
-      badgeEl.className = "ma365-spotlight-badge";
-      badgeEl.innerHTML = `<span class="star">⭐</span><span>SPOTLIGHT</span>`;
-      const badgeMarker = new mapboxgl.Marker({ element: badgeEl, anchor: "bottom", offset: [0, -40] })
+      // Badge: outer fuer Mapbox, inner fuer Shimmer-Animation
+      const badgeOuter = document.createElement("div");
+      badgeOuter.style.pointerEvents = "none";
+      const badgeInner = document.createElement("div");
+      badgeInner.className = "ma365-spotlight-badge";
+      badgeInner.innerHTML = `<span class="star">⭐</span><span>SPOTLIGHT</span>`;
+      badgeOuter.appendChild(badgeInner);
+      const badgeMarker = new mapboxgl.Marker({ element: badgeOuter, anchor: "bottom", offset: [0, -40] })
         .setLngLat([s.lng, s.lat]).addTo(map);
       spotlightBadgeMarkersRef.current.push({ marker: badgeMarker, shopId: s.id });
     });
