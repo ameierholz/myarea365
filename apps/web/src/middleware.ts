@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/impressum", "/agb", "/shop-dashboard", "/unsubscribe", "/leaderboard"];
+const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/impressum", "/agb", "/shop-dashboard", "/unsubscribe", "/leaderboard", "/pricing"];
 const PUBLIC_PREFIXES = ["/u/", "/crew/", "/api/share-card/"];
 
 export async function middleware(request: NextRequest) {

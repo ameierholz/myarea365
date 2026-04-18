@@ -3,6 +3,11 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { BoostShopModal as PowerShopModal } from "@/components/boost-shop";
+import { AdBanner } from "@/components/ad-banner";
+import { RewardedAdButton } from "@/components/rewarded-ad";
+import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -859,6 +864,8 @@ function ProfilTab({
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
   const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks">(null);
+  const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
+  const [showBoostShop, setShowBoostShop] = useState(false);
 
   const handleRewardedAd = () => {
     if (confirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
@@ -1405,6 +1412,82 @@ function ProfilTab({
           />
         )}
 
+        {p && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+            <AdBanner isPremium={isPremium(p as never)} onUpgradeClick={() => setShowUpgrade("plus")} />
+
+            {isPremium(p as never) ? (
+              <div style={{
+                padding: 14, borderRadius: 14,
+                background: "linear-gradient(135deg, rgba(34,209,195,0.15), rgba(255,215,0,0.12))",
+                border: "1px solid rgba(34,209,195,0.5)",
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <span style={{ fontSize: 24 }}>💎</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#22D1C3", fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>MYAREA+ AKTIV</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 10 }}>
+                    {(p as unknown as { premium_expires_at?: string }).premium_expires_at
+                      ? `Gültig bis ${new Date((p as unknown as { premium_expires_at: string }).premium_expires_at).toLocaleDateString("de-DE")}`
+                      : "Lifetime — für immer"}
+                  </div>
+                </div>
+                <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>
+                  {(p as unknown as { streak_freezes_remaining?: number }).streak_freezes_remaining ?? 0} ❄️
+                </span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowUpgrade("plus")}
+                style={{
+                  padding: 14, borderRadius: 14, border: "1px solid rgba(34,209,195,0.4)",
+                  background: "linear-gradient(135deg, rgba(34,209,195,0.08), rgba(255,45,120,0.08))",
+                  cursor: "pointer", textAlign: "left",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}
+              >
+                <span style={{ fontSize: 24 }}>💎</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>MyArea+ freischalten</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>Werbefrei · Offline-Karten · Themes · Streak-Freeze</div>
+                </div>
+                <span style={{ color: "#22D1C3", fontSize: 14, fontWeight: 900 }}>›</span>
+              </button>
+            )}
+
+            {hasActiveBoost(p as never) && (
+              <div style={{
+                padding: 10, borderRadius: 10,
+                background: "rgba(255, 215, 0, 0.15)", border: "1px solid rgba(255,215,0,0.5)",
+                display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 800, color: "#FFD700",
+              }}>
+                ⚡ {(p as unknown as { xp_boost_multiplier?: number }).xp_boost_multiplier ?? 2}× XP-Boost aktiv bis{" "}
+                {new Date((p as unknown as { xp_boost_until: string }).xp_boost_until).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowBoostShop(true)}
+              style={{
+                padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(255, 215, 0, 0.4)",
+                background: "rgba(255, 215, 0, 0.08)", cursor: "pointer", textAlign: "left",
+                display: "flex", alignItems: "center", gap: 10,
+              }}
+            >
+              <span style={{ fontSize: 22 }}>⚡</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>Power-Shop</div>
+                <div style={{ color: "#a8b4cf", fontSize: 11 }}>XP-Boosts · Streak-Freeze · Supporter-Badges</div>
+              </div>
+              <span style={{ color: "#FFD700", fontSize: 14, fontWeight: 900 }}>›</span>
+            </button>
+
+            {!isPremium(p as never) && (
+              <RewardedAdButton placement="post_walk" userId={p.id} />
+            )}
+          </div>
+        )}
+
         {/* Demo-Zone für Owner/Testing */}
         <div style={{
           marginTop: 20, padding: 14, borderRadius: 14,
@@ -1588,6 +1671,19 @@ function ProfilTab({
             <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>Support kontaktieren</a>
           </div>
         </Modal>
+      )}
+
+      {showUpgrade && p && (
+        <UpgradeModal
+          mode={showUpgrade}
+          userId={showUpgrade === "plus" ? p.id : undefined}
+          crewId={showUpgrade === "crew" ? myCrew?.id : undefined}
+          onClose={() => setShowUpgrade(null)}
+        />
+      )}
+
+      {showBoostShop && p && (
+        <PowerShopModal userId={p.id} onClose={() => setShowBoostShop(false)} />
       )}
 
       {openModal === "achievements" && (
