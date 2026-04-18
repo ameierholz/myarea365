@@ -19,7 +19,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const sb = await createClient();
 
   let q = sb.from("v_public_profiles")
-    .select("username, display_name, faction, total_distance_m, total_walks, total_xp, level, team_color")
+    .select("username, display_name, faction, total_distance_m, total_walks, total_xp, level")
     .order("total_xp", { ascending: false })
     .limit(100);
   if (sp.faction === "syndicate" || sp.faction === "vanguard") q = q.eq("faction", sp.faction);
@@ -45,7 +45,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         <div className="bg-bg-card border border-border rounded-2xl overflow-hidden">
           {(runners ?? []).map((r, i) => {
             const km = ((r.total_distance_m ?? 0) / 1000).toFixed(1);
-            const color = r.team_color || "#22D1C3";
+            const color = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#22D1C3";
             return (
               <Link
                 key={r.username}

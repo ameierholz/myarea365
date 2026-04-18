@@ -56,7 +56,7 @@ create policy users_public_leaderboard on public.users
 create or replace view public.v_public_profiles as
   select id, username, display_name, faction,
          total_distance_m, total_walks,
-         total_xp, level, team_color,
+         xp as total_xp, level,
          created_at
     from public.users
    where coalesce(privacy_leaderboard, true) = true

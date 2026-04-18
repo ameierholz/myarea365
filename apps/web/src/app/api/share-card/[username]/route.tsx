@@ -12,7 +12,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ username: strin
   const sb = await createClient();
   const { data: user } = await sb
     .from("v_public_profiles")
-    .select("username, display_name, faction, total_distance_m, total_walks, total_xp, level, team_color")
+    .select("username, display_name, faction, total_distance_m, total_walks, total_xp, level")
     .eq("username", username.toLowerCase())
     .maybeSingle();
 
@@ -21,7 +21,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ username: strin
   }
 
   const km = ((user.total_distance_m ?? 0) / 1000).toFixed(1);
-  const accent = user.team_color || "#22D1C3";
+  const accent = user.faction === "syndicate" ? "#22D1C3" : user.faction === "vanguard" ? "#FF6B4A" : "#22D1C3";
   const factionLabel = user.faction === "syndicate" ? "🌙 Nachtpuls" : user.faction === "vanguard" ? "☀️ Sonnenwacht" : "🏃";
   const url = new URL(req.url);
   const refCode = url.searchParams.get("ref");

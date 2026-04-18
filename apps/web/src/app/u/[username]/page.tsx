@@ -30,7 +30,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   if (!user) notFound();
 
   const km = ((user.total_distance_m ?? 0) / 1000).toFixed(1);
-  const color = user.team_color || "#22D1C3";
+  const color = user.faction === "syndicate" ? "#22D1C3" : user.faction === "vanguard" ? "#FF6B4A" : "#22D1C3";
   const factionLabel = user.faction === "syndicate" ? "🌙 Nachtpuls" : user.faction === "vanguard" ? "☀️ Sonnenwacht" : null;
 
   return (
