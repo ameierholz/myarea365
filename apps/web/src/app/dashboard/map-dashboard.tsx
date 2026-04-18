@@ -10,6 +10,8 @@ import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge
 import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
 import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
+import { GuardianCard } from "@/components/guardian-card";
+import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
 import { DemoBadge } from "@/components/demo-badge";
@@ -536,7 +538,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     deal_text: string; address: string; hours: string; phone: string; spotlight?: boolean;
   }>>([
     // Start: grobe Koordinaten Märkisches Viertel (werden gleich per Geocoding präzisiert)
-    { id: "shop-kaelthor",   name: "Café Kaelthor",  lat: 52.5421, lng: 13.5653, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 91, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
+    { id: "aaaaaaaa-1111-1111-1111-111111111111",   name: "Café Kaelthor",  lat: 52.5421, lng: 13.5653, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 91, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
     { id: "shop-bio-bowl",   name: "Bio-Bowl",       lat: 52.5965, lng: 13.3480, icon: "🥗", color: "#4ade80", deal_text: "Gratis Smoothie zur Bowl", address: "Königshorster Straße 8, 13435 Berlin", hours: "Mo–Sa 11–21, So Ruhetag", phone: "030 98765432" },
     { id: "shop-runners-pt", name: "Runners Point",  lat: 52.5920, lng: 13.3465, icon: "🛍️", color: "#22D1C3", deal_text: "15% auf den Einkauf",       address: "Wilhelmsruher Damm 117, 13439 Berlin", hours: "Mo–Sa 10–20",              phone: "030 55512345" },
   ]);
@@ -7173,8 +7175,41 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
   const activeMembers = DEMO_CREW_MEMBERS.filter((m) => m.weekly_km > 0).length;
   const activePct = Math.round((activeMembers / DEMO_CREW_MEMBERS.length) * 100);
 
+  // Waechter laden (live aus DB)
+  const sb = useMemo(() => createClient(), []);
+  const [guardian, setGuardian] = useState<GuardianWithArchetype | null>(null);
+  const [trophies, setTrophies] = useState<Array<{ id: string; archetype_id: string; captured_level: number }>>([]);
+  useEffect(() => {
+    (async () => {
+      const { data: g } = await sb.from("crew_guardians")
+        .select("id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+        .eq("crew_id", crew.id).eq("is_active", true).maybeSingle();
+      if (!g) return;
+      const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single();
+      if (arch) setGuardian({ ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch });
+      const { data: t } = await sb.from("guardian_trophies").select("id, archetype_id, captured_level").eq("crew_id", crew.id);
+      if (t) setTrophies(t);
+    })();
+  }, [sb, crew.id]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* ═══ Waechter ═══ */}
+      {guardian && (
+        <div>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+            🛡️ EUER WÄCHTER
+          </div>
+          <GuardianCard guardian={guardian} />
+          {trophies.length > 0 && (
+            <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)" }}>
+              <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>🏆 {trophies.length} TROPHÄE{trophies.length > 1 ? "N" : ""}</div>
+              <div style={{ color: "#a8b4cf", fontSize: 11 }}>Gefangene Wächter anderer Crews</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Rivalen-Duell */}
       <div style={{
         background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 14,
