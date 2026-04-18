@@ -686,32 +686,45 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Halo-Prio: Arena gewinnt (lila/pink) → Spotlight (gold) nur wenn NICHT Arena
+      // Spotlight-Halo (Gold). Für Shops mit Spotlight ODER Arena sichtbar, Gold wins.
       map.addLayer({
         id: LYR_HALO_OUTER, type: "circle", source: SRC,
         paint: {
-          "circle-color": ["case", ["==", ["get", "arena"], true], "#a855f7", "#FFD700"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 22, 15, 65, 18, 110],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.28, 0],
-          "circle-blur": 1.2,
+          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFD700", "#a855f7"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 18, 15, 55, 18, 95],
+          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.22, 0],
+          "circle-blur": 1.1,
         },
       });
       map.addLayer({
         id: LYR_HALO_MID, type: "circle", source: SRC,
         paint: {
-          "circle-color": ["case", ["==", ["get", "arena"], true], "#FF2D78", "#FFD700"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 14, 15, 44, 18, 74],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.60, 0],
-          "circle-blur": 0.65,
+          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFD700", "#a855f7"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 12, 15, 38, 18, 64],
+          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.55, 0],
+          "circle-blur": 0.7,
         },
       });
       map.addLayer({
         id: LYR_HALO_CORE, type: "circle", source: SRC,
         paint: {
-          "circle-color": ["case", ["==", ["get", "arena"], true], "#c084fc", "#FFF3A0"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 8, 15, 25, 18, 42],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.72, 0],
-          "circle-blur": 0.2,
+          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFF3A0", "#d8b4fe"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 7, 15, 22, 18, 38],
+          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.65, 0],
+          "circle-blur": 0.25,
+        },
+      });
+      // Arena-Extra-Ring: scharfer lila/magenta Akzent ZUSÄTZLICH zum Gold
+      map.addLayer({
+        id: LYR_HALO_OUTER + "-arena", type: "circle", source: SRC,
+        paint: {
+          "circle-color": "#FF2D78",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 10, 15, 32, 18, 55],
+          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.45, 0],
+          "circle-blur": 0.5,
+          "circle-stroke-color": "#a855f7",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 12, 1.5, 15, 2.5, 18, 4],
+          "circle-stroke-opacity": ["case", ["==", ["get", "arena"], true], 0.85, 0],
         },
       });
       map.addLayer({
@@ -728,8 +741,8 @@ export function AppMap({
         id: LYR_BADGE, type: "symbol", source: SRC,
         layout: {
           "icon-image": "badge-spotlight",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.18, 15, 0.42, 18, 0.68],
-          "icon-offset": [0, -380],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.10, 15, 0.22, 18, 0.34],
+          "icon-offset": [0, -260],
           "icon-anchor": "bottom",
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
@@ -790,6 +803,12 @@ export function AppMap({
             map.setPaintProperty(LYR_HALO_CORE, "circle-opacity",
               ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.62 + p1 * 0.25, 0]);
           }
+          if (map.getLayer(LYR_HALO_OUTER + "-arena")) {
+            map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-opacity",
+              ["case", ["==", ["get", "arena"], true], 0.45 + p2 * 0.25, 0]);
+            map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-stroke-opacity",
+              ["case", ["==", ["get", "arena"], true], 0.85 + p1 * 0.15, 0]);
+          }
         } catch { cancelled = true; return; }
         requestAnimationFrame(pulse);
       };
@@ -803,7 +822,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_BADGE, LYR_PIN, LYR_HALO_CORE, LYR_HALO_MID, LYR_HALO_OUTER].forEach((l) => {
+        [LYR_LABEL, LYR_BADGE, LYR_PIN, LYR_HALO_CORE, LYR_HALO_MID, LYR_HALO_OUTER, LYR_HALO_OUTER + "-arena"].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
