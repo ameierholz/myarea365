@@ -11,6 +11,7 @@ import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-mo
 import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
+import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
@@ -1333,7 +1334,7 @@ function ProfilTab({
         />
 
         {/* ═══ WÄCHTER ═══ */}
-        <SectionHeader title="WÄCHTER" />
+        <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
         <ProfileGuardianBlock userId={p?.id ?? null} />
 
         {/* ═══ LETZTE LÄUFE ═══ */}
@@ -7215,11 +7216,14 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {/* ═══ Aktiver Waechter (kompakt) ═══ */}
       {guardian && (
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8 }}>
             <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>🛡️ DEIN WÄCHTER</div>
-            {trophies.length > 0 && (
-              <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900 }}>🏆 {trophies.length}</span>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {trophies.length > 0 && (
+                <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900 }}>🏆 {trophies.length}</span>
+              )}
+              <GuardianHelpButton />
+            </div>
           </div>
           <GuardianCard guardian={guardian} compact />
         </div>
@@ -7469,7 +7473,10 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
       {/* Mein Waechter — groß */}
       {myGuardian && (
         <div>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>⚔️ DEIN WÄCHTER</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>⚔️ DEIN WÄCHTER</div>
+            <GuardianHelpButton />
+          </div>
           <GuardianCard guardian={myGuardian} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 10 }}>
             <MiniKpi label="Siege" value={`${myGuardian.wins}`} color="#4ade80" />
