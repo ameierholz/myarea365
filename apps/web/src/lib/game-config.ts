@@ -509,13 +509,14 @@ export type RankingRunner = {
   region: string;
   city: string;
   zip: string;
+  supporter_tier?: "bronze" | "silver" | "gold" | null;
 };
 
 export const DEMO_RANKING_RUNNERS: RankingRunner[] = [
-  { id: "r1",  username: "NeonFuchs",   display_name: "Lena K.",   avatar_emoji: "🦊", crew_name: "Kiez Läufer 13435", crew_color: "#22D1C3", rank_name: "Kiez-König",        weekly_km: 48.2, weekly_xp: 2820, total_xp: 184_200, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13435" },
-  { id: "r2",  username: "Pacer99",     display_name: "Jonas B.",  avatar_emoji: "🚀", crew_name: "Prenzl'Pack",       crew_color: "#a855f7", rank_name: "Bezirks-Entdecker", weekly_km: 42.1, weekly_xp: 2410, total_xp: 156_800, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "10405" },
-  { id: "r3",  username: "KiezKönig",   display_name: "Sam M.",    avatar_emoji: "👑", crew_name: "Alex-Runners",      crew_color: "#FF2D78", rank_name: "Viertel-Boss",      weekly_km: 38.6, weekly_xp: 2230, total_xp: 142_100, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Mitte",           zip: "10178" },
-  { id: "r4",  username: "StadtPuma",   display_name: "Ines R.",   avatar_emoji: "🐆", crew_name: "Kiez Läufer 13435", crew_color: "#22D1C3", rank_name: "Stadt-Pionier",     weekly_km: 31.8, weekly_xp: 1980, total_xp: 98_400,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13435" },
+  { id: "r1",  username: "NeonFuchs",   display_name: "Lena K.",   avatar_emoji: "🦊", crew_name: "Kiez Läufer 13435", crew_color: "#22D1C3", rank_name: "Kiez-König",        weekly_km: 48.2, weekly_xp: 2820, total_xp: 184_200, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13435", supporter_tier: "gold" },
+  { id: "r2",  username: "Pacer99",     display_name: "Jonas B.",  avatar_emoji: "🚀", crew_name: "Prenzl'Pack",       crew_color: "#a855f7", rank_name: "Bezirks-Entdecker", weekly_km: 42.1, weekly_xp: 2410, total_xp: 156_800, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "10405", supporter_tier: "silver" },
+  { id: "r3",  username: "KiezKönig",   display_name: "Sam M.",    avatar_emoji: "👑", crew_name: "Alex-Runners",      crew_color: "#FF2D78", rank_name: "Viertel-Boss",      weekly_km: 38.6, weekly_xp: 2230, total_xp: 142_100, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Mitte",           zip: "10178", supporter_tier: "bronze" },
+  { id: "r4",  username: "StadtPuma",   display_name: "Ines R.",   avatar_emoji: "🐆", crew_name: "Kiez Läufer 13435", crew_color: "#22D1C3", rank_name: "Stadt-Pionier",     weekly_km: 31.8, weekly_xp: 1980, total_xp: 98_400,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13435", supporter_tier: "bronze" },
   { id: "r5",  username: "Schrittzahl", display_name: "Tim H.",    avatar_emoji: "👟", crew_name: "Weißensee Walker",  crew_color: "#4ade80", rank_name: "Block-Kundschafter",weekly_km: 24.4, weekly_xp: 1520, total_xp: 67_300,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Pankow",          zip: "13086" },
   { id: "r6",  username: "WegFinder",   display_name: "Aylin S.",  avatar_emoji: "🧭", crew_name: null,                crew_color: null,       rank_name: "Kiez-Wanderer",     weekly_km: 19.1, weekly_xp: 1240, total_xp: 41_200,  continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Kreuzberg",       zip: "10999" },
   { id: "r7",  username: "BockBube",    display_name: "Max R.",    avatar_emoji: "🐐", crew_name: "Kreuzkölln Runners",crew_color: "#F97316", rank_name: "Metropolen-Legende",weekly_km: 58.7, weekly_xp: 3320, total_xp: 312_400, continent: "Europa", country: "Deutschland", state: "Berlin",  region: "Berlin",    city: "Kreuzberg",       zip: "10999" },
@@ -1294,6 +1295,139 @@ export const DEMO_FACTION_STATS = {
   sonnenwacht: { runners: 69, km_week: 389.2, territories: 291 },
   city: "Berlin",
 };
+
+export type FactionCityStats = {
+  continent: string; country: string; state: string; region: string; city: string; zip: string;
+  nachtpuls: { runners: number; km_week: number; territories: number };
+  sonnenwacht: { runners: number; km_week: number; territories: number };
+};
+
+export const DEMO_FACTION_RANKING: FactionCityStats[] = [
+  // ═══ EUROPA · DEUTSCHLAND ═══
+  // Berlin
+  { continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",     city: "Pankow",       zip: "13435", nachtpuls: { runners: 74, km_week: 412, territories: 318 }, sonnenwacht: { runners: 69, km_week: 389, territories: 291 } },
+  { continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",     city: "Kreuzberg",    zip: "10997", nachtpuls: { runners: 58, km_week: 321, territories: 241 }, sonnenwacht: { runners: 62, km_week: 342, territories: 256 } },
+  { continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",     city: "Mitte",        zip: "10115", nachtpuls: { runners: 41, km_week: 228, territories: 178 }, sonnenwacht: { runners: 47, km_week: 261, territories: 198 } },
+  { continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",     city: "Friedrichshain", zip: "10243", nachtpuls: { runners: 49, km_week: 272, territories: 208 }, sonnenwacht: { runners: 44, km_week: 241, territories: 182 } },
+  { continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",     city: "Neukölln",     zip: "12043", nachtpuls: { runners: 53, km_week: 294, territories: 221 }, sonnenwacht: { runners: 50, km_week: 277, territories: 204 } },
+  { continent: "Europa", country: "Deutschland", state: "Berlin",              region: "Berlin",     city: "Charlottenburg", zip: "10629", nachtpuls: { runners: 32, km_week: 178, territories: 132 }, sonnenwacht: { runners: 39, km_week: 216, territories: 164 } },
+  // Hamburg
+  { continent: "Europa", country: "Deutschland", state: "Hamburg",             region: "Hamburg",    city: "Altona",       zip: "22765", nachtpuls: { runners: 52, km_week: 289, territories: 212 }, sonnenwacht: { runners: 48, km_week: 271, territories: 198 } },
+  { continent: "Europa", country: "Deutschland", state: "Hamburg",             region: "Hamburg",    city: "St. Pauli",    zip: "20359", nachtpuls: { runners: 36, km_week: 198, territories: 142 }, sonnenwacht: { runners: 33, km_week: 178, territories: 131 } },
+  { continent: "Europa", country: "Deutschland", state: "Hamburg",             region: "Hamburg",    city: "Eimsbüttel",   zip: "20259", nachtpuls: { runners: 28, km_week: 154, territories: 116 }, sonnenwacht: { runners: 31, km_week: 171, territories: 128 } },
+  { continent: "Europa", country: "Deutschland", state: "Hamburg",             region: "Hamburg",    city: "HafenCity",    zip: "20457", nachtpuls: { runners: 19, km_week: 104, territories: 78 },  sonnenwacht: { runners: 22, km_week: 121, territories: 89 } },
+  // Bayern
+  { continent: "Europa", country: "Deutschland", state: "Bayern",              region: "München",    city: "Schwabing",    zip: "80798", nachtpuls: { runners: 44, km_week: 241, territories: 189 }, sonnenwacht: { runners: 51, km_week: 278, territories: 212 } },
+  { continent: "Europa", country: "Deutschland", state: "Bayern",              region: "München",    city: "Maxvorstadt",  zip: "80333", nachtpuls: { runners: 29, km_week: 158, territories: 118 }, sonnenwacht: { runners: 34, km_week: 182, territories: 139 } },
+  { continent: "Europa", country: "Deutschland", state: "Bayern",              region: "München",    city: "Haidhausen",   zip: "81667", nachtpuls: { runners: 25, km_week: 136, territories: 102 }, sonnenwacht: { runners: 28, km_week: 152, territories: 116 } },
+  { continent: "Europa", country: "Deutschland", state: "Bayern",              region: "Nürnberg",   city: "Gostenhof",    zip: "90443", nachtpuls: { runners: 21, km_week: 116, territories: 88 },  sonnenwacht: { runners: 18, km_week: 99,  territories: 74 } },
+  // NRW
+  { continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Köln",       city: "Ehrenfeld",    zip: "50823", nachtpuls: { runners: 38, km_week: 211, territories: 156 }, sonnenwacht: { runners: 42, km_week: 231, territories: 178 } },
+  { continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Köln",       city: "Südstadt",     zip: "50678", nachtpuls: { runners: 26, km_week: 142, territories: 102 }, sonnenwacht: { runners: 24, km_week: 131, territories: 94 } },
+  { continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Düsseldorf", city: "Bilk",         zip: "40223", nachtpuls: { runners: 31, km_week: 171, territories: 128 }, sonnenwacht: { runners: 28, km_week: 154, territories: 116 } },
+  { continent: "Europa", country: "Deutschland", state: "Nordrhein-Westfalen", region: "Dortmund",   city: "Kreuzviertel", zip: "44137", nachtpuls: { runners: 23, km_week: 127, territories: 96 },  sonnenwacht: { runners: 20, km_week: 111, territories: 82 } },
+  // Hessen
+  { continent: "Europa", country: "Deutschland", state: "Hessen",              region: "Frankfurt",  city: "Nordend",      zip: "60316", nachtpuls: { runners: 31, km_week: 172, territories: 128 }, sonnenwacht: { runners: 28, km_week: 156, territories: 114 } },
+  { continent: "Europa", country: "Deutschland", state: "Hessen",              region: "Frankfurt",  city: "Bornheim",     zip: "60385", nachtpuls: { runners: 24, km_week: 132, territories: 98 },  sonnenwacht: { runners: 27, km_week: 148, territories: 112 } },
+  // Baden-Württemberg
+  { continent: "Europa", country: "Deutschland", state: "Baden-Württemberg",   region: "Stuttgart",  city: "West",         zip: "70178", nachtpuls: { runners: 29, km_week: 161, territories: 121 }, sonnenwacht: { runners: 33, km_week: 182, territories: 138 } },
+  { continent: "Europa", country: "Deutschland", state: "Baden-Württemberg",   region: "Karlsruhe",  city: "Oststadt",     zip: "76131", nachtpuls: { runners: 19, km_week: 104, territories: 78 },  sonnenwacht: { runners: 22, km_week: 121, territories: 89 } },
+  // Sachsen
+  { continent: "Europa", country: "Deutschland", state: "Sachsen",             region: "Leipzig",    city: "Südvorstadt",  zip: "04275", nachtpuls: { runners: 32, km_week: 178, territories: 134 }, sonnenwacht: { runners: 29, km_week: 161, territories: 121 } },
+  { continent: "Europa", country: "Deutschland", state: "Sachsen",             region: "Dresden",    city: "Neustadt",     zip: "01099", nachtpuls: { runners: 27, km_week: 148, territories: 112 }, sonnenwacht: { runners: 24, km_week: 132, territories: 98 } },
+
+  // ═══ EUROPA · ÖSTERREICH ═══
+  { continent: "Europa", country: "Österreich",  state: "Wien",                region: "Wien",       city: "Neubau",       zip: "1070",  nachtpuls: { runners: 34, km_week: 188, territories: 141 }, sonnenwacht: { runners: 38, km_week: 208, territories: 156 } },
+  { continent: "Europa", country: "Österreich",  state: "Wien",                region: "Wien",       city: "Leopoldstadt", zip: "1020",  nachtpuls: { runners: 22, km_week: 121, territories: 88 },  sonnenwacht: { runners: 19, km_week: 104, territories: 76 } },
+  { continent: "Europa", country: "Österreich",  state: "Wien",                region: "Wien",       city: "Josefstadt",   zip: "1080",  nachtpuls: { runners: 17, km_week: 94,  territories: 71 },  sonnenwacht: { runners: 20, km_week: 109, territories: 82 } },
+  { continent: "Europa", country: "Österreich",  state: "Salzburg",            region: "Salzburg",   city: "Altstadt",     zip: "5020",  nachtpuls: { runners: 14, km_week: 77,  territories: 58 },  sonnenwacht: { runners: 16, km_week: 88,  territories: 66 } },
+  { continent: "Europa", country: "Österreich",  state: "Tirol",               region: "Innsbruck",  city: "Wilten",       zip: "6020",  nachtpuls: { runners: 12, km_week: 66,  territories: 49 },  sonnenwacht: { runners: 11, km_week: 61,  territories: 45 } },
+
+  // ═══ EUROPA · SCHWEIZ ═══
+  { continent: "Europa", country: "Schweiz",     state: "Zürich",              region: "Zürich",     city: "Kreis 4",      zip: "8004",  nachtpuls: { runners: 28, km_week: 156, territories: 118 }, sonnenwacht: { runners: 31, km_week: 172, territories: 131 } },
+  { continent: "Europa", country: "Schweiz",     state: "Zürich",              region: "Zürich",     city: "Kreis 5",      zip: "8005",  nachtpuls: { runners: 24, km_week: 132, territories: 98 },  sonnenwacht: { runners: 27, km_week: 148, territories: 112 } },
+  { continent: "Europa", country: "Schweiz",     state: "Bern",                region: "Bern",       city: "Länggasse",    zip: "3012",  nachtpuls: { runners: 18, km_week: 99,  territories: 72 },  sonnenwacht: { runners: 21, km_week: 116, territories: 86 } },
+  { continent: "Europa", country: "Schweiz",     state: "Genf",                region: "Genf",       city: "Eaux-Vives",   zip: "1207",  nachtpuls: { runners: 16, km_week: 88,  territories: 66 },  sonnenwacht: { runners: 14, km_week: 77,  territories: 58 } },
+  { continent: "Europa", country: "Schweiz",     state: "Basel-Stadt",         region: "Basel",      city: "Kleinbasel",   zip: "4058",  nachtpuls: { runners: 20, km_week: 110, territories: 82 },  sonnenwacht: { runners: 18, km_week: 99,  territories: 74 } },
+
+  // ═══ EUROPA · ANDERE LÄNDER ═══
+  { continent: "Europa", country: "Niederlande", state: "Nordholland",         region: "Amsterdam",  city: "De Pijp",      zip: "1072",  nachtpuls: { runners: 41, km_week: 226, territories: 168 }, sonnenwacht: { runners: 37, km_week: 204, territories: 152 } },
+  { continent: "Europa", country: "Niederlande", state: "Südholland",          region: "Rotterdam",  city: "Kralingen",    zip: "3062",  nachtpuls: { runners: 28, km_week: 154, territories: 116 }, sonnenwacht: { runners: 26, km_week: 143, territories: 108 } },
+  { continent: "Europa", country: "Frankreich",  state: "Île-de-France",       region: "Paris",      city: "11e Arr.",     zip: "75011", nachtpuls: { runners: 56, km_week: 308, territories: 231 }, sonnenwacht: { runners: 62, km_week: 341, territories: 256 } },
+  { continent: "Europa", country: "Frankreich",  state: "Île-de-France",       region: "Paris",      city: "18e Arr.",     zip: "75018", nachtpuls: { runners: 48, km_week: 264, territories: 198 }, sonnenwacht: { runners: 51, km_week: 281, territories: 212 } },
+  { continent: "Europa", country: "Frankreich",  state: "Auvergne-Rhône-Alpes", region: "Lyon",      city: "Croix-Rousse", zip: "69004", nachtpuls: { runners: 26, km_week: 143, territories: 108 }, sonnenwacht: { runners: 29, km_week: 161, territories: 121 } },
+  { continent: "Europa", country: "Spanien",     state: "Katalonien",          region: "Barcelona",  city: "Gràcia",       zip: "08012", nachtpuls: { runners: 44, km_week: 242, territories: 181 }, sonnenwacht: { runners: 49, km_week: 270, territories: 204 } },
+  { continent: "Europa", country: "Spanien",     state: "Madrid",              region: "Madrid",     city: "Malasaña",     zip: "28004", nachtpuls: { runners: 38, km_week: 209, territories: 158 }, sonnenwacht: { runners: 42, km_week: 231, territories: 174 } },
+  { continent: "Europa", country: "Italien",     state: "Lombardei",           region: "Mailand",    city: "Navigli",      zip: "20143", nachtpuls: { runners: 35, km_week: 193, territories: 146 }, sonnenwacht: { runners: 32, km_week: 176, territories: 131 } },
+  { continent: "Europa", country: "Italien",     state: "Latium",              region: "Rom",        city: "Trastevere",   zip: "00153", nachtpuls: { runners: 29, km_week: 160, territories: 121 }, sonnenwacht: { runners: 33, km_week: 182, territories: 138 } },
+  { continent: "Europa", country: "Vereinigtes Königreich", state: "England",  region: "London",     city: "Shoreditch",   zip: "E2",    nachtpuls: { runners: 61, km_week: 336, territories: 252 }, sonnenwacht: { runners: 55, km_week: 303, territories: 228 } },
+  { continent: "Europa", country: "Vereinigtes Königreich", state: "England",  region: "London",     city: "Camden",       zip: "NW1",   nachtpuls: { runners: 52, km_week: 286, territories: 214 }, sonnenwacht: { runners: 48, km_week: 264, territories: 198 } },
+  { continent: "Europa", country: "Vereinigtes Königreich", state: "England",  region: "Manchester", city: "Northern Quarter", zip: "M4", nachtpuls: { runners: 34, km_week: 187, territories: 141 }, sonnenwacht: { runners: 31, km_week: 171, territories: 128 } },
+  { continent: "Europa", country: "Polen",       state: "Masowien",            region: "Warschau",   city: "Praga",        zip: "03-734", nachtpuls: { runners: 27, km_week: 148, territories: 112 }, sonnenwacht: { runners: 24, km_week: 132, territories: 98 } },
+  { continent: "Europa", country: "Schweden",    state: "Stockholms län",      region: "Stockholm",  city: "Södermalm",    zip: "11646", nachtpuls: { runners: 33, km_week: 182, territories: 138 }, sonnenwacht: { runners: 30, km_week: 165, territories: 124 } },
+  { continent: "Europa", country: "Dänemark",    state: "Hauptstadt",          region: "Kopenhagen", city: "Vesterbro",    zip: "1620",  nachtpuls: { runners: 29, km_week: 160, territories: 121 }, sonnenwacht: { runners: 26, km_week: 143, territories: 108 } },
+
+  // ═══ NORDAMERIKA ═══
+  { continent: "Nordamerika", country: "USA",    state: "New York",            region: "NYC",        city: "Brooklyn",     zip: "11201", nachtpuls: { runners: 88, km_week: 484, territories: 362 }, sonnenwacht: { runners: 82, km_week: 451, territories: 339 } },
+  { continent: "Nordamerika", country: "USA",    state: "New York",            region: "NYC",        city: "Manhattan",    zip: "10001", nachtpuls: { runners: 102, km_week: 561, territories: 421 }, sonnenwacht: { runners: 94, km_week: 517, territories: 389 } },
+  { continent: "Nordamerika", country: "USA",    state: "California",          region: "SF",         city: "Mission",      zip: "94110", nachtpuls: { runners: 67, km_week: 368, territories: 276 }, sonnenwacht: { runners: 72, km_week: 396, territories: 298 } },
+  { continent: "Nordamerika", country: "USA",    state: "California",          region: "LA",         city: "Silverlake",   zip: "90026", nachtpuls: { runners: 54, km_week: 297, territories: 224 }, sonnenwacht: { runners: 61, km_week: 336, territories: 252 } },
+  { continent: "Nordamerika", country: "USA",    state: "Illinois",            region: "Chicago",    city: "Wicker Park",  zip: "60622", nachtpuls: { runners: 41, km_week: 226, territories: 168 }, sonnenwacht: { runners: 38, km_week: 209, territories: 158 } },
+  { continent: "Nordamerika", country: "Kanada", state: "Ontario",             region: "Toronto",    city: "Kensington",   zip: "M5T",   nachtpuls: { runners: 46, km_week: 253, territories: 191 }, sonnenwacht: { runners: 43, km_week: 236, territories: 178 } },
+  { continent: "Nordamerika", country: "Kanada", state: "Québec",              region: "Montréal",   city: "Plateau",      zip: "H2J",   nachtpuls: { runners: 38, km_week: 209, territories: 158 }, sonnenwacht: { runners: 41, km_week: 226, territories: 168 } },
+
+  // ═══ ASIEN ═══
+  { continent: "Asien",    country: "Japan",     state: "Tokio",                region: "Tokio",     city: "Shibuya",      zip: "150",   nachtpuls: { runners: 94, km_week: 517, territories: 389 }, sonnenwacht: { runners: 88, km_week: 484, territories: 362 } },
+  { continent: "Asien",    country: "Japan",     state: "Tokio",                region: "Tokio",     city: "Shinjuku",     zip: "160",   nachtpuls: { runners: 102, km_week: 561, territories: 421 }, sonnenwacht: { runners: 97, km_week: 534, territories: 401 } },
+  { continent: "Asien",    country: "Japan",     state: "Osaka",                region: "Osaka",     city: "Namba",        zip: "542",   nachtpuls: { runners: 58, km_week: 319, territories: 241 }, sonnenwacht: { runners: 54, km_week: 297, territories: 224 } },
+  { continent: "Asien",    country: "Südkorea",  state: "Seoul",                region: "Seoul",     city: "Hongdae",      zip: "04039", nachtpuls: { runners: 72, km_week: 396, territories: 298 }, sonnenwacht: { runners: 68, km_week: 374, territories: 281 } },
+  { continent: "Asien",    country: "Singapur",  state: "Singapur",             region: "Singapur",  city: "Tiong Bahru",  zip: "160001", nachtpuls: { runners: 34, km_week: 187, territories: 141 }, sonnenwacht: { runners: 37, km_week: 204, territories: 152 } },
+
+  // ═══ OZEANIEN ═══
+  { continent: "Ozeanien", country: "Australien", state: "NSW",                region: "Sydney",    city: "Surry Hills",  zip: "2010",  nachtpuls: { runners: 48, km_week: 264, territories: 198 }, sonnenwacht: { runners: 52, km_week: 286, territories: 214 } },
+  { continent: "Ozeanien", country: "Australien", state: "Victoria",           region: "Melbourne", city: "Fitzroy",      zip: "3065",  nachtpuls: { runners: 42, km_week: 231, territories: 174 }, sonnenwacht: { runners: 46, km_week: 253, territories: 191 } },
+  { continent: "Ozeanien", country: "Neuseeland", state: "Auckland",           region: "Auckland",  city: "Ponsonby",     zip: "1011",  nachtpuls: { runners: 21, km_week: 116, territories: 88 },  sonnenwacht: { runners: 19, km_week: 104, territories: 78 } },
+
+  // ═══ SÜDAMERIKA ═══
+  { continent: "Südamerika", country: "Brasilien", state: "São Paulo",         region: "São Paulo", city: "Vila Madalena", zip: "05434", nachtpuls: { runners: 56, km_week: 308, territories: 231 }, sonnenwacht: { runners: 61, km_week: 336, territories: 252 } },
+  { continent: "Südamerika", country: "Argentinien", state: "Buenos Aires",    region: "Buenos Aires", city: "Palermo",   zip: "C1425", nachtpuls: { runners: 44, km_week: 242, territories: 181 }, sonnenwacht: { runners: 41, km_week: 226, territories: 168 } },
+];
+
+export type FactionBucket = {
+  key: string;
+  label: string;
+  nachtpuls: { runners: number; km_week: number; territories: number };
+  sonnenwacht: { runners: number; km_week: number; territories: number };
+  child_count: number;
+};
+
+export function groupFactionsByLevel(
+  items: FactionCityStats[],
+  level: "continent" | "country" | "state" | "region" | "city" | "zip",
+): FactionBucket[] {
+  const map = new Map<string, FactionCityStats[]>();
+  for (const it of items) {
+    const key = it[level];
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(it);
+  }
+  return Array.from(map.entries())
+    .map(([key, list]) => ({
+      key, label: key,
+      nachtpuls: {
+        runners: list.reduce((s, x) => s + x.nachtpuls.runners, 0),
+        km_week: list.reduce((s, x) => s + x.nachtpuls.km_week, 0),
+        territories: list.reduce((s, x) => s + x.nachtpuls.territories, 0),
+      },
+      sonnenwacht: {
+        runners: list.reduce((s, x) => s + x.sonnenwacht.runners, 0),
+        km_week: list.reduce((s, x) => s + x.sonnenwacht.km_week, 0),
+        territories: list.reduce((s, x) => s + x.sonnenwacht.territories, 0),
+      },
+      child_count: list.length,
+    }))
+    .sort((a, b) => (b.nachtpuls.km_week + b.sonnenwacht.km_week) - (a.nachtpuls.km_week + a.sonnenwacht.km_week));
+}
 
 export const DEMO_NEARBY_CREWS_MAP: { name: string; faction: "syndicate" | "vanguard"; members: number; distance_m: number; color: string; invite_code: string }[] = [
   { name: "Kaelthors Kiez-Crew", faction: "syndicate", members: 6, distance_m: 0, color: "#22D1C3", invite_code: "KAEL-DEMO" },

@@ -6,6 +6,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import "@/styles/globals.css";
 import { PrefsBoot } from "@/components/prefs-boot";
 import { ReferralCapture } from "@/components/referral-capture";
+import { AppDialogProvider } from "@/components/app-dialog";
 
 export const metadata: Metadata = {
   title: {
@@ -41,6 +42,7 @@ export default async function RootLayout({
       <body className="bg-bg text-text antialiased font-sans h-full">
         <PrefsBoot />
         <ReferralCapture />
+        <AppDialogProvider />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

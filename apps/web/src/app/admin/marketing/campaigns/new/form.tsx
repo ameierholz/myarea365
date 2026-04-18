@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Input, Select, Textarea } from "../../../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 type Segment = { id: string; name: string; description: string | null; sql_filter: string; user_count: number };
 
@@ -33,7 +34,7 @@ export function CampaignForm({ segments }: { segments: Segment[] }) {
         segment_name: segment, segment_query: selectedSeg?.sql_filter ?? "true",
         status,
       }).select("id").single();
-      if (error) { alert("Fehler: " + error.message); return; }
+      if (error) { appAlert("Fehler: " + error.message); return; }
       await sb.from("admin_audit_log").insert({ action: "campaign.create", target_type: "campaign", target_id: data.id });
       router.push(`/admin/marketing/campaigns/${data.id}`);
     });

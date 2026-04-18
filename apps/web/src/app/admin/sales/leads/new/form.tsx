@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Input, Select, Textarea } from "../../../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 export function LeadForm() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export function LeadForm() {
         ...f,
         value_eur: f.value_eur ? Number(f.value_eur) : null,
       }).select("id").single();
-      if (error) { alert(error.message); return; }
+      if (error) { appAlert(error.message); return; }
       await sb.from("admin_audit_log").insert({ action: "lead.create", target_type: "lead", target_id: data.id });
       router.push(`/admin/sales/leads/${data.id}`);
     });

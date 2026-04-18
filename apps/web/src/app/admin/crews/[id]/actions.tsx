@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "../../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 export function CrewActions({ crewId }: { crewId: string }) {
   const router = useRouter();
@@ -26,8 +27,8 @@ export function CrewActions({ crewId }: { crewId: string }) {
       <Button variant="secondary" onClick={() => act("group.privacy_private", async () => {
         await sb.from("groups").update({ privacy: "private" }).eq("id", crewId);
       })} disabled={pending}>🔒 Privat setzen</Button>
-      <Button variant="danger" onClick={() => {
-        if (!confirm("Crew wirklich auflösen? Alle Mitgliedschaften werden entfernt.")) return;
+      <Button variant="danger" onClick={async () => {
+        if (!(await appConfirm({ message: "Crew wirklich auflösen? Alle Mitgliedschaften werden entfernt.", danger: true, confirmLabel: "Auflösen" }))) return;
         act("group.delete", async () => {
           await sb.from("group_members").delete().eq("group_id", crewId);
           await sb.from("groups").delete().eq("id", crewId);

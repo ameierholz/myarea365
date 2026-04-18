@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Input } from "../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 type Entry = { key: string; value: unknown; description: string | null; updated_at: string };
 
@@ -18,7 +19,7 @@ export function GamificationEditor({ entries }: { entries: Entry[] }) {
   function save(key: string) {
     start(async () => {
       let parsed: unknown;
-      try { parsed = JSON.parse(values[key]); } catch { alert("Ungültiges JSON"); return; }
+      try { parsed = JSON.parse(values[key]); } catch { appAlert("Ungültiges JSON"); return; }
       await sb.from("gamification_config").update({ value: parsed, updated_at: new Date().toISOString() }).eq("key", key);
       await sb.from("admin_audit_log").insert({ action: "gamification.update", target_type: "config", target_id: key, details: { value: parsed } });
       router.refresh();

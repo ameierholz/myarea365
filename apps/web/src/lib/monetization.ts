@@ -50,7 +50,6 @@ export const BOOST_PACKS = {
 };
 
 export const EXTRAS = {
-  crew_slot:     { sku: "crew_slot",     name: "Eigene Crew gründen",      price: 499 },
   streak_pack_5: { sku: "streak_pack_5", name: "5× Streak-Freeze",         price: 299 },
   badge_bronze:  { sku: "badge_bronze",  name: "Bronze-Supporter-Badge",   price: 199 },
   badge_silver:  { sku: "badge_silver",  name: "Silber-Supporter-Badge",   price: 499 },
@@ -64,7 +63,7 @@ export function formatPrice(cents: number): string {
 // ── Ad-Rewards ────────────────────────────────────────
 
 export const AD_REWARDS = {
-  post_walk:    { xp: 100, cooldown_min: 60,  label: "Lauf-Bonus",            description: "+100 XP für 30 Sek Video" },
+  post_walk:    { xp: 100, cooldown_min: 720, label: "Lauf-Bonus",            description: "+100 XP für 30 Sek Video" },
   boost_24h:    { xp: 0,   cooldown_min: 1440, label: "24h Doppel-XP",         description: "Kurzes Video für 24h 2× XP" },
   double_xp:    { xp: 0,   cooldown_min: 360, label: "15 Min Doppel-XP",       description: "Direkt-Boost für nächsten Lauf" },
   streak_save:  { xp: 0,   cooldown_min: 720, label: "Streak retten",          description: "Verpasster Tag einmalig verzeihen" },

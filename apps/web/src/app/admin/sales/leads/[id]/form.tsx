@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Input, Select, Textarea } from "../../../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 type Lead = Record<string, string | number | null>;
 
@@ -23,14 +24,14 @@ export function LeadDetailForm({ lead }: { lead: Lead }) {
       delete (patch as { id?: string }).id;
       delete (patch as { created_at?: string }).created_at;
       const { error } = await sb.from("sales_leads").update(patch).eq("id", lead.id as string);
-      if (error) { alert(error.message); return; }
+      if (error) { appAlert(error.message); return; }
       await sb.from("admin_audit_log").insert({ action: "lead.update", target_type: "lead", target_id: lead.id as string, details: patch });
       router.refresh();
     });
   }
 
-  function remove() {
-    if (!confirm("Lead wirklich löschen?")) return;
+  async function remove() {
+    if (!(await appConfirm({ message: "Lead wirklich löschen?", danger: true }))) return;
     start(async () => {
       await sb.from("sales_leads").delete().eq("id", lead.id as string);
       await sb.from("admin_audit_log").insert({ action: "lead.delete", target_type: "lead", target_id: lead.id as string });

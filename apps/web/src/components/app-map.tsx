@@ -94,6 +94,7 @@ interface AppMapProps {
   overviewMode?: boolean;
   recenterAt?: number;
   lightPreset?: "dawn" | "day" | "dusk" | "night" | "auto";
+  supporterTier?: "bronze" | "silver" | "gold" | null;
 }
 
 // Helper: Polygon als GeoJSON-Feature (geschlossener Ring)
@@ -112,14 +113,25 @@ function polygonFeature(area: ClaimedArea) {
 }
 
 // Eigenes Marker-DOM (Emoji mit Glow)
-function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean): HTMLDivElement {
+function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, supporterTier?: "bronze" | "silver" | "gold" | null): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
   const el = document.createElement("div");
   el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 20}px;height:${size + 20}px;pointer-events:none`;
+  const tierCfg = supporterTier === "gold"
+    ? { bg: "linear-gradient(135deg,#FFD700,#B8860B)", border: "#FFD700", icon: "★", shadow: "0 0 10px #FFD700cc" }
+    : supporterTier === "silver"
+      ? { bg: "linear-gradient(135deg,#E0E0E0,#9A9A9A)", border: "#C0C0C0", icon: "★", shadow: "0 0 8px #C0C0C0cc" }
+      : supporterTier === "bronze"
+        ? { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", border: "#CD7F32", icon: "★", shadow: "0 0 8px #CD7F32cc" }
+        : null;
+  const supporterChip = tierCfg
+    ? `<div style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:${tierCfg.bg};border:1.5px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:9px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
+    : "";
   el.innerHTML = `
     <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
     <span style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
+    ${supporterChip}
     <style>@keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}</style>
   `;
   return el;
@@ -229,6 +241,7 @@ export function AppMap({
   overviewMode = false,
   recenterAt,
   lightPreset = "auto",
+  supporterTier = null,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -439,14 +452,28 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     } else {
       selfMarkerRef.current.setLngLat([pos.lng, pos.lat]);
     }
-  }, [mapReady, pos, teamColor, myEmoji, trackingActive]);
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier]);
+
+  // Tier-Wechsel: Marker neu bauen
+  useEffect(() => {
+    if (!selfMarkerRef.current || !pos) return;
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier);
+    selfMarkerRef.current.getElement().replaceWith(el);
+    const map = mapRef.current;
+    if (map) {
+      selfMarkerRef.current.remove();
+      selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([pos.lng, pos.lat])
+        .addTo(map);
+    }
+  }, [supporterTier]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {

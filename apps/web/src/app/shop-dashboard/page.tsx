@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
 const BG_DEEP = "#0F1115";
@@ -271,10 +272,10 @@ function OverviewTab() {
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10,
         }}>
-          <QuickAction icon="⚡" title="Flash-Deal starten"        desc="Jetzt 30-Min-Push an nahe Runner" accent={PRIMARY} onClick={() => alert("Flash-Deal-Wizard")} />
-          <QuickAction icon="🎁" title="Neuen Deal anlegen"         desc="Rabatt, Gratis-Artikel, Upgrade" accent="#FFD700" onClick={() => alert("Neuer Deal")} />
-          <QuickAction icon="🏆" title="Spotlight-Tag buchen"       desc="3 Tage/Monat hervorgehoben"      accent="#FF2D78" onClick={() => alert("Spotlight-Kalender")} />
-          <QuickAction icon="📢" title="Social-Post erstellen"      desc="Fertige Grafik für Instagram"    accent="#a855f7" onClick={() => alert("Social-Kit")} />
+          <QuickAction icon="⚡" title="Flash-Deal starten"        desc="Jetzt 30-Min-Push an nahe Runner" accent={PRIMARY} onClick={() => appAlert("Flash-Deal-Wizard")} />
+          <QuickAction icon="🎁" title="Neuen Deal anlegen"         desc="Rabatt, Gratis-Artikel, Upgrade" accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
+          <QuickAction icon="🏆" title="Spotlight-Tag buchen"       desc="3 Tage/Monat hervorgehoben"      accent="#FF2D78" onClick={() => appAlert("Spotlight-Kalender")} />
+          <QuickAction icon="📢" title="Social-Post erstellen"      desc="Fertige Grafik für Instagram"    accent="#a855f7" onClick={() => appAlert("Social-Kit")} />
         </div>
       </div>
     </div>
@@ -356,7 +357,7 @@ function DealsTab() {
           <div style={{ color: MUTED, fontSize: 12 }}>{deals.filter((d) => d.active).length} aktiv · {deals.length} insgesamt</div>
         </div>
         <button
-          onClick={() => alert("Neuen Deal anlegen")}
+          onClick={() => appAlert("Neuen Deal anlegen")}
           style={{
             padding: "10px 16px", borderRadius: 12,
             background: PRIMARY, color: BG_DEEP,
@@ -383,7 +384,7 @@ function DealsTab() {
             </div>
             <Toggle value={d.active} onChange={() => toggleActive(d.id)} />
             <button
-              onClick={() => alert(`Deal "${d.title}" bearbeiten`)}
+              onClick={() => appAlert(`Deal "${d.title}" bearbeiten`)}
               style={{
                 background: "transparent", border: `1px solid ${BORDER}`,
                 padding: "6px 10px", borderRadius: 8, color: "#FFF",
@@ -472,7 +473,7 @@ function FlashTab() {
           </div>
         </div>
         <button
-          onClick={() => alert(`Flash-Deal "${title}" wird an ~${Math.floor(pct * 12)} Runner in der Nähe gepusht`)}
+          onClick={() => appAlert(`Flash-Deal "${title}" wird an ~${Math.floor(pct * 12)} Runner in der Nähe gepusht`)}
           style={{
             marginTop: 16, width: "100%",
             padding: "14px 20px", borderRadius: 12,
@@ -541,7 +542,7 @@ function SpotlightTab() {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else if (next.size >= 3) {
-        alert("Maximal 3 Tage pro Monat bei Pro. Upgrade auf Premium für mehr.");
+        appAlert("Maximal 3 Tage pro Monat bei Pro. Upgrade auf Premium für mehr.");
         return prev;
       } else {
         next.add(key);
@@ -724,7 +725,7 @@ function PerformanceTab() {
         <KpiCard icon="🏆" value="2 / 3" label="Spotlight-Tage genutzt" accent="#FF2D78" />
       </div>
       <button
-        onClick={() => alert("CSV-/DATEV-Export wird generiert …")}
+        onClick={() => appAlert("CSV-/DATEV-Export wird generiert …")}
         style={{
           padding: "12px 16px", borderRadius: 12,
           background: "transparent", border: `1px solid ${PRIMARY}`,
@@ -796,7 +797,7 @@ function SettingsBlock({ title, children }: { title: string; children: React.Rea
 function AccountRow({ label, danger }: { label: string; danger?: boolean }) {
   return (
     <button
-      onClick={() => alert(`${label} — Stub`)}
+      onClick={() => appAlert(`${label} — Stub`)}
       style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         width: "100%", padding: "14px 16px",

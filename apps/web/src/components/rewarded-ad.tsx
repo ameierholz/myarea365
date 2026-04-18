@@ -110,7 +110,10 @@ export function RewardedAdButton({ placement, userId, onReward, variant = "defau
   }
 
   const disabled = cooldownMin !== null && cooldownMin > 0;
-  const label = disabled ? `⏱ ${cooldownMin}m` : `📺 ${cfg.label}`;
+  const cooldownLabel = cooldownMin === null ? "" : cooldownMin >= 60
+    ? `${Math.floor(cooldownMin / 60)}h ${cooldownMin % 60 > 0 ? `${cooldownMin % 60}m` : ""}`.trim()
+    : `${cooldownMin}m`;
+  const label = disabled ? `⏱ Nächstes Video in ${cooldownLabel}` : `📺 ${cfg.label}`;
 
   if (variant === "chip") {
     return (
@@ -144,7 +147,9 @@ export function RewardedAdButton({ placement, userId, onReward, variant = "defau
       }}
     >
       <span>{label}</span>
-      {!disabled && <span style={{ fontSize: 11, opacity: 0.8 }}>{cfg.description}</span>}
+      <span style={{ fontSize: 11, opacity: 0.8 }}>
+        {disabled ? `alle ${cfg.cooldown_min >= 60 ? `${Math.round(cfg.cooldown_min / 60)} h` : `${cfg.cooldown_min} min`} verfügbar` : cfg.description}
+      </span>
     </button>
   );
 }

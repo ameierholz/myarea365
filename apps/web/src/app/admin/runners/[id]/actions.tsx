@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Select, Textarea } from "../../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 export function RunnerActions({ userId, username, isBanned, shadowBanned, role, adminNotes }: {
   userId: string; username: string | null; isBanned: boolean; shadowBanned: boolean; role: string; adminNotes: string;
@@ -17,7 +18,7 @@ export function RunnerActions({ userId, username, isBanned, shadowBanned, role, 
   async function apply(updates: Record<string, unknown>, action: string) {
     start(async () => {
       const { error } = await sb.from("users").update(updates).eq("id", userId);
-      if (error) { alert("Fehler: " + error.message); return; }
+      if (error) { appAlert("Fehler: " + error.message); return; }
       await sb.from("admin_audit_log").insert({
         action, target_type: "user", target_id: userId, details: updates,
       });
@@ -50,8 +51,8 @@ export function RunnerActions({ userId, username, isBanned, shadowBanned, role, 
           {shadowBanned ? "👁 Shadow-Ban aufheben" : "🌑 Shadow-Ban"}
         </Button>
 
-        <Button variant="secondary" onClick={() => {
-          if (!confirm("XP wirklich zurücksetzen?")) return;
+        <Button variant="secondary" onClick={async () => {
+          if (!(await appConfirm({ message: "XP wirklich zurücksetzen?", danger: true, confirmLabel: "Zurücksetzen" }))) return;
           apply({ total_xp: 0 }, "user.xp_reset");
         }} disabled={pending}>
           ↺ XP zurücksetzen
@@ -93,7 +94,7 @@ export function RunnerActions({ userId, username, isBanned, shadowBanned, role, 
 
       <div className="pt-2 border-t border-white/10 flex gap-2">
         <Button variant="ghost" size="sm" onClick={() => {
-          navigator.clipboard.writeText(userId); alert("User-ID kopiert");
+          navigator.clipboard.writeText(userId); appAlert("User-ID kopiert");
         }}>📋 ID kopieren</Button>
         {username && (
           <Button variant="ghost" size="sm" onClick={() => {

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "../../../_components/ui";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 export function CampaignActions({ id, status, template }: { id: string; status: string; template: string }) {
   const router = useRouter();
@@ -30,10 +31,10 @@ export function CampaignActions({ id, status, template }: { id: string; status: 
       )}
       {status === "scheduled" && (
         <>
-          <Button variant="primary" onClick={() => {
-            if (!confirm("Kampagne jetzt versenden? Das kann nicht rückgängig gemacht werden.")) return;
+          <Button variant="primary" onClick={async () => {
+            if (!(await appConfirm("Kampagne jetzt versenden? Das kann nicht rückgängig gemacht werden."))) return;
             update({ status: "sending", sent_at: new Date().toISOString() }, "campaign.send");
-            alert("Versand gestartet. Echter E-Mail-Versand läuft über Edge-Function (to-do).");
+            appAlert("Versand gestartet. Echter E-Mail-Versand läuft über Edge-Function (to-do).");
           }} disabled={pending}>
             🚀 Jetzt versenden
           </Button>
@@ -43,8 +44,8 @@ export function CampaignActions({ id, status, template }: { id: string; status: 
         </>
       )}
       {status !== "sent" && (
-        <Button variant="danger" onClick={() => {
-          if (!confirm("Kampagne wirklich löschen?")) return;
+        <Button variant="danger" onClick={async () => {
+          if (!(await appConfirm({ message: "Kampagne wirklich löschen?", danger: true }))) return;
           start(async () => {
             await sb.from("email_campaigns").delete().eq("id", id);
             await sb.from("admin_audit_log").insert({ action: "campaign.delete", target_type: "campaign", target_id: id });

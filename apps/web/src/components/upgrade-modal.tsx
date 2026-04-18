@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PLANS, PLUS_FEATURES, CREW_PRO_FEATURES, formatPrice } from "@/lib/monetization";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 type Mode = "plus" | "crew";
 
@@ -54,11 +55,11 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
           plan_expires_at: expiresAt,
         }).eq("id", crewId);
       }
-      alert("Upgrade aktiv! (Stripe-Integration folgt — hier nur Demo.)");
+      appAlert("Upgrade aktiv! (Stripe-Integration folgt — hier nur Demo.)");
       onClose();
       location.reload();
     } catch (e) {
-      alert("Fehler: " + (e instanceof Error ? e.message : String(e)));
+      appAlert("Fehler: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }

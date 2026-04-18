@@ -5,14 +5,16 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { BoostShopModal as PowerShopModal } from "@/components/boost-shop";
-import { AdBanner } from "@/components/ad-banner";
 import { RewardedAdButton } from "@/components/rewarded-ad";
+import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
+import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
 import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
 import { snapToRoads } from "@/lib/snap-to-roads";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 import {
   getCurrentRank,
   getNextRank,
@@ -38,6 +40,10 @@ import {
   DEMO_STATS,
   DEMO_MAP_LIVE,
   DEMO_FACTION_STATS,
+  DEMO_FACTION_RANKING,
+  groupFactionsByLevel,
+  type FactionCityStats,
+  type FactionBucket,
   DEMO_NEARBY_CREWS_MAP,
   DEMO_RUNNERS,
   generateDemoMapData,
@@ -143,6 +149,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const supabase = createClient();
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
+  const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("map");
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
@@ -254,7 +261,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     timerRef.current = null;
 
     if (activeRoute.length < MIN_ROUTE_POINTS) {
-      alert("Lauf zu kurz! Du musst dich etwas mehr bewegen.");
+      appAlert("Lauf zu kurz! Du musst dich etwas mehr bewegen.");
       setActiveRoute([]);
       setCurrentStreet(null);
       return;
@@ -305,16 +312,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         setSavedTerritories((prev) => [...prev, finalRoute]);
         setTerritoryCount((c) => c + 1);
 
-        const streets = snapped?.streets.length ? `\n${snapped.streets.slice(0, 3).join(" · ")}` : "";
-        alert(`🎉 Straßenzug erobert!${streets}\n+${XP_PER_TERRITORY} XP`);
+        setWalkSummary({
+          distance_m: Math.round(finalDistance),
+          duration_s: Math.round(finalDuration),
+          xp_earned: XP_PER_TERRITORY,
+          streets: snapped?.streets ?? (finalStreet ? [finalStreet] : []),
+          territory_count: 1,
+        });
       }
     }
     setActiveRoute([]);
     setCurrentStreet(null);
   };
 
-  const clearMap = () => {
-    if (!confirm("Karte wirklich leeren?")) return;
+  const clearMap = async () => {
+    if (!(await appConfirm({ message: "Karte wirklich leeren?", danger: true, confirmLabel: "Leeren" }))) return;
     setSavedTerritories([]);
     setActiveRoute([]);
   };
@@ -442,6 +454,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               overviewMode={overviewMode}
               recenterAt={recenterAt}
               lightPreset={lightPreset}
+              supporterTier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier ?? null}
             />
 
             {/* Snap-Loading-Indikator */}
@@ -772,6 +785,20 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {missionsOpen && (
         <MissionsModal onClose={() => setMissionsOpen(false)} />
       )}
+
+      {walkSummary && profile && (
+        <WalkSummaryModal
+          summary={walkSummary}
+          userId={profile.id}
+          isPremium={isPremium(profile as never)}
+          onClose={(bonusXp) => {
+            if (bonusXp > 0) {
+              setProfile({ ...profile, xp: (profile.xp || 0) + bonusXp });
+            }
+            setWalkSummary(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -867,9 +894,9 @@ function ProfilTab({
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
 
-  const handleRewardedAd = () => {
-    if (confirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
-      alert("Danke! Du hast 250 XP erhalten! (Simulation)");
+  const handleRewardedAd = async () => {
+    if (await appConfirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
+      appAlert("Danke! Du hast 250 XP erhalten! (Simulation)");
     }
   };
 
@@ -999,8 +1026,9 @@ function ProfilTab({
           </div>
 
           <div style={{ fontSize: 10, color: MUTED, fontWeight: "bold", letterSpacing: 2, marginTop: 10 }}>LÄUFER</div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF", marginTop: 4, textAlign: "center" }}>
+          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF", marginTop: 4, textAlign: "center", display: "flex", alignItems: "center", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {p?.display_name || p?.username || "Eroberer"}
+            <SupporterBadge tier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier} size="md" showLabel />
           </div>
           <div style={{ color: MUTED, fontSize: 13, marginTop: 2 }}>@{p?.username}</div>
 
@@ -1296,7 +1324,7 @@ function ProfilTab({
                 key={marker.id}
                 onClick={() => {
                   if (isUnlocked) equipMarker(marker.id);
-                  else alert(`🔒 Du brauchst ${marker.cost.toLocaleString()} XP für "${marker.name}"`);
+                  else appAlert(`🔒 Du brauchst ${marker.cost.toLocaleString()} XP für "${marker.name}"`);
                 }}
                 style={{
                   background: isEquipped ? `${PRIMARY}15` : "rgba(70, 82, 122, 0.45)",
@@ -1343,7 +1371,7 @@ function ProfilTab({
                 key={light.id}
                 onClick={() => {
                   if (isUnlocked) equipLight(light.id);
-                  else alert(`🔒 Du brauchst ${light.cost.toLocaleString()} XP für "${light.name}"`);
+                  else appAlert(`🔒 Du brauchst ${light.cost.toLocaleString()} XP für "${light.name}"`);
                 }}
                 style={{
                   background: isEquipped ? `${PRIMARY}15` : "rgba(70, 82, 122, 0.45)",
@@ -1394,11 +1422,30 @@ function ProfilTab({
                   await navigator.share(shareData);
                 } else {
                   await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`);
-                  alert("Profil-Text in Zwischenablage kopiert!");
+                  appAlert("Profil-Text in Zwischenablage kopiert!");
                 }
               } catch { /* User hat abgebrochen */ }
             }}
           />
+
+          {p && !isPremium(p as never) && (
+            <div style={{
+              padding: 14, borderRadius: 14,
+              background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,107,74,0.08))",
+              border: "1px solid rgba(255,215,0,0.3)",
+              display: "flex", flexDirection: "column", gap: 8,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 20 }}>💛</span>
+                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>Du möchtest uns unterstützen?</div>
+              </div>
+              <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.45 }}>
+                Mit einem kurzen Werbevideo hilfst du uns, MyArea365 unabhängig weiterzuentwickeln — und kassierst selbst <b style={{ color: "#FFD700" }}>+100 XP Lauf-Bonus</b>. Danke! 🙏
+              </div>
+              <RewardedAdButton placement="post_walk" userId={p.id} />
+            </div>
+          )}
+
           <ModalTriggerButton icon="⭐" label="Wofür gibt es XP?" onClick={() => setOpenModal("xpguide")} />
           <ModalTriggerButton icon="⚙️" label="Einstellungen" onClick={() => setOpenModal("settings")} />
           <ModalTriggerButton icon="👤" label="Account" onClick={() => setOpenModal("account")} />
@@ -1414,8 +1461,6 @@ function ProfilTab({
 
         {p && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            <AdBanner isPremium={isPremium(p as never)} onUpgradeClick={() => setShowUpgrade("plus")} />
-
             {isPremium(p as never) ? (
               <div style={{
                 padding: 14, borderRadius: 14,
@@ -1482,9 +1527,6 @@ function ProfilTab({
               <span style={{ color: "#FFD700", fontSize: 14, fontWeight: 900 }}>›</span>
             </button>
 
-            {!isPremium(p as never) && (
-              <RewardedAdButton placement="post_walk" userId={p.id} />
-            )}
           </div>
         )}
 
@@ -1526,7 +1568,7 @@ function ProfilTab({
             </button>
             <button
               onClick={() => {
-                if (!p) return alert("Profil lädt noch …");
+                if (!p) return appAlert("Profil lädt noch …");
                 setMyCrew({
                   id: "demo-crew-kaelthor",
                   name: "Kaelthors Kiez-Crew",
@@ -1635,15 +1677,15 @@ function ProfilTab({
               const newEmail = prompt("Neue E-Mail-Adresse:");
               if (!newEmail) return;
               const { error } = await supabase.auth.updateUser({ email: newEmail });
-              if (error) alert("Fehler: " + error.message);
-              else alert("Bestätigungs-Mail an beide Adressen gesendet.");
+              if (error) appAlert("Fehler: " + error.message);
+              else appAlert("Bestätigungs-Mail an beide Adressen gesendet.");
             }} />
             <AccountRow label="🔑 Passwort ändern" onClick={async () => {
               const newPw = prompt("Neues Passwort (min. 8 Zeichen):");
-              if (!newPw || newPw.length < 8) { if (newPw) alert("Mindestens 8 Zeichen."); return; }
+              if (!newPw || newPw.length < 8) { if (newPw) appAlert("Mindestens 8 Zeichen."); return; }
               const { error } = await supabase.auth.updateUser({ password: newPw });
-              if (error) alert("Fehler: " + error.message);
-              else alert("Passwort geändert.");
+              if (error) appAlert("Fehler: " + error.message);
+              else appAlert("Passwort geändert.");
             }} last />
           </div>
 
@@ -1661,9 +1703,9 @@ function ProfilTab({
           <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>🚪 SESSION</div>
           <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
             <AccountRow label="🚪 Ausloggen" onClick={onLogout} danger />
-            <AccountRow label="⚠️ Konto löschen" onClick={() => {
-              if (!confirm("Konto wirklich löschen? Alle Daten gehen unwiderruflich verloren.")) return;
-              alert("Account-Löschung per E-Mail an support@myarea365.de anfordern. (Automatisierter Flow folgt.)");
+            <AccountRow label="⚠️ Konto löschen" onClick={async () => {
+              if (!(await appConfirm({ title: "Konto löschen", message: "Alle Daten gehen unwiderruflich verloren. Wirklich fortfahren?", danger: true, confirmLabel: "Löschen" }))) return;
+              appAlert("Account-Löschung per E-Mail an support@myarea365.de anfordern. (Automatisierter Flow folgt.)");
             }} danger last />
           </div>
 
@@ -1685,6 +1727,7 @@ function ProfilTab({
       {showBoostShop && p && (
         <PowerShopModal userId={p.id} onClose={() => setShowBoostShop(false)} />
       )}
+
 
       {openModal === "achievements" && (
         <Modal
@@ -2682,7 +2725,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <span>🔁 1× / Woche einlösbar</span>
             </div>
             <button
-              onClick={() => alert(`Einlösen bei ${shop.name} — wird gegen DB verknüpft.`)}
+              onClick={() => appAlert(`Einlösen bei ${shop.name} — wird gegen DB verknüpft.`)}
               disabled={userXp < 300}
               style={{
                 marginTop: 12, width: "100%",
@@ -2785,7 +2828,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                   <button
                     disabled={rating === 0}
                     onClick={() => {
-                      alert(`Bewertung abgegeben: ${rating}★${reviewText ? `\n"${reviewText}"` : ""}\n(wird mit DB verknüpft)`);
+                      appAlert(`Bewertung abgegeben: ${rating}★${reviewText ? `\n"${reviewText}"` : ""}\n(wird mit DB verknüpft)`);
                       setShowReview(false); setRating(0); setReviewText("");
                     }}
                     style={{
@@ -2817,15 +2860,15 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           {/* Aktionen */}
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <button
-              onClick={() => alert("Route zum Shop auf Karte (folgt)")}
+              onClick={() => appAlert("Route zum Shop auf Karte (folgt)")}
               style={{ ...actionBtnStyle(), flex: 1 }}
             >🧭 Route anzeigen</button>
             <button
-              onClick={() => alert("Als Favorit markieren (folgt)")}
+              onClick={() => appAlert("Als Favorit markieren (folgt)")}
               style={actionBtnStyle()}
             >⭐</button>
             <button
-              onClick={() => alert("Shop melden / Feedback (folgt)")}
+              onClick={() => appAlert("Shop melden / Feedback (folgt)")}
               style={actionBtnStyle()}
             >⚠️</button>
           </div>
@@ -2951,7 +2994,7 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
 
       {isOwn && area.level < 3 && (
         <button
-          onClick={() => alert(`Upgrade auf Level ${area.level + 1} für ${(area.level * 2000).toLocaleString()} XP – kommt bald`)}
+          onClick={() => appAlert(`Upgrade auf Level ${area.level + 1} für ${(area.level * 2000).toLocaleString()} XP – kommt bald`)}
           style={{
             width: "100%", marginTop: 16, padding: "12px 18px", borderRadius: 12,
             background: `linear-gradient(135deg, ${area.owner_color}, ${PRIMARY})`,
@@ -2979,8 +3022,8 @@ function BoostShopModal({ currentXp, onClose }: { currentXp: number; onClose: ()
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {DEMO_BOOSTS.map((b) => (
           <BoostRow key={b.id} boost={b} affordable={currentXp >= b.cost_xp} onBuy={() => {
-            if (currentXp >= b.cost_xp) alert(`✓ ${b.name} gekauft! (${b.duration_label} aktiv) – Wird serverseitig scharfgeschaltet sobald Backend steht.`);
-            else alert(`Nicht genug XP. Du brauchst noch ${(b.cost_xp - currentXp).toLocaleString()} XP.`);
+            if (currentXp >= b.cost_xp) appAlert(`✓ ${b.name} gekauft! (${b.duration_label} aktiv) – Wird serverseitig scharfgeschaltet sobald Backend steht.`);
+            else appAlert(`Nicht genug XP. Du brauchst noch ${(b.cost_xp - currentXp).toLocaleString()} XP.`);
           }} />
         ))}
       </div>
@@ -3770,7 +3813,7 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
           if (v) {
             const { requestPushPermission } = await import("@/lib/prefs");
             const ok = await requestPushPermission();
-            if (!ok) { alert("Browser hat Push-Benachrichtigungen abgelehnt. Bitte in den Browser-Einstellungen erlauben."); return; }
+            if (!ok) { appAlert("Browser hat Push-Benachrichtigungen abgelehnt. Bitte in den Browser-Einstellungen erlauben."); return; }
           }
           setPushEnabled(v);
         }} />
@@ -3940,7 +3983,7 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
       <SettingsGroup title="🧹 CACHE">
         <SettingAction label="Cache leeren" value="2,4 MB" onClick={() => {
           try { Object.keys(localStorage).filter(k => k.startsWith("cache:")).forEach(k => localStorage.removeItem(k)); } catch {}
-          alert("Cache geleert");
+          appAlert("Cache geleert");
         }} last />
       </SettingsGroup>
 
@@ -4687,7 +4730,7 @@ function CrewTab({
   const [joinCode, setJoinCode] = useState("");
 
   async function handleCreate() {
-    if (!newName.trim() || !newZip.trim()) return alert("Bitte Name und PLZ eingeben");
+    if (!newName.trim() || !newZip.trim()) return appAlert("Bitte Name und PLZ eingeben");
     if (!p) return;
 
     const { data, error } = await supabase.from("crews").insert({
@@ -4698,7 +4741,7 @@ function CrewTab({
       faction: p.faction || "syndicate",
     }).select().single();
 
-    if (error) return alert(error.message);
+    if (error) return appAlert(error.message);
 
     await supabase.from("crew_members").insert({ crew_id: data.id, user_id: p.id, role: "admin" });
     await supabase.from("users").update({ current_crew_id: data.id, team_color: newColor }).eq("id", p.id);
@@ -4706,12 +4749,12 @@ function CrewTab({
     setMyCrew(data);
     setProfile({ ...p, current_crew_id: data.id, team_color: newColor });
     setMode("idle");
-    alert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
+    appAlert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
   }
 
   async function handleLeave() {
     if (!p || !myCrew) return;
-    if (!confirm(`"${myCrew.name}" wirklich verlassen/auflösen?`)) return;
+    if (!await appConfirm(`"${myCrew.name}" wirklich verlassen/auflösen?`)) return;
 
     await supabase.from("crew_members").delete().eq("crew_id", myCrew.id).eq("user_id", p.id);
     if (myCrew.owner_id === p.id) {
@@ -4781,7 +4824,7 @@ function CrewTab({
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button onClick={() => setMode("idle")} style={outlineBtnStyle()}>Abbrechen</button>
               <button
-                onClick={() => alert("Crew-Suche per Code — wird mit Supabase-Backend verknüpft.")}
+                onClick={() => appAlert("Crew-Suche per Code — wird mit Supabase-Backend verknüpft.")}
                 style={primaryBtnStyle(PRIMARY)}
               >
                 Beitreten
@@ -5907,13 +5950,13 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
 
           {/* Aktionen */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={actionBtnStyle()} onClick={() => alert("Route auf Karte zeigen (folgt)")}>
+            <button style={actionBtnStyle()} onClick={() => appAlert("Route auf Karte zeigen (folgt)")}>
               🗺️ Route anzeigen
             </button>
-            <button style={actionBtnStyle()} onClick={() => alert("Lauf teilen (folgt)")}>
+            <button style={actionBtnStyle()} onClick={() => appAlert("Lauf teilen (folgt)")}>
               📤 Teilen
             </button>
-            <button style={actionBtnStyle()} onClick={() => alert("Details exportieren (GPX / CSV — folgt)")}>
+            <button style={actionBtnStyle()} onClick={() => appAlert("Details exportieren (GPX / CSV — folgt)")}>
               📥 GPX-Export
             </button>
           </div>
@@ -6143,7 +6186,7 @@ function NearbyCrewCard({ crew: c }: { crew: typeof DEMO_NEARBY_CREWS[number] })
           <span>📏 <b style={{ color: "#FFF" }}>{c.weekly_km}</b> km/Wo</span>
         </div>
         <button
-          onClick={() => alert(`Anfrage an "${c.name}" — wird mit Backend verknüpft.`)}
+          onClick={() => appAlert(`Anfrage an "${c.name}" — wird mit Backend verknüpft.`)}
           disabled={c.privacy === "closed"}
           style={{
             padding: "7px 14px", borderRadius: 10,
@@ -6887,7 +6930,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
           <button
             onClick={() => {
               navigator.clipboard.writeText(crew.invite_code);
-              alert("Code kopiert!");
+              appAlert("Code kopiert!");
             }}
             style={{
               padding: "8px 14px", borderRadius: 10,
@@ -6961,7 +7004,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
         </button>
         {isAdmin && (
           <button
-            onClick={() => alert("Crew-Einstellungen — kommt bald")}
+            onClick={() => appAlert("Crew-Einstellungen — kommt bald")}
             style={outlineBtnStyle()}
           >
             ⚙️ Crew verwalten
@@ -6992,7 +7035,7 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
           💤 <b>{inactive.length} Mitglieder</b> sind diese Woche inaktiv.
           {isAdmin && (
             <button
-              onClick={() => alert("Reminder-Push an inaktive Mitglieder — Stub")}
+              onClick={() => appAlert("Reminder-Push an inaktive Mitglieder — Stub")}
               style={{
                 marginLeft: 8, background: "transparent", border: "none",
                 color: ACCENT, fontWeight: 800, cursor: "pointer", fontSize: 12,
@@ -7046,7 +7089,7 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
           </div>
           {isAdmin && (
             <button
-              onClick={() => alert(`Aktionen für ${m.display_name}\n• Zu Captain befördern\n• Zu Mod befördern\n• Aus Crew entfernen`)}
+              onClick={() => appAlert(`Aktionen für ${m.display_name}\n• Zu Captain befördern\n• Zu Mod befördern\n• Aus Crew entfernen`)}
               style={{
                 background: "transparent", border: `1px solid ${BORDER}`,
                 borderRadius: 8, padding: "4px 8px", color: MUTED,
@@ -7062,7 +7105,7 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
           <button style={outlineBtnStyle()}>
             ➕ Mitglied einladen
           </button>
-          <button style={outlineBtnStyle()} onClick={() => alert("Rollen-Editor (Mod, Event-Planner, Motivator) folgt.")}>
+          <button style={outlineBtnStyle()} onClick={() => appAlert("Rollen-Editor (Mod, Event-Planner, Motivator) folgt.")}>
             🎭 Rollen verwalten
           </button>
         </div>
@@ -7288,7 +7331,7 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
         <button
           onClick={() => {
             setRecording((r) => !r);
-            if (!recording) alert("🎙️ Voice-Note-Aufnahme startet — Backend-Upload folgt.");
+            if (!recording) appAlert("🎙️ Voice-Note-Aufnahme startet — Backend-Upload folgt.");
           }}
           aria-label="Voice-Note"
           style={{
@@ -7304,13 +7347,13 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
           style={inputStyle()}
           onKeyDown={(e) => {
             if (e.key === "Enter" && draft.trim()) {
-              alert("Chat-Senden wird mit Realtime-Backend verknüpft.");
+              appAlert("Chat-Senden wird mit Realtime-Backend verknüpft.");
               setDraft("");
             }
           }}
         />
         <button
-          onClick={() => { if (draft.trim()) { alert("Chat-Senden kommt bald."); setDraft(""); } }}
+          onClick={() => { if (draft.trim()) { appAlert("Chat-Senden kommt bald."); setDraft(""); } }}
           style={{
             padding: "0 18px", borderRadius: 12,
             background: color, color: BG_DEEP,
@@ -7414,10 +7457,10 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
             🎨 IDENTITÄT
           </div>
           <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-            <button style={outlineBtnStyle()} onClick={() => alert("Cover-Upload folgt (Supabase Storage)")}>
+            <button style={outlineBtnStyle()} onClick={() => appAlert("Cover-Upload folgt (Supabase Storage)")}>
               🖼️ Cover hochladen
             </button>
-            <button style={outlineBtnStyle()} onClick={() => alert("Logo-Upload folgt")}>
+            <button style={outlineBtnStyle()} onClick={() => appAlert("Logo-Upload folgt")}>
               🛡️ Logo hochladen
             </button>
           </div>
@@ -7428,7 +7471,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span>myarea365.de/crew/{crew.invite_code.toLowerCase()}</span>
-            <button onClick={() => { navigator.clipboard.writeText(`https://myarea365.de/crew/${crew.invite_code.toLowerCase()}`); alert("Link kopiert!"); }} style={{
+            <button onClick={() => { navigator.clipboard.writeText(`https://myarea365.de/crew/${crew.invite_code.toLowerCase()}`); appAlert("Link kopiert!"); }} style={{
               background: "transparent", border: "none", color: crew.color,
               fontSize: 11, fontWeight: 700, cursor: "pointer",
             }}>kopieren</button>
@@ -7451,7 +7494,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
           }}
         />
         {isAdmin && (
-          <button style={{ ...primaryBtnStyle(crew.color), marginTop: 8 }} onClick={() => alert("Regeln gespeichert (Stub).")}>
+          <button style={{ ...primaryBtnStyle(crew.color), marginTop: 8 }} onClick={() => appAlert("Regeln gespeichert (Stub).")}>
             Speichern
           </button>
         )}
@@ -7467,7 +7510,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
         <SettingsToggle label="Events & Gruppenläufe" value={pushEvents} onChange={setPushEvents} />
         <SettingsToggle label="Rivalen-Duell Updates" value={pushRivalDuel} onChange={setPushRivalDuel} />
         <button
-          onClick={() => alert("Browser-Push-Permission wird angefragt — Backend-Service-Worker folgt.")}
+          onClick={() => appAlert("Browser-Push-Permission wird angefragt — Backend-Service-Worker folgt.")}
           style={{ ...outlineBtnStyle(), marginTop: 10 }}
         >
           🔔 Push aktivieren
@@ -7486,7 +7529,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
         <div style={{ color: TEXT_SOFT, fontSize: 12, marginBottom: 10 }}>
           Bis zu 200 Mitglieder · Custom-Branding · Statistik-Export · Prioritäts-Support · Merch-Rabatte
         </div>
-        <button style={primaryBtnStyle("#FFD700")} onClick={() => alert("Premium-Upgrade kommt bald.")}>
+        <button style={primaryBtnStyle("#FFD700")} onClick={() => appAlert("Premium-Upgrade kommt bald.")}>
           Premium testen
         </button>
       </div>
@@ -7499,7 +7542,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
         <div style={{ color: TEXT_SOFT, fontSize: 12, marginBottom: 10 }}>
           Ein lokaler Shop kann eure Crew sponsern — Rabatte für Mitglieder, Branding auf eurem Cover, XP-Boni.
         </div>
-        <button style={outlineBtnStyle()} onClick={() => alert("Sponsor-Matching folgt.")}>
+        <button style={outlineBtnStyle()} onClick={() => appAlert("Sponsor-Matching folgt.")}>
           Sponsor anfragen
         </button>
       </div>
@@ -7512,7 +7555,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
         <div style={{ color: TEXT_SOFT, fontSize: 12, marginBottom: 10 }}>
           Crew-T-Shirts mit Wappen-Print via Print-on-Demand. Kein Lager, kein Risiko.
         </div>
-        <button style={outlineBtnStyle()} onClick={() => alert("Merch-Shop folgt.")}>
+        <button style={outlineBtnStyle()} onClick={() => appAlert("Merch-Shop folgt.")}>
           Merch designen
         </button>
       </div>
@@ -7991,7 +8034,7 @@ function ShopsRunnerView() {
           und du bekommst <b style={{ color: "#FFD700" }}>1.000 Bonus-XP</b>, sobald er live ist.
         </div>
         <button
-          onClick={() => alert("Shop-Empfehlung: partner@myarea365.de — Name + Stadt genügt.")}
+          onClick={() => appAlert("Shop-Empfehlung: partner@myarea365.de — Name + Stadt genügt.")}
           style={{
             marginTop: 14, padding: "10px 22px", borderRadius: 12,
             background: PRIMARY, color: BG_DEEP,
@@ -8052,7 +8095,7 @@ function ShopsPartnerView() {
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
             <button
-              onClick={() => alert("Partner-Anmeldung: Bitte kontaktiere partner@myarea365.de — Self-Service-Onboarding folgt.")}
+              onClick={() => appAlert("Partner-Anmeldung: Bitte kontaktiere partner@myarea365.de — Self-Service-Onboarding folgt.")}
               style={{
                 padding: "14px 26px", borderRadius: 14,
                 background: PRIMARY, color: BG_DEEP,
@@ -8062,7 +8105,7 @@ function ShopsPartnerView() {
               🚀 Jetzt Shop anmelden
             </button>
             <button
-              onClick={() => alert("Demo-Termin: partner@myarea365.de")}
+              onClick={() => appAlert("Demo-Termin: partner@myarea365.de")}
               style={{
                 padding: "14px 22px", borderRadius: 14,
                 background: "rgba(0,0,0,0.35)", color: "#FFF",
@@ -8558,7 +8601,7 @@ function ShopsPartnerView() {
                 </div>
               )}
               <button
-                onClick={() => alert(`${p.name}-Paket wählen — Kontakt: partner@myarea365.de`)}
+                onClick={() => appAlert(`${p.name}-Paket wählen — Kontakt: partner@myarea365.de`)}
                 style={{
                   ...primaryBtnStyle(p.color),
                   marginTop: 14, opacity: p.highlight ? 1 : 0.9,
@@ -8661,7 +8704,7 @@ function ShopsPartnerView() {
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
-            onClick={() => alert("Partner-Onboarding: partner@myarea365.de")}
+            onClick={() => appAlert("Partner-Onboarding: partner@myarea365.de")}
             style={{ ...primaryBtnStyle(PRIMARY), width: "auto" }}
           >
             🚀 Shop anmelden
@@ -8679,7 +8722,7 @@ function ShopsPartnerView() {
             👀 Demo-Dashboard ansehen
           </a>
           <button
-            onClick={() => alert("Kontakt: partner@myarea365.de · +49 …")}
+            onClick={() => appAlert("Kontakt: partner@myarea365.de · +49 …")}
             style={{ ...outlineBtnStyle(), width: "auto" }}
           >
             📞 Rückruf
@@ -8694,9 +8737,180 @@ function ShopsPartnerView() {
  * RANKING TAB (1:1 alte App)
  * ═══════════════════════════════════════════════════════ */
 
-type RankingMode = "runners" | "crews";
+type RankingMode = "runners" | "crews" | "factions";
 type RankingSortRunner = "weekly_xp" | "weekly_km" | "total_xp";
 type RankingSortCrew = "weekly_km" | "member_count";
+
+function FactionTile({ which, stats, leads, total }: {
+  which: "n" | "s";
+  stats: { runners: number; km_week: number; territories: number };
+  leads: boolean;
+  total: number;
+}) {
+  const color = which === "n" ? "#22D1C3" : "#FF6B4A";
+  const icon = which === "n" ? "🌙" : "☀️";
+  const name = which === "n" ? "Nachtpuls" : "Sonnenwacht";
+  const pct = total > 0 ? (stats.km_week / total) * 100 : 50;
+  return (
+    <div style={{
+      flex: 1, minWidth: 0,
+      padding: 16, borderRadius: 14,
+      background: `linear-gradient(135deg, ${color}22, ${color}08)`,
+      border: `1px solid ${leads ? color : BORDER}`,
+      boxShadow: leads ? `0 0 24px ${color}33` : "none",
+      position: "relative",
+    }}>
+      {leads && (
+        <div style={{
+          position: "absolute", top: 10, right: 10,
+          background: color, color: "#0F1115",
+          fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
+          padding: "3px 7px", borderRadius: 999,
+        }}>FÜHRT</div>
+      )}
+      <div style={{ fontSize: 32, marginBottom: 6 }}>{icon}</div>
+      <div style={{ color, fontSize: 16, fontWeight: 900, marginBottom: 10 }}>{name}</div>
+      <div style={{ color: "#FFF", fontSize: 24, fontWeight: 900, lineHeight: 1 }}>{stats.km_week.toFixed(0)} <span style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>km</span></div>
+      <div style={{ color: MUTED, fontSize: 10, marginTop: 2, marginBottom: 10 }}>diese Woche · {pct.toFixed(0)} %</div>
+      <div style={{ display: "flex", gap: 10, fontSize: 11, color: "#F0F0F0" }}>
+        <div>👤 <b>{stats.runners}</b> <span style={{ color: MUTED }}>Runner</span></div>
+        <div>🗺️ <b>{stats.territories}</b> <span style={{ color: MUTED }}>Gebiete</span></div>
+      </div>
+    </div>
+  );
+}
+
+function FactionLeaderRow({ label, icon, nKm, sKm }: { label: string; icon: React.ReactNode; nKm: number; sKm: number }) {
+  const leader = nKm >= sKm ? "n" : "s";
+  const color = leader === "n" ? "#22D1C3" : "#FF6B4A";
+  const leaderName = leader === "n" ? "🌙 Nachtpuls" : "☀️ Sonnenwacht";
+  const diff = Math.abs(nKm - sKm);
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 12px", borderRadius: 10,
+      background: "rgba(20, 26, 44, 0.6)", border: `1px solid ${BORDER}`,
+    }}>
+      <span style={{ fontSize: 16 }}>{icon}</span>
+      <span style={{ color: "#FFF", fontSize: 13, fontWeight: 700, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {label}
+      </span>
+      <span style={{ color, fontSize: 11, fontWeight: 800 }}>
+        {leaderName} <span style={{ color: MUTED, fontWeight: 700 }}>+{diff.toFixed(0)} km</span>
+      </span>
+    </div>
+  );
+}
+
+function AnimatedDuelBar({ nKm, sKm }: { nKm: number; sKm: number }) {
+  const total = nKm + sKm;
+  const targetPct = total > 0 ? (nKm / total) * 100 : 50;
+  const [pct, setPct] = useState(50);
+  useEffect(() => {
+    const t = setTimeout(() => setPct(targetPct), 60);
+    return () => clearTimeout(t);
+  }, [targetPct]);
+  const diff = Math.abs(nKm - sKm);
+  const leader = nKm >= sKm ? "n" : "s";
+  return (
+    <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(30, 38, 60, 0.55)", border: `1px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12 }}>
+        <span style={{ color: "#22D1C3", fontWeight: 900 }}>🌙 {nKm.toFixed(0)} km</span>
+        <span style={{ flex: 1, textAlign: "center", color: leader === "n" ? "#22D1C3" : "#FF6B4A", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>
+          {leader === "n" ? "🌙 FÜHRT" : "☀️ FÜHRT"} · +{diff.toFixed(0)} km
+        </span>
+        <span style={{ color: "#FF6B4A", fontWeight: 900 }}>{sKm.toFixed(0)} km ☀️</span>
+      </div>
+      <div style={{ position: "relative", height: 18, borderRadius: 9, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex",
+        }}>
+          <div style={{
+            width: `${pct}%`,
+            background: "linear-gradient(90deg, #22D1C3, #22D1C3dd)",
+            boxShadow: "inset 0 0 18px rgba(34,209,195,0.6)",
+            transition: "width 1200ms cubic-bezier(0.22, 1, 0.36, 1)",
+            position: "relative", overflow: "hidden",
+          }}>
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)",
+              animation: "duel-shimmer 2.5s infinite",
+            }} />
+          </div>
+          <div style={{
+            flex: 1,
+            background: "linear-gradient(90deg, #FF6B4Add, #FF6B4A)",
+            boxShadow: "inset 0 0 18px rgba(255,107,74,0.6)",
+            position: "relative", overflow: "hidden",
+          }}>
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)",
+              animation: "duel-shimmer 2.5s infinite",
+            }} />
+          </div>
+        </div>
+        <div style={{
+          position: "absolute", left: `${pct}%`, top: -2, bottom: -2,
+          width: 3, background: "#FFF", boxShadow: "0 0 12px rgba(255,255,255,0.8)",
+          transform: "translateX(-50%)",
+          transition: "left 1200ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }} />
+      </div>
+      <style>{`@keyframes duel-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
+    </div>
+  );
+}
+
+function FactionDuelView({ items, buckets, scopeLabel }: {
+  items: FactionCityStats[]; buckets: FactionBucket[]; scopeLabel: string;
+}) {
+  const n = {
+    runners: items.reduce((s, x) => s + x.nachtpuls.runners, 0),
+    km_week: items.reduce((s, x) => s + x.nachtpuls.km_week, 0),
+    territories: items.reduce((s, x) => s + x.nachtpuls.territories, 0),
+  };
+  const s = {
+    runners: items.reduce((s, x) => s + x.sonnenwacht.runners, 0),
+    km_week: items.reduce((s, x) => s + x.sonnenwacht.km_week, 0),
+    territories: items.reduce((s, x) => s + x.sonnenwacht.territories, 0),
+  };
+  const total = n.km_week + s.km_week;
+  const nLeads = n.km_week >= s.km_week;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
+        ⚔️ {scopeLabel.toUpperCase()}
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <FactionTile which="n" stats={n} leads={nLeads} total={total} />
+        <FactionTile which="s" stats={s} leads={!nLeads} total={total} />
+      </div>
+      <AnimatedDuelBar nKm={n.km_week} sKm={s.km_week} />
+      {buckets.length > 1 && (
+        <>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginTop: 6, letterSpacing: 0.5 }}>
+            WER FÜHRT WO
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {buckets.map((b) => (
+              <FactionLeaderRow
+                key={b.key}
+                label={b.label}
+                icon="›"
+                nKm={b.nachtpuls.km_week}
+                sKm={b.sonnenwacht.km_week}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; leaderboard: Profile[] }) {
   const [mode, setMode] = useState<RankingMode>("runners");
@@ -8732,6 +8946,20 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
     return true;
   }).sort((a, b) => b[sortRunner] - a[sortRunner]);
 
+  const factionPool: FactionCityStats[] = DEMO_FACTION_RANKING;
+  const filteredFactions = factionPool.filter((it) => {
+    for (const lvl of GEO_LEVEL_SEQ) {
+      const f = filters[lvl];
+      if (f && it[lvl] !== f) return false;
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      const hay = [it.city, it.region, it.state, it.country].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
   const filteredCrews = crewPool.filter((c) => {
     for (const lvl of GEO_LEVEL_SEQ) {
       const f = filters[lvl];
@@ -8755,7 +8983,12 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
   const buckets = nextLevel
     ? (mode === "runners"
         ? groupRunnersByLevel(filteredRunners, nextLevel)
-        : groupCrewsByLevel(filteredCrews, nextLevel))
+        : mode === "crews"
+          ? groupCrewsByLevel(filteredCrews, nextLevel)
+          : groupFactionsByLevel(filteredFactions, nextLevel))
+    : [];
+  const factionBuckets: FactionBucket[] = mode === "factions" && nextLevel
+    ? groupFactionsByLevel(filteredFactions, nextLevel)
     : [];
 
   function setFilter(level: GeoLevel, value: string) {
@@ -8793,8 +9026,9 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
         marginBottom: 18,
       }}>
         {([
-          { id: "runners", label: "🏃 Runner" },
-          { id: "crews",   label: "👥 Crews" },
+          { id: "runners",  label: "🏃 Runner" },
+          { id: "crews",    label: "👥 Crews" },
+          { id: "factions", label: "⚔️ Fraktionen" },
         ] as const).map((m) => {
           const active = mode === m.id;
           return (
@@ -8826,14 +9060,14 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
         }}>
           <input
             value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder={`🔎 ${mode === "runners" ? "Runner, Crew, Stadt…" : "Crew, Motto, Stadt, PLZ…"}`}
+            placeholder={`🔎 ${mode === "runners" ? "Runner, Crew, Stadt…" : mode === "crews" ? "Crew, Motto, Stadt, PLZ…" : "Stadt, Region, Land…"}`}
             style={{ ...inputStyle(), marginBottom: 14 }}
           />
 
-          <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
+          {mode !== "factions" && <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
             SORTIERUNG
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+          </div>}
+          {mode !== "factions" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
             {mode === "runners" ? (
               <>
                 <FilterPill active={sortRunner === "weekly_xp"} onClick={() => setSortRunner("weekly_xp")}>Woche XP</FilterPill>
@@ -8846,7 +9080,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
                 <FilterPill active={sortCrew === "member_count"} onClick={() => setSortCrew("member_count")}>Mitglieder</FilterPill>
               </>
             )}
-          </div>
+          </div>}
 
           {mode === "crews" && (
             <>
@@ -8962,10 +9196,12 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, margin: "10px 0 8px", letterSpacing: 0.5 }}>
             {mode === "runners"
               ? `${filteredRunners.length} RUNNER · ${scopeLabel.toUpperCase()}`
-              : `${filteredCrews.length} CREWS · ${scopeLabel.toUpperCase()}`}
+              : mode === "crews"
+                ? `${filteredCrews.length} CREWS · ${scopeLabel.toUpperCase()}`
+                : `FRAKTIONS-DUELL · ${scopeLabel.toUpperCase()}`}
           </div>
 
-          {mode === "runners" ? (
+          {mode === "runners" && (
             filteredRunners.length === 0 ? (
               <EmptyHint onReset={clearAll} />
             ) : (
@@ -8975,7 +9211,8 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
                 ))}
               </div>
             )
-          ) : (
+          )}
+          {mode === "crews" && (
             filteredCrews.length === 0 ? (
               <EmptyHint onReset={clearAll} />
             ) : (
@@ -8986,11 +9223,18 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
               </div>
             )
           )}
+          {mode === "factions" && (
+            filteredFactions.length === 0 ? (
+              <EmptyHint onReset={clearAll} />
+            ) : (
+              <FactionDuelView items={filteredFactions} buckets={factionBuckets} scopeLabel={scopeLabel} />
+            )
+          )}
         </main>
       </div>
 
       {/* Legacy leaderboard (Supabase-Live-Daten) — nur anzeigen wenn vorhanden */}
-      {leaderboard.length > 0 && (
+      {mode !== "factions" && leaderboard.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.5 }}>
             LIVE-LEADERBOARD (SUPABASE)
@@ -9145,9 +9389,10 @@ function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
       }}>#{rank}</span>
       <span style={{ fontSize: 20 }}>{r.avatar_emoji}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {r.display_name}
-          {isMe && <span style={{ color: PRIMARY, fontSize: 10, marginLeft: 6 }}>· Du</span>}
+        <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{r.display_name}</span>
+          <SupporterBadge tier={r.supporter_tier} size="xs" />
+          {isMe && <span style={{ color: PRIMARY, fontSize: 10 }}>· Du</span>}
         </div>
         <div style={{ color: MUTED, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           <CountryFlag country={r.country} size={12} />

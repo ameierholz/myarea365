@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BOOST_PACKS, EXTRAS, formatPrice } from "@/lib/monetization";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 
 export function BoostShopModal({ userId, onClose }: { userId: string; onClose: () => void }) {
   const sb = createClient();
@@ -27,6 +28,12 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
             xp_boost_multiplier: pack.multiplier,
           }).eq("id", userId);
         }
+      } else if (sku.startsWith("badge_")) {
+        const tier = sku === "badge_gold" ? "gold" : sku === "badge_silver" ? "silver" : "bronze";
+        await sb.from("users").update({
+          supporter_tier: tier,
+          supporter_since: new Date().toISOString(),
+        }).eq("id", userId);
       } else if (sku === "streak_pack_5") {
         const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
         await sb.from("users").update({
@@ -34,11 +41,11 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
         }).eq("id", userId);
       }
 
-      alert("Gekauft + aktiviert! (Stripe-Integration folgt)");
+      appAlert("Gekauft + aktiviert! (Stripe-Integration folgt)");
       onClose();
       location.reload();
     } catch (e) {
-      alert("Fehler: " + (e instanceof Error ? e.message : String(e)));
+      appAlert("Fehler: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(null);
     }
@@ -76,6 +83,7 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(tab === "boosts" ? Object.values(BOOST_PACKS) : Object.values(EXTRAS)).map((p) => {
             const desc = "hours" in p && "multiplier" in p ? `${p.multiplier}× XP · ${p.hours} h` : "";
+            const isBadge = p.sku.startsWith("badge_");
             return (
               <div key={p.sku} style={{
                 display: "flex", alignItems: "center", gap: 10,
@@ -85,8 +93,19 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
               }}>
                 <span style={{ fontSize: 22 }}>{tab === "boosts" ? "⚡" : "🎁"}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800 }}>{p.name}</div>
+                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
+                    {p.name}
+                    {isBadge && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
+                        padding: "2px 6px", borderRadius: 4,
+                        background: "rgba(34,209,195,0.2)", color: "#22D1C3",
+                        border: "1px solid rgba(34,209,195,0.4)",
+                      }}>ABO</span>
+                    )}
+                  </div>
                   {desc && <div style={{ color: "#a8b4cf", fontSize: 10 }}>{desc}</div>}
+                  {isBadge && <div style={{ color: "#a8b4cf", fontSize: 10 }}>monatlich · jederzeit kündbar</div>}
                 </div>
                 <button
                   onClick={() => buy(p.sku, p.name, p.price)}
