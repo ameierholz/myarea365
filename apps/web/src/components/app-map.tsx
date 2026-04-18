@@ -317,6 +317,7 @@ export function AppMap({
   }, [mapReady, lightPreset]);
 
   // Map-Style aus App-Präferenz live wechseln
+  const currentStyleKeyRef = useRef<string>("standard");
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
@@ -324,14 +325,15 @@ export function AppMap({
     const apply = () => {
       try {
         const styleKey = (localStorage.getItem("pref:display_mapstyle") || "\"standard\"").replace(/"/g, "");
+        if (styleKey === currentStyleKeyRef.current) return;
         const styleUrl = MAP_STYLES[styleKey] || MAP_STYLES.standard;
-        if (map.getStyle()?.sprite !== styleUrl) map.setStyle(styleUrl);
+        currentStyleKeyRef.current = styleKey;
+        map.setStyle(styleUrl);
       } catch { /* ignore */ }
     };
-    apply();
     const onPref = (e: Event) => {
       const { key } = (e as CustomEvent).detail || {};
-      if (key === "display_mapstyle" || key === "display_3d") apply();
+      if (key === "display_mapstyle") apply();
     };
     window.addEventListener("pref-change", onPref);
     return () => window.removeEventListener("pref-change", onPref);
