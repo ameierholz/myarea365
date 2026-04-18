@@ -77,38 +77,30 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       will-change: transform, box-shadow;
     }
     .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
-    /* Arena-Sword: rotes Chip mit ⚔️ über dem Pin, Wackel + Red-Glow */
-    @keyframes ma365ArenaGlow {
-      0%,100% { box-shadow: 0 0 8px rgba(255,45,120,0.55), 0 0 18px rgba(255,45,120,0.25), inset 0 1px 0 rgba(255,255,255,0.4); }
-      50%     { box-shadow: 0 0 18px rgba(255,45,120,1),    0 0 36px rgba(255,45,120,0.6),  inset 0 1px 0 rgba(255,255,255,0.7); }
+    /* Arena-Badge: magenta Pill analog zu Spotlight, mit Shield-Icon */
+    @keyframes arenaBadgeShimmer {
+      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,45,120,0.55), inset 0 1px 0 rgba(255,255,255,0.5); filter: brightness(1); }
+      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,45,120,0.95), inset 0 1px 0 rgba(255,255,255,0.7); filter: brightness(1.15); }
     }
-    @keyframes ma365SwordShake {
-      0%,100% { transform: rotate(-8deg) translateY(0); }
-      10%     { transform: rotate(10deg) translateY(-1px); }
-      22%     { transform: rotate(-12deg) translateY(1px); }
-      35%     { transform: rotate(8deg) translateY(-2px); }
-      48%     { transform: rotate(-6deg) translateY(0); }
-      62%     { transform: rotate(5deg) translateY(-1px); }
-      78%     { transform: rotate(-9deg) translateY(1px); }
+    @keyframes arenaBadgeShieldPulse {
+      0%,100% { transform: scale(1)    rotate(0deg);  filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
+      50%     { transform: scale(1.18) rotate(-6deg); filter: drop-shadow(0 0 5px rgba(255,255,255,1)); }
     }
-    .ma365-arena-sword {
-      display: flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 25%, #FF6BA1 0%, #FF2D78 45%, #a3143f 100%);
-      border: 2px solid rgba(255,255,255,0.92);
+    .ma365-arena-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px 4px 8px;
+      background: linear-gradient(135deg, #FF6BA1 0%, #FF2D78 50%, #a855f7 100%);
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.95);
+      color: #FFF; font-weight: 900; font-size: 11px; letter-spacing: 0.6px;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+      animation: arenaBadgeShimmer 2.2s ease-in-out infinite;
       pointer-events: none;
-      animation: ma365ArenaGlow 1.3s ease-in-out infinite;
-      will-change: box-shadow;
+      will-change: box-shadow, filter;
     }
-    .ma365-arena-sword > span {
-      display: inline-block;
-      font-size: 15px;
-      line-height: 1;
-      transform-origin: center center;
-      animation: ma365SwordShake 0.7s ease-in-out infinite;
-      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));
-    }
+    .ma365-arena-badge > .shield { font-size: 12px; animation: arenaBadgeShieldPulse 2.2s ease-in-out infinite; display: inline-block; }
     /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
     @keyframes ma365BeamGlow {
       0%,100% { filter: blur(4px) brightness(0.85) saturate(1); }
@@ -368,7 +360,7 @@ export function AppMap({
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string; el: HTMLElement }>>([]);
   const spotlightBeamMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
-  const spotlightAuraMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  const spotlightAuraMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; stacked: boolean }>>([]);
 
   // Map initialisieren
   useEffect(() => {
@@ -747,8 +739,25 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Gold-Halos sind jetzt DOM-Marker (rotierende Sunburst-Aura) - siehe unten
-      // Arena-Ring entfernt (User-Wunsch)
+      // Arena-Shops bekommen pulsierenden magenta Outline-Ring am Pin-Body
+      const haloTranslate: mapboxgl.ExpressionSpecification = [
+        "interpolate", ["linear"], ["zoom"],
+        12, ["literal", [0, -7]],
+        15, ["literal", [0, -16]],
+        18, ["literal", [0, -25]],
+      ];
+      map.addLayer({
+        id: "shops-arena-ring", type: "circle", source: SRC,
+        paint: {
+          "circle-color": "rgba(0,0,0,0)",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 9, 15, 24, 18, 42],
+          "circle-opacity": 0,
+          "circle-stroke-color": "#FF2D78",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 12, 1.5, 15, 2.8, 18, 4.5],
+          "circle-stroke-opacity": ["case", ["==", ["get", "arena"], true], 0.9, 0],
+          "circle-translate": haloTranslate,
+        },
+      });
       map.addLayer({
         id: LYR_PIN, type: "symbol", source: SRC,
         layout: {
@@ -789,7 +798,30 @@ export function AppMap({
         });
       }
 
-      // Pulse-Animation entfernt - Spotlight-Aura ist CSS-basiert, Arena-Ring raus
+      // Pulse-Animation fuer Arena-Ring (pulsierendes Rot am Pin)
+      let cancelled = false;
+      let t = 0;
+      const pulse = () => {
+        if (cancelled) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(map as any).style) { cancelled = true; return; }
+        t += 1;
+        const p = Math.sin(t * 0.07);
+        try {
+          if (map.getLayer("shops-arena-ring")) {
+            map.setPaintProperty("shops-arena-ring", "circle-stroke-opacity",
+              ["case", ["==", ["get", "arena"], true], 0.75 + p * 0.25, 0]);
+            map.setPaintProperty("shops-arena-ring", "circle-radius",
+              ["interpolate", ["linear"], ["zoom"],
+                12, 9 + p * 1.2,
+                15, 24 + p * 3,
+                18, 42 + p * 5]);
+          }
+        } catch { cancelled = true; return; }
+        requestAnimationFrame(pulse);
+      };
+      requestAnimationFrame(pulse);
+      (map as unknown as { __pulseCancel?: () => void }).__pulseCancel = () => { cancelled = true; };
     }
 
     // ── CSS-DOM-Marker fuer Spotlight-Shops: rotierende Gold-Aura + Badge ──
@@ -802,17 +834,18 @@ export function AppMap({
     spotlightBeamMarkersRef.current = [];
     spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightAuraMarkersRef.current = [];
-    // Arena-Shops bekommen Sword-Corner-Chip (⚔️ mit Wackel + Red-Glow)
+    // Arena-Shops: magenta ARENA-Badge (analog zu Spotlight, staplet darueber wenn beides)
     shops.filter((s) => s.arena).forEach((s) => {
-      const swordOuter = document.createElement("div");
-      swordOuter.style.pointerEvents = "none";
-      const swordInner = document.createElement("div");
-      swordInner.className = "ma365-arena-sword";
-      swordInner.innerHTML = `<span>⚔️</span>`;
-      swordOuter.appendChild(swordInner);
-      const swordMarker = new mapboxgl.Marker({ element: swordOuter, anchor: "center", offset: [0, 0] })
+      const badgeOuter = document.createElement("div");
+      badgeOuter.style.pointerEvents = "none";
+      const badgeInner = document.createElement("div");
+      badgeInner.className = "ma365-arena-badge";
+      badgeInner.innerHTML = `<span class="shield">🛡️</span><span>ARENA</span>`;
+      badgeOuter.appendChild(badgeInner);
+      const badgeMarker = new mapboxgl.Marker({ element: badgeOuter, anchor: "bottom", offset: [0, -40] })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      spotlightAuraMarkersRef.current.push({ marker: swordMarker, el: swordInner });
+      // Stacking: wenn Shop auch Spotlight hat, sitzt das ARENA-Badge obendrauf
+      spotlightAuraMarkersRef.current.push({ marker: badgeMarker, el: badgeInner, stacked: !!s.spotlight });
     });
     // Spotlight-Shops: Light-Beam + Badge
     shops.filter((s) => s.spotlight).forEach((s) => {
@@ -860,14 +893,16 @@ export function AppMap({
         el.style.opacity = hideBadge ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
-      // Sword sitzt als Corner-Chip oben rechts am Pin (Top-Right-Ecke des Pin-Body)
-      const pinWidth = 1024 * iconSize / 4;
-      const swordOffX = pinWidth * 0.38;
-      const swordOffY = -(pinHeight - pinHeight * 0.15);
-      const swordScale = Math.max(0.55, Math.min(1.0, pinHeight / 45));
-      spotlightAuraMarkersRef.current.forEach(({ marker, el }) => {
-        marker.setOffset([swordOffX, swordOffY]);
-        el.style.transform = `scale(${swordScale.toFixed(2)})`;
+      // Arena-Badge: gleiche Position wie Spotlight. Wenn Shop BEIDES hat,
+      // sitzt ARENA oben, SPOTLIGHT darunter (badgeStackOffset = ~badgeHeight+gap).
+      const arenaBaseOffY = -(pinHeight + 6);
+      const badgeStackOffset = 24 * badgeScale + 4;
+      const arenaScale = badgeScale;
+      spotlightAuraMarkersRef.current.forEach(({ marker, el, stacked }) => {
+        const offY = stacked ? arenaBaseOffY - badgeStackOffset : arenaBaseOffY;
+        marker.setOffset([0, offY]);
+        el.style.transform = `scale(${arenaScale.toFixed(2)})`;
+        el.style.transformOrigin = "center bottom";
         el.style.opacity = hideAura ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
@@ -886,6 +921,8 @@ export function AppMap({
     map.on("zoom", updateMarkerGeometry);
 
     return () => {
+      const cancel = (map as unknown as { __pulseCancel?: () => void }).__pulseCancel;
+      if (cancel) cancel();
       map.off("zoom", updateMarkerGeometry);
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
@@ -896,7 +933,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_PIN].forEach((l) => {
+        [LYR_LABEL, LYR_PIN, "shops-arena-ring"].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
