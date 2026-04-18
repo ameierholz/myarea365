@@ -868,8 +868,8 @@ export function AppMap({
       const pinHeight = 1280 * iconSize / 4;
       // Zoom-Schwellen: Beam erst wenn nah genug (Einzelshop-Ansicht), Badge/Aura
       // ab Stadtteil-Zoom, sonst waere bei vielen Spotlights die Karte chaotisch
-      const hideBeam  = zoom < 20;
-      const hideBadge = zoom < 20;
+      const hideBeam  = zoom < 5;
+      const hideBadge = zoom < 5;
       const hideAura  = zoom < 13;
       // Badge schwebt 6px ueber Pin-Top und skaliert mit
       const badgeOffY = -(pinHeight + 6);
