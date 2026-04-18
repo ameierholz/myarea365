@@ -57,7 +57,11 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
                   {(r.display_name ?? r.username ?? "?").charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-white font-bold truncate">{r.display_name ?? r.username}</div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-white font-bold truncate">{r.display_name ?? r.username}</span>
+                    {r.faction === "syndicate" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#22D1C3]/15 text-[#22D1C3] font-bold">🌙 Nachtpuls</span>}
+                    {r.faction === "vanguard" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FF6B4A]/15 text-[#FF6B4A] font-bold">☀️ Sonnenwacht</span>}
+                  </div>
                   <div className="text-xs text-text-muted">@{r.username} · Lvl {r.level ?? 1}</div>
                 </div>
                 <div className="text-right">

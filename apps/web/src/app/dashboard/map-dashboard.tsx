@@ -30,6 +30,8 @@ import {
   DEMO_MODE,
   DEMO_STATS,
   DEMO_MAP_LIVE,
+  DEMO_FACTION_STATS,
+  DEMO_NEARBY_CREWS_MAP,
   DEMO_RUNNERS,
   generateDemoMapData,
   DEMO_MISSIONS,
@@ -464,6 +466,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
             {/* Live-Info-Panel (oben links) */}
             <MapLivePanel teamColor={teamColor} onViewRunner={setViewingRunner} />
+
+            {/* Fraktions-Ranking + Crews-in-Nähe (unten links, kollabierbar) */}
+            <MapFactionPanel onSwitchTab={() => setActiveTab("crew")} />
 
             {/* Map-Controls (rechts, unter Mapbox-Zoom/Kompass) */}
             <div style={{
@@ -1727,6 +1732,108 @@ function RecordCard({ emoji, label, value, color }: { emoji: string; label: stri
         </span>
       </div>
       <span style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{value}</span>
+    </div>
+  );
+}
+
+function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const f = DEMO_FACTION_STATS;
+  const total = f.nachtpuls.km_week + f.sonnenwacht.km_week;
+  const pctN = total > 0 ? (f.nachtpuls.km_week / total) * 100 : 50;
+  const leader = f.nachtpuls.km_week >= f.sonnenwacht.km_week ? "nachtpuls" : "sonnenwacht";
+
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        style={{
+          position: "absolute", bottom: 110, left: 20, zIndex: 40,
+          background: "rgba(18, 26, 46, 0.7)",
+          backdropFilter: "blur(16px) saturate(180%)",
+          WebkitBackdropFilter: "blur(16px) saturate(180%)",
+          borderRadius: 999,
+          border: "1px solid rgba(255,255,255,0.14)",
+          boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+          padding: "6px 12px 6px 10px",
+          display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+        }}
+        aria-label="Fraktion & Crews"
+      >
+        <span style={{ fontSize: 14 }}>⚔️</span>
+        <span style={{ color: leader === "nachtpuls" ? "#22D1C3" : "#FF6B4A", fontSize: 12, fontWeight: 900 }}>
+          {leader === "nachtpuls" ? "🌙" : "☀️"} führt · {f.city}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div style={{
+      position: "absolute", bottom: 110, left: 20, zIndex: 40,
+      width: 260, maxWidth: "calc(100vw - 40px)",
+      background: "rgba(18, 26, 46, 0.85)",
+      backdropFilter: "blur(16px) saturate(180%)",
+      WebkitBackdropFilter: "blur(16px) saturate(180%)",
+      borderRadius: 16, padding: 14,
+      border: "1px solid rgba(255,255,255,0.14)",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ color: "#FFF", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>⚔️ FRAKTION · {f.city.toUpperCase()}</span>
+        <button onClick={() => setExpanded(false)} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 14, cursor: "pointer" }}>✕</button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, fontSize: 11 }}>
+        <span style={{ color: "#22D1C3", fontWeight: 800 }}>🌙 {f.nachtpuls.km_week.toFixed(0)} km</span>
+        <span style={{ flex: 1 }} />
+        <span style={{ color: "#FF6B4A", fontWeight: 800 }}>{f.sonnenwacht.km_week.toFixed(0)} km ☀️</span>
+      </div>
+      <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
+        <div style={{ width: `${pctN}%`, background: "linear-gradient(90deg, #22D1C3, #22D1C3aa)" }} />
+        <div style={{ flex: 1, background: "linear-gradient(90deg, #FF6B4A88, #FF6B4A)" }} />
+      </div>
+      <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 4, display: "flex", justifyContent: "space-between" }}>
+        <span>{f.nachtpuls.runners} Runner</span>
+        <span>diese Woche</span>
+        <span>{f.sonnenwacht.runners} Runner</span>
+      </div>
+
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "10px 0 8px" }} />
+
+      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>👥 CREWS IN DER NÄHE</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
+        {DEMO_NEARBY_CREWS_MAP.slice(0, 5).map((c) => (
+          <button
+            key={c.invite_code}
+            onClick={onSwitchTab}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "6px 8px", borderRadius: 8,
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${c.color}33`, cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: c.color, boxShadow: `0 0 6px ${c.color}` }} />
+            <span style={{ flex: 1, color: "#FFF", fontSize: 11, fontWeight: 700 }}>{c.name}</span>
+            <span style={{ color: "#a8b4cf", fontSize: 10 }}>{c.members}</span>
+            <span style={{ color: "#8b8fa3", fontSize: 9 }}>
+              {c.distance_m === 0 ? "★" : c.distance_m < 1000 ? `${c.distance_m}m` : `${(c.distance_m / 1000).toFixed(1)}km`}
+            </span>
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={onSwitchTab}
+        style={{
+          marginTop: 8, width: "100%", padding: "6px 10px",
+          background: "rgba(34,209,195,0.15)", border: `1px solid #22D1C366`,
+          borderRadius: 8, color: "#22D1C3", fontSize: 11, fontWeight: 800, cursor: "pointer",
+        }}
+      >
+        Alle Crews ansehen →
+      </button>
     </div>
   );
 }

@@ -1178,6 +1178,20 @@ export function generateDemoMapData(center: { lat: number; lng: number }) {
 }
 
 // Live-Metriken auf der Karte (Demo — später aus Supabase Realtime)
+export const DEMO_FACTION_STATS = {
+  nachtpuls: { runners: 74, km_week: 412.5, territories: 318 },
+  sonnenwacht: { runners: 69, km_week: 389.2, territories: 291 },
+  city: "Berlin",
+};
+
+export const DEMO_NEARBY_CREWS_MAP: { name: string; faction: "syndicate" | "vanguard"; members: number; distance_m: number; color: string; invite_code: string }[] = [
+  { name: "Kaelthors Kiez-Crew", faction: "syndicate", members: 6, distance_m: 0, color: "#22D1C3", invite_code: "KAEL-DEMO" },
+  { name: "Neon Prowlers", faction: "syndicate", members: 14, distance_m: 420, color: "#a855f7", invite_code: "NEON-01" },
+  { name: "Sonnen-Riders", faction: "vanguard", members: 9, distance_m: 680, color: "#FF6B4A", invite_code: "SONN-03" },
+  { name: "Mauerpark Runners", faction: "syndicate", members: 22, distance_m: 1100, color: "#22D1C3", invite_code: "MPRK-02" },
+  { name: "Pankow Athleten", faction: "vanguard", members: 31, distance_m: 1850, color: "#FFD700", invite_code: "PANK-01" },
+];
+
 export const DEMO_MAP_LIVE = {
   runners_in_zip:   7,              // PLZ-Gebiet
   zip:              "10437",
