@@ -556,381 +556,77 @@ export function AppMap({
     };
   }, [mapReady, supplyDrops, onDropClick]);
 
-  // Shops — native Mapbox Symbol-Layer (GPU-gerendert, zoom-scharf, kein DOM-Scale-Blur)
+  // Shops — DOM-Marker mit vollem CSS-Look. Kein transform:scale → kein Blur.
+  // Stattdessen: komplett ausblenden unterhalb Zoom 13 (wie Google-POIs).
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
 
-    const SRC = "shops-source";
-    const LYR_ARENA_GLOW = "shops-arena-glow";
-    const LYR_GLOW       = "shops-spotlight-glow";
-    const LYR_PIN        = "shops-pin-drop";
-    const LYR_LABEL      = "shops-pin-label";
-    const LYR_BADGE      = "shops-pin-badge";
+    const markers: mapboxgl.Marker[] = [];
+    for (const shop of shops) {
+      const color = shop.color || "#FFD700";
+      const el = document.createElement("div");
+      el.style.cssText = "position:relative;cursor:pointer;pointer-events:auto;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center";
 
-    // Fuer jeden Shop ein eigenes Pin-Image generieren (Color + Emoji + Gradient + Border)
-    // Mapbox downsampled das high-res Image beim Zoomen → immer scharf
-    function darken(hex: string, amt = 0.25): string {
-      const c = hex.replace("#", "");
-      const r = Math.max(0, Math.round(parseInt(c.slice(0,2),16) * (1-amt)));
-      const g = Math.max(0, Math.round(parseInt(c.slice(2,4),16) * (1-amt)));
-      const b = Math.max(0, Math.round(parseInt(c.slice(4,6),16) * (1-amt)));
-      return `rgb(${r},${g},${b})`;
-    }
-    function buildShopPinImage(color: string, icon: string): ImageData | null {
-      const W = 512, H = 640;
-      const canvas = document.createElement("canvas");
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
+      const spotlightHtml = shop.spotlight ? `
+        <div style="position:absolute;top:-20px;left:50%;margin-left:-54px;width:108px;height:108px;border-radius:50%;background:radial-gradient(circle,#FFD70055 0%,#FFD70022 45%,transparent 70%);animation:shopSpotlightHalo 2.2s ease-in-out infinite;pointer-events:none"></div>
+        <div style="position:absolute;top:-8px;left:50%;margin-left:-38px;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle,#FFD70088 0%,#FFD70044 50%,transparent 75%);animation:shopSpotlightHalo 2.2s ease-in-out infinite 0.4s;pointer-events:none"></div>
+        <div style="position:absolute;top:-16px;left:50%;margin-left:-45px;width:90px;height:90px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,#FFD70088 15deg,transparent 35deg,transparent 90deg,#FFD70066 110deg,transparent 140deg,transparent 210deg,#FFD70088 230deg,transparent 260deg,transparent 330deg,#FFD70066 350deg,transparent 360deg);animation:shopSpotlightRays 6s linear infinite;pointer-events:none;opacity:0.7;filter:blur(2px)"></div>
+      ` : "";
 
-      const cx = W / 2;
-      const cy = W * 0.5;
-      const r  = W * 0.40;
-      const tipY = H - 24;
+      const arenaHtml = shop.arena ? `
+        <div style="position:absolute;top:-18px;left:50%;margin-left:-48px;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle,#a855f755 0%,#a855f722 50%,transparent 75%);animation:shopSpotlightHalo 2.6s ease-in-out infinite 0.2s;pointer-events:none"></div>
+      ` : "";
 
-      // Drop-Shadow-Pfad (groesser, dunkler, fuer Tiefe)
-      ctx.shadowColor = "rgba(0,0,0,0.55)";
-      ctx.shadowBlur = 40;
-      ctx.shadowOffsetY = 18;
+      const badges: string[] = [];
+      if (shop.spotlight) badges.push(`<span style="padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#FFD700,#FF6B4A);color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,0.45);white-space:nowrap">⭐ SPOTLIGHT</span>`);
+      if (shop.arena) badges.push(`<span style="padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#a855f7,#FF2D78);color:#FFF;font-size:9px;font-weight:900;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,0.45);white-space:nowrap">⚔️ ARENA</span>`);
+      const badgeHtml = badges.length
+        ? `<div style="position:absolute;top:-30px;left:50%;transform:translateX(-50%);display:flex;gap:4px;animation:shopSpotlightLabel 1.8s ease-in-out infinite;z-index:3">${badges.join("")}</div>`
+        : "";
 
-      ctx.beginPath();
-      ctx.moveTo(cx, tipY);
-      ctx.bezierCurveTo(cx - r * 1.05, cy + r * 0.9, cx - r, cy + r * 0.1, cx - r, cy);
-      ctx.arc(cx, cy, r, Math.PI, 0, false);
-      ctx.bezierCurveTo(cx + r, cy + r * 0.1, cx + r * 1.05, cy + r * 0.9, cx, tipY);
-      ctx.closePath();
-
-      // Hauptgradient: helle Farbe oben, dunkler unten, diagonal fuer Glanz
-      const grad = ctx.createLinearGradient(W * 0.3, 0, W * 0.7, H);
-      grad.addColorStop(0, color);
-      grad.addColorStop(0.5, color);
-      grad.addColorStop(1, darken(color, 0.35));
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Shadow ausschalten fuer Details
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-
-      // Weisser Dick-Border
-      ctx.lineWidth = 18;
-      ctx.strokeStyle = "#FFFFFF";
-      ctx.stroke();
-
-      // Inner Glow (leichter Highlight am oberen Rand)
-      const highlight = ctx.createRadialGradient(cx, cy - r * 0.3, 0, cx, cy - r * 0.3, r * 0.9);
-      highlight.addColorStop(0, "rgba(255,255,255,0.45)");
-      highlight.addColorStop(0.5, "rgba(255,255,255,0.15)");
-      highlight.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = highlight;
-      ctx.fill();
-
-      // Emoji-Bubble (weiss, zentriert)
-      ctx.beginPath();
-      ctx.arc(cx, cy, r * 0.60, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fill();
-
-      // Bubble-Inner-Shadow fuer Tiefe
-      const bubbleShadow = ctx.createRadialGradient(cx, cy + r * 0.05, r * 0.45, cx, cy + r * 0.05, r * 0.60);
-      bubbleShadow.addColorStop(0, "rgba(0,0,0,0)");
-      bubbleShadow.addColorStop(1, "rgba(0,0,0,0.12)");
-      ctx.fillStyle = bubbleShadow;
-      ctx.fill();
-
-      // Emoji gross & scharf
-      ctx.font = `${Math.round(r * 1.2)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#0F1115";
-      ctx.fillText(icon, cx, cy + r * 0.02);
-
-      return ctx.getImageData(0, 0, W, H);
+      el.innerHTML = `
+        ${arenaHtml}
+        ${spotlightHtml}
+        ${badgeHtml}
+        <div style="position:relative;width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:2.5px solid #FFF;box-shadow:0 4px 10px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 22px #FFD700cc" : ""}${shop.arena ? ",0 0 18px #a855f7aa" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2;overflow:hidden">
+          ${shop.custom_pin_url
+            ? `<img src="${shop.custom_pin_url}" alt="${shop.name}" style="transform:rotate(45deg);width:28px;height:28px;border-radius:50%;object-fit:cover" />`
+            : `<span style="transform:rotate(45deg);font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">${shop.icon}</span>`
+          }
+        </div>
+        <div data-shop-label="1" style="margin-top:2px;padding:2px 6px;border-radius:8px;background:rgba(15,17,21,0.85);border:1px solid ${color}88;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2;transition:opacity 0.2s">${shop.name}</div>
+      `;
+      if (onShopClick) el.addEventListener("click", () => onShopClick(shop.id));
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([shop.lng, shop.lat])
+        .addTo(map);
+      markers.push(marker);
     }
 
-    // Pill-Badge als Icon-Image (Gold-Gradient fuer SPOTLIGHT, Purple fuer ARENA)
-    function buildBadgeImage(label: string, colorFrom: string, colorTo: string): { img: ImageData; width: number; height: number } | null {
-      const H = 96;
-      const pad = 64;
-      // Erst Textmetrik bestimmen
-      const measure = document.createElement("canvas").getContext("2d");
-      if (!measure) return null;
-      measure.font = `900 56px Inter, system-ui, sans-serif`;
-      const tw = measure.measureText(label).width;
-      const W = Math.round(tw + pad * 2);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
-
-      // Shadow
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
-      ctx.shadowBlur = 24;
-      ctx.shadowOffsetY = 8;
-
-      // Pill-Shape
-      const radius = H / 2;
-      ctx.beginPath();
-      ctx.moveTo(radius, 0);
-      ctx.lineTo(W - radius, 0);
-      ctx.arc(W - radius, radius, radius, -Math.PI / 2, Math.PI / 2);
-      ctx.lineTo(radius, H);
-      ctx.arc(radius, radius, radius, Math.PI / 2, -Math.PI / 2);
-      ctx.closePath();
-
-      const grad = ctx.createLinearGradient(0, 0, W, 0);
-      grad.addColorStop(0, colorFrom);
-      grad.addColorStop(1, colorTo);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-
-      // Text
-      ctx.font = `900 56px Inter, system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#0F1115";
-      ctx.fillText(label, W / 2, H / 2 + 4);
-
-      return { img: ctx.getImageData(0, 0, W, H), width: W, height: H };
-    }
-
-    // Badges registrieren
-    if (!map.hasImage("shop-badge-spotlight")) {
-      const b = buildBadgeImage("⭐ SPOTLIGHT", "#FFD700", "#FF8A3C");
-      if (b) map.addImage("shop-badge-spotlight", b.img, { pixelRatio: 2 });
-    }
-    if (!map.hasImage("shop-badge-arena")) {
-      const b = buildBadgeImage("⚔️ ARENA", "#c084fc", "#FF2D78");
-      if (b) map.addImage("shop-badge-arena", b.img, { pixelRatio: 2 });
-    }
-    if (!map.hasImage("shop-badge-both")) {
-      const b = buildBadgeImage("⭐ SPOTLIGHT  ⚔️ ARENA", "#FFD700", "#c084fc");
-      if (b) map.addImage("shop-badge-both", b.img, { pixelRatio: 2 });
-    }
-
-    // Jedem Shop sein eigenes Image registrieren, keyed by color + icon
-    const imageKeyFor = (s: ShopPin) => `shop-pin-${s.color ?? "default"}-${s.icon ?? "none"}`.replace(/[^a-zA-Z0-9-]/g, "_");
-    for (const s of shops) {
-      const key = imageKeyFor(s);
-      if (!map.hasImage(key)) {
-        const img = buildShopPinImage(s.color || "#FFD700", s.icon || "📍");
-        if (img) map.addImage(key, img, { pixelRatio: 2 });
+    // Sichtbarkeit per Zoom: unterhalb 13 komplett ausblenden (kein Clutter)
+    // Zoom 13-14: nur Pin + Spotlight-Halo, kein Name. Zoom >=14: alles.
+    const applyVisibility = () => {
+      const zoom = map.getZoom();
+      for (const m of markers) {
+        const el = m.getElement();
+        el.style.display = zoom < 13 ? "none" : "flex";
+        const label = el.querySelector('[data-shop-label="1"]') as HTMLElement | null;
+        if (label) label.style.opacity = zoom >= 14 ? "1" : "0";
       }
-    }
-
-    const geojson = {
-      type: "FeatureCollection" as const,
-      features: shops.map((s) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] },
-        properties: {
-          id: s.id,
-          name: s.name,
-          image_key: imageKeyFor(s),
-          color: s.color || "#FFD700",
-          spotlight: !!s.spotlight,
-          arena: !!s.arena,
-        },
-      })),
     };
-
-    const existingSrc = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
-    if (existingSrc) {
-      existingSrc.setData(geojson);
-    } else {
-      map.addSource(SRC, { type: "geojson", data: geojson });
-
-      // Spotlight-Glow: 3 stacked circle-Layer fuer Corona-Effekt
-      map.addLayer({
-        id: LYR_GLOW + "-outer", type: "circle", source: SRC,
-        paint: {
-          "circle-color": "#FFD700",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 28, 15, 80, 18, 130],
-          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.18, 0],
-          "circle-blur": 1.4,
-        },
-      });
-      map.addLayer({
-        id: LYR_GLOW, type: "circle", source: SRC,
-        paint: {
-          "circle-color": "#FFD700",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 18, 15, 50, 18, 82],
-          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.5, 0],
-          "circle-blur": 0.9,
-        },
-      });
-      map.addLayer({
-        id: LYR_GLOW + "-core", type: "circle", source: SRC,
-        paint: {
-          "circle-color": "#FFF3A0",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 15, 28, 18, 46],
-          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.55, 0],
-          "circle-blur": 0.4,
-        },
-      });
-
-      // Arena-Glow: lila Doppel-Ring
-      map.addLayer({
-        id: LYR_ARENA_GLOW + "-outer", type: "circle", source: SRC,
-        paint: {
-          "circle-color": "#a855f7",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 24, 15, 70, 18, 110],
-          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.2, 0],
-          "circle-blur": 1.2,
-        },
-      });
-      map.addLayer({
-        id: LYR_ARENA_GLOW, type: "circle", source: SRC,
-        paint: {
-          "circle-color": "#a855f7",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 15, 40, 18, 64],
-          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.45, 0],
-          "circle-blur": 0.7,
-        },
-      });
-      // Drop-Pin via Full-Color-Image (enthaelt Gradient + Border + Shadow + Emoji)
-      map.addLayer({
-        id: LYR_PIN, type: "symbol", source: SRC,
-        layout: {
-          "icon-image": ["get", "image_key"],
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.06, 13, 0.13, 15, 0.22, 18, 0.34],
-          "icon-anchor": "bottom",
-          "icon-allow-overlap": true,
-          "icon-ignore-placement": true,
-        },
-      });
-      // Name-Label unter dem Pin, erst ab zoom 14 sichtbar
-      map.addLayer({
-        id: LYR_LABEL, type: "symbol", source: SRC,
-        layout: {
-          "text-field": ["get", "name"],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 16, 13, 18, 15],
-          "text-offset": ["interpolate", ["linear"], ["zoom"], 13, ["literal", [0, 1.4]], 18, ["literal", [0, 2.2]]],
-          "text-anchor": "top",
-          "text-allow-overlap": false,
-        },
-        paint: {
-          "text-color": "#FFF",
-          "text-halo-color": "rgba(15,17,21,0.9)",
-          "text-halo-width": 2.2,
-          "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 14, 1],
-        },
-      });
-
-      // Status-Badge als Pill-Icon ueber dem Pin
-      map.addLayer({
-        id: LYR_BADGE, type: "symbol", source: SRC,
-        layout: {
-          "icon-image": [
-            "case",
-            ["all", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], "shop-badge-both",
-            ["==", ["get", "spotlight"], true], "shop-badge-spotlight",
-            ["==", ["get", "arena"], true], "shop-badge-arena",
-            "shop-badge-spotlight", // fallback (wird durch opacity 0 versteckt)
-          ],
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 11, 0.10, 15, 0.18, 18, 0.26],
-          "icon-offset": ["interpolate", ["linear"], ["zoom"], 11, ["literal", [0, -460]], 18, ["literal", [0, -220]]],
-          "icon-anchor": "bottom",
-          "icon-allow-overlap": true,
-          "icon-ignore-placement": true,
-        },
-        paint: {
-          "icon-opacity": [
-            "case",
-            ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 1,
-            0,
-          ],
-        },
-      });
-
-      // Click-Handler
-      if (onShopClick) {
-        const onClick = (e: mapboxgl.MapLayerMouseEvent) => {
-          const id = e.features?.[0]?.properties?.id as string | undefined;
-          if (id) onShopClick(id);
-        };
-        [LYR_PIN, LYR_LABEL, LYR_BADGE, LYR_GLOW, LYR_GLOW + "-outer", LYR_GLOW + "-core", LYR_ARENA_GLOW, LYR_ARENA_GLOW + "-outer"].forEach((l) => {
-          map.on("click", l, onClick);
-          map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
-        });
-      }
-
-      // Glow-Pulse (Spotlight + Arena) via RAF, mit Cancel-Flag gegen Unmount
-      let cancelled = false;
-      let t = 0;
-      const pulse = () => {
-        if (cancelled) return;
-        // Map unmounted / style entfernt → aufhoeren
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!(map as any).style) { cancelled = true; return; }
-        t += 1;
-        const phase = Math.sin(t * 0.04);
-        const opSpotlight = 0.42 + phase * 0.22;
-        const opArena     = 0.38 + phase * 0.18;
-        const r = (base: number) => base + phase * (base * 0.2);
-        const phase2 = Math.sin(t * 0.06 + 1.5); // zweite Phase fuer Outer-Ring (versetzt)
-        try {
-          // Spotlight: 3 Layer mit versetzter Phase fuer Corona-Effekt
-          if (map.getLayer(LYR_GLOW)) {
-            map.setPaintProperty(LYR_GLOW, "circle-opacity",
-              ["case", ["==", ["get", "spotlight"], true], opSpotlight, 0]
-            );
-            map.setPaintProperty(LYR_GLOW, "circle-radius", [
-              "interpolate", ["linear"], ["zoom"], 11, r(18), 15, r(50), 18, r(82),
-            ]);
-          }
-          if (map.getLayer(LYR_GLOW + "-outer")) {
-            map.setPaintProperty(LYR_GLOW + "-outer", "circle-opacity",
-              ["case", ["==", ["get", "spotlight"], true], 0.12 + phase2 * 0.12, 0]
-            );
-          }
-          if (map.getLayer(LYR_GLOW + "-core")) {
-            map.setPaintProperty(LYR_GLOW + "-core", "circle-opacity",
-              ["case", ["==", ["get", "spotlight"], true], 0.55 + phase * 0.25, 0]
-            );
-          }
-          // Arena: Doppelring
-          if (map.getLayer(LYR_ARENA_GLOW)) {
-            map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity",
-              ["case", ["==", ["get", "arena"], true], opArena, 0]
-            );
-            map.setPaintProperty(LYR_ARENA_GLOW, "circle-radius", [
-              "interpolate", ["linear"], ["zoom"], 11, r(14), 15, r(40), 18, r(64),
-            ]);
-          }
-          if (map.getLayer(LYR_ARENA_GLOW + "-outer")) {
-            map.setPaintProperty(LYR_ARENA_GLOW + "-outer", "circle-opacity",
-              ["case", ["==", ["get", "arena"], true], 0.15 + phase2 * 0.12, 0]
-            );
-          }
-        } catch { cancelled = true; return; }
-        requestAnimationFrame(pulse);
-      };
-      requestAnimationFrame(pulse);
-      (map as unknown as { __shopsPulseCancel?: () => void }).__shopsPulseCancel = () => { cancelled = true; };
-    }
+    applyVisibility();
+    map.on("zoom", applyVisibility);
 
     return () => {
-      const cancel = (map as unknown as { __shopsPulseCancel?: () => void }).__shopsPulseCancel;
-      if (cancel) cancel();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (!(map as any).style) return; // Map bereits zerstoert → nichts zu tun
-      try {
-        [LYR_BADGE, LYR_LABEL, LYR_PIN, LYR_GLOW + "-core", LYR_GLOW, LYR_GLOW + "-outer", LYR_ARENA_GLOW, LYR_ARENA_GLOW + "-outer"].forEach((l) => {
-          if (map.getLayer(l)) map.removeLayer(l);
-        });
-        if (map.getSource(SRC)) map.removeSource(SRC);
-      } catch { /* map removed during cleanup race */ }
+      map.off("zoom", applyVisibility);
+      markers.forEach((m) => m.remove());
     };
   }, [mapReady, shops, onShopClick]);
+
+  // Alter native Symbol-Layer Code — deaktiviert (zurueck zu DOM-Markers fuer besseren Look).
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
   // Globaler Zoom-Scaling-Effect: skaliert ALLE Marker (Self, Runner, Drops, Shops)
   // anhand des aktuellen Map-Zooms. Label-Fade fuer Shop-Namen.
