@@ -4739,28 +4739,6 @@ function CrewTab({
   // ═══ Keine Crew → Onboarding ═══
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 40 }}>
-      {/* Faction-Header (kompakt) */}
-      <div style={{
-        padding: "30px 20px 20px", background: CARD,
-        width: "100%", borderBottom: `1px solid ${BORDER}`,
-      }}>
-        <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Crews</div>
-        <div style={{ color: MUTED, fontSize: 13 }}>Zusammen läuft&apos;s weiter — finde oder gründe deine Truppe.</div>
-
-        <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: MUTED, fontWeight: 700 }}>
-              <span style={{ color: FACTIONS[0].color }}>{FACTIONS[0].name}</span>
-              <span style={{ color: FACTIONS[1].color }}>{FACTIONS[1].name}</span>
-            </div>
-            <div style={{ marginTop: 4, height: 8, borderRadius: 4, display: "flex", overflow: "hidden", background: "#0008" }}>
-              <div style={{ width: "47%", background: FACTIONS[0].color }} />
-              <div style={{ width: "53%", background: FACTIONS[1].color }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div style={{ padding: "20px 20px 40px", width: "100%", maxWidth: 960, margin: "0 auto" }}>
         {mode === "idle" && (
           <CrewOnboarding
