@@ -823,13 +823,13 @@ export function AppMap({
     });
     // Spotlight-Shops: Light-Beam + Badge
     shops.filter((s) => s.spotlight).forEach((s) => {
-      // Bat-Signal-Beam (Beam-Bottom sitzt auf Pin-Top, extends upward)
+      // Bat-Signal-Beam: Top endet an Badge-Bottom, erstreckt sich NACH UNTEN bis Pin-Tip
       const beamOuter = document.createElement("div");
       beamOuter.style.pointerEvents = "none";
       const beamInner = document.createElement("div");
       beamInner.className = "ma365-spotlight-beam";
       beamOuter.appendChild(beamInner);
-      const beamMarker = new mapboxgl.Marker({ element: beamOuter, anchor: "bottom", offset: [0, 0] })
+      const beamMarker = new mapboxgl.Marker({ element: beamOuter, anchor: "top", offset: [0, 0] })
         .setLngLat([s.lng, s.lat]).addTo(map);
       spotlightBeamMarkersRef.current.push({ marker: beamMarker, el: beamInner });
 
@@ -867,12 +867,15 @@ export function AppMap({
         marker.setOffset([0, auraOffY]);
         el.style.transform = `scale(${auraScale.toFixed(2)})`;
       });
-      // Beam sitzt mit Bottom auf Pin-Top (Offset = -pinHeight), breit sichtbar von weitem
-      const beamOffY = -pinHeight;
-      const beamScale = Math.max(0.45, Math.min(1.0, pinHeight / 45));
+      // Beam: anchor "top" sitzt an Badge-Bottom, extends DOWN bis Pin-Tip.
+      // Hoehe genau = pinHeight + 6 (Pin + Gap zum Badge), Breite skaliert mit Pin.
+      const beamH = pinHeight + 6;
+      const beamOffY = -beamH;
+      const beamXScale = Math.max(0.45, Math.min(1.0, pinHeight / 45));
       spotlightBeamMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, beamOffY]);
-        el.style.transform = `scale(${beamScale.toFixed(2)})`;
+        el.style.height = `${beamH}px`;
+        el.style.transform = `scaleX(${beamXScale.toFixed(2)})`;
       });
     };
     updateMarkerGeometry();
