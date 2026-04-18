@@ -2993,9 +2993,15 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                 <span style={{ padding: "2px 8px", borderRadius: 999, background: "rgba(74,222,128,0.25)", color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>LIVE</span>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
-                {arenaStatus.my_crew_eligible
-                  ? "Deine Crew hat in den letzten 7 Tagen hier eingelöst — ihr könnt kämpfen!"
-                  : "Löse zuerst einen Deal ein, um als Crew in der Arena kämpfen zu können."}
+                {arenaStatus.my_crew_eligible ? (
+                  <>
+                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Deine Crew hat hier eingelöst — du darfst kämpfen, XP für deinen Wächter holen und Gegner herausfordern.
+                  </>
+                ) : (
+                  <>
+                    <b style={{ color: "#FF6B4A" }}>🔒 Arena gesperrt.</b> Mindestens 1 Mitglied deiner Crew muss hier erst einen Deal einlösen — danach habt ihr 7 Tage Zugang zur Kampf-Arena.
+                  </>
+                )}
               </div>
               <button
                 onClick={() => setArenaOpen(true)}
