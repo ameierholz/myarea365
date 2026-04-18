@@ -13,6 +13,7 @@ export type WalkSummary = {
   segment_count: number;
   street_count: number;
   territory_count: number;
+  stolen_count?: number;
   bonuses?: {
     streakBonus: number;
     happyHourMult: number;
@@ -189,6 +190,11 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   <span style={{ color: "#a8b4cf" }}>Keine neuen Abschnitte</span>
                 )}
               </div>
+              {summary.stolen_count && summary.stolen_count > 0 ? (
+                <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78", fontSize: 11, fontWeight: 800 }}>
+                  ⚔️ {summary.stolen_count}× Territorium erobert (zurueckgeholt!)
+                </div>
+              ) : null}
             </div>
 
             {summary.bonuses && (summary.bonuses.streakBonus > 0 || summary.bonuses.happyHourMult > 1 || summary.bonuses.boostMult > 1 || summary.bonuses.crewBoostMult > 1) && (

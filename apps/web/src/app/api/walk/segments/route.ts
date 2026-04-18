@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { bboxOf, fetchHighwaysInBBox } from "@/lib/overpass";
 import { matchWaysToTrace, type LngLat } from "@/lib/geo-matching";
-import { detectPolygonFromWalk } from "@/lib/polygon-detect";
+import { detectPolygonFromWalk, centroidOf, pointInPolygon } from "@/lib/polygon-detect";
+import { findNewCycles } from "@/lib/polygon-graph";
+import { polygonAreaM2 } from "@/lib/polygon-detect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,24 +161,108 @@ export async function POST(req: Request) {
     }
   }
 
-  // Phase 4: Polygon-Detection — wenn Walk einen geschlossenen Ring bildet (V1).
+  // Phase 4 V1: Einzelwalk-Loop (Trace selbst schliesst sich)
   const matchedStreetNames = matched
     .map((m) => m.street_name)
     .filter((n): n is string => !!n);
   const detected = detectPolygonFromWalk(trace, matchedStreetNames);
-  let newTerritory: { id: string; area_m2: number } | null = null;
-  if (detected) {
+
+  // Phase 4 V2: Graph-Cycle ueber ALLE Segmente des Users.
+  // Liest alle Segmente des Users, baut Graph, findet neue Zyklen die durch die
+  // neu eingefuegten Segmente geschlossen werden.
+  type AllSeg = { id: string; geom: LngLat[] };
+  const { data: allSegs } = await sb.from("street_segments")
+    .select("id, geom")
+    .eq("user_id", userId)
+    .returns<AllSeg[]>();
+  const newIdSet = new Set(newSegments.map((s) => s.id));
+
+  // Bereits existierende Polygon-Segment-Sets (damit wir nicht duplizieren)
+  const { data: existingPolys } = await sb.from("territory_polygons")
+    .select("segment_ids")
+    .eq("claimed_by_user_id", userId)
+    .returns<Array<{ segment_ids: string[] }>>();
+  const existingSets = (existingPolys ?? []).map((p) => p.segment_ids);
+
+  const v2Cycles = findNewCycles(allSegs ?? [], newIdSet, existingSets);
+
+  // Aktive Polygone fuer Overlap-Check (inkl. fremder Nutzer/Crews)
+  const { data: activeTerritories } = await sb.from("territory_polygons")
+    .select("id, polygon, owner_user_id, owner_crew_id")
+    .eq("status", "active")
+    .returns<Array<{ id: string; polygon: LngLat[]; owner_user_id: string | null; owner_crew_id: string | null }>>();
+
+  const createdTerritories: Array<{ id: string; area_m2: number; stole_from: boolean }> = [];
+
+  async function insertPolygon(polygon: LngLat[], segmentIds: string[]) {
+    const area = polygonAreaM2(polygon);
+    if (area < 500) return;
+    const center = centroidOf(polygon);
+
+    // Steal-Check: ueberlappt das neue Polygon ein aktives?
+    let stoleFromUserId: string | null = null;
+    let stoleFromCrewId: string | null = null;
+    const toMarkStolen: string[] = [];
+    for (const t of activeTerritories ?? []) {
+      if (!Array.isArray(t.polygon) || t.polygon.length < 3) continue;
+      const otherCentroid = centroidOf(t.polygon);
+      if (pointInPolygon(center, t.polygon) || pointInPolygon(otherCentroid, polygon)) {
+        // Nur stehlen wenn ANDERER Besitzer
+        const sameUser = t.owner_user_id === userId;
+        const sameCrew = crewId && t.owner_crew_id === crewId;
+        if (sameUser || sameCrew) continue;
+        toMarkStolen.push(t.id);
+        stoleFromUserId = t.owner_user_id;
+        stoleFromCrewId = t.owner_crew_id;
+      }
+    }
+
+    let perimeter = 0;
+    for (let i = 0; i < polygon.length - 1; i++) {
+      const a = polygon[i], b = polygon[i + 1];
+      const dLat = (b.lat - a.lat) * Math.PI / 180;
+      const dLng = (b.lng - a.lng) * Math.PI / 180;
+      const lat0 = (a.lat + b.lat) / 2 * Math.PI / 180;
+      const x = dLng * Math.cos(lat0) * 6371000;
+      const y = dLat * 6371000;
+      perimeter += Math.hypot(x, y);
+    }
+
     const { data: terr, error: terrErr } = await sb.from("territory_polygons").insert({
       owner_user_id: userId,
       owner_crew_id: crewId,
-      polygon: detected.polygon,
-      area_m2: detected.area_m2,
-      segment_ids: newSegments.map((s) => s.id),
+      polygon,
+      area_m2: Math.round(area),
+      perimeter_m: Math.round(perimeter),
+      segment_ids: segmentIds,
       walk_id: walk_id ?? null,
       claimed_by_user_id: userId,
       xp_awarded: 500,
+      status: "active",
+      stolen_from_user_id: stoleFromUserId,
+      stolen_from_crew_id: stoleFromCrewId,
+      stolen_at: toMarkStolen.length > 0 ? new Date().toISOString() : null,
     }).select("id, area_m2").single<{ id: string; area_m2: number }>();
-    if (!terrErr && terr) newTerritory = terr;
+
+    if (terrErr || !terr) return;
+
+    // Alte ueberlappende Polygone deaktivieren
+    if (toMarkStolen.length > 0) {
+      await sb.from("territory_polygons")
+        .update({ status: "stolen", stolen_at: new Date().toISOString() })
+        .in("id", toMarkStolen);
+    }
+
+    createdTerritories.push({ id: terr.id, area_m2: terr.area_m2, stole_from: toMarkStolen.length > 0 });
+  }
+
+  // V1 zuerst (nur wenn V2 nichts lieferte)
+  if (detected && v2Cycles.length === 0) {
+    await insertPolygon(detected.polygon, newSegments.map((s) => s.id));
+  }
+  // V2 Zyklen
+  for (const c of v2Cycles) {
+    await insertPolygon(c.polygon, c.segment_ids);
   }
 
   return NextResponse.json({
@@ -185,6 +271,7 @@ export async function POST(req: Request) {
     total_length_m: totalLength,
     matched_total: matched.length,
     newly_claimed_streets: newlyClaimedStreets,
-    new_territory: newTerritory,
+    new_territory: createdTerritories[0] ?? null, // Backcompat
+    new_territories: createdTerritories,
   });
 }

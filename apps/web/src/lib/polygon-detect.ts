@@ -11,6 +11,25 @@
 
 import { haversineM, polylineLengthM, type LngLat } from "@/lib/geo-matching";
 
+export function centroidOf(poly: LngLat[]): LngLat {
+  let lat = 0, lng = 0, n = 0;
+  for (const p of poly) { lat += p.lat; lng += p.lng; n++; }
+  return { lat: lat / n, lng: lng / n };
+}
+
+// Ray-casting point-in-polygon
+export function pointInPolygon(pt: LngLat, poly: LngLat[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].lng, yi = poly[i].lat;
+    const xj = poly[j].lng, yj = poly[j].lat;
+    const intersect = (yi > pt.lat) !== (yj > pt.lat)
+      && pt.lng < ((xj - xi) * (pt.lat - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 export type DetectedPolygon = {
   polygon: LngLat[];   // geschlossener Ring (erster und letzter Punkt identisch)
   area_m2: number;

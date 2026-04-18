@@ -8,6 +8,7 @@ import { BoostShopModal as PowerShopModal } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
 import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
+import { OwnershipModal } from "@/components/ownership-modal";
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
 import { DemoBadge } from "@/components/demo-badge";
@@ -122,6 +123,9 @@ interface Territory {
   duration_s: number;
   xp_earned: number;
   created_at: string;
+  segments_claimed?: number;
+  streets_claimed?: number;
+  polygons_claimed?: number;
 }
 
 interface Crew {
@@ -182,6 +186,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [snapping, setSnapping] = useState(false);
   const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
 
+  // 3-Ebenen-Modell: DB-geladene Layer fuer Karte
+  const [walkedSegments, setWalkedSegments] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
+  const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
+  const [ownedTerritories, setOwnedTerritories] = useState<Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>>([]);
+  const [ownershipQuery, setOwnershipQuery] = useState<{ type: "segment" | "street" | "territory"; id: string } | null>(null);
+
   // Crew
   const [myCrew, setMyCrew] = useState<Crew | null>(null);
   const [leaderboard, setLeaderboard] = useState<Profile[]>([]);
@@ -196,13 +206,68 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     (async () => {
       const { data } = await supabase
         .from("territories")
-        .select("id, street_name, distance_m, duration_s, xp_earned, created_at")
+        .select("id, street_name, distance_m, duration_s, xp_earned, created_at, segments_claimed, streets_claimed, polygons_claimed")
         .eq("user_id", profile.id)
         .order("created_at", { ascending: false })
         .limit(5);
       if (data) setRecentRuns(data as Territory[]);
     })();
   }, [profile?.id]);
+
+  // 3-Ebenen-Layer laden (eigene + Crew-eigene + gestohlene fremde)
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    const myCrewId = profile.current_crew_id ?? null;
+    (async () => {
+      const [segsRes, streetsRes, terrsRes] = await Promise.all([
+        supabase.from("street_segments").select("id, user_id, crew_id, geom").limit(500),
+        supabase.from("streets_claimed").select("id, user_id, crew_id, street_name"),
+        supabase.from("territory_polygons").select("id, owner_user_id, owner_crew_id, polygon, status").eq("status", "active"),
+      ]);
+      if (cancelled) return;
+
+      if (segsRes.data) {
+        setWalkedSegments(
+          (segsRes.data as Array<{ id: string; user_id: string; crew_id: string | null; geom: Array<{ lat: number; lng: number }> }>).map((s) => ({
+            id: s.id,
+            geom: s.geom,
+            is_mine: s.user_id === profile.id,
+            is_crew: !!(myCrewId && s.crew_id === myCrewId),
+          })),
+        );
+      }
+      if (streetsRes.data) {
+        // Straßenzüge: verknüpfe Segment-Geometry per street_name (vereinfacht)
+        const segsForStreets = (segsRes.data ?? []) as Array<{ id: string; user_id: string; crew_id: string | null; geom: Array<{ lat: number; lng: number }> }>;
+        const byUserStreet = new Map<string, Array<{ lat: number; lng: number }>>();
+        for (const s of segsForStreets) {
+          const key = s.id;
+          byUserStreet.set(key, s.geom);
+        }
+        setClaimedStreets(
+          (streetsRes.data as Array<{ id: string; user_id: string; crew_id: string | null; street_name: string }>).map((row) => ({
+            id: row.id,
+            geom: [], // Straßenzug-Geometrie wird aus Segmenten ueber street_name/user_id erzeugt — V2
+            is_mine: row.user_id === profile.id,
+            is_crew: !!(myCrewId && row.crew_id === myCrewId),
+          })),
+        );
+      }
+      if (terrsRes.data) {
+        setOwnedTerritories(
+          (terrsRes.data as Array<{ id: string; owner_user_id: string | null; owner_crew_id: string | null; polygon: Array<{ lat: number; lng: number }>; status: string }>).map((t) => ({
+            id: t.id,
+            polygon: t.polygon,
+            is_mine: t.owner_user_id === profile.id,
+            is_crew: !!(myCrewId && t.owner_crew_id === myCrewId),
+            status: t.status,
+          })),
+        );
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.id, profile?.current_crew_id, supabase]);
 
   // Load crew + territories
   useEffect(() => {
@@ -314,8 +379,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         total_length_m: number;
         newly_claimed_streets: Array<{ street_name: string; segments_count: number; total_length_m: number }>;
         new_territory: { id: string; area_m2: number } | null;
+        new_territories?: Array<{ id: string; area_m2: number; stole_from: boolean }>;
       };
-      let segResp: SegmentsResp = { total_new: 0, total_length_m: 0, newly_claimed_streets: [], new_territory: null };
+      let segResp: SegmentsResp = { total_new: 0, total_length_m: 0, newly_claimed_streets: [], new_territory: null, new_territories: [] };
       try {
         const res = await fetch("/api/walk/segments", {
           method: "POST",
@@ -325,10 +391,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         if (res.ok) segResp = await res.json() as SegmentsResp;
       } catch {}
 
-      // 3) Base-XP aus 3-Ebenen-Modell
+      // 3) Base-XP aus 3-Ebenen-Modell (V2: ggf. mehrere Territorien in einem Walk)
+      const territoryCountNew = (segResp.new_territories?.length ?? (segResp.new_territory ? 1 : 0));
       const segmentsXp = segResp.total_new * XP_PER_SEGMENT;
       const streetsXp = segResp.newly_claimed_streets.length * XP_PER_STREET_CLAIMED;
-      const territoryXp = segResp.new_territory ? XP_PER_TERRITORY : 0;
+      const territoryXp = territoryCountNew * XP_PER_TERRITORY;
       let baseXp = segmentsXp + streetsXp + territoryXp + kmXp + XP_PER_WALK;
 
       // Doppel-Claim-Charge verdoppelt das Territorium-XP (V1)
@@ -354,7 +421,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         xp_earned: totalXpGained,
         segments_claimed: segResp.total_new,
         streets_claimed: segResp.newly_claimed_streets.length,
-        polygons_claimed: segResp.new_territory ? 1 : 0,
+        polygons_claimed: territoryCountNew,
       }).eq("id", walkRow.id);
 
       if (!error) {
@@ -381,12 +448,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           longest_run_m: newLongest,
         });
         setSavedTerritories((prev) => [...prev, finalRoute]);
-        if (segResp.new_territory) setTerritoryCount((c) => c + 1);
+        if (territoryCountNew > 0) setTerritoryCount((c) => c + territoryCountNew);
 
         // Victory-Dance triggern (nur bei echtem Territorium)
-        if (segResp.new_territory && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
+        if (territoryCountNew > 0 && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
           setVictoryTrigger((v) => v + 1);
         }
+
+        const stoleCount = (segResp.new_territories ?? []).filter((t) => t.stole_from).length;
 
         setWalkSummary({
           distance_m: Math.round(finalDistance),
@@ -395,7 +464,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           streets: snapped?.streets ?? (finalStreet ? [finalStreet] : []),
           segment_count: segResp.total_new,
           street_count: segResp.newly_claimed_streets.length,
-          territory_count: segResp.new_territory ? 1 : 0,
+          territory_count: territoryCountNew,
+          stolen_count: stoleCount,
           bonuses: {
             streakBonus: bonuses.streakBonus,
             happyHourMult: bonuses.happyHourMult,
@@ -558,6 +628,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return !!(until && new Date(until).getTime() > Date.now());
               })()}
               mapTheme={(p as unknown as { map_theme?: string | null })?.map_theme ?? null}
+              walkedSegments={walkedSegments}
+              claimedStreets={claimedStreets}
+              ownedTerritories={ownedTerritories}
+              onOwnershipClick={(kind, id) => setOwnershipQuery({ type: kind, id })}
             />
 
             {/* Snap-Loading-Indikator */}
@@ -891,6 +965,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
       <VictoryDance trigger={victoryTrigger} />
       <FlashPushBanner />
+
+      {ownershipQuery && (
+        <OwnershipModal query={ownershipQuery} onClose={() => setOwnershipQuery(null)} />
+      )}
 
       {walkSummary && profile && (
         <WalkSummaryModal
@@ -6023,11 +6101,21 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
   const avgHr = 118 + Math.round(Math.max(0, 180 / Math.max(paceSec / 60, 4)) * 0.25);
   // Demo-Straßen-Liste (aus street_name-Schnipsel) — falls nur Ein-Straßen-Name: als einziger Eintrag
   const streets = (run.street_name || "Unbekannter Weg").split(/\s*[,/|]\s*/).slice(0, 5);
-  const xpBreakdown = [
-    { label: "Basis-Lauf", value: 100 },
-    { label: `${km.toFixed(1)} km × 50 XP`, value: Math.round(km * 50) },
-    { label: run.xp_earned - 100 - Math.round(km * 50) > 0 ? "Territorien" : "", value: Math.max(0, run.xp_earned - 100 - Math.round(km * 50)) },
-  ].filter((x) => x.label && x.value > 0);
+  const segN = run.segments_claimed ?? 0;
+  const strN = run.streets_claimed ?? 0;
+  const polyN = run.polygons_claimed ?? 0;
+  const baseBreakdown = [
+    { label: "Basis-Lauf", value: XP_PER_WALK },
+    { label: `${km.toFixed(2)} km × ${XP_PER_KM} XP`, value: Math.round(km * XP_PER_KM) },
+    segN > 0 ? { label: `${segN}× Straßenabschnitt`, value: segN * XP_PER_SEGMENT } : null,
+    strN > 0 ? { label: `${strN}× Straßenzug`, value: strN * XP_PER_STREET_CLAIMED } : null,
+    polyN > 0 ? { label: `${polyN}× Territorium`, value: polyN * XP_PER_TERRITORY } : null,
+  ].filter((x): x is { label: string; value: number } => x !== null && x.value > 0);
+  const breakdownSum = baseBreakdown.reduce((s, r) => s + r.value, 0);
+  const bonusDelta = run.xp_earned - breakdownSum;
+  const xpBreakdown = bonusDelta > 0
+    ? [...baseBreakdown, { label: "Boni & Achievements", value: bonusDelta }]
+    : baseBreakdown;
 
   return (
     <div style={{

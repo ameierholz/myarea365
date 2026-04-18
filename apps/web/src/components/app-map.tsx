@@ -101,6 +101,11 @@ interface AppMapProps {
   equippedTrail?: string | null;
   auraActive?: boolean;
   mapTheme?: string | null;
+  // 3-Ebenen-Modell (Abschnitt/Zug/Territorium) aus DB
+  walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
+  claimedStreets?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
+  ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>;
+  onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
 }
 
 // Helper: Polygon als GeoJSON-Feature (geschlossener Ring)
@@ -263,6 +268,10 @@ export function AppMap({
   equippedTrail = null,
   auraActive = false,
   mapTheme = null,
+  walkedSegments = [],
+  claimedStreets = [],
+  ownedTerritories = [],
+  onOwnershipClick,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -784,6 +793,136 @@ export function AppMap({
       map.setPaintProperty(mainId, "line-color", color);
     }
   }, [mapReady, savedTerritories, light]);
+
+  // ═══ 3-Ebenen-Modell: Straßenabschnitte (dünn, türkis) ═══
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const sourceId = "walked-segments";
+    const layerId = "walked-segments-line";
+    const data = {
+      type: "FeatureCollection" as const,
+      features: walkedSegments.map((s) => ({
+        type: "Feature" as const,
+        id: s.id,
+        geometry: { type: "LineString" as const, coordinates: s.geom.map((p) => [p.lng, p.lat]) },
+        properties: { id: s.id, is_mine: s.is_mine, is_crew: s.is_crew },
+      })),
+    };
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: layerId, type: "line", source: sourceId,
+        paint: {
+          "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#8B8FA3"],
+          "line-opacity": 0.75,
+          "line-width": 3,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      if (onOwnershipClick) {
+        map.on("click", layerId, (e) => {
+          const id = e.features?.[0]?.properties?.id as string | undefined;
+          if (id) onOwnershipClick("segment", id);
+        });
+        map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = ""; });
+      }
+    }
+  }, [mapReady, walkedSegments, onOwnershipClick]);
+
+  // ═══ 3-Ebenen-Modell: Vollständige Straßenzüge (mittel, orange) ═══
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const sourceId = "claimed-streets";
+    const layerId = "claimed-streets-line";
+    const data = {
+      type: "FeatureCollection" as const,
+      features: claimedStreets.map((s) => ({
+        type: "Feature" as const,
+        id: s.id,
+        geometry: { type: "LineString" as const, coordinates: s.geom.map((p) => [p.lng, p.lat]) },
+        properties: { id: s.id, is_mine: s.is_mine, is_crew: s.is_crew },
+      })),
+    };
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: layerId, type: "line", source: sourceId,
+        paint: {
+          "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FF6B4A", "#8B8FA3"],
+          "line-opacity": 0.9,
+          "line-width": 6,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      if (onOwnershipClick) {
+        map.on("click", layerId, (e) => {
+          const id = e.features?.[0]?.properties?.id as string | undefined;
+          if (id) onOwnershipClick("street", id);
+        });
+        map.on("mouseenter", layerId, () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", layerId, () => { map.getCanvas().style.cursor = ""; });
+      }
+    }
+  }, [mapReady, claimedStreets, onOwnershipClick]);
+
+  // ═══ 3-Ebenen-Modell: Territorien (gefüllte Polygone) ═══
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const sourceId = "owned-territories";
+    const fillId = "owned-territories-fill";
+    const strokeId = "owned-territories-stroke";
+    const data = {
+      type: "FeatureCollection" as const,
+      features: ownedTerritories.map((t) => {
+        const ring = t.polygon.map((p) => [p.lng, p.lat]);
+        if (ring.length > 0 && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) {
+          ring.push(ring[0]);
+        }
+        return {
+          type: "Feature" as const,
+          id: t.id,
+          geometry: { type: "Polygon" as const, coordinates: [ring] },
+          properties: { id: t.id, is_mine: t.is_mine, is_crew: t.is_crew, status: t.status },
+        };
+      }),
+    };
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: fillId, type: "fill", source: sourceId,
+        paint: {
+          "fill-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
+          "fill-opacity": 0.22,
+        },
+      });
+      map.addLayer({
+        id: strokeId, type: "line", source: sourceId,
+        paint: {
+          "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
+          "line-opacity": 0.9,
+          "line-width": 2.5,
+        },
+      });
+      if (onOwnershipClick) {
+        map.on("click", fillId, (e) => {
+          const id = e.features?.[0]?.properties?.id as string | undefined;
+          if (id) onOwnershipClick("territory", id);
+        });
+        map.on("mouseenter", fillId, () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", fillId, () => { map.getCanvas().style.cursor = ""; });
+      }
+    }
+  }, [mapReady, ownedTerritories, onOwnershipClick]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
