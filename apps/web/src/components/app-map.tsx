@@ -236,32 +236,30 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
   el.appendChild(inner);
 
+  // Marker-DOM wird nativ bei 2× gezeichnet — der globale Zoom-Scaler skaliert IMMER runter
+  // → verlustarmes Downsampling statt verlustbehaftetes Upsampling.
   let spotlightLayers = "";
   let spotlightLabel = "";
   if (shop.spotlight) {
     spotlightLayers = `
-      <!-- outer soft halo pulse -->
-      <div style="position:absolute;top:-28px;left:50%;margin-left:-54px;width:108px;height:108px;border-radius:50%;background:radial-gradient(circle,#FFD70066 0%,#FFD70022 45%,transparent 70%);animation:shopSpotlightHalo 2.2s ease-in-out infinite;pointer-events:none"></div>
-      <!-- middle halo ring -->
-      <div style="position:absolute;top:-14px;left:50%;margin-left:-38px;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle,#FFD70099 0%,#FFD70044 50%,transparent 75%);animation:shopSpotlightHalo 2.2s ease-in-out infinite 0.4s;pointer-events:none"></div>
-      <!-- rotating light rays behind -->
-      <div style="position:absolute;top:-22px;left:50%;margin-left:-45px;width:90px;height:90px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,#FFD70088 15deg,transparent 35deg,transparent 90deg,#FFD70066 110deg,transparent 140deg,transparent 210deg,#FFD70088 230deg,transparent 260deg,transparent 330deg,#FFD70066 350deg,transparent 360deg);animation:shopSpotlightRays 6s linear infinite;pointer-events:none;opacity:0.7;filter:blur(2px)"></div>
-      <!-- inner bright ring -->
-      <div style="position:absolute;top:-6px;left:50%;margin-left:-28px;width:56px;height:56px;border-radius:50%;background:transparent;border:2px solid #FFD700cc;animation:shopSpotlightRing 1.6s ease-in-out infinite;pointer-events:none"></div>
+      <div style="position:absolute;top:-56px;left:50%;margin-left:-108px;width:216px;height:216px;border-radius:50%;background:radial-gradient(circle,#FFD70066 0%,#FFD70022 45%,transparent 70%);animation:shopSpotlightHalo 2.2s ease-in-out infinite;pointer-events:none"></div>
+      <div style="position:absolute;top:-28px;left:50%;margin-left:-76px;width:152px;height:152px;border-radius:50%;background:radial-gradient(circle,#FFD70099 0%,#FFD70044 50%,transparent 75%);animation:shopSpotlightHalo 2.2s ease-in-out infinite 0.4s;pointer-events:none"></div>
+      <div style="position:absolute;top:-44px;left:50%;margin-left:-90px;width:180px;height:180px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,#FFD70088 15deg,transparent 35deg,transparent 90deg,#FFD70066 110deg,transparent 140deg,transparent 210deg,#FFD70088 230deg,transparent 260deg,transparent 330deg,#FFD70066 350deg,transparent 360deg);animation:shopSpotlightRays 6s linear infinite;pointer-events:none;opacity:0.7;filter:blur(4px)"></div>
+      <div style="position:absolute;top:-12px;left:50%;margin-left:-56px;width:112px;height:112px;border-radius:50%;background:transparent;border:4px solid #FFD700cc;animation:shopSpotlightRing 1.6s ease-in-out infinite;pointer-events:none"></div>
     `;
-    spotlightLabel = `<div style="position:absolute;top:-38px;left:50%;transform:translateX(-50%);padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#FFD700,#FF6B4A);color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,0.45);animation:shopSpotlightLabel 1.6s ease-in-out infinite;white-space:nowrap">⭐ SPOTLIGHT</div>`;
+    spotlightLabel = `<div style="position:absolute;top:-76px;left:50%;transform:translateX(-50%);padding:4px 16px;border-radius:999px;background:linear-gradient(90deg,#FFD700,#FF6B4A);color:#0F1115;font-size:18px;font-weight:900;letter-spacing:2px;box-shadow:0 4px 16px rgba(0,0,0,0.45);animation:shopSpotlightLabel 1.6s ease-in-out infinite;white-space:nowrap">⭐ SPOTLIGHT</div>`;
   }
 
   inner.innerHTML = `
     ${spotlightLayers}
     ${spotlightLabel}
-    <div style="position:relative;width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:2.5px solid #FFF;box-shadow:0 4px 10px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 22px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2;overflow:hidden">
+    <div style="position:relative;width:88px;height:88px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:5px solid #FFF;box-shadow:0 8px 20px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 44px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2;overflow:hidden">
       ${shop.custom_pin_url
-        ? `<img src="${shop.custom_pin_url}" alt="${shop.name}" style="transform:rotate(45deg);width:28px;height:28px;border-radius:50%;object-fit:cover" />`
-        : `<span style="transform:rotate(45deg);font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">${shop.icon}</span>`
+        ? `<img src="${shop.custom_pin_url}" alt="${shop.name}" style="transform:rotate(45deg);width:56px;height:56px;border-radius:50%;object-fit:cover" />`
+        : `<span style="transform:rotate(45deg);font-size:44px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45))">${shop.icon}</span>`
       }
     </div>
-    <div data-shop-label="1" style="margin-top:2px;padding:2px 6px;border-radius:8px;background:rgba(15,17,21,0.85);border:1px solid ${color}88;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2;transition:opacity 0.2s">${shop.name}</div>
+    <div data-shop-label="1" style="margin-top:4px;padding:4px 12px;border-radius:16px;background:rgba(15,17,21,0.85);border:2px solid ${color}88;color:#FFF;font-size:20px;font-weight:800;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2;transition:opacity 0.2s">${shop.name}</div>
   `;
   return el;
 }
@@ -628,48 +626,33 @@ export function AppMap({
     if (!map) return;
     const container = map.getContainer();
 
-    const applyZoomScale = (useTransform: boolean) => {
+    const applyZoomScale = () => {
       const zoom = map.getZoom();
-      let scale = 1;
-      if (zoom < 11)      scale = 0.32;
-      else if (zoom < 13) scale = 0.35 + ((zoom - 11) / 2) * 0.2;
-      else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
-      else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
+      // Basis-Scale = 0.5 weil Marker-DOM nativ doppelt so gross gerendert wird
+      // → Scaling ist IMMER downscale (schaerfer als upscale)
+      let scale = 0.5;
+      if (zoom < 11)      scale = 0.16;
+      else if (zoom < 13) scale = 0.18 + ((zoom - 11) / 2) * 0.10;
+      else if (zoom < 15) scale = 0.28 + ((zoom - 13) / 2) * 0.12;
+      else if (zoom < 17) scale = 0.40 + ((zoom - 15) / 2) * 0.10;
       const showLabel = zoom >= 14;
+      const scaleStr = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
       container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
-        if (useTransform) {
-          // Waehrend aktivem Zoom: transform (GPU-beschleunigt, aber leicht unscharf)
-          el.style.zoom = "";
-          el.style.transform = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
-        } else {
-          // Nach Zoom-Ende: zoom-Property (Layout-Rerendering → gestochen scharf)
-          el.style.transform = "";
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (el.style as any).zoom = scale.toFixed(3);
-        }
+        el.style.transform = scaleStr;
       });
       container.querySelectorAll<HTMLElement>('[data-shop-label="1"]').forEach((el) => {
         el.style.opacity = showLabel ? "1" : "0";
       });
     };
 
-    let inZoom = false;
-    const onZoomStart = () => { inZoom = true; applyZoomScale(true); };
-    const onZoom      = () => { if (inZoom) applyZoomScale(true); };
-    const onZoomEnd   = () => { inZoom = false; applyZoomScale(false); };
-
-    // Initial: zoom-Property (scharf)
-    applyZoomScale(false);
-    map.on("zoomstart", onZoomStart);
-    map.on("zoom", onZoom);
-    map.on("zoomend", onZoomEnd);
-    map.on("moveend", () => { if (!inZoom) applyZoomScale(false); });
-    const mo = new MutationObserver(() => { if (!inZoom) applyZoomScale(false); });
+    applyZoomScale();
+    map.on("zoom", applyZoomScale);
+    map.on("moveend", applyZoomScale);
+    const mo = new MutationObserver(() => applyZoomScale());
     mo.observe(container, { childList: true, subtree: true });
     return () => {
-      map.off("zoomstart", onZoomStart);
-      map.off("zoom", onZoom);
-      map.off("zoomend", onZoomEnd);
+      map.off("zoom", applyZoomScale);
+      map.off("moveend", applyZoomScale);
       mo.disconnect();
     };
   }, [mapReady]);
