@@ -1764,6 +1764,7 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
         <span style={{ color: leader === "nachtpuls" ? "#22D1C3" : "#FF6B4A", fontSize: 12, fontWeight: 900 }}>
           {leader === "nachtpuls" ? "🌙" : "☀️"} führt · {f.city}
         </span>
+        <span style={{ color: "#a8b4cf", fontSize: 12, fontWeight: 900, marginLeft: 2 }}>›</span>
       </button>
     );
   }
