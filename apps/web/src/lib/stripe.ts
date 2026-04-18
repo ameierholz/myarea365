@@ -1,8 +1,13 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-03-25.dahlia",
-});
+let _stripe: Stripe | null = null;
+export function getStripe(): Stripe {
+  if (_stripe) return _stripe;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not set");
+  _stripe = new Stripe(key, { apiVersion: "2026-03-25.dahlia" });
+  return _stripe;
+}
 
 // Stripe Price-IDs je SKU (im Stripe-Dashboard anzulegen oder per stripe fixtures)
 // Fallback: dynamische Price via price_data, damit es ohne Dashboard-Setup läuft.

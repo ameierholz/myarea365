@@ -1,16 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { getStripe } from "@/lib/stripe";
+import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { BOOST_PACKS, XP_PACKS, PLANS } from "@/lib/monetization";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const supabaseAdmin = createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } },
-);
+let _admin: SupabaseClient | null = null;
+function admin(): SupabaseClient {
+  if (_admin) return _admin;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase admin creds missing");
+  _admin = createAdminClient(url, key, { auth: { persistSession: false } });
+  return _admin;
+}
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
@@ -20,7 +25,7 @@ export async function POST(req: NextRequest) {
   const body = await req.text();
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, secret);
+    event = getStripe().webhooks.constructEvent(body, sig, secret);
   } catch (e) {
     return NextResponse.json({ error: `Webhook Error: ${e instanceof Error ? e.message : String(e)}` }, { status: 400 });
   }
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!sku || !userId) return NextResponse.json({ received: true });
 
     // Purchase auf completed setzen
-    await supabaseAdmin.from("purchases").update({
+    await admin().from("purchases").update({
       status: "completed",
       applied_at: new Date().toISOString(),
       stripe_payment_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
     const userId = sub.metadata?.user_id;
     if (sku?.startsWith("plus_") && userId) {
       const active = sub.status === "active" || sub.status === "trialing";
-      await supabaseAdmin.from("users").update({
+      await admin().from("users").update({
         premium_tier: active ? "plus" : "free",
         premium_expires_at: active && typeof (sub as unknown as { current_period_end?: number }).current_period_end === "number"
           ? new Date((sub as unknown as { current_period_end: number }).current_period_end * 1000).toISOString()
@@ -58,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (sku?.startsWith("badge_") && userId) {
       const active = sub.status === "active" || sub.status === "trialing";
       const tier = sku === "badge_gold" ? "gold" : sku === "badge_silver" ? "silver" : "bronze";
-      await supabaseAdmin.from("users").update({
+      await admin().from("users").update({
         supporter_tier: active ? tier : null,
       }).eq("id", userId);
     }
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function applyPurchaseEffect(sku: string, userId: string, crewId: string | null) {
-  const sb = supabaseAdmin;
+  const sb = admin();
   if (sku === "plus_monthly" || sku === "plus_yearly" || sku === "plus_lifetime") {
     const plan = (PLANS as Record<string, { duration_days: number | null }>)[sku];
     const expiresAt = plan.duration_days
