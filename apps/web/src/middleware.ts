@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/onboarding", "/datenschutz", "/impressum", "/agb", "/shop-dashboard", "/unsubscribe"];
+const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/impressum", "/agb", "/shop-dashboard", "/unsubscribe", "/leaderboard"];
+const PUBLIC_PREFIXES = ["/u/", "/crew/", "/api/share-card/"];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -41,7 +42,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protect non-public routes
-  if (!user && !PUBLIC_ROUTES.includes(pathname)) {
+  const isPublic = PUBLIC_ROUTES.includes(pathname) || PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);

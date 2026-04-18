@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "@/styles/globals.css";
 import { PrefsBoot } from "@/components/prefs-boot";
+import { ReferralCapture } from "@/components/referral-capture";
 
 export const metadata: Metadata = {
   title: {
@@ -39,6 +40,7 @@ export default async function RootLayout({
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
         <PrefsBoot />
+        <ReferralCapture />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

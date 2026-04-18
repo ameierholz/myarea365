@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, ArrowRight, Info } from "lucide-react";
+import { getStoredReferralCode, clearStoredReferralCode } from "@/lib/referral";
 
 const FACTIONS = [
   { id: "syndicate", name: "Nachtpuls",   icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus" },
@@ -90,13 +91,24 @@ export function InlineAuth() {
     if (signUpError) { setError(signUpError.message); setLoading(false); return; }
 
     if (data.user) {
+      const refCode = getStoredReferralCode();
+      let referredBy: string | null = null;
+      if (refCode) {
+        const { data: referrer } = await supabase.from("users").select("id").eq("referral_code", refCode).maybeSingle();
+        if (referrer) referredBy = referrer.id;
+      }
       await supabase.from("users").insert({
         id: data.user.id,
         username: username.toLowerCase(),
         display_name: username,
         faction,
         newsletter_opt_in: newsletter,
+        referred_by: referredBy,
       });
+      if (referredBy) {
+        await supabase.from("referrals").insert({ referrer_id: referredBy, referred_id: data.user.id });
+        clearStoredReferralCode();
+      }
     }
 
     router.push(`/registrierung-bestaetigen?email=${encodeURIComponent(email)}`);

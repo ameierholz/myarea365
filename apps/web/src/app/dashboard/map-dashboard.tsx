@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ReferralWidget } from "@/components/referral-widget";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -200,7 +201,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         const { data: crewData } = await supabase
           .from("crews").select("*").eq("id", profile.current_crew_id).single();
         if (crewData) setMyCrew(crewData);
-      } else if (["admin", "super_admin"].includes(profile.role)) {
+      } else if (["admin", "super_admin"].includes((profile as Profile & { role?: string }).role ?? "user")) {
         // Admin-Accounts starten automatisch mit Demo-Crew für Verwaltungs-Tests
         setMyCrew({
           id: "demo-crew-kaelthor",
@@ -1378,6 +1379,14 @@ function ProfilTab({
           <ModalTriggerButton icon="⚙️" label="Einstellungen" onClick={() => setOpenModal("settings")} />
           <ModalTriggerButton icon="👤" label="Account" onClick={() => setOpenModal("account")} />
         </div>
+
+        {p && (
+          <ReferralWidget
+            userId={p.id}
+            referralCode={(p as unknown as { referral_code?: string }).referral_code ?? null}
+            displayName={p.display_name || p.username || "Runner"}
+          />
+        )}
 
         {/* Demo-Zone für Owner/Testing */}
         <div style={{

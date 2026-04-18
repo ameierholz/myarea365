@@ -351,6 +351,7 @@ export default function LandingPage() {
                 <li><a href="#crews" className="text-text-muted hover:text-text">Crews</a></li>
                 <li><a href="#shops" className="text-text-muted hover:text-text">Shops</a></li>
                 <li><a href="#gesundheit" className="text-text-muted hover:text-text">Gesundheit</a></li>
+                <li><Link href="/leaderboard" className="text-text-muted hover:text-text">🏆 Leaderboard</Link></li>
               </ul>
             </div>
             <div>
