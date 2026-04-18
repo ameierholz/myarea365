@@ -8,6 +8,9 @@ import { BoostShopModal as PowerShopModal } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
 import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
+import { VictoryDance } from "@/components/victory-dance";
+import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
+import { DemoBadge } from "@/components/demo-badge";
 import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
@@ -150,6 +153,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
+  const [victoryTrigger, setVictoryTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>("map");
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
@@ -290,16 +294,40 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       });
 
       if (!error) {
-        const newXp = (profile.xp || 0) + XP_PER_TERRITORY;
+        // Base-XP: Territorium + km-Bonus (XP_PER_KM * km) + Walk-Basis
+        const km = finalDistance / 1000;
+        const kmXp = Math.round(XP_PER_KM * km);
+        let baseXp = XP_PER_TERRITORY + kmXp + XP_PER_WALK;
+
+        // Doppel-Claim-Charge verbrauchen (verdoppelt das Territorium-XP)
+        const doubleClaimCharges = (profile as unknown as { double_claim_charges?: number }).double_claim_charges ?? 0;
+        if (doubleClaimCharges > 0) {
+          baseXp += XP_PER_TERRITORY;
+          await supabase.from("users").update({ double_claim_charges: doubleClaimCharges - 1 }).eq("id", profile.id);
+        }
+
+        const { computeAndApplyWalkBonuses } = await import("@/lib/walk-bonuses");
+        const bonuses = await computeAndApplyWalkBonuses(
+          supabase,
+          profile.id,
+          baseXp,
+          Math.round(finalDistance),
+          (profile.total_walks || 0) + 1,
+        );
+
+        const totalXpGained = bonuses.finalXp + bonuses.achievementXp;
+        const newXp = (profile.xp || 0) + totalXpGained;
         const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
         const newWalks = (profile.total_walks || 0) + 1;
         const newCal = (profile.total_calories || 0) + Math.round(finalDistance * 0.06);
+        const newLongest = Math.max(profile.longest_run_m || 0, Math.round(finalDistance));
 
         await supabase.from("users").update({
           xp: newXp,
           total_distance_m: newDistance,
           total_walks: newWalks,
           total_calories: newCal,
+          longest_run_m: newLongest,
         }).eq("id", profile.id);
 
         setProfile({
@@ -308,16 +336,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           total_distance_m: newDistance,
           total_walks: newWalks,
           total_calories: newCal,
+          longest_run_m: newLongest,
         });
         setSavedTerritories((prev) => [...prev, finalRoute]);
         setTerritoryCount((c) => c + 1);
 
+        // Victory-Dance triggern
+        if ((profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
+          setVictoryTrigger((v) => v + 1);
+        }
+
         setWalkSummary({
           distance_m: Math.round(finalDistance),
           duration_s: Math.round(finalDuration),
-          xp_earned: XP_PER_TERRITORY,
+          xp_earned: bonuses.finalXp,
           streets: snapped?.streets ?? (finalStreet ? [finalStreet] : []),
           territory_count: 1,
+          bonuses: {
+            streakBonus: bonuses.streakBonus,
+            happyHourMult: bonuses.happyHourMult,
+            boostMult: bonuses.boostMult,
+            crewBoostMult: bonuses.crewBoostMult,
+          },
+          newAchievements: bonuses.newAchievements,
+          achievementXp: bonuses.achievementXp,
         });
       }
     }
@@ -455,6 +497,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               recenterAt={recenterAt}
               lightPreset={lightPreset}
               supporterTier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier ?? null}
+              equippedTrail={(p as unknown as { equipped_trail?: string | null })?.equipped_trail ?? null}
+              auraActive={(() => {
+                const until = (p as unknown as { aura_until?: string | null })?.aura_until;
+                return !!(until && new Date(until).getTime() > Date.now());
+              })()}
+              mapTheme={(p as unknown as { map_theme?: string | null })?.map_theme ?? null}
             />
 
             {/* Snap-Loading-Indikator */}
@@ -786,6 +834,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <MissionsModal onClose={() => setMissionsOpen(false)} />
       )}
 
+      <VictoryDance trigger={victoryTrigger} />
+
       {walkSummary && profile && (
         <WalkSummaryModal
           summary={walkSummary}
@@ -1027,7 +1077,11 @@ function ProfilTab({
 
           <div style={{ fontSize: 10, color: MUTED, fontWeight: "bold", letterSpacing: 2, marginTop: 10 }}>LÄUFER</div>
           <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF", marginTop: 4, textAlign: "center", display: "flex", alignItems: "center", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {p?.display_name || p?.username || "Eroberer"}
+            <RainbowName
+              name={p?.display_name || p?.username || "Eroberer"}
+              active={isRainbowActive((p as unknown as { rainbow_name_until?: string | null })?.rainbow_name_until)}
+              size={32}
+            />
             <SupporterBadge tier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier} size="md" showLabel />
           </div>
           <div style={{ color: MUTED, fontSize: 13, marginTop: 2 }}>@{p?.username}</div>
@@ -1832,24 +1886,47 @@ function ProfilTab({
           accent="#FFD700"
           onClose={() => setOpenModal(null)}
         >
-          <div style={{ color: TEXT_SOFT, fontSize: 14, lineHeight: 1.5, marginBottom: 20 }}>
-            Je mehr du dich bewegst, desto mehr XP sammelst du. Hier alle Quellen:
+          <div style={{ color: TEXT_SOFT, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
+            Je mehr du dich bewegst, desto mehr XP sammelst du. Tippe auf eine Kategorie für Details.
           </div>
 
-          <XpGuideSection title="🏃 Pro Aktivität">
-            <XpGuideRow icon="📍" label="Territorium erobert" xp={`+${XP_PER_TERRITORY}`} />
+          <XpGuideSection title="🏃 Pro Aktivität" subtitle="Basis-XP beim Laufen" defaultOpen>
+            <XpGuideRow icon="📍" label="Straßenzug / Territorium erobert" xp={`+${XP_PER_TERRITORY}`} />
             <XpGuideRow icon="📏" label="Pro gelaufener km" xp={`+${XP_PER_KM}`} />
-            <XpGuideRow icon="✅" label="Walk abgeschlossen" xp={`+${XP_PER_WALK} Base`} last />
+            <XpGuideRow icon="✅" label="Walk abgeschlossen (Basis)" xp={`+${XP_PER_WALK}`} last />
           </XpGuideSection>
 
-          <XpGuideSection title="🔥 Tages-Streak">
+          <XpGuideSection title="🔥 Tages-Streak" subtitle="Täglich laufen = Bonus pro Tag">
             <XpGuideRow icon="2️⃣" label="Tag 2–3" xp="+25 / Tag" />
             <XpGuideRow icon="4️⃣" label="Tag 4–6" xp="+50 / Tag" />
             <XpGuideRow icon="7️⃣" label="Tag 7–9" xp="+100 / Tag" />
             <XpGuideRow icon="🔟" label="Ab Tag 10" xp="+200 / Tag" last />
           </XpGuideSection>
 
-          <XpGuideSection title="🏆 Achievements (einmalig)">
+          <XpGuideSection title="⚡ XP-Multiplikatoren" subtitle="Stapeln sich mit Basis-XP">
+            <XpGuideRow icon="⚡" label="24h Doppel-XP (Shop € 0,99)" xp="2× auf alles" />
+            <XpGuideRow icon="⚡" label="48h Doppel-XP (Shop € 1,99)" xp="2× auf alles" />
+            <XpGuideRow icon="⚡" label="1 Woche Doppel-XP (Shop)" xp="2× auf alles" />
+            <XpGuideRow icon="⚡" label="1 Woche Triple-XP (Shop)" xp="3× auf alles" />
+            <XpGuideRow icon="📺" label="24h Doppel-XP via Werbung" xp="2× für 24h" />
+            <XpGuideRow icon="📺" label="15 min Doppel-XP via Werbung" xp="2× für 15 min" last />
+          </XpGuideSection>
+
+          <XpGuideSection title="📺 Werbe-Belohnungen" subtitle="Videos schauen für Bonus-XP">
+            <XpGuideRow icon="🏁" label="Lauf-Bonus nach jedem Lauf (alle 12h)" xp="+100" />
+            <XpGuideRow icon="🎯" label="Pre-Walk-Bonus vor dem Start" xp={`+${XP_REWARDED_AD}`} />
+            <XpGuideRow icon="🎁" label="Supply-Drop freischalten" xp={`+${XP_REWARDED_AD}`} />
+            <XpGuideRow icon="❄️" label="Streak retten (verpasster Tag)" xp="Streak bleibt" last />
+          </XpGuideSection>
+
+          <XpGuideSection title="🏪 Community & Social">
+            <XpGuideRow icon="🏪" label="Kiez-Deal Check-in (QR-Code)" xp={`+${XP_KIEZ_CHECKIN}`} />
+            <XpGuideRow icon="👥" label="Crew-Sieg im Wochen-Ranking" xp={`+${XP_CREW_WIN}`} />
+            <XpGuideRow icon="🤝" label="Freund geworben + aktiv" xp="+500 pro Freund" />
+            <XpGuideRow icon="📤" label="Profil geteilt (einmalig)" xp="+50" last />
+          </XpGuideSection>
+
+          <XpGuideSection title="🏆 Achievements" subtitle={`${ACHIEVEMENTS.length} einmalige Belohnungen`}>
             {ACHIEVEMENTS.map((a, i) => (
               <XpGuideRow
                 key={a.id}
@@ -1861,14 +1938,21 @@ function ProfilTab({
             ))}
           </XpGuideSection>
 
-          <XpGuideSection title="🎁 Bonus-Quellen">
-            <XpGuideRow icon="📺" label="Rewarded Ad (Supply Drop / Boost)" xp={`+${XP_REWARDED_AD}`} />
-            <XpGuideRow icon="🏪" label="Kiez-Deal Check-in" xp={`+${XP_KIEZ_CHECKIN}`} />
-            <XpGuideRow icon="👥" label="Crew-Sieg im Wochen-Ranking" xp={`+${XP_CREW_WIN}`} last />
+          <XpGuideSection title="💎 Premium-Perks" subtitle="MyArea+ Vorteile (keine direkten XP)">
+            <XpGuideRow icon="❄️" label="Streak-Freeze (schützt Tages-Streak)" xp="3× monatlich" />
+            <XpGuideRow icon="🚫" label="Werbefrei im Profil & Menüs" xp="—" />
+            <XpGuideRow icon="🎨" label="Exklusive Marker & Themes" xp="—" />
+            <XpGuideRow icon="📊" label="Detaillierte Statistik-Historie" xp="—" last />
+          </XpGuideSection>
+
+          <XpGuideSection title="🥇 Supporter-Badges" subtitle="Bronze / Silber / Gold ABO">
+            <XpGuideRow icon="🥉" label="Bronze-Supporter (€ 1,99 / Monat)" xp="Badge + Stolz" />
+            <XpGuideRow icon="🥈" label="Silber-Supporter (€ 4,99 / Monat)" xp="Badge + Stolz" />
+            <XpGuideRow icon="🥇" label="Gold-Supporter (€ 9,99 / Monat)" xp="Badge + Stolz" last />
           </XpGuideSection>
 
           <div style={{ color: MUTED, fontSize: 12, marginTop: 16, textAlign: "center", fontStyle: "italic" }}>
-            XP schaltet neue Ränge, Map-Icons und Runner Lights frei.
+            XP schaltet neue Ränge, Map-Icons und Runner Lights frei. Boost-Multiplikatoren wirken auf ALLE XP-Quellen gleichzeitig.
           </div>
         </Modal>
       )}
@@ -3084,6 +3168,9 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
       accent="#FF6B4A"
       onClose={onClose}
     >
+      <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>
+        <DemoBadge label="DEMO-INHALTE" hint="Live-Missionen werden ab Launch aus der Datenbank geladen" />
+      </div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: "#FF6B4A", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
           ⏰ TÄGLICH
@@ -4534,19 +4621,38 @@ function Equivalent({ icon, count, label }: { icon: string; count: string; label
   );
 }
 
-function XpGuideSection({ title, children }: { title: string; children: React.ReactNode }) {
+function XpGuideSection({ title, subtitle, defaultOpen = false, children }: {
+  title: string; subtitle?: string; defaultOpen?: boolean; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 13, color: PRIMARY, fontWeight: "bold", letterSpacing: 1, marginBottom: 8 }}>
-        {title}
-      </div>
-      <div style={{
-        background: "rgba(70, 82, 122, 0.45)",
-        borderRadius: 14, overflow: "hidden",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-      }}>
-        {children}
-      </div>
+    <div style={{ marginBottom: 10 }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 14px", borderRadius: 12,
+          background: "rgba(70, 82, 122, 0.45)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          cursor: "pointer", textAlign: "left",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+          <span style={{ fontSize: 13, color: PRIMARY, fontWeight: 900, letterSpacing: 0.5 }}>{title}</span>
+          {subtitle && <span style={{ fontSize: 11, color: MUTED }}>{subtitle}</span>}
+        </div>
+        <span style={{ color: MUTED, fontSize: 14, transform: open ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>›</span>
+      </button>
+      {open && (
+        <div style={{
+          marginTop: 6,
+          background: "rgba(70, 82, 122, 0.35)",
+          borderRadius: 12, overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -6861,8 +6967,11 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {/* Rivalen-Duell */}
       <div style={{
         background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 14,
-        border: `1px solid ${BORDER}`,
+        border: `1px solid ${BORDER}`, position: "relative",
       }}>
+        <div style={{ position: "absolute", top: 10, right: 10 }}>
+          <DemoBadge hint="Echte Duelle starten ab Launch via Auto-Matchmaking zwischen Crews" />
+        </div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.5 }}>
           ⚔️ RIVALEN-DUELL
         </div>
@@ -7026,6 +7135,9 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
   const inactive = DEMO_CREW_MEMBERS.filter((m) => m.weekly_km < 5);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <DemoBadge hint="Echte Mitgliederliste wird sichtbar, sobald echte Crew-Mitglieder beigetreten sind" />
+      </div>
       {inactive.length > 0 && (
         <div style={{
           background: "rgba(239, 113, 105, 0.12)", borderRadius: 12,
@@ -7128,6 +7240,9 @@ function Badge({ color, children }: { color: string; children: React.ReactNode }
 function CrewChallenges({ color }: { color: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <DemoBadge hint="Live-Challenges werden ab Launch aus der Datenbank geladen" />
+      </div>
       {DEMO_CREW_CHALLENGES.map((c) => {
         const pct = Math.min(100, (c.current / c.target) * 100);
         return (
@@ -7167,6 +7282,9 @@ function CrewChallenges({ color }: { color: string }) {
 function CrewEvents({ color }: { color: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <DemoBadge hint="Live-Events werden ab Launch aus der Datenbank geladen" />
+      </div>
       {DEMO_CREW_EVENTS.map((e) => (
         <div key={e.id} style={{
           background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 14,
@@ -7236,6 +7354,9 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <DemoBadge hint="Echter Crew-Chat wird mit Supabase Realtime ab Launch aktiv" />
+      </div>
       <div style={{
         background: "rgba(0,0,0,0.2)", borderRadius: 14, padding: 12,
         maxHeight: 460, overflowY: "auto",
@@ -7379,8 +7500,11 @@ function CrewFeed({ color }: { color: string }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 2, letterSpacing: 0.5 }}>
-        CREW-AKTIVITÄT
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+        <span style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
+          CREW-AKTIVITÄT
+        </span>
+        <DemoBadge hint="Echter Feed zeigt Aktivität echter Crew-Mitglieder ab Launch" />
       </div>
       {DEMO_CREW_FEED.map((item) => {
         const my = reactions[item.id] || [];

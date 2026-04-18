@@ -43,17 +43,45 @@ export const PLANS = {
 };
 
 export const BOOST_PACKS = {
-  boost_24h:     { sku: "boost_24h",     name: "24 Stunden Doppel-XP",   price: 99,  multiplier: 2, hours: 24 },
-  boost_48h:     { sku: "boost_48h",     name: "48 Stunden Doppel-XP",   price: 199, multiplier: 2, hours: 48 },
-  boost_week_2x: { sku: "boost_week_2x", name: "1 Woche Doppel-XP",      price: 499, multiplier: 2, hours: 168 },
-  boost_week_3x: { sku: "boost_week_3x", name: "1 Woche Triple-XP",      price: 899, multiplier: 3, hours: 168 },
+  boost_24h:     { sku: "boost_24h",     name: "24 Stunden Doppel-XP",   price: 99,  multiplier: 2, hours: 24,  icon: "⚡" },
+  boost_48h:     { sku: "boost_48h",     name: "48 Stunden Doppel-XP",   price: 199, multiplier: 2, hours: 48,  icon: "⚡" },
+  boost_week_2x: { sku: "boost_week_2x", name: "1 Woche Doppel-XP",      price: 499, multiplier: 2, hours: 168, icon: "⚡" },
+  boost_week_3x: { sku: "boost_week_3x", name: "1 Woche Triple-XP",      price: 899, multiplier: 3, hours: 168, icon: "🔥" },
+  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",       price: 399, multiplier: 2, hours: 24,  icon: "👥", desc: "2× XP für alle deine Crew-Mitglieder" },
+};
+
+export const XP_PACKS = {
+  xp_1k:   { sku: "xp_1k",   name: "1.000 XP Instant",  price: 199, xp: 1000,  icon: "✨" },
+  xp_5k:   { sku: "xp_5k",   name: "5.000 XP Instant",  price: 799, xp: 5000,  icon: "💫" },
+  xp_15k:  { sku: "xp_15k",  name: "15.000 XP Instant", price: 1999, xp: 15000, icon: "⭐" },
+};
+
+export const GAMEPLAY_ITEMS = {
+  reclaim_ticket:   { sku: "reclaim_ticket",   name: "Reclaim-Ticket",        price: 149, icon: "🔁", desc: "Ein verlorenes Territorium zurückholen" },
+  mystery_box:      { sku: "mystery_box",      name: "Mystery Box",           price: 299, icon: "🎁", desc: "Zufälliges Item (Boost / Skin / XP)" },
+  ghost_mode:       { sku: "ghost_mode",       name: "Ghost-Mode (1 Lauf)",   price: 249, icon: "👻", desc: "Unsichtbar für Gegner-Fraktion" },
+  double_claim:     { sku: "double_claim",     name: "Doppel-Claim (1 Lauf)", price: 349, icon: "🎯", desc: "Doppelte Territorien im nächsten Lauf" },
+  faction_switch:   { sku: "faction_switch",   name: "Fraktions-Wechsel",     price: 599, icon: "⚔️", desc: "Zur anderen Fraktion wechseln (max 1×/Monat)" },
+  explorer_compass: { sku: "explorer_compass", name: "Explorer-Kompass 7 T",  price: 399, icon: "🧭", desc: "Zeigt uneroberte Straßen auf der Karte" },
+};
+
+export const COSMETICS = {
+  golden_trail:    { sku: "golden_trail",    name: "Golden Trail (30 T)",    price: 299, icon: "✨", desc: "Lauf hinterlässt goldene Leuchtspur" },
+  neon_trail:      { sku: "neon_trail",      name: "Neon Trail (30 T)",      price: 299, icon: "💜", desc: "Pink/Lila Neon-Leuchtspur" },
+  aura_effect:     { sku: "aura_effect",     name: "Aura-Effekt (30 T)",     price: 399, icon: "🌟", desc: "Marker pulsiert mit Glühen" },
+  map_cyberpunk:   { sku: "map_cyberpunk",   name: "Map-Theme Cyberpunk",    price: 499, icon: "🌆", desc: "Dauerhaft freigeschaltet" },
+  map_retro:       { sku: "map_retro",       name: "Map-Theme Retro-80s",    price: 499, icon: "🕹️", desc: "Dauerhaft freigeschaltet" },
+  rainbow_name:    { sku: "rainbow_name",    name: "Rainbow-Name (30 T)",    price: 199, icon: "🌈", desc: "Animierter Regenbogen-Name im Ranking" },
+  victory_dance:   { sku: "victory_dance",   name: "Victory-Dance",          price: 249, icon: "💃", desc: "Animation beim Eroberung, dauerhaft" },
 };
 
 export const EXTRAS = {
-  streak_pack_5: { sku: "streak_pack_5", name: "5× Streak-Freeze",         price: 299 },
-  badge_bronze:  { sku: "badge_bronze",  name: "Bronze-Supporter-Badge",   price: 199 },
-  badge_silver:  { sku: "badge_silver",  name: "Silber-Supporter-Badge",   price: 499 },
-  badge_gold:    { sku: "badge_gold",    name: "Gold-Supporter-Badge",     price: 999 },
+  streak_pack_5: { sku: "streak_pack_5", name: "5× Streak-Freeze",         price: 299, icon: "❄️" },
+  streak_pack_15: { sku: "streak_pack_15", name: "15× Streak-Freeze",      price: 799, icon: "🧊" },
+  shout_pack_10: { sku: "shout_pack_10", name: "10× Kiez-Shout",           price: 299, icon: "📢", desc: "Nachricht an alle Runner im 500m-Umkreis" },
+  badge_bronze:  { sku: "badge_bronze",  name: "Bronze-Supporter-Badge",   price: 199, icon: "🥉" },
+  badge_silver:  { sku: "badge_silver",  name: "Silber-Supporter-Badge",   price: 499, icon: "🥈" },
+  badge_gold:    { sku: "badge_gold",    name: "Gold-Supporter-Badge",     price: 999, icon: "🥇" },
 };
 
 export function formatPrice(cents: number): string {

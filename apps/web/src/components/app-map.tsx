@@ -63,6 +63,8 @@ const MAP_STYLES: Record<string, string> = {
   satellite: "mapbox://styles/mapbox/satellite-streets-v12",
   neon: "mapbox://styles/mapbox/navigation-night-v1",
   minimal: "mapbox://styles/mapbox/light-v11",
+  map_cyberpunk: "mapbox://styles/mapbox/navigation-night-v1",
+  map_retro: "mapbox://styles/mapbox/outdoors-v12",
 };
 
 // LightPreset automatisch basierend auf Tageszeit
@@ -95,6 +97,9 @@ interface AppMapProps {
   recenterAt?: number;
   lightPreset?: "dawn" | "day" | "dusk" | "night" | "auto";
   supporterTier?: "bronze" | "silver" | "gold" | null;
+  equippedTrail?: string | null;
+  auraActive?: boolean;
+  mapTheme?: string | null;
 }
 
 // Helper: Polygon als GeoJSON-Feature (geschlossener Ring)
@@ -113,7 +118,7 @@ function polygonFeature(area: ClaimedArea) {
 }
 
 // Eigenes Marker-DOM (Emoji mit Glow)
-function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, supporterTier?: "bronze" | "silver" | "gold" | null): HTMLDivElement {
+function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, supporterTier?: "bronze" | "silver" | "gold" | null, auraActive = false): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
   const el = document.createElement("div");
@@ -128,11 +133,20 @@ function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, sup
   const supporterChip = tierCfg
     ? `<div style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:${tierCfg.bg};border:1.5px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:9px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
     : "";
+  const auraLayer = auraActive
+    ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>
+       <div style="position:absolute;width:${size + 14}px;height:${size + 14}px;border-radius:50%;border:2px solid #FFD700aa;box-shadow:0 0 20px #FFD700cc;animation:auraPulse 2s ease-in-out infinite"></div>`
+    : "";
   el.innerHTML = `
+    ${auraLayer}
     <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
     <span style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
     ${supporterChip}
-    <style>@keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}</style>
+    <style>
+      @keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}
+      @keyframes auraSpin{to{transform:rotate(360deg)}}
+      @keyframes auraPulse{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.1);opacity:0.5}}
+    </style>
   `;
   return el;
 }
@@ -242,6 +256,9 @@ export function AppMap({
   recenterAt,
   lightPreset = "auto",
   supporterTier = null,
+  equippedTrail = null,
+  auraActive = false,
+  mapTheme = null,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -352,6 +369,17 @@ export function AppMap({
     return () => window.removeEventListener("pref-change", onPref);
   }, [mapReady]);
 
+  // Map-Theme aus Shop-Kauf
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map || !mapTheme) return;
+    const styleUrl = MAP_STYLES[mapTheme];
+    if (!styleUrl || mapTheme === currentStyleKeyRef.current) return;
+    currentStyleKeyRef.current = mapTheme;
+    try { map.setStyle(styleUrl); } catch { /* ignore */ }
+  }, [mapReady, mapTheme]);
+
   // 3D-Gebäude Toggle
   useEffect(() => {
     if (!mapReady) return;
@@ -452,19 +480,19 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     } else {
       selfMarkerRef.current.setLngLat([pos.lng, pos.lat]);
     }
-  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier]);
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive]);
 
   // Tier-Wechsel: Marker neu bauen
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier);
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
     if (map) {
@@ -473,7 +501,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {
@@ -681,7 +709,9 @@ export function AppMap({
       properties: {},
     };
 
-    const color = light.gradient[0];
+    const color = equippedTrail === "golden_trail" ? "#FFD700"
+      : equippedTrail === "neon_trail" ? "#FF2D78"
+      : light.gradient[0];
     const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
     if (existing) {
       existing.setData(data);
@@ -704,7 +734,7 @@ export function AppMap({
       map.setPaintProperty(mainId, "line-width", light.width);
       map.setPaintProperty(glowId, "line-width", light.width + 10);
     }
-  }, [mapReady, activeRoute, trackingActive, light]);
+  }, [mapReady, activeRoute, trackingActive, light, equippedTrail]);
 
   // Saved Territories
   useEffect(() => {

@@ -11,6 +11,14 @@ export type WalkSummary = {
   xp_earned: number;
   streets: string[];
   territory_count: number;
+  bonuses?: {
+    streakBonus: number;
+    happyHourMult: number;
+    boostMult: number;
+    crewBoostMult: number;
+  };
+  newAchievements?: Array<{ id: string; name: string; xp: number; icon: string }>;
+  achievementXp?: number;
 };
 
 export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
@@ -169,6 +177,60 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 {summary.territory_count}× Territorium erobert
               </div>
             </div>
+
+            {summary.bonuses && (summary.bonuses.streakBonus > 0 || summary.bonuses.happyHourMult > 1 || summary.bonuses.boostMult > 1 || summary.bonuses.crewBoostMult > 1) && (
+              <div style={{
+                padding: 12, borderRadius: 12,
+                background: "rgba(34,209,195,0.1)",
+                border: "1px solid rgba(34,209,195,0.3)",
+                marginBottom: 14,
+              }}>
+                <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>
+                  BONI AKTIV
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11 }}>
+                  {summary.bonuses.streakBonus > 0 && (
+                    <div style={{ color: "#FF6B4A" }}>🔥 Streak-Bonus: <b>+{summary.bonuses.streakBonus} XP</b></div>
+                  )}
+                  {summary.bonuses.happyHourMult > 1 && (
+                    <div style={{ color: "#FFD700" }}>⏰ Happy Hour: <b>{summary.bonuses.happyHourMult}× XP</b></div>
+                  )}
+                  {summary.bonuses.boostMult > 1 && (
+                    <div style={{ color: "#FFD700" }}>⚡ XP-Boost: <b>{summary.bonuses.boostMult}× XP</b></div>
+                  )}
+                  {summary.bonuses.crewBoostMult > 1 && (
+                    <div style={{ color: "#22D1C3" }}>👥 Crew-Boost: <b>{summary.bonuses.crewBoostMult}× XP</b></div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {summary.newAchievements && summary.newAchievements.length > 0 && (
+              <div style={{
+                padding: 12, borderRadius: 12,
+                background: "linear-gradient(135deg, rgba(255,215,0,0.15), rgba(168,85,247,0.1))",
+                border: "1px solid rgba(255,215,0,0.5)",
+                marginBottom: 14,
+              }}>
+                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1, marginBottom: 8 }}>
+                  🏆 {summary.newAchievements.length} NEU FREIGESCHALTET
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {summary.newAchievements.map((a) => (
+                    <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                      <span style={{ fontSize: 18 }}>{a.icon}</span>
+                      <span style={{ color: "#FFF", flex: 1, fontWeight: 700 }}>{a.name}</span>
+                      <span style={{ color: "#FFD700", fontWeight: 900 }}>+{a.xp.toLocaleString("de-DE")} XP</span>
+                    </div>
+                  ))}
+                </div>
+                {summary.achievementXp && summary.achievementXp > 0 ? (
+                  <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 8, textAlign: "right" }}>
+                    Summe Achievement-XP: <b style={{ color: "#FFD700" }}>+{summary.achievementXp.toLocaleString("de-DE")}</b>
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             <button
               onClick={() => onClose(bonusXp)}
