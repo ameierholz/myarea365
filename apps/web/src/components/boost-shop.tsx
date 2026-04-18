@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice } from "@/lib/monetization";
 import { appAlert } from "@/components/app-dialog";
+import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 
 type ShopTab = "boosts" | "xp" | "gameplay" | "cosmetics" | "extras";
 
@@ -11,6 +12,7 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
   const sb = createClient();
   const [tab, setTab] = useState<ShopTab>("boosts");
   const [loading, setLoading] = useState<string | null>(null);
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
   async function buy(sku: string, name: string, price: number) {
     setLoading(sku);
@@ -20,9 +22,10 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
         const res = await fetch("/api/stripe/checkout", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ sku, name, amount_cents: price }),
+          body: JSON.stringify({ sku, name, amount_cents: price, ui_mode: "embedded" }),
         });
         const json = await res.json();
+        if (json.client_secret) { setCheckoutSecret(json.client_secret); return; }
         if (json.url) { window.location.href = json.url; return; }
         throw new Error(json.error ?? "Checkout fehlgeschlagen");
       }
@@ -277,6 +280,9 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
           Stripe-Integration folgt · aktuell Demo-Aktivierung
         </div>
       </div>
+      {checkoutSecret && (
+        <StripeCheckoutModal clientSecret={checkoutSecret} onClose={() => setCheckoutSecret(null)} />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PLANS, PLUS_FEATURES, CREW_PRO_FEATURES, formatPrice } from "@/lib/monetization";
+import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 
 type Mode = "plus" | "crew";
@@ -13,6 +14,7 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
   const sb = createClient();
   const [billing, setBilling] = useState<"monthly" | "yearly" | "lifetime">("monthly");
   const [loading, setLoading] = useState(false);
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
   const plans = mode === "plus"
     ? { monthly: PLANS.plus_monthly, yearly: PLANS.plus_yearly, lifetime: PLANS.plus_lifetime }
@@ -30,10 +32,11 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            sku: active.sku, name: active.name, amount_cents: active.price, crew_id: crewId,
+            sku: active.sku, name: active.name, amount_cents: active.price, crew_id: crewId, ui_mode: "embedded",
           }),
         });
         const json = await res.json();
+        if (json.client_secret) { setCheckoutSecret(json.client_secret); return; }
         if (json.url) { window.location.href = json.url; return; }
         throw new Error(json.error ?? "Checkout fehlgeschlagen");
       }
@@ -160,9 +163,12 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
           {loading ? "…" : `Für ${formatPrice(active.price)} freischalten`}
         </button>
         <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 8 }}>
-          Stripe-Checkout folgt · aktuell Demo-Aktivierung · jederzeit kündbar
+          Sichere Zahlung via Stripe · jederzeit kündbar
         </div>
       </div>
+      {checkoutSecret && (
+        <StripeCheckoutModal clientSecret={checkoutSecret} onClose={() => setCheckoutSecret(null)} />
+      )}
     </div>
   );
 }
