@@ -2870,7 +2870,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   const [hoverRating, setHoverRating] = useState(0);
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [arenaOpen, setArenaOpen] = useState(false);
-  const [arenaStatus, setArenaStatus] = useState<{ arena: { id: string } | null; my_crew_eligible: boolean; i_redeemed_myself: boolean } | null>(null);
+  const [arenaStatus, setArenaStatus] = useState<{ arena: { id: string } | null; i_eligible: boolean; i_redeemed_myself: boolean; crew_eligible: boolean } | null>(null);
   const [reviewText, setReviewText] = useState("");
   const [showReview, setShowReview] = useState(false);
 
@@ -2995,11 +2995,11 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
                 {arenaStatus.i_redeemed_myself ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 7 Tagen hier eingelöst — tritt ein, fordere Gegner heraus und hol dir XP für deinen Wächter.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 7 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir XP für deinen Wächter.
                   </>
-                ) : arenaStatus.my_crew_eligible ? (
+                ) : arenaStatus.crew_eligible ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang über deine Crew.</b> Ein Mitglied deiner Crew hat hier eingelöst — du darfst mitkämpfen.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang über deine Crew.</b> Ein Mitglied deiner Crew hat hier eingelöst — du darfst mitkämpfen. Noch besser: löse selbst ein und hol dir garantiert Loot für deinen Wächter.
                   </>
                 ) : (
                   <>
@@ -3009,16 +3009,16 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               </div>
               <button
                 onClick={() => setArenaOpen(true)}
-                disabled={!arenaStatus.my_crew_eligible}
+                disabled={!arenaStatus.i_eligible}
                 style={{
                   width: "100%", padding: "10px 14px", borderRadius: 10,
-                  background: arenaStatus.my_crew_eligible ? "linear-gradient(135deg, #a855f7, #FF2D78)" : "rgba(139,143,163,0.2)",
-                  color: arenaStatus.my_crew_eligible ? "#FFF" : "#8B8FA3",
+                  background: arenaStatus.i_eligible ? "linear-gradient(135deg, #a855f7, #FF2D78)" : "rgba(139,143,163,0.2)",
+                  color: arenaStatus.i_eligible ? "#FFF" : "#8B8FA3",
                   fontSize: 13, fontWeight: 900, border: "none",
-                  cursor: arenaStatus.my_crew_eligible ? "pointer" : "not-allowed",
+                  cursor: arenaStatus.i_eligible ? "pointer" : "not-allowed",
                 }}
               >
-                {arenaStatus.my_crew_eligible ? "🏟️ Arena betreten" : "🔒 Erst einlösen"}
+                {arenaStatus.i_eligible ? "🏟️ Arena betreten" : "🔒 Erst einlösen"}
               </button>
             </div>
           )}

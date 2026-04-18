@@ -62,16 +62,29 @@ async function handleChallenge(req: Request) {
     return NextResponse.json({ error: "arena_inactive" }, { status: 400 });
   }
 
-  // Eligibility: beide Crews müssen eingelöst haben (wenn Runner in Crew sind)
-  async function eligibleViaCrew(crewId: string | null): Promise<boolean> {
+  // Eligibility: Runner darf kaempfen wenn ER SELBST oder EIN CREW-MITGLIED in 7T
+  // hier eingeloest hat. Das foerdert Shop-Traffic ueber die ganze Crew.
+  async function isEligible(userId: string, crewId: string | null): Promise<boolean> {
+    const since = new Date(Date.now() - 7 * 86400000).toISOString();
+    // selbst eingeloest?
+    const { count: ownCount } = await sb.from("deal_redemptions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("business_id", business_id)
+      .eq("status", "verified")
+      .gte("verified_at", since);
+    if ((ownCount ?? 0) > 0) return true;
+    // Ueber Crew eligible?
     if (!crewId) return false;
     const { data } = await sb.rpc("arena_eligibility", { p_crew_id: crewId, p_business_id: business_id });
     return (data as { eligible: boolean })?.eligible ?? false;
   }
-  const attCrewEligible = await eligibleViaCrew(attProfile?.current_crew_id ?? null);
-  const defCrewEligible = await eligibleViaCrew(defProfile?.current_crew_id ?? null);
-  if (!attCrewEligible) return NextResponse.json({ error: "attacker_not_eligible" }, { status: 403 });
-  if (!defCrewEligible) return NextResponse.json({ error: "defender_not_eligible" }, { status: 403 });
+  const [attEligible, defEligible] = await Promise.all([
+    isEligible(attacker_user_id, attProfile?.current_crew_id ?? null),
+    isEligible(defender_user_id, defProfile?.current_crew_id ?? null),
+  ]);
+  if (!attEligible) return NextResponse.json({ error: "not_eligible", detail: "Weder du noch deine Crew hat hier in den letzten 7 Tagen eingelöst" }, { status: 403 });
+  if (!defEligible) return NextResponse.json({ error: "defender_not_eligible", detail: "Der Gegner ist nicht eligible" }, { status: 403 });
 
   // 1 Kampf pro Arena pro Angreifer/Tag
   const since = new Date(Date.now() - 24 * 3600000).toISOString();

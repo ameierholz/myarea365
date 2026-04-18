@@ -30,20 +30,13 @@ export async function GET(req: Request) {
 
   const arenaActive = arena && arena.status === "active" && new Date(arena.expires_at).getTime() > Date.now();
 
-  let myCrewId: string | null = null;
-  let myCrewEligible = false;
-  let myCrewLastRedemption: string | null = null;
   let iRedeemedMyself = false;
   let myLastRedemption: string | null = null;
+  let crewEligible = false;
+  let crewLastRedemption: string | null = null;
 
-  if (auth?.user) {
-    const { data: profile } = await sb.from("users")
-      .select("current_crew_id")
-      .eq("id", auth.user.id)
-      .maybeSingle<{ current_crew_id: string | null }>();
-    myCrewId = profile?.current_crew_id ?? null;
-
-    // Habe ICH selber in 7T hier eingeloest?
+  if (auth?.user && arenaActive) {
+    // Selbst eingeloest?
     const since = new Date(Date.now() - 7 * 86400000).toISOString();
     const { data: myRed } = await sb.from("deal_redemptions")
       .select("verified_at")
@@ -59,18 +52,24 @@ export async function GET(req: Request) {
       myLastRedemption = myRed.verified_at;
     }
 
-    if (myCrewId && arenaActive) {
+    // Crew eligible (Mitglied hat in 7T eingeloest)?
+    const { data: profile } = await sb.from("users")
+      .select("current_crew_id")
+      .eq("id", auth.user.id)
+      .maybeSingle<{ current_crew_id: string | null }>();
+    if (profile?.current_crew_id) {
       const { data: eligibility } = await sb.rpc("arena_eligibility", {
-        p_crew_id: myCrewId,
+        p_crew_id: profile.current_crew_id,
         p_business_id: businessId,
       });
       if (eligibility && typeof eligibility === "object") {
         const e = eligibility as { eligible: boolean; last_redemption_at: string | null };
-        myCrewEligible = e.eligible;
-        myCrewLastRedemption = e.last_redemption_at;
+        crewEligible = e.eligible;
+        crewLastRedemption = e.last_redemption_at;
       }
     }
   }
+  const iEligible = iRedeemedMyself || crewEligible;
 
   // Historie (letzte 10 Kaempfe)
   let recentBattles: Array<{
@@ -102,11 +101,11 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     arena: arenaActive ? arena : null,
-    my_crew_id: myCrewId,
-    my_crew_eligible: myCrewEligible,
-    my_crew_last_redemption_at: myCrewLastRedemption,
+    i_eligible: iEligible,
     i_redeemed_myself: iRedeemedMyself,
+    crew_eligible: crewEligible,
     my_last_redemption_at: myLastRedemption,
+    crew_last_redemption_at: crewLastRedemption,
     recent_battles: recentBattles,
   });
 }
