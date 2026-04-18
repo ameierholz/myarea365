@@ -579,22 +579,22 @@ export function AppMap({
       return `rgb(${r},${g},${b})`;
     }
     function buildShopPinImage(color: string, icon: string): ImageData | null {
-      const W = 256, H = 320;
+      const W = 512, H = 640;
       const canvas = document.createElement("canvas");
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
 
-      // Shadow unter dem Pin
-      ctx.shadowColor = "rgba(0,0,0,0.45)";
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 10;
-
-      // Drop-Pin-Pfad (tear-drop mit runder Top + spitzer Bottom)
       const cx = W / 2;
-      const cy = W * 0.5; // Circle center
-      const r  = W * 0.42;
-      const tipY = H - 12;
+      const cy = W * 0.5;
+      const r  = W * 0.40;
+      const tipY = H - 24;
+
+      // Drop-Shadow-Pfad (groesser, dunkler, fuer Tiefe)
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
+      ctx.shadowBlur = 40;
+      ctx.shadowOffsetY = 18;
+
       ctx.beginPath();
       ctx.moveTo(cx, tipY);
       ctx.bezierCurveTo(cx - r * 1.05, cy + r * 0.9, cx - r, cy + r * 0.1, cx - r, cy);
@@ -602,34 +602,116 @@ export function AppMap({
       ctx.bezierCurveTo(cx + r, cy + r * 0.1, cx + r * 1.05, cy + r * 0.9, cx, tipY);
       ctx.closePath();
 
-      // Gradient fill
-      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      // Hauptgradient: helle Farbe oben, dunkler unten, diagonal fuer Glanz
+      const grad = ctx.createLinearGradient(W * 0.3, 0, W * 0.7, H);
       grad.addColorStop(0, color);
-      grad.addColorStop(1, darken(color, 0.25));
+      grad.addColorStop(0.5, color);
+      grad.addColorStop(1, darken(color, 0.35));
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // Weisser Border — Shadow deaktivieren
+      // Shadow ausschalten fuer Details
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
-      ctx.lineWidth = 10;
+
+      // Weisser Dick-Border
+      ctx.lineWidth = 18;
       ctx.strokeStyle = "#FFFFFF";
       ctx.stroke();
 
-      // Innerer Kreis (weiss) fuer Emoji-Bubble
-      ctx.beginPath();
-      ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      // Inner Glow (leichter Highlight am oberen Rand)
+      const highlight = ctx.createRadialGradient(cx, cy - r * 0.3, 0, cx, cy - r * 0.3, r * 0.9);
+      highlight.addColorStop(0, "rgba(255,255,255,0.45)");
+      highlight.addColorStop(0.5, "rgba(255,255,255,0.15)");
+      highlight.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = highlight;
       ctx.fill();
 
-      // Emoji
-      ctx.font = `${Math.round(r * 1.1)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      // Emoji-Bubble (weiss, zentriert)
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.60, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fill();
+
+      // Bubble-Inner-Shadow fuer Tiefe
+      const bubbleShadow = ctx.createRadialGradient(cx, cy + r * 0.05, r * 0.45, cx, cy + r * 0.05, r * 0.60);
+      bubbleShadow.addColorStop(0, "rgba(0,0,0,0)");
+      bubbleShadow.addColorStop(1, "rgba(0,0,0,0.12)");
+      ctx.fillStyle = bubbleShadow;
+      ctx.fill();
+
+      // Emoji gross & scharf
+      ctx.font = `${Math.round(r * 1.2)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#0F1115";
-      ctx.fillText(icon, cx, cy + 4);
+      ctx.fillText(icon, cx, cy + r * 0.02);
 
       return ctx.getImageData(0, 0, W, H);
+    }
+
+    // Pill-Badge als Icon-Image (Gold-Gradient fuer SPOTLIGHT, Purple fuer ARENA)
+    function buildBadgeImage(label: string, colorFrom: string, colorTo: string): { img: ImageData; width: number; height: number } | null {
+      const H = 96;
+      const pad = 64;
+      // Erst Textmetrik bestimmen
+      const measure = document.createElement("canvas").getContext("2d");
+      if (!measure) return null;
+      measure.font = `900 56px Inter, system-ui, sans-serif`;
+      const tw = measure.measureText(label).width;
+      const W = Math.round(tw + pad * 2);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      // Shadow
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 8;
+
+      // Pill-Shape
+      const radius = H / 2;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(W - radius, 0);
+      ctx.arc(W - radius, radius, radius, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(radius, H);
+      ctx.arc(radius, radius, radius, Math.PI / 2, -Math.PI / 2);
+      ctx.closePath();
+
+      const grad = ctx.createLinearGradient(0, 0, W, 0);
+      grad.addColorStop(0, colorFrom);
+      grad.addColorStop(1, colorTo);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Text
+      ctx.font = `900 56px Inter, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#0F1115";
+      ctx.fillText(label, W / 2, H / 2 + 4);
+
+      return { img: ctx.getImageData(0, 0, W, H), width: W, height: H };
+    }
+
+    // Badges registrieren
+    if (!map.hasImage("shop-badge-spotlight")) {
+      const b = buildBadgeImage("⭐ SPOTLIGHT", "#FFD700", "#FF8A3C");
+      if (b) map.addImage("shop-badge-spotlight", b.img, { pixelRatio: 2 });
+    }
+    if (!map.hasImage("shop-badge-arena")) {
+      const b = buildBadgeImage("⚔️ ARENA", "#c084fc", "#FF2D78");
+      if (b) map.addImage("shop-badge-arena", b.img, { pixelRatio: 2 });
+    }
+    if (!map.hasImage("shop-badge-both")) {
+      const b = buildBadgeImage("⭐ SPOTLIGHT  ⚔️ ARENA", "#FFD700", "#c084fc");
+      if (b) map.addImage("shop-badge-both", b.img, { pixelRatio: 2 });
     }
 
     // Jedem Shop sein eigenes Image registrieren, keyed by color + icon
@@ -742,30 +824,29 @@ export function AppMap({
         },
       });
 
-      // Status-Badges ueber dem Pin (SPOTLIGHT / ARENA) — nur bei aktivem Flag sichtbar
+      // Status-Badge als Pill-Icon ueber dem Pin
       map.addLayer({
         id: LYR_BADGE, type: "symbol", source: SRC,
         layout: {
-          "text-field": [
-            "concat",
-            ["case", ["==", ["get", "spotlight"], true], "⭐ SPOTLIGHT", ""],
-            ["case",
-              ["all", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], "  ",
-              ""],
-            ["case", ["==", ["get", "arena"], true], "⚔️ ARENA", ""],
+          "icon-image": [
+            "case",
+            ["all", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], "shop-badge-both",
+            ["==", ["get", "spotlight"], true], "shop-badge-spotlight",
+            ["==", ["get", "arena"], true], "shop-badge-arena",
+            "shop-badge-spotlight", // fallback (wird durch opacity 0 versteckt)
           ],
-          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 11, 8, 15, 11, 18, 13],
-          "text-offset": ["interpolate", ["linear"], ["zoom"], 11, ["literal", [0, -3]], 18, ["literal", [0, -4.5]]],
-          "text-anchor": "bottom",
-          "text-allow-overlap": true,
-          "text-ignore-placement": true,
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 11, 0.10, 15, 0.18, 18, 0.26],
+          "icon-offset": ["interpolate", ["linear"], ["zoom"], 11, ["literal", [0, -460]], 18, ["literal", [0, -220]]],
+          "icon-anchor": "bottom",
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
         },
         paint: {
-          "text-color": "#FFD700",
-          "text-halo-color": "#0F1115",
-          "text-halo-width": 2.5,
-          "text-halo-blur": 0.4,
+          "icon-opacity": [
+            "case",
+            ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 1,
+            0,
+          ],
         },
       });
 
