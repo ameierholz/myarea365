@@ -1334,17 +1334,6 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
-        {/* ═══ WÄCHTER ═══ */}
-        <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
-        <GuardianGuideBanner />
-        <ProfileGuardianBlock userId={p?.id ?? null} />
-
-        {/* ═══ AUSRÜSTUNG ═══ */}
-        <SectionHeader title="AUSRÜSTUNG" />
-        <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <GuardianEquipmentPanel />
-        </div>
-
         {/* ═══ LETZTE LÄUFE ═══ */}
         <SectionHeader title="LETZTE LÄUFE" />
         {effectiveRecentRuns.length === 0 ? (
@@ -1499,6 +1488,17 @@ function ProfilTab({
           border: "1px solid rgba(255, 255, 255, 0.1)",
         }}>
           <MonthlyCalendar runs={effectiveRecentRuns} color={teamColor} />
+        </div>
+
+        {/* ═══ WÄCHTER ═══ */}
+        <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
+        <GuardianGuideBanner />
+        <ProfileGuardianBlock userId={p?.id ?? null} />
+
+        {/* ═══ AUSRÜSTUNG ═══ */}
+        <SectionHeader title="AUSRÜSTUNG" />
+        <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <GuardianEquipmentPanel />
         </div>
 
         {/* ═══ MAP-ICONS (10 Stück) ═══ */}
