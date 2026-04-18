@@ -225,45 +225,6 @@ function wrapForZoomScale(el: HTMLElement): void {
   el.appendChild(inner);
 }
 
-function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
-  const color = shop.color || "#FFD700";
-  // Outer wrapper: Mapbox setzt translate() hier drauf → NICHT selbst anfassen
-  const el = document.createElement("div");
-  el.style.cssText = "position:relative;cursor:pointer;pointer-events:auto";
-  // Inner wrapper: hier wenden wir Zoom-Scaling an (wird ueber data-Attribut gefunden)
-  const inner = document.createElement("div");
-  // "2" = DOM ist bei 2× Source-Groesse gezeichnet → Zoom-Scaler halbiert alles
-  inner.dataset.zoomScale = "2";
-  inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
-  el.appendChild(inner);
-
-  // Marker-DOM wird nativ bei 2× gezeichnet — der globale Zoom-Scaler skaliert IMMER runter
-  // → verlustarmes Downsampling statt verlustbehaftetes Upsampling.
-  let spotlightLayers = "";
-  let spotlightLabel = "";
-  if (shop.spotlight) {
-    spotlightLayers = `
-      <div style="position:absolute;top:-56px;left:50%;margin-left:-108px;width:216px;height:216px;border-radius:50%;background:radial-gradient(circle,#FFD70066 0%,#FFD70022 45%,transparent 70%);animation:shopSpotlightHalo 2.2s ease-in-out infinite;pointer-events:none"></div>
-      <div style="position:absolute;top:-28px;left:50%;margin-left:-76px;width:152px;height:152px;border-radius:50%;background:radial-gradient(circle,#FFD70099 0%,#FFD70044 50%,transparent 75%);animation:shopSpotlightHalo 2.2s ease-in-out infinite 0.4s;pointer-events:none"></div>
-      <div style="position:absolute;top:-44px;left:50%;margin-left:-90px;width:180px;height:180px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,#FFD70088 15deg,transparent 35deg,transparent 90deg,#FFD70066 110deg,transparent 140deg,transparent 210deg,#FFD70088 230deg,transparent 260deg,transparent 330deg,#FFD70066 350deg,transparent 360deg);animation:shopSpotlightRays 6s linear infinite;pointer-events:none;opacity:0.7;filter:blur(4px)"></div>
-      <div style="position:absolute;top:-12px;left:50%;margin-left:-56px;width:112px;height:112px;border-radius:50%;background:transparent;border:4px solid #FFD700cc;animation:shopSpotlightRing 1.6s ease-in-out infinite;pointer-events:none"></div>
-    `;
-    spotlightLabel = `<div style="position:absolute;top:-76px;left:50%;transform:translateX(-50%);padding:4px 16px;border-radius:999px;background:linear-gradient(90deg,#FFD700,#FF6B4A);color:#0F1115;font-size:18px;font-weight:900;letter-spacing:2px;box-shadow:0 4px 16px rgba(0,0,0,0.45);animation:shopSpotlightLabel 1.6s ease-in-out infinite;white-space:nowrap">⭐ SPOTLIGHT</div>`;
-  }
-
-  inner.innerHTML = `
-    ${spotlightLayers}
-    ${spotlightLabel}
-    <div style="position:relative;width:88px;height:88px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:5px solid #FFF;box-shadow:0 8px 20px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 44px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2;overflow:hidden">
-      ${shop.custom_pin_url
-        ? `<img src="${shop.custom_pin_url}" alt="${shop.name}" style="transform:rotate(45deg);width:56px;height:56px;border-radius:50%;object-fit:cover" />`
-        : `<span style="transform:rotate(45deg);font-size:44px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.45))">${shop.icon}</span>`
-      }
-    </div>
-    <div data-shop-label="1" style="margin-top:4px;padding:4px 12px;border-radius:16px;background:rgba(15,17,21,0.85);border:2px solid ${color}88;color:#FFF;font-size:20px;font-weight:800;white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2;transition:opacity 0.2s">${shop.name}</div>
-  `;
-  return el;
-}
 
 export function AppMap({
   onLocationUpdate,
@@ -307,7 +268,6 @@ export function AppMap({
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
-  const shopMarkersRef = useRef<mapboxgl.Marker[]>([]);
 
   // Map initialisieren
   useEffect(() => {
@@ -595,27 +555,137 @@ export function AppMap({
     };
   }, [mapReady, supplyDrops, onDropClick]);
 
-  // Shops
+  // Shops — native Mapbox Symbol-Layer (GPU-gerendert, zoom-scharf, kein DOM-Scale-Blur)
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
 
-    shopMarkersRef.current.forEach((m) => m.remove());
-    shopMarkersRef.current = [];
+    const SRC = "shops-source";
+    const LYR_GLOW    = "shops-spotlight-glow";
+    const LYR_CIRCLE  = "shops-pin-circle";
+    const LYR_ICON    = "shops-pin-icon";
+    const LYR_LABEL   = "shops-pin-label";
 
-    shops.forEach((shop) => {
-      const el = buildShopMarkerEl(shop);
-      el.addEventListener("click", () => onShopClick?.(shop.id));
-      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-        .setLngLat([shop.lng, shop.lat])
-        .addTo(map);
-      shopMarkersRef.current.push(marker);
-    });
+    const geojson = {
+      type: "FeatureCollection" as const,
+      features: shops.map((s) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] },
+        properties: {
+          id: s.id,
+          name: s.name,
+          icon: s.icon,
+          color: s.color || "#FFD700",
+          spotlight: !!s.spotlight,
+        },
+      })),
+    };
+
+    const existingSrc = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
+    if (existingSrc) {
+      existingSrc.setData(geojson);
+    } else {
+      map.addSource(SRC, { type: "geojson", data: geojson });
+
+      // Spotlight-Glow (groesser Circle mit Pulse-Animation via setPaintProperty)
+      map.addLayer({
+        id: LYR_GLOW, type: "circle", source: SRC,
+        filter: ["get", "spotlight"],
+        paint: {
+          "circle-color": "#FFD700",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 15, 28, 18, 48],
+          "circle-opacity": 0.35,
+          "circle-blur": 1.0,
+        },
+      });
+      // Pin-Hintergrund-Circle (farbig, pro Shop)
+      map.addLayer({
+        id: LYR_CIRCLE, type: "circle", source: SRC,
+        paint: {
+          "circle-color": ["get", "color"],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 13, 9, 15, 16, 18, 24],
+          "circle-stroke-color": "#FFF",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 10, 1, 15, 2.5, 18, 3.5],
+        },
+      });
+      // Icon/Emoji auf dem Pin (Text-Layer, weil Emojis Text sind)
+      map.addLayer({
+        id: LYR_ICON, type: "symbol", source: SRC,
+        layout: {
+          "text-field": ["get", "icon"],
+          "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 6, 13, 14, 15, 22, 18, 32],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-halo-color": "rgba(0,0,0,0.45)",
+          "text-halo-width": 1.2,
+          "text-halo-blur": 0.6,
+        },
+      });
+      // Name-Label unter dem Pin, erst ab zoom 14 sichtbar
+      map.addLayer({
+        id: LYR_LABEL, type: "symbol", source: SRC,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 16, 13, 18, 15],
+          "text-offset": ["interpolate", ["linear"], ["zoom"], 13, ["literal", [0, 1.4]], 18, ["literal", [0, 2.2]]],
+          "text-anchor": "top",
+          "text-allow-overlap": false,
+        },
+        paint: {
+          "text-color": "#FFF",
+          "text-halo-color": "rgba(15,17,21,0.9)",
+          "text-halo-width": 2.2,
+          "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 14, 1],
+        },
+      });
+
+      // Click-Handler
+      if (onShopClick) {
+        const onClick = (e: mapboxgl.MapLayerMouseEvent) => {
+          const id = e.features?.[0]?.properties?.id as string | undefined;
+          if (id) onShopClick(id);
+        };
+        [LYR_CIRCLE, LYR_ICON, LYR_LABEL, LYR_GLOW].forEach((l) => {
+          map.on("click", l, onClick);
+          map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
+          map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
+        });
+      }
+
+      // Spotlight-Glow-Pulse via Animation-Loop
+      let t = 0;
+      const pulse = () => {
+        t += 1;
+        const phase = Math.sin(t * 0.04);
+        const op = 0.28 + phase * 0.18;
+        const r = (z: number, base: number) => base + phase * (base * 0.22);
+        if (map.getLayer(LYR_GLOW)) {
+          map.setPaintProperty(LYR_GLOW, "circle-opacity", op);
+          map.setPaintProperty(LYR_GLOW, "circle-radius", [
+            "interpolate", ["linear"], ["zoom"],
+            11, r(11, 8), 15, r(15, 28), 18, r(18, 48),
+          ]);
+        }
+        pulseRaf = requestAnimationFrame(pulse);
+      };
+      let pulseRaf = requestAnimationFrame(pulse);
+      // Cleanup ueber Closure: store in map state
+      (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf = pulseRaf;
+    }
 
     return () => {
-      shopMarkersRef.current.forEach((m) => m.remove());
-      shopMarkersRef.current = [];
+      // Layers + Source bei Unmount entfernen
+      const raf = (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf;
+      if (raf) cancelAnimationFrame(raf);
+      [LYR_LABEL, LYR_ICON, LYR_CIRCLE, LYR_GLOW].forEach((l) => {
+        if (map.getLayer(l)) map.removeLayer(l);
+      });
+      if (map.getSource(SRC)) map.removeSource(SRC);
     };
   }, [mapReady, shops, onShopClick]);
 
