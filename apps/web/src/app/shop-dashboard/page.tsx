@@ -9,6 +9,7 @@ import {
   AnalyticsProPanel, CompetitorPanel, KiezReportPanel, CustomPinPanel, QrOrderPanel,
 } from "@/components/shop-features";
 import { ShopRedemptionsLive } from "@/components/shop-redemptions-live";
+import { ShopArenaPanel } from "@/components/shop-arena-panel";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -327,6 +328,12 @@ function OverviewTab() {
 
       {/* ═══ Live-Einlösungen (Kassa) ═══ */}
       <ShopRedemptionsLive businessId={DEMO_SHOP.id} />
+
+      {/* ═══ Arena-Panel ═══ */}
+      <ShopArenaPanel
+        businessId={DEMO_SHOP.id}
+        onBuyArena={(sku) => { setShowShop(true); void sku; }}
+      />
 
       {/* ═══ Plan-Status-Card ═══ */}
       <div style={{

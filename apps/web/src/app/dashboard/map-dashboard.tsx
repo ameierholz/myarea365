@@ -9,6 +9,7 @@ import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
 import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
 import { OwnershipModal } from "@/components/ownership-modal";
+import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
 import { DemoBadge } from "@/components/demo-badge";
@@ -2862,8 +2863,17 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [redeemOpen, setRedeemOpen] = useState(false);
+  const [arenaOpen, setArenaOpen] = useState(false);
+  const [arenaStatus, setArenaStatus] = useState<{ arena: { id: string } | null; my_crew_eligible: boolean } | null>(null);
   const [reviewText, setReviewText] = useState("");
   const [showReview, setShowReview] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/arena/status?business_id=${shop.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setArenaStatus(d); })
+      .catch(() => {});
+  }, [shop.id]);
   return (
     <div
       onClick={onClose}
@@ -2964,6 +2974,38 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               {userXp >= 300 ? "✨ Jetzt einlösen" : `Noch ${300 - userXp} XP sammeln`}
             </button>
           </div>
+
+          {arenaStatus?.arena && (
+            <div style={{
+              marginTop: 12, padding: 14, borderRadius: 14,
+              background: "linear-gradient(135deg, rgba(168,85,247,0.22), rgba(255,45,120,0.12))",
+              border: "1px solid rgba(168,85,247,0.5)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 22 }}>⚔️</span>
+                <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, flex: 1 }}>Arena aktiv</div>
+                <span style={{ padding: "2px 8px", borderRadius: 999, background: "rgba(74,222,128,0.25)", color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>LIVE</span>
+              </div>
+              <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
+                {arenaStatus.my_crew_eligible
+                  ? "Deine Crew hat in den letzten 7 Tagen hier eingelöst — ihr könnt kämpfen!"
+                  : "Löse zuerst einen Deal ein, um als Crew in der Arena kämpfen zu können."}
+              </div>
+              <button
+                onClick={() => setArenaOpen(true)}
+                disabled={!arenaStatus.my_crew_eligible}
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 10,
+                  background: arenaStatus.my_crew_eligible ? "linear-gradient(135deg, #a855f7, #FF2D78)" : "rgba(139,143,163,0.2)",
+                  color: arenaStatus.my_crew_eligible ? "#FFF" : "#8B8FA3",
+                  fontSize: 13, fontWeight: 900, border: "none",
+                  cursor: arenaStatus.my_crew_eligible ? "pointer" : "not-allowed",
+                }}
+              >
+                {arenaStatus.my_crew_eligible ? "🏟️ Arena betreten" : "🔒 Erst einlösen"}
+              </button>
+            </div>
+          )}
 
           {/* Shop-Info */}
           <div style={{
@@ -3108,6 +3150,13 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           xpCost={300}
           userXp={userXp}
           onClose={() => setRedeemOpen(false)}
+        />
+      )}
+      {arenaOpen && (
+        <ArenaChallengeModal
+          businessId={shop.id}
+          businessName={shop.name}
+          onClose={() => setArenaOpen(false)}
         />
       )}
     </div>

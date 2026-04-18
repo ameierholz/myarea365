@@ -150,23 +150,62 @@ export async function POST(req: Request) {
     applyOutcome(gB, bWon, result.final_hp_b),
   ]);
 
-  // Arena-Zaehler + Streak
-  await sb.from("shop_arenas").update({ total_battles: (await sb.from("shop_arenas").select("total_battles").eq("id", arena.id).single()).data?.total_battles ?? 0 + 1 }).eq("id", arena.id);
-  // Vereinfachter Streak-Update
+  // Arena-Zaehler hochzaehlen
+  const { data: arenaRow } = await sb.from("shop_arenas").select("total_battles").eq("id", arena.id).single<{ total_battles: number }>();
+  await sb.from("shop_arenas").update({ total_battles: (arenaRow?.total_battles ?? 0) + 1 }).eq("id", arena.id);
+
+  // Streak-Update + Fusion/Trophy-Trigger
+  let fusionResult: { kind: "fusion" | "trophy"; description: string } | null = null;
   if (winnerCrewId) {
+    const winnerSide = winnerCrewId === attacker_crew_id ? "A" : "B";
+    const loserCrewId = winnerSide === "A" ? defender_crew_id : attacker_crew_id;
+    const loserGuardian = winnerSide === "A" ? gB : gA;
+    const winnerGuardian = winnerSide === "A" ? gA : gB;
+
+    // Streak fuer diese Richtung
     const { data: streak } = await sb.from("arena_streaks")
       .select("id, consecutive_wins")
-      .eq("attacker_crew_id", winnerCrewId === attacker_crew_id ? attacker_crew_id : defender_crew_id)
-      .eq("defender_crew_id", winnerCrewId === attacker_crew_id ? defender_crew_id : attacker_crew_id)
+      .eq("attacker_crew_id", winnerCrewId)
+      .eq("defender_crew_id", loserCrewId)
       .maybeSingle<{ id: string; consecutive_wins: number }>();
+    // Reverse-Streak reset
+    await sb.from("arena_streaks").update({ consecutive_wins: 0, last_battle_at: new Date().toISOString() })
+      .eq("attacker_crew_id", loserCrewId).eq("defender_crew_id", winnerCrewId);
+    // Winner-Streak bump
+    const newStreak = (streak?.consecutive_wins ?? 0) + 1;
     if (streak) {
-      await sb.from("arena_streaks").update({ consecutive_wins: streak.consecutive_wins + 1, last_battle_at: new Date().toISOString() }).eq("id", streak.id);
+      await sb.from("arena_streaks").update({ consecutive_wins: newStreak, last_battle_at: new Date().toISOString() }).eq("id", streak.id);
     } else {
-      await sb.from("arena_streaks").insert({
-        attacker_crew_id: winnerCrewId === attacker_crew_id ? attacker_crew_id : defender_crew_id,
-        defender_crew_id: winnerCrewId === attacker_crew_id ? defender_crew_id : attacker_crew_id,
-        consecutive_wins: 1,
-      });
+      await sb.from("arena_streaks").insert({ attacker_crew_id: winnerCrewId, defender_crew_id: loserCrewId, consecutive_wins: 1 });
+    }
+
+    // Ab 3 Siegen in Serie: Fusion oder Trophy
+    if (newStreak >= 3) {
+      const sameArchetype = winnerGuardian.archetype_id === loserGuardian.archetype_id;
+      if (sameArchetype) {
+        // Fusion: Winner-Guardian steigt 1 Level (max 30)
+        const boostedLevel = Math.min(30, winnerGuardian.level + 1);
+        await sb.from("crew_guardians").update({ level: boostedLevel, xp: 0, source: "fused" }).eq("id", winnerGuardian.id);
+        fusionResult = { kind: "fusion", description: `Fusion! Dein ${winnerGuardian.archetype.name} ist jetzt Level ${boostedLevel}.` };
+      } else {
+        // Trophy: Loser-Archetyp in guardian_trophies
+        await sb.from("guardian_trophies").insert({
+          crew_id: winnerCrewId,
+          archetype_id: loserGuardian.archetype_id,
+          captured_from_crew_id: loserCrewId,
+          captured_level: loserGuardian.level,
+        });
+        fusionResult = { kind: "trophy", description: `Trophäe erobert: ${loserGuardian.archetype.name} (Lv ${loserGuardian.level}) von der gegnerischen Crew.` };
+        // Verlierer-Guardian wird 7 Tage verwundet (härtere Bestrafung statt Verlust)
+        await sb.from("crew_guardians").update({
+          wounded_until: new Date(Date.now() + 7 * 86400000).toISOString(),
+        }).eq("id", loserGuardian.id);
+      }
+      // Streak zuruecksetzen nach Fusion/Capture
+      await sb.from("arena_streaks").update({ consecutive_wins: 0 })
+        .eq("attacker_crew_id", winnerCrewId).eq("defender_crew_id", loserCrewId);
+      // Battle mit guardian_captured_id markieren
+      await sb.from("arena_battles").update({ guardian_captured_id: loserGuardian.id }).eq("id", battleRow.id);
     }
   }
 
@@ -178,5 +217,6 @@ export async function POST(req: Request) {
     xp_awarded: result.xp_awarded,
     final_hp_a: result.final_hp_a,
     final_hp_b: result.final_hp_b,
+    fusion: fusionResult,
   });
 }

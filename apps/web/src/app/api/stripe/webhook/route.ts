@@ -242,6 +242,17 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     await sb.from("local_businesses").update({ qr_print_ordered_at: new Date().toISOString() }).eq("id", businessId);
     return;
   }
+  // Waechter-Shop (Runner-seitig, nutzt crewId)
+  if (sku === "revival_token" && crewId) {
+    await sb.from("crew_guardians").update({ wounded_until: null, current_hp_pct: 100 })
+      .eq("crew_id", crewId).eq("is_active", true);
+    return;
+  }
+  if (sku === "guardian_xp" && crewId) {
+    const { data: g } = await sb.from("crew_guardians").select("id, xp, level").eq("crew_id", crewId).eq("is_active", true).maybeSingle<{ id: string; xp: number; level: number }>();
+    if (g) await sb.from("crew_guardians").update({ xp: g.xp + 2500 }).eq("id", g.id);
+    return;
+  }
   if (sku === "arena_daily" || sku === "arena_monthly") {
     const arenaDays = sku === "arena_daily" ? 1 : 30;
     const plan = sku === "arena_daily" ? "daily" : "monthly";
