@@ -8,12 +8,12 @@ export const RUNNER_RANKS = [
   { id: 2,  name: "Kiez-Wanderer",       minXp: 1000,     color: "#b0b8c8" },
   { id: 3,  name: "Block-Kundschafter",  minXp: 5000,     color: "#5ddaf0" },
   { id: 4,  name: "Stadt-Pionier",       minXp: 15000,    color: "#22D1C3" },
-  { id: 5,  name: "Bezirks-Entdecker",   minXp: 60000,    color: "#3b82f6" },
-  { id: 6,  name: "Viertel-Boss",        minXp: 200000,   color: "#FF6B4A" },
-  { id: 7,  name: "Kiez-König",          minXp: 500000,   color: "#FF2D78" },
-  { id: 8,  name: "Metropolen-Legende",  minXp: 1500000,  color: "#FFD700" },
-  { id: 9,  name: "Urbaner Mythos",      minXp: 5000000,  color: "#e0e7ff" },
-  { id: 10, name: "Straßen-Gott",        minXp: 20000000, color: "#FFFFFF" },
+  { id: 5,  name: "Bezirks-Entdecker",   minXp: 100000,    color: "#3b82f6" },
+  { id: 6,  name: "Viertel-Boss",        minXp: 300000,    color: "#FF6B4A" },
+  { id: 7,  name: "Kiez-König",          minXp: 800000,    color: "#FF2D78" },
+  { id: 8,  name: "Metropolen-Legende",  minXp: 2500000,   color: "#FFD700" },
+  { id: 9,  name: "Urbaner Mythos",      minXp: 10000000,  color: "#e0e7ff" },
+  { id: 10, name: "Straßen-Gott",        minXp: 50000000,  color: "#FFFFFF" },
 ] as const;
 
 export const FACTIONS = [
