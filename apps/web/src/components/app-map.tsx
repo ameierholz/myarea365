@@ -567,6 +567,7 @@ export function AppMap({
     const LYR_GLOW       = "shops-spotlight-glow";
     const LYR_PIN        = "shops-pin-drop";
     const LYR_LABEL      = "shops-pin-label";
+    const LYR_BADGE      = "shops-pin-badge";
 
     // Fuer jeden Shop ein eigenes Pin-Image generieren (Color + Emoji + Gradient + Border)
     // Mapbox downsampled das high-res Image beim Zoomen → immer scharf
@@ -663,26 +664,24 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Arena-Glow (lila, drunter damit Spotlight oben drueber liegen kann)
+      // Arena-Glow (lila, nur bei arena=true via circle-opacity case — robuster als filter)
       map.addLayer({
         id: LYR_ARENA_GLOW, type: "circle", source: SRC,
-        filter: ["==", ["get", "arena"], true],
         paint: {
           "circle-color": "#a855f7",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 15, 30, 18, 50],
-          "circle-opacity": 0.45,
-          "circle-blur": 1.0,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 16, 15, 48, 18, 76],
+          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.55, 0],
+          "circle-blur": 0.8,
         },
       });
-      // Spotlight-Glow (gold, pulsiert via RAF)
+      // Spotlight-Glow (gold, oben drueber)
       map.addLayer({
         id: LYR_GLOW, type: "circle", source: SRC,
-        filter: ["==", ["get", "spotlight"], true],
         paint: {
           "circle-color": "#FFD700",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 12, 15, 38, 18, 60],
-          "circle-opacity": 0.5,
-          "circle-blur": 1.2,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 20, 15, 56, 18, 90],
+          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.6, 0],
+          "circle-blur": 1.0,
         },
       });
       // Drop-Pin via Full-Color-Image (enthaelt Gradient + Border + Shadow + Emoji)
@@ -715,13 +714,40 @@ export function AppMap({
         },
       });
 
+      // Status-Badges ueber dem Pin (SPOTLIGHT / ARENA) — nur bei aktivem Flag sichtbar
+      map.addLayer({
+        id: LYR_BADGE, type: "symbol", source: SRC,
+        layout: {
+          "text-field": [
+            "concat",
+            ["case", ["==", ["get", "spotlight"], true], "⭐ SPOTLIGHT", ""],
+            ["case",
+              ["all", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], "  ",
+              ""],
+            ["case", ["==", ["get", "arena"], true], "⚔️ ARENA", ""],
+          ],
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 11, 8, 15, 11, 18, 13],
+          "text-offset": ["interpolate", ["linear"], ["zoom"], 11, ["literal", [0, -3]], 18, ["literal", [0, -4.5]]],
+          "text-anchor": "bottom",
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": "#FFD700",
+          "text-halo-color": "#0F1115",
+          "text-halo-width": 2.5,
+          "text-halo-blur": 0.4,
+        },
+      });
+
       // Click-Handler
       if (onShopClick) {
         const onClick = (e: mapboxgl.MapLayerMouseEvent) => {
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onShopClick(id);
         };
-        [LYR_PIN, LYR_LABEL, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
+        [LYR_PIN, LYR_LABEL, LYR_BADGE, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
           map.on("click", l, onClick);
           map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
           map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
@@ -743,17 +769,21 @@ export function AppMap({
         const r = (base: number) => base + phase * (base * 0.2);
         try {
           if (map.getLayer(LYR_GLOW)) {
-            map.setPaintProperty(LYR_GLOW, "circle-opacity", opSpotlight);
+            map.setPaintProperty(LYR_GLOW, "circle-opacity",
+              ["case", ["==", ["get", "spotlight"], true], opSpotlight, 0]
+            );
             map.setPaintProperty(LYR_GLOW, "circle-radius", [
               "interpolate", ["linear"], ["zoom"],
-              11, r(12), 15, r(38), 18, r(60),
+              11, r(20), 15, r(56), 18, r(90),
             ]);
           }
           if (map.getLayer(LYR_ARENA_GLOW)) {
-            map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity", opArena);
+            map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity",
+              ["case", ["==", ["get", "arena"], true], opArena, 0]
+            );
             map.setPaintProperty(LYR_ARENA_GLOW, "circle-radius", [
               "interpolate", ["linear"], ["zoom"],
-              11, r(10), 15, r(30), 18, r(50),
+              11, r(16), 15, r(48), 18, r(76),
             ]);
           }
         } catch { cancelled = true; return; }
@@ -769,7 +799,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return; // Map bereits zerstoert → nichts zu tun
       try {
-        [LYR_LABEL, LYR_PIN, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
+        [LYR_BADGE, LYR_LABEL, LYR_PIN, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
