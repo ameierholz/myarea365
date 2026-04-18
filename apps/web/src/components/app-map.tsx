@@ -133,8 +133,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
     @keyframes ma365BeamGlow {
-      0%,100% { opacity: 0.55; filter: blur(4px) brightness(0.95); }
-      50%     { opacity: 1;    filter: blur(2.5px) brightness(1.25); }
+      0%,100% { filter: blur(4px) brightness(0.85) saturate(1); }
+      50%     { filter: blur(2.5px) brightness(1.35) saturate(1.2); }
     }
     .ma365-spotlight-beam {
       position: relative;
@@ -866,17 +866,20 @@ export function AppMap({
         zoom < 15 ? 0.06 + ((zoom - 13) / 2) * 0.04 :
         zoom < 18 ? 0.10 + ((zoom - 15) / 3) * 0.06 : 0.16;
       const pinHeight = 1280 * iconSize / 4;
-      // Bei sehr weitem Rauszoomen (Stadtansicht) Spotlight-Deko komplett ausblenden
-      const hideDeco = zoom < 11.5;
+      // Zoom-Schwellen: Beam erst wenn nah genug (Einzelshop-Ansicht), Badge/Aura
+      // ab Stadtteil-Zoom, sonst waere bei vielen Spotlights die Karte chaotisch
+      const hideBeam  = zoom < 14;
+      const hideBadge = zoom < 13;
+      const hideAura  = zoom < 13;
       // Badge schwebt 6px ueber Pin-Top und skaliert mit
       const badgeOffY = -(pinHeight + 6);
-      const badgeScale = Math.max(0.18, Math.min(1.0, pinHeight / 50));
+      const badgeScale = Math.max(0.22, Math.min(1.0, pinHeight / 50));
       spotlightBadgeMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, badgeOffY]);
         el.style.transform = `scale(${badgeScale.toFixed(2)})`;
         el.style.transformOrigin = "center bottom";
-        el.style.opacity = hideDeco ? "0" : "1";
-        el.style.transition = "opacity 0.2s";
+        el.style.opacity = hideBadge ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
       });
       // Aura sitzt auf Pin-Body-Mitte, skaliert mit Pin-Groesse
       const auraOffY = -(pinHeight / 2);
@@ -884,6 +887,8 @@ export function AppMap({
       spotlightAuraMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, auraOffY]);
         el.style.transform = `scale(${auraScale.toFixed(2)})`;
+        el.style.opacity = hideAura ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
       });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
       const beamOffY = -(pinHeight + 6);
@@ -892,8 +897,8 @@ export function AppMap({
         marker.setOffset([0, beamOffY]);
         el.style.height = "140px";
         el.style.transform = `scale(${beamScale.toFixed(2)})`;
-        el.style.opacity = hideDeco ? "0" : "1";
-        el.style.transition = "opacity 0.2s";
+        el.style.opacity = hideBeam ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
       });
     };
     updateMarkerGeometry();
