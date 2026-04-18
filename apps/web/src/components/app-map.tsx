@@ -866,13 +866,17 @@ export function AppMap({
         zoom < 15 ? 0.06 + ((zoom - 13) / 2) * 0.04 :
         zoom < 18 ? 0.10 + ((zoom - 15) / 3) * 0.06 : 0.16;
       const pinHeight = 1280 * iconSize / 4;
+      // Bei sehr weitem Rauszoomen (Stadtansicht) Spotlight-Deko komplett ausblenden
+      const hideDeco = zoom < 11.5;
       // Badge schwebt 6px ueber Pin-Top und skaliert mit
       const badgeOffY = -(pinHeight + 6);
-      const badgeScale = Math.max(0.28, Math.min(1.0, pinHeight / 45));
+      const badgeScale = Math.max(0.18, Math.min(1.0, pinHeight / 50));
       spotlightBadgeMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, badgeOffY]);
         el.style.transform = `scale(${badgeScale.toFixed(2)})`;
         el.style.transformOrigin = "center bottom";
+        el.style.opacity = hideDeco ? "0" : "1";
+        el.style.transition = "opacity 0.2s";
       });
       // Aura sitzt auf Pin-Body-Mitte, skaliert mit Pin-Groesse
       const auraOffY = -(pinHeight / 2);
@@ -882,14 +886,14 @@ export function AppMap({
         el.style.transform = `scale(${auraScale.toFixed(2)})`;
       });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
-      // Badge-Bottom ist pinHeight+6 ueber GPS. Beam-Bottom muss dort sitzen.
-      // Badge-Hoehe skaliert mit badgeScale -> Beam-Bottom an Badge-UNTERKANTE = pinHeight+6.
       const beamOffY = -(pinHeight + 6);
-      const beamScale = Math.max(0.45, Math.min(1.0, pinHeight / 45));
+      const beamScale = Math.max(0.25, Math.min(1.0, pinHeight / 50));
       spotlightBeamMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, beamOffY]);
         el.style.height = "140px";
         el.style.transform = `scale(${beamScale.toFixed(2)})`;
+        el.style.opacity = hideDeco ? "0" : "1";
+        el.style.transition = "opacity 0.2s";
       });
     };
     updateMarkerGeometry();
