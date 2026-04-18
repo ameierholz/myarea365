@@ -8,6 +8,7 @@ import {
   FlashPushPanel, EventsPanel, ChallengesPanel, SocialPanel, EmailPanel,
   AnalyticsProPanel, CompetitorPanel, KiezReportPanel, CustomPinPanel, QrOrderPanel,
 } from "@/components/shop-features";
+import { ShopRedemptionsLive } from "@/components/shop-redemptions-live";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -323,6 +324,9 @@ function OverviewTab() {
           />
         </div>
       </div>
+
+      {/* ═══ Live-Einlösungen (Kassa) ═══ */}
+      <ShopRedemptionsLive businessId={DEMO_SHOP.id} />
 
       {/* ═══ Plan-Status-Card ═══ */}
       <div style={{

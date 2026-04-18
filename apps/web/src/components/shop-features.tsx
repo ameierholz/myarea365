@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/client";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 
@@ -456,7 +457,7 @@ export function QrOrderPanel({ shop }: { shop: Shop }) {
   return (
     <Card title="🖨️ QR-Code & Druckservice">
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
-        <QrPlaceholder code={code} />
+        <QrPlaceholder code={code} businessId={shop.id} />
         <div style={{ flex: 1 }}>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Dein Check-in-QR</div>
           <div style={{ color: "#a8b4cf", fontSize: 11 }}>Code: <b>{code}</b></div>
@@ -464,34 +465,39 @@ export function QrOrderPanel({ shop }: { shop: Shop }) {
         </div>
       </div>
       {ordered ? (
-        <div style={{ padding: 10, borderRadius: 10, background: "rgba(34,209,195,0.12)", color: "#22D1C3", fontSize: 12, fontWeight: 700 }}>
+        <div style={{ padding: 10, borderRadius: 10, background: "rgba(34,209,195,0.12)", color: "#22D1C3", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
           ✓ Druck-Sticker bestellt — Lieferung 3–5 Werktage
         </div>
       ) : (
-        <div style={{ color: "#a8b4cf", fontSize: 11 }}>
+        <div style={{ color: "#a8b4cf", fontSize: 11, marginBottom: 8 }}>
           Tipp: Kaufe den QR-Druckservice im Shop-Power-Up um einen bereits aufgebrachten Tür-Sticker per Post zu erhalten.
         </div>
       )}
+      <a
+        href={`/shop/${shop.id}/qr`}
+        target="_blank" rel="noopener noreferrer"
+        style={{
+          display: "block", textAlign: "center",
+          padding: "10px 14px", borderRadius: 10,
+          background: "#FFD700", color: "#0F1115",
+          border: "none", textDecoration: "none",
+          fontSize: 13, fontWeight: 900,
+        }}
+      >
+        🖨️ QR zum Selbstdrucken öffnen
+      </a>
     </Card>
   );
 }
 
-function QrPlaceholder({ code }: { code: string }) {
-  // Einfache, deterministische QR-artige Optik
-  const size = 21;
-  const cells = [];
-  for (let i = 0; i < size * size; i++) {
-    const hash = (code.charCodeAt(i % code.length) + i * 17) % 7;
-    cells.push(hash < 3);
-  }
-  return (
-    <div style={{
-      width: 84, height: 84, padding: 4, borderRadius: 6, background: "#FFF",
-      display: "grid", gridTemplateColumns: `repeat(${size},1fr)`, gap: 0,
-    }}>
-      {cells.map((on, i) => <div key={i} style={{ background: on ? "#000" : "transparent" }} />)}
-    </div>
-  );
+function QrPlaceholder({ code, businessId }: { code: string; businessId?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const payload = businessId ? `myarea:redeem:${businessId}` : `myarea:redeem:${code}`;
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    QRCode.toCanvas(canvasRef.current, payload, { width: 84, margin: 1, color: { dark: "#000", light: "#FFF" } }).catch(() => {});
+  }, [payload]);
+  return <canvas ref={canvasRef} width={84} height={84} style={{ borderRadius: 6, background: "#FFF" }} />;
 }
 
 /* ═══════════════════════════════════════════════════════

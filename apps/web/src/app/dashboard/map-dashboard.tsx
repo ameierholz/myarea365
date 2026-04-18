@@ -12,6 +12,7 @@ import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
 import { DemoBadge } from "@/components/demo-badge";
 import { FlashPushBanner } from "@/components/flash-push-banner";
+import { RedeemFlow } from "@/components/redeem-flow";
 import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
@@ -2734,6 +2735,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   const color = shop.color || "#FFD700";
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [redeemOpen, setRedeemOpen] = useState(false);
   const [reviewText, setReviewText] = useState("");
   const [showReview, setShowReview] = useState(false);
   return (
@@ -2822,7 +2824,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <span>🔁 1× / Woche einlösbar</span>
             </div>
             <button
-              onClick={() => appAlert(`Einlösen bei ${shop.name} — wird gegen DB verknüpft.`)}
+              onClick={() => setRedeemOpen(true)}
               disabled={userXp < 300}
               style={{
                 marginTop: 12, width: "100%",
@@ -2971,6 +2973,17 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           </div>
         </div>
       </div>
+
+      {redeemOpen && (
+        <RedeemFlow
+          businessId={shop.id}
+          businessName={shop.name}
+          dealTitle={shop.deal_text || "Shop-Deal"}
+          xpCost={300}
+          userXp={userXp}
+          onClose={() => setRedeemOpen(false)}
+        />
+      )}
     </div>
   );
 }
