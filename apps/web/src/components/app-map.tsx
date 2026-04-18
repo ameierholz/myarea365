@@ -214,6 +214,20 @@ interface AppMapProps {
   onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
 }
 
+// Helper: Zoom-responsive line-width.
+// Linien haben FIXE Screen-Pixel-Breite -> beim Rauszoomen werden Strassen-
+// Features kleiner, aber Linie bleibt gleich breit -> wirkt relativ dicker.
+// Fix: multiplikativer Zoom-Faktor (klein bei weitem Rauszoomen).
+function zoomWidth(base: number): mapboxgl.ExpressionSpecification {
+  return [
+    "interpolate", ["exponential", 1.6], ["zoom"],
+    10, base * 0.18,
+    13, base * 0.40,
+    16, base * 0.75,
+    19, base * 1.25,
+  ];
+}
+
 // Helper: Polygon als GeoJSON-Feature (geschlossener Ring)
 function polygonFeature(area: ClaimedArea) {
   const ring = [...area.polygon.map((p) => [p.lng, p.lat]), [area.polygon[0].lng, area.polygon[0].lat]];
@@ -980,7 +994,11 @@ export function AppMap({
         source: sourceId,
         paint: {
           "line-color": ["get", "color"],
-          "line-width": ["*", ["get", "strokeWeight"], 4],
+          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"],
+            10, ["*", ["get", "strokeWeight"], 0.72],
+            13, ["*", ["get", "strokeWeight"], 1.6],
+            16, ["*", ["get", "strokeWeight"], 3.0],
+            19, ["*", ["get", "strokeWeight"], 5.0]],
           "line-opacity": 0.55,
           "line-blur": 5,
           "line-emissive-strength": 1.0,
@@ -993,7 +1011,11 @@ export function AppMap({
         source: sourceId,
         paint: {
           "line-color": ["get", "color"],
-          "line-width": ["get", "strokeWeight"],
+          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"],
+            10, ["*", ["get", "strokeWeight"], 0.18],
+            13, ["*", ["get", "strokeWeight"], 0.40],
+            16, ["*", ["get", "strokeWeight"], 0.75],
+            19, ["*", ["get", "strokeWeight"], 1.25]],
           "line-opacity": 1,
           "line-emissive-strength": 1.0,
         } as mapboxgl.LineLayerSpecification["paint"],
@@ -1080,20 +1102,20 @@ export function AppMap({
       map.addSource(sourceId, { type: "geojson", data });
       map.addLayer({
         id: glowId, type: "line", source: sourceId,
-        paint: { "line-color": color, "line-opacity": 0.3, "line-width": light.width + 10, "line-blur": 4 },
+        paint: { "line-color": color, "line-opacity": 0.3, "line-width": zoomWidth(light.width + 10), "line-blur": 4 },
         layout: { "line-cap": "round", "line-join": "round" },
       });
       map.addLayer({
         id: mainId, type: "line", source: sourceId,
-        paint: { "line-color": color, "line-opacity": 1, "line-width": light.width },
+        paint: { "line-color": color, "line-opacity": 1, "line-width": zoomWidth(light.width) },
         layout: { "line-cap": "round", "line-join": "round" },
       });
     }
     if (map.getLayer(mainId)) {
       map.setPaintProperty(glowId, "line-color", color);
       map.setPaintProperty(mainId, "line-color", color);
-      map.setPaintProperty(mainId, "line-width", light.width);
-      map.setPaintProperty(glowId, "line-width", light.width + 10);
+      map.setPaintProperty(mainId, "line-width", zoomWidth(light.width));
+      map.setPaintProperty(glowId, "line-width", zoomWidth(light.width + 10));
     }
   }, [mapReady, activeRoute, trackingActive, light, equippedTrail]);
 
@@ -1127,12 +1149,12 @@ export function AppMap({
       map.addSource(sourceId, { type: "geojson", data });
       map.addLayer({
         id: glowId, type: "line", source: sourceId,
-        paint: { "line-color": color, "line-opacity": 0.35, "line-width": light.width + 8, "line-blur": 3 },
+        paint: { "line-color": color, "line-opacity": 0.35, "line-width": zoomWidth(light.width + 8), "line-blur": 3 },
         layout: { "line-cap": "round", "line-join": "round" },
       });
       map.addLayer({
         id: mainId, type: "line", source: sourceId,
-        paint: { "line-color": color, "line-opacity": 1, "line-width": light.width + 2 },
+        paint: { "line-color": color, "line-opacity": 1, "line-width": zoomWidth(light.width + 2) },
         layout: { "line-cap": "round", "line-join": "round" },
       });
     }
@@ -1166,7 +1188,7 @@ export function AppMap({
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#8B8FA3"],
           "line-opacity": 0.75,
-          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, 0.6, 13, 1.4, 16, 2.6, 19, 5],
+          "line-width": zoomWidth(3),
         },
         layout: { "line-cap": "round", "line-join": "round" },
       });
@@ -1208,7 +1230,7 @@ export function AppMap({
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FF6B4A", "#8B8FA3"],
           "line-opacity": 0.95,
-          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, 1, 13, 2.5, 16, 5, 19, 9],
+          "line-width": zoomWidth(6),
         },
         layout: { "line-cap": "round", "line-join": "round" },
       });
@@ -1261,7 +1283,7 @@ export function AppMap({
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
           "line-opacity": 0.9,
-          "line-width": 2.5,
+          "line-width": zoomWidth(2.5),
         },
       });
       if (onOwnershipClick) {
