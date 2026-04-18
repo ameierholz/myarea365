@@ -219,7 +219,8 @@ function wrapForZoomScale(el: HTMLElement): void {
   if (el.querySelector(':scope > [data-zoom-scale="1"]')) return;
   const inner = document.createElement("div");
   inner.dataset.zoomScale = "1";
-  inner.style.cssText = "display:inline-block;transform-origin:center;transition:transform 0.15s ease-out";
+  // will-change + backface-hidden → GPU-Layer, scale3d → subpixel-crisp
+  inner.style.cssText = "display:inline-block;transform-origin:center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
   while (el.firstChild) inner.appendChild(el.firstChild);
   el.appendChild(inner);
 }
@@ -232,7 +233,7 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   // Inner wrapper: hier wenden wir Zoom-Scaling an (wird ueber data-Attribut gefunden)
   const inner = document.createElement("div");
   inner.dataset.zoomScale = "1";
-  inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;transition:transform 0.15s ease-out";
+  inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
   el.appendChild(inner);
 
   let spotlightLayers = "";
@@ -635,7 +636,8 @@ export function AppMap({
       else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
       else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
       const showLabel = zoom >= 14;
-      const scaleStr = `scale(${scale.toFixed(2)})`;
+      // scale3d triggert GPU-Layer → scharfere Subpixel-Darstellung als scale()
+      const scaleStr = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
       container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
         el.style.transform = scaleStr;
       });
@@ -643,14 +645,30 @@ export function AppMap({
         el.style.opacity = showLabel ? "1" : "0";
       });
     };
+    // Waehrend Zoom-Gesture: keine Transition, direkte Transform-Updates fuer scharfe Sicht
+    const onZoomStart = () => {
+      container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
+        el.style.transition = "none";
+      });
+    };
+    const onZoomEnd = () => {
+      // Nach Zoom-Ende: sanfter Settle via Transition, und einmal final skalieren
+      container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
+        el.style.transition = "transform 0.12s ease-out";
+      });
+      applyZoomScale();
+    };
     applyZoomScale();
+    map.on("zoomstart", onZoomStart);
     map.on("zoom", applyZoomScale);
-    // Marker werden oft NACH Zoom-Ende hinzugefuegt (neuer Shop etc.) → auch beim moveend neu skalieren
+    map.on("zoomend", onZoomEnd);
     map.on("moveend", applyZoomScale);
     const mo = new MutationObserver(() => applyZoomScale());
     mo.observe(container, { childList: true, subtree: true });
     return () => {
+      map.off("zoomstart", onZoomStart);
       map.off("zoom", applyZoomScale);
+      map.off("zoomend", onZoomEnd);
       map.off("moveend", applyZoomScale);
       mo.disconnect();
     };
