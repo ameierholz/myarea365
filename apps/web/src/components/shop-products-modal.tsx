@@ -8,9 +8,9 @@ import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 
 type ShopTab = "plans" | "boosts" | "marketing" | "analytics";
 
-export function ShopProductsModal({ businessId, onClose }: { businessId: string; onClose: () => void }) {
+export function ShopProductsModal({ businessId, initialTab = "plans", onClose }: { businessId: string; initialTab?: ShopTab; onClose: () => void }) {
   const sb = createClient();
-  const [tab, setTab] = useState<ShopTab>("plans");
+  const [tab, setTab] = useState<ShopTab>(initialTab);
   const [loading, setLoading] = useState<string | null>(null);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 

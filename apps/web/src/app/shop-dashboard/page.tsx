@@ -215,8 +215,100 @@ export default function ShopDashboardPage() {
 function OverviewTab() {
   const net = DEMO_STATS.revenueMonth - DEMO_STATS.costMonth;
   const [showShop, setShowShop] = useState(false);
+  const [shopPreselect, setShopPreselect] = useState<"plans" | "boosts" | "marketing" | "analytics">("boosts");
+  const openShop = (tab: "plans" | "boosts" | "marketing" | "analytics") => {
+    setShopPreselect(tab);
+    setShowShop(true);
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* ═══ SICHTBARKEIT-HERO — die 3 umsatzträchtigsten Aktionen ═══ */}
+      <div style={{
+        padding: 18, borderRadius: 18,
+        background: "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(168,85,247,0.1), rgba(255,45,120,0.1))",
+        border: "1px solid rgba(255,215,0,0.3)",
+        boxShadow: "0 6px 30px rgba(255,215,0,0.12)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>🚀 MEHR LAUFKUNDSCHAFT</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginTop: 4 }}>Jetzt mehr Runner in deinen Laden bringen</div>
+            <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>Die 3 wirkungsvollsten Hebel für dein Café · direkt buchbar</div>
+          </div>
+          <button
+            onClick={() => openShop("plans")}
+            style={{
+              padding: "10px 18px", borderRadius: 12,
+              background: "#FFD700", color: "#0F1115", border: "none", cursor: "pointer",
+              fontSize: 13, fontWeight: 900, whiteSpace: "nowrap",
+            }}
+          >
+            Alle Pläne ansehen →
+          </button>
+        </div>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 12,
+        }}>
+          <HeroAction
+            icon="⚡"
+            title="Flash-Deal-Push"
+            subtitle="30-Min Push an alle Runner im 1 km"
+            price="9 €"
+            color="#22D1C3"
+            onClick={() => openShop("boosts")}
+          />
+          <HeroAction
+            icon="⭐"
+            title="Spotlight 3 Tage"
+            subtitle="Gold-Pin + Pulse · platz #1 im Kiez"
+            price="19 €"
+            color="#FF2D78"
+            featured
+            onClick={() => openShop("boosts")}
+          />
+          <HeroAction
+            icon="📡"
+            title="Radius-Boost 7 Tage"
+            subtitle="Sichtbar im 5 km statt 500 m Umkreis"
+            price="49 €"
+            color="#FFD700"
+            onClick={() => openShop("boosts")}
+          />
+        </div>
+      </div>
+
+      {/* ═══ Plan-Status-Card ═══ */}
+      <div style={{
+        padding: 14, borderRadius: 14,
+        background: "rgba(34, 209, 195, 0.08)",
+        border: "1px solid rgba(34, 209, 195, 0.35)",
+        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+      }}>
+        <div style={{ fontSize: 28 }}>💎</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>AKTUELLER PLAN · PRO</div>
+          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800, marginTop: 2 }}>
+            3 Deal-Slots · Flash-Deals · Analytics · Verifiziert-Badge
+          </div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>Verlängert am 18.05.2026 · 79 €/Monat</div>
+        </div>
+        <button
+          onClick={() => openShop("plans")}
+          style={{
+            padding: "8px 14px", borderRadius: 10,
+            background: "linear-gradient(135deg, #FFD700, #FF6B4A)", color: "#0F1115",
+            border: "none", cursor: "pointer",
+            fontSize: 12, fontWeight: 900,
+          }}
+        >
+          🚀 Auf Ultra upgraden
+        </button>
+      </div>
+
       {/* KPIs */}
       <div style={{
         display: "grid",
@@ -274,14 +366,14 @@ function OverviewTab() {
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10,
         }}>
-          <QuickAction icon="⚡" title="Flash-Deal starten"        desc="30-Min-Push an nahe Runner · 9,00 €"    accent={PRIMARY} onClick={() => setShowShop(true)} />
-          <QuickAction icon="🎁" title="Neuen Deal anlegen"         desc="Rabatt, Gratis-Artikel, Upgrade"         accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
-          <QuickAction icon="⭐" title="Spotlight-Tag buchen"       desc="3 Tage Gold-Pin · 19,00 €"               accent="#FF2D78" onClick={() => setShowShop(true)} />
-          <QuickAction icon="🚀" title="Shop-Power-Up"              desc="Pläne · Boosts · Marketing · Analytics"  accent="#a855f7" onClick={() => setShowShop(true)} />
+          <QuickAction icon="🎁" title="Neuen Deal anlegen"      desc="Rabatt, Gratis-Artikel, Upgrade"        accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
+          <QuickAction icon="📢" title="Social-Post erstellen"   desc="Fertige IG/TikTok-Grafik · 9,90 €/Mo"   accent="#a855f7" onClick={() => openShop("marketing")} />
+          <QuickAction icon="📊" title="Analytics-Pro"            desc="Heatmap · Demografie · 39 €/Mo"         accent="#5ddaf0" onClick={() => openShop("analytics")} />
+          <QuickAction icon="🎪" title="Event veranstalten"       desc="Lauf-Event mit Teilnehmer-Liste · 59 €" accent="#4ade80" onClick={() => openShop("boosts")} />
         </div>
       </div>
       {showShop && (
-        <ShopProductsModal businessId={DEMO_SHOP.id} onClose={() => setShowShop(false)} />
+        <ShopProductsModal businessId={DEMO_SHOP.id} initialTab={shopPreselect} onClose={() => setShowShop(false)} />
       )}
     </div>
   );
@@ -329,6 +421,52 @@ function MoneyCard({ label, value, color, icon, negative, highlight }: {
         {sign}{value.toLocaleString("de-DE")} €
       </div>
     </div>
+  );
+}
+
+function HeroAction({ icon, title, subtitle, price, color, featured, onClick }: {
+  icon: string; title: string; subtitle: string; price: string; color: string; featured?: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        position: "relative",
+        padding: 16, borderRadius: 16,
+        background: featured
+          ? `linear-gradient(135deg, ${color}44, ${color}22)`
+          : `linear-gradient(135deg, ${color}22, ${color}0a)`,
+        border: `1px solid ${featured ? color : `${color}55`}`,
+        boxShadow: featured ? `0 4px 20px ${color}44` : "none",
+        cursor: "pointer", textAlign: "left", color: "#FFF",
+        display: "flex", flexDirection: "column", gap: 8,
+        transition: "transform 0.15s",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
+    >
+      {featured && (
+        <div style={{
+          position: "absolute", top: 10, right: 10,
+          background: color, color: "#0F1115",
+          fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
+          padding: "2px 7px", borderRadius: 999,
+        }}>BESTSELLER</div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ fontSize: 28 }}>{icon}</div>
+        <div style={{ fontSize: 15, fontWeight: 900 }}>{title}</div>
+      </div>
+      <div style={{ color: "#d6ddeb", fontSize: 12, lineHeight: 1.4, flex: 1 }}>{subtitle}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+        <span style={{ color, fontSize: 20, fontWeight: 900 }}>{price}</span>
+        <span style={{
+          padding: "6px 12px", borderRadius: 8,
+          background: color, color: "#0F1115",
+          fontSize: 11, fontWeight: 900,
+        }}>Jetzt buchen →</span>
+      </div>
+    </button>
   );
 }
 
