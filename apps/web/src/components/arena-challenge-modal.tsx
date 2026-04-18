@@ -58,7 +58,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
       }
 
       // Eligible Runner: alle User deren Crew in 7T einen Deal eingelöst hat
-      const since = new Date(Date.now() - 7 * 86400000).toISOString();
+      const since = new Date(Date.now() - 3 * 86400000).toISOString();
       const { data: reds } = await sb.from("deal_redemptions")
         .select("user_id")
         .eq("business_id", businessId)

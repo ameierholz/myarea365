@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 
   if (auth?.user && arenaActive) {
     // Selbst eingeloest?
-    const since = new Date(Date.now() - 7 * 86400000).toISOString();
+    const since = new Date(Date.now() - 3 * 86400000).toISOString();
     const { data: myRed } = await sb.from("deal_redemptions")
       .select("verified_at")
       .eq("user_id", auth.user.id)

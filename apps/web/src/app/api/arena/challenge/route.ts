@@ -65,7 +65,7 @@ async function handleChallenge(req: Request) {
   // Eligibility: Runner darf kaempfen wenn ER SELBST oder EIN CREW-MITGLIED in 7T
   // hier eingeloest hat. Das foerdert Shop-Traffic ueber die ganze Crew.
   async function isEligible(userId: string, crewId: string | null): Promise<boolean> {
-    const since = new Date(Date.now() - 7 * 86400000).toISOString();
+    const since = new Date(Date.now() - 3 * 86400000).toISOString();
     // selbst eingeloest?
     const { count: ownCount } = await sb.from("deal_redemptions")
       .select("id", { count: "exact", head: true })
@@ -83,7 +83,7 @@ async function handleChallenge(req: Request) {
     isEligible(attacker_user_id, attProfile?.current_crew_id ?? null),
     isEligible(defender_user_id, defProfile?.current_crew_id ?? null),
   ]);
-  if (!attEligible) return NextResponse.json({ error: "not_eligible", detail: "Weder du noch deine Crew hat hier in den letzten 7 Tagen eingelöst" }, { status: 403 });
+  if (!attEligible) return NextResponse.json({ error: "not_eligible", detail: "Weder du noch deine Crew hat hier in den letzten 3 Tagen eingelöst" }, { status: 403 });
   if (!defEligible) return NextResponse.json({ error: "defender_not_eligible", detail: "Der Gegner ist nicht eligible" }, { status: 403 });
 
   // 1 Kampf pro Arena pro Angreifer/Tag

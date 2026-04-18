@@ -96,7 +96,7 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
         <>
           <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
             Crews können bei euch <b style={{ color: "#FFF" }}>virtuell kämpfen</b> — aber nur wenn ein Mitglied
-            in den letzten 7 Tagen einen Deal eingelöst hat. <b style={{ color: "#FFD700" }}>Mehr Traffic, mehr Einlösungen.</b>
+            in den letzten 3 Tagen einen Deal eingelöst hat. <b style={{ color: "#FFD700" }}>Mehr Traffic, mehr Einlösungen.</b>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <button

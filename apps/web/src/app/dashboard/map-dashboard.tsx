@@ -2995,15 +2995,15 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
                 {arenaStatus.i_redeemed_myself ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 7 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir XP für deinen Wächter.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 3 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir XP für deinen Wächter.
                   </>
                 ) : arenaStatus.crew_eligible ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang über deine Crew.</b> Ein Mitglied deiner Crew hat hier eingelöst — du darfst mitkämpfen. Noch besser: löse selbst ein und hol dir garantiert Loot für deinen Wächter.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang über deine Crew.</b> Ein Mitglied deiner Crew hat hier eingelöst — du darfst mitkämpfen. Löse aber selbst einen Deal ein, dann bekommst du auch <b style={{ color: "#FFD700" }}>garantiert Loot</b> für deinen Wächter.
                   </>
                 ) : (
                   <>
-                    <b style={{ color: "#FF6B4A" }}>🔒 Arena gesperrt.</b> Löse zuerst einen Deal in diesem Shop ein — danach hast du 7 Tage Zugang zur Kampf-Arena.
+                    <b style={{ color: "#FF6B4A" }}>🔒 Arena gesperrt.</b> Löse zuerst einen Deal in diesem Shop ein — danach hast du 3 Tage Zugang zur Kampf-Arena.
                   </>
                 )}
               </div>
