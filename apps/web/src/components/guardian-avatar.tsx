@@ -12,7 +12,11 @@ const VIDEO_AVAILABLE = new Set<string>([
 // Wenn Archetyp hier drin → statisches PNG wird gerendert
 // Dateien: apps/web/public/guardians/<id>_idle.png und <id>_attack.png
 const ARTWORK_AVAILABLE = new Set<string>([
-  // "stadtfuchs", "eber", "drache", ...
+  "stadtfuchs",   // Gossendieb (common)
+  "stadtkatze",   // Parkour-Mönch (rare)
+  "baer",         // Berserker (epic)
+  "eber",         // Paladin (epic)
+  "drache",       // Erzmagier (legend)
 ]);
 
 export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "special" | "ko" | "revive";
