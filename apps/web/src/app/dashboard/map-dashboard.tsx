@@ -285,6 +285,29 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const finalStreet = snapped?.streets[0] ?? currentStreet;
 
     if (profile) {
+      // Base-XP: Territorium + km-Bonus (XP_PER_KM * km) + Walk-Basis
+      const km = finalDistance / 1000;
+      const kmXp = Math.round(XP_PER_KM * km);
+      let baseXp = XP_PER_TERRITORY + kmXp + XP_PER_WALK;
+
+      // Doppel-Claim-Charge verbrauchen (verdoppelt das Territorium-XP)
+      const doubleClaimCharges = (profile as unknown as { double_claim_charges?: number }).double_claim_charges ?? 0;
+      if (doubleClaimCharges > 0) {
+        baseXp += XP_PER_TERRITORY;
+        await supabase.from("users").update({ double_claim_charges: doubleClaimCharges - 1 }).eq("id", profile.id);
+      }
+
+      const { computeAndApplyWalkBonuses } = await import("@/lib/walk-bonuses");
+      const bonuses = await computeAndApplyWalkBonuses(
+        supabase,
+        profile.id,
+        baseXp,
+        Math.round(finalDistance),
+        (profile.total_walks || 0) + 1,
+      );
+
+      const totalXpGained = bonuses.finalXp + bonuses.achievementXp;
+
       const { error } = await supabase.from("territories").insert({
         user_id: profile.id,
         crew_id: profile.current_crew_id,
@@ -292,32 +315,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         route: finalRoute,
         distance_m: Math.round(finalDistance),
         duration_s: Math.round(finalDuration),
-        xp_earned: XP_PER_TERRITORY,
+        xp_earned: totalXpGained,
       });
 
       if (!error) {
-        // Base-XP: Territorium + km-Bonus (XP_PER_KM * km) + Walk-Basis
-        const km = finalDistance / 1000;
-        const kmXp = Math.round(XP_PER_KM * km);
-        let baseXp = XP_PER_TERRITORY + kmXp + XP_PER_WALK;
-
-        // Doppel-Claim-Charge verbrauchen (verdoppelt das Territorium-XP)
-        const doubleClaimCharges = (profile as unknown as { double_claim_charges?: number }).double_claim_charges ?? 0;
-        if (doubleClaimCharges > 0) {
-          baseXp += XP_PER_TERRITORY;
-          await supabase.from("users").update({ double_claim_charges: doubleClaimCharges - 1 }).eq("id", profile.id);
-        }
-
-        const { computeAndApplyWalkBonuses } = await import("@/lib/walk-bonuses");
-        const bonuses = await computeAndApplyWalkBonuses(
-          supabase,
-          profile.id,
-          baseXp,
-          Math.round(finalDistance),
-          (profile.total_walks || 0) + 1,
-        );
-
-        const totalXpGained = bonuses.finalXp + bonuses.achievementXp;
         const newXp = (profile.xp || 0) + totalXpGained;
         const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
         const newWalks = (profile.total_walks || 0) + 1;
