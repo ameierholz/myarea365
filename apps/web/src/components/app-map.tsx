@@ -86,7 +86,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-shop-aura {
       position: relative;
-      width: 46px; height: 46px;
+      width: 36px; height: 36px;
       pointer-events: none;
       transform-origin: center center;
       will-change: transform;
@@ -130,6 +130,34 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       background: radial-gradient(circle, rgba(255,215,0,0.75) 0%, rgba(255,138,60,0.35) 45%, rgba(255,215,0,0) 75%);
       filter: blur(7px);
       animation: ma365AuraPulse 2s ease-in-out infinite;
+    }
+    /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
+    @keyframes ma365BeamGlow {
+      0%,100% { opacity: 0.55; filter: blur(4px) brightness(0.95); }
+      50%     { opacity: 1;    filter: blur(2.5px) brightness(1.25); }
+    }
+    .ma365-spotlight-beam {
+      position: relative;
+      width: 54px; height: 130px;
+      pointer-events: none;
+      transform-origin: center bottom;
+      will-change: transform, opacity, filter;
+      clip-path: polygon(42% 0%, 58% 0%, 100% 100%, 0% 100%);
+      background: linear-gradient(to bottom,
+        rgba(255, 215, 0, 0) 0%,
+        rgba(255, 215, 0, 0.12) 20%,
+        rgba(255, 180, 60, 0.35) 55%,
+        rgba(255, 215, 0, 0.85) 100%);
+      animation: ma365BeamGlow 2.6s ease-in-out infinite;
+    }
+    .ma365-spotlight-beam::after {
+      content: ""; position: absolute; inset: 0;
+      clip-path: polygon(46% 0%, 54% 0%, 72% 100%, 28% 100%);
+      background: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.2) 60%,
+        rgba(255, 255, 220, 0.7) 100%);
+      filter: blur(1px);
     }
   `;
   document.head.appendChild(style);
@@ -347,7 +375,8 @@ export function AppMap({
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string; el: HTMLElement }>>([]);
-  const spotlightAuraMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  const spotlightBeamMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  const spotlightAuraMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
 
   // Map initialisieren
   useEffect(() => {
@@ -777,6 +806,8 @@ export function AppMap({
     // Mapbox' Positionierung ueberschrieben und Marker rutschen weg.
     spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightBadgeMarkersRef.current = [];
+    spotlightBeamMarkersRef.current.forEach(({ marker }) => marker.remove());
+    spotlightBeamMarkersRef.current = [];
     spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightAuraMarkersRef.current = [];
     // Arena-Shops bekommen die rotierende Gold-Aura
@@ -790,8 +821,18 @@ export function AppMap({
         .setLngLat([s.lng, s.lat]).addTo(map);
       spotlightAuraMarkersRef.current.push({ marker: auraMarker, el: auraInner });
     });
-    // Spotlight-Shops bekommen das Gold-Badge
+    // Spotlight-Shops: Light-Beam + Badge
     shops.filter((s) => s.spotlight).forEach((s) => {
+      // Bat-Signal-Beam (Beam-Bottom sitzt auf Pin-Top, extends upward)
+      const beamOuter = document.createElement("div");
+      beamOuter.style.pointerEvents = "none";
+      const beamInner = document.createElement("div");
+      beamInner.className = "ma365-spotlight-beam";
+      beamOuter.appendChild(beamInner);
+      const beamMarker = new mapboxgl.Marker({ element: beamOuter, anchor: "bottom", offset: [0, 0] })
+        .setLngLat([s.lng, s.lat]).addTo(map);
+      spotlightBeamMarkersRef.current.push({ marker: beamMarker, el: beamInner });
+
       const badgeOuter = document.createElement("div");
       badgeOuter.style.pointerEvents = "none";
       const badgeInner = document.createElement("div");
@@ -826,6 +867,13 @@ export function AppMap({
         marker.setOffset([0, auraOffY]);
         el.style.transform = `scale(${auraScale.toFixed(2)})`;
       });
+      // Beam sitzt mit Bottom auf Pin-Top (Offset = -pinHeight), breit sichtbar von weitem
+      const beamOffY = -pinHeight;
+      const beamScale = Math.max(0.45, Math.min(1.0, pinHeight / 45));
+      spotlightBeamMarkersRef.current.forEach(({ marker, el }) => {
+        marker.setOffset([0, beamOffY]);
+        el.style.transform = `scale(${beamScale.toFixed(2)})`;
+      });
     };
     updateMarkerGeometry();
     map.on("zoom", updateMarkerGeometry);
@@ -834,6 +882,8 @@ export function AppMap({
       map.off("zoom", updateMarkerGeometry);
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
+      spotlightBeamMarkersRef.current.forEach(({ marker }) => marker.remove());
+      spotlightBeamMarkersRef.current = [];
       spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightAuraMarkersRef.current = [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1113,7 +1163,7 @@ export function AppMap({
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#8B8FA3"],
           "line-opacity": 0.75,
-          "line-width": 3,
+          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, 0.6, 13, 1.4, 16, 2.6, 19, 5],
         },
         layout: { "line-cap": "round", "line-join": "round" },
       });
@@ -1155,7 +1205,7 @@ export function AppMap({
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FF6B4A", "#8B8FA3"],
           "line-opacity": 0.95,
-          "line-width": 6,
+          "line-width": ["interpolate", ["exponential", 1.6], ["zoom"], 10, 1, 13, 2.5, 16, 5, 19, 9],
         },
         layout: { "line-cap": "round", "line-join": "round" },
       });
