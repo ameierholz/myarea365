@@ -617,7 +617,10 @@ export const DEMO_CREW_STATS = {
 };
 
 // XP rewards — zentrale Quelle für alle XP-Vergaben
-export const XP_PER_TERRITORY = 500;
+// 3-Ebenen-Modell: Abschnitt (50) → Zug (250, alle Abschnitte einer Straße) → Territorium (500, geschlossenes Polygon)
+export const XP_PER_SEGMENT = 50;          // ein Straßenabschnitt (OSM-Way-Segment)
+export const XP_PER_STREET_CLAIMED = 250;  // alle Segmente einer Straße einmal gelaufen
+export const XP_PER_TERRITORY = 500;       // geschlossenes Polygon aus Straßenzügen
 export const XP_PER_KM = 50;
 export const XP_PER_WALK = 100;
 export const XP_REWARDED_AD = 250;
