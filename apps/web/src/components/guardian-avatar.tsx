@@ -1,6 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { RARITY_META, type GuardianArchetype, type GuardianRarity } from "@/lib/guardian";
+
+// Archetypen fuer die AI-Portraits existieren. Hier eintragen wenn neue Bilder
+// nach apps/web/public/guardians/<id>_idle.png / <id>_attack.png gelegt werden.
+// Leer lassen → automatisches Fallback auf prozeduralen SVG-Avatar.
+const ARTWORK_AVAILABLE = new Set<string>([
+  // "stadtfuchs", "dachs", "nachteule", ... — hier eintragen sobald PNGs in /public/guardians/ liegen
+]);
 
 export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "special" | "ko" | "revive";
 
@@ -21,6 +29,70 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
 
   const flip = facing === "left" ? "scaleX(-1)" : "";
   const animClass = `anim-${animation}`;
+
+  // Wenn AI-Portraits existieren → PNG rendern, sonst SVG-Fallback.
+  const usePortrait = ARTWORK_AVAILABLE.has(archetype.id);
+  const variant = animation === "attack" || animation === "crit" ? "attack" : "idle";
+  const portraitSrc = `/guardians/${archetype.id}_${variant}.png`;
+  const [portraitFailed, setPortraitFailed] = useState(false);
+
+  if (usePortrait && !portraitFailed) {
+    return (
+      <div
+        className={animClass}
+        style={{
+          width: size,
+          height: size * 1.25,
+          position: "relative",
+          filter: `drop-shadow(0 6px 14px ${rarity.glow})`,
+        }}
+      >
+        <div style={{
+          position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
+          width: size * 0.55, height: 8, borderRadius: "50%",
+          background: "radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%)",
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: `radial-gradient(circle at 50% 45%, ${rarity.glow}, transparent 60%)`,
+          opacity: 0.85,
+        }} className="aura-ring" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={portraitSrc}
+          alt={archetype.id}
+          onError={() => setPortraitFailed(true)}
+          style={{
+            position: "relative",
+            width: "100%", height: "100%",
+            objectFit: "contain",
+            transform: flip,
+            filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
+          }}
+        />
+        <style jsx>{`
+          .anim-idle img    { animation: breathe 3s ease-in-out infinite; }
+          .anim-attack img  { animation: lunge 0.45s cubic-bezier(0.3, 0.8, 0.3, 1); }
+          .anim-hit img     { animation: hit-shake 0.35s; }
+          .anim-crit img    { animation: crit-zoom 0.55s cubic-bezier(0.4, 1.7, 0.5, 0.95); }
+          .anim-evade img   { animation: evade-slide 0.4s ease-out; }
+          .anim-special img { animation: special-rise 0.7s cubic-bezier(0.3, 0.8, 0.4, 1.2); }
+          .anim-ko img      { animation: ko-fall 0.9s forwards; }
+          .anim-revive img  { animation: revive-rise 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
+          .aura-ring        { animation: aura-pulse 2.6s ease-in-out infinite; }
+          @keyframes breathe      { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-2px) scaleY(1.01); } }
+          @keyframes lunge        { 0%,100% { transform: translateX(0); } 40% { transform: translateX(28px) rotate(-4deg); } 60% { transform: translateX(20px); } }
+          @keyframes hit-shake    { 0% { transform: translateX(0); filter: none; } 20% { transform: translateX(-6px); filter: brightness(0.6) saturate(3) hue-rotate(-30deg); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 100% { transform: translateX(0); filter: none; } }
+          @keyframes crit-zoom    { 0%,100% { transform: scale(1); } 40% { transform: scale(1.22); filter: brightness(1.7) drop-shadow(0 0 25px #FFD700); } }
+          @keyframes evade-slide  { 0% { transform: translateX(0); opacity: 1; } 40% { transform: translateX(-22px) scaleX(0.85); opacity: 0.5; } 100% { transform: translateX(0); opacity: 1; } }
+          @keyframes special-rise { 0% { transform: translateY(0) scale(1); } 45% { transform: translateY(-12px) scale(1.1); filter: drop-shadow(0 0 30px currentColor); } 100% { transform: translateY(0) scale(1); } }
+          @keyframes ko-fall      { 0% { transform: rotate(0) translateY(0); opacity: 1; } 60% { transform: rotate(85deg) translateY(20px); opacity: 0.9; } 100% { transform: rotate(95deg) translateY(25px); opacity: 0.35; } }
+          @keyframes revive-rise  { 0% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: saturate(0); } 100% { transform: rotate(0) translateY(0); opacity: 1; filter: saturate(1) drop-shadow(0 0 20px #FFD700); } }
+          @keyframes aura-pulse   { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.12); } }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div
