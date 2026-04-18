@@ -88,6 +88,57 @@ export function formatPrice(cents: number): string {
   return `€ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 }
 
+// ═══════════════════════════════════════════════════════
+// SHOP-OWNER MONETARISIERUNG (Café, Laden, Restaurant …)
+// ═══════════════════════════════════════════════════════
+
+export const SHOP_PLANS = {
+  shop_basis:   { sku: "shop_basis",   name: "Shop Basis",   price: 2900,  duration_days: 30,  desc: "1 Kategorie · Pin auf Karte · 1 Deal-Slot" },
+  shop_pro:     { sku: "shop_pro",     name: "Shop Pro",     price: 7900,  duration_days: 30,  desc: "3 Deal-Slots · Analytics · Flash-Deals · Verifiziert" },
+  shop_ultra:   { sku: "shop_ultra",   name: "Shop Ultra",   price: 19900, duration_days: 30,  desc: "Alles aus Pro + Dauer-Spotlight + Push-Broadcast + Stadt-Feature" },
+};
+
+export const SHOP_BOOSTS = {
+  spotlight_3d:    { sku: "spotlight_3d",    name: "Spotlight 3 Tage",       price: 1900,  icon: "⭐", desc: "Gold-Pin + Pulse-Animation auf Karte" },
+  flash_push:      { sku: "flash_push",      name: "Flash-Deal-Push",        price: 900,   icon: "⚡", desc: "30-Min Benachrichtigung an Runner im 1 km-Umkreis" },
+  radius_boost_7d: { sku: "radius_boost_7d", name: "Radius-Boost 7 Tage",    price: 4900,  icon: "📡", desc: "Shop sichtbar im 5 km statt 500 m Radius" },
+  homepage_banner: { sku: "homepage_banner", name: "Homepage-Banner 1 Woche",price: 9900,  icon: "🎯", desc: "Banner auf Stadt-Landing-Page" },
+  top_listing_7d:  { sku: "top_listing_7d",  name: "Top-Listing 7 Tage",     price: 2900,  icon: "🥇", desc: "Position 1 in Kiez-Kategorie" },
+  custom_pin:      { sku: "custom_pin",      name: "Custom-Pin-Design",      price: 14900, icon: "🎨", desc: "Eigenes Logo als Marker-Icon (einmalig)" },
+  event_host:      { sku: "event_host",      name: "Event-Host-Slot",        price: 5900,  icon: "🎪", desc: "Lauf-Event veranstalten mit Pin + Teilnehmer" },
+  challenge_sponsor: { sku: "challenge_sponsor", name: "Kiez-Challenge-Sponsor", price: 2900, icon: "🏆", desc: "Sponser eine Challenge im Kiez" },
+};
+
+export const SHOP_MARKETING = {
+  social_pro_monthly: { sku: "social_pro_monthly", name: "Social-Post-Generator Pro", price: 990,  duration_days: 30,  icon: "📱", desc: "Unbegrenzte Instagram/TikTok-Grafiken + Templates" },
+  qr_print_service:   { sku: "qr_print_service",   name: "QR-Code-Druckservice",      price: 1900, icon: "🖨️", desc: "Tür-Aufkleber mit Check-in-QR per Post" },
+  email_campaign:     { sku: "email_campaign",     name: "E-Mail-Kampagne",           price: 4900, icon: "✉️", desc: "Push an eure Stammkunden senden" },
+};
+
+export const SHOP_ANALYTICS = {
+  analytics_pro_monthly: { sku: "analytics_pro_monthly", name: "Analytics Pro",        price: 3900, duration_days: 30, icon: "📊", desc: "Altersgruppen, Heatmap, Demografie" },
+  kiez_report:           { sku: "kiez_report",           name: "Kiez-Report PDF",      price: 2900, icon: "📄", desc: "\"Wer läuft in meinem Kiez?\" — anonymisiert" },
+  competitor_monthly:    { sku: "competitor_monthly",    name: "Konkurrenz-Analyse",   price: 1900, duration_days: 30, icon: "🔍", desc: "Benchmark gegen andere Shops im Kiez" },
+};
+
+export const SHOP_FEATURES_BY_PLAN: Record<"free"|"basis"|"pro"|"ultra", string[]> = {
+  free:  ["Pin auf Karte", "Profil-Seite"],
+  basis: ["Pin auf Karte", "Profil-Seite", "1 Deal-Slot", "Kategorie-Listing"],
+  pro:   ["3 Deal-Slots", "Flash-Deals", "Basic Analytics", "Verifiziert-Badge"],
+  ultra: ["Unbegrenzte Deal-Slots", "Dauer-Spotlight", "Pro-Analytics", "Push-Broadcast", "Stadt-Seite Feature", "Priority-Support"],
+};
+
+export function currentShopPlan(business: { plan?: string | null; plan_expires_at?: string | null } | null | undefined): "free"|"basis"|"pro"|"ultra" {
+  if (!business?.plan || business.plan === "free") return "free";
+  if (business.plan_expires_at && new Date(business.plan_expires_at).getTime() < Date.now()) return "free";
+  return business.plan as "basis"|"pro"|"ultra";
+}
+
+export function hasSpotlightActive(business: { spotlight_until?: string | null } | null | undefined): boolean {
+  const until = business?.spotlight_until;
+  return !!(until && new Date(until).getTime() > Date.now());
+}
+
 // ── Ad-Rewards ────────────────────────────────────────
 
 export const AD_REWARDS = {

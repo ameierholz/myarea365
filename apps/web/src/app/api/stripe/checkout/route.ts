@@ -6,8 +6,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const { sku, name, amount_cents, crew_id, ui_mode } = await req.json() as {
-    sku: string; name: string; amount_cents: number; crew_id?: string; ui_mode?: "hosted" | "embedded";
+  const { sku, name, amount_cents, crew_id, business_id, ui_mode } = await req.json() as {
+    sku: string; name: string; amount_cents: number; crew_id?: string; business_id?: string; ui_mode?: "hosted" | "embedded";
   };
   if (!sku || !name || typeof amount_cents !== "number") {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -34,14 +34,15 @@ export async function POST(req: NextRequest) {
         }),
     client_reference_id: user.id,
     customer_email: user.email ?? undefined,
-    metadata: { sku, user_id: user.id, crew_id: crew_id ?? "" },
-    ...(mode === "subscription" ? { subscription_data: { metadata: { sku, user_id: user.id, crew_id: crew_id ?? "" } } } : {}),
+    metadata: { sku, user_id: user.id, crew_id: crew_id ?? "", business_id: business_id ?? "" },
+    ...(mode === "subscription" ? { subscription_data: { metadata: { sku, user_id: user.id, crew_id: crew_id ?? "", business_id: business_id ?? "" } } } : {}),
   });
 
   // Purchase-Record anlegen (pending)
   await sb.from("purchases").insert({
     user_id: user.id,
     crew_id: crew_id ?? null,
+    business_id: business_id ?? null,
     product_sku: sku,
     product_name: name,
     amount_cents,

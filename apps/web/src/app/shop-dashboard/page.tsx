@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { appAlert, appConfirm } from "@/components/app-dialog";
+import { ShopProductsModal } from "@/components/shop-products-modal";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
 const BG_DEEP = "#0F1115";
@@ -213,6 +214,7 @@ export default function ShopDashboardPage() {
 /* ═══ Overview ═══ */
 function OverviewTab() {
   const net = DEMO_STATS.revenueMonth - DEMO_STATS.costMonth;
+  const [showShop, setShowShop] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* KPIs */}
@@ -272,12 +274,15 @@ function OverviewTab() {
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10,
         }}>
-          <QuickAction icon="⚡" title="Flash-Deal starten"        desc="Jetzt 30-Min-Push an nahe Runner" accent={PRIMARY} onClick={() => appAlert("Flash-Deal-Wizard")} />
-          <QuickAction icon="🎁" title="Neuen Deal anlegen"         desc="Rabatt, Gratis-Artikel, Upgrade" accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
-          <QuickAction icon="🏆" title="Spotlight-Tag buchen"       desc="3 Tage/Monat hervorgehoben"      accent="#FF2D78" onClick={() => appAlert("Spotlight-Kalender")} />
-          <QuickAction icon="📢" title="Social-Post erstellen"      desc="Fertige Grafik für Instagram"    accent="#a855f7" onClick={() => appAlert("Social-Kit")} />
+          <QuickAction icon="⚡" title="Flash-Deal starten"        desc="30-Min-Push an nahe Runner · 9,00 €"    accent={PRIMARY} onClick={() => setShowShop(true)} />
+          <QuickAction icon="🎁" title="Neuen Deal anlegen"         desc="Rabatt, Gratis-Artikel, Upgrade"         accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
+          <QuickAction icon="⭐" title="Spotlight-Tag buchen"       desc="3 Tage Gold-Pin · 19,00 €"               accent="#FF2D78" onClick={() => setShowShop(true)} />
+          <QuickAction icon="🚀" title="Shop-Power-Up"              desc="Pläne · Boosts · Marketing · Analytics"  accent="#a855f7" onClick={() => setShowShop(true)} />
         </div>
       </div>
+      {showShop && (
+        <ShopProductsModal businessId={DEMO_SHOP.id} onClose={() => setShowShop(false)} />
+      )}
     </div>
   );
 }

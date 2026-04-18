@@ -51,7 +51,10 @@ export function skuMode(sku: string): "payment" | "subscription" {
   // Abos: monatliche Pläne + Supporter-Badges
   if (sku === "plus_monthly" || sku === "plus_yearly"
       || sku === "crew_pro_monthly" || sku === "crew_pro_yearly"
-      || sku.startsWith("badge_")) {
+      || sku.startsWith("badge_")
+      || sku === "shop_basis" || sku === "shop_pro" || sku === "shop_ultra"
+      || sku === "social_pro_monthly" || sku === "analytics_pro_monthly"
+      || sku === "competitor_monthly") {
     return "subscription";
   }
   return "payment";

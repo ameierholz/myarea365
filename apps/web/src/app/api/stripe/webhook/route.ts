@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     const sku = session.metadata?.sku;
     const userId = session.metadata?.user_id;
     const crewId = session.metadata?.crew_id || null;
+    const businessId = session.metadata?.business_id || null;
     if (!sku || !userId) return NextResponse.json({ received: true });
 
     // Purchase auf completed setzen
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       stripe_payment_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
     }).eq("stripe_session_id", session.id);
 
-    await applyPurchaseEffect(sku, userId, crewId);
+    await applyPurchaseEffect(sku, userId, crewId, businessId);
   }
 
   if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-async function applyPurchaseEffect(sku: string, userId: string, crewId: string | null) {
+async function applyPurchaseEffect(sku: string, userId: string, crewId: string | null, businessId: string | null = null) {
   const sb = admin();
   if (sku === "plus_monthly" || sku === "plus_yearly" || sku === "plus_lifetime") {
     const plan = (PLANS as Record<string, { duration_days: number | null }>)[sku];
@@ -181,6 +182,68 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     const { data: u } = await sb.from("users").select("faction").eq("id", userId).single();
     const newFaction = u?.faction === "syndicate" ? "vanguard" : "syndicate";
     await sb.from("users").update({ faction: newFaction, faction_switch_at: new Date().toISOString() }).eq("id", userId);
+    return;
+  }
+
+  // ═══ SHOP-OWNER PURCHASES ═══
+  if (!businessId) return;
+  const days = (d: number) => new Date(Date.now() + d * 86400000).toISOString();
+
+  if (sku === "shop_basis" || sku === "shop_pro" || sku === "shop_ultra") {
+    await sb.from("local_businesses").update({
+      plan: sku.replace("shop_", ""),
+      plan_expires_at: days(30),
+    }).eq("id", businessId);
+    return;
+  }
+  if (sku === "spotlight_3d") {
+    await sb.from("local_businesses").update({ spotlight_until: days(3) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "radius_boost_7d") {
+    await sb.from("local_businesses").update({ radius_boost_until: days(7) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "top_listing_7d") {
+    await sb.from("local_businesses").update({ top_listing_until: days(7) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "homepage_banner") {
+    await sb.from("local_businesses").update({ banner_until: days(7) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "flash_push" || sku === "event_host" || sku === "challenge_sponsor" || sku === "email_campaign") {
+    const col = sku === "flash_push" ? "flash_push_credits"
+      : sku === "event_host" ? "event_host_credits"
+      : sku === "challenge_sponsor" ? "challenge_sponsor_credits"
+      : "email_campaign_credits";
+    const { data: b } = await sb.from("local_businesses").select(col).eq("id", businessId).single();
+    const current = ((b as unknown as Record<string, number>) ?? {})[col] ?? 0;
+    await sb.from("local_businesses").update({ [col]: current + 1 }).eq("id", businessId);
+    return;
+  }
+  if (sku === "social_pro_monthly") {
+    await sb.from("local_businesses").update({ social_pro_until: days(30) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "analytics_pro_monthly") {
+    await sb.from("local_businesses").update({ analytics_pro_until: days(30) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "competitor_monthly") {
+    await sb.from("local_businesses").update({ competitor_analysis_until: days(30) }).eq("id", businessId);
+    return;
+  }
+  if (sku === "kiez_report") {
+    await sb.from("local_businesses").update({ kiez_report_last: new Date().toISOString() }).eq("id", businessId);
+    return;
+  }
+  if (sku === "qr_print_service") {
+    await sb.from("local_businesses").update({ qr_print_ordered_at: new Date().toISOString() }).eq("id", businessId);
+    return;
+  }
+  if (sku === "custom_pin") {
+    await sb.from("local_businesses").update({ custom_pin_url: "pending" }).eq("id", businessId);
     return;
   }
 }
