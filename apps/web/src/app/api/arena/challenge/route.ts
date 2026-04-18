@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runBattle, type BattleInput } from "@/lib/battle-engine";
 import { xpForLevel } from "@/lib/guardian";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+let _admin: SupabaseClient | null = null;
+function admin(): SupabaseClient {
+  if (_admin) return _admin;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase admin creds missing");
+  _admin = createAdminClient(url, key, { auth: { persistSession: false } });
+  return _admin;
+}
 
 /**
  * POST /api/arena/challenge
@@ -22,9 +33,10 @@ export async function POST(req: Request) {
   const { business_id, defender_crew_id } = body;
   if (!business_id || !defender_crew_id) return NextResponse.json({ error: "business_id + defender_crew_id required" }, { status: 400 });
 
-  const sb = await createClient();
-  const { data: auth } = await sb.auth.getUser();
+  const userClient = await createClient();
+  const { data: auth } = await userClient.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const sb = admin(); // Alle Writes/Reads ueber Service-Role, RLS umgehen
 
   // Profil → eigene Crew
   const { data: profile } = await sb.from("users")
