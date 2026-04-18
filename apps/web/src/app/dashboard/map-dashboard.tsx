@@ -27,6 +27,7 @@ import {
   XP_KIEZ_CHECKIN,
   XP_CREW_WIN,
   ACHIEVEMENTS,
+  ACHIEVEMENT_CATEGORIES,
   DEMO_MODE,
   DEMO_STATS,
   DEMO_MAP_LIVE,
@@ -925,13 +926,19 @@ function ProfilTab({
   });
   const achievementsUnlocked = achievementStatus.filter((a) => a.unlocked).length;
 
-  // Priorisierung: unlocked zuerst, dann höchster Progress → top 5 für Liste
+  // Voll-Liste (Modal): unlocked zuerst, dann höchster Progress
   const sortedAchievements = [...achievementStatus].sort((a, b) => {
     if (a.unlocked && !b.unlocked) return -1;
     if (!a.unlocked && b.unlocked) return 1;
     return b.pct - a.pct;
   });
-  const topAchievements = sortedAchievements.slice(0, 5);
+  // Profil-Top-5: zeige, woran der Runner gerade arbeitet
+  // (nicht-freigeschaltete nach Fortschritt absteigend; wenn weniger als 5 offen, mit zuletzt freigeschalteten auffüllen)
+  const inProgress = achievementStatus
+    .filter((a) => !a.unlocked)
+    .sort((a, b) => b.pct - a.pct);
+  const recentlyUnlocked = achievementStatus.filter((a) => a.unlocked);
+  const topAchievements = [...inProgress, ...recentlyUnlocked].slice(0, 5);
 
   return (
     <div style={{ background: BG, paddingBottom: 30 }}>
@@ -1581,26 +1588,50 @@ function ProfilTab({
       {openModal === "achievements" && (
         <Modal
           title="Alle Erfolge"
-          subtitle={`${achievementsUnlocked} von ${ACHIEVEMENTS.length} freigeschaltet`}
+          subtitle={`${achievementsUnlocked} von ${ACHIEVEMENTS.length} freigeschaltet · ${ACHIEVEMENT_CATEGORIES.length} Kategorien`}
           icon="🏆"
           accent="#FFD700"
           onClose={() => setOpenModal(null)}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {sortedAchievements.map((a) => (
-              <AchievementRow
-                key={a.id}
-                icon={a.icon}
-                name={a.name}
-                xp={a.xp}
-                unlocked={a.unlocked}
-                current={a.current}
-                target={a.target}
-                unit={a.unit}
-                pct={a.pct}
-                displayFmt={a.displayFmt}
-              />
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {ACHIEVEMENT_CATEGORIES.map((cat) => {
+              const catAchievements = sortedAchievements.filter((a) => (a as typeof a & { category?: string }).category === cat.id);
+              if (catAchievements.length === 0) return null;
+              const unlockedInCat = catAchievements.filter((a) => a.unlocked).length;
+              return (
+                <div key={cat.id}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
+                    padding: "8px 12px", borderRadius: 10,
+                    background: `${cat.color}18`, border: `1px solid ${cat.color}44`,
+                  }}>
+                    <span style={{ fontSize: 22 }}>{cat.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: cat.color, fontSize: 13, fontWeight: 900 }}>{cat.name}</div>
+                      <div style={{ color: "#a8b4cf", fontSize: 10 }}>{cat.description}</div>
+                    </div>
+                    <span style={{ color: cat.color, fontSize: 11, fontWeight: 800 }}>{unlockedInCat}/{catAchievements.length}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {catAchievements.map((a) => (
+                      <AchievementRow
+                        key={a.id}
+                        icon={a.icon}
+                        name={a.name}
+                        xp={a.xp}
+                        unlocked={a.unlocked}
+                        current={a.current}
+                        target={a.target}
+                        unit={a.unit}
+                        pct={a.pct}
+                        displayFmt={a.displayFmt}
+                        tier={(a as typeof a & { tier?: string }).tier}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Modal>
       )}
@@ -3120,11 +3151,14 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
   );
 }
 
-function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, displayFmt }: {
+function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, displayFmt, tier }: {
   icon: string; name: string; xp: number; unlocked: boolean;
   current: number; target: number; unit: string; pct: number;
   displayFmt: (v: number) => string;
+  tier?: string;
 }) {
+  const tierColors: Record<string, string> = { easy: "#CD7F32", medium: "#C0C0C0", hard: "#FFD700" };
+  const tierLabels: Record<string, string> = { easy: "BRONZE", medium: "SILBER", hard: "GOLD" };
   const accent = unlocked ? "#FFD700" : PRIMARY;
   return (
     <div style={{
@@ -3166,7 +3200,18 @@ function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, 
             color: unlocked ? "#FFF" : TEXT_SOFT,
             fontSize: 14, fontWeight: 800,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>{name}</span>
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            {name}
+            {tier && (
+              <span style={{
+                fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
+                padding: "2px 5px", borderRadius: 4,
+                background: `${tierColors[tier]}22`, color: tierColors[tier],
+                border: `1px solid ${tierColors[tier]}66`,
+              }}>{tierLabels[tier]}</span>
+            )}
+          </span>
           <span style={{ color: accent, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
             {displayFmt(current)} / {displayFmt(target)}{unit ? ` ${unit}` : ""}
           </span>

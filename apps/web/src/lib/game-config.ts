@@ -642,6 +642,27 @@ export type AchievementStatKey =
   | "total_walks";
 
 // Achievements — einmalige Belohnungen
+export type AchievementCategory =
+  | "distance" | "endurance" | "explorer" | "streak" | "consistency" | "speed" | "elite";
+
+export type AchievementTier = "easy" | "medium" | "hard";
+
+export const ACHIEVEMENT_CATEGORIES: { id: AchievementCategory; name: string; icon: string; color: string; description: string }[] = [
+  { id: "distance",    name: "Strecken-Champion", icon: "🏃",  color: "#22D1C3", description: "Längste Einzel-Läufe" },
+  { id: "endurance",   name: "Welt-Bummler",      icon: "🌍",  color: "#4ade80", description: "Gesamt-Kilometer" },
+  { id: "explorer",    name: "Territorium-Herr",  icon: "🗺️",  color: "#a855f7", description: "Eroberte Straßenzüge" },
+  { id: "streak",      name: "Durchhalter",       icon: "🔥",  color: "#FF6B4A", description: "Tägliche Serien" },
+  { id: "consistency", name: "Stammgast",         icon: "📅",  color: "#FFD700", description: "Anzahl Läufe insgesamt" },
+  { id: "speed",       name: "Tempo-Jäger",       icon: "⚡",  color: "#5ddaf0", description: "Marathon-Distanzen" },
+  { id: "elite",       name: "Legende",           icon: "👑",  color: "#FF2D78", description: "Hardcore-Meilensteine" },
+];
+
+export const TIER_META: Record<AchievementTier, { label: string; color: string; xpMultiplier: number }> = {
+  easy:   { label: "Bronze",  color: "#CD7F32", xpMultiplier: 1 },
+  medium: { label: "Silber",  color: "#C0C0C0", xpMultiplier: 3 },
+  hard:   { label: "Gold",    color: "#FFD700", xpMultiplier: 10 },
+};
+
 export const ACHIEVEMENTS: Array<{
   id: string;
   name: string;
@@ -650,25 +671,43 @@ export const ACHIEVEMENTS: Array<{
   stat: AchievementStatKey;
   target: number;
   unit: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
 }> = [
-  { id: "first_walk",          name: "Erster Lauf",          xp: 100,    icon: "👟", stat: "total_walks",   target: 1,    unit: "" },
-  { id: "streak_3",            name: "3 Tage Serie",         xp: 200,    icon: "🔥", stat: "streak_best",   target: 3,    unit: "Tage" },
-  { id: "first_5k",            name: "Erste 5 km",           xp: 500,    icon: "🏃", stat: "longest_km",    target: 5,    unit: "km" },
-  { id: "ten_walks",           name: "10 Läufe",             xp: 500,    icon: "✅", stat: "total_walks",   target: 10,   unit: "" },
-  { id: "streak_7",            name: "7 Tage Serie",         xp: 750,    icon: "🌟", stat: "streak_best",   target: 7,    unit: "Tage" },
-  { id: "first_10k",           name: "Erster 10-km-Lauf",    xp: 1000,   icon: "💪", stat: "longest_km",    target: 10,   unit: "km" },
-  { id: "ten_territories",     name: "10 Territorien",       xp: 1000,   icon: "📍", stat: "territories",   target: 10,   unit: "" },
-  { id: "streak_14",           name: "14 Tage Serie",        xp: 2000,   icon: "⚡", stat: "streak_best",   target: 14,   unit: "Tage" },
-  { id: "fifty_walks",         name: "50 Läufe",             xp: 2500,   icon: "🎖️", stat: "total_walks",   target: 50,   unit: "" },
-  { id: "streak_30",           name: "30 Tage Serie",        xp: 5000,   icon: "🔥", stat: "streak_best",   target: 30,   unit: "Tage" },
-  { id: "lifetime_100k",       name: "100 km gelaufen",      xp: 5000,   icon: "🎯", stat: "lifetime_km",   target: 100,  unit: "km" },
-  { id: "first_halfmarathon",  name: "Erster Halbmarathon",  xp: 10000,  icon: "🏅", stat: "longest_km",    target: 21.1, unit: "km" },
-  { id: "hundred_walks",       name: "100 Läufe",            xp: 10000,  icon: "🏆", stat: "total_walks",   target: 100,  unit: "" },
-  { id: "hundred_territories", name: "100 Territorien",      xp: 10000,  icon: "👑", stat: "territories",   target: 100,  unit: "" },
-  { id: "first_marathon",      name: "Erster Marathon",      xp: 25000,  icon: "🥇", stat: "longest_km",    target: 42.2, unit: "km" },
-  { id: "lifetime_500k",       name: "500 km gelaufen",      xp: 25000,  icon: "🌍", stat: "lifetime_km",   target: 500,  unit: "km" },
-  { id: "five_hundred_territories", name: "500 Territorien", xp: 50000,  icon: "⭐", stat: "territories",   target: 500,  unit: "" },
-  { id: "lifetime_1000k",      name: "1000 km gelaufen",     xp: 100000, icon: "🏔️", stat: "lifetime_km",   target: 1000, unit: "km" },
+  // 🏃 Strecken-Champion (longest_km) — Einzel-Läufe
+  { id: "dist_easy",   name: "Erste 5 km",           xp: 200,    icon: "👟", stat: "longest_km",  target: 5,    unit: "km", category: "distance", tier: "easy" },
+  { id: "dist_medium", name: "10 km am Stück",       xp: 800,    icon: "🏃", stat: "longest_km",  target: 10,   unit: "km", category: "distance", tier: "medium" },
+  { id: "dist_hard",   name: "Halbmarathon (21 km)", xp: 5000,   icon: "🏅", stat: "longest_km",  target: 21.1, unit: "km", category: "distance", tier: "hard" },
+
+  // ⚡ Tempo-Jäger (longest_km, höhere Stufen) — für Marathon-Fans
+  { id: "speed_easy",   name: "25 km — Gym-Tier",    xp: 10000,  icon: "💨", stat: "longest_km",  target: 25,   unit: "km", category: "speed",    tier: "easy" },
+  { id: "speed_medium", name: "Marathon (42 km)",    xp: 25000,  icon: "🥇", stat: "longest_km",  target: 42.2, unit: "km", category: "speed",    tier: "medium" },
+  { id: "speed_hard",   name: "Ultra (50 km)",       xp: 60000,  icon: "🚀", stat: "longest_km",  target: 50,   unit: "km", category: "speed",    tier: "hard" },
+
+  // 🌍 Welt-Bummler (lifetime_km)
+  { id: "end_easy",   name: "50 km gelaufen",    xp: 500,    icon: "🌱", stat: "lifetime_km", target: 50,   unit: "km", category: "endurance", tier: "easy" },
+  { id: "end_medium", name: "500 km gelaufen",   xp: 5000,   icon: "🌳", stat: "lifetime_km", target: 500,  unit: "km", category: "endurance", tier: "medium" },
+  { id: "end_hard",   name: "2.500 km gelaufen", xp: 40000,  icon: "🌍", stat: "lifetime_km", target: 2500, unit: "km", category: "endurance", tier: "hard" },
+
+  // 🗺️ Territorium-Herr (territories)
+  { id: "exp_easy",   name: "5 Territorien erobert",    xp: 300,   icon: "📍", stat: "territories", target: 5,   unit: "", category: "explorer", tier: "easy" },
+  { id: "exp_medium", name: "50 Territorien erobert",   xp: 3500,  icon: "🗺️", stat: "territories", target: 50,  unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_hard",   name: "250 Territorien erobert",  xp: 25000, icon: "👑", stat: "territories", target: 250, unit: "", category: "explorer", tier: "hard" },
+
+  // 🔥 Durchhalter (streak_best)
+  { id: "str_easy",   name: "3 Tage Serie",    xp: 150,   icon: "🌟", stat: "streak_best", target: 3,   unit: "Tage", category: "streak", tier: "easy" },
+  { id: "str_medium", name: "14 Tage Serie",   xp: 2000,  icon: "⚡", stat: "streak_best", target: 14,  unit: "Tage", category: "streak", tier: "medium" },
+  { id: "str_hard",   name: "100 Tage Serie",  xp: 30000, icon: "🔥", stat: "streak_best", target: 100, unit: "Tage", category: "streak", tier: "hard" },
+
+  // 📅 Stammgast (total_walks)
+  { id: "con_easy",   name: "10 Läufe",    xp: 250,   icon: "✅", stat: "total_walks", target: 10,  unit: "", category: "consistency", tier: "easy" },
+  { id: "con_medium", name: "100 Läufe",   xp: 5000,  icon: "🎖️", stat: "total_walks", target: 100, unit: "", category: "consistency", tier: "medium" },
+  { id: "con_hard",   name: "500 Läufe",   xp: 30000, icon: "🏆", stat: "total_walks", target: 500, unit: "", category: "consistency", tier: "hard" },
+
+  // 👑 Legende (elite — extremste Ziele)
+  { id: "elite_easy",   name: "1.000 km Club",       xp: 20000,  icon: "🏔️", stat: "lifetime_km", target: 1000, unit: "km", category: "elite", tier: "easy" },
+  { id: "elite_medium", name: "5.000 km Legende",    xp: 100000, icon: "💎", stat: "lifetime_km", target: 5000, unit: "km", category: "elite", tier: "medium" },
+  { id: "elite_hard",   name: "10.000 km Unsterblich", xp: 500000, icon: "⚔️", stat: "lifetime_km", target: 10000, unit: "km", category: "elite", tier: "hard" },
 ];
 
 // Settings options
