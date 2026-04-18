@@ -3157,8 +3157,8 @@ function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, 
   displayFmt: (v: number) => string;
   tier?: string;
 }) {
-  const tierColors: Record<string, string> = { easy: "#CD7F32", medium: "#C0C0C0", hard: "#FFD700" };
-  const tierLabels: Record<string, string> = { easy: "BRONZE", medium: "SILBER", hard: "GOLD" };
+  const tierColors: Record<string, string> = { easy: "#CD7F32", medium: "#C0C0C0", hard: "#FFD700", epic: "#E5E4E2", legend: "#B9F2FF" };
+  const tierLabels: Record<string, string> = { easy: "BRONZE", medium: "SILBER", hard: "GOLD", epic: "PLATIN", legend: "DIAMANT" };
   const accent = unlocked ? "#FFD700" : PRIMARY;
   return (
     <div style={{
