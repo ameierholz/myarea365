@@ -44,13 +44,19 @@ export function RedeemFlow(props: Props) {
     return () => clearInterval(id);
   }, []);
 
-  // Live-Poll: ob Shop verified hat
+  // Live-Poll: ob Shop verified hat (+ Loot einsammeln)
+  const [loot, setLoot] = useState<{ rarity: "common"|"rare"|"epic"|"legend"|"none"; xp: number } | null>(null);
   useEffect(() => {
     if (step !== "active" || !redemptionId) return;
     const poll = async () => {
       const { data } = await sb.from("deal_redemptions")
-        .select("status").eq("id", redemptionId).single();
-      if (data?.status === "verified") setStep("done");
+        .select("status, loot_rarity, loot_xp").eq("id", redemptionId).single<{ status: string; loot_rarity: string | null; loot_xp: number | null }>();
+      if (data?.status === "verified") {
+        if (data.loot_rarity && data.loot_rarity !== "none") {
+          setLoot({ rarity: data.loot_rarity as "common"|"rare"|"epic"|"legend", xp: data.loot_xp ?? 0 });
+        }
+        setStep("done");
+      }
     };
     const id = setInterval(poll, 2000);
     return () => clearInterval(id);
@@ -346,7 +352,13 @@ export function RedeemFlow(props: Props) {
             }}>✅</div>
             <div style={{ color: "#4ade80", fontSize: 22, fontWeight: 900 }}>Eingelöst!</div>
             <div style={{ color: "#FFF", fontSize: 14, marginTop: 4 }}>{dealTitle}</div>
-            <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 10 }}>Viel Spaß im Shop!</div>
+
+            {loot && loot.rarity !== "none" ? <LootReveal rarity={loot.rarity} xp={loot.xp} /> : (
+              <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 14 }}>
+                Kein Loot diesmal. Beim nächsten Einlösen wieder Glück haben!
+              </div>
+            )}
+
             <button onClick={onClose} style={{ ...btnPrimary, marginTop: 20 }}>Schließen</button>
             <style>{`@keyframes redeemPop { 0% { transform: scale(0.3); opacity: 0 } 60% { transform: scale(1.2) } 100% { transform: scale(1); opacity: 1 } }`}</style>
           </div>
@@ -364,6 +376,41 @@ export function RedeemFlow(props: Props) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function LootReveal({ rarity, xp }: { rarity: "common" | "rare" | "epic" | "legend"; xp: number }) {
+  const meta = rarity === "legend"
+    ? { label: "LEGENDÄR", color: "#FFD700", glow: "rgba(255,215,0,0.8)", emoji: "💎" }
+    : rarity === "epic"
+    ? { label: "EPISCH", color: "#a855f7", glow: "rgba(168,85,247,0.7)", emoji: "🔮" }
+    : rarity === "rare"
+    ? { label: "SELTEN", color: "#22D1C3", glow: "rgba(34,209,195,0.7)", emoji: "💠" }
+    : { label: "GEWÖHNLICH", color: "#8B8FA3", glow: "rgba(139,143,163,0.45)", emoji: "📦" };
+  return (
+    <div style={{
+      marginTop: 18, padding: 16, borderRadius: 16,
+      background: `linear-gradient(135deg, ${meta.glow}, rgba(15,17,21,0.7))`,
+      border: `2px solid ${meta.color}`,
+      boxShadow: `0 0 40px ${meta.glow}`,
+      animation: "lootReveal 0.9s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    }}>
+      <div style={{ fontSize: 48, marginBottom: 6, animation: "lootBounce 1.2s ease-in-out infinite" }}>{meta.emoji}</div>
+      <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>{meta.label} LOOT</div>
+      <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginTop: 4 }}>+{xp.toLocaleString("de-DE")} XP</div>
+      <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>auf deinen Wächter</div>
+      <style>{`
+        @keyframes lootReveal {
+          0%   { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+          50%  { transform: scale(1.1) rotate(2deg);  opacity: 1; }
+          100% { transform: scale(1)   rotate(0);      opacity: 1; }
+        }
+        @keyframes lootBounce {
+          0%,100% { transform: translateY(0);    }
+          50%     { transform: translateY(-6px); }
+        }
+      `}</style>
     </div>
   );
 }

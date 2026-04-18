@@ -16,5 +16,12 @@ export async function POST(req: NextRequest) {
     p_code: code, p_business_id: business_id, p_verified_by: user.id,
   });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
+  // Nach erfolgreichem Verify: Loot rollen und auf Runner-Waechter anwenden.
+  const verifyResult = data as { ok?: boolean; id?: string; xp_paid?: number } | null;
+  if (verifyResult?.ok && verifyResult.id) {
+    const { data: loot } = await sb.rpc("award_redemption_loot", { p_redemption_id: verifyResult.id });
+    return NextResponse.json({ ...verifyResult, loot });
+  }
   return NextResponse.json(data);
 }
