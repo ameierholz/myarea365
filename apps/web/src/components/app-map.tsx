@@ -232,7 +232,8 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   el.style.cssText = "position:relative;cursor:pointer;pointer-events:auto";
   // Inner wrapper: hier wenden wir Zoom-Scaling an (wird ueber data-Attribut gefunden)
   const inner = document.createElement("div");
-  inner.dataset.zoomScale = "1";
+  // "2" = DOM ist bei 2× Source-Groesse gezeichnet → Zoom-Scaler halbiert alles
+  inner.dataset.zoomScale = "2";
   inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
   el.appendChild(inner);
 
@@ -628,17 +629,21 @@ export function AppMap({
 
     const applyZoomScale = () => {
       const zoom = map.getZoom();
-      // Basis-Scale = 0.5 weil Marker-DOM nativ doppelt so gross gerendert wird
-      // → Scaling ist IMMER downscale (schaerfer als upscale)
-      let scale = 0.5;
-      if (zoom < 11)      scale = 0.16;
-      else if (zoom < 13) scale = 0.18 + ((zoom - 11) / 2) * 0.10;
-      else if (zoom < 15) scale = 0.28 + ((zoom - 13) / 2) * 0.12;
-      else if (zoom < 17) scale = 0.40 + ((zoom - 15) / 2) * 0.10;
+      // 1x-Scale fuer Marker mit nativer Groesse (Self, Runner, Drop)
+      let scale = 1;
+      if (zoom < 11)      scale = 0.32;
+      else if (zoom < 13) scale = 0.35 + ((zoom - 11) / 2) * 0.2;
+      else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
+      else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
       const showLabel = zoom >= 14;
-      const scaleStr = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
+      // Marker mit 2x-Source (Shop): nochmal × 0.5 → End-Skala identisch zum 1x-Marker,
+      // aber immer Downscale → schaerfer dargestellt
       container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
-        el.style.transform = scaleStr;
+        el.style.transform = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
+      });
+      const scale2x = scale * 0.5;
+      container.querySelectorAll<HTMLElement>('[data-zoom-scale="2"]').forEach((el) => {
+        el.style.transform = `scale3d(${scale2x.toFixed(3)}, ${scale2x.toFixed(3)}, 1)`;
       });
       container.querySelectorAll<HTMLElement>('[data-shop-label="1"]').forEach((el) => {
         el.style.opacity = showLabel ? "1" : "0";
