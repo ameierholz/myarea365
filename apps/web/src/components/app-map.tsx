@@ -226,8 +226,9 @@ function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, sup
       : supporterTier === "bronze"
         ? { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", border: "#CD7F32", icon: "★", shadow: "0 0 8px #CD7F32cc" }
         : null;
+  // Chip sitzt oben-rechts AUSSERHALB des Kreises (diagonal angedockt)
   const supporterChip = tierCfg
-    ? `<div style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:${tierCfg.bg};border:1.5px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:9px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
+    ? `<div style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:10px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
     : "";
   const auraLayer = auraActive
     ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>

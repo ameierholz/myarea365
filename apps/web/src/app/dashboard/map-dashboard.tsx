@@ -626,8 +626,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               markerId={equippedMarker}
               lightId={equippedLight}
               activeRoute={activeRoute}
-              savedTerritories={savedTerritories}
-              claimedAreas={demoMap.claimed_areas}
+              savedTerritories={[]}
+              claimedAreas={[]}
               supplyDrops={[]}
               glitchZones={[]}
               crewMembers={[]}
