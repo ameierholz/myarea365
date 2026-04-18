@@ -77,67 +77,37 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       will-change: transform, box-shadow;
     }
     .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
-    /* Arena-Aura: unruhige Rotation + harter Pulse kombiniert (aggressiv) */
-    @keyframes ma365AuraSpinPulse {
-      0%   { transform: rotate(0deg)   scale(1);    filter: blur(2px)   brightness(1); }
-      12%  { transform: rotate(75deg)  scale(1.18); filter: blur(1.5px) brightness(1.25); }
-      28%  { transform: rotate(115deg) scale(0.88); filter: blur(3px)   brightness(0.85); }
-      42%  { transform: rotate(205deg) scale(1.22); filter: blur(1px)   brightness(1.35); }
-      58%  { transform: rotate(235deg) scale(0.9);  filter: blur(2.5px) brightness(0.9); }
-      74%  { transform: rotate(315deg) scale(1.15); filter: blur(1.5px) brightness(1.2); }
-      100% { transform: rotate(360deg) scale(1);    filter: blur(2px)   brightness(1); }
+    /* Arena-Sword: rotes Chip mit ⚔️ über dem Pin, Wackel + Red-Glow */
+    @keyframes ma365ArenaGlow {
+      0%,100% { box-shadow: 0 0 8px rgba(255,45,120,0.55), 0 0 18px rgba(255,45,120,0.25), inset 0 1px 0 rgba(255,255,255,0.4); }
+      50%     { box-shadow: 0 0 18px rgba(255,45,120,1),    0 0 36px rgba(255,45,120,0.6),  inset 0 1px 0 rgba(255,255,255,0.7); }
     }
-    @keyframes ma365AuraPulseHard {
-      0%,100% { opacity: 0.4;  transform: scale(0.78); filter: blur(6px); }
-      18%     { opacity: 1;    transform: scale(1.30); filter: blur(4px); }
-      32%     { opacity: 0.55; transform: scale(0.85); filter: blur(7px); }
-      48%     { opacity: 1;    transform: scale(1.22); filter: blur(5px); }
-      68%     { opacity: 0.6;  transform: scale(0.92); filter: blur(6px); }
+    @keyframes ma365SwordShake {
+      0%,100% { transform: rotate(-8deg) translateY(0); }
+      10%     { transform: rotate(10deg) translateY(-1px); }
+      22%     { transform: rotate(-12deg) translateY(1px); }
+      35%     { transform: rotate(8deg) translateY(-2px); }
+      48%     { transform: rotate(-6deg) translateY(0); }
+      62%     { transform: rotate(5deg) translateY(-1px); }
+      78%     { transform: rotate(-9deg) translateY(1px); }
     }
-    .ma365-shop-aura {
-      position: relative;
-      width: 36px; height: 36px;
+    .ma365-arena-sword {
+      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 25%, #FF6BA1 0%, #FF2D78 45%, #a3143f 100%);
+      border: 2px solid rgba(255,255,255,0.92);
       pointer-events: none;
+      animation: ma365ArenaGlow 1.3s ease-in-out infinite;
+      will-change: box-shadow;
+    }
+    .ma365-arena-sword > span {
+      display: inline-block;
+      font-size: 15px;
+      line-height: 1;
       transform-origin: center center;
-      will-change: transform;
-    }
-    .ma365-shop-aura::before, .ma365-shop-aura::after {
-      content: ""; position: absolute; inset: 0; border-radius: 50%;
-      transform-origin: center center; will-change: transform;
-    }
-    /* Hauptstrahlen: konischer Gold-Sunburst */
-    .ma365-shop-aura::before {
-      background: conic-gradient(from 0deg,
-        rgba(255,215,0,0.95),
-        rgba(255,215,0,0.05) 18deg,
-        rgba(255,138,60,0.85) 36deg,
-        rgba(255,215,0,0.05) 54deg,
-        rgba(255,215,0,0.95) 72deg,
-        rgba(255,215,0,0.05) 90deg,
-        rgba(255,138,60,0.85) 108deg,
-        rgba(255,215,0,0.05) 126deg,
-        rgba(255,215,0,0.95) 144deg,
-        rgba(255,215,0,0.05) 162deg,
-        rgba(255,138,60,0.85) 180deg,
-        rgba(255,215,0,0.05) 198deg,
-        rgba(255,215,0,0.95) 216deg,
-        rgba(255,215,0,0.05) 234deg,
-        rgba(255,138,60,0.85) 252deg,
-        rgba(255,215,0,0.05) 270deg,
-        rgba(255,215,0,0.95) 288deg,
-        rgba(255,215,0,0.05) 306deg,
-        rgba(255,138,60,0.85) 324deg,
-        rgba(255,215,0,0.05) 342deg,
-        rgba(255,215,0,0.95));
-      -webkit-mask: radial-gradient(circle, transparent 18%, #000 32%, #000 95%, transparent 100%);
-              mask: radial-gradient(circle, transparent 18%, #000 32%, #000 95%, transparent 100%);
-      animation: ma365AuraSpinPulse 2.8s cubic-bezier(0.45, 0.1, 0.55, 0.9) infinite;
-    }
-    /* Inner-Glow: weiches pulsierendes Gold */
-    .ma365-shop-aura::after {
-      inset: 20%;
-      background: radial-gradient(circle, rgba(255,215,0,0.85) 0%, rgba(255,138,60,0.45) 45%, rgba(255,215,0,0) 75%);
-      animation: ma365AuraPulseHard 1.6s ease-in-out infinite;
+      animation: ma365SwordShake 0.7s ease-in-out infinite;
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.45));
     }
     /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
     @keyframes ma365BeamGlow {
@@ -832,16 +802,17 @@ export function AppMap({
     spotlightBeamMarkersRef.current = [];
     spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightAuraMarkersRef.current = [];
-    // Arena-Shops bekommen die rotierende Gold-Aura
+    // Arena-Shops bekommen Sword-Corner-Chip (⚔️ mit Wackel + Red-Glow)
     shops.filter((s) => s.arena).forEach((s) => {
-      const auraOuter = document.createElement("div");
-      auraOuter.style.pointerEvents = "none";
-      const auraInner = document.createElement("div");
-      auraInner.className = "ma365-shop-aura";
-      auraOuter.appendChild(auraInner);
-      const auraMarker = new mapboxgl.Marker({ element: auraOuter, anchor: "center", offset: [0, 0] })
+      const swordOuter = document.createElement("div");
+      swordOuter.style.pointerEvents = "none";
+      const swordInner = document.createElement("div");
+      swordInner.className = "ma365-arena-sword";
+      swordInner.innerHTML = `<span>⚔️</span>`;
+      swordOuter.appendChild(swordInner);
+      const swordMarker = new mapboxgl.Marker({ element: swordOuter, anchor: "center", offset: [0, 0] })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      spotlightAuraMarkersRef.current.push({ marker: auraMarker, el: auraInner });
+      spotlightAuraMarkersRef.current.push({ marker: swordMarker, el: swordInner });
     });
     // Spotlight-Shops: Light-Beam + Badge
     shops.filter((s) => s.spotlight).forEach((s) => {
@@ -889,12 +860,14 @@ export function AppMap({
         el.style.opacity = hideBadge ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
-      // Aura sitzt auf Pin-Body-Mitte, skaliert mit Pin-Groesse
-      const auraOffY = -(pinHeight / 2);
-      const auraScale = Math.max(0.3, Math.min(1.1, pinHeight / 35));
+      // Sword sitzt als Corner-Chip oben rechts am Pin (Top-Right-Ecke des Pin-Body)
+      const pinWidth = 1024 * iconSize / 4;
+      const swordOffX = pinWidth * 0.38;
+      const swordOffY = -(pinHeight - pinHeight * 0.15);
+      const swordScale = Math.max(0.55, Math.min(1.0, pinHeight / 45));
       spotlightAuraMarkersRef.current.forEach(({ marker, el }) => {
-        marker.setOffset([0, auraOffY]);
-        el.style.transform = `scale(${auraScale.toFixed(2)})`;
+        marker.setOffset([swordOffX, swordOffY]);
+        el.style.transform = `scale(${swordScale.toFixed(2)})`;
         el.style.opacity = hideAura ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
