@@ -28,6 +28,7 @@ import {
   XP_CREW_WIN,
   ACHIEVEMENTS,
   ACHIEVEMENT_CATEGORIES,
+  RUNNER_RANKS,
   DEMO_MODE,
   DEMO_STATS,
   DEMO_MAP_LIVE,
@@ -857,7 +858,7 @@ function ProfilTab({
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
-  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements">(null);
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks">(null);
 
   const handleRewardedAd = () => {
     if (confirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
@@ -1002,25 +1003,29 @@ function ProfilTab({
             fontStyle: "italic", textAlign: "center", maxWidth: 340,
           }}>{motto}</div>
 
-          {/* Holographic Rank Badge */}
-          <div style={{
-            marginTop: 14, paddingLeft: 18, paddingRight: 18, paddingTop: 8, paddingBottom: 8,
-            borderRadius: 22,
-            background: currentRankLive.color,
-            position: "relative",
-            overflow: "hidden",
-            boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
-          }}>
+          {/* Holographic Rank Badge — klickbar für alle Ränge */}
+          <button
+            onClick={() => setOpenModal("ranks")}
+            style={{
+              marginTop: 14, paddingLeft: 18, paddingRight: 28, paddingTop: 8, paddingBottom: 8,
+              borderRadius: 22, border: "none",
+              background: currentRankLive.color,
+              position: "relative", overflow: "hidden", cursor: "pointer",
+              boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
+            }}
+            aria-label="Alle Ränge anzeigen"
+          >
             <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
               {currentRankLive.name} · {userXp.toLocaleString()} XP
             </span>
+            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 1, color: BG_DEEP, fontSize: 14, fontWeight: 900 }}>›</span>
             <span style={{
               position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",
               background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
               animation: "rankShimmer 4s ease-in-out infinite",
               pointerEvents: "none",
             }} />
-          </div>
+          </button>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 
           {/* Next Rank — animierter Balken mit klaren Anker-Werten */}
@@ -1608,6 +1613,74 @@ function ProfilTab({
                 />
               );
             })}
+          </div>
+        </Modal>
+      )}
+
+      {openModal === "ranks" && (
+        <Modal
+          title="Alle Ränge"
+          subtitle={`${RUNNER_RANKS.length} Stufen von Straßen-Scout bis Straßen-Gott`}
+          icon="🏅"
+          accent={currentRankLive.color}
+          onClose={() => setOpenModal(null)}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {RUNNER_RANKS.map((r, i) => {
+              const achieved = userXp >= r.minXp;
+              const current = r.id === currentRankLive.id;
+              const next = RUNNER_RANKS[i + 1];
+              const xpToRank = achieved ? 0 : r.minXp - userXp;
+              return (
+                <div key={r.id} style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "14px 16px", borderRadius: 14,
+                  background: current
+                    ? `linear-gradient(90deg, ${r.color}33 0%, rgba(70,82,122,0.5) 70%)`
+                    : achieved
+                      ? "rgba(70, 82, 122, 0.45)"
+                      : "rgba(70, 82, 122, 0.2)",
+                  border: current ? `1.5px solid ${r.color}` : achieved ? `1px solid ${r.color}44` : "1px solid rgba(255,255,255,0.06)",
+                  boxShadow: current ? `0 0 18px ${r.color}55` : "none",
+                  opacity: achieved ? 1 : 0.7,
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 18,
+                    background: achieved ? r.color : "rgba(255,255,255,0.1)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 900, color: achieved ? BG_DEEP : MUTED,
+                    flexShrink: 0,
+                    boxShadow: current ? `0 0 10px ${r.color}88` : "none",
+                  }}>{r.id}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      color: achieved ? "#FFF" : TEXT_SOFT,
+                      fontSize: 14, fontWeight: 800,
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}>
+                      {r.name}
+                      {current && <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: r.color, color: BG_DEEP, fontWeight: 900 }}>AKTUELL</span>}
+                    </div>
+                    <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
+                      {r.minXp.toLocaleString("de-DE")} XP {next && `— ${(next.minXp - 1).toLocaleString("de-DE")} XP`}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    {achieved ? (
+                      <span style={{ color: r.color, fontSize: 18 }}>✓</span>
+                    ) : (
+                      <div style={{ color: MUTED, fontSize: 10 }}>
+                        <div>noch</div>
+                        <div style={{ color: r.color, fontWeight: 800, fontSize: 12 }}>{xpToRank.toLocaleString("de-DE")} XP</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 14, fontStyle: "italic" }}>
+            XP sammelst du durch Läufe, Territorien, Streaks & Achievements.
           </div>
         </Modal>
       )}
