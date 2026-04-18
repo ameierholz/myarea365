@@ -728,41 +728,52 @@ export function AppMap({
         });
       }
 
-      // Glow-Pulse (Spotlight + Arena) via RAF
+      // Glow-Pulse (Spotlight + Arena) via RAF, mit Cancel-Flag gegen Unmount
+      let cancelled = false;
       let t = 0;
       const pulse = () => {
+        if (cancelled) return;
+        // Map unmounted / style entfernt → aufhoeren
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(map as any).style) { cancelled = true; return; }
         t += 1;
         const phase = Math.sin(t * 0.04);
         const opSpotlight = 0.42 + phase * 0.22;
         const opArena     = 0.38 + phase * 0.18;
         const r = (base: number) => base + phase * (base * 0.2);
-        if (map.getLayer(LYR_GLOW)) {
-          map.setPaintProperty(LYR_GLOW, "circle-opacity", opSpotlight);
-          map.setPaintProperty(LYR_GLOW, "circle-radius", [
-            "interpolate", ["linear"], ["zoom"],
-            11, r(12), 15, r(38), 18, r(60),
-          ]);
-        }
-        if (map.getLayer(LYR_ARENA_GLOW)) {
-          map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity", opArena);
-          map.setPaintProperty(LYR_ARENA_GLOW, "circle-radius", [
-            "interpolate", ["linear"], ["zoom"],
-            11, r(10), 15, r(30), 18, r(50),
-          ]);
-        }
-        pulseRaf = requestAnimationFrame(pulse);
+        try {
+          if (map.getLayer(LYR_GLOW)) {
+            map.setPaintProperty(LYR_GLOW, "circle-opacity", opSpotlight);
+            map.setPaintProperty(LYR_GLOW, "circle-radius", [
+              "interpolate", ["linear"], ["zoom"],
+              11, r(12), 15, r(38), 18, r(60),
+            ]);
+          }
+          if (map.getLayer(LYR_ARENA_GLOW)) {
+            map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity", opArena);
+            map.setPaintProperty(LYR_ARENA_GLOW, "circle-radius", [
+              "interpolate", ["linear"], ["zoom"],
+              11, r(10), 15, r(30), 18, r(50),
+            ]);
+          }
+        } catch { cancelled = true; return; }
+        requestAnimationFrame(pulse);
       };
-      let pulseRaf = requestAnimationFrame(pulse);
-      (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf = pulseRaf;
+      requestAnimationFrame(pulse);
+      (map as unknown as { __shopsPulseCancel?: () => void }).__shopsPulseCancel = () => { cancelled = true; };
     }
 
     return () => {
-      const raf = (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf;
-      if (raf) cancelAnimationFrame(raf);
-      [LYR_LABEL, LYR_PIN, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
-        if (map.getLayer(l)) map.removeLayer(l);
-      });
-      if (map.getSource(SRC)) map.removeSource(SRC);
+      const cancel = (map as unknown as { __shopsPulseCancel?: () => void }).__shopsPulseCancel;
+      if (cancel) cancel();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (!(map as any).style) return; // Map bereits zerstoert → nichts zu tun
+      try {
+        [LYR_LABEL, LYR_PIN, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
+          if (map.getLayer(l)) map.removeLayer(l);
+        });
+        if (map.getSource(SRC)) map.removeSource(SRC);
+      } catch { /* map removed during cleanup race */ }
     };
   }, [mapReady, shops, onShopClick]);
 
