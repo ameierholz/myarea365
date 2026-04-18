@@ -1593,43 +1593,19 @@ function ProfilTab({
           accent="#FFD700"
           onClose={() => setOpenModal(null)}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {ACHIEVEMENT_CATEGORIES.map((cat) => {
               const catAchievements = sortedAchievements.filter((a) => (a as typeof a & { category?: string }).category === cat.id);
               if (catAchievements.length === 0) return null;
               const unlockedInCat = catAchievements.filter((a) => a.unlocked).length;
               return (
-                <div key={cat.id}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 10, marginBottom: 8,
-                    padding: "8px 12px", borderRadius: 10,
-                    background: `${cat.color}18`, border: `1px solid ${cat.color}44`,
-                  }}>
-                    <span style={{ fontSize: 22 }}>{cat.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: cat.color, fontSize: 13, fontWeight: 900 }}>{cat.name}</div>
-                      <div style={{ color: "#a8b4cf", fontSize: 10 }}>{cat.description}</div>
-                    </div>
-                    <span style={{ color: cat.color, fontSize: 11, fontWeight: 800 }}>{unlockedInCat}/{catAchievements.length}</span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {catAchievements.map((a) => (
-                      <AchievementRow
-                        key={a.id}
-                        icon={a.icon}
-                        name={a.name}
-                        xp={a.xp}
-                        unlocked={a.unlocked}
-                        current={a.current}
-                        target={a.target}
-                        unit={a.unit}
-                        pct={a.pct}
-                        displayFmt={a.displayFmt}
-                        tier={(a as typeof a & { tier?: string }).tier}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <CategoryAccordion
+                  key={cat.id}
+                  cat={cat}
+                  unlocked={unlockedInCat}
+                  total={catAchievements.length}
+                  items={catAchievements}
+                />
               );
             })}
           </div>
@@ -3147,6 +3123,58 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
         <span>{walking ? "ZUR KARTE — LAUF VERFOLGEN" : "JETZT LOSLAUFEN"}</span>
         <span style={{ fontSize: 16 }}>→</span>
       </button>
+    </div>
+  );
+}
+
+type AchItem = {
+  id: string; icon: string; name: string; xp: number; unlocked: boolean;
+  current: number; target: number; unit: string; pct: number;
+  displayFmt: (v: number) => string;
+  tier?: string;
+};
+
+function CategoryAccordion({ cat, unlocked, total, items }: {
+  cat: { id: string; name: string; icon: string; color: string; description: string };
+  unlocked: number;
+  total: number;
+  items: AchItem[];
+}) {
+  const [open, setOpen] = useState(false);
+  const pct = Math.round((unlocked / total) * 100);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 12px", borderRadius: 10,
+          background: `${cat.color}18`, border: `1px solid ${cat.color}44`,
+          color: "#FFF", cursor: "pointer", textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: 22 }}>{cat.icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: cat.color, fontSize: 13, fontWeight: 900 }}>{cat.name}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10 }}>{cat.description}</div>
+          <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
+            <div style={{ width: `${pct}%`, height: "100%", background: cat.color, transition: "width 0.3s" }} />
+          </div>
+        </div>
+        <span style={{ color: cat.color, fontSize: 11, fontWeight: 800 }}>{unlocked}/{total}</span>
+        <span style={{ color: "#a8b4cf", fontSize: 16, transform: open ? "rotate(90deg)" : "rotate(0)", transition: "transform 0.2s" }}>›</span>
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6, marginBottom: 4 }}>
+          {items.map((a) => (
+            <AchievementRow
+              key={a.id} icon={a.icon} name={a.name} xp={a.xp} unlocked={a.unlocked}
+              current={a.current} target={a.target} unit={a.unit} pct={a.pct}
+              displayFmt={a.displayFmt} tier={a.tier}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

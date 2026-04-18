@@ -745,6 +745,55 @@ export const ACHIEVEMENTS: Array<{
   { id: "elite_4", name: "10.000 km Unsterblich", xp: 300000, icon: "⚔️", stat: "lifetime_km", target: 10000, unit: "km", category: "elite", tier: "legend" },
   { id: "elite_5", name: "25.000 km Mythos",      xp: 800000, icon: "🌌", stat: "lifetime_km", target: 25000, unit: "km", category: "elite", tier: "legend" },
   { id: "elite_6", name: "50.000 km — Erdumfang", xp: 2000000, icon: "🌐", stat: "lifetime_km", target: 50000, unit: "km", category: "elite", tier: "legend" },
+
+  // 🏃 Strecken-Champion — weitere Zwischenziele
+  { id: "dist_9",  name: "2 km geschafft",           xp: 150,   icon: "🚶", stat: "longest_km",  target: 2,    unit: "km", category: "distance", tier: "easy" },
+  { id: "dist_10", name: "4 km am Stück",            xp: 300,   icon: "👟", stat: "longest_km",  target: 4,    unit: "km", category: "distance", tier: "easy" },
+  { id: "dist_11", name: "6 km Dauerlauf",           xp: 550,   icon: "🏃", stat: "longest_km",  target: 6,    unit: "km", category: "distance", tier: "medium" },
+  { id: "dist_12", name: "8 km durchgezogen",        xp: 900,   icon: "💪", stat: "longest_km",  target: 8,    unit: "km", category: "distance", tier: "medium" },
+  { id: "dist_13", name: "12 km Langlauf",           xp: 1800,  icon: "🎽", stat: "longest_km",  target: 12,   unit: "km", category: "distance", tier: "medium" },
+  { id: "dist_14", name: "18 km Vorbereitung",       xp: 3800,  icon: "🏅", stat: "longest_km",  target: 18,   unit: "km", category: "distance", tier: "hard" },
+
+  // 🌍 Welt-Bummler — weitere Stufen
+  { id: "end_9",   name: "25 km Gesamt",             xp: 180,   icon: "🌱", stat: "lifetime_km", target: 25,    unit: "km", category: "endurance", tier: "easy" },
+  { id: "end_10",  name: "150 km unterwegs",         xp: 1000,  icon: "🌿", stat: "lifetime_km", target: 150,   unit: "km", category: "endurance", tier: "easy" },
+  { id: "end_11",  name: "750 km gesammelt",         xp: 9000,  icon: "🏞️", stat: "lifetime_km", target: 750,   unit: "km", category: "endurance", tier: "medium" },
+  { id: "end_12",  name: "1.500 km Kilometerfresser", xp: 25000, icon: "🌍", stat: "lifetime_km", target: 1500, unit: "km", category: "endurance", tier: "hard" },
+  { id: "end_13",  name: "3.500 km Globetrotter",    xp: 60000, icon: "🗺️", stat: "lifetime_km", target: 3500, unit: "km", category: "endurance", tier: "epic" },
+
+  // 🗺️ Territorium-Herr — Zwischenstufen
+  { id: "exp_10",  name: "15 Territorien",           xp: 900,   icon: "📍", stat: "territories", target: 15,   unit: "", category: "explorer", tier: "easy" },
+  { id: "exp_11",  name: "35 Territorien",           xp: 2200,  icon: "🏘️", stat: "territories", target: 35,   unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_12",  name: "75 Territorien",           xp: 5500,  icon: "🗺️", stat: "territories", target: 75,   unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_13",  name: "150 Territorien",          xp: 15000, icon: "🏙️", stat: "territories", target: 150,  unit: "", category: "explorer", tier: "hard" },
+  { id: "exp_14",  name: "400 Territorien",          xp: 45000, icon: "👑", stat: "territories", target: 400,  unit: "", category: "explorer", tier: "hard" },
+  { id: "exp_15",  name: "750 Territorien",          xp: 120000, icon: "🏆", stat: "territories", target: 750,  unit: "", category: "explorer", tier: "epic" },
+
+  // 🔥 Streak — weitere Stufen
+  { id: "str_11",  name: "10 Tage am Stück",         xp: 1500,  icon: "✨", stat: "streak_best", target: 10,  unit: "Tage", category: "streak", tier: "medium" },
+  { id: "str_12",  name: "21 Tage Gewohnheit",       xp: 5000,  icon: "⚡", stat: "streak_best", target: 21,  unit: "Tage", category: "streak", tier: "medium" },
+  { id: "str_13",  name: "45 Tage Feuer",            xp: 12000, icon: "🔥", stat: "streak_best", target: 45,  unit: "Tage", category: "streak", tier: "hard" },
+  { id: "str_14",  name: "90 Tage Durchhalter",      xp: 30000, icon: "🌋", stat: "streak_best", target: 90,  unit: "Tage", category: "streak", tier: "epic" },
+  { id: "str_15",  name: "150 Tage Unaufhaltsam",    xp: 75000, icon: "☄️", stat: "streak_best", target: 150, unit: "Tage", category: "streak", tier: "epic" },
+  { id: "str_16",  name: "250 Tage Eisern",          xp: 200000, icon: "💫", stat: "streak_best", target: 250, unit: "Tage", category: "streak", tier: "legend" },
+
+  // 📅 Stammgast — weitere Läufe
+  { id: "con_11",  name: "15 Läufe absolviert",      xp: 650,   icon: "✅", stat: "total_walks", target: 15,   unit: "", category: "consistency", tier: "easy" },
+  { id: "con_12",  name: "35 Läufe",                 xp: 1800,  icon: "🎯", stat: "total_walks", target: 35,   unit: "", category: "consistency", tier: "medium" },
+  { id: "con_13",  name: "75 Läufe",                 xp: 4500,  icon: "🎖️", stat: "total_walks", target: 75,   unit: "", category: "consistency", tier: "medium" },
+  { id: "con_14",  name: "150 Läufe",                xp: 10000, icon: "🏅", stat: "total_walks", target: 150,  unit: "", category: "consistency", tier: "hard" },
+  { id: "con_15",  name: "365 Läufe — ein pro Tag",  xp: 50000, icon: "📆", stat: "total_walks", target: 365,  unit: "", category: "consistency", tier: "epic" },
+  { id: "con_16",  name: "750 Läufe Vielläufer",     xp: 90000, icon: "🏆", stat: "total_walks", target: 750,  unit: "", category: "consistency", tier: "epic" },
+  { id: "con_17",  name: "1.500 Läufe Rentner-Mode", xp: 250000, icon: "⭐", stat: "total_walks", target: 1500, unit: "", category: "consistency", tier: "legend" },
+
+  // ⚡ Tempo — Zwischenstufen
+  { id: "speed_6", name: "60 km Grenzgänger",        xp: 70000, icon: "🏃‍♂️", stat: "longest_km", target: 60, unit: "km", category: "speed", tier: "epic" },
+  { id: "speed_7", name: "150 km Wahnsinn",          xp: 500000, icon: "🌠", stat: "longest_km", target: 150, unit: "km", category: "speed", tier: "legend" },
+
+  // 👑 Legende — Zwischenziele
+  { id: "elite_7", name: "1.500 km Club",            xp: 35000,  icon: "🏔️", stat: "lifetime_km", target: 1500,  unit: "km", category: "elite", tier: "hard" },
+  { id: "elite_8", name: "7.500 km Elite",           xp: 180000, icon: "💎", stat: "lifetime_km", target: 7500,  unit: "km", category: "elite", tier: "epic" },
+  { id: "elite_9", name: "15.000 km Titan",          xp: 500000, icon: "⚔️", stat: "lifetime_km", target: 15000, unit: "km", category: "elite", tier: "legend" },
 ];
 
 // Settings options
