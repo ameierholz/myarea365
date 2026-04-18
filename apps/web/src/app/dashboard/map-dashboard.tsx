@@ -11,6 +11,7 @@ import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-mo
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
 import { DemoBadge } from "@/components/demo-badge";
+import { FlashPushBanner } from "@/components/flash-push-banner";
 import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
@@ -426,17 +427,28 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     if (!token) return;
     let cancelled = false;
     (async () => {
+      // Echte Shop-Daten aus DB holen (Spotlight + Custom-Pin + Radius berücksichtigen)
+      const { data: liveShops } = await supabase
+        .from("local_businesses")
+        .select("id, name, spotlight_until, custom_pin_url, radius_boost_until, top_listing_until");
+      const liveById = new Map(
+        (liveShops ?? []).map((s) => [s.id, s as { id: string; spotlight_until: string | null; custom_pin_url: string | null; radius_boost_until: string | null; top_listing_until: string | null }]),
+      );
+
       const next = await Promise.all(demoShops.map(async (s) => {
+        const live = liveById.get(s.id);
+        const spotlight = live?.spotlight_until ? new Date(live.spotlight_until).getTime() > Date.now() : s.spotlight;
+        const customPin = live?.custom_pin_url && live.custom_pin_url !== "pending" ? live.custom_pin_url : null;
         try {
           const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(s.address)}.json?country=de&limit=1&access_token=${token}`;
           const res = await fetch(url);
           const data = await res.json();
           const center = data?.features?.[0]?.center;
           if (Array.isArray(center) && center.length === 2) {
-            return { ...s, lng: center[0], lat: center[1] };
+            return { ...s, lng: center[0], lat: center[1], spotlight, custom_pin_url: customPin };
           }
         } catch { /* ignore, behalte Fallback */ }
-        return s;
+        return { ...s, spotlight, custom_pin_url: customPin };
       }));
       if (!cancelled) setDemoShops(next);
     })();
@@ -835,6 +847,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       )}
 
       <VictoryDance trigger={victoryTrigger} />
+      <FlashPushBanner />
 
       {walkSummary && profile && (
         <WalkSummaryModal

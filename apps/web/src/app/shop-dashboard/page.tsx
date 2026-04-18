@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { ShopProductsModal } from "@/components/shop-products-modal";
+import {
+  FlashPushPanel, EventsPanel, ChallengesPanel, SocialPanel, EmailPanel,
+  AnalyticsProPanel, CompetitorPanel, KiezReportPanel, CustomPinPanel, QrOrderPanel,
+} from "@/components/shop-features";
+import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
 const BG_DEEP = "#0F1115";
@@ -100,8 +105,46 @@ const DEMO_TOP_RUNNERS = [
 
 type SubTab = "overview" | "deals" | "flash" | "spotlight" | "customers" | "performance" | "settings";
 
+type ShopRow = {
+  id: string; name: string;
+  plan?: string | null;
+  spotlight_until?: string | null;
+  radius_boost_until?: string | null;
+  top_listing_until?: string | null;
+  social_pro_until?: string | null;
+  analytics_pro_until?: string | null;
+  competitor_analysis_until?: string | null;
+  custom_pin_url?: string | null;
+  flash_push_credits?: number;
+  event_host_credits?: number;
+  challenge_sponsor_credits?: number;
+  email_campaign_credits?: number;
+  qr_print_ordered_at?: string | null;
+};
+
+function useShop(id: string): [ShopRow, () => void] {
+  const sb = createClient();
+  const [reloadTick, setReloadTick] = useState(0);
+  const fallback: ShopRow = {
+    id, name: DEMO_SHOP.name,
+    plan: "pro",
+    flash_push_credits: 3, event_host_credits: 2, challenge_sponsor_credits: 2, email_campaign_credits: 1,
+    social_pro_until: new Date(Date.now() + 25 * 86400000).toISOString(),
+    analytics_pro_until: new Date(Date.now() + 25 * 86400000).toISOString(),
+    competitor_analysis_until: new Date(Date.now() + 25 * 86400000).toISOString(),
+    spotlight_until: new Date(Date.now() + 2 * 86400000).toISOString(),
+  };
+  const [shop, setShop] = useState<ShopRow>(fallback);
+  useEffect(() => {
+    sb.from("local_businesses").select("*").eq("id", id).maybeSingle()
+      .then(({ data }) => { if (data) setShop(data as ShopRow); });
+  }, [id, reloadTick, sb]);
+  return [shop, () => setReloadTick((t) => t + 1)];
+}
+
 export default function ShopDashboardPage() {
   const [tab, setTab] = useState<SubTab>("overview");
+  const [shop, reloadShop] = useShop(DEMO_SHOP.id);
 
   return (
     <div style={{
@@ -201,11 +244,11 @@ export default function ShopDashboardPage() {
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "20px" }}>
         {tab === "overview"    && <OverviewTab />}
         {tab === "deals"       && <DealsTab />}
-        {tab === "flash"       && <FlashTab />}
-        {tab === "spotlight"   && <SpotlightTab />}
+        {tab === "flash"       && <FlashTab shop={shop} reloadShop={reloadShop} />}
+        {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} />}
         {tab === "customers"   && <CustomersTab />}
-        {tab === "performance" && <PerformanceTab />}
-        {tab === "settings"    && <SettingsTab />}
+        {tab === "performance" && <PerformanceTab shop={shop} />}
+        {tab === "settings"    && <SettingsTab shop={shop} reloadShop={reloadShop} />}
       </main>
     </div>
   );
@@ -562,7 +605,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
 }
 
 /* ═══ Flash-Deals ═══ */
-function FlashTab() {
+function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
   const [pct, setPct] = useState(30);
   const [mins, setMins] = useState(30);
   const [title, setTitle] = useState("Nächste 30 Min: −30% auf Heißgetränke");
@@ -657,6 +700,8 @@ function FlashTab() {
           ))}
         </div>
       </div>
+
+      <FlashPushPanel shop={shop} onUsed={reloadShop} />
     </div>
   );
 }
@@ -671,7 +716,7 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
 }
 
 /* ═══ Spotlight ═══ */
-function SpotlightTab() {
+function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set(["2026-04-20", "2026-04-21", "2026-04-27"]));
   const now = new Date();
   const year = now.getFullYear();
@@ -768,6 +813,11 @@ function SpotlightTab() {
           })}
         </div>
       </div>
+
+      <EventsPanel shop={shop} onUsed={reloadShop} />
+      <ChallengesPanel shop={shop} onUsed={reloadShop} />
+      <CustomPinPanel shop={shop} onUsed={reloadShop} />
+      <QrOrderPanel shop={shop} />
     </div>
   );
 }
@@ -824,7 +874,7 @@ function CustomersTab() {
 }
 
 /* ═══ Performance ═══ */
-function PerformanceTab() {
+function PerformanceTab({ shop }: { shop: ShopRow }) {
   const weeks = [
     { w: "KW 12", checkins: 38, revenue: 470 },
     { w: "KW 13", checkins: 44, revenue: 545 },
@@ -877,12 +927,16 @@ function PerformanceTab() {
       >
         📥 Vollständigen Report als CSV / DATEV exportieren
       </button>
+
+      <AnalyticsProPanel shop={shop} />
+      <CompetitorPanel shop={shop} />
+      <KiezReportPanel shop={shop} />
     </div>
   );
 }
 
 /* ═══ Settings ═══ */
-function SettingsTab() {
+function SettingsTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <SettingsBlock title="🏪 Shop-Profil">
@@ -917,6 +971,9 @@ function SettingsTab() {
         <AccountRow label="Shop pausieren" />
         <AccountRow label="Shop löschen" danger />
       </SettingsBlock>
+
+      <SocialPanel shop={shop} />
+      <EmailPanel shop={shop} onUsed={reloadShop} />
     </div>
   );
 }

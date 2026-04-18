@@ -18,6 +18,7 @@ export type ShopPin = {
   hours?: string;      // Öffnungszeiten
   phone?: string;
   spotlight?: boolean; // leuchtet/pulsiert
+  custom_pin_url?: string | null; // Shop-Custom-Logo als Marker-Bild
 };
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
@@ -228,8 +229,11 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   el.innerHTML = `
     ${spotlightLayers}
     ${spotlightLabel}
-    <div style="position:relative;width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:2.5px solid #FFF;box-shadow:0 4px 10px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 22px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2">
-      <span style="transform:rotate(45deg);font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">${shop.icon}</span>
+    <div style="position:relative;width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:2.5px solid #FFF;box-shadow:0 4px 10px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 22px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2;overflow:hidden">
+      ${shop.custom_pin_url
+        ? `<img src="${shop.custom_pin_url}" alt="${shop.name}" style="transform:rotate(45deg);width:28px;height:28px;border-radius:50%;object-fit:cover" />`
+        : `<span style="transform:rotate(45deg);font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">${shop.icon}</span>`
+      }
     </div>
     <div style="margin-top:2px;padding:2px 6px;border-radius:8px;background:rgba(15,17,21,0.85);border:1px solid ${color}88;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2">${shop.name}</div>
   `;
