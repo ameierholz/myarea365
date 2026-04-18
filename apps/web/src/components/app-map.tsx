@@ -686,6 +686,13 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
+      // circle-translate hebt Halo UP, damit Glow den Pin-Body umschliesst (nicht nur den Tip)
+      const haloTranslate: mapboxgl.ExpressionSpecification = [
+        "interpolate", ["linear"], ["zoom"],
+        12, ["literal", [0, -7]],
+        15, ["literal", [0, -16]],
+        18, ["literal", [0, -25]],
+      ];
       // Spotlight-Halo (Gold). Für Shops mit Spotlight ODER Arena sichtbar, Gold wins.
       map.addLayer({
         id: LYR_HALO_OUTER, type: "circle", source: SRC,
@@ -694,6 +701,7 @@ export function AppMap({
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 18, 15, 55, 18, 95],
           "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.22, 0],
           "circle-blur": 1.1,
+          "circle-translate": haloTranslate,
         },
       });
       map.addLayer({
@@ -703,6 +711,7 @@ export function AppMap({
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 12, 15, 38, 18, 64],
           "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.55, 0],
           "circle-blur": 0.7,
+          "circle-translate": haloTranslate,
         },
       });
       map.addLayer({
@@ -712,19 +721,20 @@ export function AppMap({
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 7, 15, 22, 18, 38],
           "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.65, 0],
           "circle-blur": 0.25,
+          "circle-translate": haloTranslate,
         },
       });
-      // Arena-Extra-Ring: scharfer lila/magenta Akzent ZUSÄTZLICH zum Gold
+      // Arena-Extra-Ring: scharfer Magenta-Ring OHNE Fill (nur Outline), liegt AUSSEN
       map.addLayer({
         id: LYR_HALO_OUTER + "-arena", type: "circle", source: SRC,
         paint: {
-          "circle-color": "#FF2D78",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 10, 15, 32, 18, 55],
-          "circle-opacity": ["case", ["==", ["get", "arena"], true], 0.45, 0],
-          "circle-blur": 0.5,
-          "circle-stroke-color": "#a855f7",
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 12, 1.5, 15, 2.5, 18, 4],
-          "circle-stroke-opacity": ["case", ["==", ["get", "arena"], true], 0.85, 0],
+          "circle-color": "rgba(0,0,0,0)",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 16, 15, 48, 18, 80],
+          "circle-opacity": ["case", ["==", ["get", "arena"], true], 1, 0],
+          "circle-stroke-color": "#FF2D78",
+          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 12, 3, 15, 5, 18, 8],
+          "circle-stroke-opacity": ["case", ["==", ["get", "arena"], true], 0.95, 0],
+          "circle-translate": haloTranslate,
         },
       });
       map.addLayer({
@@ -741,8 +751,8 @@ export function AppMap({
         id: LYR_BADGE, type: "symbol", source: SRC,
         layout: {
           "icon-image": "badge-spotlight",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.10, 15, 0.22, 18, 0.34],
-          "icon-offset": [0, -260],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.07, 15, 0.14, 18, 0.22],
+          "icon-offset": [0, -980],
           "icon-anchor": "bottom",
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
