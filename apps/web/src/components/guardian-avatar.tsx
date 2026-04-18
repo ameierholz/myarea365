@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { RARITY_META, type GuardianArchetype, type GuardianRarity } from "@/lib/guardian";
 
-// Archetypen fuer die AI-Portraits existieren. Hier eintragen wenn neue Bilder
-// nach apps/web/public/guardians/<id>_idle.png / <id>_attack.png gelegt werden.
-// Leer lassen → automatisches Fallback auf prozeduralen SVG-Avatar.
+// Wenn Archetyp hier drin → Videos (WebM/MP4) werden gerendert
+// Dateien: apps/web/public/guardians/<id>_idle.webm und <id>_attack.webm
+const VIDEO_AVAILABLE = new Set<string>([
+  // "stadtfuchs", "eber", "drache", ... — eintragen sobald WebMs im Ordner liegen
+]);
+
+// Wenn Archetyp hier drin → statisches PNG wird gerendert
+// Dateien: apps/web/public/guardians/<id>_idle.png und <id>_attack.png
 const ARTWORK_AVAILABLE = new Set<string>([
-  // "stadtfuchs", "dachs", "nachteule", ... — hier eintragen sobald PNGs in /public/guardians/ liegen
+  // "stadtfuchs", "eber", "drache", ...
 ]);
 
 export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "special" | "ko" | "revive";
@@ -31,10 +36,77 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
   const animClass = `anim-${animation}`;
 
   // Wenn AI-Portraits existieren → PNG rendern, sonst SVG-Fallback.
-  const usePortrait = ARTWORK_AVAILABLE.has(archetype.id);
+  const useVideo = VIDEO_AVAILABLE.has(archetype.id);
+  const usePortrait = !useVideo && ARTWORK_AVAILABLE.has(archetype.id);
   const variant = animation === "attack" || animation === "crit" ? "attack" : "idle";
   const portraitSrc = `/guardians/${archetype.id}_${variant}.png`;
+  const videoSrc = `/guardians/${archetype.id}_${variant}.webm`;
   const [portraitFailed, setPortraitFailed] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Bei Attack/Crit einmal abspielen dann auf Idle zurueck via Ref
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.currentTime = 0;
+    v.loop = variant === "idle";
+    void v.play().catch(() => {});
+  }, [variant, animation]);
+
+  if (useVideo && !videoFailed) {
+    return (
+      <div
+        className={animClass}
+        style={{
+          width: size,
+          height: size * 1.25,
+          position: "relative",
+          filter: `drop-shadow(0 6px 14px ${rarity.glow})`,
+        }}
+      >
+        <div style={{
+          position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
+          width: size * 0.55, height: 8, borderRadius: "50%",
+          background: "radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%)",
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: `radial-gradient(circle at 50% 45%, ${rarity.glow}, transparent 60%)`,
+          opacity: 0.85,
+        }} className="aura-ring" />
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          autoPlay
+          muted
+          playsInline
+          loop={variant === "idle"}
+          onError={() => setVideoFailed(true)}
+          poster={`/guardians/${archetype.id}_idle.png`}
+          style={{
+            position: "relative",
+            width: "100%", height: "100%",
+            objectFit: "contain",
+            transform: flip,
+            filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
+          }}
+        />
+        <style jsx>{`
+          .aura-ring { animation: aura-pulse 2.6s ease-in-out infinite; }
+          .anim-crit video { animation: crit-zoom 0.55s cubic-bezier(0.4, 1.7, 0.5, 0.95); }
+          .anim-hit  video { animation: hit-shake 0.35s; }
+          .anim-ko   video { animation: ko-fall 0.9s forwards; }
+          .anim-revive video { animation: revive-rise 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
+          @keyframes aura-pulse   { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.12); } }
+          @keyframes crit-zoom    { 0%,100% { transform: scale(1); } 40% { transform: scale(1.22); filter: brightness(1.7) drop-shadow(0 0 25px #FFD700); } }
+          @keyframes hit-shake    { 0% { transform: translateX(0); } 20% { transform: translateX(-6px); filter: brightness(0.6) saturate(3) hue-rotate(-30deg); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
+          @keyframes ko-fall      { 0% { transform: rotate(0) translateY(0); opacity: 1; } 60% { transform: rotate(85deg) translateY(20px); opacity: 0.9; } 100% { transform: rotate(95deg) translateY(25px); opacity: 0.35; } }
+          @keyframes revive-rise  { 0% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: saturate(0); } 100% { transform: rotate(0) translateY(0); opacity: 1; filter: saturate(1) drop-shadow(0 0 20px #FFD700); } }
+        `}</style>
+      </div>
+    );
+  }
 
   if (usePortrait && !portraitFailed) {
     return (
