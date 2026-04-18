@@ -18,6 +18,7 @@ export type ShopPin = {
   hours?: string;      // Öffnungszeiten
   phone?: string;
   spotlight?: boolean; // leuchtet/pulsiert
+  arena?: boolean;     // hat aktive Arena (lila Glow)
   custom_pin_url?: string | null; // Shop-Custom-Logo als Marker-Bild
 };
 
@@ -562,9 +563,10 @@ export function AppMap({
     if (!map) return;
 
     const SRC = "shops-source";
-    const LYR_GLOW    = "shops-spotlight-glow";
-    const LYR_PIN     = "shops-pin-drop";
-    const LYR_LABEL   = "shops-pin-label";
+    const LYR_ARENA_GLOW = "shops-arena-glow";
+    const LYR_GLOW       = "shops-spotlight-glow";
+    const LYR_PIN        = "shops-pin-drop";
+    const LYR_LABEL      = "shops-pin-label";
 
     // Fuer jeden Shop ein eigenes Pin-Image generieren (Color + Emoji + Gradient + Border)
     // Mapbox downsampled das high-res Image beim Zoomen → immer scharf
@@ -650,6 +652,7 @@ export function AppMap({
           image_key: imageKeyFor(s),
           color: s.color || "#FFD700",
           spotlight: !!s.spotlight,
+          arena: !!s.arena,
         },
       })),
     };
@@ -660,14 +663,25 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Spotlight-Glow (weicher pulsierender Circle)
+      // Arena-Glow (lila, drunter damit Spotlight oben drueber liegen kann)
+      map.addLayer({
+        id: LYR_ARENA_GLOW, type: "circle", source: SRC,
+        filter: ["==", ["get", "arena"], true],
+        paint: {
+          "circle-color": "#a855f7",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 15, 30, 18, 50],
+          "circle-opacity": 0.45,
+          "circle-blur": 1.0,
+        },
+      });
+      // Spotlight-Glow (gold, pulsiert via RAF)
       map.addLayer({
         id: LYR_GLOW, type: "circle", source: SRC,
-        filter: ["get", "spotlight"],
+        filter: ["==", ["get", "spotlight"], true],
         paint: {
           "circle-color": "#FFD700",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 15, 34, 18, 56],
-          "circle-opacity": 0.38,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 12, 15, 38, 18, 60],
+          "circle-opacity": 0.5,
           "circle-blur": 1.2,
         },
       });
@@ -676,7 +690,7 @@ export function AppMap({
         id: LYR_PIN, type: "symbol", source: SRC,
         layout: {
           "icon-image": ["get", "image_key"],
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.12, 13, 0.22, 15, 0.35, 18, 0.52],
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.06, 13, 0.13, 15, 0.22, 18, 0.34],
           "icon-anchor": "bottom",
           "icon-allow-overlap": true,
           "icon-ignore-placement": true,
@@ -707,38 +721,45 @@ export function AppMap({
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onShopClick(id);
         };
-        [LYR_PIN, LYR_LABEL, LYR_GLOW].forEach((l) => {
+        [LYR_PIN, LYR_LABEL, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
           map.on("click", l, onClick);
           map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
           map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
         });
       }
 
-      // Spotlight-Glow-Pulse via Animation-Loop
+      // Glow-Pulse (Spotlight + Arena) via RAF
       let t = 0;
       const pulse = () => {
         t += 1;
         const phase = Math.sin(t * 0.04);
-        const op = 0.28 + phase * 0.18;
-        const r = (z: number, base: number) => base + phase * (base * 0.22);
+        const opSpotlight = 0.42 + phase * 0.22;
+        const opArena     = 0.38 + phase * 0.18;
+        const r = (base: number) => base + phase * (base * 0.2);
         if (map.getLayer(LYR_GLOW)) {
-          map.setPaintProperty(LYR_GLOW, "circle-opacity", op);
+          map.setPaintProperty(LYR_GLOW, "circle-opacity", opSpotlight);
           map.setPaintProperty(LYR_GLOW, "circle-radius", [
             "interpolate", ["linear"], ["zoom"],
-            11, r(11, 8), 15, r(15, 28), 18, r(18, 48),
+            11, r(12), 15, r(38), 18, r(60),
+          ]);
+        }
+        if (map.getLayer(LYR_ARENA_GLOW)) {
+          map.setPaintProperty(LYR_ARENA_GLOW, "circle-opacity", opArena);
+          map.setPaintProperty(LYR_ARENA_GLOW, "circle-radius", [
+            "interpolate", ["linear"], ["zoom"],
+            11, r(10), 15, r(30), 18, r(50),
           ]);
         }
         pulseRaf = requestAnimationFrame(pulse);
       };
       let pulseRaf = requestAnimationFrame(pulse);
-      // Cleanup ueber Closure: store in map state
       (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf = pulseRaf;
     }
 
     return () => {
       const raf = (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf;
       if (raf) cancelAnimationFrame(raf);
-      [LYR_LABEL, LYR_PIN, LYR_GLOW].forEach((l) => {
+      [LYR_LABEL, LYR_PIN, LYR_GLOW, LYR_ARENA_GLOW].forEach((l) => {
         if (map.getLayer(l)) map.removeLayer(l);
       });
       if (map.getSource(SRC)) map.removeSource(SRC);

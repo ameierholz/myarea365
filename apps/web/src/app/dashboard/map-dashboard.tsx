@@ -537,7 +537,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // Demo-Shops mit realen Adressen + Geocoding via Mapbox Geocoding API
   const [demoShops, setDemoShops] = useState<Array<{
     id: string; name: string; lat: number; lng: number; icon: string; color: string;
-    deal_text: string; address: string; hours: string; phone: string; spotlight?: boolean;
+    deal_text: string; address: string; hours: string; phone: string; spotlight?: boolean; arena?: boolean;
   }>>([
     // Start: grobe Koordinaten Märkisches Viertel (werden gleich per Geocoding präzisiert)
     { id: "aaaaaaaa-1111-1111-1111-111111111111",   name: "Café Kaelthor",  lat: 52.5421, lng: 13.5653, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 91, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
@@ -549,28 +549,35 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     if (!token) return;
     let cancelled = false;
     (async () => {
-      // Echte Shop-Daten aus DB holen (Spotlight + Custom-Pin + Radius berücksichtigen)
-      const { data: liveShops } = await supabase
-        .from("local_businesses")
-        .select("id, name, spotlight_until, custom_pin_url, radius_boost_until, top_listing_until");
+      // Echte Shop-Daten aus DB holen (Spotlight + Custom-Pin + Radius + Arena)
+      const [liveShopsRes, arenaRes] = await Promise.all([
+        supabase.from("local_businesses").select("id, name, spotlight_until, custom_pin_url, radius_boost_until, top_listing_until"),
+        supabase.from("shop_arenas").select("business_id, status, expires_at").eq("status", "active"),
+      ]);
       const liveById = new Map(
-        (liveShops ?? []).map((s) => [s.id, s as { id: string; spotlight_until: string | null; custom_pin_url: string | null; radius_boost_until: string | null; top_listing_until: string | null }]),
+        (liveShopsRes.data ?? []).map((s) => [s.id, s as { id: string; spotlight_until: string | null; custom_pin_url: string | null; radius_boost_until: string | null; top_listing_until: string | null }]),
+      );
+      const arenaActiveBy = new Set(
+        (arenaRes.data ?? [])
+          .filter((a: { expires_at: string }) => new Date(a.expires_at).getTime() > Date.now())
+          .map((a: { business_id: string }) => a.business_id),
       );
 
       const next = await Promise.all(demoShops.map(async (s) => {
         const live = liveById.get(s.id);
         const spotlight = live?.spotlight_until ? new Date(live.spotlight_until).getTime() > Date.now() : s.spotlight;
         const customPin = live?.custom_pin_url && live.custom_pin_url !== "pending" ? live.custom_pin_url : null;
+        const arena = arenaActiveBy.has(s.id);
         try {
           const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(s.address)}.json?country=de&limit=1&access_token=${token}`;
           const res = await fetch(url);
           const data = await res.json();
           const center = data?.features?.[0]?.center;
           if (Array.isArray(center) && center.length === 2) {
-            return { ...s, lng: center[0], lat: center[1], spotlight, custom_pin_url: customPin };
+            return { ...s, lng: center[0], lat: center[1], spotlight, arena, custom_pin_url: customPin };
           }
         } catch { /* ignore, behalte Fallback */ }
-        return { ...s, spotlight, custom_pin_url: customPin };
+        return { ...s, spotlight, arena, custom_pin_url: customPin };
       }));
       if (!cancelled) setDemoShops(next);
     })();
