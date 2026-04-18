@@ -27,7 +27,7 @@ const DEMO_SHOP = {
   name: "Café Kaelthor",
   owner: "Kaelthor Malven",
   category: "Café & Bäcker",
-  address: "Senftenberger Ring 42, 13435 Berlin",
+  address: "Senftenberger Ring 91, 13435 Berlin",
   plan: "Pro",
   planColor: "#FFD700",
   created: "2026-01-12",

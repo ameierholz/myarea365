@@ -536,7 +536,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     deal_text: string; address: string; hours: string; phone: string; spotlight?: boolean;
   }>>([
     // Start: grobe Koordinaten Märkisches Viertel (werden gleich per Geocoding präzisiert)
-    { id: "shop-kaelthor",   name: "Café Kaelthor",  lat: 52.5942, lng: 13.3408, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 42, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
+    { id: "shop-kaelthor",   name: "Café Kaelthor",  lat: 52.5421, lng: 13.5653, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 91, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
     { id: "shop-bio-bowl",   name: "Bio-Bowl",       lat: 52.5965, lng: 13.3480, icon: "🥗", color: "#4ade80", deal_text: "Gratis Smoothie zur Bowl", address: "Königshorster Straße 8, 13435 Berlin", hours: "Mo–Sa 11–21, So Ruhetag", phone: "030 98765432" },
     { id: "shop-runners-pt", name: "Runners Point",  lat: 52.5920, lng: 13.3465, icon: "🛍️", color: "#22D1C3", deal_text: "15% auf den Einkauf",       address: "Wilhelmsruher Damm 117, 13439 Berlin", hours: "Mo–Sa 10–20",              phone: "030 55512345" },
   ]);
