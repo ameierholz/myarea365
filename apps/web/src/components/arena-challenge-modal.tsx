@@ -5,20 +5,26 @@ import { createClient } from "@/lib/supabase/client";
 import type { RoundEvent } from "@/lib/battle-engine";
 import type { GuardianWithArchetype, GuardianArchetype } from "@/lib/guardian";
 import { GuardianCard } from "@/components/guardian-card";
-import { GuardianAvatar } from "@/components/guardian-avatar";
 import { CinematicBattleArena } from "@/components/battle-arena";
 import { RARITY_META, statsAtLevel } from "@/lib/guardian";
 
-type EligibleCrew = { id: string; name: string; guardian: GuardianWithArchetype | null };
+type EligibleRunner = {
+  user_id: string;
+  display_name: string;
+  username: string | null;
+  crew_name: string | null;
+  guardian: GuardianWithArchetype | null;
+};
 
 type BattleResponse = {
   battle_id: string;
   winner: "A" | "B" | "draw";
-  winner_crew_id: string | null;
+  winner_user_id: string | null;
   rounds: RoundEvent[];
   xp_awarded: number;
   final_hp_a: number;
   final_hp_b: number;
+  fusion: { kind: "fusion" | "trophy"; description: string } | null;
 };
 
 export function ArenaChallengeModal({ businessId, businessName, onClose }: {
@@ -28,11 +34,11 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
 }) {
   const sb = createClient();
   const [phase, setPhase] = useState<"pick" | "fighting" | "result">("pick");
-  const [eligible, setEligible] = useState<EligibleCrew[]>([]);
+  const [eligible, setEligible] = useState<EligibleRunner[]>([]);
   const [myGuardian, setMyGuardian] = useState<GuardianWithArchetype | null>(null);
-  const [picked, setPicked] = useState<EligibleCrew | null>(null);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<EligibleRunner | null>(null);
   const [battle, setBattle] = useState<BattleResponse | null>(null);
-  const [replayIdx, setReplayIdx] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,60 +46,78 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
     (async () => {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) { setError("Nicht eingeloggt"); setLoading(false); return; }
-      const { data: prof } = await sb.from("users").select("current_crew_id").eq("id", user.id).maybeSingle<{ current_crew_id: string | null }>();
-      const myCrewId = prof?.current_crew_id;
-      if (!myCrewId) { setError("Du bist in keiner Crew"); setLoading(false); return; }
+      setMyUserId(user.id);
 
       // Mein Waechter
-      const { data: g } = await sb.from("crew_guardians")
-        .select("id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
-        .eq("crew_id", myCrewId).eq("is_active", true).maybeSingle();
+      const { data: g } = await sb.from("user_guardians")
+        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+        .eq("user_id", user.id).eq("is_active", true).maybeSingle();
       if (g) {
-        const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single();
-        setMyGuardian({ ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch });
+        const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single<GuardianArchetype>();
+        if (arch) setMyGuardian({ ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch });
       }
 
-      // Eligible Crews (die in den letzten 7d einen Deal bei diesem Shop hatten, außer meine)
+      // Eligible Runner: alle User deren Crew in 7T einen Deal eingelöst hat
       const since = new Date(Date.now() - 7 * 86400000).toISOString();
       const { data: reds } = await sb.from("deal_redemptions")
         .select("user_id")
         .eq("business_id", businessId)
         .eq("status", "verified")
         .gte("verified_at", since);
-      if (reds && reds.length > 0) {
-        const uids = Array.from(new Set(reds.map((r: { user_id: string }) => r.user_id)));
-        const { data: users } = await sb.from("users").select("current_crew_id").in("id", uids);
-        const crewIds = Array.from(new Set((users ?? []).map((u: { current_crew_id: string | null }) => u.current_crew_id).filter((c): c is string => !!c && c !== myCrewId)));
-        if (crewIds.length > 0) {
-          const { data: crews } = await sb.from("crews").select("id, name").in("id", crewIds);
-          const { data: gs } = await sb.from("crew_guardians")
-            .select("id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
-            .in("crew_id", crewIds).eq("is_active", true);
-          const archIds = Array.from(new Set((gs ?? []).map((x: { archetype_id: string }) => x.archetype_id)));
-          const { data: archs } = await sb.from("guardian_archetypes").select("*").in("id", archIds).returns<GuardianArchetype[]>();
-          const archMap = new Map((archs ?? []).map((a) => [a.id, a]));
-          setEligible((crews ?? []).map((c: { id: string; name: string }) => {
-            const guard = (gs ?? []).find((x: { crew_id: string }) => x.crew_id === c.id);
-            const arch = guard ? archMap.get(guard.archetype_id) : undefined;
-            return {
-              id: c.id, name: c.name,
-              guardian: guard && arch ? { ...(guard as Omit<GuardianWithArchetype, "archetype">), archetype: arch } : null,
-            };
-          }));
-        }
-      }
+      if (!reds || reds.length === 0) { setLoading(false); return; }
+
+      // Alle User deren current_crew_id einer eligible-Crew entspricht
+      const userIds = Array.from(new Set(reds.map((r: { user_id: string }) => r.user_id)));
+      const { data: redeemingUsers } = await sb.from("users").select("current_crew_id").in("id", userIds);
+      const eligibleCrews = new Set((redeemingUsers ?? []).map((u: { current_crew_id: string | null }) => u.current_crew_id).filter((c): c is string => !!c));
+      if (eligibleCrews.size === 0) { setLoading(false); return; }
+
+      const { data: runners } = await sb.from("users")
+        .select("id, display_name, username, current_crew_id")
+        .in("current_crew_id", Array.from(eligibleCrews))
+        .neq("id", user.id);
+      if (!runners || runners.length === 0) { setLoading(false); return; }
+
+      const runnerIds = runners.map((r: { id: string }) => r.id);
+      const crewIds = Array.from(new Set(runners.map((r: { current_crew_id: string | null }) => r.current_crew_id).filter((c): c is string => !!c)));
+
+      const [guardsRes, crewsRes] = await Promise.all([
+        sb.from("user_guardians")
+          .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+          .in("user_id", runnerIds).eq("is_active", true),
+        crewIds.length > 0 ? sb.from("crews").select("id, name").in("id", crewIds) : Promise.resolve({ data: [] }),
+      ]);
+      const archIds = Array.from(new Set((guardsRes.data ?? []).map((x: { archetype_id: string }) => x.archetype_id)));
+      const { data: archs } = archIds.length > 0 ? await sb.from("guardian_archetypes").select("*").in("id", archIds).returns<GuardianArchetype[]>() : { data: [] };
+      const archMap = new Map((archs ?? []).map((a) => [a.id, a]));
+      const crewMap = new Map((crewsRes.data ?? []).map((c: { id: string; name: string }) => [c.id, c.name]));
+      const guardByUser = new Map((guardsRes.data ?? []).map((gr) => [(gr as { user_id: string }).user_id, gr]));
+
+      const runnersWithGuards: EligibleRunner[] = runners.map((r: { id: string; display_name: string | null; username: string | null; current_crew_id: string | null }) => {
+        const gr = guardByUser.get(r.id);
+        const arch = gr ? archMap.get((gr as { archetype_id: string }).archetype_id) : undefined;
+        return {
+          user_id: r.id,
+          display_name: r.display_name ?? r.username ?? "Runner",
+          username: r.username,
+          crew_name: r.current_crew_id ? (crewMap.get(r.current_crew_id) ?? null) : null,
+          guardian: gr && arch ? { ...(gr as Omit<GuardianWithArchetype, "archetype">), archetype: arch } : null,
+        };
+      });
+      setEligible(runnersWithGuards);
       setLoading(false);
     })();
   }, [sb, businessId]);
 
-  async function launchBattle(target: EligibleCrew) {
+  async function launchBattle(target: EligibleRunner) {
     if (!myGuardian) return;
     setPicked(target);
     setPhase("fighting");
+    setError(null);
     try {
       const res = await fetch("/api/arena/challenge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ business_id: businessId, defender_crew_id: target.id }),
+        body: JSON.stringify({ business_id: businessId, defender_user_id: target.user_id }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({ error: res.status }));
@@ -101,8 +125,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
         setPhase("pick");
         return;
       }
-      const data = await res.json() as BattleResponse;
-      setBattle(data);
+      setBattle(await res.json() as BattleResponse);
     } catch (e) {
       setError(String(e)); setPhase("pick");
     }
@@ -110,9 +133,6 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
 
   const aMaxHp = myGuardian ? statsAtLevel(myGuardian.archetype, myGuardian.level).hp : 100;
   const bMaxHp = picked?.guardian ? statsAtLevel(picked.guardian.archetype, picked.guardian.level).hp : 100;
-  const currentRound = battle?.rounds[Math.min(replayIdx, battle.rounds.length - 1)];
-  const hpA = currentRound?.hp_a_after ?? (battle?.final_hp_a ?? aMaxHp);
-  const hpB = currentRound?.hp_b_after ?? (battle?.final_hp_b ?? bMaxHp);
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3500, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
@@ -121,7 +141,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
           <span style={{ fontSize: 26 }}>⚔️</span>
           <div style={{ flex: 1 }}>
             <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Arena · {businessName}</div>
-            <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>CREW VS CREW</div>
+            <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>RUNNER VS RUNNER</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
@@ -137,7 +157,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
         ) : phase === "pick" ? (
           <>
             {!myGuardian ? (
-              <div style={{ color: "#a8b4cf", padding: 20, textAlign: "center" }}>Deine Crew hat keinen aktiven Wächter.</div>
+              <div style={{ color: "#a8b4cf", padding: 20, textAlign: "center" }}>Du hast keinen aktiven Wächter.</div>
             ) : (
               <>
                 <div style={{ marginBottom: 14 }}>
@@ -149,27 +169,28 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
                 </div>
                 {eligible.length === 0 ? (
                   <div style={{ padding: 16, borderRadius: 10, background: "rgba(70,82,122,0.3)", color: "#a8b4cf", fontSize: 12, textAlign: "center" }}>
-                    Keine Crew hat in den letzten 7 Tagen bei diesem Shop eingelöst. Lade Freunde ein!
+                    Keine Runner aus eligible Crews. Warte bis mehr Mitglieder hier einlösen!
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {eligible.map((c) => (
-                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 10, background: "rgba(70,82,122,0.35)" }}>
-                        <span style={{ fontSize: 24 }}>{c.guardian?.archetype.emoji ?? "❓"}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{c.name}</div>
-                          <div style={{ color: RARITY_META[c.guardian?.archetype.rarity ?? "common"].color, fontSize: 10, fontWeight: 700 }}>
-                            {c.guardian ? `${c.guardian.archetype.name} · Lv ${c.guardian.level}` : "Kein Wächter"}
+                    {eligible.map((r) => (
+                      <div key={r.user_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 10, background: "rgba(70,82,122,0.35)" }}>
+                        <span style={{ fontSize: 28 }}>{r.guardian?.archetype.emoji ?? "❓"}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.display_name}</div>
+                          <div style={{ color: RARITY_META[r.guardian?.archetype.rarity ?? "common"].color, fontSize: 10, fontWeight: 700 }}>
+                            {r.guardian ? `${r.guardian.archetype.name} · Lv ${r.guardian.level}` : "Kein Wächter"}
+                            {r.crew_name && <span style={{ color: "#8B8FA3", marginLeft: 6 }}>· {r.crew_name}</span>}
                           </div>
                         </div>
                         <button
-                          onClick={() => launchBattle(c)}
-                          disabled={!c.guardian}
+                          onClick={() => launchBattle(r)}
+                          disabled={!r.guardian || r.user_id === myUserId}
                           style={{
                             padding: "8px 14px", borderRadius: 8,
-                            background: c.guardian ? "linear-gradient(135deg, #a855f7, #FF2D78)" : "rgba(139,143,163,0.2)",
-                            border: "none", color: c.guardian ? "#FFF" : "#8B8FA3",
-                            fontSize: 11, fontWeight: 900, cursor: c.guardian ? "pointer" : "not-allowed",
+                            background: r.guardian ? "linear-gradient(135deg, #a855f7, #FF2D78)" : "rgba(139,143,163,0.2)",
+                            border: "none", color: r.guardian ? "#FFF" : "#8B8FA3",
+                            fontSize: 11, fontWeight: 900, cursor: r.guardian ? "pointer" : "not-allowed",
                           }}
                         >
                           ANGRIFF
@@ -206,6 +227,11 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
               <div style={{ color: "#FFD700", fontSize: 14, fontWeight: 800, marginTop: 4 }}>
                 +{battle.xp_awarded} Wächter-XP
               </div>
+              {battle.fusion && (
+                <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.5)", color: "#FFD700", fontSize: 12, fontWeight: 800 }}>
+                  {battle.fusion.kind === "fusion" ? "⚡ " : "🏆 "}{battle.fusion.description}
+                </div>
+              )}
             </div>
             <button onClick={onClose} style={{ width: "100%", padding: 14, borderRadius: 12, background: "#22D1C3", color: "#0F1115", border: "none", fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
               Weiter
@@ -216,4 +242,3 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
     </div>
   );
 }
-

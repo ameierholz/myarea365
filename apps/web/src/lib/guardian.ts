@@ -17,7 +17,8 @@ export type GuardianArchetype = {
 
 export type CrewGuardian = {
   id: string;
-  crew_id: string;
+  user_id: string;
+  crew_id: string | null;
   archetype_id: string;
   custom_name: string | null;
   level: number;

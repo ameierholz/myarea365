@@ -1332,6 +1332,10 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
+        {/* ═══ WÄCHTER ═══ */}
+        <SectionHeader title="WÄCHTER" />
+        <ProfileGuardianBlock userId={p?.id ?? null} />
+
         {/* ═══ LETZTE LÄUFE ═══ */}
         <SectionHeader title="LETZTE LÄUFE" />
         {effectiveRecentRuns.length === 0 ? (
@@ -7177,22 +7181,24 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
   const activeMembers = DEMO_CREW_MEMBERS.filter((m) => m.weekly_km > 0).length;
   const activePct = Math.round((activeMembers / DEMO_CREW_MEMBERS.length) * 100);
 
-  // Waechter laden (live aus DB)
+  // Mein Waechter laden (Runner-Level)
   const sb = useMemo(() => createClient(), []);
   const [guardian, setGuardian] = useState<GuardianWithArchetype | null>(null);
   const [trophies, setTrophies] = useState<Array<{ id: string; archetype_id: string; captured_level: number }>>([]);
   useEffect(() => {
     (async () => {
-      const { data: g } = await sb.from("crew_guardians")
-        .select("id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
-        .eq("crew_id", crew.id).eq("is_active", true).maybeSingle();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { data: g } = await sb.from("user_guardians")
+        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+        .eq("user_id", user.id).eq("is_active", true).maybeSingle();
       if (!g) return;
       const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single();
       if (arch) setGuardian({ ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch });
-      const { data: t } = await sb.from("guardian_trophies").select("id, archetype_id, captured_level").eq("crew_id", crew.id);
+      const { data: t } = await sb.from("guardian_trophies").select("id, archetype_id, captured_level").eq("user_id", user.id);
       if (t) setTrophies(t);
     })();
-  }, [sb, crew.id]);
+  }, [sb]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -7200,7 +7206,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {guardian && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>🛡️ AKTIVER WÄCHTER</div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>🛡️ DEIN WÄCHTER</div>
             {trophies.length > 0 && (
               <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900 }}>🏆 {trophies.length}</span>
             )}
@@ -7378,8 +7384,9 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
 /* ═══ Members ═══ */
 function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: string }) {
   const sb = useMemo(() => createClient(), []);
-  const [active, setActive] = useState<GuardianWithArchetype | null>(null);
-  const [roster, setRoster] = useState<GuardianWithArchetype[]>([]);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const [myGuardian, setMyGuardian] = useState<GuardianWithArchetype | null>(null);
+  const [memberGuardians, setMemberGuardians] = useState<Array<GuardianWithArchetype & { user_display: string }>>([]);
   const [trophies, setTrophies] = useState<Array<{ id: string; archetype_id: string; captured_level: number; captured_at: string; archetype?: { name: string; emoji: string; rarity: string } }>>([]);
   const [recentBattles, setRecentBattles] = useState<Array<{ id: string; winner_crew_id: string | null; challenger_crew_id: string; defender_crew_id: string; created_at: string; business_name?: string }>>([]);
   const [loading, setLoading] = useState(true);
@@ -7387,16 +7394,27 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const { data: { user } } = await sb.auth.getUser();
+      if (user) setMyUserId(user.id);
+
+      // Alle Crew-Mitglieder
+      const { data: members } = await sb.from("users").select("id, display_name, username").eq("current_crew_id", crewId);
+      const memberIds = (members ?? []).map((m: { id: string }) => m.id);
+      const memberMap = new Map((members ?? []).map((m: { id: string; display_name: string | null; username: string | null }) => [m.id, m.display_name ?? m.username ?? "Runner"]));
+
       const [guardsRes, trophiesRes, battlesRes] = await Promise.all([
-        sb.from("crew_guardians")
-          .select("id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
-          .eq("crew_id", crewId),
-        sb.from("guardian_trophies").select("id, archetype_id, captured_level, captured_at").eq("crew_id", crewId).order("captured_at", { ascending: false }),
+        memberIds.length > 0
+          ? sb.from("user_guardians")
+              .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+              .in("user_id", memberIds).eq("is_active", true)
+          : Promise.resolve({ data: [] }),
+        memberIds.length > 0
+          ? sb.from("guardian_trophies").select("id, archetype_id, captured_level, captured_at").in("user_id", memberIds).order("captured_at", { ascending: false })
+          : Promise.resolve({ data: [] }),
         sb.from("arena_battles").select("id, winner_crew_id, challenger_crew_id, defender_crew_id, business_id, created_at").or(`challenger_crew_id.eq.${crewId},defender_crew_id.eq.${crewId}`).order("created_at", { ascending: false }).limit(8),
       ]);
       if (cancelled) return;
 
-      // Archetypen fuer Guardians + Trophies laden
       const archIds = Array.from(new Set([
         ...(guardsRes.data ?? []).map((g: { archetype_id: string }) => g.archetype_id),
         ...(trophiesRes.data ?? []).map((t: { archetype_id: string }) => t.archetype_id),
@@ -7406,14 +7424,21 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
         : { data: [] };
       const archMap = new Map((archs ?? []).map((a: { id: string }) => [a.id, a]));
 
-      const guards: GuardianWithArchetype[] = (guardsRes.data ?? [])
+      const guards: Array<GuardianWithArchetype & { user_display: string }> = (guardsRes.data ?? [])
         .map((g) => {
           const arch = archMap.get((g as { archetype_id: string }).archetype_id);
-          return arch ? { ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch as GuardianWithArchetype["archetype"] } : null;
+          if (!arch) return null;
+          return {
+            ...(g as Omit<GuardianWithArchetype, "archetype">),
+            archetype: arch as GuardianWithArchetype["archetype"],
+            user_display: memberMap.get((g as { user_id: string }).user_id) ?? "Runner",
+          };
         })
-        .filter((g): g is GuardianWithArchetype => g !== null);
-      setActive(guards.find((g) => g.is_active) ?? null);
-      setRoster(guards);
+        .filter((g): g is GuardianWithArchetype & { user_display: string } => g !== null);
+
+      if (user) setMyGuardian(guards.find((g) => g.user_id === user.id) ?? null);
+      setMemberGuardians(guards);
+
       setTrophies((trophiesRes.data ?? []).map((t) => ({ ...(t as { id: string; archetype_id: string; captured_level: number; captured_at: string }), archetype: archMap.get((t as { archetype_id: string }).archetype_id) as { name: string; emoji: string; rarity: string } | undefined })));
 
       if (battlesRes.data && battlesRes.data.length > 0) {
@@ -7431,26 +7456,34 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Aktiver Waechter — groß */}
-      {active && (
+      {/* Mein Waechter — groß */}
+      {myGuardian && (
         <div>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>⚔️ AKTIV IM KAMPF</div>
-          <GuardianCard guardian={active} />
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>⚔️ DEIN WÄCHTER</div>
+          <GuardianCard guardian={myGuardian} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 10 }}>
-            <MiniKpi label="Siege" value={`${active.wins}`} color="#4ade80" />
-            <MiniKpi label="Niederlagen" value={`${active.losses}`} color="#FF2D78" />
-            <MiniKpi label="Quelle" value={active.source === "initial" ? "Gegründet" : active.source === "fused" ? "Fusion" : active.source === "captured" ? "Erobert" : "Gekauft"} color={crewColor} />
+            <MiniKpi label="Siege" value={`${myGuardian.wins}`} color="#4ade80" />
+            <MiniKpi label="Niederlagen" value={`${myGuardian.losses}`} color="#FF2D78" />
+            <MiniKpi label="Quelle" value={myGuardian.source === "initial" ? "Start" : myGuardian.source === "fused" ? "Fusion" : myGuardian.source === "captured" ? "Erobert" : "Gekauft"} color={crewColor} />
           </div>
         </div>
       )}
 
-      {/* Weitere Waechter (Fusionen, gekaufte etc.) */}
-      {roster.length > 1 && (
+      {/* Waechter der anderen Crew-Mitglieder */}
+      {memberGuardians.filter((g) => g.user_id !== myUserId).length > 0 && (
         <div>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>WEITERE WÄCHTER ({roster.length - 1})</div>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+            👥 WÄCHTER DER CREW ({memberGuardians.filter((g) => g.user_id !== myUserId).length})
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {roster.filter((g) => !g.is_active).map((g) => (
-              <GuardianCard key={g.id} guardian={g} compact />
+            {memberGuardians.filter((g) => g.user_id !== myUserId).map((g) => (
+              <div key={g.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 12, background: "rgba(70,82,122,0.35)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: 28 }}>{g.archetype.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{g.user_display}</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 11 }}>{g.archetype.name} · Lv {g.level} · {g.wins}W / {g.losses}L</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -7510,6 +7543,60 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ProfileGuardianBlock({ userId }: { userId: string | null }) {
+  const sb = useMemo(() => createClient(), []);
+  const [guardian, setGuardian] = useState<GuardianWithArchetype | null>(null);
+  const [trophies, setTrophies] = useState<Array<{ id: string; archetype_id: string; captured_level: number; archetype?: { name: string; emoji: string; rarity: string } }>>([]);
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data: g } = await sb.from("user_guardians")
+        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+        .eq("user_id", userId).eq("is_active", true).maybeSingle();
+      if (!g) return;
+      const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single();
+      if (arch) setGuardian({ ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch });
+      const { data: t } = await sb.from("guardian_trophies").select("id, archetype_id, captured_level").eq("user_id", userId).order("captured_at", { ascending: false });
+      if (t && t.length > 0) {
+        const archIds = Array.from(new Set(t.map((x: { archetype_id: string }) => x.archetype_id)));
+        const { data: archs } = await sb.from("guardian_archetypes").select("id, name, emoji, rarity").in("id", archIds);
+        const archMap = new Map((archs ?? []).map((a: { id: string; name: string; emoji: string; rarity: string }) => [a.id, a]));
+        setTrophies(t.map((x) => ({ ...(x as { id: string; archetype_id: string; captured_level: number }), archetype: archMap.get((x as { archetype_id: string }).archetype_id) })));
+      }
+    })();
+  }, [sb, userId]);
+
+  if (!guardian) {
+    return (
+      <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+        Noch kein Wächter — lade die Seite neu oder kontaktiere Support.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <GuardianCard guardian={guardian} />
+      {trophies.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+            🏆 TROPHÄEN-SCHREIN ({trophies.length})
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
+            {trophies.map((t) => (
+              <div key={t.id} style={{ padding: 10, borderRadius: 12, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)", textAlign: "center" }}>
+                <div style={{ fontSize: 32, marginBottom: 4 }}>{t.archetype?.emoji ?? "❓"}</div>
+                <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{t.archetype?.name ?? "?"}</div>
+                <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800 }}>Lv {t.captured_level}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
