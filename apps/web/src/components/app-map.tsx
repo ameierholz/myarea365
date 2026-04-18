@@ -628,7 +628,7 @@ export function AppMap({
     if (!map) return;
     const container = map.getContainer();
 
-    const applyZoomScale = () => {
+    const applyZoomScale = (useTransform: boolean) => {
       const zoom = map.getZoom();
       let scale = 1;
       if (zoom < 11)      scale = 0.32;
@@ -636,40 +636,40 @@ export function AppMap({
       else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
       else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
       const showLabel = zoom >= 14;
-      // scale3d triggert GPU-Layer → scharfere Subpixel-Darstellung als scale()
-      const scaleStr = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
       container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
-        el.style.transform = scaleStr;
+        if (useTransform) {
+          // Waehrend aktivem Zoom: transform (GPU-beschleunigt, aber leicht unscharf)
+          el.style.zoom = "";
+          el.style.transform = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
+        } else {
+          // Nach Zoom-Ende: zoom-Property (Layout-Rerendering → gestochen scharf)
+          el.style.transform = "";
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (el.style as any).zoom = scale.toFixed(3);
+        }
       });
       container.querySelectorAll<HTMLElement>('[data-shop-label="1"]').forEach((el) => {
         el.style.opacity = showLabel ? "1" : "0";
       });
     };
-    // Waehrend Zoom-Gesture: keine Transition, direkte Transform-Updates fuer scharfe Sicht
-    const onZoomStart = () => {
-      container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
-        el.style.transition = "none";
-      });
-    };
-    const onZoomEnd = () => {
-      // Nach Zoom-Ende: sanfter Settle via Transition, und einmal final skalieren
-      container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
-        el.style.transition = "transform 0.12s ease-out";
-      });
-      applyZoomScale();
-    };
-    applyZoomScale();
+
+    let inZoom = false;
+    const onZoomStart = () => { inZoom = true; applyZoomScale(true); };
+    const onZoom      = () => { if (inZoom) applyZoomScale(true); };
+    const onZoomEnd   = () => { inZoom = false; applyZoomScale(false); };
+
+    // Initial: zoom-Property (scharf)
+    applyZoomScale(false);
     map.on("zoomstart", onZoomStart);
-    map.on("zoom", applyZoomScale);
+    map.on("zoom", onZoom);
     map.on("zoomend", onZoomEnd);
-    map.on("moveend", applyZoomScale);
-    const mo = new MutationObserver(() => applyZoomScale());
+    map.on("moveend", () => { if (!inZoom) applyZoomScale(false); });
+    const mo = new MutationObserver(() => { if (!inZoom) applyZoomScale(false); });
     mo.observe(container, { childList: true, subtree: true });
     return () => {
       map.off("zoomstart", onZoomStart);
-      map.off("zoom", applyZoomScale);
+      map.off("zoom", onZoom);
       map.off("zoomend", onZoomEnd);
-      map.off("moveend", applyZoomScale);
       mo.disconnect();
     };
   }, [mapReady]);
