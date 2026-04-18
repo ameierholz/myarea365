@@ -86,7 +86,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-shop-aura {
       position: relative;
-      width: 120px; height: 120px;
+      width: 72px; height: 72px;
       pointer-events: none;
       transform-origin: center center;
       will-change: transform;
@@ -643,7 +643,6 @@ export function AppMap({
     if (!map) return;
 
     const SRC = "shops-src";
-    const LYR_HALO_OUTER = "shops-halo-outer";
     const LYR_PIN        = "shops-pin";
     const LYR_LABEL      = "shops-label";
 
@@ -727,27 +726,8 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // circle-translate hebt Arena-Ring UP, damit er den Pin-Body umschliesst (nicht nur den Tip)
-      const haloTranslate: mapboxgl.ExpressionSpecification = [
-        "interpolate", ["linear"], ["zoom"],
-        12, ["literal", [0, -7]],
-        15, ["literal", [0, -16]],
-        18, ["literal", [0, -25]],
-      ];
       // Gold-Halos sind jetzt DOM-Marker (rotierende Sunburst-Aura) - siehe unten
-      // Arena-Ring bleibt Mapbox-Circle (scharfer Outline, muss nicht rotieren)
-      map.addLayer({
-        id: LYR_HALO_OUTER + "-arena", type: "circle", source: SRC,
-        paint: {
-          "circle-color": "rgba(0,0,0,0)",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 16, 15, 48, 18, 80],
-          "circle-opacity": ["case", ["==", ["get", "arena"], true], 1, 0],
-          "circle-stroke-color": "#FF2D78",
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 12, 3, 15, 5, 18, 8],
-          "circle-stroke-opacity": ["case", ["==", ["get", "arena"], true], 0.95, 0],
-          "circle-translate": haloTranslate,
-        },
-      });
+      // Arena-Ring entfernt (User-Wunsch)
       map.addLayer({
         id: LYR_PIN, type: "symbol", source: SRC,
         layout: {
@@ -788,31 +768,7 @@ export function AppMap({
         });
       }
 
-      // Pulse-Animation (nur Arena-Ring, Spotlight ist jetzt DOM-CSS)
-      let cancelled = false;
-      let t = 0;
-      const pulse = () => {
-        if (cancelled) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!(map as any).style) { cancelled = true; return; }
-        t += 1;
-        const p1 = Math.sin(t * 0.04);
-        const p2 = Math.sin(t * 0.05 + 1.5);
-        try {
-          if (map.getLayer(LYR_HALO_OUTER + "-arena")) {
-            map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-stroke-opacity",
-              ["case", ["==", ["get", "arena"], true], 0.85 + p1 * 0.15, 0]);
-            map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-radius",
-              ["interpolate", ["linear"], ["zoom"],
-                12, 16 + p2 * 2,
-                15, 48 + p2 * 4,
-                18, 80 + p2 * 6]);
-          }
-        } catch { cancelled = true; return; }
-        requestAnimationFrame(pulse);
-      };
-      requestAnimationFrame(pulse);
-      (map as unknown as { __pulseCancel?: () => void }).__pulseCancel = () => { cancelled = true; };
+      // Pulse-Animation entfernt - Spotlight-Aura ist CSS-basiert, Arena-Ring raus
     }
 
     // ── CSS-DOM-Marker fuer Spotlight-Shops: rotierende Gold-Aura + Badge ──
@@ -859,7 +815,7 @@ export function AppMap({
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.setOffset([0, badgeOffY]));
       // Aura sitzt auf Pin-Body-Mitte, skaliert mit Pin-Groesse
       const auraOffY = -(pinHeight / 2);
-      const auraScale = Math.max(0.25, Math.min(1.2, pinHeight / 45));
+      const auraScale = Math.max(0.3, Math.min(1.1, pinHeight / 35));
       spotlightAuraMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, auraOffY]);
         el.style.transform = `scale(${auraScale.toFixed(2)})`;
@@ -869,8 +825,6 @@ export function AppMap({
     map.on("zoom", updateMarkerGeometry);
 
     return () => {
-      const cancel = (map as unknown as { __pulseCancel?: () => void }).__pulseCancel;
-      if (cancel) cancel();
       map.off("zoom", updateMarkerGeometry);
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
@@ -879,7 +833,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_PIN, LYR_HALO_OUTER + "-arena"].forEach((l) => {
+        [LYR_LABEL, LYR_PIN].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
