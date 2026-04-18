@@ -212,9 +212,14 @@ function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
 
 function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   const color = shop.color || "#FFD700";
+  // Outer wrapper: Mapbox setzt translate() hier drauf → NICHT selbst anfassen
   const el = document.createElement("div");
-  el.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto;transform-origin:bottom center;transition:transform 0.15s ease-out";
-  el.dataset.shopMarker = "1"; // Marker fuer Zoom-Scaling
+  el.style.cssText = "position:relative;cursor:pointer;pointer-events:auto";
+  // Inner wrapper: hier wenden wir Zoom-Scaling an (wird ueber data-Attribut gefunden)
+  const inner = document.createElement("div");
+  inner.dataset.shopScale = "1";
+  inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;transition:transform 0.15s ease-out";
+  el.appendChild(inner);
 
   let spotlightLayers = "";
   let spotlightLabel = "";
@@ -232,7 +237,7 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
     spotlightLabel = `<div style="position:absolute;top:-38px;left:50%;transform:translateX(-50%);padding:2px 8px;border-radius:999px;background:linear-gradient(90deg,#FFD700,#FF6B4A);color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,0.45);animation:shopSpotlightLabel 1.6s ease-in-out infinite;white-space:nowrap">⭐ SPOTLIGHT</div>`;
   }
 
-  el.innerHTML = `
+  inner.innerHTML = `
     ${spotlightLayers}
     ${spotlightLabel}
     <div style="position:relative;width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,${color},${color}cc);border:2.5px solid #FFF;box-shadow:0 4px 10px rgba(0,0,0,0.45)${shop.spotlight ? ",0 0 22px #FFD700cc" : ""};display:flex;align-items:center;justify-content:center;animation:shopBounce 2.2s ease-in-out infinite;z-index:2;overflow:hidden">
@@ -241,7 +246,7 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
         : `<span style="transform:rotate(45deg);font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">${shop.icon}</span>`
       }
     </div>
-    <div style="margin-top:2px;padding:2px 6px;border-radius:8px;background:rgba(15,17,21,0.85);border:1px solid ${color}88;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2">${shop.name}</div>
+    <div data-shop-label="1" style="margin-top:2px;padding:2px 6px;border-radius:8px;background:rgba(15,17,21,0.85);border:1px solid ${color}88;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;position:relative;z-index:2;transition:opacity 0.2s">${shop.name}</div>
   `;
   return el;
 }
@@ -590,29 +595,22 @@ export function AppMap({
       shopMarkersRef.current.push(marker);
     });
 
-    // Zoom-responsives Skalieren aller Shop-Marker — wie Google-Maps-Pins:
-    // klein bei weitem Zoom, voll bei nahem Zoom. Label erst ab zoom 14 sichtbar.
+    // Zoom-responsives Skalieren aller Shop-Marker — inner div skalieren,
+    // damit Mapbox's Positions-Transform nicht ueberschrieben wird.
     const applyZoomScale = () => {
       const zoom = map.getZoom();
-      // Lineare Interpolation: zoom 11 → 0.35x, zoom 14 → 0.7x, zoom 17+ → 1x
       let scale = 1;
       if (zoom < 11)      scale = 0.32;
-      else if (zoom < 13) scale = 0.35 + ((zoom - 11) / 2) * 0.2;     // 0.35 → 0.55
-      else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;    // 0.55 → 0.8
-      else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;     // 0.8 → 1.0
+      else if (zoom < 13) scale = 0.35 + ((zoom - 11) / 2) * 0.2;
+      else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
+      else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
       const showLabel = zoom >= 14;
-      const showSpotlight = zoom >= 12;
       for (const marker of shopMarkersRef.current) {
         const el = marker.getElement();
-        el.style.transform = `scale(${scale.toFixed(2)})`;
-        // Name-Label ausblenden wenn zu weit weg
-        const label = el.querySelector("div:last-child") as HTMLElement | null;
-        if (label && label.textContent && label.textContent.length > 0 && !label.style.background?.includes("gradient")) {
-          label.style.opacity = showLabel ? "1" : "0";
-        }
-        // Spotlight-Effekte ausblenden wenn sehr weit weg (sparen Frames)
-        const spotlightLabel = el.querySelector('[style*="SPOTLIGHT"]') as HTMLElement | null;
-        if (spotlightLabel) spotlightLabel.style.opacity = showSpotlight ? "1" : "0";
+        const inner = el.querySelector('[data-shop-scale="1"]') as HTMLElement | null;
+        if (inner) inner.style.transform = `scale(${scale.toFixed(2)})`;
+        const label = el.querySelector('[data-shop-label="1"]') as HTMLElement | null;
+        if (label) label.style.opacity = showLabel ? "1" : "0";
       }
     };
     applyZoomScale();
