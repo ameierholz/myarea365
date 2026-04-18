@@ -77,12 +77,22 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       will-change: transform, box-shadow;
     }
     .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
-    /* Rotierende Gold-Aura (Sunburst) unter Spotlight-Shop-Pin */
-    @keyframes ma365AuraSpin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes ma365AuraSpinRev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-    @keyframes ma365AuraPulse {
-      0%,100% { opacity: 0.55; transform: scale(0.92); }
-      50%     { opacity: 0.95; transform: scale(1.12); }
+    /* Arena-Aura: unruhige Rotation + harter Pulse kombiniert (aggressiv) */
+    @keyframes ma365AuraSpinPulse {
+      0%   { transform: rotate(0deg)   scale(1);    filter: blur(2px)   brightness(1); }
+      12%  { transform: rotate(75deg)  scale(1.18); filter: blur(1.5px) brightness(1.25); }
+      28%  { transform: rotate(115deg) scale(0.88); filter: blur(3px)   brightness(0.85); }
+      42%  { transform: rotate(205deg) scale(1.22); filter: blur(1px)   brightness(1.35); }
+      58%  { transform: rotate(235deg) scale(0.9);  filter: blur(2.5px) brightness(0.9); }
+      74%  { transform: rotate(315deg) scale(1.15); filter: blur(1.5px) brightness(1.2); }
+      100% { transform: rotate(360deg) scale(1);    filter: blur(2px)   brightness(1); }
+    }
+    @keyframes ma365AuraPulseHard {
+      0%,100% { opacity: 0.4;  transform: scale(0.78); filter: blur(6px); }
+      18%     { opacity: 1;    transform: scale(1.30); filter: blur(4px); }
+      32%     { opacity: 0.55; transform: scale(0.85); filter: blur(7px); }
+      48%     { opacity: 1;    transform: scale(1.22); filter: blur(5px); }
+      68%     { opacity: 0.6;  transform: scale(0.92); filter: blur(6px); }
     }
     .ma365-shop-aura {
       position: relative;
@@ -121,15 +131,13 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
         rgba(255,215,0,0.95));
       -webkit-mask: radial-gradient(circle, transparent 18%, #000 32%, #000 95%, transparent 100%);
               mask: radial-gradient(circle, transparent 18%, #000 32%, #000 95%, transparent 100%);
-      filter: blur(2px);
-      animation: ma365AuraSpin 5.5s linear infinite;
+      animation: ma365AuraSpinPulse 2.8s cubic-bezier(0.45, 0.1, 0.55, 0.9) infinite;
     }
     /* Inner-Glow: weiches pulsierendes Gold */
     .ma365-shop-aura::after {
       inset: 20%;
-      background: radial-gradient(circle, rgba(255,215,0,0.75) 0%, rgba(255,138,60,0.35) 45%, rgba(255,215,0,0) 75%);
-      filter: blur(7px);
-      animation: ma365AuraPulse 2s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(255,215,0,0.85) 0%, rgba(255,138,60,0.45) 45%, rgba(255,215,0,0) 75%);
+      animation: ma365AuraPulseHard 1.6s ease-in-out infinite;
     }
     /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
     @keyframes ma365BeamGlow {
