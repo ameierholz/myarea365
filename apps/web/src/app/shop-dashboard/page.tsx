@@ -672,7 +672,7 @@ function CustomersTab() {
         background: `${PRIMARY}11`, border: `1px dashed ${PRIMARY}55`,
         borderRadius: 12, padding: 14, fontSize: 12, color: TEXT_SOFT, lineHeight: 1.5,
       }}>
-        💡 <b style={{ color: "#FFF" }}>Stammkunden-Bonus aktiv:</b> Wer ≥ 3× in 30 Tagen kommt, bekommt auto. ein besseres Angebot.
+        💡 <b style={{ color: "#FFF" }}>Stammkunden-Bonus aktiv:</b> Wer ≥ 3× in 30 Tagen kommt, bekommt automatisch ein besseres Angebot.
         Aktuell betrifft das <b style={{ color: PRIMARY }}>5 Kund:innen</b>. Feature deaktivierbar in Einstellungen.
       </div>
     </div>

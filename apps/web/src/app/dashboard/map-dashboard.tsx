@@ -2789,18 +2789,23 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
     .filter((r) => r.created_at.slice(0, 10) === todayKey)
     .reduce((s, r) => s + r.distance_m, 0) / 1000;
 
-  // Wochen-Trend: km pro Tag letzte 7 Tage (älteste → heute)
+  // Wochen-Trend: km pro Tag der aktuellen Woche (Mo–So)
   const weekKm: { label: string; km: number; isToday: boolean }[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * msPerDay);
+  const monday = new Date(now);
+  const dow = (now.getDay() + 6) % 7; // Mo=0 … So=6
+  monday.setDate(now.getDate() - dow);
+  monday.setHours(0, 0, 0, 0);
+  const DAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday.getTime() + i * msPerDay);
     const key = d.toISOString().slice(0, 10);
     const km = runs
       .filter((r) => r.created_at.slice(0, 10) === key)
       .reduce((s, r) => s + r.distance_m, 0) / 1000;
     weekKm.push({
-      label: d.toLocaleDateString("de-DE", { weekday: "narrow" }),
+      label: DAY_LABELS[i],
       km,
-      isToday: i === 0,
+      isToday: key === todayKey,
     });
   }
   const maxWeekKm = Math.max(0.1, ...weekKm.map((w) => w.km));
@@ -8109,7 +8114,7 @@ function ShopsPartnerView() {
                 "Alles aus Basic",
                 "Unlimitierte Deals",
                 "⚡ Flash-Deals — 30-Min-Pushes an nahe Runner",
-                "🔁 Stammkunden-Bonus: Nach 3 Besuchen kriegt der Runner auto. ein besseres Angebot",
+                "🔁 Stammkunden-Bonus: Nach 3 Besuchen kriegt der Runner automatisch ein besseres Angebot",
                 "📩 Vorbei-Läufer zurückholen — Erinnerungs-Push an Runner, die nicht reinkamen",
                 "🎂 Geburtstags-Special an deine Stammkunden",
                 "📰 Kiez-Newsletter: Dein Shop im Monats-Mailing",
