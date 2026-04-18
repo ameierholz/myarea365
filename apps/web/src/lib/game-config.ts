@@ -4,16 +4,16 @@
 
 // 10 Runner-Ränge — exponentielle Progression bis 1 Mio XP (Endgame)
 export const RUNNER_RANKS = [
-  { id: 1,  name: "Straßen-Scout",       minXp: 0,       color: "#888888" },
-  { id: 2,  name: "Kiez-Wanderer",       minXp: 250,     color: "#b0b8c8" },
-  { id: 3,  name: "Block-Kundschafter",  minXp: 1000,    color: "#5ddaf0" },
-  { id: 4,  name: "Stadt-Pionier",       minXp: 3500,    color: "#22D1C3" },
-  { id: 5,  name: "Bezirks-Entdecker",   minXp: 10000,   color: "#3b82f6" },
-  { id: 6,  name: "Viertel-Boss",        minXp: 25000,   color: "#FF6B4A" },
-  { id: 7,  name: "Kiez-König",          minXp: 60000,   color: "#FF2D78" },
-  { id: 8,  name: "Metropolen-Legende",  minXp: 150000,  color: "#FFD700" },
-  { id: 9,  name: "Urbaner Mythos",      minXp: 400000,  color: "#e0e7ff" },
-  { id: 10, name: "Straßen-Gott",        minXp: 1000000, color: "#FFFFFF" },
+  { id: 1,  name: "Straßen-Scout",       minXp: 0,        color: "#888888" },
+  { id: 2,  name: "Kiez-Wanderer",       minXp: 1000,     color: "#b0b8c8" },
+  { id: 3,  name: "Block-Kundschafter",  minXp: 5000,     color: "#5ddaf0" },
+  { id: 4,  name: "Stadt-Pionier",       minXp: 15000,    color: "#22D1C3" },
+  { id: 5,  name: "Bezirks-Entdecker",   minXp: 40000,    color: "#3b82f6" },
+  { id: 6,  name: "Viertel-Boss",        minXp: 100000,   color: "#FF6B4A" },
+  { id: 7,  name: "Kiez-König",          minXp: 250000,   color: "#FF2D78" },
+  { id: 8,  name: "Metropolen-Legende",  minXp: 600000,   color: "#FFD700" },
+  { id: 9,  name: "Urbaner Mythos",      minXp: 1500000,  color: "#e0e7ff" },
+  { id: 10, name: "Straßen-Gott",        minXp: 5000000,  color: "#FFFFFF" },
 ] as const;
 
 export const FACTIONS = [
