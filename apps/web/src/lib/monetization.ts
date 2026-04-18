@@ -107,6 +107,8 @@ export const SHOP_BOOSTS = {
   custom_pin:      { sku: "custom_pin",      name: "Custom-Pin-Design",      price: 14900, icon: "🎨", desc: "Eigenes Logo als Marker-Icon (einmalig)" },
   event_host:      { sku: "event_host",      name: "Event-Host-Slot",        price: 5900,  icon: "🎪", desc: "Lauf-Event veranstalten mit Pin + Teilnehmer" },
   challenge_sponsor: { sku: "challenge_sponsor", name: "Kiez-Challenge-Sponsor", price: 2900, icon: "🏆", desc: "Sponser eine Challenge im Kiez" },
+  arena_daily:       { sku: "arena_daily",       name: "Arena-Platz 1 Tag",      price: 900,  icon: "⚔️", desc: "24h Kampf-Arena — Crews die bei dir einlösen dürfen kämpfen" },
+  arena_monthly:     { sku: "arena_monthly",     name: "Arena-Abo (Monat)",      price: 4900, icon: "🏟️", desc: "30 Tage Dauer-Arena — Extra-Traffic durch Kampf-Events", duration_days: 30 },
 };
 
 export const SHOP_MARKETING = {

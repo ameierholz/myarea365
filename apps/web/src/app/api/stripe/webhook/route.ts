@@ -242,6 +242,27 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     await sb.from("local_businesses").update({ qr_print_ordered_at: new Date().toISOString() }).eq("id", businessId);
     return;
   }
+  if (sku === "arena_daily" || sku === "arena_monthly") {
+    const arenaDays = sku === "arena_daily" ? 1 : 30;
+    const plan = sku === "arena_daily" ? "daily" : "monthly";
+    const { data: existing } = await sb.from("shop_arenas")
+      .select("id, expires_at")
+      .eq("business_id", businessId)
+      .maybeSingle<{ id: string; expires_at: string }>();
+    const from = existing && new Date(existing.expires_at).getTime() > Date.now()
+      ? new Date(existing.expires_at).getTime()
+      : Date.now();
+    const newExpires = new Date(from + arenaDays * 86400000).toISOString();
+    if (existing) {
+      await sb.from("shop_arenas")
+        .update({ status: "active", plan, expires_at: newExpires })
+        .eq("id", existing.id);
+    } else {
+      await sb.from("shop_arenas")
+        .insert({ business_id: businessId, status: "active", plan, expires_at: newExpires });
+    }
+    return;
+  }
   if (sku === "custom_pin") {
     await sb.from("local_businesses").update({ custom_pin_url: "pending" }).eq("id", businessId);
     return;

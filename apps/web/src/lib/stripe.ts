@@ -54,7 +54,8 @@ export function skuMode(sku: string): "payment" | "subscription" {
       || sku.startsWith("badge_")
       || sku === "shop_basis" || sku === "shop_pro" || sku === "shop_ultra"
       || sku === "social_pro_monthly" || sku === "analytics_pro_monthly"
-      || sku === "competitor_monthly") {
+      || sku === "competitor_monthly"
+      || sku === "arena_monthly") {
     return "subscription";
   }
   return "payment";
