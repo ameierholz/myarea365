@@ -67,58 +67,63 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-        <div style={{ width: 120, height: 150, flexShrink: 0 }}>
-          <GuardianAvatar archetype={guardian.archetype} size={120} animation="idle" />
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(160px, 240px) 1fr", gap: 20, alignItems: "stretch" }}>
+        {/* Avatar-Spalte */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <div style={{ width: "100%", aspectRatio: "1 / 1.25", display: "flex", justifyContent: "center" }}>
+            <GuardianAvatar archetype={guardian.archetype} size={220} animation="idle" />
+          </div>
+          {guardian.archetype.lore && (
+            <div style={{ color: "#a8b4cf", fontSize: 10, fontStyle: "italic", textAlign: "center", maxWidth: "100%" }}>
+              „{guardian.archetype.lore}"
+            </div>
+          )}
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>
-            {rarity.label.toUpperCase()}
+
+        {/* Info-Spalte */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+          <div>
+            <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>
+              {rarity.label.toUpperCase()}
+            </div>
+            <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900 }}>
+              {guardian.custom_name ?? guardian.archetype.name}
+            </div>
+            <div style={{ color: "#a8b4cf", fontSize: 11 }}>
+              Level {guardian.level} · {guardian.wins} Siege / {guardian.losses} Niederlagen
+            </div>
           </div>
-          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>
-            {guardian.custom_name ?? guardian.archetype.name}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
+            <Stat label="HP"  value={stats.hp}  color="#4ade80" />
+            <Stat label="ATK" value={stats.atk} color="#FF6B4A" />
+            <Stat label="DEF" value={stats.def} color="#5ddaf0" />
+            <Stat label="SPD" value={stats.spd} color="#FFD700" />
           </div>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>
-            Level {guardian.level} · {guardian.wins} Siege / {guardian.losses} Niederlagen
+
+          <div style={{
+            padding: 10, borderRadius: 10,
+            background: "rgba(15,17,21,0.55)",
+            border: `1px dashed ${rarity.color}55`,
+          }}>
+            <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>⚡ SPEZIALKRAFT</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginTop: 2 }}>{guardian.archetype.ability_name}</div>
+            <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{guardian.archetype.ability_desc}</div>
           </div>
+
+          {guardian.level < 30 && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a8b4cf", marginBottom: 3 }}>
+                <span>XP</span>
+                <span>{guardian.xp} / {xpNext}</span>
+              </div>
+              <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ width: `${xpPct}%`, height: "100%", background: rarity.color, transition: "width 0.3s" }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 12 }}>
-        <Stat label="HP"  value={stats.hp}  color="#4ade80" />
-        <Stat label="ATK" value={stats.atk} color="#FF6B4A" />
-        <Stat label="DEF" value={stats.def} color="#5ddaf0" />
-        <Stat label="SPD" value={stats.spd} color="#FFD700" />
-      </div>
-
-      <div style={{
-        padding: 10, borderRadius: 10,
-        background: "rgba(15,17,21,0.55)",
-        border: `1px dashed ${rarity.color}55`,
-        marginBottom: 10,
-      }}>
-        <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>⚡ SPEZIALKRAFT</div>
-        <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginTop: 2 }}>{guardian.archetype.ability_name}</div>
-        <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{guardian.archetype.ability_desc}</div>
-      </div>
-
-      {guardian.level < 30 && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a8b4cf", marginBottom: 3 }}>
-            <span>XP</span>
-            <span>{guardian.xp} / {xpNext}</span>
-          </div>
-          <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ width: `${xpPct}%`, height: "100%", background: rarity.color, transition: "width 0.3s" }} />
-          </div>
-        </div>
-      )}
-
-      {guardian.archetype.lore && (
-        <div style={{ color: "#a8b4cf", fontSize: 10, fontStyle: "italic", marginTop: 10, textAlign: "center" }}>
-          „{guardian.archetype.lore}"
-        </div>
-      )}
     </div>
   );
 }
