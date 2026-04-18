@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { RoundEvent } from "@/lib/battle-engine";
 import type { GuardianWithArchetype, GuardianArchetype } from "@/lib/guardian";
 import { GuardianCard } from "@/components/guardian-card";
+import { GuardianAvatar } from "@/components/guardian-avatar";
+import { CinematicBattleArena } from "@/components/battle-arena";
 import { RARITY_META, statsAtLevel } from "@/lib/guardian";
 
 type EligibleCrew = { id: string; name: string; guardian: GuardianWithArchetype | null };
@@ -88,7 +90,6 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
     if (!myGuardian) return;
     setPicked(target);
     setPhase("fighting");
-    setReplayIdx(0);
     try {
       const res = await fetch("/api/arena/challenge", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -102,16 +103,6 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
       }
       const data = await res.json() as BattleResponse;
       setBattle(data);
-      // Replay-Animation
-      let i = 0;
-      const interval = setInterval(() => {
-        i++;
-        setReplayIdx(i);
-        if (i >= data.rounds.length) {
-          clearInterval(interval);
-          setTimeout(() => setPhase("result"), 1200);
-        }
-      }, 600);
     } catch (e) {
       setError(String(e)); setPhase("pick");
     }
@@ -190,14 +181,15 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
               </>
             )}
           </>
+        ) : phase === "fighting" && battle && myGuardian && picked?.guardian ? (
+          <CinematicBattleArena
+            sideA={{ name: myGuardian.archetype.name, archetype: myGuardian.archetype, level: myGuardian.level, maxHp: aMaxHp }}
+            sideB={{ name: picked.guardian.archetype.name, archetype: picked.guardian.archetype, level: picked.guardian.level, maxHp: bMaxHp }}
+            rounds={battle.rounds}
+            onFinished={() => setPhase("result")}
+          />
         ) : phase === "fighting" ? (
-          <div>
-            <BattleArena
-              nameA={myGuardian?.archetype.name ?? "?"} emojiA={myGuardian?.archetype.emoji ?? "❓"} hpA={hpA} maxHpA={aMaxHp}
-              nameB={picked?.guardian?.archetype.name ?? "?"} emojiB={picked?.guardian?.archetype.emoji ?? "❓"} hpB={hpB} maxHpB={bMaxHp}
-              currentEvent={currentRound}
-            />
-          </div>
+          <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>Kampf wird vorbereitet…</div>
         ) : battle ? (
           <div>
             <div style={{
@@ -225,48 +217,3 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
   );
 }
 
-function BattleArena({ nameA, emojiA, hpA, maxHpA, nameB, emojiB, hpB, maxHpB, currentEvent }: {
-  nameA: string; emojiA: string; hpA: number; maxHpA: number;
-  nameB: string; emojiB: string; hpB: number; maxHpB: number;
-  currentEvent?: RoundEvent;
-}) {
-  const pctA = Math.max(0, Math.min(100, (hpA / maxHpA) * 100));
-  const pctB = Math.max(0, Math.min(100, (hpB / maxHpB) * 100));
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <span style={{ fontSize: 40 }}>{emojiA}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{nameA}</div>
-          <div style={{ height: 10, borderRadius: 5, background: "rgba(255,255,255,0.1)", overflow: "hidden", marginTop: 3 }}>
-            <div style={{ width: `${pctA}%`, height: "100%", background: "linear-gradient(90deg, #4ade80, #22D1C3)", transition: "width 0.3s" }} />
-          </div>
-          <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>{hpA} / {maxHpA} HP</div>
-        </div>
-      </div>
-
-      <div style={{ textAlign: "center", color: "#a855f7", fontSize: 14, fontWeight: 900, margin: "14px 0", minHeight: 40, padding: 10, borderRadius: 10, background: "rgba(168,85,247,0.1)", border: "1px dashed rgba(168,85,247,0.4)" }}>
-        {currentEvent ? (
-          <>
-            Runde {currentEvent.round} · {currentEvent.actor === "A" ? nameA : nameB}
-            <div style={{ color: currentEvent.action === "crit" ? "#FFD700" : currentEvent.action === "miss" ? "#8B8FA3" : "#FFF", fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-              {currentEvent.action === "miss" ? "verfehlt" : currentEvent.action === "crit" ? `${currentEvent.damage} KRIT!` : currentEvent.action === "revive" ? currentEvent.note : `${currentEvent.damage} Schaden`}
-              {currentEvent.note && currentEvent.action !== "revive" && ` · ${currentEvent.note}`}
-            </div>
-          </>
-        ) : "Gleich geht's los…"}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 40 }}>{emojiB}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{nameB}</div>
-          <div style={{ height: 10, borderRadius: 5, background: "rgba(255,255,255,0.1)", overflow: "hidden", marginTop: 3 }}>
-            <div style={{ width: `${pctB}%`, height: "100%", background: "linear-gradient(90deg, #FF2D78, #a855f7)", transition: "width 0.3s" }} />
-          </div>
-          <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>{hpB} / {maxHpB} HP</div>
-        </div>
-      </div>
-    </div>
-  );
-}
