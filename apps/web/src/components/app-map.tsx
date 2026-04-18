@@ -86,7 +86,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-shop-aura {
       position: relative;
-      width: 58px; height: 58px;
+      width: 46px; height: 46px;
       pointer-events: none;
       transform-origin: center center;
       will-change: transform;
@@ -813,7 +813,7 @@ export function AppMap({
       const pinHeight = 1280 * iconSize / 4;
       // Badge schwebt 6px ueber Pin-Top und skaliert mit
       const badgeOffY = -(pinHeight + 6);
-      const badgeScale = Math.max(0.55, Math.min(1.0, pinHeight / 40));
+      const badgeScale = Math.max(0.28, Math.min(1.0, pinHeight / 45));
       spotlightBadgeMarkersRef.current.forEach(({ marker, el }) => {
         marker.setOffset([0, badgeOffY]);
         el.style.transform = `scale(${badgeScale.toFixed(2)})`;
