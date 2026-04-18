@@ -28,6 +28,16 @@ function admin(): SupabaseClient {
  * - Streak-Counter updaten
  */
 export async function POST(req: Request) {
+  try {
+    return await handleChallenge(req);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[arena/challenge] unhandled:", e);
+    return NextResponse.json({ error: "internal", detail: msg }, { status: 500 });
+  }
+}
+
+async function handleChallenge(req: Request) {
   let body: { business_id: string; defender_crew_id: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const { business_id, defender_crew_id } = body;

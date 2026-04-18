@@ -96,7 +96,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({ error: res.status }));
-        setError(j.error ?? "Kampf fehlgeschlagen");
+        setError(`${j.error ?? "Kampf fehlgeschlagen"}${j.detail ? ` — ${j.detail}` : ""}`);
         setPhase("pick");
         return;
       }
