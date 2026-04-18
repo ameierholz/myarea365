@@ -231,7 +231,7 @@ function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   el.style.cssText = "position:relative;cursor:pointer;pointer-events:auto";
   // Inner wrapper: hier wenden wir Zoom-Scaling an (wird ueber data-Attribut gefunden)
   const inner = document.createElement("div");
-  inner.dataset.shopScale = "1";
+  inner.dataset.zoomScale = "1";
   inner.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;transform-origin:bottom center;transition:transform 0.15s ease-out";
   el.appendChild(inner);
 
