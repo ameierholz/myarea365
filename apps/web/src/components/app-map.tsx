@@ -77,6 +77,60 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       will-change: transform, box-shadow;
     }
     .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
+    /* Rotierende Gold-Aura (Sunburst) unter Spotlight-Shop-Pin */
+    @keyframes ma365AuraSpin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes ma365AuraSpinRev { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+    @keyframes ma365AuraPulse {
+      0%,100% { opacity: 0.55; transform: scale(0.92); }
+      50%     { opacity: 0.95; transform: scale(1.12); }
+    }
+    .ma365-shop-aura {
+      position: relative;
+      width: 120px; height: 120px;
+      pointer-events: none;
+      transform-origin: center center;
+      will-change: transform;
+    }
+    .ma365-shop-aura::before, .ma365-shop-aura::after {
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      transform-origin: center center; will-change: transform;
+    }
+    /* Hauptstrahlen: konischer Gold-Sunburst */
+    .ma365-shop-aura::before {
+      background: conic-gradient(from 0deg,
+        rgba(255,215,0,0.95),
+        rgba(255,215,0,0.05) 18deg,
+        rgba(255,138,60,0.85) 36deg,
+        rgba(255,215,0,0.05) 54deg,
+        rgba(255,215,0,0.95) 72deg,
+        rgba(255,215,0,0.05) 90deg,
+        rgba(255,138,60,0.85) 108deg,
+        rgba(255,215,0,0.05) 126deg,
+        rgba(255,215,0,0.95) 144deg,
+        rgba(255,215,0,0.05) 162deg,
+        rgba(255,138,60,0.85) 180deg,
+        rgba(255,215,0,0.05) 198deg,
+        rgba(255,215,0,0.95) 216deg,
+        rgba(255,215,0,0.05) 234deg,
+        rgba(255,138,60,0.85) 252deg,
+        rgba(255,215,0,0.05) 270deg,
+        rgba(255,215,0,0.95) 288deg,
+        rgba(255,215,0,0.05) 306deg,
+        rgba(255,138,60,0.85) 324deg,
+        rgba(255,215,0,0.05) 342deg,
+        rgba(255,215,0,0.95));
+      -webkit-mask: radial-gradient(circle, transparent 18%, #000 32%, #000 95%, transparent 100%);
+              mask: radial-gradient(circle, transparent 18%, #000 32%, #000 95%, transparent 100%);
+      filter: blur(2px);
+      animation: ma365AuraSpin 5.5s linear infinite;
+    }
+    /* Inner-Glow: weiches pulsierendes Gold */
+    .ma365-shop-aura::after {
+      inset: 20%;
+      background: radial-gradient(circle, rgba(255,215,0,0.75) 0%, rgba(255,138,60,0.35) 45%, rgba(255,215,0,0) 75%);
+      filter: blur(7px);
+      animation: ma365AuraPulse 2s ease-in-out infinite;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -293,6 +347,7 @@ export function AppMap({
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string }>>([]);
+  const spotlightAuraMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
 
   // Map initialisieren
   useEffect(() => {
@@ -589,8 +644,6 @@ export function AppMap({
 
     const SRC = "shops-src";
     const LYR_HALO_OUTER = "shops-halo-outer";
-    const LYR_HALO_MID   = "shops-halo-mid";
-    const LYR_HALO_CORE  = "shops-halo-core";
     const LYR_PIN        = "shops-pin";
     const LYR_LABEL      = "shops-label";
 
@@ -674,45 +727,15 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // circle-translate hebt Halo UP, damit Glow den Pin-Body umschliesst (nicht nur den Tip)
+      // circle-translate hebt Arena-Ring UP, damit er den Pin-Body umschliesst (nicht nur den Tip)
       const haloTranslate: mapboxgl.ExpressionSpecification = [
         "interpolate", ["linear"], ["zoom"],
         12, ["literal", [0, -7]],
         15, ["literal", [0, -16]],
         18, ["literal", [0, -25]],
       ];
-      // Spotlight-Halo (Gold). Für Shops mit Spotlight ODER Arena sichtbar, Gold wins.
-      map.addLayer({
-        id: LYR_HALO_OUTER, type: "circle", source: SRC,
-        paint: {
-          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFD700", "#a855f7"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 18, 15, 55, 18, 95],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.22, 0],
-          "circle-blur": 1.1,
-          "circle-translate": haloTranslate,
-        },
-      });
-      map.addLayer({
-        id: LYR_HALO_MID, type: "circle", source: SRC,
-        paint: {
-          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFD700", "#a855f7"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 12, 15, 38, 18, 64],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.55, 0],
-          "circle-blur": 0.7,
-          "circle-translate": haloTranslate,
-        },
-      });
-      map.addLayer({
-        id: LYR_HALO_CORE, type: "circle", source: SRC,
-        paint: {
-          "circle-color": ["case", ["==", ["get", "spotlight"], true], "#FFF3A0", "#d8b4fe"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 7, 15, 22, 18, 38],
-          "circle-opacity": ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.65, 0],
-          "circle-blur": 0.25,
-          "circle-translate": haloTranslate,
-        },
-      });
-      // Arena-Extra-Ring: scharfer Magenta-Ring OHNE Fill (nur Outline), liegt AUSSEN
+      // Gold-Halos sind jetzt DOM-Marker (rotierende Sunburst-Aura) - siehe unten
+      // Arena-Ring bleibt Mapbox-Circle (scharfer Outline, muss nicht rotieren)
       map.addLayer({
         id: LYR_HALO_OUTER + "-arena", type: "circle", source: SRC,
         paint: {
@@ -765,7 +788,7 @@ export function AppMap({
         });
       }
 
-      // Pulse-Animation
+      // Pulse-Animation (nur Arena-Ring, Spotlight ist jetzt DOM-CSS)
       let cancelled = false;
       let t = 0;
       const pulse = () => {
@@ -776,23 +799,14 @@ export function AppMap({
         const p1 = Math.sin(t * 0.04);
         const p2 = Math.sin(t * 0.05 + 1.5);
         try {
-          if (map.getLayer(LYR_HALO_OUTER)) {
-            map.setPaintProperty(LYR_HALO_OUTER, "circle-opacity",
-              ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.22 + p2 * 0.15, 0]);
-          }
-          if (map.getLayer(LYR_HALO_MID)) {
-            map.setPaintProperty(LYR_HALO_MID, "circle-opacity",
-              ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.50 + p1 * 0.20, 0]);
-          }
-          if (map.getLayer(LYR_HALO_CORE)) {
-            map.setPaintProperty(LYR_HALO_CORE, "circle-opacity",
-              ["case", ["any", ["==", ["get", "spotlight"], true], ["==", ["get", "arena"], true]], 0.62 + p1 * 0.25, 0]);
-          }
           if (map.getLayer(LYR_HALO_OUTER + "-arena")) {
-            map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-opacity",
-              ["case", ["==", ["get", "arena"], true], 0.45 + p2 * 0.25, 0]);
             map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-stroke-opacity",
               ["case", ["==", ["get", "arena"], true], 0.85 + p1 * 0.15, 0]);
+            map.setPaintProperty(LYR_HALO_OUTER + "-arena", "circle-radius",
+              ["interpolate", ["linear"], ["zoom"],
+                12, 16 + p2 * 2,
+                15, 48 + p2 * 4,
+                18, 80 + p2 * 6]);
           }
         } catch { cancelled = true; return; }
         requestAnimationFrame(pulse);
@@ -801,22 +815,29 @@ export function AppMap({
       (map as unknown as { __pulseCancel?: () => void }).__pulseCancel = () => { cancelled = true; };
     }
 
-    // ── CSS-DOM-Badges fuer Spotlight-Shops (kein Blur, echte Animation) ──
+    // ── CSS-DOM-Marker fuer Spotlight-Shops: rotierende Gold-Aura + Badge ──
     // Alte entfernen
     spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
     spotlightBadgeMarkersRef.current = [];
-    // Neue erstellen
+    spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
+    spotlightAuraMarkersRef.current = [];
+    // Neue erstellen (Aura zuerst damit Badge visuell oben liegt in DOM-Stack)
     shops.filter((s) => s.spotlight).forEach((s) => {
-      const el = document.createElement("div");
-      el.className = "ma365-spotlight-badge";
-      el.innerHTML = `<span class="star">⭐</span><span>SPOTLIGHT</span>`;
-      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom", offset: [0, -40] })
-        .setLngLat([s.lng, s.lat])
-        .addTo(map);
-      spotlightBadgeMarkersRef.current.push({ marker, shopId: s.id });
+      const auraEl = document.createElement("div");
+      auraEl.className = "ma365-shop-aura";
+      const auraMarker = new mapboxgl.Marker({ element: auraEl, anchor: "center", offset: [0, 0] })
+        .setLngLat([s.lng, s.lat]).addTo(map);
+      spotlightAuraMarkersRef.current.push({ marker: auraMarker, el: auraEl });
+
+      const badgeEl = document.createElement("div");
+      badgeEl.className = "ma365-spotlight-badge";
+      badgeEl.innerHTML = `<span class="star">⭐</span><span>SPOTLIGHT</span>`;
+      const badgeMarker = new mapboxgl.Marker({ element: badgeEl, anchor: "bottom", offset: [0, -40] })
+        .setLngLat([s.lng, s.lat]).addTo(map);
+      spotlightBadgeMarkersRef.current.push({ marker: badgeMarker, shopId: s.id });
     });
-    // Offset an Zoom koppeln damit Badge ueber Pin-Top schwebt
-    const updateBadgeOffsets = () => {
+    // Zoom-Handler: Badge-Offset + Aura-Offset + Aura-Scale an Pin-Groesse koppeln
+    const updateMarkerGeometry = () => {
       const zoom = map.getZoom();
       const iconSize =
         zoom < 11 ? 0.03 :
@@ -824,22 +845,32 @@ export function AppMap({
         zoom < 15 ? 0.06 + ((zoom - 13) / 2) * 0.04 :
         zoom < 18 ? 0.10 + ((zoom - 15) / 3) * 0.06 : 0.16;
       const pinHeight = 1280 * iconSize / 4;
-      const offY = -(pinHeight + 6);
-      spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.setOffset([0, offY]));
+      // Badge schwebt 6px ueber Pin-Top
+      const badgeOffY = -(pinHeight + 6);
+      spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.setOffset([0, badgeOffY]));
+      // Aura sitzt auf Pin-Body-Mitte, skaliert mit Pin-Groesse
+      const auraOffY = -(pinHeight / 2);
+      const auraScale = Math.max(0.25, Math.min(1.2, pinHeight / 45));
+      spotlightAuraMarkersRef.current.forEach(({ marker, el }) => {
+        marker.setOffset([0, auraOffY]);
+        el.style.transform = `scale(${auraScale.toFixed(2)})`;
+      });
     };
-    updateBadgeOffsets();
-    map.on("zoom", updateBadgeOffsets);
+    updateMarkerGeometry();
+    map.on("zoom", updateMarkerGeometry);
 
     return () => {
       const cancel = (map as unknown as { __pulseCancel?: () => void }).__pulseCancel;
       if (cancel) cancel();
-      map.off("zoom", updateBadgeOffsets);
+      map.off("zoom", updateMarkerGeometry);
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
+      spotlightAuraMarkersRef.current.forEach(({ marker }) => marker.remove());
+      spotlightAuraMarkersRef.current = [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_PIN, LYR_HALO_CORE, LYR_HALO_MID, LYR_HALO_OUTER, LYR_HALO_OUTER + "-arena"].forEach((l) => {
+        [LYR_LABEL, LYR_PIN, LYR_HALO_OUTER + "-arena"].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
