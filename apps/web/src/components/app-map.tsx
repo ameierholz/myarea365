@@ -213,7 +213,8 @@ function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
 function buildShopMarkerEl(shop: ShopPin): HTMLDivElement {
   const color = shop.color || "#FFD700";
   const el = document.createElement("div");
-  el.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto";
+  el.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;pointer-events:auto;transform-origin:bottom center;transition:transform 0.15s ease-out";
+  el.dataset.shopMarker = "1"; // Marker fuer Zoom-Scaling
 
   let spotlightLayers = "";
   let spotlightLabel = "";
@@ -589,7 +590,36 @@ export function AppMap({
       shopMarkersRef.current.push(marker);
     });
 
+    // Zoom-responsives Skalieren aller Shop-Marker — wie Google-Maps-Pins:
+    // klein bei weitem Zoom, voll bei nahem Zoom. Label erst ab zoom 14 sichtbar.
+    const applyZoomScale = () => {
+      const zoom = map.getZoom();
+      // Lineare Interpolation: zoom 11 → 0.35x, zoom 14 → 0.7x, zoom 17+ → 1x
+      let scale = 1;
+      if (zoom < 11)      scale = 0.32;
+      else if (zoom < 13) scale = 0.35 + ((zoom - 11) / 2) * 0.2;     // 0.35 → 0.55
+      else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;    // 0.55 → 0.8
+      else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;     // 0.8 → 1.0
+      const showLabel = zoom >= 14;
+      const showSpotlight = zoom >= 12;
+      for (const marker of shopMarkersRef.current) {
+        const el = marker.getElement();
+        el.style.transform = `scale(${scale.toFixed(2)})`;
+        // Name-Label ausblenden wenn zu weit weg
+        const label = el.querySelector("div:last-child") as HTMLElement | null;
+        if (label && label.textContent && label.textContent.length > 0 && !label.style.background?.includes("gradient")) {
+          label.style.opacity = showLabel ? "1" : "0";
+        }
+        // Spotlight-Effekte ausblenden wenn sehr weit weg (sparen Frames)
+        const spotlightLabel = el.querySelector('[style*="SPOTLIGHT"]') as HTMLElement | null;
+        if (spotlightLabel) spotlightLabel.style.opacity = showSpotlight ? "1" : "0";
+      }
+    };
+    applyZoomScale();
+    map.on("zoom", applyZoomScale);
+
     return () => {
+      map.off("zoom", applyZoomScale);
       shopMarkersRef.current.forEach((m) => m.remove());
       shopMarkersRef.current = [];
     };
