@@ -219,8 +219,8 @@ function wrapForZoomScale(el: HTMLElement): void {
   if (el.querySelector(':scope > [data-zoom-scale="1"]')) return;
   const inner = document.createElement("div");
   inner.dataset.zoomScale = "1";
-  // will-change + backface-hidden → GPU-Layer, scale3d → subpixel-crisp
-  inner.style.cssText = "display:inline-block;transform-origin:center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
+  // inline-flex hält Inhalt zentriert, Origin auf center center damit scale3d die Figur mittig skaliert
+  inner.style.cssText = "display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
   while (el.firstChild) inner.appendChild(el.firstChild);
   el.appendChild(inner);
 }
@@ -563,9 +563,39 @@ export function AppMap({
 
     const SRC = "shops-source";
     const LYR_GLOW    = "shops-spotlight-glow";
-    const LYR_CIRCLE  = "shops-pin-circle";
+    const LYR_PIN     = "shops-pin-drop";
     const LYR_ICON    = "shops-pin-icon";
     const LYR_LABEL   = "shops-pin-label";
+
+    // Drop-Pin-SVG als SDF-Image registrieren, damit wir es via icon-color
+    // pro Shop einfaerben koennen. SDF = Signed Distance Field, kann getintet werden.
+    const PIN_IMG = "shop-pin-drop";
+    if (!map.hasImage(PIN_IMG)) {
+      const size = 128; // high-res fuer scharfes Downsampling
+      const canvas = document.createElement("canvas");
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        // Tear-Drop-Pin zeichnen (weiss — wird via icon-color getintet)
+        ctx.fillStyle = "#FFFFFF";
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.beginPath();
+        // Bottom-tip
+        const cx = size / 2;
+        const cy = size * 0.42;
+        const r = size * 0.36;
+        const tipY = size * 0.95;
+        // Oberer Halbkreis + Tropfen-Spitze
+        ctx.moveTo(cx, tipY);
+        ctx.bezierCurveTo(cx - r * 0.9, cy + r * 0.9, cx - r, cy + r * 0.2, cx - r, cy);
+        ctx.arc(cx, cy, r, Math.PI, 0, false);
+        ctx.bezierCurveTo(cx + r, cy + r * 0.2, cx + r * 0.9, cy + r * 0.9, cx, tipY);
+        ctx.closePath();
+        ctx.fill();
+        const imgData = ctx.getImageData(0, 0, size, size);
+        map.addImage(PIN_IMG, imgData, { sdf: true });
+      }
+    }
 
     const geojson = {
       type: "FeatureCollection" as const,
@@ -588,41 +618,48 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Spotlight-Glow (groesser Circle mit Pulse-Animation via setPaintProperty)
+      // Spotlight-Glow (weicher pulsierender Circle)
       map.addLayer({
         id: LYR_GLOW, type: "circle", source: SRC,
         filter: ["get", "spotlight"],
         paint: {
           "circle-color": "#FFD700",
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 15, 28, 18, 48],
-          "circle-opacity": 0.35,
-          "circle-blur": 1.0,
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 15, 34, 18, 56],
+          "circle-opacity": 0.38,
+          "circle-blur": 1.2,
         },
       });
-      // Pin-Hintergrund-Circle (farbig, pro Shop)
+      // Drop-Pin via SDF-Icon (Tintbar durch icon-color → shop.color)
       map.addLayer({
-        id: LYR_CIRCLE, type: "circle", source: SRC,
+        id: LYR_PIN, type: "symbol", source: SRC,
+        layout: {
+          "icon-image": PIN_IMG,
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 10, 0.12, 13, 0.26, 15, 0.42, 18, 0.62],
+          "icon-anchor": "bottom",
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+        },
         paint: {
-          "circle-color": ["get", "color"],
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 13, 9, 15, 16, 18, 24],
-          "circle-stroke-color": "#FFF",
-          "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 10, 1, 15, 2.5, 18, 3.5],
+          "icon-color": ["get", "color"],
+          "icon-halo-color": "#FFFFFF",
+          "icon-halo-width": 1.8,
         },
       });
-      // Icon/Emoji auf dem Pin (Text-Layer, weil Emojis Text sind)
+      // Emoji/Icon oben im Pin (Offset nach oben, weil Pin-Anchor bottom)
       map.addLayer({
         id: LYR_ICON, type: "symbol", source: SRC,
         layout: {
           "text-field": ["get", "icon"],
           "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 6, 13, 14, 15, 22, 18, 32],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 10, 5, 13, 11, 15, 18, 18, 28],
+          "text-offset": ["interpolate", ["linear"], ["zoom"], 10, ["literal", [0, -1.2]], 18, ["literal", [0, -1.6]]],
+          "text-anchor": "center",
           "text-allow-overlap": true,
           "text-ignore-placement": true,
         },
         paint: {
-          "text-halo-color": "rgba(0,0,0,0.45)",
-          "text-halo-width": 1.2,
-          "text-halo-blur": 0.6,
+          "text-halo-color": "rgba(0,0,0,0.4)",
+          "text-halo-width": 1.0,
         },
       });
       // Name-Label unter dem Pin, erst ab zoom 14 sichtbar
@@ -650,7 +687,7 @@ export function AppMap({
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onShopClick(id);
         };
-        [LYR_CIRCLE, LYR_ICON, LYR_LABEL, LYR_GLOW].forEach((l) => {
+        [LYR_PIN, LYR_ICON, LYR_LABEL, LYR_GLOW].forEach((l) => {
           map.on("click", l, onClick);
           map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
           map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
@@ -679,10 +716,9 @@ export function AppMap({
     }
 
     return () => {
-      // Layers + Source bei Unmount entfernen
       const raf = (map as unknown as { __shopsPulseRaf?: number }).__shopsPulseRaf;
       if (raf) cancelAnimationFrame(raf);
-      [LYR_LABEL, LYR_ICON, LYR_CIRCLE, LYR_GLOW].forEach((l) => {
+      [LYR_LABEL, LYR_ICON, LYR_PIN, LYR_GLOW].forEach((l) => {
         if (map.getLayer(l)) map.removeLayer(l);
       });
       if (map.getSource(SRC)) map.removeSource(SRC);
