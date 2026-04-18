@@ -101,7 +101,20 @@ async function handleChallenge(req: Request) {
       .eq("user_id", userId).eq("is_active", true).maybeSingle();
     if (!data) return null;
     const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", data.archetype_id).single();
-    return { ...data, archetype: arch };
+    // Equipped Items + Bonuses
+    const { data: eqRows } = await sb.from("guardian_equipment")
+      .select("slot, user_item_id, user_items!inner(item_id, item_catalog!inner(bonus_hp, bonus_atk, bonus_def, bonus_spd))")
+      .eq("guardian_id", data.id);
+    const bonuses = { hp: 0, atk: 0, def: 0, spd: 0 };
+    for (const row of (eqRows ?? []) as unknown as Array<{ user_items: { item_catalog: { bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number } } }>) {
+      const ic = row.user_items?.item_catalog;
+      if (!ic) continue;
+      bonuses.hp  += ic.bonus_hp ?? 0;
+      bonuses.atk += ic.bonus_atk ?? 0;
+      bonuses.def += ic.bonus_def ?? 0;
+      bonuses.spd += ic.bonus_spd ?? 0;
+    }
+    return { ...data, archetype: arch, item_bonuses: bonuses };
   }
 
   const gA = await fetchGuardian(attacker_user_id);
@@ -124,10 +137,12 @@ async function handleChallenge(req: Request) {
   const inputA: BattleInput = {
     guardian: { id: gA.id, level: gA.level, current_hp_pct: gA.current_hp_pct, archetype: gA.archetype },
     is_home: false, crew_member_count: attCount,
+    item_bonuses: gA.item_bonuses,
   };
   const inputB: BattleInput = {
     guardian: { id: gB.id, level: gB.level, current_hp_pct: gB.current_hp_pct, archetype: gB.archetype },
     is_home: false, crew_member_count: defCount,
+    item_bonuses: gB.item_bonuses,
   };
 
   const seed = `${business_id}:${attacker_user_id}:${defender_user_id}:${Date.now()}`;
@@ -153,7 +168,8 @@ async function handleChallenge(req: Request) {
   if (battleErr || !battleRow) return NextResponse.json({ error: "battle_save_failed", detail: battleErr?.message ?? "no row" }, { status: 500 });
 
   async function applyOutcome(g: NonNullable<typeof gA>, won: boolean, finalHp: number) {
-    const maxHp = Math.round(g.archetype.base_hp * (1 + (g.level - 1) * 0.08));
+    const baseMaxHp = Math.round(g.archetype.base_hp * (1 + (g.level - 1) * 0.08));
+    const maxHp = baseMaxHp + (g.item_bonuses?.hp ?? 0);
     const hpPct = Math.max(0, Math.round((finalHp / maxHp) * 100));
     const newXp = won ? g.xp + result.xp_awarded : g.xp + Math.round(result.xp_awarded * 0.25);
     let newLevel = g.level;

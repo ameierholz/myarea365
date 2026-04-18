@@ -12,6 +12,7 @@ import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
+import { GuardianEquipmentPanel } from "@/components/guardian-equipment";
 import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
@@ -1336,6 +1337,12 @@ function ProfilTab({
         {/* ═══ WÄCHTER ═══ */}
         <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
         <ProfileGuardianBlock userId={p?.id ?? null} />
+
+        {/* ═══ AUSRÜSTUNG ═══ */}
+        <SectionHeader title="AUSRÜSTUNG" />
+        <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <GuardianEquipmentPanel />
+        </div>
 
         {/* ═══ LETZTE LÄUFE ═══ */}
         <SectionHeader title="LETZTE LÄUFE" />

@@ -14,6 +14,7 @@ export type BattleInput = {
   };
   is_home: boolean;          // Shop in eigener Stadt der Crew?
   crew_member_count: number; // fuer Rudel-Alpha
+  item_bonuses?: { hp: number; atk: number; def: number; spd: number }; // aus equipped items
 };
 
 export type RoundEvent = {
@@ -74,15 +75,17 @@ type Combatant = {
 
 function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
   const s = statsAtLevel(input.guardian.archetype, input.guardian.level);
-  const hpStart = Math.max(1, Math.round(s.hp * (input.guardian.current_hp_pct / 100)));
+  const b = input.item_bonuses ?? { hp: 0, atk: 0, def: 0, spd: 0 };
+  const hpMax = s.hp + b.hp;
+  const hpStart = Math.max(1, Math.round(hpMax * (input.guardian.current_hp_pct / 100)));
   return {
     label,
     id: input.guardian.id,
     hp: hpStart,
-    hpMax: s.hp,
-    atk: s.atk,
-    def: s.def,
-    spd: s.spd,
+    hpMax,
+    atk: s.atk + b.atk,
+    def: s.def + b.def,
+    spd: s.spd + b.spd,
     abilityId: input.guardian.archetype.ability_id,
     state: { rageStacks: 0, poisonStacks: 0, phoenixUsed: false, stunned: false, nineLivesUsed: false },
     isHome: input.is_home,
