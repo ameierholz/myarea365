@@ -54,6 +54,29 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       50%     { opacity: 1;   transform: translateY(-2px); }
     }
     @keyframes shopBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+    @keyframes spotlightBadgeShimmer {
+      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,215,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6); transform: translateY(0) scale(1); }
+      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,215,0,0.95), inset 0 1px 0 rgba(255,255,255,0.8); transform: translateY(-2px) scale(1.06); }
+    }
+    @keyframes spotlightBadgeStar {
+      0%,100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
+      50%     { transform: rotate(14deg) scale(1.15); filter: drop-shadow(0 0 4px rgba(255,255,255,1)); }
+    }
+    .ma365-spotlight-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px 4px 8px;
+      background: linear-gradient(135deg, #FFE55C 0%, #FFD700 40%, #FF8A3C 100%);
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.95);
+      color: #0F1115; font-weight: 900; font-size: 11px; letter-spacing: 0.6px;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+      animation: spotlightBadgeShimmer 2.2s ease-in-out infinite;
+      pointer-events: none;
+      will-change: transform, box-shadow;
+    }
+    .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
   `;
   document.head.appendChild(style);
 }
@@ -269,6 +292,7 @@ export function AppMap({
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string }>>([]);
 
   // Map initialisieren
   useEffect(() => {
@@ -568,7 +592,6 @@ export function AppMap({
     const LYR_HALO_MID   = "shops-halo-mid";
     const LYR_HALO_CORE  = "shops-halo-core";
     const LYR_PIN        = "shops-pin";
-    const LYR_BADGE      = "shops-badge";
     const LYR_LABEL      = "shops-label";
 
     function darken(hex: string, amt = 0.3): string {
@@ -621,42 +644,7 @@ export function AppMap({
       ctx.fillText(icon, cx, cy + r * 0.05);
       return ctx.getImageData(0, 0, W, H);
     }
-    function buildBadge(label: string, from: string, to: string): ImageData | null {
-      const H = 320, pad = 140;
-      const m = document.createElement("canvas").getContext("2d");
-      if (!m) return null;
-      m.font = `900 160px Inter, system-ui, sans-serif`;
-      const W = Math.round(m.measureText(label).width + pad * 2);
-      const canvas = document.createElement("canvas");
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
-      // Dramatischer Shadow
-      ctx.shadowColor = "rgba(0,0,0,0.65)"; ctx.shadowBlur = 56; ctx.shadowOffsetY = 20;
-      const rad = H / 2;
-      ctx.beginPath();
-      ctx.moveTo(rad, 0); ctx.lineTo(W - rad, 0);
-      ctx.arc(W - rad, rad, rad, -Math.PI / 2, Math.PI / 2);
-      ctx.lineTo(rad, H); ctx.arc(rad, rad, rad, Math.PI / 2, -Math.PI / 2);
-      ctx.closePath();
-      // Gradient-Fill
-      const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, from); g.addColorStop(1, to);
-      ctx.fillStyle = g; ctx.fill();
-      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      // Weißer Border
-      ctx.lineWidth = 10; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.stroke();
-      // Highlight oben
-      const hl = ctx.createLinearGradient(0, 0, 0, H * 0.5);
-      hl.addColorStop(0, "rgba(255,255,255,0.5)"); hl.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = hl; ctx.fill();
-      // Text mit Shadow
-      ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
-      ctx.font = `900 160px Inter, system-ui, sans-serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#0F1115";
-      ctx.fillText(label, W / 2, H / 2 + 4);
-      return ctx.getImageData(0, 0, W, H);
-    }
+    // buildBadge entfernt - Badge ist jetzt CSS-DOM-Marker
 
     const pinKey = (s: ShopPin) => `pin-${(s.color ?? "").replace(/[^a-z0-9]/gi,"_")}-${s.icon ?? "x"}`.replace(/[^a-zA-Z0-9-_]/g,"_");
     for (const s of shops) {
@@ -666,7 +654,7 @@ export function AppMap({
         if (img) map.addImage(key, img, { pixelRatio: 4 });
       }
     }
-    if (!map.hasImage("badge-spotlight")) { const b = buildBadge("⭐ SPOTLIGHT", "#FFD700", "#FF8A3C"); if (b) map.addImage("badge-spotlight", b, { pixelRatio: 4 }); }
+    // Badge wird als CSS-DOM-Marker gerendert (kein Canvas -> kein Blur, echte Animation)
 
     const geojson = {
       type: "FeatureCollection" as const,
@@ -747,20 +735,7 @@ export function AppMap({
           "icon-ignore-placement": true,
         },
       });
-      map.addLayer({
-        id: LYR_BADGE, type: "symbol", source: SRC,
-        layout: {
-          "icon-image": "badge-spotlight",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.07, 15, 0.14, 18, 0.22],
-          "icon-offset": [0, -980],
-          "icon-anchor": "bottom",
-          "icon-allow-overlap": true,
-          "icon-ignore-placement": true,
-        },
-        paint: {
-          "icon-opacity": ["case", ["==", ["get", "spotlight"], true], 1, 0],
-        },
-      });
+      // LYR_BADGE entfernt - wird durch DOM-Marker ersetzt (siehe unten)
       map.addLayer({
         id: LYR_LABEL, type: "symbol", source: SRC,
         layout: {
@@ -783,7 +758,7 @@ export function AppMap({
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onShopClick(id);
         };
-        [LYR_PIN, LYR_BADGE, LYR_LABEL].forEach((l) => {
+        [LYR_PIN, LYR_LABEL].forEach((l) => {
           map.on("click", l, onClick);
           map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
           map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
@@ -826,13 +801,45 @@ export function AppMap({
       (map as unknown as { __pulseCancel?: () => void }).__pulseCancel = () => { cancelled = true; };
     }
 
+    // ── CSS-DOM-Badges fuer Spotlight-Shops (kein Blur, echte Animation) ──
+    // Alte entfernen
+    spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
+    spotlightBadgeMarkersRef.current = [];
+    // Neue erstellen
+    shops.filter((s) => s.spotlight).forEach((s) => {
+      const el = document.createElement("div");
+      el.className = "ma365-spotlight-badge";
+      el.innerHTML = `<span class="star">⭐</span><span>SPOTLIGHT</span>`;
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom", offset: [0, -40] })
+        .setLngLat([s.lng, s.lat])
+        .addTo(map);
+      spotlightBadgeMarkersRef.current.push({ marker, shopId: s.id });
+    });
+    // Offset an Zoom koppeln damit Badge ueber Pin-Top schwebt
+    const updateBadgeOffsets = () => {
+      const zoom = map.getZoom();
+      const iconSize =
+        zoom < 11 ? 0.03 :
+        zoom < 13 ? 0.03 + ((zoom - 11) / 2) * 0.03 :
+        zoom < 15 ? 0.06 + ((zoom - 13) / 2) * 0.04 :
+        zoom < 18 ? 0.10 + ((zoom - 15) / 3) * 0.06 : 0.16;
+      const pinHeight = 1280 * iconSize / 4;
+      const offY = -(pinHeight + 6);
+      spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.setOffset([0, offY]));
+    };
+    updateBadgeOffsets();
+    map.on("zoom", updateBadgeOffsets);
+
     return () => {
       const cancel = (map as unknown as { __pulseCancel?: () => void }).__pulseCancel;
       if (cancel) cancel();
+      map.off("zoom", updateBadgeOffsets);
+      spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
+      spotlightBadgeMarkersRef.current = [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_BADGE, LYR_PIN, LYR_HALO_CORE, LYR_HALO_MID, LYR_HALO_OUTER, LYR_HALO_OUTER + "-arena"].forEach((l) => {
+        [LYR_LABEL, LYR_PIN, LYR_HALO_CORE, LYR_HALO_MID, LYR_HALO_OUTER, LYR_HALO_OUTER + "-arena"].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
