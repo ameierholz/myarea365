@@ -133,8 +133,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
        Wave-Features: Boss, Sanctuary, Loot, Arena-Countdown, Reviews
        ═══════════════════════════════════════════════════════ */
     @keyframes ma365BossPulse {
-      0%,100% { box-shadow: 0 0 20px rgba(255,45,120,0.55), 0 4px 12px rgba(0,0,0,0.4); transform: translateY(0); }
-      50%     { box-shadow: 0 0 36px rgba(255,45,120,1),    0 6px 18px rgba(0,0,0,0.5); transform: translateY(-2px); }
+      0%,100% { box-shadow: 0 0 20px rgba(255,45,120,0.55), 0 4px 12px rgba(0,0,0,0.4); filter: brightness(1); }
+      50%     { box-shadow: 0 0 36px rgba(255,45,120,1),    0 6px 18px rgba(0,0,0,0.5); filter: brightness(1.12); }
     }
     .ma365-boss-marker {
       position: relative;
@@ -161,12 +161,13 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
 
     @keyframes ma365SanctuaryFloat {
-      0%,100% { transform: translateY(0); }
-      50%     { transform: translateY(-3px); }
+      0%,100% { filter: brightness(1); }
+      50%     { filter: brightness(1.15) drop-shadow(0 0 4px rgba(34,209,195,0.5)); }
     }
     .ma365-sanctuary-marker {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
       animation: ma365SanctuaryFloat 2.8s ease-in-out infinite;
+      transform-origin: center bottom;
     }
     .ma365-sanctuary-emoji {
       font-size: 28px; line-height: 1;
@@ -1812,12 +1813,12 @@ export function AppMap({
     }
   }, [mapReady, shopTrail]);
 
-  // ── Boss-Raids DOM Marker (Pulse + HP-Bar) ──
-  const bossMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  // ── Boss-Raids DOM Marker (Pulse + HP-Bar, zoom-skaliert) ──
+  const bossMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    bossMarkersRef.current.forEach((m) => m.remove());
+    bossMarkersRef.current.forEach(({ marker }) => marker.remove());
     bossMarkersRef.current = [];
 
     bossRaids.forEach((b) => {
@@ -1825,27 +1826,46 @@ export function AppMap({
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
       const pct = Math.round((b.current_hp / b.max_hp) * 100);
-      outer.innerHTML = `
-        <div class="ma365-boss-marker">
+      const inner = document.createElement("div");
+      inner.className = "ma365-boss-marker";
+      inner.style.transformOrigin = "center bottom";
+      inner.innerHTML = `
           <div class="ma365-boss-emoji">${b.emoji}</div>
           <div class="ma365-boss-name">${b.name}</div>
-          <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>
-        </div>`;
+          <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>`;
+      outer.appendChild(inner);
       outer.addEventListener("click", () => onBossClick?.(b.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([b.lng, b.lat]).addTo(map);
-      bossMarkersRef.current.push(marker);
+      bossMarkersRef.current.push({ marker, el: inner });
     });
 
-    return () => { bossMarkersRef.current.forEach((m) => m.remove()); bossMarkersRef.current = []; };
+    const applyScale = () => {
+      const zoom = map.getZoom();
+      const hide = zoom < 11;
+      const scale = Math.max(0.35, Math.min(1.0, (zoom - 11) / 6 + 0.4));
+      bossMarkersRef.current.forEach(({ el }) => {
+        el.style.transform = `scale(${scale.toFixed(2)})`;
+        el.style.opacity = hide ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
+      });
+    };
+    applyScale();
+    map.on("zoom", applyScale);
+
+    return () => {
+      map.off("zoom", applyScale);
+      bossMarkersRef.current.forEach(({ marker }) => marker.remove());
+      bossMarkersRef.current = [];
+    };
   }, [mapReady, bossRaids, onBossClick]);
 
-  // ── Sanctuaries DOM Marker ──
-  const sanctuaryMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  // ── Sanctuaries DOM Marker (zoom-skaliert) ──
+  const sanctuaryMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    sanctuaryMarkersRef.current.forEach((m) => m.remove());
+    sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
     sanctuaryMarkersRef.current = [];
 
     sanctuaries.forEach((s) => {
@@ -1853,18 +1873,36 @@ export function AppMap({
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
       const done = s.trained_today;
-      outer.innerHTML = `
-        <div class="ma365-sanctuary-marker ${done ? "done" : ""}">
+      const inner = document.createElement("div");
+      inner.className = `ma365-sanctuary-marker ${done ? "done" : ""}`;
+      inner.innerHTML = `
           <div class="ma365-sanctuary-emoji">${s.emoji}</div>
-          ${done ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}
-        </div>`;
+          ${done ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
+      outer.appendChild(inner);
       outer.addEventListener("click", () => onSanctuaryClick?.(s.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      sanctuaryMarkersRef.current.push(marker);
+      sanctuaryMarkersRef.current.push({ marker, el: inner });
     });
 
-    return () => { sanctuaryMarkersRef.current.forEach((m) => m.remove()); sanctuaryMarkersRef.current = []; };
+    const applyScale = () => {
+      const zoom = map.getZoom();
+      const hide = zoom < 11;
+      const scale = Math.max(0.35, Math.min(1.0, (zoom - 11) / 6 + 0.4));
+      sanctuaryMarkersRef.current.forEach(({ el }) => {
+        el.style.transform = `scale(${scale.toFixed(2)})`;
+        el.style.opacity = hide ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
+      });
+    };
+    applyScale();
+    map.on("zoom", applyScale);
+
+    return () => {
+      map.off("zoom", applyScale);
+      sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
+      sanctuaryMarkersRef.current = [];
+    };
   }, [mapReady, sanctuaries, onSanctuaryClick]);
 
   // ── Loot-Drops: animierte Kisten mit Proximity-Pickup ──
