@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin/marketing", label: "📧 Marketing", section: "marketing" },
   { href: "/admin/sales", label: "💰 Sales", section: "sales" },
   { href: "/admin/gamification", label: "🏆 Gamification", section: "gamification" },
+  { href: "/admin/artwork", label: "🎨 Artwork", section: "artwork" },
   { href: "/admin/moderation", label: "⚖️ Moderation", section: "moderation" },
   { href: "/admin/audit", label: "📋 Audit-Log", section: "audit" },
   { href: "/admin/flags", label: "🚩 Feature-Flags", section: "flags" },
