@@ -8,7 +8,8 @@ import {
 } from "@/lib/artwork-prompts";
 
 type Archetype = { id: string; name: string; emoji: string; rarity: string; image_url: string | null };
-type Item      = { id: string; name: string; emoji: string; slot: string; rarity: string; image_url: string | null; cosmetic_only: boolean };
+type Item      = { id: string; name: string; emoji: string; slot: string; rarity: string; image_url: string | null; cosmetic_only: boolean; race: string | null };
+type RaceLore  = { name: string; role: string; lore: string | null; material_desc: string | null; energy_color: string | null };
 
 type Tab = "prompts" | "archetypes" | "items";
 
@@ -16,6 +17,7 @@ export function ArtworkAdminClient() {
   const [tab, setTab] = useState<Tab>("prompts");
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [races, setRaces] = useState<RaceLore[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = async () => {
@@ -25,6 +27,7 @@ export function ArtworkAdminClient() {
       const data = await res.json();
       setArchetypes(data.archetypes);
       setItems(data.items);
+      setRaces(data.races ?? []);
     }
     setLoading(false);
   };
@@ -57,7 +60,7 @@ export function ArtworkAdminClient() {
 
       {tab === "prompts" && <PromptsTab />}
       {tab === "archetypes" && (loading ? <LoadingBox /> : <ArchetypesTab archetypes={archetypes} onChange={reload} />)}
-      {tab === "items" && (loading ? <LoadingBox /> : <ItemsTab items={items} onChange={reload} />)}
+      {tab === "items" && (loading ? <LoadingBox /> : <ItemsTab items={items} races={races} onChange={reload} />)}
     </div>
   );
 }
@@ -208,56 +211,92 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
 /* ═════════════════════════════════════════════════════════ */
 /*  Tab 3: Item-Bilder                                         */
 /* ═════════════════════════════════════════════════════════ */
-function ItemsTab({ items, onChange }: { items: Item[]; onChange: () => void }) {
+function ItemsTab({ items, races, onChange }: { items: Item[]; races: RaceLore[]; onChange: () => void }) {
+  const raceMap = new Map(races.map((r) => [r.name, r]));
   const [filterSlot, setFilterSlot] = useState<string>("ALL");
   const [filterRarity, setFilterRarity] = useState<string>("ALL");
+  const [filterRace, setFilterRace] = useState<string>("ALL");
   const [showMissingOnly, setShowMissingOnly] = useState(false);
+  const [limit, setLimit] = useState(120);
 
-  const slots = Array.from(new Set(items.map((i) => i.slot)));
-  const rarities = Array.from(new Set(items.map((i) => i.rarity)));
+  const slots     = Array.from(new Set(items.map((i) => i.slot)));
+  const rarities  = Array.from(new Set(items.map((i) => i.rarity)));
+  const raceNames = Array.from(new Set(items.map((i) => i.race).filter((r): r is string => !!r))).sort();
 
   const filtered = items.filter((i) => {
     if (filterSlot !== "ALL" && i.slot !== filterSlot) return false;
     if (filterRarity !== "ALL" && i.rarity !== filterRarity) return false;
+    if (filterRace === "UNIVERSAL") { if (i.race) return false; }
+    else if (filterRace !== "ALL" && i.race !== filterRace) return false;
     if (showMissingOnly && i.image_url) return false;
     return true;
   });
 
+  const withImage = items.filter(i => i.image_url).length;
+  const pct = items.length > 0 ? Math.round((withImage / items.length) * 100) : 0;
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
-        <select value={filterSlot} onChange={(e) => setFilterSlot(e.target.value)} className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+        <select value={filterRace} onChange={(e) => { setFilterRace(e.target.value); setLimit(120); }}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="ALL">Alle Rassen ({items.length})</option>
+          <option value="UNIVERSAL">🌐 Universal ({items.filter(i => !i.race).length})</option>
+          {raceNames.map((r) => {
+            const c = items.filter(i => i.race === r).length;
+            return <option key={r} value={r}>{r} ({c})</option>;
+          })}
+        </select>
+        <select value={filterSlot} onChange={(e) => { setFilterSlot(e.target.value); setLimit(120); }}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Slots</option>
           {slots.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={filterRarity} onChange={(e) => setFilterRarity(e.target.value)} className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+        <select value={filterRarity} onChange={(e) => { setFilterRarity(e.target.value); setLimit(120); }}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Rarities</option>
           {rarities.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
         <label className="flex items-center gap-2 text-sm text-[#a8b4cf]">
-          <input type="checkbox" checked={showMissingOnly} onChange={(e) => setShowMissingOnly(e.target.checked)} />
+          <input type="checkbox" checked={showMissingOnly} onChange={(e) => { setShowMissingOnly(e.target.checked); setLimit(120); }} />
           Nur ohne Bild
         </label>
         <div className="ml-auto text-xs text-[#8B8FA3] self-center">
-          {filtered.length} / {items.length} Items · {items.filter(i => i.image_url).length} mit Bild
+          <strong className="text-white">{filtered.length}</strong> gefiltert · {withImage}/{items.length} ({pct}%) mit Bild
         </div>
       </div>
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
-        {filtered.map((it) => (
+        {filtered.slice(0, limit).map((it) => (
           <ArtworkCard
             key={it.id}
             targetType="item"
             targetId={it.id}
             title={it.name}
-            subtitle={`${it.slot} · ${it.rarity}${it.cosmetic_only ? " · cosmetic" : ""}`}
+            subtitle={[it.race ?? "Universal", it.slot, it.rarity, it.cosmetic_only ? "cosmetic" : ""].filter(Boolean).join(" · ")}
             emoji={it.emoji}
             imageUrl={it.image_url}
-            prompt={`Game Icon, ${it.rarity} ${it.slot} '${it.name}', detailed 3D render, dark background, accent colors #1db682 and #6991d8, Unreal Engine 5 style, 8k, centered, transparency-safe edges, no text.`}
+            prompt={(() => {
+              const lore = it.race ? raceMap.get(it.race) : null;
+              const material = lore?.material_desc || `${it.rarity} ${it.slot}`;
+              const glow = lore?.energy_color || "#1db682";
+              return `Game Icon, ${it.name}, material: ${material}, cinematic lighting, glow color ${glow}, 8k, black background, 3D render, Unreal Engine 5 style, accent colors #1db682 and #6991d8, centered, transparency-safe edges, no text, no logo.`;
+            })()}
             onChange={onChange}
           />
         ))}
       </div>
+
+      {filtered.length > limit && (
+        <div className="text-center mt-6">
+          <button
+            onClick={() => setLimit(limit + 120)}
+            className="px-6 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115] text-sm font-bold hover:bg-[#1db682]"
+          >
+            Weitere 120 laden ({filtered.length - limit} übrig)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
