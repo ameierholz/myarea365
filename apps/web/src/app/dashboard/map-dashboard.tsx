@@ -188,6 +188,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [boostShopOpen, setBoostShopOpen] = useState(false);
   const [overviewMode, setOverviewMode] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
+  const [controlsExpanded, setControlsExpanded] = useState(false);
   const [snapping, setSnapping] = useState(false);
   const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
 
@@ -683,53 +684,63 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {/* Fraktions-Ranking + Crews-in-Nähe (unten links, kollabierbar) */}
             <MapFactionPanel onSwitchTab={() => setActiveTab("crew")} />
 
-            {/* Map-Controls (rechts, unter Mapbox-Zoom/Kompass) */}
+            {/* Map-Controls (rechts, unter Mapbox-Zoom/Kompass) - collapsible */}
             <div style={{
               position: "absolute", top: 140, right: 10, zIndex: 50,
               display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8,
             }}>
               <MapIconButton
-                icon="📍"
-                label="Auf mich zentrieren"
-                onClick={() => setRecenterAt(Date.now())}
-                accent="#4ade80"
+                icon={controlsExpanded ? "✕" : "⋯"}
+                label={controlsExpanded ? "Controls einklappen" : "Controls anzeigen"}
+                onClick={() => setControlsExpanded(!controlsExpanded)}
+                active={controlsExpanded}
               />
-              <MapIconButton
-                icon={
-                  lightPreset === "auto" ? "🕐" :
-                  lightPreset === "dawn" ? "🌅" :
-                  lightPreset === "day" ? "☀️" :
-                  lightPreset === "dusk" ? "🌆" : "🌙"
-                }
-                label="Tageszeit"
-                onClick={() => {
-                  const order: Array<typeof lightPreset> = ["auto", "day", "dusk", "night", "dawn"];
-                  const idx = order.indexOf(lightPreset);
-                  setLightPreset(order[(idx + 1) % order.length]);
-                }}
-                accent="#FFD700"
-              />
-              <MapIconButton
-                icon={overviewMode ? "🎯" : "🗺️"}
-                label={overviewMode ? "Zurück" : "Übersicht"}
-                onClick={() => setOverviewMode(!overviewMode)}
-                active={overviewMode}
-              />
-              <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={DEMO_MISSIONS.length} />
-              <MapIconButton icon="⚡" label="Boost-Shop" onClick={() => setBoostShopOpen(true)} accent="#FFD700" />
-              {!walking && process.env.NODE_ENV !== "production" && (
-                <button
-                  onClick={clearMap}
-                  style={{
-                    background: "rgba(18, 26, 46, 0.6)",
-                    backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                    padding: "8px 12px", borderRadius: 12,
-                    border: `1px solid ${ACCENT}66`,
-                    color: ACCENT, fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  🗑 Karte leeren
-                </button>
+              {controlsExpanded && (
+                <>
+                  <MapIconButton
+                    icon="📍"
+                    label="Auf mich zentrieren"
+                    onClick={() => setRecenterAt(Date.now())}
+                    accent="#4ade80"
+                  />
+                  <MapIconButton
+                    icon={
+                      lightPreset === "auto" ? "🕐" :
+                      lightPreset === "dawn" ? "🌅" :
+                      lightPreset === "day" ? "☀️" :
+                      lightPreset === "dusk" ? "🌆" : "🌙"
+                    }
+                    label="Tageszeit"
+                    onClick={() => {
+                      const order: Array<typeof lightPreset> = ["auto", "day", "dusk", "night", "dawn"];
+                      const idx = order.indexOf(lightPreset);
+                      setLightPreset(order[(idx + 1) % order.length]);
+                    }}
+                    accent="#FFD700"
+                  />
+                  <MapIconButton
+                    icon={overviewMode ? "🎯" : "🗺️"}
+                    label={overviewMode ? "Zurück" : "Übersicht"}
+                    onClick={() => setOverviewMode(!overviewMode)}
+                    active={overviewMode}
+                  />
+                  <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={DEMO_MISSIONS.length} />
+                  <MapIconButton icon="⚡" label="Boost-Shop" onClick={() => setBoostShopOpen(true)} accent="#FFD700" />
+                  {!walking && process.env.NODE_ENV !== "production" && (
+                    <button
+                      onClick={clearMap}
+                      style={{
+                        background: "rgba(18, 26, 46, 0.6)",
+                        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                        padding: "8px 12px", borderRadius: 12,
+                        border: `1px solid ${ACCENT}66`,
+                        color: ACCENT, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      }}
+                    >
+                      🗑 Karte leeren
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
