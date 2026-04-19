@@ -681,8 +681,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {/* Live-Info-Panel (oben links) */}
             <MapLivePanel teamColor={teamColor} onViewRunner={setViewingRunner} />
 
-            {/* Fraktions-Ranking + Crews-in-Nähe (unten links, kollabierbar) */}
-            <MapFactionPanel onSwitchTab={() => setActiveTab("crew")} />
+            {/* Fraktions-Ranking entfernt (User-Wunsch) */}
 
             {/* Map-Controls (rechts, gleiche Hoehe wie Live-Panel links) - collapsible */}
             <div style={{
