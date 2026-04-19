@@ -258,92 +258,45 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       animation-delay: 0.6s;
     }
 
-    /* Floating Countdown: holografische Glas-Karte mit Puls + sanftem Float */
+    /* Floating Countdown: minimalistisch, kein Rahmen, sanfter Gold-Glow */
     @keyframes ma365CountdownFloat {
       0%,100% { transform: translateY(0) scale(var(--s, 1)); }
-      50%     { transform: translateY(-3px) scale(calc(var(--s, 1) * 1.04)); }
-    }
-    @keyframes ma365CountdownGlow {
-      0%,100% { box-shadow: 0 0 12px rgba(168,85,247,0.5), 0 0 24px rgba(168,85,247,0.25), inset 0 1px 0 rgba(255,255,255,0.35); border-color: rgba(168,85,247,0.65); }
-      50%     { box-shadow: 0 0 20px rgba(168,85,247,0.9), 0 0 40px rgba(255,45,120,0.4), inset 0 1px 0 rgba(255,255,255,0.55); border-color: rgba(255,45,120,0.8); }
+      50%     { transform: translateY(-2px) scale(calc(var(--s, 1) * 1.03)); }
     }
     @keyframes ma365CountdownBlink {
       0%,55%,100% { opacity: 1; }
-      60%,75%     { opacity: 0.25; }
-    }
-    @keyframes ma365CountdownOrbit {
-      0%   { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      60%,75%     { opacity: 0.35; }
     }
     .ma365-countdown-wrap {
       position: relative;
-      display: inline-block;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
       transform-origin: center bottom;
       will-change: transform;
       animation: ma365CountdownFloat 3s ease-in-out infinite;
-    }
-    .ma365-countdown-card {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 10px 5px 8px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, rgba(15,17,21,0.82) 0%, rgba(40,20,60,0.82) 100%);
-      backdrop-filter: blur(12px) saturate(160%);
-      -webkit-backdrop-filter: blur(12px) saturate(160%);
-      border: 1.5px solid rgba(168,85,247,0.65);
       color: #FFF;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, monospace;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
       font-weight: 900;
-      font-size: 11px;
-      letter-spacing: 0.5px;
+      text-shadow:
+        0 0 1px rgba(0,0,0,0.9),
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 8px rgba(255,215,0,0.35);
       white-space: nowrap;
-      animation: ma365CountdownGlow 2s ease-in-out infinite;
-      will-change: box-shadow, border-color;
     }
-    .ma365-countdown-card .icon {
-      font-size: 12px;
-      filter: drop-shadow(0 0 6px rgba(168,85,247,0.8));
-      line-height: 1;
+    .ma365-countdown-wrap .icon {
+      font-size: 13px;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
     }
-    .ma365-countdown-card .sep {
-      color: #a855f7;
+    .ma365-countdown-wrap .value {
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.3px;
+    }
+    .ma365-countdown-wrap .sep {
+      color: #FFD700;
       animation: ma365CountdownBlink 1s linear infinite;
       margin: 0 1px;
-      text-shadow: 0 0 8px rgba(168,85,247,0.8);
-    }
-    .ma365-countdown-card .label {
-      font-size: 8px;
-      color: #c4a5e8;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      font-weight: 800;
-      margin-right: 2px;
-    }
-    .ma365-countdown-card .value {
-      font-variant-numeric: tabular-nums;
-      color: #FFF;
-      text-shadow: 0 0 10px rgba(255,255,255,0.4);
-      font-size: 12px;
-    }
-    /* Orbit-Ring hinter dem Pill: rotiert langsam und wirkt "magisch" */
-    .ma365-countdown-orbit {
-      position: absolute;
-      inset: -4px;
-      border-radius: 14px;
-      border: 1px dashed rgba(168,85,247,0.25);
-      pointer-events: none;
-      animation: ma365CountdownOrbit 10s linear infinite;
-    }
-    .ma365-countdown-orbit::before {
-      content: "";
-      position: absolute;
-      top: -3px; left: 50%;
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #FF2D78;
-      box-shadow: 0 0 10px #FF2D78, 0 0 20px rgba(255,45,120,0.6);
-      transform: translateX(-50%);
     }
 
     .ma365-review-chip {
@@ -948,10 +901,8 @@ export function AppMap({
       grad.addColorStop(0, color); grad.addColorStop(0.45, color); grad.addColorStop(1, darken(color, 0.5));
       ctx.fillStyle = grad; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      // Weißer Border (duenner fuer moderneren Look)
-      ctx.lineWidth = 22; ctx.strokeStyle = "#FFFFFF"; ctx.stroke();
-      // Dunkler Haar-Border fuer Kontrast
-      ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.stroke();
+      // Kein dicker weisser Border mehr - nur feine Kontur in Pin-Farbe
+      ctx.lineWidth = 8; ctx.strokeStyle = darken(color, 0.55); ctx.stroke();
       // Starker Glanz oben
       const gloss = ctx.createRadialGradient(cx - r * 0.15, cy - r * 0.55, 0, cx - r * 0.15, cy - r * 0.55, r * 1.0);
       gloss.addColorStop(0, "rgba(255,255,255,0.65)"); gloss.addColorStop(0.35, "rgba(255,255,255,0.25)"); gloss.addColorStop(1, "rgba(255,255,255,0)");
@@ -2014,13 +1965,7 @@ export function AppMap({
       const wrap = document.createElement("div");
       wrap.className = "ma365-countdown-wrap";
       const parts = fmtCountdownParts(c.starts_at);
-      wrap.innerHTML = `
-        <div class="ma365-countdown-orbit"></div>
-        <div class="ma365-countdown-card">
-          <span class="icon">⚔️</span>
-          ${parts.label ? `<span class="label">${parts.label}</span>` : ""}
-          <span class="value">${parts.value}</span>
-        </div>`;
+      wrap.innerHTML = `<span class="icon">⚔️</span><span class="value">${parts.value}</span>`;
       outer.appendChild(wrap);
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom", offset: [0, 0] })
         .setLngLat([c.business_lng, c.business_lat]).addTo(map);
@@ -2032,10 +1977,10 @@ export function AppMap({
       arenaCountdownMarkersRef.current.forEach(({ marker }, i) => {
         const c = arenaCountdowns[i];
         if (!c) return;
-        const card = marker.getElement().querySelector(".ma365-countdown-card .value");
-        if (card) {
+        const valEl = marker.getElement().querySelector(".ma365-countdown-wrap .value");
+        if (valEl) {
           const parts = fmtCountdownParts(c.starts_at);
-          card.innerHTML = parts.value;
+          valEl.innerHTML = parts.value;
         }
       });
     }, 30_000);
