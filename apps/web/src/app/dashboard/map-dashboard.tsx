@@ -1234,7 +1234,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const data = await res.json();
               if (data.error === "too_far") { await appAlert(`Zu weit weg! ${data.distance_m}m entfernt (max 500m). Lauf hin!`); return; }
               if (data.error === "location_required") { await appAlert("GPS wird benötigt."); return; }
-              if (data.defeated) await appAlert("🏆 AREA-BOSS BESIEGT! Crew-Loot ist bereit zur Verteilung.");
+              if (data.error === "crew_full") { await appAlert(`Deine Crew hat schon 10 Teilnehmer. Kein Slot mehr frei.`); return; }
+              if (data.defeated) await appAlert("🏆 AREA-BOSS BESIEGT! Nur die Crew mit dem meisten Schaden bekommt den Loot.");
               const r = await fetch("/api/map-features", { cache: "no-store" });
               if (r.ok) setMapFeatures(await r.json());
             }}
@@ -10569,8 +10570,50 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
         <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 16 }}>
           {boss.current_hp.toLocaleString()} / {boss.max_hp.toLocaleString()} HP ({pct}%)
         </div>
-        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.55, textAlign: "left", background: "rgba(0,0,0,0.3)", padding: 10, borderRadius: 10 }}>
-          <strong style={{ color: "#FFD700" }}>So funktioniert&apos;s:</strong> Jedes Crew-Mitglied das vor Ort (≤ 500 m) ist, kann mit seinem Wächter angreifen. Je mehr Crew-Mitglieder mit anpacken, desto höher die <strong>Gewinnchance + Loot-Pool</strong>. Der Loot wird nach dem Sieg vom <strong>Crew-Leader / Kampfleader</strong> an die Teilnehmer verteilt (max. 8 Items pro Crew).
+
+        {/* So funktioniert's — 3 Kacheln in Grid */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6,
+          marginBottom: 10, textAlign: "left",
+        }}>
+          <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,215,0,0.3)" }}>
+            <div style={{ fontSize: 18, marginBottom: 3 }}>🥇</div>
+            <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, marginBottom: 2 }}>NUR DIE STÄRKSTE CREW GEWINNT</div>
+            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>Crew mit dem meisten Gesamt-Damage holt den Loot. Wächter-Level + Ausrüstung entscheiden.</div>
+          </div>
+          <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(168,85,247,0.3)" }}>
+            <div style={{ fontSize: 18, marginBottom: 3 }}>👥</div>
+            <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, marginBottom: 2 }}>MAX 10 / CREW</div>
+            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>Maximal 10 Mitglieder pro Crew dürfen teilnehmen. GPS ≤ 500 m vom Boss.</div>
+          </div>
+          <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,45,120,0.3)" }}>
+            <div style={{ fontSize: 18, marginBottom: 3 }}>🎁</div>
+            <div style={{ color: "#FF2D78", fontSize: 10, fontWeight: 900, marginBottom: 2 }}>LOOT SKALIERT</div>
+            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>1-3 Teilnehmer = 1 Loot · 4-6 = 2 · 7-10 = 3 — Kampfleader verteilt.</div>
+          </div>
+        </div>
+
+        {/* Loot-Staffel-Detail */}
+        <div style={{
+          display: "flex", flexDirection: "column", gap: 3,
+          marginBottom: 12, textAlign: "left",
+          padding: "8px 10px", borderRadius: 10,
+          background: "rgba(255,215,0,0.06)",
+          border: "1px solid rgba(255,215,0,0.2)",
+        }}>
+          <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 0.5, marginBottom: 2 }}>LOOT-STAFFELUNG (GEWINNER-CREW)</div>
+          <div style={{ fontSize: 11, color: "#DDD", display: "flex", justifyContent: "space-between" }}>
+            <span>7-10 Teilnehmer</span>
+            <span><b style={{ color: "#FFD700" }}>🏆 Legend</b> + <b style={{ color: "#a855f7" }}>💎 Epic</b> + <b style={{ color: "#22D1C3" }}>💠 Rare</b></span>
+          </div>
+          <div style={{ fontSize: 11, color: "#DDD", display: "flex", justifyContent: "space-between" }}>
+            <span>4-6 Teilnehmer</span>
+            <span><b style={{ color: "#FFD700" }}>🏆 Legend</b> + <b style={{ color: "#a855f7" }}>💎 Epic</b></span>
+          </div>
+          <div style={{ fontSize: 11, color: "#DDD", display: "flex", justifyContent: "space-between" }}>
+            <span>1-3 Teilnehmer</span>
+            <span><b style={{ color: "#FFD700" }}>🏆 Legend</b></span>
+          </div>
         </div>
         {distM !== null && (
           <div style={{

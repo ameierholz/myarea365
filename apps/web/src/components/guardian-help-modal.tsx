@@ -404,29 +404,81 @@ function BossTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Hero>
-        <b>Area-Bosses</b> sind riesige Gegner die an Landmarks spawnen (z.B. Fernsehturm). Nur <b>Crews gemeinsam</b> können sie besiegen.
+        <b>Area-Bosses</b> sind riesige Gegner an Landmarks (z.B. Fernsehturm). <b>Winner-takes-all:</b> Nur die Crew mit dem meisten Gesamt-Schaden gewinnt den Loot.
       </Hero>
 
-      <StepLoop steps={[
-        { icon: "📍", title: "1. Hingelaufen",  text: "Du musst ≤ 500 m vom Boss sein, GPS wird geprüft" },
-        { icon: "⚔️", title: "2. Angreifen",    text: "Jeder Treffer 500-2000 Damage, Server addiert zu Crew-Pool" },
-        { icon: "🤝", title: "3. Crew hilft",   text: "Je mehr Crew-Mitglieder mit anpacken, desto mehr Loot" },
-        { icon: "🎁", title: "4. Loot-Pool",    text: "Bei Defeat: bis zu 8 Items pro Crew in der Raid-Rarity" },
-        { icon: "👑", title: "5. Verteilung",   text: "Crew-Leader oder Kampfleader weist Items einzelnen Mitgliedern zu" },
-      ]} />
+      <Card title="🏆 Gewinner-Crew" color="#FFD700">
+        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+          Am Ende zählt nur der <b>gesamte Schaden</b> pro Crew. Die Crew mit dem höchsten Wert räumt alles ab — die anderen gehen leer aus.
+        </div>
+        <ul style={{ margin: "6px 0 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+          <li>Wächter-<b>Level</b> und <b>Ausrüstung</b> entscheiden über Damage pro Schlag</li>
+          <li>Höhere Level + bessere Gear = mehr Damage</li>
+          <li>Strategie: Stark aufgestellte Crew mit vielen aktiven Mitgliedern dominiert</li>
+        </ul>
+      </Card>
 
-      <Card title="Rollen in der Crew" color="#FF2D78">
+      <Card title="👥 Maximal 10 Teilnehmer pro Crew" color="#a855f7">
+        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+          Pro Area-Boss können sich höchstens 10 Mitglieder einer Crew anschließen. Wer zuerst kommt, bekommt einen Platz. Voraussetzung: GPS <b>≤ 500 m</b> vom Boss.
+        </div>
+      </Card>
+
+      <Card title="🎁 Loot-Staffelung (nur Gewinner-Crew)" color="#FF2D78">
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12 }}>
+          <LootRow participants="7–10 Teilnehmer" badges={[
+            { label: "Legend", color: "#FFD700" },
+            { label: "Epic",   color: "#a855f7" },
+            { label: "Rare",   color: "#22D1C3" },
+          ]} />
+          <LootRow participants="4–6 Teilnehmer" badges={[
+            { label: "Legend", color: "#FFD700" },
+            { label: "Epic",   color: "#a855f7" },
+          ]} />
+          <LootRow participants="1–3 Teilnehmer" badges={[
+            { label: "Legend", color: "#FFD700" },
+          ]} />
+        </div>
+        <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 8, fontStyle: "italic" }}>
+          Mehr Mitglieder → mehr Loot-Items mit gemischten Rarities. Der Kampfleader / Crew-Leader verteilt dann die Items innerhalb der Crew.
+        </div>
+      </Card>
+
+      <Card title="Rollen in der Crew" color="#5ddaf0">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>Leader</b> — gründet die Crew, darf Kampfleader ernennen</li>
+          <li><b>Leader</b> — gründet die Crew, darf Kampfleader ernennen, verteilt Loot</li>
           <li><b>Co-Leader</b> — darf Loot verteilen</li>
-          <li><b>Kampfleader</b> — spezialisierte Rolle, darf nur Raid-Loot verteilen</li>
+          <li><b>Kampfleader</b> — spezialisierte Rolle nur für Raid-Loot-Verteilung</li>
           <li><b>Member</b> — kämpft mit, wartet auf Zuteilung</li>
         </ul>
       </Card>
 
       <Card title="Wichtig" color="#FF6B4A">
-        Bosse haben oft <b>250k+ HP</b> und eine <b>48-h-Timer</b>. Koordiniert euch im Crew-Chat um pünktlich vor Ort zu sein. Einmal besiegt = ein Loot-Pool — kein Nachrollen möglich.
+        Bosse haben oft <b>250k+ HP</b> und eine <b>48-h-Timer</b>. Koordiniert euch im Crew-Chat um früh vor Ort zu sein — wer zuletzt kommt, findet evtl. schon volle Slots. Einmal besiegt = ein Loot-Pool, nur für die Top-Damage-Crew.
       </Card>
+    </div>
+  );
+}
+
+function LootRow({ participants, badges }: { participants: string; badges: Array<{ label: string; color: string }> }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "6px 10px", borderRadius: 8,
+      background: "rgba(15,17,21,0.5)",
+      border: "1px solid rgba(255,255,255,0.06)",
+    }}>
+      <span style={{ color: "#DDD", fontSize: 11, fontWeight: 700 }}>{participants}</span>
+      <div style={{ display: "flex", gap: 4 }}>
+        {badges.map((b) => (
+          <span key={b.label} style={{
+            padding: "2px 7px", borderRadius: 999,
+            background: `${b.color}22`, color: b.color,
+            border: `1px solid ${b.color}55`,
+            fontSize: 9, fontWeight: 900, letterSpacing: 0.4,
+          }}>{b.label}</span>
+        ))}
+      </div>
     </div>
   );
 }
