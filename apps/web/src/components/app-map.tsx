@@ -362,6 +362,10 @@ export function AppMap({
   const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string; el: HTMLElement }>>([]);
   const spotlightBeamMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
   const spotlightAuraMarkersRef  = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; stacked: boolean }>>([]);
+  // Stable refs fuer Click-Callbacks, damit sich aendernde Parent-Funktionen
+  // nicht den Layer-Rebuild ausloesen
+  const onShopClickRef = useRef(onShopClick);
+  useEffect(() => { onShopClickRef.current = onShopClick; }, [onShopClick]);
 
   // Map initialisieren
   useEffect(() => {
@@ -769,17 +773,15 @@ export function AppMap({
         },
       });
 
-      if (onShopClick) {
-        const onClick = (e: mapboxgl.MapLayerMouseEvent) => {
-          const id = e.features?.[0]?.properties?.id as string | undefined;
-          if (id) onShopClick(id);
-        };
-        [LYR_PIN, LYR_LABEL].forEach((l) => {
-          map.on("click", l, onClick);
-          map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
-          map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
-        });
-      }
+      const onClick = (e: mapboxgl.MapLayerMouseEvent) => {
+        const id = e.features?.[0]?.properties?.id as string | undefined;
+        if (id) onShopClickRef.current?.(id);
+      };
+      [LYR_PIN, LYR_LABEL].forEach((l) => {
+        map.on("click", l, onClick);
+        map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
+      });
 
     }
 
@@ -896,7 +898,7 @@ export function AppMap({
         if (map.getSource(SRC)) map.removeSource(SRC);
       } catch { /* cleanup race */ }
     };
-  }, [mapReady, shops, onShopClick]);
+  }, [mapReady, shops]);
 
   // Globaler Zoom-Scaling-Effect: skaliert ALLE Marker (Self, Runner, Drops, Shops)
   // anhand des aktuellen Map-Zooms. Label-Fade fuer Shop-Namen.
