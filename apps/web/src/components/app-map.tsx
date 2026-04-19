@@ -129,6 +129,104 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
         rgba(255, 255, 220, 0.7) 100%);
       filter: blur(1px);
     }
+    /* ═══════════════════════════════════════════════════════
+       Wave-Features: Boss, Sanctuary, Loot, Arena-Countdown, Reviews
+       ═══════════════════════════════════════════════════════ */
+    @keyframes ma365BossPulse {
+      0%,100% { box-shadow: 0 0 20px rgba(255,45,120,0.55), 0 4px 12px rgba(0,0,0,0.4); transform: translateY(0); }
+      50%     { box-shadow: 0 0 36px rgba(255,45,120,1),    0 6px 18px rgba(0,0,0,0.5); transform: translateY(-2px); }
+    }
+    .ma365-boss-marker {
+      position: relative;
+      min-width: 110px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(120,0,40,0.95) 0%, rgba(40,0,20,0.95) 100%);
+      border: 2px solid rgba(255,45,120,0.8);
+      color: #FFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      animation: ma365BossPulse 1.8s ease-in-out infinite;
+      text-align: center;
+    }
+    .ma365-boss-emoji { font-size: 28px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+    .ma365-boss-name { font-size: 10px; font-weight: 900; letter-spacing: 0.3px; margin-bottom: 5px; text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+    .ma365-boss-hpbar {
+      height: 5px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .ma365-boss-hpfill {
+      height: 100%;
+      background: linear-gradient(90deg, #FF2D78, #FFD700);
+      transition: width 0.3s;
+    }
+
+    @keyframes ma365SanctuaryFloat {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-3px); }
+    }
+    .ma365-sanctuary-marker {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      animation: ma365SanctuaryFloat 2.8s ease-in-out infinite;
+    }
+    .ma365-sanctuary-emoji {
+      font-size: 28px; line-height: 1;
+      filter: drop-shadow(0 2px 6px rgba(34,209,195,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    }
+    .ma365-sanctuary-marker.done .ma365-sanctuary-emoji { filter: drop-shadow(0 2px 6px rgba(74,222,128,0.6)); opacity: 0.6; }
+    .ma365-sanctuary-xp {
+      font-size: 9px; font-weight: 900;
+      padding: 2px 6px; border-radius: 999px;
+      background: linear-gradient(90deg, #22D1C3, #5ddaf0); color: #0F1115;
+      border: 1.5px solid rgba(255,255,255,0.9);
+      letter-spacing: 0.3px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    }
+    .ma365-sanctuary-check {
+      font-size: 11px; font-weight: 900; color: #4ade80;
+      background: rgba(15,17,21,0.85); border: 1.5px solid #4ade80;
+      border-radius: 999px; padding: 1px 6px;
+    }
+
+    @keyframes ma365LootBob {
+      0%,100% { transform: translateY(0) rotate(-3deg); }
+      50%     { transform: translateY(-4px) rotate(3deg); }
+    }
+    @keyframes ma365LootGlow {
+      0%,100% { box-shadow: 0 0 12px var(--color), 0 4px 10px rgba(0,0,0,0.4); }
+      50%     { box-shadow: 0 0 22px var(--color), 0 6px 16px rgba(0,0,0,0.5); }
+    }
+    .ma365-loot-marker {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--color) 0%, rgba(15,17,21,0.7) 120%);
+      border: 2px solid rgba(255,255,255,0.95);
+      display: flex; align-items: center; justify-content: center;
+      animation: ma365LootBob 1.4s ease-in-out infinite, ma365LootGlow 1.8s ease-in-out infinite;
+      cursor: pointer;
+    }
+    .ma365-loot-inner { font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+
+    .ma365-arena-countdown {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; border-radius: 999px;
+      background: linear-gradient(135deg, #a855f7, #FF2D78);
+      border: 1.5px solid rgba(255,255,255,0.95);
+      color: #FFF; font-size: 9px; font-weight: 900; letter-spacing: 0.3px;
+      box-shadow: 0 3px 10px rgba(168,85,247,0.5);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+      white-space: nowrap;
+    }
+
+    .ma365-review-chip {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 1px 6px; border-radius: 999px;
+      background: rgba(15,17,21,0.85);
+      border: 1px solid rgba(255,215,0,0.5);
+      color: #FFD700; font-size: 9px; font-weight: 900;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      white-space: nowrap;
+    }
+    .ma365-review-stars { color: #FFD700; font-size: 8px; letter-spacing: 0.5px; }
+    .ma365-review-count { color: #8B8FA3; font-size: 8px; }
   `;
   document.head.appendChild(style);
 }
@@ -182,6 +280,21 @@ interface AppMapProps {
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
   ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>;
   onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
+  // ── Map-Features Wave ────────────────────────────────────
+  powerZones?: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
+  bossRaids?: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number }>;
+  sanctuaries?: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean }>;
+  flashPushes?: Array<{ id: string; business_id: string; business_lat: number; business_lng: number; radius_m: number; expires_at: string }>;
+  shopTrail?: Array<{ business_id: string; name: string; lat: number; lng: number }>;
+  shadowRoute?: { id: string; runner_color: string; geom: Array<{ lat: number; lng: number }> } | null;
+  shopReviews?: Array<{ business_id: string; avg_rating: number; review_count: number }>;
+  exploredCells?: Array<{ cell_x: number; cell_y: number }>;
+  fogOfWarEnabled?: boolean;
+  lootDrops?: Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>;
+  arenaCountdowns?: Array<{ business_id: string; business_lat: number; business_lng: number; starts_at: string }>;
+  onBossClick?: (raidId: string) => void;
+  onSanctuaryClick?: (sanctuaryId: string) => void;
+  onLootClick?: (dropId: string) => void;
 }
 
 // Helper: Zoom-responsive line-width.
@@ -344,6 +457,20 @@ export function AppMap({
   claimedStreets = [],
   ownedTerritories = [],
   onOwnershipClick,
+  powerZones = [],
+  bossRaids = [],
+  sanctuaries = [],
+  flashPushes = [],
+  shopTrail = [],
+  shadowRoute = null,
+  shopReviews = [],
+  exploredCells = [],
+  fogOfWarEnabled = false,
+  lootDrops = [],
+  arenaCountdowns = [],
+  onBossClick,
+  onSanctuaryClick,
+  onLootClick,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -1282,6 +1409,460 @@ export function AppMap({
       }
     }
   }, [mapReady, ownedTerritories, onOwnershipClick]);
+
+  // ═══════════════════════════════════════════════════════
+  // WAVE: 11 neue Map-Features
+  // ═══════════════════════════════════════════════════════
+
+  // ── Fog-of-War: dunkle Overlay, explored cells ausgestanzt ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const srcId = "fog-cells";
+    const layerId = "fog-cells-fill";
+    const fogLayerId = "fog-overlay";
+
+    if (!fogOfWarEnabled) {
+      try {
+        if (map.getLayer(fogLayerId)) map.removeLayer(fogLayerId);
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(srcId)) map.removeSource(srcId);
+      } catch { /* noop */ }
+      return;
+    }
+
+    const features = exploredCells.map((c) => {
+      const x = c.cell_x / 1000, y = c.cell_y / 1000, s = 0.001;
+      return {
+        type: "Feature" as const,
+        geometry: {
+          type: "Polygon" as const,
+          coordinates: [[[x, y], [x + s, y], [x + s, y + s], [x, y + s], [x, y]]],
+        },
+        properties: {},
+      };
+    });
+    const data = { type: "FeatureCollection" as const, features };
+
+    const existing = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(srcId, { type: "geojson", data });
+      // Dunkler Overlay über gesamten Viewport
+      map.addLayer({
+        id: fogLayerId, type: "background",
+        paint: { "background-color": "#0F1115", "background-opacity": 0.0 },
+      });
+      // Explored Cells "stanzen" ein Loch durch subtile Aufhellung
+      map.addLayer({
+        id: layerId, type: "fill", source: srcId,
+        paint: {
+          "fill-color": "#22D1C3",
+          "fill-opacity": 0.06,
+          "fill-outline-color": "#22D1C3",
+        },
+      });
+    }
+  }, [mapReady, exploredCells, fogOfWarEnabled]);
+
+  // ── Power-Zones (Park/Water/City/Landmark mit Buff-Radius) ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const srcId = "power-zones";
+    const fillId = "power-zones-fill";
+    const strokeId = "power-zones-stroke";
+    const labelId = "power-zones-label";
+
+    const features = powerZones.map((z) => ({
+      type: "Feature" as const,
+      id: z.id,
+      geometry: { type: "Point" as const, coordinates: [z.center_lng, z.center_lat] },
+      properties: {
+        id: z.id, name: z.name, kind: z.kind, color: z.color, radius_m: z.radius_m,
+        label: `${z.name}`,
+      },
+    }));
+    const data = { type: "FeatureCollection" as const, features };
+
+    const existing = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(srcId, { type: "geojson", data });
+      // Radius-Kreis mit Zoom-Anpassung (Meter -> Pixel abhängig von Breitengrad)
+      map.addLayer({
+        id: fillId, type: "circle", source: srcId,
+        paint: {
+          "circle-color": ["get", "color"],
+          "circle-opacity": 0.10,
+          "circle-radius": [
+            "interpolate", ["exponential", 2], ["zoom"],
+            10, ["/", ["get", "radius_m"], 40],
+            18, ["/", ["get", "radius_m"], 0.5],
+          ],
+          "circle-stroke-color": ["get", "color"],
+          "circle-stroke-width": 2,
+          "circle-stroke-opacity": 0.65,
+        },
+      });
+      map.addLayer({
+        id: labelId, type: "symbol", source: srcId,
+        layout: {
+          "text-field": ["get", "name"],
+          "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
+          "text-size": ["interpolate", ["linear"], ["zoom"], 13, 0, 14, 10, 17, 13],
+          "text-anchor": "center",
+          "text-allow-overlap": false,
+        },
+        paint: {
+          "text-color": ["get", "color"],
+          "text-halo-color": "rgba(15,17,21,0.92)",
+          "text-halo-width": 2,
+          "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 14, 1],
+        },
+      });
+      // stroke als zweiter Layer für Animation
+      map.addLayer({
+        id: strokeId, type: "circle", source: srcId,
+        paint: {
+          "circle-color": "rgba(0,0,0,0)",
+          "circle-stroke-color": ["get", "color"],
+          "circle-stroke-width": 1,
+          "circle-stroke-opacity": 0.3,
+          "circle-radius": [
+            "interpolate", ["exponential", 2], ["zoom"],
+            10, ["/", ["get", "radius_m"], 40],
+            18, ["/", ["get", "radius_m"], 0.5],
+          ],
+        },
+      });
+    }
+  }, [mapReady, powerZones]);
+
+  // ── Flash-Push Radius Pulse (Mapbox circle layer) ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const srcId = "flash-pushes";
+    const layerId = "flash-pushes-fill";
+
+    const features = flashPushes.map((f) => ({
+      type: "Feature" as const,
+      id: f.id,
+      geometry: { type: "Point" as const, coordinates: [f.business_lng, f.business_lat] },
+      properties: { id: f.id, radius_m: f.radius_m },
+    }));
+    const data = { type: "FeatureCollection" as const, features };
+
+    const existing = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(srcId, { type: "geojson", data });
+      map.addLayer({
+        id: layerId, type: "circle", source: srcId,
+        paint: {
+          "circle-color": "#FF2D78",
+          "circle-opacity": 0.10,
+          "circle-radius": [
+            "interpolate", ["exponential", 2], ["zoom"],
+            10, ["/", ["get", "radius_m"], 40],
+            18, ["/", ["get", "radius_m"], 0.5],
+          ],
+          "circle-stroke-color": "#FF2D78",
+          "circle-stroke-width": 2.5,
+          "circle-stroke-opacity": 0.8,
+        },
+      });
+      // Pulse via RAF
+      let cancelled = false;
+      let t = 0;
+      const pulse = () => {
+        if (cancelled) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(map as any).style) { cancelled = true; return; }
+        t += 1;
+        const p = (Math.sin(t * 0.05) + 1) / 2; // 0..1
+        try {
+          if (map.getLayer(layerId)) {
+            map.setPaintProperty(layerId, "circle-opacity", 0.06 + p * 0.14);
+            map.setPaintProperty(layerId, "circle-stroke-opacity", 0.6 + p * 0.35);
+          }
+        } catch { cancelled = true; return; }
+        requestAnimationFrame(pulse);
+      };
+      requestAnimationFrame(pulse);
+      (map as unknown as { __flashPulseCancel?: () => void }).__flashPulseCancel = () => { cancelled = true; };
+    }
+
+    return () => {
+      const cancel = (map as unknown as { __flashPulseCancel?: () => void }).__flashPulseCancel;
+      if (cancel) cancel();
+    };
+  }, [mapReady, flashPushes]);
+
+  // ── Shadow-Route (Ghost-Line) ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const srcId = "shadow-route";
+    const mainId = "shadow-route-main";
+    const glowId = "shadow-route-glow";
+
+    if (!shadowRoute || shadowRoute.geom.length < 2) {
+      try {
+        if (map.getLayer(mainId)) map.removeLayer(mainId);
+        if (map.getLayer(glowId)) map.removeLayer(glowId);
+        if (map.getSource(srcId)) map.removeSource(srcId);
+      } catch { /* noop */ }
+      return;
+    }
+
+    const data = {
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: shadowRoute.geom.map((p) => [p.lng, p.lat]),
+      },
+      properties: {},
+    };
+
+    const existing = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) existing.setData(data);
+    else {
+      map.addSource(srcId, { type: "geojson", data });
+      map.addLayer({
+        id: glowId, type: "line", source: srcId,
+        paint: {
+          "line-color": shadowRoute.runner_color,
+          "line-opacity": 0.25,
+          "line-width": zoomWidth(8),
+          "line-blur": 4,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: mainId, type: "line", source: srcId,
+        paint: {
+          "line-color": shadowRoute.runner_color,
+          "line-opacity": 0.85,
+          "line-width": zoomWidth(2.5),
+          "line-dasharray": [2, 2],
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+    }
+  }, [mapReady, shadowRoute]);
+
+  // ── Shop-Trail (Top-3 Stamm-Shops als Metro-Pfad) ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const srcId = "shop-trail";
+    const lineId = "shop-trail-line";
+    const stopsSrcId = "shop-trail-stops";
+    const stopsId = "shop-trail-stops-circle";
+
+    if (shopTrail.length < 2) {
+      try {
+        if (map.getLayer(stopsId)) map.removeLayer(stopsId);
+        if (map.getLayer(lineId)) map.removeLayer(lineId);
+        if (map.getSource(stopsSrcId)) map.removeSource(stopsSrcId);
+        if (map.getSource(srcId)) map.removeSource(srcId);
+      } catch { /* noop */ }
+      return;
+    }
+
+    const line = {
+      type: "Feature" as const,
+      geometry: {
+        type: "LineString" as const,
+        coordinates: shopTrail.map((s) => [s.lng, s.lat]),
+      },
+      properties: {},
+    };
+    const stops = {
+      type: "FeatureCollection" as const,
+      features: shopTrail.map((s) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] },
+        properties: { name: s.name },
+      })),
+    };
+
+    const existingLine = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
+    const existingStops = map.getSource(stopsSrcId) as mapboxgl.GeoJSONSource | undefined;
+    if (existingLine && existingStops) {
+      existingLine.setData(line);
+      existingStops.setData(stops);
+    } else {
+      if (!existingLine) map.addSource(srcId, { type: "geojson", data: line });
+      if (!existingStops) map.addSource(stopsSrcId, { type: "geojson", data: stops });
+      if (!map.getLayer(lineId)) map.addLayer({
+        id: lineId, type: "line", source: srcId,
+        paint: {
+          "line-color": "#22D1C3",
+          "line-opacity": 0.75,
+          "line-width": zoomWidth(3.5),
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      if (!map.getLayer(stopsId)) map.addLayer({
+        id: stopsId, type: "circle", source: stopsSrcId,
+        paint: {
+          "circle-color": "#22D1C3",
+          "circle-radius": 5,
+          "circle-stroke-color": "#FFF",
+          "circle-stroke-width": 2,
+        },
+      });
+    }
+  }, [mapReady, shopTrail]);
+
+  // ── Boss-Raids DOM Marker (Pulse + HP-Bar) ──
+  const bossMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    bossMarkersRef.current.forEach((m) => m.remove());
+    bossMarkersRef.current = [];
+
+    bossRaids.forEach((b) => {
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "auto";
+      outer.style.cursor = "pointer";
+      const pct = Math.round((b.current_hp / b.max_hp) * 100);
+      outer.innerHTML = `
+        <div class="ma365-boss-marker">
+          <div class="ma365-boss-emoji">${b.emoji}</div>
+          <div class="ma365-boss-name">${b.name}</div>
+          <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>
+        </div>`;
+      outer.addEventListener("click", () => onBossClick?.(b.id));
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
+        .setLngLat([b.lng, b.lat]).addTo(map);
+      bossMarkersRef.current.push(marker);
+    });
+
+    return () => { bossMarkersRef.current.forEach((m) => m.remove()); bossMarkersRef.current = []; };
+  }, [mapReady, bossRaids, onBossClick]);
+
+  // ── Sanctuaries DOM Marker ──
+  const sanctuaryMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    sanctuaryMarkersRef.current.forEach((m) => m.remove());
+    sanctuaryMarkersRef.current = [];
+
+    sanctuaries.forEach((s) => {
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "auto";
+      outer.style.cursor = "pointer";
+      const done = s.trained_today;
+      outer.innerHTML = `
+        <div class="ma365-sanctuary-marker ${done ? "done" : ""}">
+          <div class="ma365-sanctuary-emoji">${s.emoji}</div>
+          ${done ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}
+        </div>`;
+      outer.addEventListener("click", () => onSanctuaryClick?.(s.id));
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
+        .setLngLat([s.lng, s.lat]).addTo(map);
+      sanctuaryMarkersRef.current.push(marker);
+    });
+
+    return () => { sanctuaryMarkersRef.current.forEach((m) => m.remove()); sanctuaryMarkersRef.current = []; };
+  }, [mapReady, sanctuaries, onSanctuaryClick]);
+
+  // ── Loot-Drops DOM Marker (analog zu supplyDrops aber neu hinzu) ──
+  const lootMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    lootMarkersRef.current.forEach((m) => m.remove());
+    lootMarkersRef.current = [];
+
+    const rarityColor: Record<string, string> = {
+      common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legendary: "#FFD700",
+    };
+    const iconByKind: Record<string, string> = { xp_pack: "⚡", speed_boost: "🏃", mystery_ticket: "🎟️" };
+
+    lootDrops.forEach((d) => {
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "auto";
+      outer.style.cursor = "pointer";
+      const color = rarityColor[d.rarity] || "#5ddaf0";
+      const icon = iconByKind[d.kind] || "🎁";
+      outer.innerHTML = `
+        <div class="ma365-loot-marker" style="--color:${color}">
+          <div class="ma365-loot-inner">${icon}</div>
+        </div>`;
+      outer.addEventListener("click", () => onLootClick?.(d.id));
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
+        .setLngLat([d.lng, d.lat]).addTo(map);
+      lootMarkersRef.current.push(marker);
+    });
+    return () => { lootMarkersRef.current.forEach((m) => m.remove()); lootMarkersRef.current = []; };
+  }, [mapReady, lootDrops, onLootClick]);
+
+  // ── Arena-Countdown DOM Marker (kleiner Chip oben rechts am Shop-Pin) ──
+  const arenaCountdownMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    arenaCountdownMarkersRef.current.forEach((m) => m.remove());
+    arenaCountdownMarkersRef.current = [];
+
+    const fmtCountdown = (startsAt: string): string => {
+      const diff = new Date(startsAt).getTime() - Date.now();
+      if (diff < 0) return "LIVE";
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      if (h > 24) return `${Math.floor(h/24)}d`;
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    };
+
+    arenaCountdowns.forEach((c) => {
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "none";
+      outer.innerHTML = `
+        <div class="ma365-arena-countdown">
+          <span>⚔️</span><span>${fmtCountdown(c.starts_at)}</span>
+        </div>`;
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom-left", offset: [6, -30] })
+        .setLngLat([c.business_lng, c.business_lat]).addTo(map);
+      arenaCountdownMarkersRef.current.push(marker);
+    });
+    return () => { arenaCountdownMarkersRef.current.forEach((m) => m.remove()); arenaCountdownMarkersRef.current = []; };
+  }, [mapReady, arenaCountdowns]);
+
+  // ── Review-Sterne unter Shop-Pin (DOM-Marker mit Star-Bar) ──
+  const reviewMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    reviewMarkersRef.current.forEach((m) => m.remove());
+    reviewMarkersRef.current = [];
+
+    const shopMap = new Map(shops.map((s) => [s.id, s]));
+    shopReviews.forEach((r) => {
+      const shop = shopMap.get(r.business_id);
+      if (!shop || r.review_count === 0) return;
+      const rating = Math.round(r.avg_rating);
+      const stars = "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(rating);
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "none";
+      outer.innerHTML = `
+        <div class="ma365-review-chip">
+          <span class="ma365-review-stars">${stars}</span>
+          <span class="ma365-review-count">(${r.review_count})</span>
+        </div>`;
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "top", offset: [0, 28] })
+        .setLngLat([shop.lng, shop.lat]).addTo(map);
+      reviewMarkersRef.current.push(marker);
+    });
+    return () => { reviewMarkersRef.current.forEach((m) => m.remove()); reviewMarkersRef.current = []; };
+  }, [mapReady, shopReviews, shops]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>

@@ -24,6 +24,8 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
+import { LivePaceHud } from "@/components/live-pace-hud";
+import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import {
@@ -192,6 +194,26 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [snapping, setSnapping] = useState(false);
   const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
 
+  // Live-Pace-HUD: XP und Streak live mitlaufen lassen
+  const [liveXpGained, setLiveXpGained] = useState(0);
+  const [walkStartTime, setWalkStartTime] = useState(0);
+  const [liveStreak, setLiveStreak] = useState(0);
+  // Map-Features (Power-Zones, Boss, Sanctuary, Flash-Push, Trail, Reviews, Fog, Arena-Countdown)
+  const [mapFeatures, setMapFeatures] = useState<{
+    power_zones: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
+    boss_raids: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number }>;
+    sanctuaries: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean }>;
+    shop_reviews: Array<{ business_id: string; avg_rating: number; review_count: number }>;
+    flash_pushes: Array<{ id: string; business_id: string; business_name: string; business_lat: number; business_lng: number; radius_m: number; expires_at: string; message?: string }>;
+    explored_cells: Array<{ cell_x: number; cell_y: number }>;
+    shop_trail: Array<{ business_id: string; name: string; lat: number; lng: number; icon: string; color: string; visit_count: number }>;
+  } | null>(null);
+  const [fogOfWar, setFogOfWar] = useState(false);
+  const [lootDrops, setLootDrops] = useState<Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>>([]);
+  const [viewingBoss, setViewingBoss] = useState<string | null>(null);
+  const [viewingSanctuary, setViewingSanctuary] = useState<string | null>(null);
+  const [shadowEnabled, setShadowEnabled] = useState(false);
+
   // 3-Ebenen-Modell: DB-geladene Layer fuer Karte
   const [walkedSegments, setWalkedSegments] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
   const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>>([]);
@@ -328,10 +350,56 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     })();
   }, [activeTab]);
 
+  // Live-XP-Tick waehrend Walk (50m = 10 XP approximation)
+  useEffect(() => {
+    if (!walking) return;
+    setLiveXpGained(Math.floor(distance / 5));
+  }, [distance, walking]);
+
+  // Map-Features laden (Power-Zones, Boss, Sanctuary, Flash-Push, Trail, Reviews, explored-Cells)
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/map-features", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setMapFeatures(data);
+      } catch { /* network */ }
+    };
+    load();
+    const int = setInterval(load, 60_000);  // alle 60s
+    return () => { cancelled = true; clearInterval(int); };
+  }, []);
+
+  // Cell-Tracking waehrend Walks: jedes neue Route-Segment -> cell markieren
+  const sentCellsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!walking || activeRoute.length === 0) return;
+    const last = activeRoute[activeRoute.length - 1];
+    const c = cellOf(last.lat, last.lng);
+    const key = `${c.x}:${c.y}`;
+    if (sentCellsRef.current.has(key)) return;
+    sentCellsRef.current.add(key);
+    if (sentCellsRef.current.size % 5 === 0) {
+      const cells = Array.from(sentCellsRef.current).map((k) => {
+        const [x, y] = k.split(":").map(Number);
+        return { x, y };
+      });
+      fetch("/api/map-features", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark_cells", cells }),
+      }).catch(() => {});
+    }
+  }, [activeRoute, walking]);
+
   const startWalk = () => {
     setWalking(true);
     setElapsed(0);
     setDistance(0);
+    setLiveXpGained(0);
+    setWalkStartTime(Date.now());
     setCurrentStreet("Suche Position...");
     setActiveRoute([]);
     lastPosRef.current = null;
@@ -588,6 +656,46 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
+  // Live-Loot-Drops: demo-spawn alle 90-120s auf zufaelliger Position nahe User
+  useEffect(() => {
+    if (!userCenter) return;
+    const spawn = () => {
+      const rarities = ["common", "common", "common", "rare", "rare", "epic", "legendary"];
+      const kinds: Array<"xp_pack" | "speed_boost" | "mystery_ticket"> = ["xp_pack", "speed_boost", "mystery_ticket"];
+      const offsetLat = (Math.random() - 0.5) * 0.008;
+      const offsetLng = (Math.random() - 0.5) * 0.012;
+      const drop = {
+        id: `loot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        lat: userCenter.lat + offsetLat,
+        lng: userCenter.lng + offsetLng,
+        rarity: rarities[Math.floor(Math.random() * rarities.length)],
+        kind: kinds[Math.floor(Math.random() * kinds.length)],
+      };
+      setLootDrops((prev) => [...prev.slice(-4), drop]);
+    };
+    spawn();
+    const int = setInterval(spawn, 90_000 + Math.random() * 30_000);
+    return () => clearInterval(int);
+  }, [userCenter]);
+
+  // Arena-Countdowns aus demoShops ableiten (2h in der Zukunft fuer Kaelthor-Demo)
+  const arenaCountdowns = useMemo(() => {
+    const kaelthor = demoShops.find((s) => s.id === "aaaaaaaa-1111-1111-1111-111111111111");
+    if (!kaelthor) return [];
+    return [{
+      business_id: kaelthor.id,
+      business_lat: kaelthor.lat,
+      business_lng: kaelthor.lng,
+      starts_at: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+    }];
+  }, [demoShops]);
+
+  // Shadow-Route (Demo): wenn toggled, nutze demoShadowRoute um User-Position
+  const shadowRoute = useMemo(() => {
+    if (!shadowEnabled || !userCenter) return null;
+    return demoShadowRoute(userCenter);
+  }, [shadowEnabled, userCenter]);
+
   // Recenter-Trigger (Counter)
   const [recenterAt, setRecenterAt] = useState(0);
 
@@ -649,6 +757,31 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               claimedStreets={claimedStreets}
               ownedTerritories={ownedTerritories}
               onOwnershipClick={(kind, id) => setOwnershipQuery({ type: kind, id })}
+              powerZones={mapFeatures?.power_zones ?? []}
+              bossRaids={mapFeatures?.boss_raids ?? []}
+              sanctuaries={mapFeatures?.sanctuaries ?? []}
+              flashPushes={mapFeatures?.flash_pushes ?? []}
+              shopTrail={mapFeatures?.shop_trail ?? []}
+              shadowRoute={shadowRoute}
+              shopReviews={mapFeatures?.shop_reviews ?? []}
+              exploredCells={mapFeatures?.explored_cells ?? []}
+              fogOfWarEnabled={fogOfWar}
+              lootDrops={lootDrops}
+              arenaCountdowns={arenaCountdowns}
+              onBossClick={setViewingBoss}
+              onSanctuaryClick={setViewingSanctuary}
+              onLootClick={(id) => {
+                setLootDrops((prev) => prev.filter((d) => d.id !== id));
+                appAlert("🎁 Loot aufgesammelt! +25 XP");
+              }}
+            />
+            <LivePaceHud
+              distance={distance}
+              durationMs={walking ? Date.now() - walkStartTime : 0}
+              xpGained={liveXpGained}
+              streak={liveStreak}
+              walking={walking}
+              xpBoost={1}
             />
 
             {/* Snap-Loading-Indikator */}
@@ -726,6 +859,20 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={DEMO_MISSIONS.length} />
                   <MapIconButton icon="⚡" label="Boost-Shop" onClick={() => setBoostShopOpen(true)} accent="#FFD700" />
+                  <MapIconButton
+                    icon="🌫️"
+                    label="Fog-of-War"
+                    onClick={() => setFogOfWar((v) => !v)}
+                    active={fogOfWar}
+                    accent="#22D1C3"
+                  />
+                  <MapIconButton
+                    icon="👻"
+                    label="Shadow-Challenge"
+                    onClick={() => setShadowEnabled((v) => !v)}
+                    active={shadowEnabled}
+                    accent="#a855f7"
+                  />
                   {!walking && process.env.NODE_ENV !== "production" && (
                     <button
                       onClick={clearMap}
@@ -1051,6 +1198,46 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {missionsOpen && (
         <MissionsModal onClose={() => setMissionsOpen(false)} />
       )}
+
+      {/* Boss-Raid Modal */}
+      {viewingBoss && (() => {
+        const boss = mapFeatures?.boss_raids.find((b) => b.id === viewingBoss);
+        if (!boss) return null;
+        return (
+          <BossRaidModal boss={boss} onClose={() => setViewingBoss(null)} onAttack={async () => {
+            const res = await fetch("/api/map-features", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "boss_damage", raid_id: boss.id, damage: Math.floor(500 + Math.random() * 1500) }),
+            });
+            const data = await res.json();
+            if (data.defeated) await appAlert("🏆 BOSS BESIEGT! Legendärer Loot ist deiner.");
+            const r = await fetch("/api/map-features", { cache: "no-store" });
+            if (r.ok) setMapFeatures(await r.json());
+          }} />
+        );
+      })()}
+
+      {/* Sanctuary Training Modal */}
+      {viewingSanctuary && (() => {
+        const s = mapFeatures?.sanctuaries.find((x) => x.id === viewingSanctuary);
+        if (!s) return null;
+        return (
+          <SanctuaryModal sanctuary={s} onClose={() => setViewingSanctuary(null)} onTrain={async () => {
+            const res = await fetch("/api/map-features", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "train_sanctuary", sanctuary_id: s.id }),
+            });
+            const data = await res.json();
+            if (data.error === "already_trained_today") { await appAlert("Heute schon trainiert — komm morgen wieder."); return; }
+            if (data.ok) {
+              await appAlert(`🙏 +${data.xp_gained} Wächter-XP`);
+              const r = await fetch("/api/map-features", { cache: "no-store" });
+              if (r.ok) setMapFeatures(await r.json());
+            }
+            setViewingSanctuary(null);
+          }} />
+        );
+      })()}
 
       <VictoryDance trigger={victoryTrigger} />
       <FlashPushBanner />
@@ -10184,6 +10371,68 @@ function CrewRankRow({ crew: c, rank, sortBy }: {
       </div>
       <div style={{ color: c.color, fontSize: 13, fontWeight: 900, whiteSpace: "nowrap" }}>
         {primary}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Boss-Raid Modal ═══ */
+function BossRaidModal({ boss, onClose, onAttack }: {
+  boss: { id: string; name: string; emoji: string; max_hp: number; current_hp: number };
+  onClose: () => void;
+  onAttack: () => void | Promise<void>;
+}) {
+  const pct = Math.round((boss.current_hp / boss.max_hp) * 100);
+  const [attacking, setAttacking] = useState(false);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440, width: "100%", background: "linear-gradient(160deg, #2a0618 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(255,45,120,0.7)", color: "#FFF", textAlign: "center", boxShadow: "0 0 40px rgba(255,45,120,0.5)" }}>
+        <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 8, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.6))" }}>{boss.emoji}</div>
+        <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4, letterSpacing: 0.5 }}>{boss.name}</div>
+        <div style={{ fontSize: 11, color: "#FF6BA1", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>WORLD BOSS · LEGENDARY RAID</div>
+        <div style={{ height: 12, background: "rgba(0,0,0,0.6)", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(255,255,255,0.2)", marginBottom: 6 }}>
+          <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg, #FF2D78, #FFD700)", transition: "width 0.4s" }} />
+        </div>
+        <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 18 }}>
+          {boss.current_hp.toLocaleString()} / {boss.max_hp.toLocaleString()} HP ({pct}%)
+        </div>
+        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 16, lineHeight: 1.5 }}>
+          Crews aus ganz Berlin greifen an. Schlag zu und hol dir einen Anteil am <strong style={{ color: "#FFD700" }}>legendären Loot</strong> bei Sieg.
+        </div>
+        <button
+          onClick={async () => { setAttacking(true); await onAttack(); setAttacking(false); }}
+          disabled={attacking}
+          style={{ width: "100%", padding: "14px 20px", borderRadius: 12, background: "linear-gradient(135deg, #FF2D78, #a855f7)", border: "none", color: "#FFF", fontSize: 15, fontWeight: 900, cursor: attacking ? "wait" : "pointer", marginBottom: 8, letterSpacing: 0.5, boxShadow: "0 4px 14px rgba(255,45,120,0.5)" }}
+        >{attacking ? "Angreife…" : "⚔️ Angreifen (500–2000 DMG)"}</button>
+        <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Sanctuary Modal ═══ */
+function SanctuaryModal({ sanctuary, onClose, onTrain }: {
+  sanctuary: { id: string; name: string; emoji: string; xp_reward: number; trained_today?: boolean };
+  onClose: () => void;
+  onTrain: () => void | Promise<void>;
+}) {
+  const [training, setTraining] = useState(false);
+  const done = !!sanctuary.trained_today;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
+        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
+        <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
+        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 16, letterSpacing: 0.6 }}>WÄCHTER-SANCTUARY</div>
+        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 16, lineHeight: 1.5 }}>
+          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-XP</strong> zu holen.
+        </div>
+        <button
+          onClick={async () => { setTraining(true); await onTrain(); setTraining(false); }}
+          disabled={done || training}
+          style={{ width: "100%", padding: "14px 20px", borderRadius: 12, background: done ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg, #22D1C3, #5ddaf0)", border: done ? "1px solid #4ade80" : "none", color: done ? "#4ade80" : "#0F1115", fontSize: 14, fontWeight: 900, cursor: done ? "default" : "pointer", marginBottom: 8 }}
+        >{done ? "✓ Heute schon trainiert" : training ? "Trainiere…" : `🙏 Trainieren (+${sanctuary.xp_reward} XP)`}</button>
+        <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
       </div>
     </div>
   );
