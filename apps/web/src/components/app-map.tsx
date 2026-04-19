@@ -1083,9 +1083,9 @@ export function AppMap({
         const wrap = marker.getElement().querySelector(".ma365-countdown-wrap") as HTMLElement | null;
         if (wrap) wrap.style.setProperty("--s", countdownScale.toFixed(2));
       });
-      // Loot-Kisten skalieren mit Zoom (groesser nah, kleiner weit weg)
-      // Basis 64px, Faktor 0.35 (far) bis 1.1 (close)
-      const lootScale = Math.max(0.35, Math.min(1.1, (zoom - 10) / 8 + 0.35));
+      // Loot-Kisten skalieren mit Zoom (aggressiver schrumpfen beim Rauszoomen)
+      // Basis 64px, Faktor 0.22 (far) bis 0.85 (close)
+      const lootScale = Math.max(0.22, Math.min(0.85, (zoom - 12) / 6 * 0.65 + 0.25));
       lootMarkersRef.current.forEach(({ el }) => {
         if (el) el.style.setProperty("--loot-scale", lootScale.toFixed(2));
       });
