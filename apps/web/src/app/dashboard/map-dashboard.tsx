@@ -799,20 +799,85 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               )}
               <button
                 onClick={walking ? stopWalk : startWalk}
+                className={walking ? "ma365-walk-btn walking" : "ma365-walk-btn"}
                 style={{
-                  background: walking ? ACCENT : teamColor,
-                  padding: "18px 40px",
-                  borderRadius: 35,
-                  border: "none",
-                  color: BG_DEEP,
-                  fontWeight: "bold",
-                  fontSize: 16,
-                  cursor: "pointer",
-                  boxShadow: "0 4px 5px rgba(0,0,0,0.3)",
-                  pointerEvents: "auto",
+                  ["--btn-color" as string]: walking ? ACCENT : teamColor,
+                  ["--btn-color-glow" as string]: walking ? "#FF2D7888" : `${teamColor}aa`,
                 }}
               >
-                {walking ? "Eroberung abschließen" : "Eroberung starten"}
+                <span className="ma365-walk-btn-inner">
+                  <span className="ma365-walk-btn-icon">{walking ? "🏁" : "🚀"}</span>
+                  <span>{walking ? "Eroberung abschließen" : "Eroberung starten"}</span>
+                </span>
+                <style>{`
+                  @keyframes ma365WalkBtnGlow {
+                    0%,100% { box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 0 0 var(--btn-color-glow), inset 0 1px 0 rgba(255,255,255,0.35); }
+                    50%     { box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 0 8px rgba(255,255,255,0), 0 0 32px var(--btn-color-glow), inset 0 1px 0 rgba(255,255,255,0.55); }
+                  }
+                  @keyframes ma365WalkBtnShine {
+                    0%   { transform: translateX(-120%) skewX(-20deg); }
+                    100% { transform: translateX(220%)  skewX(-20deg); }
+                  }
+                  @keyframes ma365WalkBtnIcon {
+                    0%,100% { transform: translateY(0) rotate(0deg); }
+                    50%     { transform: translateY(-2px) rotate(-6deg); }
+                  }
+                  @keyframes ma365WalkBtnWalking {
+                    0%,100% { box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 22px var(--btn-color-glow), inset 0 1px 0 rgba(255,255,255,0.4); transform: translateY(0); }
+                    50%     { box-shadow: 0 10px 30px rgba(0,0,0,0.5),  0 0 40px var(--btn-color-glow), inset 0 1px 0 rgba(255,255,255,0.6); transform: translateY(-1px); }
+                  }
+                  .ma365-walk-btn {
+                    position: relative;
+                    overflow: hidden;
+                    background: linear-gradient(135deg,
+                      color-mix(in oklab, var(--btn-color) 100%, white 12%) 0%,
+                      var(--btn-color) 55%,
+                      color-mix(in oklab, var(--btn-color) 100%, black 18%) 100%);
+                    padding: 17px 42px;
+                    border-radius: 999px;
+                    border: 1.5px solid rgba(255,255,255,0.55);
+                    color: ${BG_DEEP};
+                    font-weight: 900;
+                    font-size: 15px;
+                    letter-spacing: 0.4px;
+                    cursor: pointer;
+                    pointer-events: auto;
+                    animation: ma365WalkBtnGlow 2.4s ease-in-out infinite;
+                    transition: transform 0.15s;
+                    will-change: box-shadow, transform;
+                  }
+                  .ma365-walk-btn:hover { transform: translateY(-1px); }
+                  .ma365-walk-btn:active { transform: translateY(0) scale(0.98); }
+                  .ma365-walk-btn.walking { animation: ma365WalkBtnWalking 0.9s ease-in-out infinite; }
+                  .ma365-walk-btn::before {
+                    content: "";
+                    position: absolute;
+                    top: 0; left: 0; right: 0; bottom: 50%;
+                    background: linear-gradient(to bottom, rgba(255,255,255,0.35), rgba(255,255,255,0));
+                    pointer-events: none;
+                  }
+                  .ma365-walk-btn::after {
+                    content: "";
+                    position: absolute;
+                    top: 0; left: 0; width: 35%; height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+                    animation: ma365WalkBtnShine 3.2s ease-in-out infinite;
+                    pointer-events: none;
+                  }
+                  .ma365-walk-btn-inner {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    z-index: 1;
+                  }
+                  .ma365-walk-btn-icon {
+                    font-size: 18px;
+                    display: inline-block;
+                    animation: ma365WalkBtnIcon 1.4s ease-in-out infinite;
+                    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+                  }
+                `}</style>
               </button>
             </div>
           </>
