@@ -368,6 +368,7 @@ export default function LandingPage() {
                 <li><Link href="/agb" className="text-text-muted hover:text-text">AGB</Link></li>
                 <li><Link href="/datenschutz" className="text-text-muted hover:text-text">Datenschutz</Link></li>
                 <li><Link href="/impressum" className="text-text-muted hover:text-text">Impressum</Link></li>
+                <li><Link href="/loot-drops" className="text-text-muted hover:text-text">Drop-Raten</Link></li>
                 <li><a href="mailto:support@myarea365.de" className="text-text-muted hover:text-text">Support</a></li>
               </ul>
             </div>

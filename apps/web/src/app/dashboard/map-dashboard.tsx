@@ -772,7 +772,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onSanctuaryClick={setViewingSanctuary}
               onLootClick={(id) => {
                 setLootDrops((prev) => prev.filter((d) => d.id !== id));
-                appAlert("🎁 Loot aufgesammelt! +25 XP");
+                appAlert("🎁 Loot aufgesammelt! +25 XP · Drop-Raten transparent unter /loot-drops");
               }}
             />
             <LivePaceHud

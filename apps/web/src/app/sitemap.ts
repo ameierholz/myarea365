@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/agb`, lastModified: now, priority: 0.3 },
     { url: `${base}/datenschutz`, lastModified: now, priority: 0.3 },
     { url: `${base}/impressum`, lastModified: now, priority: 0.3 },
+    { url: `${base}/loot-drops`, lastModified: now, priority: 0.3 },
   ];
 
   try {
