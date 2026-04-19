@@ -3782,11 +3782,13 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
 }) {
   const now = new Date();
   const msPerDay = 24 * 60 * 60 * 1000;
-  const todayKey = now.toISOString().slice(0, 10);
+  // Lokaler YYYY-MM-DD (NICHT UTC) — sonst landet ein Lauf am Abend der falschen Tag
+  const localKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const todayKey = localKey(now);
 
-  // KM heute
+  // KM heute (r.created_at ist ISO UTC — in Date parsen dann localKey)
   const todayKm = runs
-    .filter((r) => r.created_at.slice(0, 10) === todayKey)
+    .filter((r) => localKey(new Date(r.created_at)) === todayKey)
     .reduce((s, r) => s + r.distance_m, 0) / 1000;
 
   // Wochen-Trend: km pro Tag der aktuellen Woche (Mo–So)
@@ -3798,9 +3800,9 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
   const DAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday.getTime() + i * msPerDay);
-    const key = d.toISOString().slice(0, 10);
+    const key = localKey(d);
     const km = runs
-      .filter((r) => r.created_at.slice(0, 10) === key)
+      .filter((r) => localKey(new Date(r.created_at)) === key)
       .reduce((s, r) => s + r.distance_m, 0) / 1000;
     weekKm.push({
       label: DAY_LABELS[i],
@@ -4112,14 +4114,19 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
   const lastOfMonth = new Date(year, month + 1, 0);
   const daysInMonth = lastOfMonth.getDate();
   const firstWeekday = (firstOfMonth.getDay() + 6) % 7; // Mo=0
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  // km pro Tag aggregieren
+  // km pro Tag aggregieren (lokale Zeit!)
   const kmMap = new Map<number, number>();
+  const runsMap = new Map<number, Territory[]>();
   for (const r of runs) {
     const d = new Date(r.created_at);
     if (d.getFullYear() === year && d.getMonth() === month) {
       const day = d.getDate();
       kmMap.set(day, (kmMap.get(day) || 0) + r.distance_m);
+      const list = runsMap.get(day) || [];
+      list.push(r);
+      runsMap.set(day, list);
     }
   }
 
@@ -4177,23 +4184,29 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
             const km = (kmMap.get(day) || 0) / 1000;
             const isToday = day === todayDay;
             const isFuture = day > todayDay;
+            const hasRuns = (runsMap.get(day)?.length ?? 0) > 0;
+            const isSelected = selectedDay === day;
             return (
-              <div
+              <button
                 key={i}
-                title={km > 0 ? `${day}.: ${km.toFixed(2)} km` : `${day}.`}
+                onClick={() => hasRuns && setSelectedDay(isSelected ? null : day)}
+                disabled={!hasRuns}
+                title={km > 0 ? `${day}.: ${km.toFixed(2)} km — klicken für Details` : `${day}.`}
                 style={{
                   width: 32, height: 32, borderRadius: 6,
                   background: isFuture ? "rgba(255,255,255,0.03)" : bgFor(intensity(km)),
-                  border: isToday ? `2px solid ${color}` : "1px solid rgba(255,255,255,0.06)",
+                  border: isSelected ? `2px solid #FFD700` : isToday ? `2px solid ${color}` : "1px solid rgba(255,255,255,0.06)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 11, fontWeight: km > 0 ? 800 : 500,
                   color: isFuture ? MUTED : (km > 0 ? "#FFF" : TEXT_SOFT),
                   boxShadow: km > 0 ? `0 0 6px ${color}66` : "none",
                   opacity: isFuture ? 0.35 : 1,
+                  cursor: hasRuns ? "pointer" : "default",
+                  padding: 0,
                 }}
               >
                 {day}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -4207,6 +4220,49 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
         ))}
         <span>Mehr</span>
       </div>
+
+      {/* Tages-Details bei Klick */}
+      {selectedDay && (() => {
+        const dayRuns = runsMap.get(selectedDay) || [];
+        const totalM = dayRuns.reduce((s, r) => s + r.distance_m, 0);
+        const totalS = dayRuns.reduce((s, r) => s + (r.duration_s || 0), 0);
+        const totalXp = dayRuns.reduce((s, r) => s + (r.xp_earned || 0), 0);
+        const segs = dayRuns.reduce((s, r) => s + (r.segments_claimed || 0), 0);
+        const streets = dayRuns.reduce((s, r) => s + (r.streets_claimed || 0), 0);
+        const polys = dayRuns.reduce((s, r) => s + (r.polygons_claimed || 0), 0);
+        const kcal = Math.round((totalM / 1000) * 65); // 65 kcal/km Richtwert
+        return (
+          <div style={{
+            width: "100%", maxWidth: 320, marginTop: 6,
+            background: "rgba(26,29,35,0.7)", borderRadius: 12, padding: 12,
+            border: `1px solid ${color}55`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
+                📅 {selectedDay}. {firstOfMonth.toLocaleDateString("de-DE", { month: "long" })}
+              </div>
+              <button onClick={() => setSelectedDay(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: 0 }}>×</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+              <DayStat label="km"      value={(totalM/1000).toFixed(2)} color={color} />
+              <DayStat label="min"     value={Math.round(totalS/60).toString()} color={color} />
+              <DayStat label="XP"      value={totalXp.toString()} color="#FFD700" />
+              <DayStat label="kcal"    value={kcal.toString()} color="#FF6B4A" />
+              <DayStat label="Läufe"   value={dayRuns.length.toString()} color={color} />
+              <DayStat label="Gebiete" value={(segs+streets+polys).toString()} color={color} />
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function DayStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ background: "rgba(15,17,21,0.5)", borderRadius: 8, padding: "6px 8px", textAlign: "center" }}>
+      <div style={{ color, fontSize: 14, fontWeight: 900, lineHeight: 1 }}>{value}</div>
+      <div style={{ color: "#8B8FA3", fontSize: 9, fontWeight: 700, marginTop: 2, letterSpacing: 0.5 }}>{label.toUpperCase()}</div>
     </div>
   );
 }
@@ -4844,25 +4900,39 @@ function HealthDashboard({ profile: p, runs, territoryCount, teamColor, achievem
       <HealthSection title="KM-VERLAUF" emoji="📈">
         <div style={{
           display: "flex", alignItems: "flex-end", gap: 3,
-          height: 130, padding: "10px 4px 0",
+          height: 150, padding: "20px 4px 0", position: "relative",
         }}>
-          {bucketKm.map((km, i) => (
-            <div
-              key={i}
-              title={`${bucketLabels[i]}: ${km.toFixed(2)} km`}
-              style={{
-                flex: 1,
-                height: `${Math.max(2, (km / maxBucket) * 100)}%`,
-                background: km > 0
-                  ? `linear-gradient(180deg, ${teamColor}, ${teamColor}66)`
-                  : "rgba(255,255,255,0.06)",
-                borderRadius: 3,
-                boxShadow: km > 0 ? `0 0 6px ${teamColor}aa` : "none",
-                minHeight: 2,
-                transition: "height 0.5s ease-out",
-              }}
-            />
-          ))}
+          {bucketKm.map((km, i) => {
+            const hPct = Math.max(2, (km / maxBucket) * 100);
+            const showLabel = km > 0;
+            return (
+              <div
+                key={i}
+                title={`${bucketLabels[i]}: ${km.toFixed(2)} km`}
+                style={{
+                  flex: 1, position: "relative",
+                  height: `${hPct}%`,
+                  background: km > 0
+                    ? `linear-gradient(180deg, ${teamColor}, ${teamColor}66)`
+                    : "rgba(255,255,255,0.06)",
+                  borderRadius: 3,
+                  boxShadow: km > 0 ? `0 0 6px ${teamColor}aa` : "none",
+                  minHeight: 2,
+                  transition: "height 0.5s ease-out",
+                }}
+              >
+                {showLabel && (
+                  <span style={{
+                    position: "absolute", top: -15, left: "50%", transform: "translateX(-50%)",
+                    fontSize: 9, fontWeight: 900, color: teamColor,
+                    whiteSpace: "nowrap", textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+                  }}>
+                    {km.toFixed(km < 10 ? 1 : 0)}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div style={{
           display: "flex", justifyContent: "space-between",
