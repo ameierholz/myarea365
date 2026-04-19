@@ -258,15 +258,92 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       animation-delay: 0.6s;
     }
 
-    .ma365-arena-countdown {
-      display: inline-flex; align-items: center; gap: 3px;
-      padding: 2px 7px; border-radius: 999px;
-      background: linear-gradient(135deg, #a855f7, #FF2D78);
-      border: 1.5px solid rgba(255,255,255,0.95);
-      color: #FFF; font-size: 9px; font-weight: 900; letter-spacing: 0.3px;
-      box-shadow: 0 3px 10px rgba(168,85,247,0.5);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    /* Floating Countdown: holografische Glas-Karte mit Puls + sanftem Float */
+    @keyframes ma365CountdownFloat {
+      0%,100% { transform: translateY(0) scale(var(--s, 1)); }
+      50%     { transform: translateY(-3px) scale(calc(var(--s, 1) * 1.04)); }
+    }
+    @keyframes ma365CountdownGlow {
+      0%,100% { box-shadow: 0 0 12px rgba(168,85,247,0.5), 0 0 24px rgba(168,85,247,0.25), inset 0 1px 0 rgba(255,255,255,0.35); border-color: rgba(168,85,247,0.65); }
+      50%     { box-shadow: 0 0 20px rgba(168,85,247,0.9), 0 0 40px rgba(255,45,120,0.4), inset 0 1px 0 rgba(255,255,255,0.55); border-color: rgba(255,45,120,0.8); }
+    }
+    @keyframes ma365CountdownBlink {
+      0%,55%,100% { opacity: 1; }
+      60%,75%     { opacity: 0.25; }
+    }
+    @keyframes ma365CountdownOrbit {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .ma365-countdown-wrap {
+      position: relative;
+      display: inline-block;
+      transform-origin: center bottom;
+      will-change: transform;
+      animation: ma365CountdownFloat 3s ease-in-out infinite;
+    }
+    .ma365-countdown-card {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px 5px 8px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(15,17,21,0.82) 0%, rgba(40,20,60,0.82) 100%);
+      backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      border: 1.5px solid rgba(168,85,247,0.65);
+      color: #FFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, monospace;
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 0.5px;
       white-space: nowrap;
+      animation: ma365CountdownGlow 2s ease-in-out infinite;
+      will-change: box-shadow, border-color;
+    }
+    .ma365-countdown-card .icon {
+      font-size: 12px;
+      filter: drop-shadow(0 0 6px rgba(168,85,247,0.8));
+      line-height: 1;
+    }
+    .ma365-countdown-card .sep {
+      color: #a855f7;
+      animation: ma365CountdownBlink 1s linear infinite;
+      margin: 0 1px;
+      text-shadow: 0 0 8px rgba(168,85,247,0.8);
+    }
+    .ma365-countdown-card .label {
+      font-size: 8px;
+      color: #c4a5e8;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 800;
+      margin-right: 2px;
+    }
+    .ma365-countdown-card .value {
+      font-variant-numeric: tabular-nums;
+      color: #FFF;
+      text-shadow: 0 0 10px rgba(255,255,255,0.4);
+      font-size: 12px;
+    }
+    /* Orbit-Ring hinter dem Pill: rotiert langsam und wirkt "magisch" */
+    .ma365-countdown-orbit {
+      position: absolute;
+      inset: -4px;
+      border-radius: 14px;
+      border: 1px dashed rgba(168,85,247,0.25);
+      pointer-events: none;
+      animation: ma365CountdownOrbit 10s linear infinite;
+    }
+    .ma365-countdown-orbit::before {
+      content: "";
+      position: absolute;
+      top: -3px; left: 50%;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #FF2D78;
+      box-shadow: 0 0 10px #FF2D78, 0 0 20px rgba(255,45,120,0.6);
+      transform: translateX(-50%);
     }
 
     .ma365-review-chip {
@@ -871,10 +948,10 @@ export function AppMap({
       grad.addColorStop(0, color); grad.addColorStop(0.45, color); grad.addColorStop(1, darken(color, 0.5));
       ctx.fillStyle = grad; ctx.fill();
       ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-      // Weißer Border
-      ctx.lineWidth = 40; ctx.strokeStyle = "#FFFFFF"; ctx.stroke();
-      // Dunkler Innen-Border für mehr Kontrast
-      ctx.lineWidth = 6; ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.stroke();
+      // Weißer Border (duenner fuer moderneren Look)
+      ctx.lineWidth = 22; ctx.strokeStyle = "#FFFFFF"; ctx.stroke();
+      // Dunkler Haar-Border fuer Kontrast
+      ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.stroke();
       // Starker Glanz oben
       const gloss = ctx.createRadialGradient(cx - r * 0.15, cy - r * 0.55, 0, cx - r * 0.15, cy - r * 0.55, r * 1.0);
       gloss.addColorStop(0, "rgba(255,255,255,0.65)"); gloss.addColorStop(0.35, "rgba(255,255,255,0.25)"); gloss.addColorStop(1, "rgba(255,255,255,0)");
@@ -1047,21 +1124,23 @@ export function AppMap({
         el.style.opacity = hideAura ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
-      // Arena-Countdown sitzt UEBER allen Badges (stacked ueber Arena falls vorhanden)
+      // Arena-Countdown: scalierte schwebende Karte UEBER allen Badges
       const arenaBadgeHeight = 22 * badgeScale;
-      const countdownGap = 4;
+      const countdownGap = 10;
+      const countdownScale = Math.max(0.50, Math.min(1.0, pinHeight / 55));
       arenaCountdownMarkersRef.current.forEach(({ marker, hasSpotlight, hasArena }) => {
         let offY: number;
         if (hasArena && hasSpotlight) {
-          // Stack: Pin -> Spotlight -> Arena -> Countdown
           offY = -(pinHeight + badgeStackOffset + arenaBadgeHeight + countdownGap);
         } else if (hasArena) {
-          // Stack: Pin -> Arena -> Countdown
           offY = -(pinHeight + arenaBadgeHeight + countdownGap);
         } else {
           offY = -(pinHeight + countdownGap);
         }
         marker.setOffset([0, offY]);
+        // Scale via CSS-Var (Animation liest var(--s) aus; kein Konflikt mit Float-Anim)
+        const wrap = marker.getElement().querySelector(".ma365-countdown-wrap") as HTMLElement | null;
+        if (wrap) wrap.style.setProperty("--s", countdownScale.toFixed(2));
       });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
       const beamOffY = -pinHeight;
@@ -1916,14 +1995,14 @@ export function AppMap({
     arenaCountdownMarkersRef.current.forEach(({ marker }) => marker.remove());
     arenaCountdownMarkersRef.current = [];
 
-    const fmtCountdown = (startsAt: string): string => {
+    const fmtCountdownParts = (startsAt: string): { label: string; value: string; live: boolean } => {
       const diff = new Date(startsAt).getTime() - Date.now();
-      if (diff < 0) return "LIVE";
+      if (diff < 0) return { label: "", value: "LIVE", live: true };
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
-      if (h > 24) return `${Math.floor(h/24)}d`;
-      if (h > 0) return `${h}h ${m}m`;
-      return `${m}m`;
+      if (h > 24) return { label: "STARTET IN", value: `${Math.floor(h/24)}d`, live: false };
+      if (h > 0)  return { label: "STARTET IN", value: `${h}<span class="sep">:</span>${m.toString().padStart(2,"0")}`, live: false };
+      return { label: "STARTET IN", value: `${m}m`, live: false };
     };
 
     arenaCountdowns.forEach((c) => {
@@ -1932,15 +2011,39 @@ export function AppMap({
       const hasArena = !!shop?.arena;
       const outer = document.createElement("div");
       outer.style.pointerEvents = "none";
-      const inner = document.createElement("div");
-      inner.className = "ma365-arena-countdown";
-      inner.innerHTML = `<span>⚔️</span><span>${fmtCountdown(c.starts_at)}</span>`;
-      outer.appendChild(inner);
+      const wrap = document.createElement("div");
+      wrap.className = "ma365-countdown-wrap";
+      const parts = fmtCountdownParts(c.starts_at);
+      wrap.innerHTML = `
+        <div class="ma365-countdown-orbit"></div>
+        <div class="ma365-countdown-card">
+          <span class="icon">⚔️</span>
+          ${parts.label ? `<span class="label">${parts.label}</span>` : ""}
+          <span class="value">${parts.value}</span>
+        </div>`;
+      outer.appendChild(wrap);
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom", offset: [0, 0] })
         .setLngLat([c.business_lng, c.business_lat]).addTo(map);
       arenaCountdownMarkersRef.current.push({ marker, hasSpotlight, hasArena });
     });
-    return () => { arenaCountdownMarkersRef.current.forEach(({ marker }) => marker.remove()); arenaCountdownMarkersRef.current = []; };
+
+    // Live-Tick: alle 30s Wert neu rendern (kein kompletter Re-Setup)
+    const tick = setInterval(() => {
+      arenaCountdownMarkersRef.current.forEach(({ marker }, i) => {
+        const c = arenaCountdowns[i];
+        if (!c) return;
+        const card = marker.getElement().querySelector(".ma365-countdown-card .value");
+        if (card) {
+          const parts = fmtCountdownParts(c.starts_at);
+          card.innerHTML = parts.value;
+        }
+      });
+    }, 30_000);
+    return () => {
+      clearInterval(tick);
+      arenaCountdownMarkersRef.current.forEach(({ marker }) => marker.remove());
+      arenaCountdownMarkersRef.current = [];
+    };
   }, [mapReady, arenaCountdowns, shops]);
 
   // ── Review-Sterne unter Shop-Pin (DOM-Marker mit Star-Bar) ──
