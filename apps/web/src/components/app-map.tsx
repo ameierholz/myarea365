@@ -855,7 +855,7 @@ export function AppMap({
       // Arena-Badge: gleiche Position wie Spotlight. Wenn Shop BEIDES hat,
       // sitzt ARENA oben, SPOTLIGHT darunter (badgeStackOffset = ~badgeHeight, 0 Gap).
       const arenaBaseOffY = -pinHeight;
-      const badgeStackOffset = 30 * badgeScale;
+      const badgeStackOffset = 36 * badgeScale;
       const arenaScale = badgeScale;
       spotlightAuraMarkersRef.current.forEach(({ marker, el, stacked }) => {
         const offY = stacked ? arenaBaseOffY - badgeStackOffset : arenaBaseOffY;
