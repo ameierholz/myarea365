@@ -2642,6 +2642,7 @@ function RunnerStat({ emoji, value, label, unit, color }: {
 function HappyHourBanner() {
   const hh = getCurrentHappyHour();
   const [remaining, setRemaining] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!hh.active) return;
@@ -2659,20 +2660,51 @@ function HappyHourBanner() {
 
   if (!hh.active) return null;
 
+  const baseStyle = {
+    position: "absolute" as const, top: 60, left: 20, zIndex: 55,
+    background: "linear-gradient(90deg, rgba(255, 215, 0, 0.22), rgba(255, 107, 74, 0.22))",
+    backdropFilter: "blur(16px) saturate(180%)",
+    WebkitBackdropFilter: "blur(16px) saturate(180%)",
+    border: "1px solid rgba(255, 215, 0, 0.6)",
+    boxShadow: "0 0 14px rgba(255, 215, 0, 0.35)",
+    animation: "happyHourPulse 2s ease-in-out infinite",
+    whiteSpace: "nowrap" as const,
+    cursor: "pointer" as const,
+  };
+  const keyframes = `@keyframes happyHourPulse { 0%,100%{box-shadow:0 0 14px rgba(255,215,0,0.35)} 50%{box-shadow:0 0 22px rgba(255,215,0,0.6)} }`;
+
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        aria-label="Happy-Hour-Bonus erweitern"
+        style={{
+          ...baseStyle,
+          borderRadius: 999,
+          padding: "5px 8px",
+          display: "flex", alignItems: "center", gap: 4,
+        }}
+      >
+        <span style={{ fontSize: 12 }}>⚡</span>
+        <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 0.5 }}>
+          {hh.multiplier}×
+        </span>
+        <style>{keyframes}</style>
+      </button>
+    );
+  }
+
   return (
-    <div style={{
-      position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)",
-      zIndex: 55, pointerEvents: "none",
-      padding: "4px 10px", borderRadius: 999,
-      background: "linear-gradient(90deg, rgba(255, 215, 0, 0.22), rgba(255, 107, 74, 0.22))",
-      backdropFilter: "blur(16px) saturate(180%)",
-      WebkitBackdropFilter: "blur(16px) saturate(180%)",
-      border: "1px solid rgba(255, 215, 0, 0.6)",
-      boxShadow: "0 0 14px rgba(255, 215, 0, 0.35)",
-      display: "flex", alignItems: "center", gap: 6,
-      animation: "happyHourPulse 2s ease-in-out infinite",
-      whiteSpace: "nowrap",
-    }}>
+    <button
+      onClick={() => setExpanded(false)}
+      aria-label="Happy-Hour-Bonus einklappen"
+      style={{
+        ...baseStyle,
+        borderRadius: 999,
+        padding: "4px 10px",
+        display: "flex", alignItems: "center", gap: 6,
+      }}
+    >
       <span style={{ fontSize: 12 }}>⚡</span>
       <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 0.5 }}>
         {hh.multiplier}× XP
@@ -2680,8 +2712,13 @@ function HappyHourBanner() {
       <span style={{ color: "#FFF", fontSize: 10, fontWeight: 700, opacity: 0.85 }}>
         {remaining}
       </span>
-      <style>{`@keyframes happyHourPulse { 0%,100%{box-shadow:0 0 14px rgba(255,215,0,0.35)} 50%{box-shadow:0 0 22px rgba(255,215,0,0.6)} }`}</style>
-    </div>
+      <span style={{
+        color: MUTED, fontSize: 10, marginLeft: 2, opacity: 0.9,
+        borderLeft: "1px solid rgba(255,255,255,0.18)", paddingLeft: 6,
+        fontWeight: 700,
+      }}>▸</span>
+      <style>{keyframes}</style>
+    </button>
   );
 }
 
