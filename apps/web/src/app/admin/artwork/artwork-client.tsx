@@ -13,6 +13,41 @@ type RaceLore  = { name: string; role: string; lore: string | null; material_des
 
 type Tab = "prompts" | "archetypes" | "items";
 
+// Mapping Prompt-Rarity (DE-Label) -> DB-Rarity
+const PROMPT_RARITY_TO_DB: Record<string, string> = {
+  "Ungewöhnlich": "common",
+  "Selten": "rare",
+  "Episch": "epic",
+  "Legendär": "legend",
+  "Artefakt": "artifact",
+  "Transzendent": "transcendent",
+};
+// Mapping Prompt-Slot (DE) -> DB-Slot
+const PROMPT_SLOT_TO_DB: Record<string, string> = {
+  "Helm": "helm",
+  "Halskette": "neck",
+  "Schultern": "shoulders",
+  "Brustplatte": "chest",
+  "Gürtel": "waist",
+  "Hose": "legs",
+  "Stiefel": "boots",
+  "Armschienen": "wrist",
+  "Handschuhe": "hands",
+  "Ring": "ring",
+  "Umhang": "back",
+  "Schmuckstück": "trinket",
+  "Haupthand-Waffe": "weapon",
+  "Nebenhand": "offhand",
+  "Rücken": "back",
+};
+
+function findMatchingItem(items: Item[], race: string, slot: string, rarityLabel: string): Item | null {
+  const dbRarity = PROMPT_RARITY_TO_DB[rarityLabel];
+  const dbSlot   = PROMPT_SLOT_TO_DB[slot];
+  if (!dbRarity || !dbSlot) return null;
+  return items.find((i) => i.race === race && i.rarity === dbRarity && i.slot === dbSlot) ?? null;
+}
+
 export function ArtworkAdminClient() {
   const [tab, setTab] = useState<Tab>("prompts");
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
@@ -58,7 +93,7 @@ export function ArtworkAdminClient() {
         ))}
       </div>
 
-      {tab === "prompts" && <PromptsTab />}
+      {tab === "prompts" && <PromptsTab items={items} onChange={reload} />}
       {tab === "archetypes" && (loading ? <LoadingBox /> : <ArchetypesTab archetypes={archetypes} onChange={reload} />)}
       {tab === "items" && (loading ? <LoadingBox /> : <ItemsTab items={items} races={races} onChange={reload} />)}
     </div>
@@ -72,11 +107,12 @@ function LoadingBox() {
 /* ═════════════════════════════════════════════════════════ */
 /*  Tab 1: Prompt-Generator                                   */
 /* ═════════════════════════════════════════════════════════ */
-function PromptsTab() {
+function PromptsTab({ items, onChange }: { items: Item[]; onChange: () => void }) {
   const [filterRace, setFilterRace] = useState<string>("ALL");
   const [filterSlot, setFilterSlot] = useState<ArtworkSlot | "ALL">("ALL");
   const [filterRarity, setFilterRarity] = useState<ArtworkRarity | "ALL">("ALL");
   const [search, setSearch] = useState("");
+  const [onlyMissing, setOnlyMissing] = useState(false);
 
   const allPrompts = useMemo<GeneratedPrompt[]>(() => {
     const out: GeneratedPrompt[] = [];
@@ -99,9 +135,23 @@ function PromptsTab() {
         const q = search.toLowerCase();
         if (!p.itemName.toLowerCase().includes(q) && !p.race.toLowerCase().includes(q)) return false;
       }
+      if (onlyMissing) {
+        const m = findMatchingItem(items, p.race, p.slot, p.rarity);
+        if (m?.image_url) return false;
+      }
       return true;
     });
-  }, [allPrompts, filterRace, filterSlot, filterRarity, search]);
+  }, [allPrompts, filterRace, filterSlot, filterRarity, search, onlyMissing, items]);
+
+  // Progress-Stats
+  const stats = useMemo(() => {
+    let done = 0, total = 0;
+    for (const p of allPrompts) {
+      const m = findMatchingItem(items, p.race, p.slot, p.rarity);
+      if (m) { total++; if (m.image_url) done++; }
+    }
+    return { done, total, pct: total > 0 ? Math.round((done/total) * 100) : 0 };
+  }, [allPrompts, items]);
 
   const exportCsv = () => {
     const header = "key,itemName,race,role,slot,rarity,statValue,prompt";
@@ -118,7 +168,7 @@ function PromptsTab() {
 
   return (
     <div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4">
         <select value={filterRace} onChange={(e) => setFilterRace(e.target.value)} className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Rassen</option>
           {Object.keys(ARTWORK_RACES).map((r) => <option key={r} value={r}>{r}</option>)}
@@ -133,17 +183,25 @@ function PromptsTab() {
         </select>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche…"
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm" />
+        <label className="flex items-center gap-2 bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
+          Nur offen
+        </label>
         <button onClick={exportCsv} className="bg-[#22D1C3] text-[#0F1115] rounded-lg px-3 py-2 text-sm font-bold">
           ⬇️ CSV ({filtered.length})
         </button>
       </div>
 
-      <div className="text-xs text-[#8B8FA3] mb-3">
-        <strong className="text-white">{filtered.length}</strong> von {allPrompts.length} Prompts · Brand-Farben #1db682 &amp; #6991d8 automatisch eingewoben
+      <div className="text-xs text-[#8B8FA3] mb-3 flex items-center gap-3">
+        <strong className="text-white">{filtered.length}</strong> von {allPrompts.length} Prompts
+        <span className="text-[#4ade80]">· {stats.done} erledigt ({stats.pct}% von {stats.total} DB-Items)</span>
+        <span>· Brand #1db682 + #6991d8 eingewoben</span>
       </div>
 
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))" }}>
-        {filtered.slice(0, 200).map((p) => <PromptCard key={p.key} prompt={p} />)}
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))" }}>
+        {filtered.slice(0, 200).map((p) => (
+          <PromptCard key={p.key} prompt={p} matchingItem={findMatchingItem(items, p.race, p.slot, p.rarity)} onChange={onChange} />
+        ))}
       </div>
       {filtered.length > 200 && (
         <div className="text-center text-xs text-[#8B8FA3] mt-4">
@@ -154,33 +212,90 @@ function PromptsTab() {
   );
 }
 
-function PromptCard({ prompt }: { prompt: GeneratedPrompt }) {
+function PromptCard({ prompt, matchingItem, onChange }: {
+  prompt: GeneratedPrompt;
+  matchingItem: Item | null;
+  onChange: () => void;
+}) {
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
   const copy = async () => {
     await navigator.clipboard.writeText(prompt.prompt);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
+
+  const upload = async (file: File) => {
+    if (!matchingItem) return;
+    setUploading(true); setErr(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("target_type", "item");
+      form.append("target_id", matchingItem.id);
+      const res = await fetch("/api/admin/artwork", { method: "POST", body: form });
+      if (!res.ok) { const j = await res.json().catch(() => ({})); setErr(j.error || "Upload fehlgeschlagen"); }
+      else onChange();
+    } finally { setUploading(false); }
+  };
+
+  const done = !!matchingItem?.image_url;
+  const noMatch = !matchingItem;
+
   return (
-    <div className="rounded-xl p-3 bg-[#1A1D23] border" style={{ borderColor: prompt.accentColor + "55" }}>
+    <div
+      className={`rounded-xl p-3 border transition ${done ? "bg-[#0d2015]" : "bg-[#1A1D23]"}`}
+      style={{ borderColor: done ? "#4ade80" : prompt.accentColor + "55" }}
+    >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider"
           style={{ background: prompt.accentColor + "22", color: prompt.accentColor, border: `1px solid ${prompt.accentColor}` }}>
           {prompt.rarity}
         </span>
         <span className="text-[10px] text-[#8B8FA3]">{prompt.role} · {prompt.slot}</span>
-        <span className="text-[10px] text-[#8B8FA3] ml-auto">Stat +{prompt.statValue}</span>
+        {done && <span className="text-[10px] text-[#4ade80] font-black ml-auto">✓ ERLEDIGT</span>}
+        {!done && <span className="text-[10px] text-[#8B8FA3] ml-auto">Stat +{prompt.statValue}</span>}
       </div>
-      <div className="font-bold text-sm mb-2">{prompt.itemName}</div>
+      <div className="font-bold text-sm mb-1">{prompt.itemName}</div>
+      {matchingItem && (
+        <div className="text-[10px] text-[#8B8FA3] mb-2 truncate" title={matchingItem.name}>
+          → DB: {matchingItem.name}
+        </div>
+      )}
+
+      {done && matchingItem?.image_url && (
+        <div className="mb-2 aspect-square bg-[#0F1115] rounded-lg overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={matchingItem.image_url} alt={matchingItem.name} className="w-full h-full object-cover" />
+        </div>
+      )}
+
       <textarea
         readOnly value={prompt.prompt}
-        className="w-full bg-[#0F1115] border border-white/10 rounded-lg p-2 text-[11px] text-[#DDD] font-mono h-24 resize-none"
+        className="w-full bg-[#0F1115] border border-white/10 rounded-lg p-2 text-[11px] text-[#DDD] font-mono h-20 resize-none"
       />
       <div className="flex gap-2 mt-2">
-        <button onClick={copy} className="flex-1 text-xs font-bold bg-[#22D1C3] text-[#0F1115] rounded-lg py-1.5">
-          {copied ? "✓ Kopiert" : "📋 Prompt kopieren"}
+        <button onClick={copy} className="flex-1 text-xs font-bold bg-[#22D1C3] text-[#0F1115] rounded-lg py-1.5 hover:bg-[#1db682]">
+          {copied ? "✓ Kopiert" : "📋 Prompt"}
         </button>
+        {noMatch ? (
+          <span className="flex-1 text-[10px] text-[#8B8FA3] py-1.5 text-center bg-[#0F1115] rounded-lg border border-white/10">
+            Kein DB-Item
+          </span>
+        ) : (
+          <label className={`flex-1 text-xs text-center rounded-lg py-1.5 cursor-pointer font-bold ${
+            uploading ? "bg-[#333] text-[#888]" : done ? "bg-[#4ade80] text-[#0F1115] hover:bg-[#22c55e]" : "bg-[#FF2D78] text-white hover:opacity-90"
+          }`}>
+            {uploading ? "Lädt…" : done ? "🔄 Ersetzen" : "⬆️ Bild hoch"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={uploading}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
+            />
+          </label>
+        )}
       </div>
+      {err && <div className="text-[10px] text-[#FF2D78] mt-1">{err}</div>}
     </div>
   );
 }

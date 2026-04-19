@@ -15,30 +15,32 @@ export type RaceLore = {
 
 export const ARTWORK_RACES: Record<string, RaceLore> = {
   // ─── TANKS ──────────────────────────────────────────────
-  "Gravianer":        { material: "schwarzes Gravitationsglas",      style: "monolithisch, schwebende Teile", energyColor: "#6991d8", role: "tank" },
-  "Obsidith":         { material: "poröser Obsidian und Lava",        style: "vulkanisch, massiv",              energyColor: "#ef7169", role: "tank" },
-  "Krustaphon":       { material: "kalkhaltiger Korallenpanzer",      style: "maritim, dornig",                  energyColor: "#6991d8", role: "tank" },
-  "Bollwerk-Myzelen": { material: "gehärtetes Pilzgeflecht",          style: "biolumineszent, wuchernd",         energyColor: "#1db682", role: "tank" },
-  "Eisenborken":      { material: "metallische Baumrinde",            style: "antik, knorrig",                   energyColor: "#1db682", role: "tank" },
-  "Runengranit":      { material: "eingravierter Granitmonolith",     style: "uralt, glühende Runen",            energyColor: "#6991d8", role: "tank" },
-  "Stahl-Kolosse":    { material: "brünierter Stahl und Ketten",      style: "industriell, massiv",              energyColor: "#6991d8", role: "tank" },
+  "Gravianer":          { material: "schwarzes Gravitationsglas",              style: "monolithisch, schwebende Teile",    energyColor: "#6991d8", role: "tank" },
+  "Obsidith":           { material: "poröser Obsidian und Lava",                style: "vulkanisch, massiv",                 energyColor: "#ef7169", role: "tank" },
+  "Krustaphon":         { material: "kalkhaltiger Korallenpanzer",              style: "maritim, dornig",                    energyColor: "#6991d8", role: "tank" },
+  "Bollwerk-Myzelen":   { material: "gehärtetes Pilzgeflecht",                  style: "biolumineszent, wuchernd",           energyColor: "#1db682", role: "tank" },
+  "Eisenborken":        { material: "metallische Baumrinde",                    style: "antik, knorrig",                     energyColor: "#1db682", role: "tank" },
 
   // ─── HEALER ─────────────────────────────────────────────
-  "Lumeniden":        { material: "kristallisiertes Licht",            style: "ätherisch, strahlend",             energyColor: "#1db682", role: "healer" },
-  "Symphoniker":      { material: "schwingendes Messing",              style: "elegant, musikalisch",             energyColor: "#5ddaf0", role: "healer" },
-  "Äther-Algen":      { material: "transparente Bio-Membran",          style: "viskos, schwebend",                energyColor: "#1db682", role: "healer" },
-  "Osmosianer":       { material: "pulsierendes Plasma",                style: "flüssig, organisch",               energyColor: "#1db682", role: "healer" },
-  "Vitalis-Funken":   { material: "gebündelte Energiepartikel",         style: "nebulös, schwärmend",              energyColor: "#1db682", role: "healer" },
-  "Chorweber":        { material: "verflochtene Tonfäden",              style: "elfenhaft, geometrisch",           energyColor: "#5ddaf0", role: "healer" },
+  "Lumeniden":          { material: "kristallisiertes Licht",                    style: "ätherisch, strahlend",               energyColor: "#1db682", role: "healer" },
+  "Symphoniker":        { material: "schwingendes Messing",                      style: "elegant, musikalisch",               energyColor: "#5ddaf0", role: "healer" },
+  "Äther-Algen":        { material: "transparente Bio-Membran",                  style: "viskos, schwebend",                  energyColor: "#1db682", role: "healer" },
+  "Osmosianer":         { material: "pulsierendes Plasma",                        style: "flüssig, organisch",                 energyColor: "#1db682", role: "healer" },
+  "Vitalis-Funken":     { material: "gebündelte Energiepartikel",                 style: "nebulös, schwärmend",                energyColor: "#1db682", role: "healer" },
 
-  // ─── DPS ────────────────────────────────────────────────
-  "Schatten-Skurrier": { material: "verdichteter Schattenstaub",        style: "scharf, rauchig",                  energyColor: "#6991d8", role: "dps" },
-  "Vektoren":          { material: "poliertes Chitin",                    style: "insektisch, aerodynamisch",        energyColor: "#ef7169", role: "dps" },
-  "Klingen-Kyniden":   { material: "organischer Stahl",                   style: "gezackt, biomechanisch",           energyColor: "#6991d8", role: "dps" },
-  "Phasen-Jäger":      { material: "instabile Materie",                   style: "glitchy, halb-transparent",        energyColor: "#5ddaf0", role: "dps" },
-  "Puls-Kollosse":     { material: "gehärtetes Kupfer",                   style: "industriell, dampfend",            energyColor: "#6991d8", role: "dps" },
-  "Splittertänzer":    { material: "schwebende Glassplitter",             style: "tanzend, scharfkantig",            energyColor: "#5ddaf0", role: "dps" },
-  "Feuer-Fuchs":       { material: "lodernde Bronze mit Gluthaaren",     style: "schnell, flammend",                energyColor: "#ef7169", role: "dps" },
+  // ─── MELEE DPS ──────────────────────────────────────────
+  "Schatten-Skurrier":  { material: "verdichteter Schattenstaub",                style: "scharf, rauchig",                    energyColor: "#6991d8", role: "dps" },
+  "Vektoren":           { material: "poliertes Chitin",                           style: "insektisch, aerodynamisch",          energyColor: "#ef7169", role: "dps" },
+  "Klingen-Kyniden":    { material: "organischer Stahl",                          style: "gezackt, biomechanisch",             energyColor: "#6991d8", role: "dps" },
+  "Phasen-Jäger":       { material: "instabile Materie",                          style: "glitchy, halb-transparent",          energyColor: "#5ddaf0", role: "dps" },
+  "Reiß-Wühler":        { material: "zähe Muskulatur mit Krallen-Auswüchsen",    style: "kompakt, rasiermesserartig",         energyColor: "#ef7169", role: "dps" },
+
+  // ─── RANGED DPS ─────────────────────────────────────────
+  "Puls-Kollosse":      { material: "gehärtetes Kupfer mit Energie-Leitungen",   style: "industriell, dampfend",              energyColor: "#6991d8", role: "dps" },
+  "Stachel-Spucker":    { material: "chitin-gepanzertes Projektil-Arsenal",      style: "ballistisch, primitiv",              energyColor: "#ef7169", role: "dps" },
+  "Aura-Webber":        { material: "schwebende Bio-Fäden",                       style: "ätherisch, webend",                  energyColor: "#5ddaf0", role: "dps" },
+  "Volt-Schwingen":     { material: "elektrisches Chitin mit Blitz-Membranen",   style: "geflügelt, gewittrig",               energyColor: "#5ddaf0", role: "dps" },
+  "Singularitäts-Seher":{ material: "schwebende Singularitäten und kosmischer Staub", style: "kosmisch, abstrakt",           energyColor: "#a855f7", role: "dps" },
 };
 
 export const ARTWORK_SLOTS = [
