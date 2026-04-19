@@ -811,9 +811,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 </span>
                 <style>{`
                   @keyframes ma365WalkBtnShine {
-                    0%   { transform: translateX(-150%) skewX(-20deg); }
-                    45%  { transform: translateX(260%)  skewX(-20deg); }
-                    100% { transform: translateX(260%)  skewX(-20deg); }
+                    0%   { transform: translateX(-160%) skewX(-20deg); opacity: 0; }
+                    12%  { opacity: 1; }
+                    35%  { transform: translateX(280%)  skewX(-20deg); opacity: 1; }
+                    42%  { transform: translateX(280%)  skewX(-20deg); opacity: 0; }
+                    100% { transform: translateX(280%)  skewX(-20deg); opacity: 0; }
                   }
                   @keyframes ma365WalkBtnIcon {
                     0%,100% { transform: translateY(0) rotate(0deg); }
