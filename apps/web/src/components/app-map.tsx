@@ -368,6 +368,7 @@ interface AppMapProps {
   arenaCountdowns?: Array<{ business_id: string; business_lat: number; business_lng: number; starts_at: string }>;
   onBossClick?: (raidId: string) => void;
   onSanctuaryClick?: (sanctuaryId: string) => void;
+  onPowerZoneClick?: (zoneId: string) => void;
   onLootClick?: (dropId: string) => void;
 }
 
@@ -544,6 +545,7 @@ export function AppMap({
   arenaCountdowns = [],
   onBossClick,
   onSanctuaryClick,
+  onPowerZoneClick,
   onLootClick,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -567,6 +569,8 @@ export function AppMap({
   // nicht den Layer-Rebuild ausloesen
   const onShopClickRef = useRef(onShopClick);
   useEffect(() => { onShopClickRef.current = onShopClick; }, [onShopClick]);
+  const onPowerZoneClickRef = useRef(onPowerZoneClick);
+  useEffect(() => { onPowerZoneClickRef.current = onPowerZoneClick; }, [onPowerZoneClick]);
 
   // Map initialisieren
   useEffect(() => {
@@ -1630,6 +1634,16 @@ export function AppMap({
             18, ["/", ["get", "radius_m"], 0.5],
           ],
         },
+      });
+      // Click-Handler: Power-Zone Info anzeigen
+      const onZoneClick = (e: mapboxgl.MapLayerMouseEvent) => {
+        const id = e.features?.[0]?.properties?.id as string | undefined;
+        if (id && onPowerZoneClickRef.current) onPowerZoneClickRef.current(id);
+      };
+      [fillId, labelId].forEach((l) => {
+        map.on("click", l, onZoneClick);
+        map.on("mouseenter", l, () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
       });
     }
   }, [mapReady, powerZones]);

@@ -212,6 +212,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [lootDrops, setLootDrops] = useState<Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>>([]);
   const [viewingBoss, setViewingBoss] = useState<string | null>(null);
   const [viewingSanctuary, setViewingSanctuary] = useState<string | null>(null);
+  const [viewingPowerZone, setViewingPowerZone] = useState<string | null>(null);
   const [shadowEnabled, setShadowEnabled] = useState(false);
 
   // 3-Ebenen-Modell: DB-geladene Layer fuer Karte
@@ -770,6 +771,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               arenaCountdowns={arenaCountdowns}
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
+              onPowerZoneClick={setViewingPowerZone}
               onLootClick={(id) => {
                 setLootDrops((prev) => prev.filter((d) => d.id !== id));
                 appAlert("🎁 Loot aufgesammelt! +25 XP · Drop-Raten transparent unter /loot-drops");
@@ -1199,43 +1201,90 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <MissionsModal onClose={() => setMissionsOpen(false)} />
       )}
 
-      {/* Boss-Raid Modal */}
+      {/* Area-Boss Modal */}
       {viewingBoss && (() => {
         const boss = mapFeatures?.boss_raids.find((b) => b.id === viewingBoss);
         if (!boss) return null;
+        const distM = userCenter
+          ? Math.round(6371000 * 2 * Math.asin(Math.sqrt(
+              Math.sin(((boss.lat - userCenter.lat) * Math.PI / 180) / 2) ** 2 +
+              Math.cos(userCenter.lat * Math.PI / 180) * Math.cos(boss.lat * Math.PI / 180) *
+              Math.sin(((boss.lng - userCenter.lng) * Math.PI / 180) / 2) ** 2
+            )))
+          : null;
+        const inRange = distM !== null && distM <= 500;
         return (
-          <BossRaidModal boss={boss} onClose={() => setViewingBoss(null)} onAttack={async () => {
-            const res = await fetch("/api/map-features", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "boss_damage", raid_id: boss.id, damage: Math.floor(500 + Math.random() * 1500) }),
-            });
-            const data = await res.json();
-            if (data.defeated) await appAlert("🏆 BOSS BESIEGT! Legendärer Loot ist deiner.");
-            const r = await fetch("/api/map-features", { cache: "no-store" });
-            if (r.ok) setMapFeatures(await r.json());
-          }} />
+          <BossRaidModal
+            boss={boss}
+            distM={distM}
+            inRange={inRange}
+            onClose={() => setViewingBoss(null)}
+            onAttack={async () => {
+              if (!userCenter) { await appAlert("GPS-Position wird benötigt."); return; }
+              const res = await fetch("/api/map-features", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "boss_damage",
+                  raid_id: boss.id,
+                  damage: Math.floor(500 + Math.random() * 1500),
+                  user_lat: userCenter.lat,
+                  user_lng: userCenter.lng,
+                }),
+              });
+              const data = await res.json();
+              if (data.error === "too_far") { await appAlert(`Zu weit weg! ${data.distance_m}m entfernt (max 500m). Lauf hin!`); return; }
+              if (data.error === "location_required") { await appAlert("GPS wird benötigt."); return; }
+              if (data.defeated) await appAlert("🏆 AREA-BOSS BESIEGT! Crew-Loot ist bereit zur Verteilung.");
+              const r = await fetch("/api/map-features", { cache: "no-store" });
+              if (r.ok) setMapFeatures(await r.json());
+            }}
+          />
         );
+      })()}
+
+      {/* Power-Zone Info Modal */}
+      {viewingPowerZone && (() => {
+        const z = mapFeatures?.power_zones.find((x) => x.id === viewingPowerZone);
+        if (!z) return null;
+        return <PowerZoneModal zone={z} onClose={() => setViewingPowerZone(null)} />;
       })()}
 
       {/* Sanctuary Training Modal */}
       {viewingSanctuary && (() => {
         const s = mapFeatures?.sanctuaries.find((x) => x.id === viewingSanctuary);
         if (!s) return null;
+        const distM = userCenter
+          ? Math.round(6371000 * 2 * Math.asin(Math.sqrt(
+              Math.sin(((s.lat - userCenter.lat) * Math.PI / 180) / 2) ** 2 +
+              Math.cos(userCenter.lat * Math.PI / 180) * Math.cos(s.lat * Math.PI / 180) *
+              Math.sin(((s.lng - userCenter.lng) * Math.PI / 180) / 2) ** 2
+            )))
+          : null;
+        const inRange = distM !== null && distM <= 50;
         return (
-          <SanctuaryModal sanctuary={s} onClose={() => setViewingSanctuary(null)} onTrain={async () => {
-            const res = await fetch("/api/map-features", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "train_sanctuary", sanctuary_id: s.id }),
-            });
-            const data = await res.json();
-            if (data.error === "already_trained_today") { await appAlert("Heute schon trainiert — komm morgen wieder."); return; }
-            if (data.ok) {
-              await appAlert(`🙏 +${data.xp_gained} Wächter-XP`);
-              const r = await fetch("/api/map-features", { cache: "no-store" });
-              if (r.ok) setMapFeatures(await r.json());
-            }
-            setViewingSanctuary(null);
-          }} />
+          <SanctuaryModal
+            sanctuary={s}
+            distM={distM}
+            inRange={inRange}
+            onClose={() => setViewingSanctuary(null)}
+            onTrain={async () => {
+              if (!userCenter) { await appAlert("GPS-Position wird benötigt."); return; }
+              const res = await fetch("/api/map-features", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "train_sanctuary", sanctuary_id: s.id, user_lat: userCenter.lat, user_lng: userCenter.lng }),
+              });
+              const data = await res.json();
+              if (data.error === "already_trained_today") { await appAlert("Heute schon trainiert — komm morgen wieder."); return; }
+              if (data.error === "too_far") { await appAlert(`Du bist noch ${data.distance_m}m entfernt — komm näher an den Tempel (max 50m).`); return; }
+              if (data.error === "location_required") { await appAlert("GPS-Position wird benötigt."); return; }
+              if (data.ok) {
+                await appAlert(`🙏 +${data.xp_gained} Wächter-XP`);
+                const r = await fetch("/api/map-features", { cache: "no-store" });
+                if (r.ok) setMapFeatures(await r.json());
+              }
+              setViewingSanctuary(null);
+            }}
+          />
         );
       })()}
 
@@ -10450,34 +10499,106 @@ function CrewRankRow({ crew: c, rank, sortBy }: {
   );
 }
 
-/* ═══ Boss-Raid Modal ═══ */
-function BossRaidModal({ boss, onClose, onAttack }: {
+/* ═══ Power-Zone Info Modal ═══ */
+function PowerZoneModal({ zone, onClose }: {
+  zone: { id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number };
+  onClose: () => void;
+}) {
+  const kindLabel: Record<string, string> = {
+    park: "🌳 Park-Zone", water: "💧 Wasser-Zone", city: "🏙️ Stadt-Zone", forest: "🌲 Wald-Zone", landmark: "🗿 Wahrzeichen",
+  };
+  const buffs: Array<[string, number, string]> = [
+    ["HP", zone.buff_hp, "#4ade80"],
+    ["ATK", zone.buff_atk, "#FF6B4A"],
+    ["DEF", zone.buff_def, "#5ddaf0"],
+    ["SPD", zone.buff_spd, "#FFD700"],
+  ];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #0F1115 0%, #151823 100%)", borderRadius: 20, padding: 24, border: `2px solid ${zone.color}aa`, color: "#FFF", boxShadow: `0 0 30px ${zone.color}55` }}>
+        <div style={{ fontSize: 11, color: zone.color, fontWeight: 900, letterSpacing: 0.8, marginBottom: 4 }}>
+          {kindLabel[zone.kind] ?? "POWER-ZONE"}
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>{zone.name}</div>
+        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.55 }}>
+          Wenn du innerhalb dieser Zone (Radius <strong>{zone.radius_m} m</strong>) läufst, bekommt dein <strong style={{ color: "#22D1C3" }}>Wächter</strong> folgende passive Buffs:
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }}>
+          {buffs.map(([label, val, color]) => (
+            <div key={label} style={{
+              padding: "10px 6px", borderRadius: 10, textAlign: "center",
+              background: val > 0 ? `${color}15` : "rgba(255,255,255,0.04)",
+              border: `1px solid ${val > 0 ? color : "rgba(255,255,255,0.1)"}55`,
+            }}>
+              <div style={{ color: val > 0 ? color : "#8B8FA3", fontSize: 15, fontWeight: 900 }}>
+                {val > 0 ? `+${val}` : "—"}
+              </div>
+              <div style={{ color: "#8B8FA3", fontSize: 9, fontWeight: 700, marginTop: 2, letterSpacing: 0.5 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: "#8B8FA3", marginBottom: 14, lineHeight: 1.5, fontStyle: "italic" }}>
+          Power-Zones sind strategische Orte. Nutze sie für Trainings-Runden, um deinen Wächter schneller zu leveln — vor allem vor großen Arena-Kämpfen oder Area-Boss-Raids.
+        </div>
+        <button onClick={onClose} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: `${zone.color}22`, border: `1px solid ${zone.color}`, color: zone.color, fontSize: 12, fontWeight: 900, cursor: "pointer" }}>Verstanden</button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Area-Boss Modal (Crew-Raid) ═══ */
+function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
   boss: { id: string; name: string; emoji: string; max_hp: number; current_hp: number };
+  distM: number | null;
+  inRange: boolean;
   onClose: () => void;
   onAttack: () => void | Promise<void>;
 }) {
   const pct = Math.round((boss.current_hp / boss.max_hp) * 100);
   const [attacking, setAttacking] = useState(false);
+  const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440, width: "100%", background: "linear-gradient(160deg, #2a0618 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(255,45,120,0.7)", color: "#FFF", textAlign: "center", boxShadow: "0 0 40px rgba(255,45,120,0.5)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460, width: "100%", background: "linear-gradient(160deg, #2a0618 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(255,45,120,0.7)", color: "#FFF", textAlign: "center", boxShadow: "0 0 40px rgba(255,45,120,0.5)" }}>
         <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 8, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.6))" }}>{boss.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4, letterSpacing: 0.5 }}>{boss.name}</div>
-        <div style={{ fontSize: 11, color: "#FF6BA1", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>WORLD BOSS · LEGENDARY RAID</div>
+        <div style={{ fontSize: 11, color: "#FF6BA1", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>AREA BOSS · LEGENDARY RAID</div>
         <div style={{ height: 12, background: "rgba(0,0,0,0.6)", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(255,255,255,0.2)", marginBottom: 6 }}>
           <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg, #FF2D78, #FFD700)", transition: "width 0.4s" }} />
         </div>
-        <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 18 }}>
+        <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 16 }}>
           {boss.current_hp.toLocaleString()} / {boss.max_hp.toLocaleString()} HP ({pct}%)
         </div>
-        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 16, lineHeight: 1.5 }}>
-          Crews aus ganz Berlin greifen an. Schlag zu und hol dir einen Anteil am <strong style={{ color: "#FFD700" }}>legendären Loot</strong> bei Sieg.
+        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.55, textAlign: "left", background: "rgba(0,0,0,0.3)", padding: 10, borderRadius: 10 }}>
+          <strong style={{ color: "#FFD700" }}>So funktioniert&apos;s:</strong> Jedes Crew-Mitglied das vor Ort (≤ 500 m) ist, kann mit seinem Wächter angreifen. Je mehr Crew-Mitglieder mit anpacken, desto höher die <strong>Gewinnchance + Loot-Pool</strong>. Der Loot wird nach dem Sieg vom <strong>Crew-Leader / Kampfleader</strong> an die Teilnehmer verteilt (max. 8 Items pro Crew).
         </div>
+        {distM !== null && (
+          <div style={{
+            fontSize: 11, marginBottom: 12, padding: "8px 12px", borderRadius: 10,
+            background: inRange ? "rgba(74,222,128,0.12)" : "rgba(255,45,120,0.12)",
+            border: inRange ? "1px solid #4ade80" : "1px solid rgba(255,45,120,0.5)",
+            color: inRange ? "#4ade80" : "#FF6BA1",
+            fontWeight: 800,
+          }}>
+            {inRange
+              ? `✓ In Reichweite (${fmtDist(distM)})`
+              : `📍 Lauf hin! ${fmtDist(distM)} entfernt (max 500 m)`}
+          </div>
+        )}
         <button
           onClick={async () => { setAttacking(true); await onAttack(); setAttacking(false); }}
-          disabled={attacking}
-          style={{ width: "100%", padding: "14px 20px", borderRadius: 12, background: "linear-gradient(135deg, #FF2D78, #a855f7)", border: "none", color: "#FFF", fontSize: 15, fontWeight: 900, cursor: attacking ? "wait" : "pointer", marginBottom: 8, letterSpacing: 0.5, boxShadow: "0 4px 14px rgba(255,45,120,0.5)" }}
-        >{attacking ? "Angreife…" : "⚔️ Angreifen (500–2000 DMG)"}</button>
+          disabled={attacking || !inRange}
+          style={{
+            width: "100%", padding: "14px 20px", borderRadius: 12,
+            background: !inRange ? "rgba(120,120,120,0.2)" : "linear-gradient(135deg, #FF2D78, #a855f7)",
+            border: !inRange ? "1px solid rgba(255,255,255,0.1)" : "none",
+            color: !inRange ? "#8B8FA3" : "#FFF",
+            fontSize: 15, fontWeight: 900,
+            cursor: (attacking || !inRange) ? "not-allowed" : "pointer",
+            marginBottom: 8, letterSpacing: 0.5,
+            boxShadow: !inRange ? "none" : "0 4px 14px rgba(255,45,120,0.5)",
+          }}
+        >{attacking ? "Angreife…" : !inRange ? "🔒 Zu weit entfernt" : "⚔️ Angreifen (500–2000 DMG)"}</button>
         <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
       </div>
     </div>
@@ -10625,27 +10746,55 @@ function GuardianLeaderboardView() {
 }
 
 /* ═══ Sanctuary Modal ═══ */
-function SanctuaryModal({ sanctuary, onClose, onTrain }: {
+function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
   sanctuary: { id: string; name: string; emoji: string; xp_reward: number; trained_today?: boolean };
+  distM: number | null;
+  inRange: boolean;
   onClose: () => void;
   onTrain: () => void | Promise<void>;
 }) {
   const [training, setTraining] = useState(false);
   const done = !!sanctuary.trained_today;
+  const disabled = done || training || !inRange;
+  const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
         <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
-        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 16, letterSpacing: 0.6 }}>WÄCHTER-SANCTUARY</div>
-        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 16, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>WÄCHTER-SANCTUARY</div>
+        <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.5 }}>
           Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-XP</strong> zu holen.
         </div>
+        {distM !== null && (
+          <div style={{
+            fontSize: 11, marginBottom: 12, padding: "8px 12px", borderRadius: 10,
+            background: inRange ? "rgba(74,222,128,0.12)" : "rgba(255,45,120,0.12)",
+            border: inRange ? "1px solid #4ade80" : "1px solid rgba(255,45,120,0.5)",
+            color: inRange ? "#4ade80" : "#FF6BA1",
+            fontWeight: 800,
+          }}>
+            {inRange
+              ? `✓ In Reichweite (${fmtDist(distM)})`
+              : `📍 Du musst vor Ort sein — ${fmtDist(distM)} entfernt (max 50 m)`}
+          </div>
+        )}
+        {distM === null && (
+          <div style={{ fontSize: 11, marginBottom: 12, color: "#FF6BA1" }}>
+            📍 GPS-Position nicht verfügbar
+          </div>
+        )}
         <button
           onClick={async () => { setTraining(true); await onTrain(); setTraining(false); }}
-          disabled={done || training}
-          style={{ width: "100%", padding: "14px 20px", borderRadius: 12, background: done ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg, #22D1C3, #5ddaf0)", border: done ? "1px solid #4ade80" : "none", color: done ? "#4ade80" : "#0F1115", fontSize: 14, fontWeight: 900, cursor: done ? "default" : "pointer", marginBottom: 8 }}
-        >{done ? "✓ Heute schon trainiert" : training ? "Trainiere…" : `🙏 Trainieren (+${sanctuary.xp_reward} XP)`}</button>
+          disabled={disabled}
+          style={{
+            width: "100%", padding: "14px 20px", borderRadius: 12,
+            background: done ? "rgba(74,222,128,0.2)" : !inRange ? "rgba(120,120,120,0.2)" : "linear-gradient(135deg, #22D1C3, #5ddaf0)",
+            border: done ? "1px solid #4ade80" : !inRange ? "1px solid rgba(255,255,255,0.1)" : "none",
+            color: done ? "#4ade80" : !inRange ? "#8B8FA3" : "#0F1115",
+            fontSize: 14, fontWeight: 900, cursor: disabled ? "not-allowed" : "pointer", marginBottom: 8,
+          }}
+        >{done ? "✓ Heute schon trainiert" : training ? "Trainiere…" : !inRange ? "🔒 Zu weit entfernt" : `🙏 Trainieren (+${sanctuary.xp_reward} XP)`}</button>
         <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
       </div>
     </div>

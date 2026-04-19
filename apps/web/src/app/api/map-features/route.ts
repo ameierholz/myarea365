@@ -93,13 +93,25 @@ export async function POST(req: Request) {
   const action = body.action as string;
 
   if (action === "train_sanctuary") {
-    const { data, error } = await sb.rpc("train_at_sanctuary", { p_sanctuary_id: body.sanctuary_id as string });
+    const { data, error } = await sb.rpc("train_at_sanctuary", {
+      p_sanctuary_id: body.sanctuary_id as string,
+      p_user_lat: body.user_lat as number,
+      p_user_lng: body.user_lng as number,
+    });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);
   }
   if (action === "boss_damage") {
     const { data, error } = await sb.rpc("contribute_boss_damage", {
       p_raid_id: body.raid_id as string, p_damage: body.damage as number,
+      p_user_lat: body.user_lat as number, p_user_lng: body.user_lng as number,
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  }
+  if (action === "assign_loot") {
+    const { data, error } = await sb.rpc("assign_boss_loot", {
+      p_loot_id: body.loot_id as string, p_to_user_id: body.to_user_id as string,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);
