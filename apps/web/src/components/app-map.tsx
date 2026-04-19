@@ -187,23 +187,76 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       border-radius: 999px; padding: 1px 6px;
     }
 
-    @keyframes ma365LootBob {
-      0%,100% { transform: translateY(0) rotate(-3deg); }
-      50%     { transform: translateY(-4px) rotate(3deg); }
+    @keyframes ma365CrateBob {
+      0%,100% { transform: translateY(0) rotate(-5deg); }
+      50%     { transform: translateY(-5px) rotate(5deg); }
     }
-    @keyframes ma365LootGlow {
-      0%,100% { box-shadow: 0 0 12px var(--color), 0 4px 10px rgba(0,0,0,0.4); }
-      50%     { box-shadow: 0 0 22px var(--color), 0 6px 16px rgba(0,0,0,0.5); }
+    @keyframes ma365CrateGlow {
+      0%,100% { filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+      50%     { filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 6px 10px rgba(0,0,0,0.6)); }
     }
-    .ma365-loot-marker {
-      width: 40px; height: 40px; border-radius: 12px;
-      background: linear-gradient(135deg, var(--color) 0%, rgba(15,17,21,0.7) 120%);
-      border: 2px solid rgba(255,255,255,0.95);
+    @keyframes ma365CrateReady {
+      0%,100% { transform: translateY(-2px) scale(1); filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 0 28px var(--color)); }
+      50%     { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 22px var(--color)) drop-shadow(0 0 44px var(--color)); }
+    }
+    @keyframes ma365CrateRing {
+      0%   { transform: scale(0.4); opacity: 0.85; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes ma365CratePickup {
+      0%   { transform: translateY(0) scale(1); opacity: 1; }
+      40%  { transform: translateY(-40px) scale(1.4); opacity: 1; }
+      100% { transform: translateY(-80px) scale(0.2); opacity: 0; }
+    }
+    .ma365-loot-wrap {
+      position: relative;
+      width: 64px; height: 64px;
       display: flex; align-items: center; justify-content: center;
-      animation: ma365LootBob 1.4s ease-in-out infinite, ma365LootGlow 1.8s ease-in-out infinite;
+      pointer-events: auto;
       cursor: pointer;
     }
-    .ma365-loot-inner { font-size: 20px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+    .ma365-loot-wrap.ready .ma365-loot-crate {
+      animation: ma365CrateReady 0.9s ease-in-out infinite;
+    }
+    .ma365-loot-wrap.ready .ma365-loot-proximity {
+      display: block;
+    }
+    .ma365-loot-wrap.picking-up .ma365-loot-crate {
+      animation: ma365CratePickup 0.6s ease-out forwards;
+    }
+    /* Kiste: Emoji mit 3D-Schatten + Glow */
+    .ma365-loot-crate {
+      font-size: 38px;
+      line-height: 1;
+      animation: ma365CrateBob 1.6s ease-in-out infinite, ma365CrateGlow 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+    }
+    /* Rarity-Badge unten rechts */
+    .ma365-loot-rarity {
+      position: absolute;
+      bottom: 4px; right: 4px;
+      font-size: 7px; font-weight: 900;
+      padding: 1px 5px; border-radius: 999px;
+      background: var(--color); color: #0F1115;
+      border: 1.5px solid rgba(255,255,255,0.9);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    /* Proximity-Ring: wird sichtbar wenn User in Reichweite (30m) */
+    .ma365-loot-proximity {
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      border: 2px solid var(--color);
+      animation: ma365CrateRing 1.2s ease-out infinite;
+      display: none;
+      pointer-events: none;
+    }
+    .ma365-loot-proximity.two {
+      animation-delay: 0.6s;
+    }
 
     .ma365-arena-countdown {
       display: inline-flex; align-items: center; gap: 3px;
@@ -1789,36 +1842,71 @@ export function AppMap({
     return () => { sanctuaryMarkersRef.current.forEach((m) => m.remove()); sanctuaryMarkersRef.current = []; };
   }, [mapReady, sanctuaries, onSanctuaryClick]);
 
-  // ── Loot-Drops DOM Marker (analog zu supplyDrops aber neu hinzu) ──
-  const lootMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  // ── Loot-Drops: animierte Kisten mit Proximity-Pickup ──
+  const lootMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; drop: typeof lootDrops[0] }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    lootMarkersRef.current.forEach((m) => m.remove());
+    lootMarkersRef.current.forEach(({ marker }) => marker.remove());
     lootMarkersRef.current = [];
 
     const rarityColor: Record<string, string> = {
       common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legendary: "#FFD700",
     };
-    const iconByKind: Record<string, string> = { xp_pack: "⚡", speed_boost: "🏃", mystery_ticket: "🎟️" };
+    // Rarity -> Kiste/Emoji: Legendary = Krone, Epic = Gem, Rare = Geschenk, Common = Kiste
+    const crateByRarity: Record<string, string> = {
+      common: "📦", rare: "🎁", epic: "💎", legendary: "👑",
+    };
+    const rarityLabel: Record<string, string> = {
+      common: "COMMON", rare: "RARE", epic: "EPIC", legendary: "LEG",
+    };
 
     lootDrops.forEach((d) => {
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
-      outer.style.cursor = "pointer";
       const color = rarityColor[d.rarity] || "#5ddaf0";
-      const icon = iconByKind[d.kind] || "🎁";
+      const crate = crateByRarity[d.rarity] || "📦";
+      const lbl = rarityLabel[d.rarity] || "LOOT";
       outer.innerHTML = `
-        <div class="ma365-loot-marker" style="--color:${color}">
-          <div class="ma365-loot-inner">${icon}</div>
+        <div class="ma365-loot-wrap" style="--color:${color}">
+          <div class="ma365-loot-proximity"></div>
+          <div class="ma365-loot-proximity two"></div>
+          <div class="ma365-loot-crate">${crate}</div>
+          <div class="ma365-loot-rarity">${lbl}</div>
         </div>`;
       outer.addEventListener("click", () => onLootClick?.(d.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
         .setLngLat([d.lng, d.lat]).addTo(map);
-      lootMarkersRef.current.push(marker);
+      lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d });
     });
-    return () => { lootMarkersRef.current.forEach((m) => m.remove()); lootMarkersRef.current = []; };
+    return () => { lootMarkersRef.current.forEach(({ marker }) => marker.remove()); lootMarkersRef.current = []; };
   }, [mapReady, lootDrops, onLootClick]);
+
+  // Proximity-Check: User-Position vs Loot-Drops. 30m = auto-pickup, 100m = "ready"-Glow
+  useEffect(() => {
+    if (!pos || lootMarkersRef.current.length === 0) return;
+    const haversineM = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const la1 = (a.lat * Math.PI) / 180, la2 = (b.lat * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+    lootMarkersRef.current.forEach(({ el, drop }) => {
+      if (!el) return;
+      const d = haversineM(pos, { lat: drop.lat, lng: drop.lng });
+      if (d <= 30 && !el.classList.contains("picking-up")) {
+        // Auto-Pickup
+        el.classList.add("picking-up");
+        setTimeout(() => onLootClick?.(drop.id), 550);
+      } else if (d <= 100) {
+        el.classList.add("ready");
+      } else {
+        el.classList.remove("ready");
+      }
+    });
+  }, [pos, onLootClick]);
 
   // ── Arena-Countdown DOM Marker (Chip OBEN ueber den Badges, center-stacked) ──
   const arenaCountdownMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; hasSpotlight: boolean; hasArena: boolean }>>([]);
