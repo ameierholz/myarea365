@@ -942,7 +942,24 @@ export function AppMap({
     } else {
       map.addSource(SRC, { type: "geojson", data: geojson });
 
-      // Arena-Indikator ist jetzt nur noch das ARENA-Badge (DOM) - kein Ring mehr
+      // Spotlight-Shimmer: pulsierender Gold-Ring um Pin-Body wenn spotlight=true
+      const shimmerTranslate: mapboxgl.ExpressionSpecification = [
+        "interpolate", ["linear"], ["zoom"],
+        12, ["literal", [0, -7]],
+        15, ["literal", [0, -16]],
+        18, ["literal", [0, -25]],
+      ];
+      map.addLayer({
+        id: "shops-spotlight-shimmer", type: "circle", source: SRC,
+        paint: {
+          "circle-color": "#FFD700",
+          "circle-opacity": ["case", ["==", ["get", "spotlight"], true], 0.30, 0],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 10, 15, 26, 18, 44],
+          "circle-blur": 0.55,
+          "circle-translate": shimmerTranslate,
+        },
+      });
+      // Pin-Layer liegt UEBER dem Shimmer
       map.addLayer({
         id: LYR_PIN, type: "symbol", source: SRC,
         layout: {
@@ -981,6 +998,30 @@ export function AppMap({
         map.on("mouseleave", l, () => { map.getCanvas().style.cursor = ""; });
       });
 
+      // Pulse-Animation fuer Spotlight-Shimmer
+      let cancelled = false;
+      let t = 0;
+      const pulse = () => {
+        if (cancelled) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(map as any).style) { cancelled = true; return; }
+        t += 1;
+        const p = (Math.sin(t * 0.05) + 1) / 2; // 0..1
+        try {
+          if (map.getLayer("shops-spotlight-shimmer")) {
+            map.setPaintProperty("shops-spotlight-shimmer", "circle-opacity",
+              ["case", ["==", ["get", "spotlight"], true], 0.22 + p * 0.30, 0]);
+            map.setPaintProperty("shops-spotlight-shimmer", "circle-radius",
+              ["interpolate", ["linear"], ["zoom"],
+                12, 10 + p * 2,
+                15, 26 + p * 4,
+                18, 44 + p * 6]);
+          }
+        } catch { cancelled = true; return; }
+        requestAnimationFrame(pulse);
+      };
+      requestAnimationFrame(pulse);
+      (map as unknown as { __shimmerCancel?: () => void }).__shimmerCancel = () => { cancelled = true; };
     }
 
     // ── CSS-DOM-Marker fuer Spotlight-Shops: rotierende Gold-Aura + Badge ──
@@ -1105,6 +1146,8 @@ export function AppMap({
 
     return () => {
       map.off("zoom", updateMarkerGeometry);
+      const cancelShimmer = (map as unknown as { __shimmerCancel?: () => void }).__shimmerCancel;
+      if (cancelShimmer) cancelShimmer();
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
       spotlightBeamMarkersRef.current.forEach(({ marker }) => marker.remove());
@@ -1114,7 +1157,7 @@ export function AppMap({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(map as any).style) return;
       try {
-        [LYR_LABEL, LYR_PIN].forEach((l) => {
+        [LYR_LABEL, LYR_PIN, "shops-spotlight-shimmer"].forEach((l) => {
           if (map.getLayer(l)) map.removeLayer(l);
         });
         if (map.getSource(SRC)) map.removeSource(SRC);
