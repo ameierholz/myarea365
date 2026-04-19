@@ -684,9 +684,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {/* Fraktions-Ranking + Crews-in-Nähe (unten links, kollabierbar) */}
             <MapFactionPanel onSwitchTab={() => setActiveTab("crew")} />
 
-            {/* Map-Controls (rechts, unter Mapbox-Zoom/Kompass) - collapsible */}
+            {/* Map-Controls (rechts, gleiche Hoehe wie Live-Panel links) - collapsible */}
             <div style={{
-              position: "absolute", top: 140, right: 10, zIndex: 50,
+              position: "absolute", top: 20, right: 10, zIndex: 50,
               display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8,
             }}>
               <MapIconButton
