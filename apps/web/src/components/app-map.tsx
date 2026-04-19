@@ -214,6 +214,9 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       display: flex; align-items: center; justify-content: center;
       pointer-events: auto;
       cursor: pointer;
+      transform: scale(var(--loot-scale, 1));
+      transform-origin: center center;
+      transition: transform 0.2s;
     }
     .ma365-loot-wrap.ready .ma365-loot-crate {
       animation: ma365CrateReady 0.9s ease-in-out infinite;
@@ -1036,8 +1039,8 @@ export function AppMap({
       const pinHeight = 1280 * iconSize / 4;
       // Zoom-Schwellen: Beam erst wenn nah genug (Einzelshop-Ansicht), Badge/Aura
       // ab Stadtteil-Zoom, sonst waere bei vielen Spotlights die Karte chaotisch
-      const hideBeam  = zoom < 10;
-      const hideBadge = zoom < 10;
+      const hideBeam  = zoom < 13;
+      const hideBadge = zoom < 13;
       const hideAura  = zoom < 13;
       // Badge-Bottom sitzt unmittelbar am Pin-Top (kein Extra-Gap)
       const badgeOffY = -pinHeight;
@@ -1079,6 +1082,12 @@ export function AppMap({
         // Scale via CSS-Var (Animation liest var(--s) aus; kein Konflikt mit Float-Anim)
         const wrap = marker.getElement().querySelector(".ma365-countdown-wrap") as HTMLElement | null;
         if (wrap) wrap.style.setProperty("--s", countdownScale.toFixed(2));
+      });
+      // Loot-Kisten skalieren mit Zoom (groesser nah, kleiner weit weg)
+      // Basis 64px, Faktor 0.35 (far) bis 1.1 (close)
+      const lootScale = Math.max(0.35, Math.min(1.1, (zoom - 10) / 8 + 0.35));
+      lootMarkersRef.current.forEach(({ el }) => {
+        if (el) el.style.setProperty("--loot-scale", lootScale.toFixed(2));
       });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
       const beamOffY = -pinHeight;
