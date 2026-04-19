@@ -994,6 +994,22 @@ export function AppMap({
         el.style.opacity = hideAura ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
+      // Arena-Countdown sitzt UEBER allen Badges (stacked ueber Arena falls vorhanden)
+      const arenaBadgeHeight = 22 * badgeScale;
+      const countdownGap = 4;
+      arenaCountdownMarkersRef.current.forEach(({ marker, hasSpotlight, hasArena }) => {
+        let offY: number;
+        if (hasArena && hasSpotlight) {
+          // Stack: Pin -> Spotlight -> Arena -> Countdown
+          offY = -(pinHeight + badgeStackOffset + arenaBadgeHeight + countdownGap);
+        } else if (hasArena) {
+          // Stack: Pin -> Arena -> Countdown
+          offY = -(pinHeight + arenaBadgeHeight + countdownGap);
+        } else {
+          offY = -(pinHeight + countdownGap);
+        }
+        marker.setOffset([0, offY]);
+      });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
       const beamOffY = -pinHeight;
       const beamScale = Math.max(0.25, Math.min(1.0, pinHeight / 50));
@@ -1804,12 +1820,12 @@ export function AppMap({
     return () => { lootMarkersRef.current.forEach((m) => m.remove()); lootMarkersRef.current = []; };
   }, [mapReady, lootDrops, onLootClick]);
 
-  // ── Arena-Countdown DOM Marker (kleiner Chip oben rechts am Shop-Pin) ──
-  const arenaCountdownMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  // ── Arena-Countdown DOM Marker (Chip OBEN ueber den Badges, center-stacked) ──
+  const arenaCountdownMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; hasSpotlight: boolean; hasArena: boolean }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    arenaCountdownMarkersRef.current.forEach((m) => m.remove());
+    arenaCountdownMarkersRef.current.forEach(({ marker }) => marker.remove());
     arenaCountdownMarkersRef.current = [];
 
     const fmtCountdown = (startsAt: string): string => {
@@ -1823,18 +1839,21 @@ export function AppMap({
     };
 
     arenaCountdowns.forEach((c) => {
+      const shop = shops.find((s) => s.id === c.business_id);
+      const hasSpotlight = !!shop?.spotlight;
+      const hasArena = !!shop?.arena;
       const outer = document.createElement("div");
       outer.style.pointerEvents = "none";
-      outer.innerHTML = `
-        <div class="ma365-arena-countdown">
-          <span>⚔️</span><span>${fmtCountdown(c.starts_at)}</span>
-        </div>`;
-      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom-left", offset: [6, -30] })
+      const inner = document.createElement("div");
+      inner.className = "ma365-arena-countdown";
+      inner.innerHTML = `<span>⚔️</span><span>${fmtCountdown(c.starts_at)}</span>`;
+      outer.appendChild(inner);
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom", offset: [0, 0] })
         .setLngLat([c.business_lng, c.business_lat]).addTo(map);
-      arenaCountdownMarkersRef.current.push(marker);
+      arenaCountdownMarkersRef.current.push({ marker, hasSpotlight, hasArena });
     });
-    return () => { arenaCountdownMarkersRef.current.forEach((m) => m.remove()); arenaCountdownMarkersRef.current = []; };
-  }, [mapReady, arenaCountdowns]);
+    return () => { arenaCountdownMarkersRef.current.forEach(({ marker }) => marker.remove()); arenaCountdownMarkersRef.current = []; };
+  }, [mapReady, arenaCountdowns, shops]);
 
   // ── Review-Sterne unter Shop-Pin (DOM-Marker mit Star-Bar) ──
   const reviewMarkersRef = useRef<mapboxgl.Marker[]>([]);
