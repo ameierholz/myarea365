@@ -231,20 +231,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       animation: ma365CrateBob 1.6s ease-in-out infinite, ma365CrateGlow 2s ease-in-out infinite;
       filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5));
     }
-    /* Rarity-Badge unten rechts */
-    .ma365-loot-rarity {
-      position: absolute;
-      bottom: 4px; right: 4px;
-      font-size: 7px; font-weight: 900;
-      padding: 1px 5px; border-radius: 999px;
-      background: var(--color); color: #0F1115;
-      border: 1.5px solid rgba(255,255,255,0.9);
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    /* Proximity-Ring: wird sichtbar wenn User in Reichweite (30m) */
+    /* Proximity-Ring: wird sichtbar wenn User in Reichweite (20m) */
     .ma365-loot-proximity {
       position: absolute;
       inset: 8px;
@@ -1887,22 +1874,16 @@ export function AppMap({
     const crateByRarity: Record<string, string> = {
       common: "📦", rare: "🎁", epic: "💎", legendary: "👑",
     };
-    const rarityLabel: Record<string, string> = {
-      common: "COMMON", rare: "RARE", epic: "EPIC", legendary: "LEG",
-    };
-
     lootDrops.forEach((d) => {
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       const color = rarityColor[d.rarity] || "#5ddaf0";
       const crate = crateByRarity[d.rarity] || "📦";
-      const lbl = rarityLabel[d.rarity] || "LOOT";
       outer.innerHTML = `
         <div class="ma365-loot-wrap" style="--color:${color}">
           <div class="ma365-loot-proximity"></div>
           <div class="ma365-loot-proximity two"></div>
           <div class="ma365-loot-crate">${crate}</div>
-          <div class="ma365-loot-rarity">${lbl}</div>
         </div>`;
       outer.addEventListener("click", () => onLootClick?.(d.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
