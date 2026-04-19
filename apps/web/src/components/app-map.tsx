@@ -1926,11 +1926,11 @@ export function AppMap({
     lootMarkersRef.current.forEach(({ el, drop }) => {
       if (!el) return;
       const d = haversineM(pos, { lat: drop.lat, lng: drop.lng });
-      if (d <= 30 && !el.classList.contains("picking-up")) {
-        // Auto-Pickup
+      if (d <= 20 && !el.classList.contains("picking-up")) {
+        // Auto-Pickup bei 20m Naehe
         el.classList.add("picking-up");
         setTimeout(() => onLootClick?.(drop.id), 550);
-      } else if (d <= 100) {
+      } else if (d <= 80) {
         el.classList.add("ready");
       } else {
         el.classList.remove("ready");

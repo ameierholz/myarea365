@@ -9669,7 +9669,7 @@ function ShopsPartnerView() {
  * RANKING TAB (1:1 alte App)
  * ═══════════════════════════════════════════════════════ */
 
-type RankingMode = "runners" | "crews" | "factions";
+type RankingMode = "runners" | "crews" | "factions" | "guardians";
 type RankingSortRunner = "weekly_xp" | "weekly_km" | "total_xp";
 type RankingSortCrew = "weekly_km" | "member_count";
 
@@ -9958,9 +9958,10 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
         marginBottom: 18,
       }}>
         {([
-          { id: "runners",  label: "🏃 Runner" },
-          { id: "crews",    label: "👥 Crews" },
-          { id: "factions", label: "⚔️ Fraktionen" },
+          { id: "runners",   label: "🏃 Runner" },
+          { id: "crews",     label: "👥 Crews" },
+          { id: "factions",  label: "⚔️ Fraktionen" },
+          { id: "guardians", label: "🛡️ Wächter" },
         ] as const).map((m) => {
           const active = mode === m.id;
           return (
@@ -10161,6 +10162,9 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
             ) : (
               <FactionDuelView items={filteredFactions} buckets={factionBuckets} scopeLabel={scopeLabel} />
             )
+          )}
+          {mode === "guardians" && (
+            <GuardianLeaderboardView />
           )}
         </main>
       </div>
@@ -10406,6 +10410,146 @@ function BossRaidModal({ boss, onClose, onAttack }: {
         >{attacking ? "Angreife…" : "⚔️ Angreifen (500–2000 DMG)"}</button>
         <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
       </div>
+    </div>
+  );
+}
+
+/* ═══ Guardian-Leaderboard ═══ */
+type GuardianLeaderRow = {
+  id: string; user_id: string; archetype_id: string;
+  level: number; xp?: number; wins: number; losses: number;
+  guardian_archetypes: { name: string; emoji: string; rarity: string } | { name: string; emoji: string; rarity: string }[] | null;
+  users: { username: string; display_name: string | null; team_color: string | null } | { username: string; display_name: string | null; team_color: string | null }[] | null;
+};
+type WinRateRow = {
+  guardian_id: string; user_id: string; archetype_id: string;
+  level: number; wins: number; losses: number;
+  total: number; win_rate: number;
+  username: string; display_name: string | null; team_color: string | null;
+  arch_name: string; arch_emoji: string; arch_rarity: string;
+};
+
+function GuardianLeaderboardView() {
+  const [data, setData] = useState<{ top_level: GuardianLeaderRow[]; most_played: GuardianLeaderRow[]; top_win_rate: WinRateRow[] } | null>(null);
+  const [subTab, setSubTab] = useState<"level" | "played" | "winrate">("level");
+
+  useEffect(() => {
+    fetch("/api/leaderboard/guardians").then(r => r.json()).then(setData).catch(() => {});
+  }, []);
+
+  if (!data) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Wächter-Ranglisten…</div>;
+
+  const unnest = <T extends object>(x: T | T[] | null): T | null => {
+    if (!x) return null;
+    return Array.isArray(x) ? (x[0] ?? null) : x;
+  };
+
+  const currentRows: Array<{
+    rank: number; emoji: string; archName: string; archRarity: string;
+    level: number; stat: string; username: string; teamColor: string;
+  }> = (() => {
+    if (subTab === "level") {
+      return data.top_level.map((r, i) => {
+        const arch = unnest(r.guardian_archetypes);
+        const user = unnest(r.users);
+        return {
+          rank: i + 1,
+          emoji: arch?.emoji ?? "🛡️",
+          archName: arch?.name ?? "?",
+          archRarity: arch?.rarity ?? "common",
+          level: r.level,
+          stat: `Lvl ${r.level} · ${r.wins}W/${r.losses}L`,
+          username: user?.display_name || user?.username || "?",
+          teamColor: user?.team_color || "#22D1C3",
+        };
+      });
+    }
+    if (subTab === "played") {
+      return data.most_played.map((r, i) => {
+        const arch = unnest(r.guardian_archetypes);
+        const user = unnest(r.users);
+        return {
+          rank: i + 1,
+          emoji: arch?.emoji ?? "🛡️",
+          archName: arch?.name ?? "?",
+          archRarity: arch?.rarity ?? "common",
+          level: r.level,
+          stat: `${r.wins + r.losses} Kämpfe · ${r.wins}W/${r.losses}L`,
+          username: user?.display_name || user?.username || "?",
+          teamColor: user?.team_color || "#22D1C3",
+        };
+      });
+    }
+    return data.top_win_rate.map((r, i) => ({
+      rank: i + 1,
+      emoji: r.arch_emoji,
+      archName: r.arch_name,
+      archRarity: r.arch_rarity,
+      level: r.level,
+      stat: `${r.win_rate}% · ${r.wins}W/${r.losses}L`,
+      username: r.display_name || r.username,
+      teamColor: r.team_color || "#22D1C3",
+    }));
+  })();
+
+  const rarityColor: Record<string, string> = { common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legend: "#FFD700" };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {([
+          { id: "level",   label: "⭐ Top-Level" },
+          { id: "played",  label: "⚔️ Meist-Siege" },
+          { id: "winrate", label: "📈 Win-Rate" },
+        ] as const).map((t) => {
+          const active = subTab === t.id;
+          return (
+            <button key={t.id} onClick={() => setSubTab(t.id)} style={{
+              padding: "7px 12px", borderRadius: 8, border: "none",
+              background: active ? "linear-gradient(135deg,#FF2D78,#a855f7)" : "rgba(30,38,60,0.55)",
+              color: "#FFF", fontSize: 12, fontWeight: 900, cursor: "pointer", flex: 1,
+            }}>
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {currentRows.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>
+          {subTab === "winrate" ? "Win-Rate-Rangliste benötigt mindestens 5 Kämpfe" : "Noch keine Daten"}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {currentRows.map((r) => (
+            <div key={r.rank} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 12px", borderRadius: 12,
+              background: "rgba(30,38,60,0.55)",
+              border: `1px solid ${rarityColor[r.archRarity] ?? "#8B8FA3"}44`,
+            }}>
+              <span style={{
+                color: r.rank <= 3 ? "#FFD700" : "#8B8FA3",
+                fontWeight: 900, fontSize: 14, width: 28, textAlign: "center",
+              }}>
+                {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : `#${r.rank}`}
+              </span>
+              <span style={{ fontSize: 26, lineHeight: 1, filter: `drop-shadow(0 0 6px ${rarityColor[r.archRarity]}66)` }}>
+                {r.emoji}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{r.archName}</div>
+                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
+                  <span style={{ color: r.teamColor, fontWeight: 700 }}>{r.username}</span>
+                </div>
+              </div>
+              <div style={{ color: rarityColor[r.archRarity] ?? "#8B8FA3", fontSize: 11, fontWeight: 900, textAlign: "right", minWidth: 80 }}>
+                {r.stat}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

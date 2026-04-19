@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { RARITY_META, type GuardianRarity } from "@/lib/guardian";
-import { SLOT_META, type ItemSlot } from "@/lib/items";
+import { SLOT_META, ALL_SLOTS, type ItemSlot } from "@/lib/items";
 
 type Catalog = {
   id: string; name: string; emoji: string; slot: ItemSlot; rarity: GuardianRarity;
   bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number;
-  lore: string | null;
+  lore: string | null; cosmetic_only?: boolean;
 };
 
 type InvItem = {
@@ -18,7 +18,7 @@ type InvItem = {
 type InventoryResponse = {
   guardian_id: string | null;
   items: InvItem[];
-  equipped: { helm: InvItem | null; armor: InvItem | null; amulet: InvItem | null };
+  equipped: Partial<Record<ItemSlot, InvItem | null>>;
 };
 
 export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) {
@@ -61,22 +61,22 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
 
   if (!inv) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Ausrüstung…</div>;
 
-  const slots: ItemSlot[] = ["helm", "armor", "amulet"];
   const totalBonus = { hp: 0, atk: 0, def: 0, spd: 0 };
-  for (const s of slots) {
+  for (const s of ALL_SLOTS) {
     const it = inv.equipped[s];
-    if (it) {
-      totalBonus.hp  += it.catalog.bonus_hp;
-      totalBonus.atk += it.catalog.bonus_atk;
-      totalBonus.def += it.catalog.bonus_def;
-      totalBonus.spd += it.catalog.bonus_spd;
-    }
+    if (!it || it.catalog.cosmetic_only) continue;
+    totalBonus.hp  += it.catalog.bonus_hp;
+    totalBonus.atk += it.catalog.bonus_atk;
+    totalBonus.def += it.catalog.bonus_def;
+    totalBonus.spd += it.catalog.bonus_spd;
   }
+
+  const slotsOrdered = [...ALL_SLOTS].sort((a, b) => SLOT_META[a].order - SLOT_META[b].order);
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-        {slots.map((slot) => {
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 10 }}>
+        {slotsOrdered.map((slot) => {
           const it = inv.equipped[slot];
           const meta = SLOT_META[slot];
           const rarityColor = it ? RARITY_META[it.catalog.rarity].color : "#8B8FA3";
@@ -86,22 +86,22 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
               onClick={() => setPickerSlot(slot)}
               disabled={busy}
               style={{
-                padding: 10, borderRadius: 12,
+                padding: 8, borderRadius: 10,
                 background: it
                   ? `linear-gradient(135deg, ${RARITY_META[it.catalog.rarity].glow}, rgba(15,17,21,0.7))`
-                  : "rgba(70, 82, 122, 0.35)",
-                border: `1px dashed ${rarityColor}${it ? "" : "55"}`,
+                  : "rgba(70, 82, 122, 0.3)",
+                border: `1px dashed ${rarityColor}${it ? "" : "44"}`,
                 cursor: "pointer", textAlign: "center",
                 transition: "transform 0.2s",
               }}
             >
-              <div style={{ fontSize: 9, color: "#8B8FA3", fontWeight: 800, letterSpacing: 1 }}>
+              <div style={{ fontSize: 8, color: "#8B8FA3", fontWeight: 800, letterSpacing: 0.8 }}>
                 {meta.label.toUpperCase()}
               </div>
-              <div style={{ fontSize: 36, margin: "4px 0", opacity: it ? 1 : 0.3 }}>
+              <div style={{ fontSize: 28, margin: "2px 0", opacity: it ? 1 : 0.3 }}>
                 {it?.catalog.emoji ?? meta.icon}
               </div>
-              <div style={{ color: rarityColor, fontSize: 10, fontWeight: 800, minHeight: 12 }}>
+              <div style={{ color: rarityColor, fontSize: 9, fontWeight: 800, minHeight: 11, lineHeight: 1.2 }}>
                 {it?.catalog.name ?? "leer"}
               </div>
             </button>
@@ -124,7 +124,7 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
         </div>
       ) : (
         <div style={{ padding: 10, borderRadius: 10, background: "rgba(70,82,122,0.2)", textAlign: "center", color: "#8B8FA3", fontSize: 11 }}>
-          Noch keine Ausrüstung — gewinn Rare+ Loot bei Einlösungen
+          Noch keine Ausrüstung — gewinn Rare+ Loot bei Einlösungen oder aus Map-Kisten
         </div>
       )}
 
@@ -195,14 +195,21 @@ function ItemPickerModal({ slot, items, onEquip, onUnequip, hasEquipped, onClose
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: rarity.color, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>
                       {rarity.label.toUpperCase()}{it.equipped && " · AUSGERÜSTET"}
+                      {it.catalog.cosmetic_only && " · KOSMETISCH"}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{it.catalog.name}</div>
-                    <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                      {it.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{it.catalog.bonus_hp} HP</span>}
-                      {it.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{it.catalog.bonus_atk} ATK</span>}
-                      {it.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{it.catalog.bonus_def} DEF</span>}
-                      {it.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{it.catalog.bonus_spd} SPD</span>}
-                    </div>
+                    {!it.catalog.cosmetic_only ? (
+                      <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+                        {it.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{it.catalog.bonus_hp} HP</span>}
+                        {it.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{it.catalog.bonus_atk} ATK</span>}
+                        {it.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{it.catalog.bonus_def} DEF</span>}
+                        {it.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{it.catalog.bonus_spd} SPD</span>}
+                      </div>
+                    ) : (
+                      <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2, fontStyle: "italic" }}>
+                        Nur optisch — keine Kampf-Boni (Anti-P2W)
+                      </div>
+                    )}
                   </div>
                 </button>
               );

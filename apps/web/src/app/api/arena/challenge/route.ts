@@ -36,9 +36,9 @@ export async function POST(req: Request) {
 }
 
 async function handleChallenge(req: Request) {
-  let body: { business_id: string; defender_user_id: string };
+  let body: { business_id: string; defender_user_id: string; attacker_lat?: number; attacker_lng?: number };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
-  const { business_id, defender_user_id } = body;
+  const { business_id, defender_user_id, attacker_lat, attacker_lng } = body;
   if (!business_id || !defender_user_id) return NextResponse.json({ error: "business_id + defender_user_id required" }, { status: 400 });
 
   const userClient = await createClient();
@@ -48,6 +48,20 @@ async function handleChallenge(req: Request) {
 
   const attacker_user_id = auth.user.id;
   if (attacker_user_id === defender_user_id) return NextResponse.json({ error: "same_user" }, { status: 400 });
+
+  // Proximity-Check: Attacker muss innerhalb 2km vom Shop sein
+  // (Ein Crew-Mitglied in der Naehe reicht - der Angreifer vertritt die Crew)
+  if (typeof attacker_lat === "number" && typeof attacker_lng === "number") {
+    const { data: prox } = await sb.rpc("arena_proximity_ok", {
+      p_user_lat: attacker_lat, p_user_lng: attacker_lng,
+      p_business_id: business_id, p_radius_m: 2000,
+    });
+    if (!prox) {
+      return NextResponse.json({ error: "too_far", detail: "Du musst innerhalb 2 km vom Shop sein, um die Arena zu betreten." }, { status: 403 });
+    }
+  } else {
+    return NextResponse.json({ error: "location_required", detail: "Deine Position wird benötigt um die Arena zu betreten. Bitte GPS erlauben." }, { status: 400 });
+  }
 
   // Profile beider Runner (Crew-Kontext)
   const { data: attProfile } = await sb.from("users").select("current_crew_id").eq("id", attacker_user_id).single<{ current_crew_id: string | null }>();

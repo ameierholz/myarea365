@@ -115,9 +115,28 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
     setPhase("fighting");
     setError(null);
     try {
+      // Current position for arena proximity check
+      const pos = await new Promise<GeolocationPosition | null>((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve(p),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 },
+        );
+      });
+      if (!pos) {
+        setError("GPS-Position wird benötigt für die Arena. Bitte Standort erlauben.");
+        setPhase("pick");
+        return;
+      }
       const res = await fetch("/api/arena/challenge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ business_id: businessId, defender_user_id: target.user_id }),
+        body: JSON.stringify({
+          business_id: businessId,
+          defender_user_id: target.user_id,
+          attacker_lat: pos.coords.latitude,
+          attacker_lng: pos.coords.longitude,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({ error: res.status }));
