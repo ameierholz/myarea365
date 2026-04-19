@@ -828,7 +828,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                       color-mix(in oklab, var(--btn-color) 100%, white 12%) 0%,
                       var(--btn-color) 55%,
                       color-mix(in oklab, var(--btn-color) 100%, black 18%) 100%);
-                    padding: 12px 38px;
+                    padding: 9px 36px;
                     border-radius: 999px;
                     border: 1.5px solid rgba(255,255,255,0.55);
                     color: ${BG_DEEP};
