@@ -381,7 +381,7 @@ export function AppMap({
       attributionControl: false,
     });
 
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }), "top-right");
+    // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
 
     map.on("style.load", () => {
