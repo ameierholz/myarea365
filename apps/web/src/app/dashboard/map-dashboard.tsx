@@ -811,8 +811,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 </span>
                 <style>{`
                   @keyframes ma365WalkBtnShine {
-                    0%   { transform: translateX(-120%) skewX(-20deg); }
-                    100% { transform: translateX(220%)  skewX(-20deg); }
+                    0%   { transform: translateX(-150%) skewX(-20deg); }
+                    45%  { transform: translateX(260%)  skewX(-20deg); }
+                    100% { transform: translateX(260%)  skewX(-20deg); }
                   }
                   @keyframes ma365WalkBtnIcon {
                     0%,100% { transform: translateY(0) rotate(0deg); }
@@ -855,7 +856,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     position: absolute;
                     top: 0; left: 0; width: 35%; height: 100%;
                     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-                    animation: ma365WalkBtnShine 3.2s ease-in-out infinite;
+                    animation: ma365WalkBtnShine 3.6s linear infinite;
                     pointer-events: none;
                   }
                   .ma365-walk-btn-inner {
