@@ -11,8 +11,9 @@ import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-mo
 import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
+import { GuardianDetailModal } from "@/components/guardian-detail-modal";
+import { GemShopModal } from "@/components/gem-shop-modal";
 import { GuardianHelpButton, GuardianGuideBanner } from "@/components/guardian-help-modal";
-import { GuardianEquipmentPanel } from "@/components/guardian-equipment";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
@@ -1826,19 +1827,13 @@ function ProfilTab({
         {/* ═══ WÄCHTER ═══ */}
         <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
         <GuardianGuideBanner />
-        <ProfileGuardianBlock userId={p?.id ?? null} />
 
         {/* ═══ MEINE SAMMLUNG ═══ */}
-        <SectionHeader title="MEINE WÄCHTER-SAMMLUNG" />
         <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)", marginBottom: 14 }}>
           <GuardianCollectionPanel />
         </div>
 
-        {/* ═══ AUSRÜSTUNG ═══ */}
-        <SectionHeader title="AUSRÜSTUNG" />
-        <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)" }}>
-          <GuardianEquipmentPanel />
-        </div>
+        {/* Ausrüstung entfernt — CoD-Rework: Progression läuft über Talente + Skills */}
 
         {/* ═══ MAP-ICONS (10 Stück) ═══ */}
         <div style={{ width: "100%", marginTop: 25, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -8021,22 +8016,19 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
 function ProfileGuardianBlock({ userId }: { userId: string | null }) {
   const sb = useMemo(() => createClient(), []);
   const [guardian, setGuardian] = useState<GuardianWithArchetype | null>(null);
-  const [trophies, setTrophies] = useState<Array<{ id: string; archetype_id: string; captured_level: number; archetype?: { name: string; emoji: string; rarity: string } }>>([]);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+
   useEffect(() => {
     if (!userId) return;
     (async () => {
+      // CoD-Rework: crew_guardians (neues System) — alte user_guardians-Tabelle raus
       const { data: g } = await sb.from("user_guardians")
-        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, talent_points_available, talent_points_spent, last_respec_at, archetype:archetype_id(*)")
         .eq("user_id", userId).eq("is_active", true).maybeSingle();
-      if (!g) return;
-      const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single();
-      if (arch) setGuardian({ ...(g as Omit<GuardianWithArchetype, "archetype">), archetype: arch });
-      const { data: t } = await sb.from("guardian_trophies").select("id, archetype_id, captured_level").eq("user_id", userId).order("captured_at", { ascending: false });
-      if (t && t.length > 0) {
-        const archIds = Array.from(new Set(t.map((x: { archetype_id: string }) => x.archetype_id)));
-        const { data: archs } = await sb.from("guardian_archetypes").select("id, name, emoji, rarity").in("id", archIds);
-        const archMap = new Map((archs ?? []).map((a: { id: string; name: string; emoji: string; rarity: string }) => [a.id, a]));
-        setTrophies(t.map((x) => ({ ...(x as { id: string; archetype_id: string; captured_level: number }), archetype: archMap.get((x as { archetype_id: string }).archetype_id) })));
+      if (g) {
+        const row = g as unknown as GuardianWithArchetype & { talent_points_available?: number };
+        setGuardian(row);
       }
     })();
   }, [sb, userId]);
@@ -8044,30 +8036,17 @@ function ProfileGuardianBlock({ userId }: { userId: string | null }) {
   if (!guardian) {
     return (
       <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-        Noch kein Wächter — lade die Seite neu oder kontaktiere Support.
+        Noch kein aktiver Wächter — wähle einen unter „Meine Wächter-Sammlung" weiter unten.
       </div>
     );
   }
 
+  const pts = (guardian as GuardianWithArchetype & { talent_points_available?: number }).talent_points_available ?? 0;
+
   return (
     <div>
-      <GuardianCard guardian={guardian} />
-      {trophies.length > 0 && (
-        <div style={{ marginTop: 14 }}>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-            🏆 TROPHÄEN-SCHREIN ({trophies.length})
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
-            {trophies.map((t) => (
-              <div key={t.id} style={{ padding: 10, borderRadius: 12, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)", textAlign: "center" }}>
-                <div style={{ fontSize: 32, marginBottom: 4 }}>{t.archetype?.emoji ?? "❓"}</div>
-                <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{t.archetype?.name ?? "?"}</div>
-                <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800 }}>Lv {t.captured_level}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {detailOpen && <GuardianDetailModal guardianId={guardian.id} onClose={() => setDetailOpen(false)} />}
+      {shopOpen && <GemShopModal onClose={() => setShopOpen(false)} />}
     </div>
   );
 }

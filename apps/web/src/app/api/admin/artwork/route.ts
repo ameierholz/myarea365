@@ -13,7 +13,7 @@ export async function GET() {
   await requireAdmin();
   const sb = await createClient();
   const [arch, items, races] = await Promise.all([
-    sb.from("guardian_archetypes").select("id, name, emoji, rarity, image_url").order("rarity").order("name"),
+    sb.from("guardian_archetypes").select("id, name, emoji, rarity, guardian_type, role, ability_name, lore, image_url").order("rarity").order("name"),
     sb.from("item_catalog").select("id, name, emoji, slot, rarity, image_url, cosmetic_only, race").order("race", { nullsFirst: true }).order("slot").order("rarity").order("name"),
     sb.from("races_catalog").select("name, role, lore, material_desc, energy_color").order("role").order("name"),
   ]);

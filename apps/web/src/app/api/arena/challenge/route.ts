@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runBattle, type BattleInput } from "@/lib/battle-engine";
-import { xpForLevel } from "@/lib/guardian";
+import { GUARDIAN_LEVEL_CAP } from "@/lib/guardian";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -182,30 +182,50 @@ async function handleChallenge(req: Request) {
   if (battleErr || !battleRow) return NextResponse.json({ error: "battle_save_failed", detail: battleErr?.message ?? "no row" }, { status: 500 });
 
   async function applyOutcome(g: NonNullable<typeof gA>, won: boolean, finalHp: number) {
-    const baseMaxHp = Math.round(g.archetype.base_hp * (1 + (g.level - 1) * 0.08));
+    const baseMaxHp = Math.round(g.archetype.base_hp * (1 + (g.level - 1) * 0.06));
     const maxHp = baseMaxHp + (g.item_bonuses?.hp ?? 0);
     const hpPct = Math.max(0, Math.round((finalHp / maxHp) * 100));
-    const newXp = won ? g.xp + result.xp_awarded : g.xp + Math.round(result.xp_awarded * 0.25);
-    let newLevel = g.level;
-    let xpOverflow = newXp;
-    while (newLevel < 30 && xpOverflow >= xpForLevel(newLevel)) {
-      xpOverflow -= xpForLevel(newLevel);
-      newLevel++;
-    }
+    const xpGain = won ? result.xp_awarded : Math.round(result.xp_awarded * 0.25);
+
+    // W/L + HP speichern
     const wounded = !won && finalHp <= 0 ? new Date(Date.now() + 24 * 3600000).toISOString() : null;
     await sb.from("user_guardians").update({
-      level: newLevel, xp: xpOverflow,
       wins: won ? g.wins + 1 : g.wins,
       losses: !won ? g.losses + 1 : g.losses,
       current_hp_pct: Math.max(10, Math.min(100, hpPct)),
       wounded_until: wounded,
     }).eq("id", g.id);
+
+    // XP + Level + Talentpunkte via RPC (respektiert Cap 60, vergibt Talentpunkte bei Level-Up)
+    if (xpGain > 0 && g.level < GUARDIAN_LEVEL_CAP) {
+      await sb.rpc("apply_guardian_xp", { p_guardian_id: g.id, p_xp: xpGain });
+    }
   }
 
   await Promise.all([
     applyOutcome(gA, result.winner === "A", result.final_hp_a),
     applyOutcome(gB, result.winner === "B", result.final_hp_b),
   ]);
+
+  // Siegel + Edelsteine für den Sieger (typ-spezifisch basierend auf Gegner-Typ)
+  let arenaRewards: {
+    ok: boolean; siegel_type?: string; siegel_amount?: number; universal_siegel?: number; gems?: number;
+  } | null = null;
+  if (winnerUserId) {
+    const winnerMaxHp = winnerUserId === attacker_user_id
+      ? Math.round(gA.archetype.base_hp * (1 + (gA.level - 1) * 0.06)) + (gA.item_bonuses?.hp ?? 0)
+      : Math.round(gB.archetype.base_hp * (1 + (gB.level - 1) * 0.06)) + (gB.item_bonuses?.hp ?? 0);
+    const winnerFinalHp = winnerUserId === attacker_user_id ? result.final_hp_a : result.final_hp_b;
+    const hpRatio = winnerFinalHp / Math.max(1, winnerMaxHp);
+    const margin: "close" | "clear" | "flawless" = hpRatio > 0.8 ? "flawless" : hpRatio > 0.4 ? "clear" : "close";
+    const loserArchetypeId = winnerUserId === attacker_user_id ? gB.archetype_id : gA.archetype_id;
+    const { data: rewards } = await sb.rpc("arena_grant_rewards", {
+      p_winner_user_id: winnerUserId,
+      p_loser_archetype_id: loserArchetypeId,
+      p_margin: margin,
+    });
+    arenaRewards = rewards as typeof arenaRewards;
+  }
 
   const { data: arenaRow } = await sb.from("shop_arenas").select("total_battles").eq("id", arena.id).single<{ total_battles: number }>();
   await sb.from("shop_arenas").update({ total_battles: (arenaRow?.total_battles ?? 0) + 1 }).eq("id", arena.id);
@@ -235,7 +255,7 @@ async function handleChallenge(req: Request) {
     if (newStreak >= 3) {
       const sameArchetype = winnerGuardian.archetype_id === loserGuardian.archetype_id;
       if (sameArchetype) {
-        const boostedLevel = Math.min(30, winnerGuardian.level + 1);
+        const boostedLevel = Math.min(GUARDIAN_LEVEL_CAP, winnerGuardian.level + 1);
         await sb.from("user_guardians").update({ level: boostedLevel, xp: 0, source: "fused" }).eq("id", winnerGuardian.id);
         fusionResult = { kind: "fusion", description: `Fusion! Dein ${winnerGuardian.archetype.name} ist jetzt Level ${boostedLevel}.` };
       } else {
@@ -266,5 +286,7 @@ async function handleChallenge(req: Request) {
     final_hp_a: result.final_hp_a,
     final_hp_b: result.final_hp_b,
     fusion: fusionResult,
+    rewards: arenaRewards,
+    type_advantage: result.type_advantage,
   });
 }

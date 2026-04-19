@@ -1,6 +1,6 @@
 "use client";
 
-import { RARITY_META, statsAtLevel, xpForLevel, type GuardianWithArchetype } from "@/lib/guardian";
+import { rarityMeta, statsAtLevel, xpForLevel, GUARDIAN_LEVEL_CAP, TYPE_META, type GuardianWithArchetype } from "@/lib/guardian";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 
 export function GuardianCard({ guardian, compact = false, onClick }: {
@@ -8,7 +8,8 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
   compact?: boolean;
   onClick?: () => void;
 }) {
-  const rarity = RARITY_META[guardian.archetype.rarity];
+  const rarity = rarityMeta(guardian.archetype.rarity);
+  const typeInfo = guardian.archetype.guardian_type ? TYPE_META[guardian.archetype.guardian_type] : null;
   const stats = statsAtLevel(guardian.archetype, guardian.level);
   const wounded = guardian.wounded_until && new Date(guardian.wounded_until).getTime() > Date.now();
   const xpNext = xpForLevel(guardian.level);
@@ -84,7 +85,7 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
         <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
           <div>
             <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>
-              {rarity.label.toUpperCase()}
+              {rarity.label.toUpperCase()}{typeInfo ? ` · ${typeInfo.icon} ${typeInfo.label}` : ""}
             </div>
             <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900 }}>
               {guardian.custom_name ?? guardian.archetype.name}
@@ -101,17 +102,7 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
             <Stat label="SPD" value={stats.spd} color="#FFD700" />
           </div>
 
-          <div style={{
-            padding: 10, borderRadius: 10,
-            background: "rgba(15,17,21,0.55)",
-            border: `1px dashed ${rarity.color}55`,
-          }}>
-            <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>⚡ SPEZIALKRAFT</div>
-            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginTop: 2 }}>{guardian.archetype.ability_name}</div>
-            <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{guardian.archetype.ability_desc}</div>
-          </div>
-
-          {guardian.level < 30 && (
+          {guardian.level < GUARDIAN_LEVEL_CAP && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a8b4cf", marginBottom: 3 }}>
                 <span>XP</span>

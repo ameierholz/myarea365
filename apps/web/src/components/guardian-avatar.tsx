@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { RARITY_META, type GuardianArchetype, type GuardianRarity } from "@/lib/guardian";
+import { rarityMeta, normalizeRarity, type GuardianArchetype, type AnyRarity } from "@/lib/guardian";
 
 // Wenn Archetyp hier drin → Videos (WebM/MP4) werden gerendert
 // Dateien: apps/web/public/guardians/<id>_idle.webm und <id>_attack.webm
@@ -27,23 +27,25 @@ export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "sp
  * Rarity bestimmt Farbpalette und Glow-Intensitaet.
  */
 export function GuardianAvatar({ archetype, size = 140, animation = "idle", facing = "right" }: {
-  archetype: Pick<GuardianArchetype, "id" | "emoji" | "rarity">;
+  archetype: Pick<GuardianArchetype, "id" | "emoji" | "rarity"> & { image_url?: string | null };
   size?: number;
   animation?: AvatarAnimation;
   facing?: "left" | "right";
 }) {
-  const rarity = RARITY_META[archetype.rarity];
+  const rarity = rarityMeta(archetype.rarity);
   const palette = paletteFor(archetype.rarity);
   const A = ARCHETYPE_LOOK[archetype.id] ?? FALLBACK_LOOK;
 
   const flip = facing === "left" ? "scaleX(-1)" : "";
   const animClass = `anim-${animation}`;
 
-  // Wenn AI-Portraits existieren → PNG rendern, sonst SVG-Fallback.
+  // 1) image_url aus DB hat höchste Priorität (via /admin/artwork hochgeladen)
+  // 2) Dann statische Dateinamen-Konvention
+  // 3) Fallback: SVG
   const useVideo = VIDEO_AVAILABLE.has(archetype.id);
-  const usePortrait = !useVideo && ARTWORK_AVAILABLE.has(archetype.id);
+  const usePortrait = !useVideo && (!!archetype.image_url || ARTWORK_AVAILABLE.has(archetype.id));
   const variant = animation === "attack" || animation === "crit" ? "attack" : "idle";
-  const portraitSrc = `/guardians/${archetype.id}_${variant}.png`;
+  const portraitSrc = archetype.image_url || `/guardians/${archetype.id}_${variant}.png`;
   const videoSrc = `/guardians/${archetype.id}_${variant}.webm`;
   const [portraitFailed, setPortraitFailed] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
@@ -279,8 +281,9 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
 
 // ── Palettes per Rarity ───────────────────────────────────
 
-function paletteFor(rarity: GuardianRarity) {
-  if (rarity === "legend") return {
+function paletteFor(rarityRaw: AnyRarity) {
+  const rarity = normalizeRarity(rarityRaw);
+  if (rarity === "legendary") return {
     skin: "#F4C9A0", leg: "#1A1D23", boot: "#0F1115", belt: "#7a5b1f",
     armor: "#3D2B6B", armorTrim: "#FFD700", arm: "#4a3178", emblem: "#FFD700",
   };
@@ -288,13 +291,9 @@ function paletteFor(rarity: GuardianRarity) {
     skin: "#EAB58A", leg: "#1F2430", boot: "#0F1115", belt: "#4a2a5c",
     armor: "#5C2B6B", armorTrim: "#a855f7", arm: "#6a3680", emblem: "#E5D4F7",
   };
-  if (rarity === "rare") return {
+  return {
     skin: "#E6B087", leg: "#1F2430", boot: "#0F1115", belt: "#1a5a55",
     armor: "#1F6B5C", armorTrim: "#22D1C3", arm: "#277a6b", emblem: "#B8F2E6",
-  };
-  return {
-    skin: "#D4A373", leg: "#2A2F3A", boot: "#0F1115", belt: "#4a4a52",
-    armor: "#3F4654", armorTrim: "#8B8FA3", arm: "#525a6b", emblem: "#D4D8E0",
   };
 }
 

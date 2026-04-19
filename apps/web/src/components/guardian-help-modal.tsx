@@ -5,15 +5,15 @@ import Link from "next/link";
 import { RARITY_META, type GuardianArchetype } from "@/lib/guardian";
 import { createClient } from "@/lib/supabase/client";
 
-type Tab = "overview" | "guardians" | "equipment" | "arena" | "boss" | "zones" | "fair";
+type Tab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss" | "fair";
 
 const TABS: Array<{ id: Tab; icon: string; label: string }> = [
   { id: "overview",  icon: "🧭", label: "Übersicht" },
-  { id: "guardians", icon: "🛡️", label: "Wächter" },
-  { id: "equipment", icon: "⚔️", label: "Ausrüstung" },
+  { id: "guardians", icon: "🛡️", label: "60 Wächter" },
+  { id: "talents",   icon: "🌟", label: "Talente" },
+  { id: "skills",    icon: "⚡", label: "Fähigkeiten" },
   { id: "arena",     icon: "🏟️", label: "Arena" },
   { id: "boss",      icon: "👹", label: "Area-Boss" },
-  { id: "zones",     icon: "🗺️", label: "Zonen & Tempel" },
   { id: "fair",      icon: "⚖️", label: "Fair-Play" },
 ];
 
@@ -43,10 +43,11 @@ export function GuardianGuideBanner() {
   const [tab, setTab] = useState<Tab>("overview");
   const chips: Array<{ icon: string; label: string; tab: Tab }> = [
     { icon: "⚔️", label: "So spielst du",          tab: "overview" },
-    { icon: "🎭", label: "20 Wächter-Rassen",     tab: "guardians" },
-    { icon: "🛡️", label: "9 Ausrüstungs-Slots",   tab: "equipment" },
+    { icon: "🛡️", label: "60 Wächter · 4 Typen",  tab: "guardians" },
+    { icon: "🌟", label: "Talentbaum",             tab: "talents" },
+    { icon: "⚡", label: "5 Fähigkeiten",          tab: "skills" },
     { icon: "🏟️", label: "Arena-Kämpfe",          tab: "arena" },
-    { icon: "👹", label: "Crew-Boss-Raids",       tab: "boss" },
+    { icon: "👹", label: "Area-Boss-Raids",        tab: "boss" },
   ];
   return (
     <>
@@ -147,10 +148,10 @@ function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClose: () =
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
           {tab === "overview"  && <OverviewTab />}
           {tab === "guardians" && <GuardiansTab />}
-          {tab === "equipment" && <EquipmentTab />}
+          {tab === "talents"   && <TalentsTab />}
+          {tab === "skills"    && <SkillsTab />}
           {tab === "arena"     && <ArenaTab />}
           {tab === "boss"      && <BossTab />}
-          {tab === "zones"     && <ZonesTab />}
           {tab === "fair"      && <FairTab />}
         </div>
 
@@ -178,19 +179,20 @@ function OverviewTab() {
       </Hero>
 
       <StepLoop steps={[
-        { icon: "🏃", title: "1. Laufen",        text: "Erobere Straßen → XP für dich + Ranking-Punkte" },
-        { icon: "🏪", title: "2. Deals einlösen", text: "Scan QR bei Shops → Wächter-XP + Chance auf Loot" },
-        { icon: "⚔️", title: "3. Kämpfen",       text: "Arena-Shops (vor Ort) oder Boss-Raids mit der Crew" },
-        { icon: "📈", title: "4. Level-Up",      text: "Jedes Level: +8% HP, +6% ATK/DEF, +3% SPD (max Lvl 30)" },
+        { icon: "🏃", title: "1. Laufen",        text: "Erobere Straßen → XP für dich + Wächter-XP" },
+        { icon: "📈", title: "2. Level-Up",      text: "Jedes Level (max 60) = +1 Talentpunkt zum Vergeben" },
+        { icon: "⚔️", title: "3. Kämpfen",       text: "Arena-Shops (vor Ort) oder Area-Boss mit der Crew" },
+        { icon: "⚡", title: "4. Upgraden",      text: "Siegel aus Kämpfen → Fähigkeiten auf Stufe 5 maxen" },
       ]} />
 
-      <Card title="Was macht den Wächter besonders?" color="#a855f7">
+      <Card title="Was macht das System besonders?" color="#a855f7">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>20 Rassen</b> in 4 Rollen (Tank / Heiler / Nahkampf-DPS / Fernkampf-DPS)</li>
-          <li><b>6 Seltenheitsstufen</b> für Loot — von Ungewöhnlich bis Transzendent</li>
-          <li><b>9 Ausrüstungs-Slots</b> — massiv mehr Kombinationsmöglichkeiten</li>
-          <li><b>Zwingend GPS</b>: Arena nur ≤2&nbsp;km, Boss-Raid ≤500&nbsp;m, Sanctuary ≤50&nbsp;m</li>
-          <li><b>Kein Pay-to-Win</b> — kaufbare Items sind rein kosmetisch</li>
+          <li><b>60 Wächter</b> in <b>4 Typen</b> (🛡️ Infanterie · 🐎 Kavallerie · 🏹 Scharfschütze · 🔮 Magier)</li>
+          <li><b>Stein-Schere-Papier</b>: ±25% Schaden bei Typ-Vorteil/-Nachteil (Magier neutral)</li>
+          <li><b>Talentbaum</b> pro Wächter — 3 Äste × 5 Tiers = individueller Build</li>
+          <li><b>5 Fähigkeiten</b> pro Wächter (Aktiv/Passiv/Kampf/Rolle/Expertise) × 5 Stufen</li>
+          <li><b>Rage-Kampfsystem</b> — bei voll (1000) feuert der Aktiv-Skill automatisch</li>
+          <li><b>Kein Pay-to-Win</b> — Siegel & XP nur durch Laufen + Kämpfen</li>
         </ul>
       </Card>
     </div>
@@ -198,184 +200,177 @@ function OverviewTab() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   TAB: WÄCHTER — Rassen-Übersicht
+   TAB: WÄCHTER — 60 Archetypen nach Typ
    ═══════════════════════════════════════════════════════ */
 function GuardiansTab() {
-  const [archetypes, setArchetypes] = useState<GuardianArchetype[]>([]);
-  const [races, setRaces] = useState<Array<{ id: string; name: string; role: string; lore: string | null; material_desc: string | null }>>([]);
+  const [archetypes, setArchetypes] = useState<Array<GuardianArchetype & { guardian_type?: string | null; role?: string | null }>>([]);
   useEffect(() => {
     const sb = createClient();
     sb.from("guardian_archetypes").select("*").order("rarity").order("name")
-      .then(({ data }) => { if (data) setArchetypes(data as GuardianArchetype[]); });
-    sb.from("races_catalog").select("id, name, role, lore, material_desc").order("role").order("name")
-      .then(({ data }) => { if (data) setRaces(data); });
+      .then(({ data }) => { if (data) setArchetypes(data as Array<GuardianArchetype & { guardian_type?: string | null; role?: string | null }>); });
   }, []);
 
-  const byRole = useMemo(() => {
-    const map = new Map<string, typeof races>();
-    for (const r of races) {
-      const list = map.get(r.role) ?? [];
-      list.push(r);
-      map.set(r.role, list);
+  const byType = useMemo(() => {
+    const map = new Map<string, typeof archetypes>();
+    for (const a of archetypes) {
+      const t = a.guardian_type ?? "unknown";
+      const list = map.get(t) ?? [];
+      list.push(a);
+      map.set(t, list);
     }
     return map;
-  }, [races]);
+  }, [archetypes]);
 
-  const roleMeta: Record<string, { label: string; color: string; emoji: string; desc: string }> = {
-    tank:       { label: "Tank",             color: "#6991d8", emoji: "🛡️", desc: "Hält viel aus — Konstitution + Widerstand" },
-    healer:     { label: "Heiler",           color: "#1db682", emoji: "💚", desc: "Heilt und unterstützt — Fokus + Heilkraft" },
-    melee_dps:  { label: "Nahkampf-DPS",     color: "#ef7169", emoji: "⚔️", desc: "Schnell und präzise — Beweglichkeit + Stärke" },
-    ranged_dps: { label: "Fernkampf-DPS",    color: "#a855f7", emoji: "🏹", desc: "Distanz-Schaden — Präzision + Reichweite" },
+  const typeMeta: Record<string, { label: string; color: string; emoji: string; desc: string }> = {
+    infantry: { label: "Infanterie",    color: "#60a5fa", emoji: "🛡️", desc: "Schild & Stahl — hält Treffer aus und kontert" },
+    cavalry:  { label: "Kavallerie",    color: "#fb923c", emoji: "🐎", desc: "Schnell & wendig — schlägt als erster zu" },
+    marksman: { label: "Scharfschütze", color: "#4ade80", emoji: "🏹", desc: "Präziser Fernkampf — hohe Krit-Chance" },
+    mage:     { label: "Magier",        color: "#c084fc", emoji: "🔮", desc: "Wildcard — neutral gegen alle Typen-Counter" },
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Hero>
-        Bei oder nach der Registrierung kannst du dir deinen <b>Wächter selbst aussuchen</b> — eine aus 20 Rassen in 4 Rollen. Jede Rasse hat eine eigene Rolle und einzigartige Material-Thematik für ihre Items.
+        <b>60 humanoide Wächter</b> in 4 Typen und 3 Raritäten (Elite / Episch / Legendär). Du beginnst mit einem Elite-Starter deiner Wahl und sammelst neue durch Kämpfe und Meilensteine.
       </Hero>
 
-      <Card title="💎 Sammeln + Wechseln" color="#a855f7">
-        <div style={{ marginBottom: 6 }}>
-          Du kannst <b>mehrere Wächter sammeln</b> und zwischen ihnen wechseln. Pro Wechsel gilt ein <b>24-Stunden-Cooldown</b> (Fairness in der Arena).
-        </div>
-        <div style={{ fontWeight: 800, color: "#FFD700", marginBottom: 2 }}>💎 Beschwörungssteine bekommst du durch:</div>
-        <ul style={{ margin: "2px 0 6px 0", paddingLeft: 18, lineHeight: 1.6, fontSize: 11 }}>
-          <li><b>Km-Meilensteine</b>: 10 / 50 / 100 km gesamt → je 1 Stein</li>
-          <li><b>Boss-Raid-Sieg</b>: 5% Chance pro Mitglied der Gewinner-Crew</li>
-          <li><b>Seltene Drop-Items</b> (Legendary Redemption-Loot)</li>
-        </ul>
-        <div style={{ fontSize: 11, lineHeight: 1.5 }}>
-          Mit 1 Stein kannst du eine noch nicht besessene Rasse beschwören. Sammle alle 20 für den Kiez-Master-Titel!
+      <Card title="⚔️ Stein-Schere-Papier" color="#FFD700">
+        Jeder Typ hat einen natürlichen Gegner: <b>Infanterie schlägt Kavallerie</b>, <b>Kavallerie schlägt Scharfschützen</b>, <b>Scharfschützen schlagen Infanterie</b>. Magier ist neutral — er kann nicht gekontert werden.
+        <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 6 }}>
+          Typ-Vorteil: <b style={{ color: "#4ade80" }}>+25% Schaden</b> · Typ-Nachteil: <b style={{ color: "#FF6B4A" }}>-25% Schaden</b>
         </div>
       </Card>
 
-      {Array.from(byRole.entries()).map(([role, list]) => {
-        const meta = roleMeta[role] ?? { label: role, color: "#8B8FA3", emoji: "•", desc: "" };
+      {(["infantry","cavalry","marksman","mage"] as const).map((type) => {
+        const meta = typeMeta[type];
+        const list = byType.get(type) ?? [];
+        if (list.length === 0) return null;
         return (
-          <Card key={role} title={`${meta.emoji} ${meta.label}`} color={meta.color}>
+          <Card key={type} title={`${meta.emoji} ${meta.label} (${list.length})`} color={meta.color}>
             <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 8, fontStyle: "italic" }}>{meta.desc}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 6 }}>
-              {list.map((r) => (
-                <div key={r.id} title={r.lore ?? ""} style={{
-                  padding: 7, borderRadius: 8,
-                  background: "rgba(15,17,21,0.6)",
-                  border: `1px solid ${meta.color}33`,
-                }}>
-                  <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, marginBottom: 2 }}>{r.name}</div>
-                  {r.material_desc && (
-                    <div style={{ color: "#8B8FA3", fontSize: 9, lineHeight: 1.3 }}>{r.material_desc}</div>
-                  )}
-                </div>
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 6 }}>
+              {list.map((a) => {
+                const r = RARITY_META[a.rarity];
+                return (
+                  <div key={a.id} title={a.lore ?? a.ability_desc ?? ""} style={{
+                    padding: 7, borderRadius: 8,
+                    background: `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.7))`,
+                    border: `1px solid ${r.color}55`,
+                    textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 20 }}>{a.emoji}</div>
+                    <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.8 }}>{r.label.toUpperCase()}</div>
+                    <div style={{ color: "#FFF", fontSize: 10, fontWeight: 800, marginTop: 1 }}>{a.name}</div>
+                    {a.role && (
+                      <div style={{ color: "#a8b4cf", fontSize: 8, marginTop: 1 }}>{a.role}</div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </Card>
         );
       })}
-
-      {archetypes.length > 0 && (
-        <Card title="Archetypen-Kompendium" color="#FFD700">
-          <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 8 }}>Klassen-Varianten der Wächter (sortiert nach Seltenheit).</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 6 }}>
-            {archetypes.map((a) => {
-              const r = RARITY_META[a.rarity];
-              return (
-                <div key={a.id} style={{
-                  padding: 7, borderRadius: 8,
-                  background: `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.7))`,
-                  border: `1px solid ${r.color}55`,
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: 22 }}>{a.emoji}</div>
-                  <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.8 }}>{r.label.toUpperCase()}</div>
-                  <div style={{ color: "#FFF", fontSize: 10, fontWeight: 800, marginTop: 1 }}>{a.name}</div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════
-   TAB: AUSRÜSTUNG — 9 Slots + 6 Rarities
+   TAB: TALENTE — Talentbaum erklären
    ═══════════════════════════════════════════════════════ */
-function EquipmentTab() {
-  const slots: Array<[string, string, string]> = [
-    ["⛑️", "Kopf",      "DEF / HP"],
-    ["🎽", "Schulter",   "DEF / HP"],
-    ["🛡️", "Brust",      "HP / DEF"],
-    ["🧤", "Hände",      "ATK / SPD"],
-    ["⌚", "Handgelenk", "SPD / ATK"],
-    ["📿", "Kette",      "Balanced"],
-    ["💍", "Ring",       "Single-Stat"],
-    ["👟", "Schuhe",     "SPD / HP"],
-    ["⚔️", "Waffe",      "ATK / SPD"],
-  ];
-  const rarities: Array<[string, string, string, string]> = [
-    ["Ungewöhnlich",   "#9ba8c7", "×1.2", "grau"],
-    ["Selten",         "#1db682", "×1.5", "grün"],
-    ["Episch",         "#a855f7", "×2.0", "lila"],
-    ["Legendär",       "#FFD700", "×3.0", "gold"],
-    ["Artefakt",       "#e6cc80", "×5.0", "orange"],
-    ["Transzendent",   "#1db682", "×8.0", "mythic"],
-  ];
-
+function TalentsTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Hero>
-        Jeder Wächter kann <b>9 Slots</b> ausrüsten. Jedes Item hat einen <b>Stat-Fokus</b> passend zum Slot und zur Rasse. Insgesamt gibt es über 800 verschiedene Items im Spiel.
+        Jedes Level-Up bringt <b>1 Talentpunkt</b>. Du vergibst ihn im individuellen <b>Talentbaum</b> deines Wächters — bis Level 60 (Max) hast du 59 Punkte zum Investieren.
       </Hero>
 
-      <Card title="9 Ausrüstungs-Slots" color="#22D1C3">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-          {slots.map(([icon, label, focus]) => (
-            <div key={label} style={{
-              padding: "8px 6px", borderRadius: 8, textAlign: "center",
-              background: "rgba(15,17,21,0.6)",
-              border: "1px solid rgba(34,209,195,0.25)",
-            }}>
-              <div style={{ fontSize: 20 }}>{icon}</div>
-              <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 2 }}>{label}</div>
-              <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 1 }}>{focus}</div>
-            </div>
-          ))}
+      <Card title="3 Äste pro Wächter" color="#22D1C3">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
+          <BranchRow icon="⚔️" color="#FF2D78" label="Spezialisierung" desc="Rollen-basiert (DPS / Tank / Support) — endet in einem Keystone" />
+          <BranchRow icon="🔷" color="#22D1C3" label="Typ-Synergie"    desc="Typ-spezifische Buffs (Infanterie/Kavallerie/Scharfschütze/Magier)" />
+          <BranchRow icon="✨" color="#FFD700" label="Utility"         desc="Generische Stat-Boni (HP / ATK / DEF / SPD / Krit)" />
         </div>
       </Card>
 
-      <Card title="6 Seltenheitsstufen" color="#FFD700">
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {rarities.map(([name, color, mult, desc]) => (
-            <div key={name} style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "6px 10px", borderRadius: 8,
-              background: "rgba(15,17,21,0.6)",
-              border: `1px solid ${color}33`,
-            }}>
-              <div style={{ width: 10, height: 10, borderRadius: 5, background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}99` }} />
-              <div style={{ color, fontWeight: 900, fontSize: 12, flex: 1 }}>{name}</div>
-              <div style={{ color: "#8B8FA3", fontSize: 10 }}>{desc}</div>
-              <div style={{ color, fontSize: 11, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{mult}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 8, fontStyle: "italic" }}>
-          Multiplikator bezieht sich auf die Basis-Statpunkte eines Common-Items.
-        </div>
-      </Card>
-
-      <Card title="Wie bekomme ich Ausrüstung?" color="#5ddaf0">
-        <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>Loot-Kisten</b> auf der Karte (Auto-Pickup bei ≤20&nbsp;m Entfernung)</li>
-          <li><b>QR-Einlösung bei Shops</b> (Chancen siehe „Fair-Play"-Tab)</li>
-          <li><b>Boss-Raid-Sieg</b> — Loot-Pool wird von der Crew verteilt</li>
-          <li><b>Arena-Trophäen</b> nach 3× Sieg gegen dieselbe Crew</li>
+      <Card title="Nodes + Keystones" color="#a855f7">
+        <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
+          <li><b>Stat-Nodes</b> (5 Ränge): +3% HP/ATK/DEF/SPD pro Rang</li>
+          <li><b>Keystones</b> (Tier 5): einzigartige Buffs wie „Berserker" (bei HP&lt;30% +50% ATK) oder „Bollwerk" (absorbiert 1× tödlichen Treffer)</li>
+          <li><b>Prereq</b>: Tier N kann nur freigeschaltet werden, wenn Tier N-1 mindestens Rang 1 hat</li>
+          <li><b>Respec</b>: alle 7 Tage kostenlos — danach Universal-Siegel-Kosten</li>
         </ul>
       </Card>
     </div>
   );
 }
+
+function BranchRow({ icon, color, label, desc }: { icon: string; color: string; label: string; desc: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${color}33` }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ color, fontSize: 11, fontWeight: 900 }}>{label}</div>
+        <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   TAB: FÄHIGKEITEN — 5 Skills × 5 Stufen
+   ═══════════════════════════════════════════════════════ */
+function SkillsTab() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Hero>
+        Jeder Wächter hat <b>5 Fähigkeiten</b>. Stufe 1–4 sind sofort freigeschaltet, Stufe 5 (Expertise) erst wenn die anderen 4 maxed sind. Upgrades kosten <b>Siegel</b> — kein Geld.
+      </Hero>
+
+      <Card title="5 Slots pro Wächter" color="#22D1C3">
+        <SkillRow icon="⚡"  color="#FFD700" label="Aktiv"     desc="Feuert bei voller Rage (1000) automatisch — massive Wirkung" />
+        <SkillRow icon="🛡️" color="#60a5fa" label="Passiv"   desc="Immer aktiv: +Stat je nach Typ (DEF/SPD/Krit/Skill-Schaden)" />
+        <SkillRow icon="⚔️" color="#FF2D78" label="Kampf"     desc="Triggert bei Event: Krit-Treffer, erlittener Treffer, HP&lt;50% …" />
+        <SkillRow icon="🎭" color="#4ade80" label="Rolle"     desc="Typ-Counter-Bonus: +Schaden gegen den natürlichen Gegner" />
+        <SkillRow icon="💎" color="#c084fc" label="Expertise" desc="Endgame: Aktiv-Skill löst Zweitwirkung aus (freigeschaltet bei Skills 1-4 auf Max)" />
+      </Card>
+
+      <Card title="Siegel — die Upgrade-Währung" color="#FFD700">
+        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+          Jede Skill-Stufe kostet <b>typ-spezifische Siegel</b> — nicht kaufbar, nur durch Spielen verdienbar.
+        </div>
+        <ul style={{ margin: "6px 0", paddingLeft: 18, fontSize: 11, lineHeight: 1.5, color: "#a8b4cf" }}>
+          <li><b>Arena-Siege</b>: 1–3 Siegel vom Typ des Gegners</li>
+          <li><b>Area-Boss-Loot</b>: 5–15 Siegel (Typ gemischt) + Universal-Siegel für Winner</li>
+          <li><b>Walking-Meilensteine</b>: 10/30/100 km → Siegel-Pakete</li>
+          <li><b>Tages-Missionen</b>: 1–2 Siegel pro Tag</li>
+        </ul>
+        <div style={{ fontSize: 10, color: "#22D1C3", fontStyle: "italic" }}>
+          Kosten pro Stufe: 5 → 10 → 20 → 40 → 80 Siegel (Expertise ×2)
+        </div>
+      </Card>
+
+      <Card title="Rage-System" color="#FF6B4A">
+        <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+          Im Kampf baut sich eine <b>Rage-Leiste</b> auf (0–1000). Jeder Angriff: +100 Rage · jeder erlittene Treffer: +50 Rage. Bei <b>voll</b> feuert deine Aktiv-Fähigkeit automatisch mit <b>massivem Schaden</b> und setzt Rage auf 0 zurück.
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function SkillRow({ icon, color, label, desc }: { icon: string; color: string; label: string; desc: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${color}33`, marginBottom: 4 }}>
+      <span style={{ fontSize: 16 }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ color, fontSize: 11, fontWeight: 900 }}>{label}</div>
+        <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
 
 /* ═══════════════════════════════════════════════════════
    TAB: ARENA
@@ -498,45 +493,6 @@ function LootRow({ participants, badges }: { participants: string; badges: Array
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   TAB: ZONES & TEMPEL
-   ═══════════════════════════════════════════════════════ */
-function ZonesTab() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Card title="🗿 Power-Zones" color="#22D1C3">
-        <div style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.55 }}>
-          Farbige Kreise auf der Karte. Wenn du <b>innerhalb</b> einer Zone läufst, bekommt dein Wächter passive Buffs:
-        </div>
-        <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
-          <li><b style={{ color: "#4ade80" }}>🌳 Park-Zone</b> → +HP / +DEF</li>
-          <li><b style={{ color: "#FF6B4A" }}>🏙️ Stadt-Zone</b> → +ATK / +SPD</li>
-          <li><b style={{ color: "#5ddaf0" }}>💧 Wasser-Zone</b> → +HP / +DEF</li>
-          <li><b style={{ color: "#FFD700" }}>🗿 Wahrzeichen</b> → +alles (ausgeglichen)</li>
-        </ul>
-        <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 6, fontStyle: "italic" }}>
-          Klick auf eine Zone zeigt die exakten Buff-Werte.
-        </div>
-      </Card>
-
-      <Card title="⛩️ Wächter-Sanctuaries" color="#5ddaf0">
-        <div style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.55 }}>
-          Spezielle POIs wo du deinen Wächter täglich trainieren kannst (<b>+50 Wächter-XP</b>). Aktuell:
-        </div>
-        <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
-          <li><b>Tempel am Senftenberger Ring</b> (Marzahn)</li>
-          <li><b>Ostsee-Altar</b> (Rummelsburger See)</li>
-        </ul>
-        <div style={{ fontSize: 11, color: "#FF6BA1", marginTop: 8, fontWeight: 700 }}>
-          📍 Training nur bei ≤ 50 m Entfernung möglich — du musst tatsächlich vor Ort sein.
-        </div>
-        <div style={{ fontSize: 11, color: "#8B8FA3", marginTop: 4 }}>
-          1× pro Tag und Sanctuary. Motiviert dazu, auch neue Stadtteile zu erkunden.
-        </div>
-      </Card>
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════
    TAB: FAIR-PLAY

@@ -1,4 +1,6 @@
-import type { GuardianRarity } from "@/lib/guardian";
+import type { AnyRarity } from "@/lib/guardian";
+// Items können noch Legacy-Raritäten haben (common/rare/legend) — akzeptiere alle.
+type GuardianRarity = AnyRarity;
 
 // 9 Slots total (Legacy helm/armor/amulet + 6 neue)
 // DB hat armor -> chest, amulet -> neck ge-migrated. TS ist schon am neuen Stand.

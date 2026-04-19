@@ -116,20 +116,64 @@ export function generateAllPrompts(): GeneratedPrompt[] {
 }
 
 /** Prompt für Wächter-Archetyp (Charakter-Illustration, nicht Item) */
-export function buildArchetypePrompt(archetypeName: string, rarity: "common" | "rare" | "epic" | "legend"): string {
-  const rarityMod = {
-    common: "muted tones, simple silhouette, matte textures",
-    rare:   "polished materials, emerald accents, subtle runes",
-    epic:   "arcane purple glow, floating fragments, translucent crystal",
-    legend: "godly golden aura, fire particles, halo, legendary key art",
-  }[rarity];
-  return (
-    `Character key art portrait of '${archetypeName}', a MyArea365 guardian, ` +
-    `3/4 view, heroic pose, detailed face and outfit, ` +
-    `${rarityMod}, ` +
-    `dark gradient background #0F1115 to #1A1D23, ` +
-    `cinematic rim lighting, accent colors #1db682 and #6991d8, ` +
-    `style: Magic The Gathering card art, League of Legends splash, Diablo 4 hero portrait, ` +
-    `1024x1024, transparency-safe edges, no text, no logo.`
-  );
+export type ArchetypePromptInput = {
+  name: string;
+  rarity: "common" | "rare" | "legend" | "elite" | "epic" | "legendary";
+  guardianType?: "infantry" | "cavalry" | "marksman" | "mage" | null;
+  role?: "dps" | "tank" | "support" | "balanced" | null;
+  abilityName?: string | null;
+  lore?: string | null;
+};
+
+const RARITY_MOD: Record<string, string> = {
+  // Neues System
+  elite:     "clean polished materials, teal highlights, subtle runes, dignified gear",
+  epic:      "arcane purple glow, floating fragments, translucent crystal accents, battle-worn noble look",
+  legendary: "godly golden aura, fire particles, halo, legendary key art, iconic silhouette",
+  // Legacy-Mapping
+  common:    "clean polished materials, teal highlights, subtle runes",
+  rare:      "clean polished materials, teal highlights, subtle runes",
+  legend:    "godly golden aura, fire particles, halo, legendary key art, iconic silhouette",
+};
+
+const TYPE_MOD: Record<string, string> = {
+  infantry: "heavy armor plating, shield and blunt/edged weapon, grounded stance, defender posture",
+  cavalry:  "lightweight armor with flowing cloth, momentum-lines, dynamic mid-stride pose, aggressive forward lean",
+  marksman: "lean form with ranged weapon (bow, crossbow, throwing blades), focused aim, high ground posture",
+  mage:     "robes with arcane sigils, floating orb or staff, glowing eyes, levitating accessories, ethereal aura",
+};
+
+const ROLE_MOD: Record<string, string> = {
+  dps:      "aggressive offensive pose, weapon prominent, predatory silhouette",
+  tank:     "solid defensive stance, shield or barrier, imposing bulky outline",
+  support:  "caring protective pose, one hand extended in support gesture, warm secondary light",
+  balanced: "versatile mid-action pose, tools of both offense and defense visible",
+};
+
+export function buildArchetypePrompt(input: ArchetypePromptInput | string, legacyRarity?: "common" | "rare" | "epic" | "legend"): string {
+  // Legacy-Signatur: buildArchetypePrompt(name, rarity)
+  const in_: ArchetypePromptInput = typeof input === "string"
+    ? { name: input, rarity: legacyRarity ?? "epic" }
+    : input;
+
+  const rarityMod = RARITY_MOD[in_.rarity] ?? RARITY_MOD.epic;
+  const typeMod   = in_.guardianType ? TYPE_MOD[in_.guardianType] : "";
+  const roleMod   = in_.role         ? ROLE_MOD[in_.role]         : "";
+  const ability   = in_.abilityName ? `signature ability: '${in_.abilityName}'` : "";
+  const loreLine  = in_.lore ? `lore hint: ${in_.lore}` : "";
+
+  return [
+    `Character key art portrait of '${in_.name}', a humanoid urban-fantasy MyArea365 guardian.`,
+    `3/4 view, heroic pose, detailed face and outfit, full body visible, single character, dynamic composition.`,
+    typeMod && `Class: ${typeMod}.`,
+    roleMod && `Role: ${roleMod}.`,
+    `Rarity feel: ${rarityMod}.`,
+    ability,
+    loreLine,
+    `Setting: gritty modern city (streets, alleys, neon, rooftops) — NOT medieval fantasy.`,
+    `Dark gradient background #0F1115 to #1A1D23, cinematic rim lighting.`,
+    `Accent colors #22D1C3 (teal) and #FF2D78 (pink-magenta), with #FFD700 gold highlights for legendary.`,
+    `Style: Magic The Gathering card art, League of Legends splash, Diablo 4 hero portrait.`,
+    `1024x1024, centered, transparency-safe edges, no text, no logo, no watermark.`,
+  ].filter(Boolean).join(" ");
 }

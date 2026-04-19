@@ -1,88 +1,94 @@
 "use client";
 
+// Profil-Collection-Panel — CoD-Rework-Version
+// Zeigt owned crew_guardians + alle 60 guardian_archetypes (nicht die alten Rassen).
+
 import { useEffect, useState, useCallback } from "react";
+import { GuardianAvatar } from "@/components/guardian-avatar";
+import { GuardianDetailModal } from "@/components/guardian-detail-modal";
+import { GemShopModal } from "@/components/gem-shop-modal";
+import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
+import { createClient } from "@/lib/supabase/client";
+import {
+  rarityMeta, TYPE_META,
+  type GuardianArchetype, type AnyRarity, type GuardianType, type GuardianRole,
+} from "@/lib/guardian";
 
-type GuardianRow = {
-  id: string; user_id: string; race_id: string | null; archetype_id: string;
-  level: number; xp: number; wins: number; losses: number;
-  is_active: boolean; last_switched_at: string | null; acquired_at: string; source: string;
-  current_hp_pct: number; wounded_until: string | null;
-  race_name: string | null; role: string | null; lore: string | null;
-  material_desc: string | null; energy_color: string | null;
+type OwnedGuardian = {
+  id: string;
+  archetype_id: string;
+  custom_name: string | null;
+  level: number;
+  xp: number;
+  wins: number;
+  losses: number;
+  is_active: boolean;
+  talent_points_available: number;
+  acquired_at: string;
+  archetype: GuardianArchetype;
 };
 
-type Race = { id: string; name: string; role: string; lore: string | null; material_desc: string | null; energy_color: string | null };
-
-type Collection = {
-  owned: GuardianRow[];
-  all_races: Race[];
-  summoning_stones: number;
-  km_milestone_unlocks: number[];
-};
-
-const ROLE_META: Record<string, { label: string; emoji: string; color: string }> = {
-  tank:       { label: "Tank",          emoji: "🛡️", color: "#6991d8" },
-  healer:     { label: "Heiler",        emoji: "💚", color: "#1db682" },
-  melee_dps:  { label: "Nahkampf-DPS",  emoji: "⚔️", color: "#ef7169" },
-  ranged_dps: { label: "Fernkampf-DPS", emoji: "🏹", color: "#a855f7" },
+type CollectionResponse = {
+  owned: OwnedGuardian[];
+  archetypes: GuardianArchetype[];
+  active_id: string | null;
 };
 
 export function GuardianCollectionPanel({ onChange }: { onChange?: () => void }) {
-  const [col, setCol] = useState<Collection | null>(null);
+  const [col, setCol] = useState<CollectionResponse | null>(null);
   const [busy, setBusy] = useState(false);
-  const [summonRace, setSummonRace] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const sb = createClient();
+      const { data: auth } = await sb.auth.getUser();
+      if (!auth?.user) return;
+      const { data } = await sb.from("users").select("role").eq("id", auth.user.id).maybeSingle<{ role: string | null }>();
+      if (data?.role && ["admin", "super_admin"].includes(data.role)) setIsAdmin(true);
+    })();
+  }, []);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/guardian/collection");
-    if (res.ok) setCol(await res.json() as Collection);
+    const res = await fetch("/api/guardian/my-collection");
+    if (res.ok) setCol(await res.json() as CollectionResponse);
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const activate = async (guardianId: string) => {
+  async function activate(guardianId: string) {
     setBusy(true); setErr(null);
     try {
-      const res = await fetch("/api/guardian/collection", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const res = await fetch("/api/guardian/my-collection", {
+        method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "activate", guardian_id: guardianId }),
       });
-      const data = await res.json();
-      if (data.error === "cooldown") {
-        const retry = new Date(data.retry_at);
-        const h = Math.ceil((retry.getTime() - Date.now()) / 3600000);
-        setErr(`24h-Cooldown aktiv. Noch ~${h}h bis zum nächsten Wechsel.`);
-      } else if (data.error) {
-        setErr(data.error);
-      } else {
-        await load();
-        onChange?.();
-      }
+      const json = await res.json() as { ok?: boolean; error?: string };
+      if (!json.ok && json.error) setErr(json.error);
+      else { await load(); onChange?.(); }
     } finally { setBusy(false); }
-  };
+  }
 
-  const summon = async () => {
-    if (!summonRace) return;
+  async function claimStarter(archetypeId: string) {
     setBusy(true); setErr(null);
     try {
-      const res = await fetch("/api/guardian/collection", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "summon", race_id: summonRace }),
+      const res = await fetch("/api/guardian/claim-starter", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ archetype_id: archetypeId }),
       });
-      const data = await res.json();
-      if (data.error === "no_stones") setErr("Keine Beschwörungssteine verfügbar.");
-      else if (data.error) setErr(data.error);
-      else {
-        setSummonRace(null);
-        await load();
-        onChange?.();
-      }
+      const json = await res.json() as { ok?: boolean; error?: string };
+      if (!json.ok && json.error) setErr(json.error);
+      else { await load(); onChange?.(); }
     } finally { setBusy(false); }
-  };
+  }
 
   if (!col) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Wächter-Sammlung…</div>;
 
-  const ownedRaceIds = new Set(col.owned.map((g) => g.race_id).filter(Boolean));
-  const unowned = col.all_races.filter((r) => !ownedRaceIds.has(r.id));
+  const ownedIds = new Set(col.owned.map((g) => g.archetype_id));
+  const unowned = col.archetypes.filter((a) => !ownedIds.has(a.id));
 
   return (
     <div>
@@ -90,140 +96,152 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "10px 14px", borderRadius: 12,
-        background: "linear-gradient(135deg, rgba(168,85,247,0.15), rgba(34,209,195,0.08))",
-        border: "1px solid rgba(168,85,247,0.3)", marginBottom: 12,
+        background: "linear-gradient(135deg, rgba(34,209,195,0.15), rgba(255,45,120,0.08))",
+        border: "1px solid rgba(34,209,195,0.3)", marginBottom: 12,
       }}>
         <div>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-            🛡️ Sammlung: {col.owned.length} / {col.all_races.length}
+            🛡️ Sammlung: {col.owned.length} / {col.archetypes.length}
           </div>
           <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
-            Meilensteine: {[10, 50, 100].map((ms) => col.km_milestone_unlocks.includes(ms) ? `✓${ms}km` : `${ms}km`).join(" · ")}
+            Neue Wächter gibt&apos;s durch Arena-Siege, Boss-Raids & Meilensteine
           </div>
         </div>
-        <div style={{
+        <button onClick={() => setShopOpen(true)} style={{
           display: "flex", alignItems: "center", gap: 4,
           padding: "6px 10px", borderRadius: 999,
           background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.5)",
-        }}>
-          <span style={{ fontSize: 14 }}>💎</span>
-          <span style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>{col.summoning_stones}</span>
-        </div>
+          color: "#FFD700", fontSize: 11, fontWeight: 900, cursor: "pointer",
+        }}>💎 Shop</button>
       </div>
+
+      {/* Starter-Wahl wenn User noch keinen Wächter hat */}
+      {col.owned.length === 0 && (
+        <div style={{
+          padding: 12, borderRadius: 12, marginBottom: 12,
+          background: "linear-gradient(135deg, rgba(34,209,195,0.18), rgba(255,45,120,0.1))",
+          border: "1px solid rgba(34,209,195,0.4)",
+        }}>
+          <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>🎮 WÄHLE DEINEN STARTER</div>
+          <div style={{ color: "#FFF", fontSize: 12, marginTop: 3, marginBottom: 10 }}>
+            Du hast noch keinen aktiven Wächter. Such dir einen Elite-Starter aus — je nach Typ spielt er sich anders.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 6 }}>
+            {col.archetypes.filter((a) => a.rarity === "elite").map((a) => {
+              const typ = a.guardian_type ? TYPE_META[a.guardian_type] : null;
+              return (
+                <button key={a.id} onClick={() => claimStarter(a.id)} disabled={busy}
+                  title={a.lore || a.ability_name || ""}
+                  style={{
+                    padding: 8, borderRadius: 10, textAlign: "left",
+                    background: "rgba(15,17,21,0.6)", border: "1px solid rgba(34,209,195,0.3)",
+                    color: "#FFF", cursor: busy ? "not-allowed" : "pointer",
+                  }}>
+                  <div style={{ width: "100%", aspectRatio: "1 / 1", display: "flex", justifyContent: "center", marginBottom: 4 }}>
+                    <GuardianAvatar archetype={a} size={72} animation="idle" />
+                  </div>
+                  <div style={{ color: typ?.color ?? "#22D1C3", fontSize: 8, fontWeight: 900 }}>
+                    {typ ? `${typ.icon} ${typ.label.toUpperCase()}` : "ELITE"}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 900, marginTop: 1 }}>{a.name}</div>
+                  <div style={{ color: "#FFD700", fontSize: 9, marginTop: 1 }}>⚡ {a.ability_name}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Besessene Wächter */}
       <div style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
-        DEINE WÄCHTER
+        DEINE WÄCHTER ({col.owned.length})
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8, marginBottom: 16 }}>
         {col.owned.map((g) => {
-          const meta = g.role ? ROLE_META[g.role] : null;
-          const color = g.energy_color || meta?.color || "#22D1C3";
+          const r = rarityMeta(g.archetype.rarity);
+          const typ = g.archetype.guardian_type ? TYPE_META[g.archetype.guardian_type] : null;
           return (
             <div key={g.id} style={{
               padding: 10, borderRadius: 12,
-              background: g.is_active ? `linear-gradient(135deg, ${color}25, rgba(15,17,21,0.7))` : "rgba(70,82,122,0.25)",
-              border: `1px solid ${g.is_active ? color : "rgba(255,255,255,0.08)"}`,
-              boxShadow: g.is_active ? `0 0 14px ${color}55` : "none",
+              background: g.is_active ? `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.7))` : "rgba(70,82,122,0.18)",
+              border: `1px solid ${g.is_active ? r.color : "rgba(255,255,255,0.08)"}`,
+              boxShadow: g.is_active ? `0 0 14px ${r.glow}` : "none",
+              position: "relative",
             }}>
               {g.is_active && (
                 <div style={{
-                  display: "inline-block", padding: "1px 6px", borderRadius: 999,
-                  background: color, color: "#0F1115", fontSize: 9, fontWeight: 900, marginBottom: 4, letterSpacing: 0.5,
+                  position: "absolute", top: 6, right: 6,
+                  padding: "2px 7px", borderRadius: 999,
+                  background: r.color, color: "#0F1115", fontSize: 8, fontWeight: 900, letterSpacing: 0.5,
                 }}>AKTIV</div>
               )}
-              {meta && (
-                <div style={{ color: meta.color, fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>
-                  {meta.emoji} {meta.label}
-                </div>
+              {g.talent_points_available > 0 && (
+                <div style={{
+                  position: "absolute", top: 6, left: 6,
+                  padding: "2px 6px", borderRadius: 999,
+                  background: "#FFD700", color: "#0F1115", fontSize: 8, fontWeight: 900,
+                }}>+{g.talent_points_available}</div>
               )}
-              <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900, marginTop: 2 }}>
-                {g.race_name || "Unbekannt"}
+
+              <div style={{ width: "100%", aspectRatio: "1 / 1", display: "flex", justifyContent: "center", marginBottom: 4 }}>
+                <GuardianAvatar archetype={g.archetype} size={100} animation="idle" />
               </div>
-              <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+
+              <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 1 }}>
+                {r.label.toUpperCase()}{typ ? ` · ${typ.icon}` : ""}
+              </div>
+              <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {g.custom_name ?? g.archetype.name}
+              </div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
                 Lvl {g.level} · {g.wins}W/{g.losses}L
               </div>
-              {!g.is_active && (
-                <button
-                  onClick={() => activate(g.id)}
-                  disabled={busy}
-                  style={{
-                    width: "100%", marginTop: 8, padding: "5px 8px", borderRadius: 8,
-                    background: `${color}33`, border: `1px solid ${color}`,
-                    color, fontSize: 10, fontWeight: 900, cursor: "pointer",
-                  }}
-                >Aktivieren</button>
-              )}
+
+              <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                <button onClick={() => setDetailId(g.id)} style={{
+                  flex: 1, padding: "4px 6px", borderRadius: 6,
+                  background: "rgba(255,255,255,0.08)", border: "none", cursor: "pointer",
+                  color: "#FFF", fontSize: 9, fontWeight: 900, textAlign: "center",
+                }}>Öffnen</button>
+                {!g.is_active && (
+                  <button onClick={() => activate(g.id)} disabled={busy}
+                    style={{
+                      flex: 1, padding: "4px 6px", borderRadius: 6,
+                      background: `${r.color}33`, border: `1px solid ${r.color}`, color: r.color,
+                      fontSize: 9, fontWeight: 900, cursor: busy ? "not-allowed" : "pointer",
+                    }}>
+                    Aktivieren
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Verfügbare Rassen zum Beschwören */}
+      {/* Noch nicht gesammelt — als Button, Modal mit Tabs */}
       {unowned.length > 0 && (
-        <>
-          <div style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
-            NOCH NICHT GESAMMELT ({unowned.length})
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 6 }}>
-            {unowned.map((r) => {
-              const meta = ROLE_META[r.role];
-              const canAfford = col.summoning_stones >= 1;
-              const selected = summonRace === r.id;
-              return (
-                <button
-                  key={r.id}
-                  disabled={!canAfford}
-                  onClick={() => setSummonRace(selected ? null : r.id)}
-                  title={r.lore || ""}
-                  style={{
-                    padding: 8, borderRadius: 10, textAlign: "left",
-                    background: selected ? `linear-gradient(135deg, ${r.energy_color || meta.color}25, rgba(15,17,21,0.7))` : "rgba(70,82,122,0.15)",
-                    border: `1px solid ${selected ? (r.energy_color || meta.color) : "rgba(255,255,255,0.06)"}`,
-                    opacity: canAfford ? 1 : 0.5,
-                    cursor: canAfford ? "pointer" : "not-allowed",
-                  }}
-                >
-                  <div style={{ color: meta.color, fontSize: 8, fontWeight: 800, letterSpacing: 0.5 }}>
-                    {meta.emoji} {meta.label}
-                  </div>
-                  <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 2 }}>{r.name}</div>
-                  <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 1, lineHeight: 1.2 }}>
-                    {r.material_desc?.slice(0, 40)}…
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          {summonRace && (
-            <div style={{
-              marginTop: 10, padding: 10, borderRadius: 10,
-              background: "rgba(168,85,247,0.12)", border: "1px solid #a855f7",
-              display: "flex", alignItems: "center", gap: 10,
-            }}>
-              <div style={{ flex: 1, fontSize: 11, color: "#FFF" }}>
-                💎 1 Beschwörungsstein einlösen für <b>{col.all_races.find(r => r.id === summonRace)?.name}</b>?
-              </div>
-              <button
-                onClick={summon}
-                disabled={busy || col.summoning_stones < 1}
-                style={{
-                  padding: "6px 12px", borderRadius: 8, border: "none",
-                  background: "#a855f7", color: "#FFF", fontSize: 11, fontWeight: 900, cursor: "pointer",
-                }}
-              >Beschwören</button>
+        <button onClick={() => setGalleryOpen(true)} style={{
+          width: "100%", padding: "12px 14px", borderRadius: 12,
+          background: "linear-gradient(135deg, rgba(34,209,195,0.18), rgba(255,45,120,0.08))",
+          border: "1px solid rgba(34,209,195,0.4)",
+          color: "#FFF", cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 10, textAlign: "left",
+        }}>
+          <span style={{ fontSize: 24 }}>📖</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
+              NOCH NICHT GESAMMELT ({unowned.length}/{col.archetypes.length})
             </div>
-          )}
-          {col.summoning_stones < 1 && (
-            <div style={{
-              marginTop: 10, padding: 8, borderRadius: 8,
-              background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)",
-              fontSize: 10, color: "#FFD700",
-            }}>
-              💡 Beschwörungssteine bekommst du durch Meilensteine (10/50/100 km gesamt), Boss-Raid-Siege und seltene Loot-Drops.
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, marginTop: 2 }}>
+              Alle 60 Wächter ansehen
             </div>
-          )}
-        </>
+            <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
+              Sortiert nach Typ · {isAdmin ? "Prompt & Upload verfügbar (Admin)" : "Wächter kommen durch Arena, Boss, Meilensteine"}
+            </div>
+          </div>
+          <span style={{ color: "#22D1C3", fontSize: 18 }}>→</span>
+        </button>
       )}
 
       {err && (
@@ -231,9 +249,19 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
           marginTop: 10, padding: 8, borderRadius: 8,
           background: "rgba(255,45,120,0.1)", border: "1px solid rgba(255,45,120,0.4)",
           color: "#FF6BA1", fontSize: 11,
-        }}>
-          {err}
-        </div>
+        }}>{err}</div>
+      )}
+
+      {detailId && <GuardianDetailModal guardianId={detailId} onClose={() => setDetailId(null)} />}
+      {shopOpen && <GemShopModal onClose={() => setShopOpen(false)} />}
+      {galleryOpen && (
+        <GuardianGalleryModal
+          archetypes={col.archetypes}
+          ownedIds={ownedIds}
+          onClose={() => setGalleryOpen(false)}
+          isAdmin={isAdmin}
+          onImageUploaded={() => load()}
+        />
       )}
     </div>
   );

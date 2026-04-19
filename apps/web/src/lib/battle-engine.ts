@@ -1,9 +1,16 @@
 /**
- * Deterministische Kampf-Engine. Gleicher Seed + gleiche Inputs → gleicher Ausgang.
- * Laeuft server-seitig (verifizierbar) und client-seitig (fuer Replay-Animation).
+ * Deterministische Kampf-Engine (CoD-Style Rage-System).
+ * Gleicher Seed + gleiche Inputs → gleicher Ausgang.
+ * Läuft server-seitig (verifizierbar) und client-seitig (für Replay-Animation).
+ *
+ * Mechanik:
+ *   • Runden-basiert (max 15 Runden, sonst HP-Vergleich)
+ *   • Typ-Counter: ±25% Schaden (Infanterie → Kavallerie → Scharfschütze → Infanterie, Magier neutral)
+ *   • Rage-Bar 0-1000: Angriff +100, erlittener Treffer +50, bei 1000 triggert Aktiv-Skill
+ *   • Talent-Stats werden flach als item_bonuses reingereicht (API-Schicht berechnet aus talents+equipment)
  */
 
-import { statsAtLevel, type GuardianArchetype } from "@/lib/guardian";
+import { statsAtLevel, typeCounter, type GuardianArchetype, type GuardianType } from "@/lib/guardian";
 
 export type BattleInput = {
   guardian: {
@@ -12,18 +19,27 @@ export type BattleInput = {
     current_hp_pct: number;
     archetype: GuardianArchetype;
   };
-  is_home: boolean;          // Shop in eigener Stadt der Crew?
-  crew_member_count: number; // fuer Rudel-Alpha
-  item_bonuses?: { hp: number; atk: number; def: number; spd: number }; // aus equipped items
+  is_home: boolean;
+  crew_member_count: number;
+  item_bonuses?: { hp: number; atk: number; def: number; spd: number };
+  // CoD-Ergänzungen:
+  skill_levels?: Partial<Record<"active" | "passive" | "combat" | "role" | "expertise", number>>;
+  talent_bonuses?: {
+    hp_pct?: number; atk_pct?: number; def_pct?: number; spd_pct?: number;
+    crit_pct?: number; crit_dmg?: number; dmg_reduction?: number; evade_pct?: number;
+    start_rage?: number;
+  };
 };
 
 export type RoundEvent = {
   round: number;
   actor: "A" | "B";
-  action: string;            // "attack" | "special" | "heal" | "miss" | "crit"
+  action: string;            // "attack" | "special" | "heal" | "miss" | "crit" | "ult" | "flame" | "poison" | "revive" | "stunned"
   damage: number;
   hp_a_after: number;
   hp_b_after: number;
+  rage_a_after?: number;
+  rage_b_after?: number;
   note?: string;
 };
 
@@ -33,9 +49,10 @@ export type BattleResult = {
   final_hp_a: number;
   final_hp_b: number;
   xp_awarded: number;
+  type_advantage: "A" | "B" | "neutral";
 };
 
-// Einfacher seeded PRNG (Mulberry32)
+// Mulberry32 PRNG
 function mulberry32(seed: number): () => number {
   let t = seed;
   return function () {
@@ -61,45 +78,125 @@ type Combatant = {
   def: number;
   spd: number;
   abilityId: string;
-  // Ability-Zustand
+  archetypeType: GuardianType | null;
+  // Skill-Stufen (0-5)
+  skillLvl: { active: number; passive: number; combat: number; role: number; expertise: number };
+  // Talent-Buffs
+  talents: {
+    critPct: number;
+    critDmg: number;
+    dmgReduction: number;
+    evadePct: number;
+  };
+  // Rage
+  rage: number;
+  rageMax: number;
+  ultFired: boolean;
+  // Legacy Ability-State
   state: {
-    rageStacks: number;       // baer
-    poisonStacks: number;     // ratte (anwendbar)
-    phoenixUsed: boolean;     // phoenix
-    stunned: boolean;         // wyvern-sturzflug auf gegner
-    nineLivesUsed: boolean;   // stadtkatze
+    rageStacks: number;
+    poisonStacks: number;
+    phoenixUsed: boolean;
+    stunned: boolean;
+    nineLivesUsed: boolean;
   };
   isHome: boolean;
   crewCount: number;
+  role: string | null;
 };
+
+function pctBonus(val: number | undefined, base: number): number {
+  if (!val) return base;
+  return base * (1 + val);
+}
 
 function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
   const s = statsAtLevel(input.guardian.archetype, input.guardian.level);
   const b = input.item_bonuses ?? { hp: 0, atk: 0, def: 0, spd: 0 };
-  const hpMax = s.hp + b.hp;
+  const t = input.talent_bonuses ?? {};
+  const sk = input.skill_levels ?? {};
+
+  // Skill-Passive: +X% auf Stats je nach Typ
+  const passiveLvl = sk.passive ?? 0;
+  let passiveDefBonus = 0, passiveSpdBonus = 0, passiveCrit = 0, passiveSkillDmg = 0;
+  const typ = input.guardian.archetype.guardian_type;
+  if (passiveLvl > 0) {
+    if (typ === "infantry") passiveDefBonus = 0.03 * passiveLvl;
+    else if (typ === "cavalry") passiveSpdBonus = 0.03 * passiveLvl;
+    else if (typ === "marksman") passiveCrit = 0.02 * passiveLvl;
+    else if (typ === "mage") passiveSkillDmg = 0.03 * passiveLvl;
+  }
+
+  const hpMax = Math.round(pctBonus(t.hp_pct, s.hp + b.hp));
   const hpStart = Math.max(1, Math.round(hpMax * (input.guardian.current_hp_pct / 100)));
+  const atk = Math.round(pctBonus(t.atk_pct, s.atk + b.atk));
+  const def = Math.round(pctBonus(t.def_pct, s.def + b.def) * (1 + passiveDefBonus));
+  const spd = Math.round(pctBonus(t.spd_pct, s.spd + b.spd) * (1 + passiveSpdBonus));
+
+  const startRage = Math.min(500, t.start_rage ?? 0);
+
   return {
     label,
     id: input.guardian.id,
     hp: hpStart,
     hpMax,
-    atk: s.atk + b.atk,
-    def: s.def + b.def,
-    spd: s.spd + b.spd,
+    atk,
+    def,
+    spd,
     abilityId: input.guardian.archetype.ability_id,
+    archetypeType: typ,
+    role: input.guardian.archetype.role,
+    skillLvl: {
+      active: sk.active ?? 0,
+      passive: passiveLvl,
+      combat: sk.combat ?? 0,
+      role: sk.role ?? 0,
+      expertise: sk.expertise ?? 0,
+    },
+    talents: {
+      critPct: (t.crit_pct ?? 0) + passiveCrit,
+      critDmg: t.crit_dmg ?? 0,
+      dmgReduction: t.dmg_reduction ?? 0,
+      evadePct: t.evade_pct ?? 0,
+    },
+    rage: startRage,
+    rageMax: 1000,
+    ultFired: false,
     state: { rageStacks: 0, poisonStacks: 0, phoenixUsed: false, stunned: false, nineLivesUsed: false },
     isHome: input.is_home,
     crewCount: input.crew_member_count,
   };
 }
 
-function computeDamage(attacker: Combatant, defender: Combatant, rng: () => number, round: number): { dmg: number; crit: boolean; note?: string } {
+/** Rollen-Skill: +X% Schaden gegen bestimmte Typen */
+function roleBonus(attacker: Combatant, defender: Combatant): number {
+  const lvl = attacker.skillLvl.role;
+  if (lvl === 0 || !attacker.archetypeType || !defender.archetypeType) return 1.0;
+  const per = attacker.archetypeType === "mage" ? 0.02 : 0.03;
+  if (attacker.archetypeType === "infantry" && defender.archetypeType === "cavalry") return 1 + lvl * per;
+  if (attacker.archetypeType === "cavalry" && defender.archetypeType === "marksman") return 1 + lvl * per;
+  if (attacker.archetypeType === "marksman" && defender.archetypeType === "infantry") return 1 + lvl * per;
+  if (attacker.archetypeType === "mage") return 1 + lvl * per;
+  return 1.0;
+}
+
+function computeDamage(
+  attacker: Combatant, defender: Combatant, rng: () => number, round: number
+): { dmg: number; crit: boolean; note?: string; evaded?: boolean } {
   let atk = attacker.atk;
   let def = defender.def;
   let crit = false;
   let note: string | undefined;
 
-  // Pre-Damage Ability-Modifier (Attacker)
+  // Defender: Ausweichen (Talent + ability "evade")
+  if (defender.talents.evadePct > 0 && rng() < defender.talents.evadePct) {
+    return { dmg: 0, crit: false, note: "Ausgewichen (Talent)", evaded: true };
+  }
+  if (defender.abilityId === "evade" && rng() < 0.2) {
+    return { dmg: 0, crit: false, note: "Ausgewichen!", evaded: true };
+  }
+
+  // Attacker Ability-Modifiers (Legacy-Set)
   switch (attacker.abilityId) {
     case "firststrike":
       if (round === 1) { atk *= 2; crit = true; note = "Erstschlag!"; }
@@ -108,7 +205,7 @@ function computeDamage(attacker: Combatant, defender: Combatant, rng: () => numb
       if (round === 1) { atk *= 1.5; note = "Hinterhalt!"; }
       break;
     case "nightsight": {
-      const hour = new Date().getUTCHours() + 1; // CET
+      const hour = new Date().getUTCHours() + 1;
       if (hour >= 20 || hour < 6) { atk *= 1.3; note = "Nachtsicht"; }
       break;
     }
@@ -117,10 +214,10 @@ function computeDamage(attacker: Combatant, defender: Combatant, rng: () => numb
       break;
     case "pack":
       atk *= 1 + Math.min(0.5, attacker.crewCount * 0.1);
-      if (attacker.crewCount > 0) note = `Rudel (${attacker.crewCount} Mitglieder)`;
+      if (attacker.crewCount > 0) note = `Rudel (${attacker.crewCount})`;
       break;
     case "fortress":
-      if (attacker.isHome) { def += defender.def * 0.3; /* eigenes DEF oben */ }
+      if (attacker.isHome) { /* DEF-Bonus bei Defender separat */ }
       break;
     case "rage":
       atk *= 1 + Math.min(0.4, attacker.state.rageStacks * 0.05);
@@ -137,31 +234,42 @@ function computeDamage(attacker: Combatant, defender: Combatant, rng: () => numb
       break;
   }
 
-  // Pre-Damage Ability-Modifier (Defender)
+  // Defender ability modifiers
   switch (defender.abilityId) {
     case "wall":
       if (round === 1) { def *= 1.2; note = (note ? note + " · " : "") + "Bollwerk"; }
-      break;
-    case "evade":
-      if (rng() < 0.2) return { dmg: 0, crit: false, note: "Ausgewichen!" };
       break;
     case "fortress":
       if (defender.isHome) def *= 1.3;
       break;
   }
 
-  // Kritischer Hit (10% Basis, außer bereits forced)
-  if (!crit && rng() < 0.1) { crit = true; }
-  const critMult = crit ? 1.5 : 1;
+  // Krit-Check (Basis 10% + Talent-Bonus)
+  const critChance = 0.10 + attacker.talents.critPct;
+  if (!crit && rng() < critChance) crit = true;
+  const critMult = crit ? (1.5 + attacker.talents.critDmg) : 1;
 
-  // Damage-Formel: atk*crit - def/2, minimum 1
-  const raw = atk * critMult - def / 2;
+  // Typ-Counter (±25%)
+  let typeMult = 1.0;
+  if (attacker.archetypeType && defender.archetypeType) {
+    typeMult = typeCounter(attacker.archetypeType, defender.archetypeType);
+    if (typeMult > 1.0) note = (note ? note + " · " : "") + "Typ-Vorteil";
+    else if (typeMult < 1.0) note = (note ? note + " · " : "") + "Typ-Nachteil";
+  }
+
+  // Rollen-Skill-Bonus
+  const roleMult = roleBonus(attacker, defender);
+
+  // DMG-Reduktion (Talent)
+  const reduction = 1 - (defender.talents.dmgReduction ?? 0);
+
+  // Formel: atk*crit*typ*role*reduction - def/2, min 1
+  const raw = atk * critMult * typeMult * roleMult * reduction - def / 2;
   const dmg = Math.max(1, Math.round(raw));
   return { dmg, crit, note };
 }
 
 function applyDot(c: Combatant, source: Combatant, rounds: RoundEvent[], roundNum: number): void {
-  // Drache: Flamme — Gegner verliert 10% HP/Runde (ignoriert DEF)
   if (source.abilityId === "flame") {
     const burn = Math.round(c.hpMax * 0.1);
     c.hp = Math.max(0, c.hp - burn);
@@ -172,11 +280,10 @@ function applyDot(c: Combatant, source: Combatant, rounds: RoundEvent[], roundNu
       note: "🔥 Flamme",
     });
   }
-  // Ratte: Gift — 5% HP/Runde, max 3 Stacks
   if (source.abilityId === "poison" && c.state.poisonStacks < 3) {
     c.state.poisonStacks++;
   }
-  if (c.state.poisonStacks > 0) {
+  if (c.state.poisonStacks > 0 && source.abilityId === "poison") {
     const pois = Math.round(c.hpMax * 0.05 * c.state.poisonStacks);
     c.hp = Math.max(0, c.hp - pois);
     rounds.push({
@@ -190,10 +297,8 @@ function applyDot(c: Combatant, source: Combatant, rounds: RoundEvent[], roundNu
 
 function checkSurvival(c: Combatant, rounds: RoundEvent[], round: number): void {
   if (c.hp > 0) return;
-  // Stadtkatze: Nine-Lives
   if (c.abilityId === "nineleaves" && !c.state.nineLivesUsed) {
-    c.hp = 1;
-    c.state.nineLivesUsed = true;
+    c.hp = 1; c.state.nineLivesUsed = true;
     rounds.push({
       round, actor: c.label, action: "revive", damage: 0,
       hp_a_after: c.label === "A" ? c.hp : 0,
@@ -201,10 +306,8 @@ function checkSurvival(c: Combatant, rounds: RoundEvent[], round: number): void 
       note: "🐈 Neun Leben — überlebt mit 1 HP",
     });
   }
-  // Phoenix: Wiedergeburt
   if (c.abilityId === "rebirth" && !c.state.phoenixUsed) {
-    c.hp = c.hpMax;
-    c.state.phoenixUsed = true;
+    c.hp = c.hpMax; c.state.phoenixUsed = true;
     rounds.push({
       round, actor: c.label, action: "revive", damage: 0,
       hp_a_after: c.label === "A" ? c.hp : 0,
@@ -214,13 +317,53 @@ function checkSurvival(c: Combatant, rounds: RoundEvent[], round: number): void 
   }
 }
 
+/** Aktiv-Skill (Ult) triggern bei 1000 Rage */
+function fireUltimate(
+  attacker: Combatant, defender: Combatant, rounds: RoundEvent[], round: number
+): void {
+  if (attacker.rage < attacker.rageMax) return;
+  attacker.rage = 0;
+  const activeLvl = Math.max(1, attacker.skillLvl.active);
+  // Skalierung: Basis-Schaden = atk × 3, pro Active-Level +20%
+  const ultMult = 3.0 * (1 + (activeLvl - 1) * 0.20);
+  // Typ-Counter wirkt auch auf Ult
+  const typeMult = (attacker.archetypeType && defender.archetypeType)
+    ? typeCounter(attacker.archetypeType, defender.archetypeType) : 1.0;
+  // Expertise: +25% pro Stufe
+  const expMult = 1 + attacker.skillLvl.expertise * 0.25;
+
+  const raw = attacker.atk * ultMult * typeMult * expMult - defender.def * 0.25;
+  const dmg = Math.max(1, Math.round(raw));
+  defender.hp = Math.max(0, defender.hp - dmg);
+  rounds.push({
+    round, actor: attacker.label, action: "ult", damage: dmg,
+    hp_a_after: attacker.label === "A" ? attacker.hp : defender.hp,
+    hp_b_after: attacker.label === "B" ? attacker.hp : defender.hp,
+    rage_a_after: attacker.label === "A" ? attacker.rage : defender.rage,
+    rage_b_after: attacker.label === "B" ? attacker.rage : defender.rage,
+    note: `💥 ULT — ${attacker.abilityId.toUpperCase()}`,
+  });
+  attacker.ultFired = true;
+}
+
+/** Combat-Skill: zusätzliche Rage-Generation nach Event */
+function combatSkillRage(c: Combatant, event: "on_crit" | "on_hit" | "per_round" | "low_hp"): number {
+  const lvl = c.skillLvl.combat;
+  if (lvl === 0 || !c.role) return 0;
+  if (c.role === "dps" && event === "on_crit") return 50 + lvl * 10;
+  if (c.role === "tank" && event === "on_hit") return 30 + lvl * 10;
+  if (c.role === "support" && event === "per_round") return 20 + lvl * 5;
+  if (c.role === "balanced" && event === "low_hp" && c.hp / c.hpMax < 0.5) return 40 + lvl * 10;
+  return 0;
+}
+
 export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleResult {
   const rng = mulberry32(seedFromString(seed));
   const ca = buildCombatant("A", a);
   const cb = buildCombatant("B", b);
   const rounds: RoundEvent[] = [];
 
-  // Wer zuerst? Echolot oder firststrike oder speed
+  // Initiative
   let firstIsA: boolean;
   if (ca.abilityId === "echolot") firstIsA = true;
   else if (cb.abilityId === "echolot") firstIsA = false;
@@ -228,14 +371,23 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
   else if (cb.abilityId === "firststrike") firstIsA = false;
   else firstIsA = ca.spd >= cb.spd;
 
+  const typeAdv: "A" | "B" | "neutral" =
+    (ca.archetypeType && cb.archetypeType)
+      ? (typeCounter(ca.archetypeType, cb.archetypeType) > 1 ? "A"
+         : typeCounter(cb.archetypeType, ca.archetypeType) > 1 ? "B" : "neutral")
+      : "neutral";
+
   const MAX_ROUNDS = 15;
   for (let round = 1; round <= MAX_ROUNDS && ca.hp > 0 && cb.hp > 0; round++) {
+    // Support-Rolle: per-round Rage
+    ca.rage = Math.min(ca.rageMax, ca.rage + combatSkillRage(ca, "per_round"));
+    cb.rage = Math.min(cb.rageMax, cb.rage + combatSkillRage(cb, "per_round"));
+
     const order = firstIsA ? [ca, cb] : [cb, ca];
     for (const attacker of order) {
       const defender = attacker.label === "A" ? cb : ca;
       if (attacker.hp <= 0 || defender.hp <= 0) continue;
 
-      // Stun-Check
       if (attacker.state.stunned) {
         attacker.state.stunned = false;
         rounds.push({
@@ -245,29 +397,50 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
         continue;
       }
 
-      const { dmg, crit, note } = computeDamage(attacker, defender, rng, round);
-      if (dmg > 0) {
+      // Ult-Trigger PRIORITÄT: wenn Rage voll, feuert vor dem Auto-Attack
+      if (attacker.rage >= attacker.rageMax) {
+        fireUltimate(attacker, defender, rounds, round);
+        if (defender.hp <= 0) {
+          checkSurvival(defender, rounds, round);
+          if (defender.hp <= 0) break;
+        }
+      }
+
+      // Auto-Attack
+      const { dmg, crit, note, evaded } = computeDamage(attacker, defender, rng, round);
+
+      if (!evaded && dmg > 0) {
         defender.hp = Math.max(0, defender.hp - dmg);
-        // Rage-Stacks beim Defender
+        // Legacy: Berserker-Rage-Stacks
         if (defender.abilityId === "rage") defender.state.rageStacks = Math.min(8, defender.state.rageStacks + 1);
-        // Wyvern Sturzflug: 30% stun
-        if (attacker.abilityId === "dive" && rng() < 0.3) {
-          defender.state.stunned = true;
+        // Sturzflug: 30% stun
+        if (attacker.abilityId === "dive" && rng() < 0.3) defender.state.stunned = true;
+
+        // Rage-Aufbau
+        attacker.rage = Math.min(attacker.rageMax, attacker.rage + 100);
+        defender.rage = Math.min(defender.rageMax, defender.rage + 50);
+
+        // Combat-Skill Bonus-Rage
+        if (crit) attacker.rage = Math.min(attacker.rageMax, attacker.rage + combatSkillRage(attacker, "on_crit"));
+        defender.rage = Math.min(defender.rageMax, defender.rage + combatSkillRage(defender, "on_hit"));
+        if (defender.hp / defender.hpMax < 0.5) {
+          defender.rage = Math.min(defender.rageMax, defender.rage + combatSkillRage(defender, "low_hp"));
         }
       }
 
       rounds.push({
         round, actor: attacker.label,
-        action: dmg === 0 ? "miss" : crit ? "crit" : "attack",
-        damage: dmg,
+        action: evaded ? "miss" : dmg === 0 ? "miss" : crit ? "crit" : "attack",
+        damage: evaded ? 0 : dmg,
         hp_a_after: ca.hp, hp_b_after: cb.hp,
+        rage_a_after: ca.rage, rage_b_after: cb.rage,
         note,
       });
 
-      // DoTs / Spezial-Effekte nach Angriff
-      applyDot(defender, attacker, rounds, round);
+      // DoTs
+      if (!evaded) applyDot(defender, attacker, rounds, round);
 
-      // Survival-Check
+      // Survival (Phoenix, Neun Leben, Keystone-Bollwerk)
       checkSurvival(defender, rounds, round);
       if (defender.hp <= 0) break;
     }
@@ -281,10 +454,9 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
 
   const xpBase = 500 + (winner === "draw" ? 0 : 500);
   return {
-    winner,
-    rounds,
-    final_hp_a: ca.hp,
-    final_hp_b: cb.hp,
+    winner, rounds,
+    final_hp_a: ca.hp, final_hp_b: cb.hp,
     xp_awarded: xpBase,
+    type_advantage: typeAdv,
   };
 }
