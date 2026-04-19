@@ -231,7 +231,7 @@ function GuardiansTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Hero>
-        Bei der Registrierung bekommst du einen <b>zufälligen</b> Wächter aus einer der 20 Rassen. Jede Rasse hat eine eigene Rolle und einzigartige Material-Thematik für ihre Items.
+        Bei oder nach der Registrierung kannst du dir deinen <b>Wächter selbst aussuchen</b> — eine aus 20 Rassen in 4 Rollen. Jede Rasse hat eine eigene Rolle und einzigartige Material-Thematik für ihre Items.
       </Hero>
 
       {Array.from(byRole.entries()).map(([role, list]) => {
