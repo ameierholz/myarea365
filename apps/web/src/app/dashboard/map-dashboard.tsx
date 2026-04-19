@@ -694,6 +694,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 label={controlsExpanded ? "Controls einklappen" : "Controls anzeigen"}
                 onClick={() => setControlsExpanded(!controlsExpanded)}
                 active={controlsExpanded}
+                size={32}
               />
               {controlsExpanded && (
                 <>
@@ -2733,8 +2734,8 @@ function HappyHourBanner() {
   );
 }
 
-function MapIconButton({ icon, label, onClick, active, accent, badge }: {
-  icon: string; label: string; onClick: () => void; active?: boolean; accent?: string; badge?: number;
+function MapIconButton({ icon, label, onClick, active, accent, badge, size = 48 }: {
+  icon: string; label: string; onClick: () => void; active?: boolean; accent?: string; badge?: number; size?: number;
 }) {
   const color = accent || (active ? PRIMARY : "#FFF");
   return (
@@ -2742,7 +2743,7 @@ function MapIconButton({ icon, label, onClick, active, accent, badge }: {
       onClick={onClick}
       title={label}
       style={{
-        width: 48, height: 48, borderRadius: 14,
+        width: size, height: size, borderRadius: size >= 40 ? 14 : 10,
         background: active ? `${color}28` : "rgba(18, 26, 46, 0.55)",
         backdropFilter: "blur(16px) saturate(160%)",
         WebkitBackdropFilter: "blur(16px) saturate(160%)",
@@ -2750,7 +2751,7 @@ function MapIconButton({ icon, label, onClick, active, accent, badge }: {
         cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
         position: "relative",
-        fontSize: 20,
+        fontSize: size >= 40 ? 20 : 14,
         boxShadow: active ? `0 0 14px ${color}66` : "0 4px 14px rgba(0,0,0,0.3)",
         transition: "all 0.15s",
       }}
