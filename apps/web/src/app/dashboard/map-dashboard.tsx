@@ -13,6 +13,7 @@ import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianHelpButton, GuardianGuideBanner } from "@/components/guardian-help-modal";
 import { GuardianEquipmentPanel } from "@/components/guardian-equipment";
+import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
 import { RainbowName, isRainbowActive } from "@/components/rainbow-name";
@@ -528,6 +529,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         });
         setSavedTerritories((prev) => [...prev, finalRoute]);
         if (territoryCountNew > 0) setTerritoryCount((c) => c + territoryCountNew);
+
+        // Km-Meilenstein-Check (10/50/100 km gesamt) -> gibt Beschwoerungssteine
+        try {
+          const ms = await fetch("/api/guardian/collection", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "check_milestones", total_km: newDistance / 1000 }),
+          });
+          if (ms.ok) {
+            const data = await ms.json();
+            if (data.new_stones > 0) {
+              const unlocks = (data.new_unlocks as number[]).join(", ");
+              appAlert(`🎉 Meilenstein erreicht (${unlocks} km)! +${data.new_stones} Beschwörungsstein für einen neuen Wächter.`);
+            }
+          }
+        } catch { /* non-blocking */ }
 
         // Victory-Dance triggern (nur bei echtem Territorium)
         if (territoryCountNew > 0 && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
@@ -1811,6 +1827,12 @@ function ProfilTab({
         <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
         <GuardianGuideBanner />
         <ProfileGuardianBlock userId={p?.id ?? null} />
+
+        {/* ═══ MEINE SAMMLUNG ═══ */}
+        <SectionHeader title="MEINE WÄCHTER-SAMMLUNG" />
+        <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)", marginBottom: 14 }}>
+          <GuardianCollectionPanel />
+        </div>
 
         {/* ═══ AUSRÜSTUNG ═══ */}
         <SectionHeader title="AUSRÜSTUNG" />

@@ -234,6 +234,21 @@ function GuardiansTab() {
         Bei oder nach der Registrierung kannst du dir deinen <b>Wächter selbst aussuchen</b> — eine aus 20 Rassen in 4 Rollen. Jede Rasse hat eine eigene Rolle und einzigartige Material-Thematik für ihre Items.
       </Hero>
 
+      <Card title="💎 Sammeln + Wechseln" color="#a855f7">
+        <div style={{ marginBottom: 6 }}>
+          Du kannst <b>mehrere Wächter sammeln</b> und zwischen ihnen wechseln. Pro Wechsel gilt ein <b>24-Stunden-Cooldown</b> (Fairness in der Arena).
+        </div>
+        <div style={{ fontWeight: 800, color: "#FFD700", marginBottom: 2 }}>💎 Beschwörungssteine bekommst du durch:</div>
+        <ul style={{ margin: "2px 0 6px 0", paddingLeft: 18, lineHeight: 1.6, fontSize: 11 }}>
+          <li><b>Km-Meilensteine</b>: 10 / 50 / 100 km gesamt → je 1 Stein</li>
+          <li><b>Boss-Raid-Sieg</b>: 5% Chance pro Mitglied der Gewinner-Crew</li>
+          <li><b>Seltene Drop-Items</b> (Legendary Redemption-Loot)</li>
+        </ul>
+        <div style={{ fontSize: 11, lineHeight: 1.5 }}>
+          Mit 1 Stein kannst du eine noch nicht besessene Rasse beschwören. Sammle alle 20 für den Kiez-Master-Titel!
+        </div>
+      </Card>
+
       {Array.from(byRole.entries()).map(([role, list]) => {
         const meta = roleMeta[role] ?? { label: role, color: "#8B8FA3", emoji: "•", desc: "" };
         return (
