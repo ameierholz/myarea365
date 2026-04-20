@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+// Vercel Analytics + Speed Insights muss im Vercel-Dashboard aktiviert werden,
+// sonst 404 auf /_vercel/insights/script.js.
+// Wenn aktiviert: einfach wieder importieren und unten rendern.
+// import { Analytics } from "@vercel/analytics/next";
+// import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "@/styles/globals.css";
@@ -46,8 +49,8 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
-        <Analytics />
-        <SpeedInsights />
+        {/* <Analytics /> — Vercel Analytics im Dashboard aktivieren, dann entkommentieren */}
+        {/* <SpeedInsights /> — Speed Insights im Dashboard aktivieren, dann entkommentieren */}
       </body>
     </html>
   );

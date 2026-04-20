@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { GEM_BUNDLES, totalGemsOfBundle, type GemBundle } from "@/lib/gem-bundles";
 
 type ShopItem = {
   id: string;
@@ -111,6 +112,27 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
     await load();
   }
 
+  async function buyBundle(b: GemBundle) {
+    setBusy(b.sku);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sku: b.sku,
+          name: `${totalGemsOfBundle(b)} Edelsteine`,
+          amount_cents: b.price_cents,
+        }),
+      });
+      const json = await res.json() as { url?: string; error?: string };
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        setToast(json.error ?? "Checkout fehlgeschlagen");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } finally { setBusy(null); }
+  }
+
   async function purchaseDaily(packId: string) {
     setBusy(packId);
     try {
@@ -198,6 +220,69 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
           <div style={{ marginBottom: 10, padding: 8, borderRadius: 8, background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.3)", fontSize: 11, color: "#a8b4cf" }}>
             <b style={{ color: "#22D1C3" }}>Fair-Play:</b> Edelsteine kaufen nur Skins, Booster, Komfort. Siegel, Wächter, XP — nur durchs Gehen.
           </div>
+
+          {/* 💎 EDELSTEINE KAUFEN */}
+          <section style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <span style={{ fontSize: 18 }}>💎</span>
+              <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
+                EDELSTEINE KAUFEN
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {GEM_BUNDLES.map((b) => {
+                const total = totalGemsOfBundle(b);
+                const badge = b.badge === "best_value" ? { text: "BESTER WERT", color: "#FFD700" }
+                  : b.badge === "most_popular" ? { text: "BELIEBT", color: "#FF2D78" }
+                  : b.badge === "starter" ? { text: "STARTER", color: "#22D1C3" } : null;
+                return (
+                  <button key={b.sku}
+                    onClick={() => buyBundle(b)}
+                    disabled={busy === b.sku}
+                    style={{
+                      position: "relative", textAlign: "left", cursor: busy ? "wait" : "pointer",
+                      padding: "12px 12px", borderRadius: 12,
+                      background: "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(168,85,247,0.1))",
+                      border: "1px solid rgba(255,215,0,0.45)",
+                      color: "#FFF",
+                    }}>
+                    {badge && (
+                      <div style={{
+                        position: "absolute", top: -8, right: -4,
+                        padding: "2px 7px", borderRadius: 999,
+                        background: badge.color, color: "#0F1115",
+                        fontSize: 8, fontWeight: 900, letterSpacing: 1,
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                      }}>{badge.text}</div>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ fontSize: 22 }}>💎</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 900 }}>
+                          {b.gems.toLocaleString("de-DE")}
+                          {b.bonus > 0 && (
+                            <span style={{ color: "#4ade80", fontSize: 11, marginLeft: 4 }}>
+                              +{b.bonus}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ color: "#a8b4cf", fontSize: 9 }}>
+                          = {total.toLocaleString("de-DE")} Edelsteine
+                        </div>
+                      </div>
+                      <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>
+                        {(b.price_cents / 100).toFixed(2)}€
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
+              Sichere Zahlung via Stripe · Edelsteine werden sofort gutgeschrieben
+            </div>
+          </section>
+
 
           {/* 🎫 AKTIVE MONATSPACKS (Daily Claim) */}
           {monthlyActive.length > 0 && (

@@ -118,6 +118,32 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     }
     return;
   }
+  if (sku.startsWith("gems_")) {
+    // Edelstein-Kauf — Basis + Bonus anschreiben
+    const { findGemBundle, totalGemsOfBundle } = await import("@/lib/gem-bundles");
+    const bundle = findGemBundle(sku);
+    if (bundle) {
+      const add = totalGemsOfBundle(bundle);
+      // upsert user_gems, dann inkrementieren
+      await sb.from("user_gems").upsert(
+        { user_id: userId, gems: 0, total_purchased: 0 },
+        { onConflict: "user_id", ignoreDuplicates: true },
+      );
+      const { data: existing } = await sb.from("user_gems")
+        .select("gems, total_purchased").eq("user_id", userId).maybeSingle<{ gems: number; total_purchased: number }>();
+      await sb.from("user_gems").update({
+        gems: (existing?.gems ?? 0) + add,
+        total_purchased: (existing?.total_purchased ?? 0) + add,
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", userId);
+      await sb.from("gem_transactions").insert({
+        user_id: userId, delta: add, reason: "stripe_purchase",
+        metadata: { sku, base: bundle.gems, bonus: bundle.bonus, price_cents: bundle.price_cents },
+      });
+    }
+    return;
+  }
+
   if (sku.startsWith("xp_")) {
     const pack = (XP_PACKS as Record<string, { xp: number }>)[sku];
     if (pack) {
