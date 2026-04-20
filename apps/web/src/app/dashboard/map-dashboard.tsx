@@ -176,7 +176,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [activeTab, setActiveTab] = useState<TabId>("map");
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
-  const [pinThemeOverride, setPinThemeOverride] = useState<"default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null>(null);
+  const [pinThemeOverride, setPinThemeOverride] = useState<import("@/lib/pin-themes").PinTheme | null>(null);
   const [rootRunnerProfileUserId, setRootRunnerProfileUserId] = useState<string | null>(null);
 
   // Klick auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal (Map-Tab).
@@ -830,7 +830,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return !!(until && new Date(until).getTime() > Date.now());
               })()}
               mapTheme={(p as unknown as { map_theme?: string | null })?.map_theme ?? null}
-              pinTheme={pinThemeOverride ?? ((p as unknown as { pin_theme?: "default"|"neon"|"cyberpunk"|"arcade"|"golden"|"frost"|null })?.pin_theme) ?? "default"}
+              pinTheme={pinThemeOverride ?? ((p as unknown as { pin_theme?: import("@/lib/pin-themes").PinTheme | null })?.pin_theme) ?? "default"}
               crewColor={myCrew?.color ?? null}
               crewName={myCrew?.name ?? null}
               displayName={p?.username ?? p?.display_name ?? null}
@@ -1430,7 +1430,7 @@ function ProfilTab({
   setEquippedMarker: (s: string) => void;
   equippedLight: string;
   setEquippedLight: (s: string) => void;
-  setPinThemeOverride: (t: "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null) => void;
+  setPinThemeOverride: (t: import("@/lib/pin-themes").PinTheme | null) => void;
   recentRuns: Territory[];
   territoryCount: number;
   currentStreet: string | null;

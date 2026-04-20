@@ -448,7 +448,7 @@ interface AppMapProps {
   equippedTrail?: string | null;
   auraActive?: boolean;
   mapTheme?: string | null;
-  pinTheme?: "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null;
+  pinTheme?: import("@/lib/pin-themes").PinTheme | null;
   crewColor?: string | null;
   crewName?: string | null;
   displayName?: string | null;

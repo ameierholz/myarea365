@@ -1,4 +1,6 @@
-export type PinTheme = "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost";
+export type PinTheme =
+  | "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost"
+  | "hologram" | "vaporwave" | "matrix" | "inferno" | "nebula" | "bloodmoon";
 
 export const PIN_THEME_META: Record<PinTheme, {
   id: PinTheme;
@@ -56,6 +58,57 @@ export const PIN_THEME_META: Record<PinTheme, {
     preview: { bg: "#06121e", accent: "#5ddaf0", glow: "#B0E6FF" },
     shopItemId: "pin_theme_frost",
   },
+  hologram: {
+    id: "hologram",
+    name: "Hologramm",
+    icon: "🪩",
+    description: "Irisierender Regenbogen-Schimmer, rotierende Farben",
+    preview: { bg: "#0a0a18", accent: "#a855f7", glow: "#22D1C3" },
+    shopItemId: "pin_theme_hologram",
+  },
+  vaporwave: {
+    id: "vaporwave",
+    name: "Vaporwave",
+    icon: "🌴",
+    description: "80er-Retro-Grid in Hot-Pink + Cyan",
+    preview: { bg: "#1a0530", accent: "#FF2D78", glow: "#22D1C3" },
+    shopItemId: "pin_theme_vaporwave",
+  },
+  matrix: {
+    id: "matrix",
+    name: "Matrix",
+    icon: "💻",
+    description: "Terminal-Grün mit digitalem Regen + Scan-Lines",
+    preview: { bg: "#001a0a", accent: "#00FF66", glow: "#00FF66" },
+    shopItemId: "pin_theme_matrix",
+  },
+  inferno: {
+    id: "inferno",
+    name: "Inferno",
+    icon: "🔥",
+    description: "Flackernde Glut-Aura — Orange, Rot, gelbe Sparks",
+    preview: { bg: "#1a0500", accent: "#FF4500", glow: "#FF8C00" },
+    shopItemId: "pin_theme_inferno",
+  },
+  nebula: {
+    id: "nebula",
+    name: "Nebula",
+    icon: "🌌",
+    description: "Kosmische Wirbel in Violett und Blau",
+    preview: { bg: "#0b0420", accent: "#7c3aed", glow: "#22d3ee" },
+    shopItemId: "pin_theme_nebula",
+  },
+  bloodmoon: {
+    id: "bloodmoon",
+    name: "Blood Moon",
+    icon: "🌑",
+    description: "Tiefrote pulsierende Aura — düster und kraftvoll",
+    preview: { bg: "#1a0000", accent: "#DC143C", glow: "#8B0000" },
+    shopItemId: "pin_theme_bloodmoon",
+  },
 };
 
-export const ALL_PIN_THEMES: PinTheme[] = ["default","neon","cyberpunk","arcade","golden","frost"];
+export const ALL_PIN_THEMES: PinTheme[] = [
+  "default","neon","cyberpunk","arcade","golden","frost",
+  "hologram","vaporwave","matrix","inferno","nebula","bloodmoon",
+];

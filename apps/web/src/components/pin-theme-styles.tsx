@@ -137,6 +137,147 @@ const PIN_THEME_CSS = `
   0%,100% { transform: translateX(-50%) translateY(0) rotate(-8deg); opacity: 0.7; }
   50%     { transform: translateX(-50%) translateY(-4px) rotate(8deg); opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   HOLOGRAMM — irisierender Regenbogen-Conic, rotierender Hue
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="hologram"] .ma365-runner-pin .runner-ring {
+  background: conic-gradient(from 0deg,
+    #ff0080, #ff8c00, #ffd700, #00ff66, #00ffff, #7c3aed, #ff2d78, #ff0080) !important;
+  box-shadow: 0 0 22px rgba(168,85,247,0.7), 0 0 42px rgba(34,209,195,0.6), inset 0 0 10px rgba(255,255,255,0.3) !important;
+  animation: ma365ThemeHoloSpin 4s linear infinite, ma365ThemeHoloHue 3s ease-in-out infinite !important;
+}
+[data-pin-theme="hologram"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px #a855f7) saturate(1.5) !important;
+  animation: ma365ThemeHoloHue 3s ease-in-out infinite !important;
+}
+@keyframes ma365ThemeHoloSpin { to { transform: rotate(360deg); } }
+@keyframes ma365ThemeHoloHue {
+  0%,100% { filter: hue-rotate(0deg) saturate(1.3); }
+  50%     { filter: hue-rotate(180deg) saturate(1.6); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   VAPORWAVE — 80er Retro, Hot-Pink + Cyan Neon
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="vaporwave"] .ma365-runner-pin .runner-ring {
+  background: linear-gradient(180deg, rgba(255,45,120,0.4), rgba(34,209,195,0.3)) !important;
+  border: 2px solid #FF2D78 !important;
+  box-shadow: 0 0 20px #FF2D78, 0 0 40px rgba(34,209,195,0.7), inset 0 0 18px rgba(255,45,120,0.35) !important;
+  animation: ma365ThemeVaporPulse 2.4s ease-in-out infinite !important;
+}
+[data-pin-theme="vaporwave"] .ma365-runner-pin::after {
+  content: "";
+  position: absolute; inset: 8px;
+  pointer-events: none; border-radius: 50%;
+  background: repeating-linear-gradient(
+    180deg, transparent 0 3px,
+    rgba(34,209,195,0.18) 3px 4px
+  );
+  z-index: 1;
+}
+[data-pin-theme="vaporwave"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(-2px 0 0 #FF2D78) drop-shadow(2px 0 0 #22D1C3) drop-shadow(0 0 8px #FF2D78) !important;
+}
+@keyframes ma365ThemeVaporPulse {
+  0%,100% { box-shadow: 0 0 20px #FF2D78, 0 0 40px rgba(34,209,195,0.7); }
+  50%     { box-shadow: 0 0 34px #FF2D78, 0 0 60px #22D1C3; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MATRIX — Terminal-Grün, digitaler Regen, Scan-Lines
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="matrix"] .ma365-runner-pin .runner-ring {
+  background: #001a0a !important;
+  border: 2px solid #00FF66 !important;
+  box-shadow: 0 0 16px #00FF66, 0 0 32px rgba(0,255,102,0.5), inset 0 0 12px rgba(0,255,102,0.35) !important;
+  animation: ma365ThemeMatrixFlicker 1.8s steps(8,end) infinite !important;
+}
+[data-pin-theme="matrix"] .ma365-runner-pin::after {
+  content: "";
+  position: absolute; inset: 10px;
+  pointer-events: none; border-radius: 50%;
+  background:
+    repeating-linear-gradient(transparent 0 2px, rgba(0,255,102,0.22) 2px 3px),
+    repeating-linear-gradient(90deg, transparent 0 5px, rgba(0,255,102,0.08) 5px 6px);
+  z-index: 1;
+  animation: ma365ThemeMatrixScroll 1.5s linear infinite;
+}
+[data-pin-theme="matrix"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 8px #00FF66) drop-shadow(0 0 14px rgba(0,255,102,0.7)) hue-rotate(40deg) !important;
+}
+@keyframes ma365ThemeMatrixFlicker {
+  0%,89%,100% { opacity: 1; }
+  90%,95% { opacity: 0.7; }
+}
+@keyframes ma365ThemeMatrixScroll {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 20px, 0 0; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   INFERNO — Flackernde Glut, Orange/Rot + Sparks
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="inferno"] .ma365-runner-pin .runner-ring {
+  background: radial-gradient(circle at 50% 60%, #FFD700 0%, #FF4500 40%, #8B0000 100%) !important;
+  box-shadow: 0 0 24px #FF4500, 0 0 48px rgba(255,140,0,0.8), inset 0 0 14px rgba(255,215,0,0.4) !important;
+  animation: ma365ThemeInfernoFlicker 0.7s ease-in-out infinite !important;
+}
+[data-pin-theme="inferno"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 16px #FF4500) saturate(1.4) !important;
+}
+@keyframes ma365ThemeInfernoFlicker {
+  0%,100% { box-shadow: 0 0 24px #FF4500, 0 0 48px rgba(255,140,0,0.8); transform: scale(1); }
+  33%     { box-shadow: 0 0 34px #FF8C00, 0 0 62px #FFD700; transform: scale(1.03); }
+  66%     { box-shadow: 0 0 20px #8B0000, 0 0 40px rgba(255,69,0,0.7); transform: scale(0.98); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   NEBULA — Kosmische Wirbel Violett/Blau
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="nebula"] .ma365-runner-pin .runner-ring {
+  background: conic-gradient(from 180deg,
+    #0b0420, #7c3aed, #22d3ee, #ec4899, #7c3aed, #0b0420) !important;
+  box-shadow: 0 0 22px #7c3aed, 0 0 44px rgba(34,211,238,0.6), inset 0 0 14px rgba(236,72,153,0.3) !important;
+  animation: ma365ThemeNebulaSpin 8s linear infinite !important;
+}
+[data-pin-theme="nebula"] .ma365-runner-pin::after {
+  content: "";
+  position: absolute; inset: 6px;
+  pointer-events: none; border-radius: 50%;
+  background:
+    radial-gradient(2px 2px at 20% 30%, #fff 50%, transparent 52%),
+    radial-gradient(1.5px 1.5px at 70% 60%, #22d3ee 50%, transparent 52%),
+    radial-gradient(2px 2px at 40% 80%, #fff 50%, transparent 52%),
+    radial-gradient(1.5px 1.5px at 80% 20%, #ec4899 50%, transparent 52%);
+  opacity: 0.85;
+  animation: ma365ThemeNebulaTwinkle 3s ease-in-out infinite;
+  z-index: 1;
+}
+[data-pin-theme="nebula"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 8px #7c3aed) drop-shadow(0 0 16px #22d3ee) !important;
+}
+@keyframes ma365ThemeNebulaSpin { to { transform: rotate(-360deg); } }
+@keyframes ma365ThemeNebulaTwinkle {
+  0%,100% { opacity: 0.5; } 50% { opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   BLOOD MOON — Tiefrote Aura, düster pulsierend
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="bloodmoon"] .ma365-runner-pin .runner-ring {
+  background: radial-gradient(circle, rgba(220,20,60,0.45), rgba(139,0,0,0.85)) !important;
+  border: 1.5px solid #DC143C !important;
+  box-shadow: 0 0 26px #8B0000, 0 0 52px rgba(220,20,60,0.7), inset 0 0 16px rgba(139,0,0,0.5) !important;
+  animation: ma365ThemeBloodPulse 2.8s ease-in-out infinite !important;
+}
+[data-pin-theme="bloodmoon"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 6px #DC143C) drop-shadow(0 0 14px #8B0000) contrast(1.15) !important;
+}
+@keyframes ma365ThemeBloodPulse {
+  0%,100% { box-shadow: 0 0 26px #8B0000, 0 0 52px rgba(220,20,60,0.7); transform: scale(1); }
+  50%     { box-shadow: 0 0 38px #DC143C, 0 0 70px #8B0000; transform: scale(1.04); }
+}
 `;
 
 export function PinThemeStyles() {
