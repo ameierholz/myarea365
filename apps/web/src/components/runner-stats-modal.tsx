@@ -30,6 +30,11 @@ type RunnerProfileData = {
   longest_run_m: number;
   territory_count: number;
   banner_url: string | null;
+  banner_status: "pending" | "approved" | "rejected" | null;
+  avatar_url: string | null;
+  avatar_status: "pending" | "approved" | "rejected" | null;
+  media_rejection_reason: string | null;
+  is_owner: boolean;
   crew?: {
     id: string; name: string; color: string | null; role: string | null;
     custom_banner_url: string | null; custom_logo_url: string | null;
@@ -73,6 +78,24 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
       await deleteRunnerBanner();
       await reload();
     } finally { setBannerBusy(false); }
+  }
+
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  async function onAvatarFile(file: File) {
+    setAvatarBusy(true);
+    try {
+      const { uploadRunnerAvatar } = await import("@/lib/banner-upload");
+      const r = await uploadRunnerAvatar(file);
+      if (r.ok) await reload();
+    } finally { setAvatarBusy(false); }
+  }
+  async function onAvatarRemove() {
+    setAvatarBusy(true);
+    try {
+      const { deleteRunnerAvatar } = await import("@/lib/banner-upload");
+      await deleteRunnerAvatar();
+      await reload();
+    } finally { setAvatarBusy(false); }
   }
 
   const color = data?.crew?.color ?? data?.team_color ?? PRIMARY;
@@ -141,6 +164,17 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                   <span>★</span> {tierBadge.label}
                 </div>
               )}
+              {canEditBanner && data.banner_url && data.banner_status !== "approved" && (
+                <div style={{
+                  position: "absolute", top: 56, right: 14, zIndex: 3,
+                  padding: "3px 8px", borderRadius: 999,
+                  background: data.banner_status === "pending" ? "#FFD700" : PINK,
+                  color: "#0F1115", fontSize: 9, fontWeight: 900, letterSpacing: 0.8,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                }}>
+                  {data.banner_status === "pending" ? "⏳ Banner in Prüfung" : "❌ Banner abgelehnt"}
+                </div>
+              )}
               {canEditBanner && (
                 <div style={{
                   position: "absolute", bottom: 10, right: 12, zIndex: 2,
@@ -170,11 +204,46 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
               <div style={{
                 position: "absolute", left: 20, bottom: -36,
                 width: 78, height: 78, borderRadius: 20,
-                background: `linear-gradient(135deg, ${color}, ${color}aa)`,
+                background: data.avatar_url
+                  ? `url("${data.avatar_url}") center/cover`
+                  : `linear-gradient(135deg, ${color}, ${color}aa)`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 42,
+                fontSize: 42, overflow: "hidden",
                 boxShadow: `0 0 0 4px #141a2d, 0 6px 22px ${color}99`,
-              }}>👣</div>
+                zIndex: 3,
+              }}>
+                {!data.avatar_url && "👣"}
+                {canEditBanner && (
+                  <label style={{
+                    position: "absolute", inset: 0, borderRadius: 20,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: avatarBusy ? "default" : "pointer",
+                    background: "rgba(0,0,0,0.55)",
+                    opacity: avatarBusy ? 0.8 : 0,
+                    transition: "opacity 0.2s",
+                    color: "#FFF", fontSize: 10, fontWeight: 900, textAlign: "center",
+                  }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                    onMouseLeave={(e) => { if (!avatarBusy) e.currentTarget.style.opacity = "0"; }}
+                  >
+                    {avatarBusy ? "…" : (data.avatar_url ? "📸 Ändern" : "📸 Foto hoch")}
+                    <input type="file" accept="image/*" hidden disabled={avatarBusy}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) onAvatarFile(f); e.target.value = ""; }} />
+                  </label>
+                )}
+              </div>
+              {/* Avatar-Status-Badge fuer Owner */}
+              {canEditBanner && data.avatar_url && data.avatar_status !== "approved" && (
+                <div style={{
+                  position: "absolute", left: 20, bottom: -52, zIndex: 4,
+                  padding: "2px 7px", borderRadius: 999,
+                  background: data.avatar_status === "pending" ? "#FFD700" : PINK,
+                  color: "#0F1115", fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                }}>
+                  {data.avatar_status === "pending" ? "⏳ IN PRÜFUNG" : "❌ ABGELEHNT"}
+                </div>
+              )}
             </div>
 
             <div style={{ padding: "46px 20px 20px" }}>

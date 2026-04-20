@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin/sales", label: "💰 Sales", section: "sales" },
   { href: "/admin/gamification", label: "🏆 Gamification", section: "gamification" },
   { href: "/admin/artwork", label: "🎨 Artwork", section: "artwork" },
+  { href: "/admin/user-media", label: "📸 User-Media", section: "user-media" },
   { href: "/admin/moderation", label: "⚖️ Moderation", section: "moderation" },
   { href: "/admin/audit", label: "📋 Audit-Log", section: "audit" },
   { href: "/admin/flags", label: "🚩 Feature-Flags", section: "flags" },
