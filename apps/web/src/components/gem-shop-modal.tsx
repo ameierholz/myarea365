@@ -25,6 +25,8 @@ type DailyPack = {
   name: string; subtitle: string; icon: string;
   price_gems: number; bonus_gem_badge: number;
   contents: DailyContent[];
+  price_cents?: number | null;
+  is_bundle?: boolean;
 };
 type DailyResponse = {
   packs: DailyPack[];
@@ -134,11 +136,6 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
     }
   }
 
-  async function devTopup() {
-    await fetch("/api/shop/gems", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "topup", gems: 1000 }) });
-    await load();
-  }
-
   async function buyBundle(b: GemBundle) {
     setBusy(b.sku);
     try {
@@ -243,37 +240,12 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
             alignSelf: "center", padding: "4px 10px", borderRadius: 999,
             background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.35)",
             color: "#FFD700", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", gap: 4,
-          }}>💎 {gems?.gems ?? 0}</div>
+          }}>💎 Guthaben: {gems?.gems ?? 0}</div>
         </div>
 
-        {/* Balance (nur Startseite) */}
-        {gemTab === "home" && (
-          <div style={{
-            margin: 14, padding: 12, borderRadius: 12,
-            background: "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,107,74,0.08))",
-            border: "1px solid rgba(255,215,0,0.4)",
-            display: "flex", alignItems: "center", gap: 12,
-          }}>
-            <div style={{ fontSize: 32 }}>💎</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>DEIN STAND</div>
-              <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{gems?.gems ?? 0}</div>
-            </div>
-            <button onClick={devTopup} style={{
-              padding: "6px 10px", borderRadius: 10,
-              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-              color: "#FFF", fontSize: 11, fontWeight: 800, cursor: "pointer",
-            }}>+ 1000 (Dev)</button>
-          </div>
-        )}
 
         {/* Kategorien */}
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 14px" }}>
-          {gemTab === "home" && (
-          <div style={{ marginBottom: 10, padding: 8, borderRadius: 8, background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.3)", fontSize: 11, color: "#a8b4cf" }}>
-            <b style={{ color: "#22D1C3" }}>Fair-Play:</b> Edelsteine kaufen nur Skins, Booster, Komfort. Siegel, Wächter, XP — nur durchs Gehen.
-          </div>
-          )}
 
           {/* 💎 EDELSTEINE KAUFEN */}
           {gemTab === "home" && (
@@ -453,10 +425,12 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                {daily.packs.map((p) => {
+                {daily.packs.filter((p) => !p.is_bundle).map((p) => {
                   const tm = TIER_META[p.tier];
                   const owned = daily.purchased_today.includes(p.id);
-                  const cantAfford = (gems?.gems ?? 0) < p.price_gems;
+                  const priceLabel = p.price_cents != null
+                    ? `€ ${(p.price_cents / 100).toFixed(2).replace(".", ",")}`
+                    : `💎 ${p.price_gems}`;
                   return (
                     <div key={p.id} style={{
                       padding: 8, borderRadius: 12,
@@ -489,26 +463,67 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                         ))}
                       </ul>
                       <button
-                        onClick={() => !owned && !cantAfford && purchaseDaily(p.id)}
-                        disabled={owned || cantAfford || busy === p.id}
+                        onClick={() => !owned && purchaseDaily(p.id)}
+                        disabled={owned || busy === p.id}
                         style={{
                           width: "100%", padding: "6px 4px", borderRadius: 8,
-                          background: owned
-                            ? "rgba(74,222,128,0.15)"
-                            : cantAfford
-                            ? "rgba(255,255,255,0.06)"
-                            : `linear-gradient(135deg, ${tm.color}, #FFD700)`,
-                          color: owned ? "#4ade80" : cantAfford ? "#6c7590" : "#0F1115",
+                          background: owned ? "rgba(74,222,128,0.15)" : `linear-gradient(135deg, ${tm.color}, #FFD700)`,
+                          color: owned ? "#4ade80" : "#0F1115",
                           border: owned ? "1px solid rgba(74,222,128,0.4)" : "none",
                           fontSize: 10, fontWeight: 900,
-                          cursor: owned || cantAfford ? "not-allowed" : "pointer",
+                          cursor: owned ? "not-allowed" : "pointer",
                         }}>
-                        {owned ? "✓ Heute eingelöst" : `💎 ${p.price_gems}`}
+                        {owned ? "✓ Heute eingelöst" : priceLabel}
                       </button>
                     </div>
                   );
                 })}
               </div>
+
+              {/* SUPER-Bundle-Banner */}
+              {daily.packs.filter((p) => p.is_bundle).map((p) => {
+                const owned = daily.purchased_today.includes(p.id);
+                const priceLabel = p.price_cents != null
+                  ? `€ ${(p.price_cents / 100).toFixed(2).replace(".", ",")}`
+                  : `💎 ${p.price_gems}`;
+                return (
+                  <button key={p.id}
+                    onClick={() => !owned && purchaseDaily(p.id)}
+                    disabled={owned || busy === p.id}
+                    style={{
+                      width: "100%", marginTop: 10,
+                      padding: "12px 14px", borderRadius: 14,
+                      background: owned
+                        ? "rgba(74,222,128,0.12)"
+                        : "linear-gradient(135deg, rgba(255,45,120,0.22), rgba(255,215,0,0.22), rgba(34,209,195,0.22))",
+                      border: owned ? "1px solid rgba(74,222,128,0.4)" : "1px solid rgba(255,215,0,0.55)",
+                      boxShadow: owned ? "none" : "0 0 18px rgba(255,215,0,0.35)",
+                      cursor: owned ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", gap: 12,
+                      textAlign: "left", color: "#FFF",
+                    }}>
+                    <span style={{ fontSize: 28 }}>{p.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", letterSpacing: 0.5 }}>{p.name}</div>
+                      <div style={{ fontSize: 11, color: "#FFF", fontWeight: 700, marginTop: 2 }}>
+                        Bronze + Silber + Gold zusammen
+                      </div>
+                      <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 2 }}>
+                        Spare ggü. Einzelkauf · 1× pro Tag
+                      </div>
+                    </div>
+                    <div style={{
+                      padding: "8px 14px", borderRadius: 10,
+                      background: owned ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg, #FFD700, #FF6B4A)",
+                      color: owned ? "#4ade80" : "#0F1115",
+                      fontSize: 13, fontWeight: 900, flexShrink: 0,
+                    }}>
+                      {owned ? "✓ GEHOLT" : priceLabel}
+                    </div>
+                  </button>
+                );
+              })}
+
               <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
                 Jeder Pack 1× pro Tag · Reset um 00:00 UTC · Inhalte bleiben permanent
               </div>

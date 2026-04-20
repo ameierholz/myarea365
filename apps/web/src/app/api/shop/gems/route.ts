@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
   if (body.action === "purchase") {
     const { data: item } = await sb.from("gem_shop_items")
-      .select("id, price_gems, duration_hours, category, active").eq("id", body.item_id).maybeSingle<{ id: string; price_gems: number; duration_hours: number | null; category: string; active: boolean }>();
+      .select("id, price_gems, duration_hours, category, active, payload").eq("id", body.item_id).maybeSingle<{ id: string; price_gems: number; duration_hours: number | null; category: string; active: boolean; payload: Record<string, unknown> }>();
     if (!item || !item.active) return NextResponse.json({ error: "item_unavailable" }, { status: 400 });
 
     const { data: gems } = await sb.from("user_gems").select("gems").eq("user_id", auth.user.id).maybeSingle<{ gems: number }>();
@@ -88,6 +88,33 @@ export async function POST(req: Request) {
     await sb.from("gem_transactions").insert({
       user_id: auth.user.id, delta: -item.price_gems, reason: `shop:${item.category}`, metadata: { item_id: item.id },
     });
+
+    // Crew-Emblem-Effekte anwenden
+    if (item.category === "crew_emblem") {
+      const effect = (item.payload?.effect as string) ?? item.id;
+      const { data: u } = await sb.from("users").select("current_crew_id, crew_shouts_remaining").eq("id", auth.user.id).maybeSingle<{ current_crew_id: string | null; crew_shouts_remaining: number }>();
+      const crewId = u?.current_crew_id ?? null;
+
+      if (effect === "shouts") {
+        const amount = Number((item.payload as { amount?: number }).amount ?? 10);
+        await sb.from("users").update({ crew_shouts_remaining: (u?.crew_shouts_remaining ?? 0) + amount }).eq("id", auth.user.id);
+      } else if (effect === "founder_badge") {
+        if (crewId) {
+          const { data: crew } = await sb.from("crews").select("owner_id").eq("id", crewId).maybeSingle<{ owner_id: string }>();
+          if (crew?.owner_id === auth.user.id) {
+            await sb.from("crews").update({ founder_badge: true }).eq("id", crewId);
+          }
+        }
+      } else if (crewId) {
+        // Crew-kosmetische Effekte: custom_emblem, territory_color, name_glow, animated_banner
+        if (effect === "name_glow") {
+          await sb.from("crews").update({ name_glow_until: expires }).eq("id", crewId);
+        } else if (effect === "animated_banner") {
+          await sb.from("crews").update({ animated_banner_until: expires }).eq("id", crewId);
+        }
+        // custom_emblem + territory_color: eigentliche Werte (URL / Farbe) kommen über separates Upload/Picker-UI
+      }
+    }
 
     return NextResponse.json({ ok: true, expires_at: expires });
   }
