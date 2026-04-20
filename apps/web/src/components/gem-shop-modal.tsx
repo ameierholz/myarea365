@@ -360,10 +360,10 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
             </section>
           )}
 
-          {/* 🎨 PIN-THEME PICKER */}
+          {/* 🎨 RUNNER-PIN-THEME PICKER */}
           <section style={{ marginBottom: 16 }}>
             <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
-              🎨 KARTEN-THEME
+              🎨 RUNNER-PIN
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
               {ALL_PIN_THEMES.map((tid) => {
@@ -402,7 +402,7 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
               })}
             </div>
             <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
-              Ändert das Aussehen aller Karten-Markierungen (Shops, Boss, Loot, Sanctuaries)
+              Verziert deinen eigenen Runner-Pin auf der Karte · Shop- und Boss-Pins bleiben neutral
             </div>
           </section>
 

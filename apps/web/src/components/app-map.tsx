@@ -414,6 +414,7 @@ function buildSelfMarkerEl(
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
   const el = document.createElement("div");
+  el.className = "ma365-runner-pin";
   el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 20}px;height:${size + 20}px;pointer-events:none`;
   const tierCfg = supporterTier === "gold"
     ? { bg: "linear-gradient(135deg,#FFD700,#B8860B)", border: "#FFD700", icon: "★", shadow: "0 0 10px #FFD700cc" }
@@ -436,8 +437,8 @@ function buildSelfMarkerEl(
     : "";
   el.innerHTML = `
     ${auraLayer}
-    <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
-    <span style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
+    <div class="runner-ring" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
+    <span class="runner-emoji" style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
     ${crewFoot}
     ${supporterChip}
     <style>
