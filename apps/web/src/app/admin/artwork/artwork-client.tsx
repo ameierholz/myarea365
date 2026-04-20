@@ -137,7 +137,7 @@ function MarkerTab({ artMap, onChange }: { artMap: Record<string, { image_url: s
               targetId={m.id}
               hasImage={!!art?.image_url}
               hasVideo={!!art?.video_url}
-              buildPrompt={(mode) => buildMarkerPrompt({ name: m.name, hint: m.icon, mode })}
+              buildPrompt={(mode) => buildMarkerPrompt({ id: m.id, name: m.name, hint: m.icon, mode })}
               onUploaded={onChange}
             />
           </div>

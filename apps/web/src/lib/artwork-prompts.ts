@@ -231,7 +231,21 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
 // Map-Icon (Runner-Pin) + Runner-Light Prompts
 // ──────────────────────────────────────────────────────────────────────────
 
-export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "image" | "video" }): string {
+// Icon-IDs bzw. -Namen die eine menschliche Figur zeigen sollen.
+// Fuer diese Marker erzwingt der Prompt eine geschlechtsneutrale Silhouette.
+const HUMAN_FIGURE_HINTS = ["foot","walker","runner","hero","basic","wanderer","athlet"];
+
+export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "image" | "video"; id?: string }): string {
+  const idOrName = (input.id || input.name || "").toLowerCase();
+  const isHuman = HUMAN_FIGURE_HINTS.some((h) => idOrName.includes(h));
+
+  const humanNeutral = isHuman
+    ? "GENDER-NEUTRAL: the human figure must be androgynous and non-binary in appearance — " +
+      "no facial features, no visible chest, no gendered body shape, no long hair vs short hair cues, " +
+      "no makeup, no masculine jawline, no feminine hips. A clean athletic stylized silhouette whose motion " +
+      "and pose communicate the subject — not the gender. The figure should feel representative of ANY runner, " +
+      "male OR female OR non-binary, age-agnostic."
+    : "";
   const noPinDisclaimer =
     "IMPORTANT: Render ONLY the standalone subject itself. " +
     "Do NOT add a map pin shape, NO teardrop marker, NO location-pin envelope, " +
@@ -253,6 +267,7 @@ export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "i
       `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024x1024, 30 fps, fully transparent background (alpha channel, PNG-style).`,
       `Subject: "${input.name}" — centered, iconic silhouette, readable at very small sizes (32-64 px).`,
       input.hint ? `Motif hint: ${input.hint}.` : "",
+      humanNeutral,
       styleGuidance,
       fillDisclaimer,
       noPinDisclaimer,
@@ -265,6 +280,7 @@ export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "i
   return [
     `A premium game icon representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
     input.hint ? `Motif hint: ${input.hint}.` : "",
+    humanNeutral,
     styleGuidance,
     fillDisclaimer,
     noPinDisclaimer,
