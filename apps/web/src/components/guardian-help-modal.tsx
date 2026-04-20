@@ -86,7 +86,7 @@ export function GuardianGuideBanner() {
   );
 }
 
-function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClose: () => void; initialTab?: Tab }) {
+export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClose: () => void; initialTab?: Tab }) {
   const [tab, setTab] = useState<Tab>(initialTab);
   return (
     <div

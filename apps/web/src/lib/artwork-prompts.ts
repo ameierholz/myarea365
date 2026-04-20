@@ -226,3 +226,72 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
     `No text, no captions, no logos, no watermark, no UI, no brand names, no celebrity likeness. Fully original invented character.`,
   ].filter(Boolean).join(" ");
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// Map-Icon (Runner-Pin) + Runner-Light Prompts
+// ──────────────────────────────────────────────────────────────────────────
+
+export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "image" | "video" }): string {
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated map pin icon, square 1:1, 1024x1024, 30 fps, fully transparent background (alpha channel, PNG-style).`,
+      `Subject: a stylized glowing game map marker/icon representing "${input.name}". Centered, iconic silhouette, readable at very small sizes (32-64 px).`,
+      input.hint ? `Motif hint: ${input.hint}.` : "",
+      `Motion: gentle pulsing glow, slow bob up and down (4-5 px), subtle ambient sparkles rising from the base. No rotation.`,
+      `Style: neon cyber-fantasy, thick clean outlines, high saturation, teal-cyan (#22D1C3) and magenta-pink (#FF2D78) accent rim-light, soft inner glow.`,
+      `The final frame must exactly match the first frame for seamless looping.`,
+      `No audio. No text, no labels, no watermark, no logo, no background — fully transparent outside the icon silhouette.`,
+    ].filter(Boolean).join(" ");
+  }
+  return [
+    `A stylized glowing game map marker icon representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
+    input.hint ? `Motif hint: ${input.hint}.` : "",
+    `Style: neon cyber-fantasy, thick clean outlines, high saturation, soft inner glow, teal-cyan (#22D1C3) and magenta-pink (#FF2D78) rim-light accents.`,
+    `Iconic readable silhouette usable at 32-64 px. Crisp edges, no anti-aliased halo.`,
+    `No text, no labels, no watermark, no logo, no background.`,
+  ].filter(Boolean).join(" ");
+}
+
+export function buildPinThemePrompt(input: {
+  name: string; description: string; bg: string; accent: string; glow: string; mode: "image" | "video";
+}): string {
+  const paletteLine = `Background base: ${input.bg}. Primary accent: ${input.accent}. Ambient glow: ${input.glow}.`;
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping map-pin base tile animation, square 1:1, 1024x1024, 30 fps, fully transparent background outside the tile shape.`,
+      `Subject: a stylized map-pin base tile representing the theme "${input.name}" — ${input.description}.`,
+      paletteLine,
+      `Style: cyber-fantasy game-UI, thick clean outlines, soft inner glow, subtle particle motion (sparks, mist, scan-lines depending on theme).`,
+      `Motion: gentle pulsing glow, slow particle drift. No camera movement. First and last frame identical.`,
+      `No audio, no text, no watermark, no logos, no brand names.`,
+    ].filter(Boolean).join(" ");
+  }
+  return [
+    `A stylized map-pin base tile representing the theme "${input.name}" — ${input.description}.`,
+    `Square 1:1, 1024x1024, centered, fully transparent outside the tile shape (PNG with alpha).`,
+    paletteLine,
+    `Style: cyber-fantasy game-UI, thick clean outlines, soft inner glow, readable at small sizes.`,
+    `No text, no labels, no watermark, no logos.`,
+  ].filter(Boolean).join(" ");
+}
+
+export function buildLightPrompt(input: { name: string; colors: string[]; mode: "image" | "video" }): string {
+  const colorStr = input.colors.join(", ");
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated runner trail/light effect, horizontal 16:9, 1920x1080, 30 fps, fully transparent background.`,
+      `Subject: a glowing energy trail representing a runner's light named "${input.name}", stretching horizontally across the frame.`,
+      `Color palette: ${colorStr}. Smooth gradient along the trail.`,
+      `Motion: energy particles flowing from left to right, slight shimmer, subtle pulse. Trail stays in place, only particles animate.`,
+      `Style: neon, glowing, soft bloom, high contrast. Cyber-fantasy aesthetic.`,
+      `The final frame must exactly match the first frame for seamless looping.`,
+      `No audio. No text, no characters, no background — fully transparent outside the light trail.`,
+    ].filter(Boolean).join(" ");
+  }
+  return [
+    `A glowing horizontal runner's light trail called "${input.name}", 16:9 landscape, 1920x1080, fully transparent background (PNG with alpha).`,
+    `Color palette: ${colorStr}. Smooth gradient along the trail, soft bloom, neon glow.`,
+    `Style: cyber-fantasy energy streak, sharp core, soft outer halo.`,
+    `No text, no characters, no watermark, no background.`,
+  ].filter(Boolean).join(" ");
+}

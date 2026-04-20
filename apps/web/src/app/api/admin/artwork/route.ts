@@ -39,16 +39,25 @@ export async function POST(req: Request) {
   // Body: { target_type, target_id, path, is_video }
   if (contentType.includes("application/json")) {
     const body = await req.json() as {
-      target_type: "archetype" | "item";
+      target_type: "archetype" | "item" | "marker" | "light" | "pin_theme";
       target_id: string;
       path: string;
       is_video: boolean;
     };
     if (!body.target_id || !body.path) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-    if (!["archetype", "item"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+    if (!["archetype", "item", "marker", "light", "pin_theme"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
 
     const { data: pub } = sb.storage.from("artwork").getPublicUrl(body.path);
     const publicUrl = pub.publicUrl;
+
+    if (body.target_type === "marker" || body.target_type === "light" || body.target_type === "pin_theme") {
+      const col = body.is_video ? "video_url" : "image_url";
+      const { error: dbErr } = await sb.from("cosmetic_artwork").upsert({
+        kind: body.target_type, slot_id: body.target_id, [col]: publicUrl, updated_at: new Date().toISOString(),
+      }, { onConflict: "kind,slot_id" });
+      if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+      return NextResponse.json({ ok: true, image_url: body.is_video ? null : publicUrl, video_url: body.is_video ? publicUrl : null, is_video: body.is_video });
+    }
 
     const table = body.target_type === "archetype" ? "guardian_archetypes" : "item_catalog";
     const updatePayload = (body.is_video && body.target_type === "archetype")

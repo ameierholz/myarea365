@@ -19,11 +19,11 @@ export async function GET() {
 
   const [{ data: owned }, { data: archetypes }] = await Promise.all([
     sb.from("user_guardians")
-      .select("id, archetype_id, custom_name, level, xp, wins, losses, is_active, talent_points_available, acquired_at, archetype:archetype_id(id, name, emoji, rarity, guardian_type, role, ability_name, image_url, video_url)")
+      .select("id, archetype_id, custom_name, level, xp, wins, losses, is_active, talent_points_available, acquired_at, archetype:archetype_id(id, name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd, ability_name, image_url, video_url)")
       .eq("user_id", auth.user.id)
       .order("acquired_at"),
     sb.from("guardian_archetypes")
-      .select("id, name, emoji, rarity, guardian_type, role, ability_name, ability_desc, lore, image_url, video_url")
+      .select("id, name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd, ability_name, ability_desc, lore, image_url, video_url")
       .order("rarity").order("name"),
   ]);
 

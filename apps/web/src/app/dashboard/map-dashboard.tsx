@@ -15,7 +15,7 @@ import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
-import { GuardianHelpButton, GuardianGuideBanner } from "@/components/guardian-help-modal";
+import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
 import { VictoryDance } from "@/components/victory-dance";
@@ -176,6 +176,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [activeTab, setActiveTab] = useState<TabId>("map");
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
+  const [pinThemeOverride, setPinThemeOverride] = useState<"default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null>(null);
   const [recentRuns, setRecentRuns] = useState<Territory[]>([]);
 
   // Walk state
@@ -677,17 +678,41 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // Live-Loot-Drops: demo-spawn alle 90-120s auf zufaelliger Position nahe User
+  // Kisten werden auf das Gehwegnetz gesnappt (Mapbox Directions walking-Profile),
+  // damit sie nicht in Gebaeuden/Hinterhoefen landen.
   useEffect(() => {
     if (!userCenter) return;
-    const spawn = () => {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+    async function snapToWalk(lat: number, lng: number): Promise<{ lat: number; lng: number } | null> {
+      if (!token) return { lat, lng };
+      try {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${lng + 0.0001},${lat + 0.0001}?access_token=${token}&overview=false`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json() as { waypoints?: Array<{ location: [number, number]; distance?: number }> };
+        const wp = data.waypoints?.[0];
+        if (!wp) return null;
+        // Verwerfen wenn Snap-Distanz > 40m (kein Weg in der Naehe)
+        if (typeof wp.distance === "number" && wp.distance > 40) return null;
+        return { lng: wp.location[0], lat: wp.location[1] };
+      } catch { return null; }
+    }
+
+    const spawn = async () => {
       const rarities = ["common", "common", "common", "rare", "rare", "epic", "legendary"];
       const kinds: Array<"xp_pack" | "speed_boost" | "mystery_ticket"> = ["xp_pack", "speed_boost", "mystery_ticket"];
-      const offsetLat = (Math.random() - 0.5) * 0.008;
-      const offsetLng = (Math.random() - 0.5) * 0.012;
+      let snapped: { lat: number; lng: number } | null = null;
+      for (let i = 0; i < 5 && !snapped; i++) {
+        const offsetLat = (Math.random() - 0.5) * 0.008;
+        const offsetLng = (Math.random() - 0.5) * 0.012;
+        snapped = await snapToWalk(userCenter.lat + offsetLat, userCenter.lng + offsetLng);
+      }
+      if (!snapped) return; // Kein Weg gefunden — kein Spawn
       const drop = {
         id: `loot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        lat: userCenter.lat + offsetLat,
-        lng: userCenter.lng + offsetLng,
+        lat: snapped.lat,
+        lng: snapped.lng,
         rarity: rarities[Math.floor(Math.random() * rarities.length)],
         kind: kinds[Math.floor(Math.random() * kinds.length)],
       };
@@ -773,7 +798,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return !!(until && new Date(until).getTime() > Date.now());
               })()}
               mapTheme={(p as unknown as { map_theme?: string | null })?.map_theme ?? null}
-              pinTheme={((p as unknown as { pin_theme?: "default"|"neon"|"cyberpunk"|"arcade"|"golden"|"frost"|null })?.pin_theme) ?? "default"}
+              pinTheme={pinThemeOverride ?? ((p as unknown as { pin_theme?: "default"|"neon"|"cyberpunk"|"arcade"|"golden"|"frost"|null })?.pin_theme) ?? "default"}
               crewColor={myCrew?.color ?? null}
               crewName={myCrew?.name ?? null}
               displayName={p?.username ?? p?.display_name ?? null}
@@ -1062,6 +1087,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               setEquippedMarker={setEquippedMarker}
               equippedLight={equippedLight}
               setEquippedLight={setEquippedLight}
+              setPinThemeOverride={setPinThemeOverride}
               recentRuns={recentRuns}
               territoryCount={territoryCount}
               currentStreet={currentStreet}
@@ -1347,6 +1373,7 @@ function ProfilTab({
   setEquippedMarker,
   equippedLight,
   setEquippedLight,
+  setPinThemeOverride,
   recentRuns,
   territoryCount,
   currentStreet,
@@ -1364,6 +1391,7 @@ function ProfilTab({
   setEquippedMarker: (s: string) => void;
   equippedLight: string;
   setEquippedLight: (s: string) => void;
+  setPinThemeOverride: (t: "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null) => void;
   recentRuns: Territory[];
   territoryCount: number;
   currentStreet: string | null;
@@ -1428,20 +1456,13 @@ function ProfilTab({
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
 
-  // Click auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal
+  // Click auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal.
+  // Der Badge sendet ein Custom-Event (Mapbox-sichere Variante, weil der Marker
+  // selbst Clicks ggf. abfängt).
   useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-      const badge = target.closest('[data-action="open-runner-profile"]') as HTMLElement | null;
-      if (badge && p?.id) {
-        e.preventDefault();
-        e.stopPropagation();
-        setRunnerProfileUserId(p.id);
-      }
-    };
-    document.addEventListener("click", onDocClick, true);
-    return () => document.removeEventListener("click", onDocClick, true);
+    const onOpen = () => { if (p?.id) setRunnerProfileUserId(p.id); };
+    window.addEventListener("ma365:open-runner-profile", onOpen);
+    return () => window.removeEventListener("ma365:open-runner-profile", onOpen);
   }, [p?.id]);
 
   const handleRewardedAd = async () => {
@@ -1849,7 +1870,6 @@ function ProfilTab({
 
         {/* ═══ WÄCHTER ═══ */}
         <SectionHeader title="WÄCHTER · MAP-ICON · RUNNER-LIGHT" action={<GuardianHelpButton />} />
-        <GuardianGuideBanner />
 
         {/* Kompaktes Loadout-Trio — alles Weitere in Modals */}
         <LoadoutTrio
@@ -1859,6 +1879,7 @@ function ProfilTab({
           onEquipMarker={equipMarker}
           onEquipLight={equipLight}
           isAdmin={["admin","super_admin"].includes((p as unknown as { role?: string })?.role ?? "user")}
+          onPinThemeChange={(t) => setPinThemeOverride(t)}
         />
 
         {/* ═══ EINSTELLUNGEN, ACCOUNT, XP-GUIDE, SHARE als Modal-Trigger ═══ */}

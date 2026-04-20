@@ -14,11 +14,15 @@ export async function GET() {
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [{ data: user }, { data: purchases }] = await Promise.all([
-    sb.from("users").select("pin_theme").eq("id", auth.user.id).maybeSingle<{ pin_theme: string | null }>(),
+    sb.from("users").select("pin_theme, role").eq("id", auth.user.id).maybeSingle<{ pin_theme: string | null; role: string | null }>(),
     sb.from("user_shop_purchases").select("shop_item_id").eq("user_id", auth.user.id),
   ]);
 
   const unlockedThemes = new Set<string>(["default"]);
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  if (isAdmin) {
+    for (const id of ["neon","cyberpunk","arcade","golden","frost"]) unlockedThemes.add(id);
+  }
   for (const p of (purchases ?? [])) {
     if (p.shop_item_id.startsWith("pin_theme_")) {
       unlockedThemes.add(p.shop_item_id.replace("pin_theme_", ""));

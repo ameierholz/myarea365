@@ -303,68 +303,87 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     .ma365-review-count { color: #8B8FA3; font-size: 8px; }
 
     /* ═══════════════════════════════════════════════════════
-       Runner-Badge — frosted glass mit Speech-Bubble-Pfeil
+       Runner-Nameplate — Game-UI Style (clean, hell, glow)
        ═══════════════════════════════════════════════════════ */
     .ma365-runner-badge {
+      all: unset;
       position: absolute;
-      top: calc(100% + 4px);
+      top: calc(100% + 12px);
       left: 50%;
       transform: translateX(-50%);
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 12px 4px 10px;
-      background: rgba(15, 17, 21, 0.72);
-      backdrop-filter: blur(10px) saturate(1.4);
-      -webkit-backdrop-filter: blur(10px) saturate(1.4);
+      gap: 6px;
+      padding: 5px 12px;
+      background: linear-gradient(180deg,
+        rgba(30,35,50,0.96) 0%,
+        rgba(15,17,21,0.98) 100%);
       border: 1.5px solid var(--badge-color, #22D1C3);
-      border-radius: 999px;
+      border-radius: 6px;
       color: #FFF;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.3px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
       white-space: nowrap;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.95);
       box-shadow:
-        0 4px 14px rgba(0, 0, 0, 0.55),
-        0 0 14px color-mix(in srgb, var(--badge-color, #22D1C3) 45%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        0 4px 14px rgba(0,0,0,0.7),
+        0 0 18px color-mix(in srgb, var(--badge-color, #22D1C3) 55%, transparent),
+        inset 0 1px 0 rgba(255,255,255,0.14);
       pointer-events: auto;
       cursor: pointer;
-      z-index: 4;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      z-index: 9999;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
       animation: ma365BadgeFloat 3.2s ease-in-out infinite;
     }
+    /* Diagonaler Shine-Sweep */
     .ma365-runner-badge::before {
-      /* Speech-Bubble-Pfeil nach oben zum Pin */
       content: "";
       position: absolute;
-      top: -6px;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(115deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(255,255,255,0.14) 50%,
+        transparent 60%,
+        transparent 100%);
+      background-size: 250% 100%;
+      animation: ma365BadgeShine 3.5s linear infinite;
+      pointer-events: none;
+    }
+    /* Chevron nach oben zum Pin (Crew-Color) */
+    .ma365-runner-badge::after {
+      content: "";
+      position: absolute;
+      top: -5px;
       left: 50%;
       transform: translateX(-50%) rotate(45deg);
-      width: 10px;
-      height: 10px;
-      background: inherit;
-      backdrop-filter: inherit;
-      -webkit-backdrop-filter: inherit;
+      width: 8px;
+      height: 8px;
+      background: linear-gradient(135deg, rgba(30,35,50,0.98), rgba(15,17,21,0.98));
       border-left: 1.5px solid var(--badge-color, #22D1C3);
       border-top: 1.5px solid var(--badge-color, #22D1C3);
-      border-top-left-radius: 3px;
-      z-index: -1;
+      pointer-events: none;
     }
     .ma365-runner-badge:hover {
-      transform: translateX(-50%) scale(1.06);
+      transform: translateX(-50%) scale(1.07);
+      filter: brightness(1.15);
       box-shadow:
-        0 6px 20px rgba(0, 0, 0, 0.7),
-        0 0 22px color-mix(in srgb, var(--badge-color, #22D1C3) 70%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 6px 20px rgba(0,0,0,0.8),
+        0 0 26px color-mix(in srgb, var(--badge-color, #22D1C3) 80%, transparent),
+        inset 0 1px 0 rgba(255,255,255,0.22);
+    }
+    .ma365-runner-badge:active {
+      transform: translateX(-50%) scale(0.96);
     }
     .ma365-runner-badge-dot {
       display: inline-block;
-      width: 6px; height: 6px;
+      width: 7px; height: 7px;
       border-radius: 50%;
       box-shadow: 0 0 6px currentColor;
+      flex-shrink: 0;
     }
     .ma365-runner-badge-at {
       color: var(--badge-color, #22D1C3);
@@ -375,7 +394,11 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     @keyframes ma365BadgeFloat {
       0%, 100% { transform: translateX(-50%) translateY(0); }
-      50%      { transform: translateX(-50%) translateY(-1.5px); }
+      50%      { transform: translateX(-50%) translateY(-2px); }
+    }
+    @keyframes ma365BadgeShine {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -100% 0; }
     }
   `;
   document.head.appendChild(style);
@@ -510,8 +533,11 @@ function buildSelfMarkerEl(
   const badgeColor = crewColor ?? "#22D1C3";
   const nameLabel = cleanName
     ? `<div class="ma365-runner-badge" data-action="open-runner-profile"
-            title="${crewName ? "Crew: " + crewName + " · Klick für Profil" : "Klick für Profil"}"
+            title="${crewName ? "Crew: " + crewName + " · Klick öffnet dein Runner-Profil" : "Klick öffnet dein Runner-Profil"}"
             style="--badge-color:${badgeColor}"
+            onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('ma365:open-runner-profile'));"
+            onmousedown="event.stopPropagation();"
+            ontouchstart="event.stopPropagation();"
        >
         ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
         <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
@@ -533,6 +559,21 @@ function buildSelfMarkerEl(
       @keyframes auraPulse{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.1);opacity:0.5}}
     </style>
   `;
+  // Click-Handler direkt an der Node — inline onclick innerhalb von Mapbox-Markern
+  // wird gelegentlich verschluckt, deshalb nochmal programmatisch sichern.
+  const badgeEl = el.querySelector(".ma365-runner-badge") as HTMLElement | null;
+  if (badgeEl) {
+    const fire = (ev: Event) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      window.dispatchEvent(new CustomEvent("ma365:open-runner-profile"));
+    };
+    badgeEl.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    badgeEl.addEventListener("mousedown", (ev) => ev.stopPropagation());
+    badgeEl.addEventListener("touchstart", (ev) => ev.stopPropagation(), { passive: false });
+    badgeEl.addEventListener("click", fire);
+    badgeEl.addEventListener("touchend", fire);
+  }
   return el;
 }
 
@@ -903,7 +944,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier, auraActive, crewColor, crewName, displayName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
+import { GuardianHelpModal } from "@/components/guardian-help-modal";
 import { MarkerPickerModal } from "@/components/marker-picker-modal";
 import { LightPickerModal } from "@/components/light-picker-modal";
 import {
@@ -11,6 +12,9 @@ import {
   type GuardianArchetype, type GuardianType,
 } from "@/lib/guardian";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
+import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
+import { AdminArtworkControls } from "@/components/admin-artwork-controls";
+import { buildPinThemePrompt } from "@/lib/artwork-prompts";
 
 const PRIMARY = "#5ddaf0";
 
@@ -35,7 +39,7 @@ type CollectionResponse = {
 };
 
 export function LoadoutTrio({
-  userXp, equippedMarker, equippedLight, onEquipMarker, onEquipLight, isAdmin = false,
+  userXp, equippedMarker, equippedLight, onEquipMarker, onEquipLight, isAdmin = false, onPinThemeChange,
 }: {
   userXp: number;
   equippedMarker: string;
@@ -43,19 +47,42 @@ export function LoadoutTrio({
   onEquipMarker: (id: string) => void;
   onEquipLight: (id: string) => void;
   isAdmin?: boolean;
+  onPinThemeChange?: (theme: PinTheme) => void;
 }) {
   const [col, setCol] = useState<CollectionResponse | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [markerOpen, setMarkerOpen] = useState(false);
   const [lightOpen, setLightOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [pinThemeState, setPinThemeState] = useState<{ active: PinTheme; unlocked: PinTheme[] }>({ active: "default", unlocked: ["default"] });
   const [busy, setBusy] = useState(false);
+  type HelpTab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss";
+  const [helpTab, setHelpTab] = useState<HelpTab | null>(null);
+  const [cosmeticArt, setCosmeticArt] = useState<{
+    marker:    Record<string, { image_url: string | null; video_url: string | null }>;
+    light:     Record<string, { image_url: string | null; video_url: string | null }>;
+    pin_theme: Record<string, { image_url: string | null; video_url: string | null }>;
+  }>({ marker: {}, light: {}, pin_theme: {} });
 
   async function load() {
     const res = await fetch("/api/guardian/my-collection");
     if (res.ok) setCol(await res.json() as CollectionResponse);
   }
-  useEffect(() => { load(); }, []);
+  async function loadArt() {
+    const res = await fetch("/api/cosmetic-artwork");
+    if (res.ok) setCosmeticArt(await res.json());
+  }
+  async function loadTheme() {
+    const res = await fetch("/api/shop/pin-theme");
+    if (res.ok) setPinThemeState(await res.json());
+  }
+  async function setPinTheme(t: PinTheme) {
+    await fetch("/api/shop/pin-theme", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ theme: t }) });
+    await loadTheme();
+    onPinThemeChange?.(t);
+  }
+  useEffect(() => { load(); loadArt(); loadTheme(); }, []);
 
   async function activateGuardian(guardianId: string) {
     setBusy(true);
@@ -138,11 +165,8 @@ export function LoadoutTrio({
 
   return (
     <>
-      <div style={{
-        display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: 8,
-        marginBottom: 14,
-      }}>
-        {/* ── WÄCHTER (mit Stats-Strip) ── */}
+      <div style={{ marginBottom: 10 }}>
+        {/* ── WÄCHTER (volle Breite) ── */}
         {(() => {
           const stats = statsAtLevel(active.archetype, active.level);
           const totalBattles = active.wins + active.losses;
@@ -167,24 +191,35 @@ export function LoadoutTrio({
                 }}>+{active.talent_points_available}</div>
               )}
 
-              {/* Top-Row: Avatar + Name + Rarity */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 64, height: 80, flexShrink: 0 }}>
-                  <GuardianAvatar archetype={active.archetype} size={64} animation="idle" />
+              {/* Top-Row: Grosses Avatar + Name + Rarity */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 120, height: 150, flexShrink: 0 }}>
+                  <GuardianAvatar archetype={active.archetype} size={120} animation="idle" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 1 }}>
+                  <div style={{ color: r.color, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>
                     {r.label.toUpperCase()}{typ ? ` · ${typ.icon} ${typ.label.toUpperCase()}` : ""}
                   </div>
-                  <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
                     {active.custom_name ?? active.archetype.name}
                   </div>
-                  <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
+                  <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
                     Lvl {active.level} / {GUARDIAN_LEVEL_CAP}
                   </div>
                   {/* Level-Progress-Bar */}
-                  <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginTop: 3 }}>
+                  <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginTop: 4 }}>
                     <div style={{ width: `${levelPct}%`, height: "100%", background: r.color }} />
+                  </div>
+                  {/* Sammlung + Alle-60-Button */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 8 }}>
+                    <span style={{ fontSize: 10, color: "#a8b4cf", fontWeight: 700 }}>
+                      🛡️ Sammlung {col.owned.length}/{col.archetypes.length}
+                    </span>
+                    <button onClick={(e) => { e.stopPropagation(); setGalleryOpen(true); }} style={{
+                      padding: "3px 8px", borderRadius: 999,
+                      background: "rgba(34,209,195,0.18)", border: "1px solid rgba(34,209,195,0.45)",
+                      color: "#22D1C3", fontSize: 9, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap",
+                    }}>📖 Alle 60 Wächter</button>
                   </div>
                 </div>
               </div>
@@ -206,17 +241,38 @@ export function LoadoutTrio({
 
               {/* CTA-Buttons */}
               <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
-                <button onClick={() => setDetailId(active.id)} style={btnSmall(r.color, true)}>Öffnen</button>
-                <button onClick={() => setGalleryOpen(true)} style={btnSmall(r.color, false)}>Wechseln</button>
+                <button onClick={() => setDetailId(active.id)} style={btnSmall(r.color, true)}>Wächter öffnen</button>
+                <button onClick={() => setGalleryOpen(true)} style={btnSmall(r.color, false)}>Wächter wechseln</button>
               </div>
+
+              {/* Wächter-Guide Button */}
+              <button onClick={() => setHelpTab("overview")} style={{
+                marginTop: 8, padding: "6px 10px", borderRadius: 8,
+                background: "rgba(168,85,247,0.15)", border: "1px solid rgba(168,85,247,0.4)",
+                color: "#FFF", fontSize: 10, fontWeight: 800, cursor: "pointer",
+                textAlign: "center", width: "100%",
+              }}>
+                📖 Alle Infos zu Wächtern im Guide
+              </button>
             </div>
           );
         })()}
+      </div>
 
+      {/* ── 3-Col: Map-Icon · Runner-Light · Pin-Theme (alles Runner-bezogen) ── */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
+        marginBottom: 14,
+      }}>
         {/* ── MAP-ICON ── */}
         <div style={tileStyle()} onClick={() => setMarkerOpen(true)}>
           <div style={labelStyle()}>MAP-ICON</div>
-          <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>
+          {(() => {
+            const mArt = cosmeticArt.marker[currentMarker.id];
+            if (mArt?.video_url) return <video src={mArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />;
+            if (mArt?.image_url) return <img src={mArt.image_url} alt={currentMarker.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />;
+            return <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>;
+          })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{currentMarker.name}</div>
           <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>Ändern →</div>
         </div>
@@ -224,27 +280,65 @@ export function LoadoutTrio({
         {/* ── RUNNER-LIGHT ── */}
         <div style={tileStyle()} onClick={() => setLightOpen(true)}>
           <div style={labelStyle()}>RUNNER-LIGHT</div>
-          <div style={{
-            width: 70, height: currentLight.width,
-            borderRadius: currentLight.width / 2,
-            background: lightGradient, marginTop: 20, marginBottom: 6,
-            boxShadow: `0 0 14px ${currentLight.color}80`,
-          }} />
+          {(() => {
+            const lArt = cosmeticArt.light[currentLight.id];
+            if (lArt?.video_url) return <video src={lArt.video_url} autoPlay loop muted playsInline style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
+            if (lArt?.image_url) return <img src={lArt.image_url} alt={currentLight.name} style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
+            return (
+              <div style={{
+                width: 70, height: currentLight.width,
+                borderRadius: currentLight.width / 2,
+                background: lightGradient, marginTop: 20, marginBottom: 6,
+                boxShadow: `0 0 14px ${currentLight.color}80`,
+              }} />
+            );
+          })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{currentLight.name}</div>
           <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>Ändern →</div>
         </div>
-      </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "#8B8FA3", marginBottom: 10 }}>
-        <span>🛡️ Sammlung: {col.owned.length}/{col.archetypes.length}</span>
-        <button onClick={() => setGalleryOpen(true)} style={{
-          padding: "5px 10px", borderRadius: 999,
-          background: "rgba(34,209,195,0.15)", border: "1px solid rgba(34,209,195,0.4)",
-          color: "#22D1C3", fontSize: 10, fontWeight: 900, cursor: "pointer",
-        }}>📖 Alle 60 Wächter</button>
+        {/* ── PIN-THEME ── */}
+        {(() => {
+          const tMeta = PIN_THEME_META[pinThemeState.active];
+          const tArt = cosmeticArt.pin_theme[pinThemeState.active];
+          return (
+            <div style={tileStyle()} onClick={() => setThemeOpen(true)}>
+              <div style={labelStyle()}>PIN-THEME</div>
+              {tArt?.video_url ? (
+                <video src={tArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+              ) : tArt?.image_url ? (
+                <img src={tArt.image_url} alt={tMeta.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+              ) : (
+                <div style={{
+                  width: 70, height: 70, borderRadius: 16,
+                  background: tMeta.preview.bg,
+                  border: `2px solid ${tMeta.preview.accent}`,
+                  boxShadow: `0 0 16px ${tMeta.preview.glow}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 34, marginTop: 4,
+                }}>
+                  {tMeta.icon}
+                </div>
+              )}
+              <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{tMeta.name}</div>
+              <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>Ändern →</div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modals */}
+      {themeOpen && (
+        <PinThemePickerModal
+          active={pinThemeState.active}
+          unlocked={pinThemeState.unlocked}
+          artMap={cosmeticArt.pin_theme}
+          isAdmin={isAdmin}
+          onPick={async (t) => { await setPinTheme(t); setThemeOpen(false); }}
+          onClose={() => setThemeOpen(false)}
+          onArtworkChanged={loadArt}
+        />
+      )}
       {galleryOpen && (
         <GuardianGalleryModal
           archetypes={col.archetypes}
@@ -261,12 +355,14 @@ export function LoadoutTrio({
         />
       )}
       {detailId && <GuardianDetailModal guardianId={detailId} onClose={() => setDetailId(null)} />}
+      {helpTab && <GuardianHelpModal initialTab={helpTab} onClose={() => setHelpTab(null)} />}
       {markerOpen && (
         <MarkerPickerModal
           userXp={userXp}
           currentId={equippedMarker}
           onPick={onEquipMarker}
           onClose={() => setMarkerOpen(false)}
+          isAdmin={isAdmin}
         />
       )}
       {lightOpen && (
@@ -275,9 +371,119 @@ export function LoadoutTrio({
           currentId={equippedLight}
           onPick={onEquipLight}
           onClose={() => setLightOpen(false)}
+          isAdmin={isAdmin}
         />
       )}
     </>
+  );
+}
+
+function PinThemePickerModal({
+  active, unlocked, artMap, isAdmin, onPick, onClose, onArtworkChanged,
+}: {
+  active: PinTheme;
+  unlocked: PinTheme[];
+  artMap: Record<string, { image_url: string | null; video_url: string | null }>;
+  isAdmin?: boolean;
+  onPick: (t: PinTheme) => void | Promise<void>;
+  onClose: () => void;
+  onArtworkChanged?: () => void;
+}) {
+  const unlockedSet = new Set(unlocked);
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 3700,
+      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 640, maxHeight: "92vh",
+        display: "flex", flexDirection: "column",
+        background: "#1A1D23", borderRadius: 20,
+        border: `1px solid ${PRIMARY}66`,
+        boxShadow: `0 0 40px ${PRIMARY}33`,
+        color: "#F0F0F0", overflow: "hidden",
+      }}>
+        <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>PIN-THEME WÄHLEN</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
+              {unlocked.length} / {ALL_PIN_THEMES.length} freigeschaltet
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+            {ALL_PIN_THEMES.map((id) => {
+              const m = PIN_THEME_META[id];
+              const isActive = id === active;
+              const isUnlocked = unlockedSet.has(id);
+              const art = artMap[id];
+              const hasArt = !!(art?.image_url || art?.video_url);
+              return (
+                <div key={id} style={{
+                  display: "flex", flexDirection: "column", alignItems: "stretch",
+                  padding: 10, borderRadius: 14,
+                  background: isActive ? `${m.preview.accent}22` : "rgba(70,82,122,0.35)",
+                  border: isActive ? `2px solid ${m.preview.accent}` : "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: isActive ? `0 0 22px ${m.preview.glow}` : "none",
+                  opacity: isUnlocked ? 1 : 0.5,
+                }}>
+                  <button onClick={() => { if (isUnlocked && !isActive) onPick(id); }}
+                    disabled={!isUnlocked || isActive}
+                    style={{
+                      display: "flex", flexDirection: "column", alignItems: "center",
+                      background: "none", border: "none", color: "#FFF",
+                      cursor: isUnlocked && !isActive ? "pointer" : "default", padding: 0,
+                    }}>
+                    {art?.video_url ? (
+                      <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
+                    ) : art?.image_url ? (
+                      <img src={art.image_url} alt={m.name} style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
+                    ) : (
+                      <div style={{
+                        width: 72, height: 72, borderRadius: 16, marginBottom: 8,
+                        background: m.preview.bg, border: `2px solid ${m.preview.accent}`,
+                        boxShadow: `0 0 14px ${m.preview.glow}`,
+                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34,
+                      }}>{m.icon}</div>
+                    )}
+                    <span style={{ fontSize: 12, fontWeight: 900 }}>{m.name}</span>
+                    <span style={{ fontSize: 9, color: "#a8b4cf", textAlign: "center", marginTop: 3, lineHeight: 1.3 }}>{m.description}</span>
+                    <div style={{ marginTop: 6 }}>
+                      {isActive
+                        ? <span style={{ fontSize: 9, fontWeight: 900, color: m.preview.accent }}>✓ AKTIV</span>
+                        : isUnlocked
+                          ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>Wählen</span>
+                          : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>🔒 Gem-Shop</span>
+                      }
+                    </div>
+                    {isAdmin && !hasArt && (
+                      <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>KEIN ARTWORK</span>
+                    )}
+                  </button>
+                  {isAdmin && (
+                    <AdminArtworkControls
+                      targetType="pin_theme"
+                      targetId={id}
+                      hasImage={!!art?.image_url}
+                      hasVideo={!!art?.video_url}
+                      buildPrompt={(mode) => buildPinThemePrompt({
+                        name: m.name, description: m.description,
+                        bg: m.preview.bg, accent: m.preview.accent, glow: m.preview.glow,
+                        mode,
+                      })}
+                      onUploaded={onArtworkChanged}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -301,6 +507,7 @@ function tileStyle(): React.CSSProperties {
   return {
     padding: 10, borderRadius: 14,
     background: "rgba(70,82,122,0.25)",
+    justifyContent: "center",
     border: "1px solid rgba(255,255,255,0.08)",
     cursor: "pointer",
     display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
