@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { buildArchetypePrompt } from "@/lib/artwork-prompts";
+import { uploadArtworkDirect } from "@/lib/artwork-upload";
 
 type Archetype = {
   id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
@@ -186,15 +187,9 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const upload = async (file: File) => {
     setBusy(true); setErr(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("target_type", "archetype");
-      form.append("target_id", a.id);
-      const res = await fetch("/api/admin/artwork", { method: "POST", body: form });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setErr(j.error || "Upload fehlgeschlagen");
-      } else onChange();
+      const result = await uploadArtworkDirect(file, "archetype", a.id);
+      if (!result.ok) setErr(result.error);
+      else onChange();
     } finally { setBusy(false); }
   };
 

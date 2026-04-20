@@ -7,6 +7,7 @@ import {
   type GuardianArchetype, type GuardianType,
 } from "@/lib/guardian";
 import { buildArchetypePrompt } from "@/lib/artwork-prompts";
+import { uploadArtworkDirect } from "@/lib/artwork-upload";
 
 type Tab = "all" | GuardianType;
 
@@ -165,17 +166,9 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
   async function upload(file: File) {
     setBusy(true); setErr(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("target_type", "archetype");
-      form.append("target_id", a.id);
-      const res = await fetch("/api/admin/artwork", { method: "POST", body: form });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setErr(j.error || "Upload fehlgeschlagen");
-      } else {
-        onUploaded?.();
-      }
+      const result = await uploadArtworkDirect(file, "archetype", a.id);
+      if (!result.ok) setErr(result.error);
+      else onUploaded?.();
     } finally { setBusy(false); }
   }
 

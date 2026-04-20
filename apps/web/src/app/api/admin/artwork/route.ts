@@ -33,6 +33,34 @@ export async function POST(req: Request) {
   await requireAdmin();
   const sb = await createClient();
 
+  const contentType = req.headers.get("content-type") || "";
+
+  // ─── Pfad A: JSON-Finalize nach Direct-Upload via Signed URL ───
+  // Body: { target_type, target_id, path, is_video }
+  if (contentType.includes("application/json")) {
+    const body = await req.json() as {
+      target_type: "archetype" | "item";
+      target_id: string;
+      path: string;
+      is_video: boolean;
+    };
+    if (!body.target_id || !body.path) return NextResponse.json({ error: "missing_params" }, { status: 400 });
+    if (!["archetype", "item"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+
+    const { data: pub } = sb.storage.from("artwork").getPublicUrl(body.path);
+    const publicUrl = pub.publicUrl;
+
+    const table = body.target_type === "archetype" ? "guardian_archetypes" : "item_catalog";
+    const updatePayload = (body.is_video && body.target_type === "archetype")
+      ? { video_url: publicUrl }
+      : { image_url: publicUrl };
+    const { error: dbErr } = await sb.from(table).update(updatePayload).eq("id", body.target_id);
+    if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+
+    return NextResponse.json({ ok: true, image_url: body.is_video ? null : publicUrl, video_url: body.is_video ? publicUrl : null, is_video: body.is_video });
+  }
+
+  // ─── Pfad B: Legacy Multipart-Form Upload (nur fuer kleine Bilder <4.5 MB) ───
   const form = await req.formData();
   const file = form.get("file") as File | null;
   const targetType = form.get("target_type") as string;
@@ -50,7 +78,6 @@ export async function POST(req: Request) {
     : "items";
   const path = `${folder}/${safeId}.${ext}`;
 
-  // Upload (upsert)
   const buf = Buffer.from(await file.arrayBuffer());
   const { error: upErr } = await sb.storage.from("artwork").upload(path, buf, {
     contentType: file.type || (isVideo ? "video/mp4" : "image/png"),
@@ -62,7 +89,6 @@ export async function POST(req: Request) {
   const publicUrl = pub.publicUrl;
 
   const table = targetType === "archetype" ? "guardian_archetypes" : "item_catalog";
-  // Video nur bei Archetypen — Items behalten image_url
   const updatePayload = (isVideo && targetType === "archetype")
     ? { video_url: publicUrl }
     : { image_url: publicUrl };

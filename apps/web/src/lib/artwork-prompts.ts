@@ -200,6 +200,7 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
       // 7) Loop-Qualität — strikte Anweisung fuer saubere Loops
       `The final frame must exactly match the first frame. Static poses at both start and end, identical character position and pose. The first and last frame must match so the clip loops seamlessly.`,
       // 8) Negatives
+      `No audio, no sound, no music, no voice. Silent video only.`,
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness. Fully original invented character.`,
     ].filter(Boolean).join(" ");
   }
