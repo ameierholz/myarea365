@@ -232,23 +232,31 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
 // ──────────────────────────────────────────────────────────────────────────
 
 export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "image" | "video" }): string {
+  const noPinDisclaimer =
+    "IMPORTANT: Render ONLY the standalone symbol/creature/object itself. " +
+    "Do NOT add a map pin shape, NO teardrop marker, NO location pin envelope, " +
+    "NO pointed bottom tip, NO circular badge background, NO frame, NO plate. " +
+    "The icon must be the pure symbol floating freely — nothing around it.";
+
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated map pin icon, square 1:1, 1024x1024, 30 fps, fully transparent background (alpha channel, PNG-style).`,
-      `Subject: a stylized glowing game map marker/icon representing "${input.name}". Centered, iconic silhouette, readable at very small sizes (32-64 px).`,
+      `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024x1024, 30 fps, fully transparent background (alpha channel, PNG-style).`,
+      `Subject: a stylized glowing symbol representing "${input.name}". Centered, iconic silhouette, readable at very small sizes (32-64 px).`,
       input.hint ? `Motif hint: ${input.hint}.` : "",
-      `Motion: gentle pulsing glow, slow bob up and down (4-5 px), subtle ambient sparkles rising from the base. No rotation.`,
+      noPinDisclaimer,
+      `Motion: gentle pulsing glow, slow bob up and down (4-5 px), subtle ambient sparkles. No rotation.`,
       `Style: neon cyber-fantasy, thick clean outlines, high saturation, teal-cyan (#22D1C3) and magenta-pink (#FF2D78) accent rim-light, soft inner glow.`,
       `The final frame must exactly match the first frame for seamless looping.`,
-      `No audio. No text, no labels, no watermark, no logo, no background — fully transparent outside the icon silhouette.`,
+      `No audio. No text, no labels, no watermark, no logo, no background, no pin, no marker shape — fully transparent outside the symbol silhouette.`,
     ].filter(Boolean).join(" ");
   }
   return [
-    `A stylized glowing game map marker icon representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
+    `A stylized glowing symbol representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
     input.hint ? `Motif hint: ${input.hint}.` : "",
+    noPinDisclaimer,
     `Style: neon cyber-fantasy, thick clean outlines, high saturation, soft inner glow, teal-cyan (#22D1C3) and magenta-pink (#FF2D78) rim-light accents.`,
     `Iconic readable silhouette usable at 32-64 px. Crisp edges, no anti-aliased halo.`,
-    `No text, no labels, no watermark, no logo, no background.`,
+    `No text, no labels, no watermark, no logo, no background, no pin, no map marker shape, no teardrop, no frame.`,
   ].filter(Boolean).join(" ");
 }
 
