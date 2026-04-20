@@ -1317,13 +1317,13 @@ export function AppMap({
 
     const applyZoomScale = () => {
       const zoom = map.getZoom();
-      // Marker bleiben in konstanter Bildschirm-Groesse — Pin-Themes (Sterne/Flammen/etc.)
-      // sollen beim Zoomen nicht groesser werden. Nur bei sehr weitem Rauszoomen leicht kleiner.
-      let scale = 1;
-      if (zoom < 11)      scale = 0.45;
-      else if (zoom < 13) scale = 0.6;
-      else if (zoom < 15) scale = 0.8;
-      // ab zoom >= 15 bleibt scale = 1 (konstante Groesse)
+      // Marker in kompakter konstanter Bildschirm-Groesse — Pin-Themes sollen beim
+      // Zoomen nicht groesser werden. Max bei 0.6, nur bei weitem Rauszoomen kleiner.
+      let scale = 0.6;
+      if (zoom < 11)      scale = 0.32;
+      else if (zoom < 13) scale = 0.42;
+      else if (zoom < 15) scale = 0.52;
+      // ab zoom >= 15 bleibt scale = 0.6 (konstante Groesse)
       const showLabel = zoom >= 14;
       // Marker mit 2x-Source (Shop): nochmal × 0.5 → End-Skala identisch zum 1x-Marker,
       // aber immer Downscale → schaerfer dargestellt
