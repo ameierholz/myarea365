@@ -115,7 +115,7 @@ export function generateAllPrompts(): GeneratedPrompt[] {
   return out;
 }
 
-/** Prompt für Wächter-Archetyp (Charakter-Illustration, nicht Item) */
+/** Prompt für Wächter-Archetyp (Charakter-Illustration oder animiertes Video) */
 export type ArchetypePromptInput = {
   name: string;
   rarity: "common" | "rare" | "legend" | "elite" | "epic" | "legendary";
@@ -123,6 +123,7 @@ export type ArchetypePromptInput = {
   role?: "dps" | "tank" | "support" | "balanced" | null;
   abilityName?: string | null;
   lore?: string | null;
+  mode?: "image" | "video";  // "video" = Canva Magic Animate / Video-Generator Prompt
 };
 
 const RARITY_MOD: Record<string, string> = {
@@ -143,6 +144,14 @@ const TYPE_MOD: Record<string, string> = {
   mage:     "robes with arcane sigils, floating orb or staff, glowing eyes, levitating accessories, ethereal aura",
 };
 
+// Pro Typ die Idle-Animation beschreiben (subtle motion loop, nicht hektisch)
+const TYPE_ANIM: Record<string, string> = {
+  infantry: "slow steady breathing, shield subtly rising, armor plates micro-shifting, cape swaying gently in wind",
+  cavalry:  "cloth and hair flowing in steady breeze, weight shifting weight side-to-side, ready-to-move tension",
+  marksman: "bow/scope slightly adjusting aim, fingers flexing, eyes scanning, hood tassels fluttering",
+  mage:     "arcane particles orbiting slowly around hands, robe hem levitating, glow pulsing softly, eyes glimmering",
+};
+
 const ROLE_MOD: Record<string, string> = {
   dps:      "aggressive offensive pose, weapon prominent, predatory silhouette",
   tank:     "solid defensive stance, shield or barrier, imposing bulky outline",
@@ -159,8 +168,30 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const rarityMod = RARITY_MOD[in_.rarity] ?? RARITY_MOD.epic;
   const typeMod   = in_.guardianType ? TYPE_MOD[in_.guardianType] : "";
   const roleMod   = in_.role         ? ROLE_MOD[in_.role]         : "";
+  const animMod   = in_.guardianType ? TYPE_ANIM[in_.guardianType] : "";
   const ability   = in_.abilityName ? `signature ability: '${in_.abilityName}'` : "";
   const loreLine  = in_.lore ? `lore hint: ${in_.lore}` : "";
+
+  if (in_.mode === "video") {
+    // Canva Magic Animate / Midjourney Video / Runway / Pika-tauglich
+    return [
+      `Short looping idle animation (3-5 seconds, seamless loop) of '${in_.name}', a humanoid urban-fantasy MyArea365 guardian.`,
+      `Portrait 9:16 aspect ratio, vertical, full body visible, character centered.`,
+      typeMod && `Character: ${typeMod}.`,
+      roleMod && `Role: ${roleMod}.`,
+      `Rarity feel: ${rarityMod}.`,
+      ability,
+      loreLine,
+      `Motion: ${animMod || "subtle breathing, slight weight shift, clothing and hair reacting to wind"}.`,
+      `Camera: locked static shot, no pan, no zoom. Character stays centered.`,
+      `Keep background very dark and stable (dark gradient #0F1115 to #1A1D23), only the character and its FX animate.`,
+      `Ambient FX: faint rising dust/particles, soft rim-light flicker, slow aura pulse.`,
+      `Setting: gritty modern city (street neon glow, rooftop silhouette) — NOT medieval fantasy.`,
+      `Accent colors #22D1C3 (teal) and #FF2D78 (pink-magenta), with #FFD700 gold highlights for legendary.`,
+      `Style: Magic The Gathering animated card, League of Legends champion splash in motion, Diablo 4 login-screen loop.`,
+      `Smooth 24-30fps, seamless first-to-last-frame loop, MP4/WebM, 1080x1920, no text, no logo, no watermark.`,
+    ].filter(Boolean).join(" ");
+  }
 
   return [
     `Character key art portrait of '${in_.name}', a humanoid urban-fantasy MyArea365 guardian.`,

@@ -8,7 +8,7 @@ import {
 } from "@/lib/artwork-prompts";
 
 type Archetype = {
-  id: string; name: string; emoji: string; rarity: string; image_url: string | null;
+  id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
   guardian_type: "infantry" | "cavalry" | "marksman" | "mage" | null;
   role: "dps" | "tank" | "support" | "balanced" | null;
   ability_name: string | null; lore: string | null;
@@ -213,17 +213,19 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
 
 function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedKind, setCopiedKind] = useState<"image" | "video" | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const prompt = buildArchetypePrompt({
+  const promptInputBase = {
     name: a.name,
     rarity: a.rarity as "elite" | "epic" | "legendary",
     guardianType: a.guardian_type,
     role: a.role,
     abilityName: a.ability_name,
     lore: a.lore,
-  });
+  };
+  const promptImage = buildArchetypePrompt({ ...promptInputBase, mode: "image" });
+  const promptVideo = buildArchetypePrompt({ ...promptInputBase, mode: "video" });
 
   const rarityMeta = RARITY_LABEL[a.rarity] ?? RARITY_LABEL.epic;
   const typeMeta = a.guardian_type ? TYPE_LABEL[a.guardian_type] : null;
@@ -252,31 +254,40 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
     } finally { setBusy(false); }
   };
 
-  const copyPrompt = async () => {
-    await navigator.clipboard.writeText(prompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  async function copyPrompt(kind: "image" | "video") {
+    await navigator.clipboard.writeText(kind === "video" ? promptVideo : promptImage);
+    setCopiedKind(kind);
+    setTimeout(() => setCopiedKind(null), 1500);
+  }
 
-  const done = !!a.image_url;
+  const hasImage = !!a.image_url;
+  const hasVideo = !!a.video_url;
+  const done = hasImage || hasVideo;
 
   return (
     <div className={`rounded-xl overflow-hidden transition ${done ? "border-[#4ade80]/50" : "border-white/10"}`}
       style={{ background: "#1A1D23", border: `1px solid ${done ? "#4ade8055" : rarityMeta.color + "33"}` }}>
-      {/* Image-Preview */}
+      {/* Preview: Video > Image > Fallback */}
       <div className="aspect-square bg-[#0F1115] flex items-center justify-center relative overflow-hidden">
-        {a.image_url ? (
+        {hasVideo ? (
+          <video src={a.video_url!} poster={a.image_url ?? undefined}
+            autoPlay loop muted playsInline
+            className="w-full h-full object-cover" />
+        ) : hasImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.image_url} alt={a.name} className="w-full h-full object-cover" />
+          <img src={a.image_url!} alt={a.name} className="w-full h-full object-cover" />
         ) : (
           <>
             <div className="text-7xl opacity-20">{a.emoji}</div>
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FF2D78]/20 to-transparent text-center py-2 text-[10px] font-bold text-[#FF2D78] tracking-widest">
-              KEIN BILD
+              KEIN ARTWORK
             </div>
           </>
         )}
-        {a.image_url && (
+        {hasVideo && (
+          <div className="absolute top-2 left-2 bg-[#FF2D78]/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded tracking-widest">🎬 VIDEO</div>
+        )}
+        {done && (
           <button onClick={removeImage} disabled={busy}
             className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-lg hover:bg-[#FF2D78]">
             × Löschen
@@ -306,26 +317,36 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
           </div>
         )}
 
-        <div className="flex gap-2 mt-3">
-          <button onClick={copyPrompt}
-            className="flex-1 text-[11px] bg-[#0F1115] border border-white/10 rounded-lg py-1.5 hover:bg-white/5 font-bold">
-            {copied ? "✓ Kopiert" : "📋 Prompt"}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <button onClick={() => copyPrompt("image")}
+            className="text-[11px] bg-[#0F1115] border border-[#22D1C3]/40 rounded-lg py-1.5 hover:bg-[#22D1C3]/10 font-bold text-[#22D1C3]">
+            {copiedKind === "image" ? "✓ Bild-Prompt" : "📋 Bild"}
           </button>
-          <label className={`flex-1 text-center text-[11px] rounded-lg py-1.5 cursor-pointer font-bold ${
-            busy ? "bg-[#333] text-[#888]" : done ? "bg-[#4ade80] text-[#0F1115] hover:bg-[#22c55e]" : "bg-[#FF2D78] text-white hover:opacity-90"
-          }`}>
-            {busy ? "Lädt…" : done ? "🔄 Ersetzen" : "⬆️ Upload"}
-            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
-            />
-          </label>
+          <button onClick={() => copyPrompt("video")}
+            className="text-[11px] bg-[#0F1115] border border-[#FF2D78]/40 rounded-lg py-1.5 hover:bg-[#FF2D78]/10 font-bold text-[#FF2D78]">
+            {copiedKind === "video" ? "✓ Video-Prompt" : "🎬 Video"}
+          </button>
         </div>
 
-        {/* Prompt-Details (collapsed) */}
+        <label className={`mt-2 block w-full text-center text-[11px] rounded-lg py-1.5 cursor-pointer font-bold ${
+          busy ? "bg-[#333] text-[#888]" : done ? "bg-[#4ade80] text-[#0F1115] hover:bg-[#22c55e]" : "bg-gradient-to-r from-[#FF2D78] to-[#a855f7] text-white hover:opacity-90"
+        }`}>
+          {busy ? "Lädt…" : done ? "🔄 Bild/Video ersetzen" : "⬆️ Bild oder MP4 hochladen"}
+          <input type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
+            className="hidden" disabled={busy}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
+          />
+        </label>
+
+        {/* Prompts (collapsed) */}
         <details className="mt-2">
-          <summary className="text-[10px] text-[#8B8FA3] cursor-pointer hover:text-white">Prompt anzeigen</summary>
-          <textarea readOnly value={prompt}
-            className="w-full mt-1 bg-[#0F1115] border border-white/10 rounded-lg p-2 text-[10px] text-[#DDD] font-mono h-32 resize-none" />
+          <summary className="text-[10px] text-[#8B8FA3] cursor-pointer hover:text-white">Prompts anzeigen</summary>
+          <div className="text-[9px] text-[#22D1C3] font-bold mt-1">BILD</div>
+          <textarea readOnly value={promptImage}
+            className="w-full mt-1 bg-[#0F1115] border border-white/10 rounded-lg p-2 text-[10px] text-[#DDD] font-mono h-24 resize-none" />
+          <div className="text-[9px] text-[#FF2D78] font-bold mt-2">🎬 VIDEO (Canva Magic Animate / Runway / Pika)</div>
+          <textarea readOnly value={promptVideo}
+            className="w-full mt-1 bg-[#0F1115] border border-white/10 rounded-lg p-2 text-[10px] text-[#DDD] font-mono h-28 resize-none" />
         </details>
 
         {err && <div className="text-[10px] text-[#FF2D78] mt-2">{err}</div>}

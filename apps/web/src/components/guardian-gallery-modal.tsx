@@ -133,6 +133,7 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
   const typ = a.guardian_type ? TYPE_META[a.guardian_type] : null;
   const hasArt = !!a.image_url;
 
+  const [promptMode, setPromptMode] = useState<"image" | "video">("image");
   const prompt = useMemo(() => buildArchetypePrompt({
     name: a.name,
     rarity: a.rarity as "elite" | "epic" | "legendary",
@@ -140,10 +141,21 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
     role: a.role,
     abilityName: a.ability_name,
     lore: a.lore,
-  }), [a]);
+    mode: promptMode,
+  }), [a, promptMode]);
 
-  async function copyPrompt() {
-    await navigator.clipboard.writeText(prompt);
+  async function copyPromptFor(mode: "image" | "video") {
+    setPromptMode(mode);
+    const text = buildArchetypePrompt({
+      name: a.name,
+      rarity: a.rarity as "elite" | "epic" | "legendary",
+      guardianType: a.guardian_type,
+      role: a.role,
+      abilityName: a.ability_name,
+      lore: a.lore,
+      mode,
+    });
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -211,29 +223,40 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
         </div>
       )}
 
-      {/* Admin-Controls: Prompt + Upload */}
+      {/* Admin-Controls: Prompt (Bild/Video) + Upload */}
       {isAdmin && (
-        <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-          <button onClick={copyPrompt} style={{
-            flex: 1, padding: "4px 4px", borderRadius: 6,
-            background: "rgba(34,209,195,0.15)", border: "1px solid rgba(34,209,195,0.4)",
-            color: "#22D1C3", fontSize: 9, fontWeight: 900, cursor: "pointer",
-          }}>{copied ? "✓" : "📋 Prompt"}</button>
+        <>
+          <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
+            <button onClick={() => copyPromptFor("image")} style={{
+              flex: 1, padding: "4px 2px", borderRadius: 6,
+              background: promptMode === "image" ? "#22D1C3" : "rgba(34,209,195,0.15)",
+              border: "1px solid rgba(34,209,195,0.4)",
+              color: promptMode === "image" ? "#0F1115" : "#22D1C3",
+              fontSize: 9, fontWeight: 900, cursor: "pointer",
+            }}>{copied && promptMode === "image" ? "✓" : "📋 Bild"}</button>
+            <button onClick={() => copyPromptFor("video")} style={{
+              flex: 1, padding: "4px 2px", borderRadius: 6,
+              background: promptMode === "video" ? "#FF2D78" : "rgba(255,45,120,0.15)",
+              border: "1px solid rgba(255,45,120,0.4)",
+              color: promptMode === "video" ? "#FFF" : "#FF2D78",
+              fontSize: 9, fontWeight: 900, cursor: "pointer",
+            }}>{copied && promptMode === "video" ? "✓" : "🎬"}</button>
+          </div>
           <label style={{
-            flex: 1, padding: "4px 4px", borderRadius: 6,
+            marginTop: 4, display: "block", padding: "4px 4px", borderRadius: 6,
             background: hasArt ? "rgba(74,222,128,0.15)" : "rgba(255,45,120,0.15)",
             border: `1px solid ${hasArt ? "rgba(74,222,128,0.4)" : "rgba(255,45,120,0.4)"}`,
             color: hasArt ? "#4ade80" : "#FF2D78",
             fontSize: 9, fontWeight: 900, cursor: busy ? "wait" : "pointer",
             textAlign: "center",
           }}>
-            {busy ? "…" : hasArt ? "🔄 Neu" : "⬆️ Upload"}
-            <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy}
+            {busy ? "…" : hasArt ? "🔄 Ersetzen" : "⬆️ Bild/MP4"}
+            <input type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime" className="hidden" disabled={busy}
               style={{ display: "none" }}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
             />
           </label>
-        </div>
+        </>
       )}
       {err && <div style={{ color: "#FF2D78", fontSize: 8, marginTop: 3 }}>{err}</div>}
 

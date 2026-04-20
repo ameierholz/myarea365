@@ -27,7 +27,7 @@ export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "sp
  * Rarity bestimmt Farbpalette und Glow-Intensitaet.
  */
 export function GuardianAvatar({ archetype, size = 140, animation = "idle", facing = "right" }: {
-  archetype: Pick<GuardianArchetype, "id" | "emoji" | "rarity"> & { image_url?: string | null };
+  archetype: Pick<GuardianArchetype, "id" | "emoji" | "rarity"> & { image_url?: string | null; video_url?: string | null };
   size?: number;
   animation?: AvatarAnimation;
   facing?: "left" | "right";
@@ -39,14 +39,16 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
   const flip = facing === "left" ? "scaleX(-1)" : "";
   const animClass = `anim-${animation}`;
 
-  // 1) image_url aus DB hat höchste Priorität (via /admin/artwork hochgeladen)
-  // 2) Dann statische Dateinamen-Konvention
-  // 3) Fallback: SVG
-  const useVideo = VIDEO_AVAILABLE.has(archetype.id);
+  // Priorität:
+  // 1) video_url aus DB (via /admin/artwork hochgeladener MP4) — höchste Priorität
+  // 2) image_url aus DB
+  // 3) statische Dateinamen-Konvention (VIDEO_AVAILABLE/ARTWORK_AVAILABLE)
+  // 4) SVG-Fallback
+  const useVideo = !!archetype.video_url || VIDEO_AVAILABLE.has(archetype.id);
   const usePortrait = !useVideo && (!!archetype.image_url || ARTWORK_AVAILABLE.has(archetype.id));
   const variant = animation === "attack" || animation === "crit" ? "attack" : "idle";
   const portraitSrc = archetype.image_url || `/guardians/${archetype.id}_${variant}.png`;
-  const videoSrc = `/guardians/${archetype.id}_${variant}.webm`;
+  const videoSrc = archetype.video_url || `/guardians/${archetype.id}_${variant}.webm`;
   const [portraitFailed, setPortraitFailed] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);

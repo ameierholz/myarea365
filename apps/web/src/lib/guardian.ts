@@ -28,6 +28,7 @@ export type GuardianArchetype = {
   ability_desc: string;
   lore: string | null;
   image_url?: string | null;
+  video_url?: string | null;
 };
 
 export type CrewGuardian = {
