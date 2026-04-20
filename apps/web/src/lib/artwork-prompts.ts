@@ -127,14 +127,14 @@ export type ArchetypePromptInput = {
 };
 
 const RARITY_MOD: Record<string, string> = {
-  // Neues System
-  elite:     "clean polished materials, teal highlights, subtle runes, dignified gear",
-  epic:      "arcane purple glow, floating fragments, translucent crystal accents, battle-worn noble look",
-  legendary: "godly golden aura, fire particles, halo, legendary key art, iconic silhouette",
+  // Neues System — beschreibt Material + FX-Intensität + Silhouette-Feel
+  elite:     "clean polished materials with subtle wear, teal cyan highlights on edges, faint engraved runes, dignified confident posture",
+  epic:      "gently glowing purple-magenta arcane energy on armor seams, small floating translucent crystal fragments nearby, battle-worn but noble look, stronger aura",
+  legendary: "rich golden aura wrapping the silhouette, slow-floating ember and spark particles, faint halo of light behind the head, iconic centered heroic silhouette, visibly more power than the others",
   // Legacy-Mapping
-  common:    "clean polished materials, teal highlights, subtle runes",
-  rare:      "clean polished materials, teal highlights, subtle runes",
-  legend:    "godly golden aura, fire particles, halo, legendary key art, iconic silhouette",
+  common:    "clean polished materials with subtle wear, teal cyan highlights on edges, faint engraved runes",
+  rare:      "clean polished materials with subtle wear, teal cyan highlights on edges, faint engraved runes",
+  legend:    "rich golden aura wrapping the silhouette, slow-floating ember and spark particles, faint halo of light behind the head, iconic centered heroic silhouette",
 };
 
 const TYPE_MOD: Record<string, string> = {
@@ -144,12 +144,12 @@ const TYPE_MOD: Record<string, string> = {
   mage:     "robes with arcane sigils, floating orb or staff, glowing eyes, levitating accessories, ethereal aura",
 };
 
-// Pro Typ die Idle-Animation beschreiben (subtle motion loop, nicht hektisch)
+// Pro Typ die Idle-Animation beschreiben (subtle motion loop, Veo-freundlich mit Rhythmus)
 const TYPE_ANIM: Record<string, string> = {
-  infantry: "slow steady breathing, shield subtly rising, armor plates micro-shifting, cape swaying gently in wind",
-  cavalry:  "cloth and hair flowing in steady breeze, weight shifting weight side-to-side, ready-to-move tension",
-  marksman: "bow/scope slightly adjusting aim, fingers flexing, eyes scanning, hood tassels fluttering",
-  mage:     "arcane particles orbiting slowly around hands, robe hem levitating, glow pulsing softly, eyes glimmering",
+  infantry: "slow rhythmic breathing (about 4 seconds per cycle), chest rising and falling, shield held steady, armor plates catching the light with each breath, heavy cape swaying gently in a slow wind, weight solidly planted",
+  cavalry:  "shoulders rising and falling with steady breath, long cloth and hair flowing in a continuous steady breeze, weight shifting slowly from one leg to the other, ready-to-move tension in the stance",
+  marksman: "deep calm breathing, eyes slowly scanning left to right, fingers subtly adjusting grip, hood edge and hair fluttering gently, the ranged weapon lowering and raising a fraction as if tracking an unseen target",
+  mage:     "arcane particles orbiting slowly around the hands in a smooth loop, outer robe hem levitating and undulating softly, body glow pulsing gently in a 3-second rhythm, eyes faintly glimmering with each pulse",
 };
 
 const ROLE_MOD: Record<string, string> = {
@@ -176,32 +176,52 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
 
   if (in_.mode === "video") {
-    // Schlank: Subjekt + Motion + Licht. Art-Style wählst du im Tool selbst.
+    // Veo 2 / Gemini Pro / Runway Gen-3 / Kling-tauglich.
+    // Struktur: Shot → Subject → Style-Hooks → Motion mit Rhythmus → Kamera → Licht → Umgebung → Negatives.
     return [
-      `Short looping idle clip, 3 to 5 seconds, seamless first-to-last-frame loop, vertical 9:16 portrait composition.`,
-      `Subject: a single original humanoid warrior character, full body visible, centered, standing on a dark rooftop at night.`,
-      `The character wears a stylized mix of modern street-wear and light armor.`,
+      // 1) Shot-Spec
+      `Shot: a 5-second seamlessly looping cinematic idle clip, vertical 9:16 portrait composition, 1080x1920, 24 frames per second.`,
+      // 2) Subject
+      `Subject: a single original humanoid warrior character, full body visible, standing centered on a dark rooftop at night. The character is clearly a fully invented, fictional character design (not based on any existing franchise or person).`,
+      `The character wears a stylized mix of modern street-wear and light armor, with subtle engraved detailing.`,
       archetypeHint && `Character traits: ${archetypeHint}.`,
-      `Mood and detail level: ${rarityMod}.`,
-      ability ? `Subtle signature aura effect around the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}.` : "",
+      `Rarity and material feel: ${rarityMod}.`,
+      ability ? `Signature aura effect softly wrapping the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}. The aura pulses with the breathing rhythm.` : "",
       loreLine,
-      `Motion: ${animMod || "subtle breathing, slight weight shift, clothing and hair reacting to a gentle wind"}. Camera locked, no pan, no zoom.`,
-      `Background: deeply out-of-focus night city, only blurred hints of distant lights. Dark overall tone.`,
-      `Lighting: teal and magenta rim light on the character, soft ambient particles rising.`,
-      `No text, no captions, no logos, no watermark. Fully original invented character, not based on any existing franchise, brand, or real person.`,
+      // 3) Motion mit Rhythmus (Veo 2 mag Tempo-Hinweise)
+      `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), clothing and hair reacting to a gentle wind, weight planted"}.`,
+      `Movement is smooth, continuous, and gentle — no sudden actions, no camera cuts.`,
+      // 4) Kamera
+      `Camera: locked static medium-wide shot, no pan, no tilt, no zoom, no dolly. The character stays perfectly centered for the entire clip.`,
+      // 5) Licht (Veo reagiert gut auf Richtungs-Angaben)
+      `Lighting: teal cyan rim light from the character's left side, magenta-pink rim light from the right side, faint cool moonlight from above. Legendary characters also get warm gold rim highlights. Ambient particles (dust, sparks, mist) rise slowly around the character's feet.`,
+      // 6) Umgebung
+      `Background: deeply out-of-focus night cityscape, only soft blurred hints of distant neon and street lights in the far distance, heavy shadow. The background has very subtle parallax but never steals attention from the character.`,
+      // 7) Loop-Qualität
+      `The first and last frame must match so the clip loops seamlessly.`,
+      // 8) Negatives
+      `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness. Fully original invented character.`,
     ].filter(Boolean).join(" ");
   }
 
+  // Standbild-Prompt (Gemini / Midjourney / Canva Dream Lab / Imagen)
   return [
-    `A single original humanoid warrior character, full body visible, 3/4 view, heroic standing pose, centered in frame.`,
-    `The character wears a stylized mix of modern street-wear and light armor.`,
+    // 1) Shot-Spec
+    `Cinematic character key art portrait, square 1:1, 1024x1024, single subject, centered composition.`,
+    // 2) Subject
+    `Subject: a single original humanoid warrior character, full body visible, 3/4 view, heroic standing pose, confident gaze.`,
+    `The character wears a stylized mix of modern street-wear and light armor, with subtle engraved detailing. Fully invented, fictional character design (not based on any existing franchise or person).`,
     archetypeHint && `Character traits: ${archetypeHint}.`,
-    `Mood and detail level: ${rarityMod}.`,
-    ability ? `Subtle signature aura effect around the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}.` : "",
+    `Rarity and material feel: ${rarityMod}.`,
+    ability ? `Signature aura effect softly wrapping the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}.` : "",
     loreLine,
-    `Setting: dark night rooftop, deeply out-of-focus city lights in the background.`,
-    `Lighting: teal and magenta rim light on the character, warm gold highlights only if the character should look legendary.`,
-    `Composition: centered, square 1:1, full character visible.`,
-    `No text, no captions, no logos, no watermark. Fully original invented character, not based on any existing franchise, brand, or real person.`,
+    // 3) Umgebung
+    `Setting: dark rooftop at night, deeply out-of-focus city lights far in the background, heavy atmospheric shadow.`,
+    // 4) Licht
+    `Lighting: teal cyan rim light from the left, magenta-pink rim light from the right, faint cool moonlight from above. Warm gold rim highlights only for legendary characters. Slow-rising ambient particles (dust, sparks, mist) around the character.`,
+    // 5) Qualität
+    `High detail on face and hands, sharp focus on character, shallow depth of field.`,
+    // 6) Negatives
+    `No text, no captions, no logos, no watermark, no UI, no brand names, no celebrity likeness. Fully original invented character.`,
   ].filter(Boolean).join(" ");
 }
