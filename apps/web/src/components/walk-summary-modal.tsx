@@ -100,7 +100,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
 
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 2000,
+      position: "fixed", inset: 0, zIndex: 9999,
       background: "rgba(15,17,21,0.92)", backdropFilter: "blur(10px)",
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     }}>

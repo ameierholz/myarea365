@@ -611,7 +611,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         });
       }
     }
-    setActiveRoute([]);
+    // activeRoute bewusst NICHT leeren — Walk-Line bleibt als fertiger Pfad
+    // bis der naechste Walk startet (setActiveRoute([]) im startWalk).
     setCurrentStreet(null);
   };
 
@@ -857,6 +858,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onSanctuaryClick={setViewingSanctuary}
               onPowerZoneClick={setViewingPowerZone}
               onLootClick={(id) => {
+                const drop = lootDrops.find((d) => d.id === id);
+                if (!drop) return;
+                if (userCenter) {
+                  const R = 6371000;
+                  const dLat = ((drop.lat - userCenter.lat) * Math.PI) / 180;
+                  const dLng = ((drop.lng - userCenter.lng) * Math.PI) / 180;
+                  const la1 = (userCenter.lat * Math.PI) / 180;
+                  const la2 = (drop.lat * Math.PI) / 180;
+                  const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+                  const distM = 2 * R * Math.asin(Math.sqrt(x));
+                  if (distM > 25) {
+                    appAlert(`🚶 Zu weit! Du bist ${Math.round(distM)}m entfernt — komm näher (max 25m).`);
+                    return;
+                  }
+                }
                 setLootDrops((prev) => prev.filter((d) => d.id !== id));
                 appAlert("🎁 Loot aufgesammelt! +25 XP · Drop-Raten transparent unter /loot-drops");
               }}

@@ -887,7 +887,15 @@ export function AppMap({
         map.flyTo({ center: [newPos.lng, newPos.lat], zoom: 17, pitch: 50, duration: 900 });
         locatedRef.current = true;
       } else if (map && trackingActive && !userInteractedRef.current) {
-        map.panTo([newPos.lng, newPos.lat], { duration: 600 });
+        // Nur re-centrieren wenn Position aus dem sichtbaren Viewport gelaufen ist
+        // (statt bei jedem GPS-Update), damit die Karte nicht alle paar Sekunden "springt".
+        const bounds = map.getBounds();
+        if (bounds) {
+          const sw = bounds.getSouthWest();
+          const ne = bounds.getNorthEast();
+          const outside = newPos.lat < sw.lat || newPos.lat > ne.lat || newPos.lng < sw.lng || newPos.lng > ne.lng;
+          if (outside) map.panTo([newPos.lng, newPos.lat], { duration: 900 });
+        }
       }
     },
     [onLocationUpdate, trackingActive]
@@ -1466,7 +1474,7 @@ export function AppMap({
     const sourceId = "active-route";
     const glowId = "active-route-glow";
     const mainId = "active-route-main";
-    const showLine = trackingActive && activeRoute.length > 0;
+    const showLine = activeRoute.length > 0;
 
     const data = {
       type: "Feature" as const,
