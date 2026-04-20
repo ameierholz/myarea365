@@ -10,6 +10,10 @@ import {
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
 const PINK = "#FF2D78";
+const BG_DEEP = "#0F1115";
+const TEXT_SOFT = "#a8b4cf";
+const MUTED = "#8B8FA3";
+const BORDER = "rgba(255,255,255,0.08)";
 
 type RunnerProfileData = {
   username: string | null;
@@ -47,170 +51,201 @@ export function RunnerStatsModal({ userId, onClose }: { userId: string; onClose:
     })();
   }, [userId]);
 
-  const rangeColor = data?.team_color ?? PRIMARY;
+  const color = data?.crew?.color ?? data?.team_color ?? PRIMARY;
   const kmTotal = data ? (data.total_distance_m / 1000).toFixed(1) : "–";
   const longestKm = data ? (data.longest_run_m / 1000).toFixed(2) : "–";
   const wins = data?.active_guardian?.wins ?? 0;
   const losses = data?.active_guardian?.losses ?? 0;
   const winRate = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
 
+  const tierBadge = data?.supporter_tier
+    ? data.supporter_tier === "gold"   ? { bg: "linear-gradient(135deg,#FFD700,#FF9E2C)", label: "GOLD",   text: BG_DEEP }
+    : data.supporter_tier === "silver" ? { bg: "linear-gradient(135deg,#E0E0E0,#9A9A9A)", label: "SILBER", text: BG_DEEP }
+    : { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", label: "BRONZE", text: "#FFF" }
+    : null;
+
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 3800,
-      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 560, maxHeight: "92vh",
+        width: "100%", maxWidth: 520, maxHeight: "88vh",
         display: "flex", flexDirection: "column",
-        background: "linear-gradient(180deg, #1A1D23, #0F1115)",
-        borderRadius: 20,
-        border: `1px solid ${rangeColor}66`,
-        boxShadow: `0 0 40px ${rangeColor}33`,
+        background: `linear-gradient(180deg, ${color}22 0%, #141a2d 100%)`,
+        borderRadius: 22, border: `1px solid ${color}66`,
+        boxShadow: `0 8px 32px rgba(0,0,0,0.6)`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
         {error ? (
-          <div style={{ padding: 30, textAlign: "center", color: "#FF2D78" }}>{error}</div>
+          <div style={{ padding: 30, textAlign: "center", color: PINK }}>{error}</div>
         ) : !data ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>Lade Runner-Profil …</div>
+          <div style={{ padding: 40, textAlign: "center", color: TEXT_SOFT }}>Lade Runner-Profil …</div>
         ) : (
-          <>
-            {/* Header-Band */}
+          <div style={{ overflowY: "auto" }}>
+            {/* ═══ HERO BAND ═══ */}
             <div style={{
-              padding: "18px 20px 14px", position: "relative",
-              background: `linear-gradient(135deg, ${rangeColor}30, ${rangeColor}10, transparent)`,
-              borderBottom: "1px solid rgba(255,255,255,0.08)",
+              height: 120, position: "relative",
+              background: `linear-gradient(135deg, ${color} 0%, ${color}77 60%, ${color}33 100%)`,
             }}>
               <button onClick={onClose} style={{
-                position: "absolute", top: 10, right: 10,
-                background: "rgba(255,255,255,0.08)", border: "none",
-                color: "#FFF", width: 30, height: 30, borderRadius: 999, cursor: "pointer", fontSize: 16,
+                position: "absolute", top: 12, left: 12,
+                width: 34, height: 34, borderRadius: 17,
+                background: "rgba(0,0,0,0.55)", border: "none",
+                color: "#FFF", fontSize: 18, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontWeight: 900,
               }}>×</button>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              {tierBadge && (
                 <div style={{
-                  width: 64, height: 64, borderRadius: "50%",
-                  background: `radial-gradient(circle at 30% 30%, ${rangeColor}cc, ${rangeColor}55)`,
-                  border: `2px solid ${rangeColor}`,
-                  boxShadow: `0 0 18px ${rangeColor}88, inset 0 0 10px rgba(0,0,0,0.25)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 30,
-                }}>👣</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: rangeColor, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>
-                    RUNNER
-                    {data.supporter_tier && <span style={{ marginLeft: 6, color: "#FFD700" }}>★ {data.supporter_tier.toUpperCase()}</span>}
-                  </div>
-                  <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, lineHeight: 1.1 }}>
-                    {data.display_name ?? data.username ?? "Runner"}
-                  </div>
-                  <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
-                    @{data.username ?? "unknown"}
-                    {data.level && <> · Lvl {data.level}</>}
-                    {data.xp > 0 && <> · {data.xp.toLocaleString("de-DE")} XP</>}
-                  </div>
+                  position: "absolute", top: 14, right: 14,
+                  padding: "4px 10px", borderRadius: 999,
+                  background: tierBadge.bg,
+                  color: tierBadge.text, fontSize: 10, fontWeight: 900, letterSpacing: 1,
+                  display: "flex", alignItems: "center", gap: 4,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                }}>
+                  <span>★</span> {tierBadge.label}
                 </div>
-              </div>
+              )}
+              {/* Avatar-Puck */}
+              <div style={{
+                position: "absolute", left: 20, bottom: -36,
+                width: 78, height: 78, borderRadius: 20,
+                background: `linear-gradient(135deg, ${color}, ${color}aa)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 42,
+                boxShadow: `0 0 0 4px #141a2d, 0 6px 22px ${color}99`,
+              }}>👣</div>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* Crew */}
+            <div style={{ padding: "46px 20px 20px" }}>
+              {/* Name + Handle */}
+              <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, lineHeight: 1.15 }}>
+                {data.display_name ?? data.username ?? "Runner"}
+              </div>
+              <div style={{ color: TEXT_SOFT, fontSize: 12, marginTop: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ color }}>@{data.username ?? "unknown"}</span>
+                {data.level != null && <Dot /> }
+                {data.level != null && <span>Lvl {data.level}</span>}
+                {data.xp > 0 && <Dot />}
+                {data.xp > 0 && <span style={{ color: GOLD, fontWeight: 800 }}>{data.xp.toLocaleString("de-DE")} XP</span>}
+              </div>
+
+              {/* Crew-Pill */}
               {data.crew && (
-                <Card title="CREW" color={data.crew.color ?? PRIMARY}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10,
-                      background: data.crew.color ?? PRIMARY,
-                      boxShadow: `0 0 10px ${data.crew.color ?? PRIMARY}99`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 18,
-                    }}>🏴</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{data.crew.name}</div>
-                      {data.crew.role && <div style={{ color: "#a8b4cf", fontSize: 10 }}>Rolle: {data.crew.role}</div>}
+                <div style={{
+                  marginTop: 12, padding: "10px 12px", borderRadius: 12,
+                  background: "rgba(0,0,0,0.3)", border: `1px solid ${data.crew.color ?? color}55`,
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 8,
+                    background: data.crew.color ?? color,
+                    boxShadow: `0 0 10px ${data.crew.color ?? color}99`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 15,
+                  }}>🏴</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: MUTED, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>CREW</div>
+                    <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{data.crew.name}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* ══ AKTIVER WÄCHTER ══ */}
+              {data.active_guardian && (() => {
+                const g = data.active_guardian!;
+                const r = rarityMeta(g.archetype.rarity);
+                const typ = g.archetype.guardian_type ? TYPE_META[g.archetype.guardian_type] : null;
+                const s = statsAtLevel(g.archetype, g.level);
+                return (
+                  <div style={{
+                    marginTop: 14, padding: 14, borderRadius: 16,
+                    background: `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.7))`,
+                    border: `1px solid ${r.color}77`,
+                    boxShadow: `0 0 20px ${r.glow}`,
+                  }}>
+                    <div style={{ color: r.color, fontSize: 9, fontWeight: 900, letterSpacing: 2, marginBottom: 10 }}>
+                      ⚡ AKTIVER WÄCHTER
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div style={{ width: 92, height: 115, flexShrink: 0 }}>
+                        <GuardianAvatar archetype={g.archetype} size={92} animation="idle" />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: r.color, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>
+                          {r.label.toUpperCase()}{typ ? ` · ${typ.icon} ${typ.label.toUpperCase()}` : ""}
+                        </div>
+                        <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, lineHeight: 1.15 }}>
+                          {g.custom_name ?? g.archetype.name}
+                        </div>
+                        <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 4 }}>
+                          Lvl {g.level} · {wins}W / {losses}L
+                          {g.talent_points_available > 0 && (
+                            <span style={{ color: GOLD, marginLeft: 6, fontWeight: 900 }}>+{g.talent_points_available} Talent</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12 }}>
+                      <Stat label="HP"  value={s.hp}  color="#4ade80" />
+                      <Stat label="ATK" value={s.atk} color="#FF6B4A" />
+                      <Stat label="DEF" value={s.def} color="#5ddaf0" />
+                      <Stat label="SPD" value={s.spd} color={GOLD} />
                     </div>
                   </div>
-                </Card>
-              )}
+                );
+              })()}
 
-              {/* Aktiver Wächter */}
-              {data.active_guardian && (
-                <Card title="AKTIVER WÄCHTER" color={rarityMeta(data.active_guardian.archetype.rarity).color}>
-                  {(() => {
-                    const g = data.active_guardian!;
-                    const r = rarityMeta(g.archetype.rarity);
-                    const typ = g.archetype.guardian_type ? TYPE_META[g.archetype.guardian_type] : null;
-                    const s = statsAtLevel(g.archetype, g.level);
-                    return (
-                      <>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 72, height: 90, flexShrink: 0 }}>
-                            <GuardianAvatar archetype={g.archetype} size={72} animation="idle" />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ color: r.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>
-                              {r.label.toUpperCase()}{typ ? ` · ${typ.icon} ${typ.label.toUpperCase()}` : ""}
-                            </div>
-                            <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>
-                              {g.custom_name ?? g.archetype.name}
-                            </div>
-                            <div style={{ color: "#a8b4cf", fontSize: 10 }}>
-                              Lvl {g.level} · {wins}W / {losses}L
-                              {g.talent_points_available > 0 && <span style={{ color: GOLD, marginLeft: 6, fontWeight: 900 }}>+{g.talent_points_available} Talent</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4, marginTop: 10 }}>
-                          <Stat label="HP"  value={s.hp}  color="#4ade80" />
-                          <Stat label="ATK" value={s.atk} color="#FF6B4A" />
-                          <Stat label="DEF" value={s.def} color="#5ddaf0" />
-                          <Stat label="SPD" value={s.spd} color={GOLD} />
-                        </div>
-                      </>
-                    );
-                  })()}
-                </Card>
-              )}
-
-              {/* Kampf-Statistik */}
-              <Card title="KAMPF-STATISTIK" color={PINK}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                  <Stat label="SIEGE"       value={wins}      color="#4ade80" />
-                  <Stat label="NIEDERLAGEN" value={losses}    color={PINK} />
+              {/* ══ KAMPF ══ */}
+              <SectionCard title="KAMPF-STATISTIK" color={PINK} icon="⚔️" style={{ marginTop: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                  <Stat label="SIEGE"       value={wins}          color="#4ade80" />
+                  <Stat label="NIEDERLAGEN" value={losses}        color={PINK} />
                   <Stat label="WIN-RATE"    value={`${winRate}%`} color={GOLD} />
                 </div>
-              </Card>
+              </SectionCard>
 
-              {/* Walking-Statistik */}
-              <Card title="WALKING-STATISTIK" color={PRIMARY}>
+              {/* ══ WALKING ══ */}
+              <SectionCard title="WALKING-STATISTIK" color={PRIMARY} icon="🏃" style={{ marginTop: 10 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                  <Stat label="GELAUFEN"       value={`${kmTotal} km`}           color={PRIMARY} />
-                  <Stat label="LÄUFE"          value={data.total_walks}           color="#a855f7" />
-                  <Stat label="KALORIEN"       value={`${data.total_calories.toLocaleString("de-DE")} kcal`} color="#FF6B4A" />
-                  <Stat label="LÄNGSTER LAUF"  value={`${longestKm} km`}          color={GOLD} />
+                  <Stat label="GELAUFEN"      value={`${kmTotal} km`}                                 color={PRIMARY} />
+                  <Stat label="LÄUFE"         value={data.total_walks}                                color="#a855f7" />
+                  <Stat label="KALORIEN"      value={`${data.total_calories.toLocaleString("de-DE")} kcal`} color="#FF6B4A" />
+                  <Stat label="LÄNGSTER LAUF" value={`${longestKm} km`}                                color={GOLD} />
                 </div>
-              </Card>
+              </SectionCard>
 
-              {/* Sammlung + Territorien */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <MiniStat label="GEBIETE"   value={data.territory_count} icon="🗺️" color={PRIMARY} />
-                <MiniStat label="WÄCHTER"   value={`${data.collection_size}/${data.collection_total}`} icon="🛡️" color="#a855f7" />
+              {/* ══ FOOTER ══ */}
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <FooterStat icon="🗺️" label="GEBIETE" value={data.territory_count} color={PRIMARY} />
+                <FooterStat icon="🛡️" label="WÄCHTER-SAMMLUNG" value={`${data.collection_size}/${data.collection_total}`} color="#a855f7" />
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function Card({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
+function Dot() {
+  return <span style={{ width: 3, height: 3, borderRadius: "50%", background: MUTED, display: "inline-block" }} />;
+}
+
+function SectionCard({ title, color, icon, children, style }: { title: string; color: string; icon: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div style={{
       padding: 12, borderRadius: 14,
-      background: "rgba(15,17,21,0.55)",
-      border: `1px solid ${color}44`,
+      background: "rgba(0,0,0,0.3)",
+      border: `1px solid ${BORDER}`,
+      ...style,
     }}>
-      <div style={{ color, fontSize: 9, fontWeight: 900, letterSpacing: 2, marginBottom: 8 }}>{title}</div>
+      <div style={{ color, fontSize: 9, fontWeight: 900, letterSpacing: 2, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 12 }}>{icon}</span> {title}
+      </div>
       {children}
     </div>
   );
@@ -218,25 +253,30 @@ function Card({ title, color, children }: { title: string; color: string; childr
 
 function Stat({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
-    <div style={{ padding: "6px 4px", borderRadius: 8, background: "rgba(15,17,21,0.6)", textAlign: "center" }}>
-      <div style={{ color: "#8B8FA3", fontSize: 8, fontWeight: 800, letterSpacing: 1 }}>{label}</div>
-      <div style={{ color, fontSize: 13, fontWeight: 900, marginTop: 2 }}>{value}</div>
+    <div style={{
+      padding: "8px 4px", borderRadius: 10,
+      background: "rgba(15,17,21,0.65)",
+      border: "1px solid rgba(255,255,255,0.05)",
+      textAlign: "center",
+    }}>
+      <div style={{ color: MUTED, fontSize: 8, fontWeight: 800, letterSpacing: 1 }}>{label}</div>
+      <div style={{ color, fontSize: 14, fontWeight: 900, marginTop: 3 }}>{value}</div>
     </div>
   );
 }
 
-function MiniStat({ label, value, icon, color }: { label: string; value: number | string; icon: string; color: string }) {
+function FooterStat({ icon, label, value, color }: { icon: string; label: string; value: number | string; color: string }) {
   return (
     <div style={{
-      padding: 10, borderRadius: 12,
-      background: "rgba(15,17,21,0.55)",
+      padding: 12, borderRadius: 14,
+      background: "rgba(0,0,0,0.3)",
       border: `1px solid ${color}33`,
       display: "flex", alignItems: "center", gap: 10,
     }}>
       <div style={{ fontSize: 22 }}>{icon}</div>
-      <div>
-        <div style={{ color: "#8B8FA3", fontSize: 8, fontWeight: 800, letterSpacing: 1 }}>{label}</div>
-        <div style={{ color, fontSize: 15, fontWeight: 900 }}>{value}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: MUTED, fontSize: 8, fontWeight: 800, letterSpacing: 1 }}>{label}</div>
+        <div style={{ color, fontSize: 14, fontWeight: 900 }}>{value}</div>
       </div>
     </div>
   );
