@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function adminSb() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase admin creds missing");
+  return createAdminClient(url, key, { auth: { persistSession: false } });
+}
 
 /**
  * POST /api/admin/artwork/sign
  * Body: { target_type: "archetype"|"item", target_id, file_name, content_type }
  * Returns: { upload_url, token, path, is_video }
  *
- * Generiert eine Signed-Upload-URL — der Client lädt dann direkt zu Supabase
- * Storage. Umgeht das 4.5 MB Body-Limit von Vercel für Videos.
+ * Generiert eine Signed-Upload-URL mit Service-Role — der Client lädt dann
+ * direkt zu Supabase Storage. Umgeht das 4.5 MB Body-Limit von Vercel für Videos.
  */
 export async function POST(req: Request) {
   await requireAdmin();
-  const sb = await createClient();
+  const sb = adminSb();
 
   const body = await req.json() as {
     target_type: "archetype" | "item";
