@@ -3996,13 +3996,14 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
               {weekTotal.toFixed(1)} km
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 44 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 56 }}>
             {weekKm.map((w, i) => {
-              const h = w.km > 0 ? Math.max(10, (w.km / maxWeekKm) * 100) : 6;
+              const maxPx = 40; // reservierte Bar-Hoehe (Rest = Label)
+              const h = w.km > 0 ? Math.max(6, (w.km / maxWeekKm) * maxPx) : 3;
               return (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
                   <div style={{
-                    width: "100%", height: `${h}%`,
+                    width: "100%", height: `${h}px`,
                     background: w.km > 0
                       ? `linear-gradient(180deg, ${teamColor}, ${teamColor}55)`
                       : "rgba(255,255,255,0.08)",
@@ -4011,9 +4012,9 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
                     border: w.isToday ? `1px solid ${w.km > 0 ? "#FFF" : teamColor}` : "none",
                   }} />
                   <span style={{
-                    fontSize: 8, color: w.isToday ? teamColor : MUTED,
+                    fontSize: 9, color: w.isToday ? teamColor : MUTED,
                     fontWeight: w.isToday ? 800 : 600,
-                  }}>{w.label}</span>
+                  }}>{w.label}{w.km > 0 ? ` · ${w.km.toFixed(1)}` : ""}</span>
                 </div>
               );
             })}
