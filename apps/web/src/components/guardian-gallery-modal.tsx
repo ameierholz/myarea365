@@ -13,14 +13,20 @@ void uploadArtworkDirect;
 
 type Tab = "all" | GuardianType;
 
+type OwnedLite = { id: string; archetype_id: string; level: number; is_active: boolean };
+
 export function GuardianGalleryModal({
   archetypes, ownedIds, onClose, isAdmin = false, onImageUploaded,
+  ownedGuardians, activeArchetypeId, onActivate,
 }: {
   archetypes: GuardianArchetype[];
   ownedIds: Set<string>;
   onClose: () => void;
   isAdmin?: boolean;
   onImageUploaded?: () => void;
+  ownedGuardians?: OwnedLite[];
+  activeArchetypeId?: string | null;
+  onActivate?: (archetypeId: string) => Promise<void> | void;
 }) {
   const [tab, setTab] = useState<Tab>("all");
   const [onlyMissingArt, setOnlyMissingArt] = useState(false);
@@ -106,8 +112,11 @@ export function GuardianGalleryModal({
               <GalleryCard
                 key={a.id} archetype={a}
                 owned={ownedIds.has(a.id)}
+                isActive={activeArchetypeId === a.id}
+                ownedLevel={ownedGuardians?.find((g) => g.archetype_id === a.id)?.level ?? null}
                 isAdmin={isAdmin}
                 onUploaded={onImageUploaded}
+                onActivate={onActivate}
               />
             ))}
           </div>
@@ -122,11 +131,14 @@ export function GuardianGalleryModal({
   );
 }
 
-function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
+function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null, isAdmin, onUploaded, onActivate }: {
   archetype: GuardianArchetype;
   owned: boolean;
+  isActive?: boolean;
+  ownedLevel?: number | null;
   isAdmin: boolean;
   onUploaded?: () => void;
+  onActivate?: (archetypeId: string) => Promise<void> | void;
 }) {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -179,9 +191,10 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
         <div style={{
           position: "absolute", top: 6, right: 6,
           padding: "2px 7px", borderRadius: 999,
-          background: "#4ade80", color: "#0F1115",
+          background: isActive ? r.color : "#4ade80",
+          color: "#0F1115",
           fontSize: 8, fontWeight: 900, letterSpacing: 0.5, zIndex: 2,
-        }}>✓ Besitzt</div>
+        }}>{isActive ? "AKTIV" : `Lvl ${ownedLevel ?? 1}`}</div>
       )}
       {!hasArt && (
         <div style={{
@@ -209,6 +222,15 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
         <div style={{ color: "#FFD700", fontSize: 9, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           ⚡ {a.ability_name}
         </div>
+      )}
+
+      {/* Activate-Button fuer owned + not active */}
+      {owned && !isActive && onActivate && (
+        <button onClick={() => onActivate(a.id)} style={{
+          width: "100%", marginTop: 6, padding: "5px 6px", borderRadius: 6,
+          background: `${r.color}33`, border: `1px solid ${r.color}`,
+          color: r.color, fontSize: 9, fontWeight: 900, cursor: "pointer",
+        }}>Aktivieren</button>
       )}
 
       {/* Admin-Controls: Prompt (Bild/Video) + Upload */}

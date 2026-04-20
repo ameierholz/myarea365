@@ -13,6 +13,7 @@ import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
+import { LoadoutTrio } from "@/components/loadout-trio";
 import { GuardianHelpButton, GuardianGuideBanner } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -1829,129 +1830,18 @@ function ProfilTab({
         </div>
 
         {/* ═══ WÄCHTER ═══ */}
-        <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
+        <SectionHeader title="WÄCHTER · MAP-ICON · RUNNER-LIGHT" action={<GuardianHelpButton />} />
         <GuardianGuideBanner />
 
-        {/* ═══ MEINE SAMMLUNG ═══ */}
-        <div style={{ padding: 14, borderRadius: 16, background: "rgba(70, 82, 122, 0.25)", border: "1px solid rgba(255,255,255,0.08)", marginBottom: 14 }}>
-          <GuardianCollectionPanel />
-        </div>
-
-        {/* Ausrüstung entfernt — CoD-Rework: Progression läuft über Talente + Skills */}
-
-        {/* ═══ MAP-ICONS (10 Stück) ═══ */}
-        <div style={{ width: "100%", marginTop: 25, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div>
-            <div style={{ fontSize: 15, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE MAP-ICONS</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-              {UNLOCKABLE_MARKERS.filter(m => m.cost <= userXp).length} / {UNLOCKABLE_MARKERS.length} freigeschaltet
-            </div>
-          </div>
-          <button
-            onClick={handleRewardedAd}
-            style={{
-              background: "rgba(93, 218, 240, 0.1)",
-              paddingTop: 8, paddingBottom: 8, paddingLeft: 14, paddingRight: 14,
-              borderRadius: 15,
-              border: `1px solid ${PRIMARY}`,
-              display: "flex", alignItems: "center", gap: 6,
-              cursor: "pointer",
-            }}
-          >
-            <span>📺</span>
-            <span style={{ color: PRIMARY, fontSize: 11, fontWeight: "bold" }}>+250 XP</span>
-          </button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "row", paddingTop: 10, paddingBottom: 10, overflowX: "auto", gap: 10 }}>
-          {UNLOCKABLE_MARKERS.map((marker) => {
-            const isUnlocked = userXp >= marker.cost;
-            const isEquipped = equippedMarker === marker.id;
-            return (
-              <button
-                key={marker.id}
-                onClick={() => {
-                  if (isUnlocked) equipMarker(marker.id);
-                  else appAlert(`🔒 Du brauchst ${marker.cost.toLocaleString()} XP für "${marker.name}"`);
-                }}
-                style={{
-                  background: isEquipped ? `${PRIMARY}15` : "rgba(70, 82, 122, 0.45)",
-                  padding: 14, borderRadius: 16,
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  minWidth: 90, maxWidth: 90,
-                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid rgba(255, 255, 255, 0.1)",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  boxShadow: isEquipped ? `0 0 20px ${PRIMARY}40` : "none",
-                }}
-              >
-                <span style={{ fontSize: 36, marginBottom: 8, opacity: isUnlocked ? 1 : 0.25 }}>{marker.icon}</span>
-                <span style={{ color: "#FFF", fontSize: 13, fontWeight: "bold", marginBottom: 5 }}>{marker.name}</span>
-                {isUnlocked ? (
-                  <span style={{ fontSize: 12, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
-                    {isEquipped ? "✓ AKTIV" : "Frei"}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 12, fontWeight: "bold", color: "#FFD700" }}>🔒 {marker.cost >= 1000 ? `${marker.cost/1000}k` : marker.cost}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ═══ RUNNER LIGHTS (10 Schweif-Varianten) ═══ */}
-        <div style={{ width: "100%", marginTop: 25, marginBottom: 10 }}>
-          <div style={{ fontSize: 15, color: PRIMARY, fontWeight: "bold", letterSpacing: 1.5 }}>DEINE RUNNER LIGHTS</div>
-          <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-            Schweif beim Laufen · {RUNNER_LIGHTS.filter(l => l.cost <= userXp).length} / {RUNNER_LIGHTS.length} freigeschaltet
-          </div>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "row", paddingTop: 10, paddingBottom: 10, overflowX: "auto", gap: 10 }}>
-          {RUNNER_LIGHTS.map((light) => {
-            const isUnlocked = userXp >= light.cost;
-            const isEquipped = equippedLight === light.id;
-            const gradientCss = light.gradient.length > 1
-              ? `linear-gradient(90deg, ${light.gradient.join(", ")})`
-              : light.color;
-            return (
-              <button
-                key={light.id}
-                onClick={() => {
-                  if (isUnlocked) equipLight(light.id);
-                  else appAlert(`🔒 Du brauchst ${light.cost.toLocaleString()} XP für "${light.name}"`);
-                }}
-                style={{
-                  background: isEquipped ? `${PRIMARY}15` : "rgba(70, 82, 122, 0.45)",
-                  padding: 14, borderRadius: 16,
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  minWidth: 100, maxWidth: 100,
-                  border: isEquipped ? `2px solid ${PRIMARY}` : "1px solid rgba(255, 255, 255, 0.1)",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  boxShadow: isEquipped ? `0 0 20px ${PRIMARY}40` : "none",
-                }}
-              >
-                <div style={{
-                  width: 60, height: light.width,
-                  borderRadius: light.width / 2,
-                  background: gradientCss,
-                  opacity: isUnlocked ? 1 : 0.3,
-                  marginBottom: 8, marginTop: 8,
-                  boxShadow: isUnlocked ? `0 0 12px ${light.color}80` : "none",
-                }} />
-                <span style={{ color: "#FFF", fontSize: 13, fontWeight: "bold", marginBottom: 5 }}>{light.name}</span>
-                {isUnlocked ? (
-                  <span style={{ fontSize: 12, fontWeight: "bold", color: isEquipped ? PRIMARY : "#4ade80" }}>
-                    {isEquipped ? "✓ AKTIV" : "Frei"}
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 12, fontWeight: "bold", color: "#FFD700" }}>🔒 {light.cost >= 1000 ? `${light.cost/1000}k` : light.cost}</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* Kompaktes Loadout-Trio — alles Weitere in Modals */}
+        <LoadoutTrio
+          userXp={userXp}
+          equippedMarker={equippedMarker}
+          equippedLight={equippedLight}
+          onEquipMarker={equipMarker}
+          onEquipLight={equipLight}
+          isAdmin={["admin","super_admin"].includes((p as unknown as { role?: string })?.role ?? "user")}
+        />
 
         {/* ═══ EINSTELLUNGEN, ACCOUNT, XP-GUIDE, SHARE als Modal-Trigger ═══ */}
         <div style={{ marginTop: 30, display: "flex", flexDirection: "column", gap: 10 }}>
