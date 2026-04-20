@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import {
   rarityMeta, TYPE_META, RARITY_META,
@@ -8,6 +8,8 @@ import {
 } from "@/lib/guardian";
 import { buildArchetypePrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
+// referenced below but linter misdetects — keep explicit
+void uploadArtworkDirect;
 
 type Tab = "all" | GuardianType;
 
@@ -137,15 +139,6 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
   const hasArt = hasImage || hasVideo;
 
   const [promptMode, setPromptMode] = useState<"image" | "video">("image");
-  const prompt = useMemo(() => buildArchetypePrompt({
-    name: a.name,
-    rarity: a.rarity as "elite" | "epic" | "legendary",
-    guardianType: a.guardian_type,
-    role: a.role,
-    abilityName: a.ability_name,
-    lore: a.lore,
-    mode: promptMode,
-  }), [a, promptMode]);
 
   async function copyPromptFor(mode: "image" | "video") {
     setPromptMode(mode);
