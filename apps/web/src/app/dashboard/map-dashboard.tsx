@@ -8,6 +8,7 @@ import { BoostShopModal as PowerShopModal } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
 import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
+import { RunRouteModal } from "@/components/run-route-modal";
 import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
@@ -6631,6 +6632,8 @@ function fmtDateLocal(iso: string): string {
 
 function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
   const [open, setOpen] = useState(false);
+  const [routeOpen, setRouteOpen] = useState(false);
+  const [actionBusy, setActionBusy] = useState<null | "share" | "gpx">(null);
 
   const km = run.distance_m / 1000;
   const duration = run.duration_s;
@@ -6757,17 +6760,40 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
 
           {/* Aktionen */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={actionBtnStyle()} onClick={() => appAlert("Route auf Karte zeigen (folgt)")}>
+            <button style={actionBtnStyle()} onClick={() => setRouteOpen(true)}>
               🗺️ Route anzeigen
             </button>
-            <button style={actionBtnStyle()} onClick={() => appAlert("Lauf teilen (folgt)")}>
-              📤 Teilen
+            <button style={actionBtnStyle()} disabled={actionBusy === "share"} onClick={async () => {
+              setActionBusy("share");
+              try {
+                const { shareRun } = await import("@/lib/run-export");
+                const r = await shareRun({
+                  street_name: run.street_name,
+                  distance_m: run.distance_m,
+                  duration_s: run.duration_s,
+                  xp_earned: run.xp_earned,
+                });
+                if (r.ok && r.shared) await appAlert("✓ Geteilt oder in Zwischenablage kopiert.");
+                else if (!r.ok) await appAlert("Teilen nicht möglich.");
+              } finally { setActionBusy(null); }
+            }}>
+              {actionBusy === "share" ? "…" : "📤 Teilen"}
             </button>
-            <button style={actionBtnStyle()} onClick={() => appAlert("Details exportieren (GPX / CSV — folgt)")}>
-              📥 GPX-Export
+            <button style={actionBtnStyle()} disabled={actionBusy === "gpx"} onClick={async () => {
+              setActionBusy("gpx");
+              try {
+                const { exportRunAsGPX } = await import("@/lib/run-export");
+                const r = await exportRunAsGPX(run.id, run.street_name);
+                if (!r.ok) await appAlert(r.error || "GPX-Export fehlgeschlagen.");
+              } finally { setActionBusy(null); }
+            }}>
+              {actionBusy === "gpx" ? "…" : "📥 GPX-Export"}
             </button>
           </div>
         </div>
+      )}
+      {routeOpen && (
+        <RunRouteModal runId={run.id} streetName={run.street_name} teamColor={teamColor} onClose={() => setRouteOpen(false)} />
       )}
     </div>
   );
