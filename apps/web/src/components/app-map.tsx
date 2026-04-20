@@ -350,6 +350,8 @@ interface AppMapProps {
   auraActive?: boolean;
   mapTheme?: string | null;
   pinTheme?: "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null;
+  crewColor?: string | null;
+  crewName?: string | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Territorium) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
@@ -403,7 +405,12 @@ function polygonFeature(area: ClaimedArea) {
 }
 
 // Eigenes Marker-DOM (Emoji mit Glow)
-function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, supporterTier?: "bronze" | "silver" | "gold" | null, auraActive = false): HTMLDivElement {
+function buildSelfMarkerEl(
+  emoji: string, color: string, isRunning: boolean,
+  supporterTier?: "bronze" | "silver" | "gold" | null,
+  auraActive = false,
+  crewColor?: string | null, crewName?: string | null,
+): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
   const el = document.createElement("div");
@@ -419,6 +426,10 @@ function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, sup
   const supporterChip = tierCfg
     ? `<div style="position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:11px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
     : "";
+  // Crew-Standfuss: farbiges Band unter dem Pin (eigene Layer, kollidiert nicht mit Theme/Supporter)
+  const crewFoot = crewColor
+    ? `<div title="Crew: ${crewName ?? ""}" style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:30px;height:5px;border-radius:3px;background:${crewColor};border:1px solid rgba(255,255,255,0.55);box-shadow:0 2px 6px rgba(0,0,0,0.55),0 0 10px ${crewColor}99;z-index:2"></div>`
+    : "";
   const auraLayer = auraActive
     ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>
        <div style="position:absolute;width:${size + 14}px;height:${size + 14}px;border-radius:50%;border:2px solid #FFD700aa;box-shadow:0 0 20px #FFD700cc;animation:auraPulse 2s ease-in-out infinite"></div>`
@@ -427,6 +438,7 @@ function buildSelfMarkerEl(emoji: string, color: string, isRunning: boolean, sup
     ${auraLayer}
     <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
     <span style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
+    ${crewFoot}
     ${supporterChip}
     <style>
       @keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}
@@ -530,6 +542,8 @@ export function AppMap({
   auraActive = false,
   mapTheme = null,
   pinTheme = "default",
+  crewColor = null,
+  crewName = null,
   walkedSegments = [],
   claimedStreets = [],
   ownedTerritories = [],
@@ -778,7 +792,7 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName);
       wrapForZoomScale(el);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
@@ -786,12 +800,12 @@ export function AppMap({
     } else {
       selfMarkerRef.current.setLngLat([pos.lng, pos.lat]);
     }
-  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive]);
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive, crewColor, crewName]);
 
-  // Tier-Wechsel: Marker neu bauen
+  // Tier-/Crew-Wechsel: Marker neu bauen
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive);
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName);
     wrapForZoomScale(el);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
@@ -801,7 +815,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier, auraActive]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive, crewColor, crewName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {
