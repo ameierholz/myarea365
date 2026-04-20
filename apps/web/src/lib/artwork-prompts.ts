@@ -197,8 +197,8 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
       `Lighting: teal cyan rim light from the character's left side, magenta-pink rim light from the right side, faint cool moonlight from above. Legendary characters also get warm gold rim highlights. Ambient particles (dust, sparks, mist) rise slowly around the character's feet.`,
       // 6) Umgebung
       `Background: deeply out-of-focus night cityscape, only soft blurred hints of distant neon and street lights in the far distance, heavy shadow. The background has very subtle parallax but never steals attention from the character.`,
-      // 7) Loop-Qualität
-      `The first and last frame must match so the clip loops seamlessly.`,
+      // 7) Loop-Qualität — strikte Anweisung fuer saubere Loops
+      `The final frame must exactly match the first frame. Static poses at both start and end, identical character position and pose. The first and last frame must match so the clip loops seamlessly.`,
       // 8) Negatives
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness. Fully original invented character.`,
     ].filter(Boolean).join(" ");

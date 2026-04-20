@@ -272,12 +272,24 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
 
         <div className="grid grid-cols-2 gap-2 mt-3">
           <button onClick={() => copyPrompt("image")}
-            className="text-[11px] bg-[#0F1115] border border-[#22D1C3]/40 rounded-lg py-1.5 hover:bg-[#22D1C3]/10 font-bold text-[#22D1C3]">
-            {copiedKind === "image" ? "✓ Bild-Prompt" : "📋 Bild"}
+            className={`text-[11px] rounded-lg py-1.5 font-bold relative ${
+              hasImage
+                ? "bg-[#4ade80]/15 border border-[#4ade80]/50 text-[#4ade80] hover:bg-[#4ade80]/25"
+                : "bg-[#0F1115] border border-[#22D1C3]/40 text-[#22D1C3] hover:bg-[#22D1C3]/10"
+            }`}>
+            {copiedKind === "image"
+              ? "✓ Prompt kopiert"
+              : hasImage ? "✅ Bild ok · 📋" : "📋 Bild-Prompt"}
           </button>
           <button onClick={() => copyPrompt("video")}
-            className="text-[11px] bg-[#0F1115] border border-[#FF2D78]/40 rounded-lg py-1.5 hover:bg-[#FF2D78]/10 font-bold text-[#FF2D78]">
-            {copiedKind === "video" ? "✓ Video-Prompt" : "🎬 Video"}
+            className={`text-[11px] rounded-lg py-1.5 font-bold relative ${
+              hasVideo
+                ? "bg-[#4ade80]/15 border border-[#4ade80]/50 text-[#4ade80] hover:bg-[#4ade80]/25"
+                : "bg-[#0F1115] border border-[#FF2D78]/40 text-[#FF2D78] hover:bg-[#FF2D78]/10"
+            }`}>
+            {copiedKind === "video"
+              ? "✓ Prompt kopiert"
+              : hasVideo ? "✅ Video ok · 📋" : "🎬 Video-Prompt"}
           </button>
         </div>
 

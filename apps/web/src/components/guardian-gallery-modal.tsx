@@ -131,7 +131,9 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
 
   const r = rarityMeta(a.rarity);
   const typ = a.guardian_type ? TYPE_META[a.guardian_type] : null;
-  const hasArt = !!a.image_url;
+  const hasImage = !!a.image_url;
+  const hasVideo = !!a.video_url;
+  const hasArt = hasImage || hasVideo;
 
   const [promptMode, setPromptMode] = useState<"image" | "video">("image");
   const prompt = useMemo(() => buildArchetypePrompt({
@@ -227,20 +229,30 @@ function GalleryCard({ archetype: a, owned, isAdmin, onUploaded }: {
       {isAdmin && (
         <>
           <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
-            <button onClick={() => copyPromptFor("image")} style={{
-              flex: 1, padding: "4px 2px", borderRadius: 6,
-              background: promptMode === "image" ? "#22D1C3" : "rgba(34,209,195,0.15)",
-              border: "1px solid rgba(34,209,195,0.4)",
-              color: promptMode === "image" ? "#0F1115" : "#22D1C3",
-              fontSize: 9, fontWeight: 900, cursor: "pointer",
-            }}>{copied && promptMode === "image" ? "✓" : "📋 Bild"}</button>
-            <button onClick={() => copyPromptFor("video")} style={{
-              flex: 1, padding: "4px 2px", borderRadius: 6,
-              background: promptMode === "video" ? "#FF2D78" : "rgba(255,45,120,0.15)",
-              border: "1px solid rgba(255,45,120,0.4)",
-              color: promptMode === "video" ? "#FFF" : "#FF2D78",
-              fontSize: 9, fontWeight: 900, cursor: "pointer",
-            }}>{copied && promptMode === "video" ? "✓" : "🎬"}</button>
+            <button onClick={() => copyPromptFor("image")} title={hasImage ? "Bild bereits hochgeladen" : "Bild-Prompt kopieren"}
+              style={{
+                flex: 1, padding: "4px 2px", borderRadius: 6,
+                background: hasImage ? "rgba(74,222,128,0.2)"
+                  : promptMode === "image" ? "#22D1C3" : "rgba(34,209,195,0.15)",
+                border: `1px solid ${hasImage ? "rgba(74,222,128,0.5)" : "rgba(34,209,195,0.4)"}`,
+                color: hasImage ? "#4ade80"
+                  : promptMode === "image" ? "#0F1115" : "#22D1C3",
+                fontSize: 9, fontWeight: 900, cursor: "pointer",
+              }}>
+              {copied && promptMode === "image" ? "✓ kopiert" : hasImage ? "✅ Bild" : "📋 Bild"}
+            </button>
+            <button onClick={() => copyPromptFor("video")} title={hasVideo ? "Video bereits hochgeladen" : "Video-Prompt kopieren"}
+              style={{
+                flex: 1, padding: "4px 2px", borderRadius: 6,
+                background: hasVideo ? "rgba(74,222,128,0.2)"
+                  : promptMode === "video" ? "#FF2D78" : "rgba(255,45,120,0.15)",
+                border: `1px solid ${hasVideo ? "rgba(74,222,128,0.5)" : "rgba(255,45,120,0.4)"}`,
+                color: hasVideo ? "#4ade80"
+                  : promptMode === "video" ? "#FFF" : "#FF2D78",
+                fontSize: 9, fontWeight: 900, cursor: "pointer",
+              }}>
+              {copied && promptMode === "video" ? "✓ kopiert" : hasVideo ? "✅ Video" : "🎬 Video"}
+            </button>
           </div>
           <label style={{
             marginTop: 4, display: "block", padding: "4px 4px", borderRadius: 6,
