@@ -4,16 +4,41 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type ShopItem = {
   id: string;
-  category: "cosmetic" | "booster" | "convenience" | "arena_pass" | "crew_emblem";
+  category: "cosmetic" | "booster" | "convenience" | "arena_pass" | "crew_emblem" | "monthly_pass";
   name: string; description: string; icon: string; price_gems: number;
   duration_hours: number | null; payload: Record<string, unknown>; sort: number;
 };
+type MonthlyActivePass = {
+  purchase_id: string; shop_item_id: string; name: string; icon: string;
+  payload: { daily_gems?: number; xp_multiplier?: number; features?: string[] };
+  expires_at: string | null; claimed_today: boolean;
+};
 type Gems = { user_id: string; gems: number; arena_pass_expires_at: string | null; total_purchased: number; total_spent: number };
 type Purchase = { id: string; shop_item_id: string; price_paid_gems: number; expires_at: string | null; created_at: string };
-type CategoryKey = "arena_pass" | "booster" | "cosmetic" | "convenience" | "crew_emblem";
+type CategoryKey = "monthly_pass" | "booster" | "cosmetic" | "convenience" | "crew_emblem";
+
+type DailyContent = { type: string; amount: number; label: string };
+type DailyPack = {
+  id: string; sort: number; tier: "bronze" | "silver" | "gold";
+  name: string; subtitle: string; icon: string;
+  price_gems: number; bonus_gem_badge: number;
+  contents: DailyContent[];
+};
+type DailyResponse = {
+  packs: DailyPack[];
+  purchased_today: string[];
+  gems: number;
+  reset_in_seconds: number;
+};
+
+const TIER_META: Record<DailyPack["tier"], { color: string; glow: string; label: string }> = {
+  bronze: { color: "#cd7f32", glow: "rgba(205,127,50,0.28)",   label: "BRONZE" },
+  silver: { color: "#d8d8d8", glow: "rgba(216,216,216,0.28)",  label: "SILBER" },
+  gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.38)",    label: "GOLD"   },
+};
 
 const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = {
-  arena_pass:  { label: "Arena-Pass",       icon: "🎫", accent: "#FFD700" },
+  monthly_pass:{ label: "Monatspacks",      icon: "🎫", accent: "#FFD700" },
   booster:     { label: "XP-Booster",       icon: "⚡", accent: "#22D1C3" },
   cosmetic:    { label: "Skins & Designs",  icon: "✨", accent: "#a855f7" },
   convenience: { label: "Komfort",          icon: "🎯", accent: "#5ddaf0" },
@@ -24,20 +49,39 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [gems, setGems] = useState<Gems | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [daily, setDaily] = useState<DailyResponse | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [resetIn, setResetIn] = useState<number>(0);
+
+  const [monthlyActive, setMonthlyActive] = useState<MonthlyActivePass[]>([]);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/shop/gems");
-    if (!res.ok) return;
-    const data = await res.json();
-    setItems(data.items ?? []); setGems(data.gems ?? null); setPurchases(data.purchases ?? []);
+    const [s, d, m] = await Promise.all([
+      fetch("/api/shop/gems").then((r) => r.ok ? r.json() : null),
+      fetch("/api/shop/daily").then((r) => r.ok ? r.json() : null),
+      fetch("/api/shop/monthly").then((r) => r.ok ? r.json() : null),
+    ]);
+    if (s) { setItems(s.items ?? []); setGems(s.gems ?? null); setPurchases(s.purchases ?? []); }
+    if (d) { setDaily(d as DailyResponse); setResetIn(d.reset_in_seconds ?? 0); }
+    if (m) { setMonthlyActive((m.active_passes ?? []) as MonthlyActivePass[]); }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  // Countdown zum Reset
+  useEffect(() => {
+    if (resetIn <= 0) return;
+    const id = setInterval(() => setResetIn((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [resetIn]);
+
   const grouped = useMemo(() => {
-    const map: Record<CategoryKey, ShopItem[]> = { arena_pass: [], booster: [], cosmetic: [], convenience: [], crew_emblem: [] };
-    for (const i of items) map[i.category].push(i);
+    const map: Record<CategoryKey, ShopItem[]> = { monthly_pass: [], booster: [], cosmetic: [], convenience: [], crew_emblem: [] };
+    for (const i of items) {
+      // Legacy 'arena_pass' category wird als monthly_pass angezeigt
+      const cat = (i.category === "arena_pass" ? "monthly_pass" : i.category) as CategoryKey;
+      if (map[cat]) map[cat].push(i);
+    }
     return map;
   }, [items]);
 
@@ -66,6 +110,45 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
     await fetch("/api/shop/gems", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "topup", gems: 1000 }) });
     await load();
   }
+
+  async function purchaseDaily(packId: string) {
+    setBusy(packId);
+    try {
+      const res = await fetch("/api/shop/daily", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pack_id: packId }),
+      });
+      const json = await res.json() as { ok?: boolean; error?: string; have?: number; need?: number };
+      if (json.ok) { setToast("🎁 Tages-Pack eingelöst!"); await load(); }
+      else setToast(
+        json.error === "already_purchased_today" ? "Heute schon gekauft — Reset um 00:00 UTC"
+        : json.error === "not_enough_gems" ? `Nicht genug Edelsteine (${json.have}/${json.need})`
+        : (json.error ?? "Kauf fehlgeschlagen")
+      );
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  async function claimMonthly(purchaseId: string) {
+    setBusy(purchaseId);
+    try {
+      const res = await fetch("/api/shop/monthly", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ purchase_id: purchaseId }),
+      });
+      const json = await res.json() as { ok?: boolean; claimed_gems?: number; error?: string };
+      if (json.ok) { setToast(`🎁 +${json.claimed_gems} Edelsteine erhalten!`); await load(); }
+      else setToast(json.error === "already_claimed_today" ? "Heute schon abgeholt" : (json.error ?? "Fehler"));
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  const resetHours = Math.floor(resetIn / 3600);
+  const resetMins = Math.floor((resetIn % 3600) / 60);
 
   return (
     <div onClick={onClose} style={{
@@ -115,6 +198,132 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
           <div style={{ marginBottom: 10, padding: 8, borderRadius: 8, background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.3)", fontSize: 11, color: "#a8b4cf" }}>
             <b style={{ color: "#22D1C3" }}>Fair-Play:</b> Edelsteine kaufen nur Skins, Booster, Komfort. Siegel, Wächter, XP — nur durchs Gehen.
           </div>
+
+          {/* 🎫 AKTIVE MONATSPACKS (Daily Claim) */}
+          {monthlyActive.length > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
+                🎫 AKTIVE MONATSPACKS
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {monthlyActive.map((p) => {
+                  const canClaim = !p.claimed_today;
+                  const daily = p.payload.daily_gems ?? 0;
+                  const xpMult = p.payload.xp_multiplier;
+                  const expiresDate = p.expires_at ? new Date(p.expires_at).toLocaleDateString("de-DE") : null;
+                  return (
+                    <div key={p.purchase_id} style={{
+                      padding: 10, borderRadius: 12,
+                      background: "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(168,85,247,0.08))",
+                      border: "1px solid rgba(255,215,0,0.4)",
+                      display: "flex", alignItems: "center", gap: 10,
+                    }}>
+                      <div style={{ fontSize: 28 }}>{p.icon}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{p.name}</div>
+                        <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
+                          {daily > 0 && `💎 ${daily}/Tag`}
+                          {xpMult && ` · ⚡ ${xpMult}× XP`}
+                          {expiresDate && ` · bis ${expiresDate}`}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => canClaim && claimMonthly(p.purchase_id)}
+                        disabled={!canClaim || busy === p.purchase_id}
+                        style={{
+                          padding: "7px 11px", borderRadius: 10,
+                          background: canClaim ? "linear-gradient(135deg, #FFD700, #FF6B4A)" : "rgba(74,222,128,0.15)",
+                          color: canClaim ? "#0F1115" : "#4ade80",
+                          border: canClaim ? "none" : "1px solid rgba(74,222,128,0.4)",
+                          fontSize: 10, fontWeight: 900,
+                          cursor: canClaim ? "pointer" : "not-allowed", whiteSpace: "nowrap",
+                        }}>
+                        {canClaim ? `🎁 +${daily} abholen` : "✓ heute geholt"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 🔥 TÄGLICHE ANGEBOTE */}
+          {daily && daily.packs.length > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>🔥</span>
+                  <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
+                    TÄGLICHE ANGEBOTE
+                  </div>
+                </div>
+                <div style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 800 }}>
+                  🔄 Reset in {String(resetHours).padStart(2,"0")}:{String(resetMins).padStart(2,"0")}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                {daily.packs.map((p) => {
+                  const tm = TIER_META[p.tier];
+                  const owned = daily.purchased_today.includes(p.id);
+                  const cantAfford = (gems?.gems ?? 0) < p.price_gems;
+                  return (
+                    <div key={p.id} style={{
+                      padding: 8, borderRadius: 12,
+                      background: owned
+                        ? "rgba(74,222,128,0.08)"
+                        : `linear-gradient(180deg, ${tm.glow}, rgba(15,17,21,0.7))`,
+                      border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : tm.color}`,
+                      boxShadow: owned ? "none" : `0 0 10px ${tm.glow}`,
+                      position: "relative",
+                    }}>
+                      {p.bonus_gem_badge > 0 && !owned && (
+                        <div style={{
+                          position: "absolute", top: -8, right: -4,
+                          padding: "2px 7px", borderRadius: 999,
+                          background: "linear-gradient(135deg, #4ade80, #22D1C3)",
+                          color: "#0F1115", fontSize: 9, fontWeight: 900,
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                        }}>+{p.bonus_gem_badge}💎</div>
+                      )}
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 26 }}>{p.icon}</div>
+                        <div style={{ color: tm.color, fontSize: 9, fontWeight: 900, letterSpacing: 1, marginTop: 2 }}>
+                          {tm.label}
+                        </div>
+                        <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 2 }}>{p.name}</div>
+                      </div>
+                      <ul style={{ margin: "8px 0 8px 14px", padding: 0, listStyle: "disc", color: "#a8b4cf", fontSize: 9, lineHeight: 1.4 }}>
+                        {p.contents.map((c, i) => (
+                          <li key={i}>{c.label}</li>
+                        ))}
+                      </ul>
+                      <button
+                        onClick={() => !owned && !cantAfford && purchaseDaily(p.id)}
+                        disabled={owned || cantAfford || busy === p.id}
+                        style={{
+                          width: "100%", padding: "6px 4px", borderRadius: 8,
+                          background: owned
+                            ? "rgba(74,222,128,0.15)"
+                            : cantAfford
+                            ? "rgba(255,255,255,0.06)"
+                            : `linear-gradient(135deg, ${tm.color}, #FFD700)`,
+                          color: owned ? "#4ade80" : cantAfford ? "#6c7590" : "#0F1115",
+                          border: owned ? "1px solid rgba(74,222,128,0.4)" : "none",
+                          fontSize: 10, fontWeight: 900,
+                          cursor: owned || cantAfford ? "not-allowed" : "pointer",
+                        }}>
+                        {owned ? "✓ Heute eingelöst" : `💎 ${p.price_gems}`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
+                Jeder Pack 1× pro Tag · Reset um 00:00 UTC · Inhalte bleiben permanent
+              </div>
+            </section>
+          )}
           {(Object.keys(CATEGORY_META) as CategoryKey[]).map((cat) => {
             const meta = CATEGORY_META[cat];
             const list = grouped[cat];
