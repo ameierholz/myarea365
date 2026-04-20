@@ -75,13 +75,13 @@ export async function POST(req: NextRequest) {
 
 async function applyPurchaseEffect(sku: string, userId: string, crewId: string | null, businessId: string | null = null) {
   const sb = admin();
-  if (sku === "plus_monthly" || sku === "plus_yearly" || sku === "plus_lifetime") {
+  if (sku === "plus_monthly" || sku === "plus_yearly") {
     const plan = (PLANS as Record<string, { duration_days: number | null }>)[sku];
     const expiresAt = plan.duration_days
       ? new Date(Date.now() + plan.duration_days * 86400000).toISOString()
       : null;
     await sb.from("users").update({
-      premium_tier: sku === "plus_lifetime" ? "lifetime" : "plus",
+      premium_tier: "plus",
       premium_expires_at: expiresAt,
       streak_freezes_remaining: 3,
     }).eq("id", userId);

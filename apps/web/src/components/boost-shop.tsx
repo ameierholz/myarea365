@@ -2,13 +2,21 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice } from "@/lib/monetization";
+import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice, stackBoostUntil } from "@/lib/monetization";
 import { appAlert } from "@/components/app-dialog";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 
 type ShopTab = "boosts" | "xp" | "gameplay" | "cosmetics" | "extras";
 
+export function BoostShopBody({ userId, onDone }: { userId: string; onDone?: () => void }) {
+  return <BoostShopInner userId={userId} onClose={() => onDone?.()} embedded />;
+}
+
 export function BoostShopModal({ userId, onClose }: { userId: string; onClose: () => void }) {
+  return <BoostShopInner userId={userId} onClose={onClose} embedded={false} />;
+}
+
+function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose: () => void; embedded: boolean }) {
   const sb = createClient();
   const [tab, setTab] = useState<ShopTab>("boosts");
   const [loading, setLoading] = useState<string | null>(null);
@@ -40,10 +48,15 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
       if (sku.startsWith("boost_")) {
         const pack = (BOOST_PACKS as Record<string, { hours: number; multiplier: number }>)[sku];
         if (pack) {
+          const { data: u } = await sb.from("users").select("xp_boost_until, xp_boost_multiplier").eq("id", userId).single();
+          const stacked = stackBoostUntil(u?.xp_boost_until, u?.xp_boost_multiplier, pack.hours, pack.multiplier);
           await sb.from("users").update({
-            xp_boost_until: new Date(Date.now() + pack.hours * 3600 * 1000).toISOString(),
-            xp_boost_multiplier: pack.multiplier,
+            xp_boost_until: stacked.until,
+            xp_boost_multiplier: stacked.mult,
           }).eq("id", userId);
+          if (stacked.capped) {
+            appAlert("Boost-Zeit auf 14 Tage gecappt — der Rest wäre verloren gegangen.");
+          }
         }
       } else if (sku.startsWith("xp_")) {
         const pack = (XP_PACKS as Record<string, { xp: number }>)[sku];
@@ -134,11 +147,13 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
           await sb.from("users").update({ xp: (u?.xp ?? 0) + r.xp }).eq("id", userId);
           appAlert(`🎁 Mystery Box: +${r.xp.toLocaleString("de-DE")} XP!`);
         } else if (r.kind === "boost") {
+          const { data: u } = await sb.from("users").select("xp_boost_until, xp_boost_multiplier").eq("id", userId).single();
+          const stacked = stackBoostUntil(u?.xp_boost_until, u?.xp_boost_multiplier, r.boost_hours, r.mult);
           await sb.from("users").update({
-            xp_boost_until: new Date(Date.now() + r.boost_hours * 3600000).toISOString(),
-            xp_boost_multiplier: r.mult,
+            xp_boost_until: stacked.until,
+            xp_boost_multiplier: stacked.mult,
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: ${r.mult}× XP für ${r.boost_hours}h!`);
+          appAlert(`🎁 Mystery Box: ${r.mult}× XP für ${r.boost_hours}h!${stacked.capped ? " (auf 14d gecappt)" : ""}`);
         } else if (r.kind === "streak") {
           const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
           await sb.from("users").update({
@@ -171,10 +186,15 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
       } else if (sku === "crew_boost_24h") {
         const { data: u } = await sb.from("users").select("current_crew_id").eq("id", userId).single();
         if (u?.current_crew_id) {
+          const { data: c } = await sb.from("crews").select("xp_boost_until, xp_boost_multiplier").eq("id", u.current_crew_id).single();
+          const stacked = stackBoostUntil(c?.xp_boost_until, c?.xp_boost_multiplier, 24, 2);
           await sb.from("crews").update({
-            xp_boost_until: new Date(Date.now() + 24 * 3600000).toISOString(),
-            xp_boost_multiplier: 2,
+            xp_boost_until: stacked.until,
+            xp_boost_multiplier: stacked.mult,
           }).eq("id", u.current_crew_id);
+          if (stacked.capped) {
+            appAlert("Crew-Boost auf 14 Tage gecappt — der Rest wäre verloren gegangen.");
+          }
         }
       }
 
@@ -188,30 +208,18 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
     }
   }
 
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center",
-      background: "rgba(15,17,21,0.75)", backdropFilter: "blur(6px)",
-    }} onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 520, maxHeight: "85vh", overflowY: "auto",
-          background: "#1A1D23", border: "1px solid rgba(255,215,0,0.4)", borderRadius: "20px 20px 0 0",
-          padding: 24, color: "#F0F0F0",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>⚡</span>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 900 }}>Power-Shop</div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>XP-Boosts & Extras</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
+  const content = (
+    <>
+        <div style={{
+          padding: "10px 12px", borderRadius: 10, marginBottom: 12,
+          background: "rgba(255,215,0,0.07)", border: "1px dashed rgba(255,215,0,0.35)",
+          fontSize: 11, lineHeight: 1.5, color: "#a8b4cf",
+        }}>
+          <div style={{ color: "#FFD700", fontWeight: 900, marginBottom: 4, letterSpacing: 0.5 }}>⚡ SO FUNKTIONIEREN BOOSTS</div>
+          <div>• Zeit wird <b style={{ color: "#FFF" }}>aufaddiert</b> (gleicher Multiplikator) — max. <b style={{ color: "#FFF" }}>14 Tage</b> Restzeit.</div>
+          <div>• Personal- &amp; Crew-Boost <b style={{ color: "#FFF" }}>kombinieren sich nicht</b> — es gilt der höhere Wert (2× + 2× = 2×, nicht 4×).</div>
+          <div>• Boost zählt für <b style={{ color: "#FFF" }}>Level, Achievements, Deals &amp; Leaderboards</b>. Kein versteckter Haken.</div>
         </div>
-
         <div style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto" }}>
           <TabBtn active={tab === "boosts"} onClick={() => setTab("boosts")}>⚡ Boosts</TabBtn>
           <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>✨ XP</TabBtn>
@@ -258,6 +266,11 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
                   </div>
                   {desc && <div style={{ color: "#a8b4cf", fontSize: 10 }}>{desc}</div>}
                   {isBadge && <div style={{ color: "#a8b4cf", fontSize: 10 }}>monatlich · jederzeit kündbar</div>}
+                  {p.sku === "crew_boost_24h" && (
+                    <div style={{ color: "#FFD700", fontSize: 9, marginTop: 2 }}>
+                      ℹ️ Stapelt nicht mit Personal-Boost — es gilt der höhere Wert
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => buy(p.sku, p.name, p.price)}
@@ -279,10 +292,39 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
         <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 12 }}>
           Stripe-Integration folgt · aktuell Demo-Aktivierung
         </div>
-      </div>
       {checkoutSecret && (
         <StripeCheckoutModal clientSecret={checkoutSecret} onClose={() => setCheckoutSecret(null)} />
       )}
+    </>
+  );
+
+  if (embedded) return <div style={{ color: "#F0F0F0" }}>{content}</div>;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center",
+      background: "rgba(15,17,21,0.75)", backdropFilter: "blur(6px)",
+    }} onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 520, maxHeight: "85vh", overflowY: "auto",
+          background: "#1A1D23", border: "1px solid rgba(255,215,0,0.4)", borderRadius: "20px 20px 0 0",
+          padding: 24, color: "#F0F0F0",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 24 }}>⚡</span>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>Power-Shop</div>
+              <div style={{ fontSize: 11, color: "#a8b4cf" }}>XP-Boosts & Extras</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
+        </div>
+        {content}
+      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
+import { ShopHubModal } from "@/components/shop-hub-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
@@ -174,7 +175,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
   const [victoryTrigger, setVictoryTrigger] = useState(0);
-  const [activeTab, setActiveTab] = useState<TabId>("map");
+  const [activeTab, setActiveTab] = useState<TabId>("profil");
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedMarkerVariant, setEquippedMarkerVariant] = useState<"neutral" | "male" | "female">(
     ((initialProfile as unknown as { equipped_marker_variant?: "neutral"|"male"|"female" })?.equipped_marker_variant) || "neutral"
@@ -264,6 +265,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPosRef = useRef<Coord | null>(null);
+  const lastPosTimeRef = useRef<number>(0);
+  const speedViolationRef = useRef<number>(0);
+  const [speedWarning, setSpeedWarning] = useState(false);
   const lastGeoRef = useRef<number>(0);
 
   // Load recent runs when profile changes
@@ -441,6 +445,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     setCurrentStreet("Suche Position...");
     setActiveRoute([]);
     lastPosRef.current = null;
+    lastPosTimeRef.current = 0;
+    speedViolationRef.current = 0;
+    setSpeedWarning(false);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
   };
 
@@ -640,13 +647,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       if (lastPosRef.current) {
         const d = haversine(lastPosRef.current.lat, lastPosRef.current.lng, lat, lng);
         if (d > 3) {
+          // Anti-Cheat: Segment-Speed prüfen (kein Fahrrad/Roller/Auto-Farming)
+          // Max plausibel: ~25 km/h (6.94 m/s) — schnelle Läufer ok, Fahrrad+ raus
+          const dt = lastPosTimeRef.current > 0 ? (now - lastPosTimeRef.current) / 1000 : 0;
+          const speed = dt > 0 ? d / dt : 0; // m/s
+          const MAX_SPEED = 6.94; // 25 km/h
+          if (speed > MAX_SPEED) {
+            speedViolationRef.current += 1;
+            // Segment verwerfen (keine Distanz, keine Route), nur Position updaten
+            lastPosRef.current = { lat, lng };
+            lastPosTimeRef.current = now;
+            if (speedViolationRef.current >= 3) setSpeedWarning(true);
+            return;
+          }
+          if (speedViolationRef.current > 0) setSpeedWarning(false);
+          speedViolationRef.current = 0;
           setDistance((prev) => prev + d);
           setActiveRoute((prev) => [...prev, { lat, lng }]);
           lastPosRef.current = { lat, lng };
+          lastPosTimeRef.current = now;
         }
       } else {
         setActiveRoute([{ lat, lng }]);
         lastPosRef.current = { lat, lng };
+        lastPosTimeRef.current = now;
       }
 
       if (now - lastGeoRef.current > 5000) {
@@ -1049,6 +1073,23 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   <span style={{ marginLeft: 10, color: "#FFF" }}>⏳</span>
                 </div>
               )}
+              {walking && speedWarning && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: "rgba(255, 45, 120, 0.92)",
+                  padding: "10px 16px",
+                  borderRadius: 20,
+                  border: "1px solid #FF2D78",
+                  marginBottom: 12,
+                  boxShadow: "0 0 20px rgba(255,45,120,0.5)",
+                  pointerEvents: "auto",
+                }}>
+                  <span style={{ fontSize: 18 }}>🚫</span>
+                  <span style={{ color: "#FFF", fontWeight: 800, fontSize: 12, lineHeight: 1.3 }}>
+                    Zu schnell! Nur Gehen/Joggen zählt — keine XP für Fahrzeuge.
+                  </span>
+                </div>
+              )}
               <button
                 onClick={walking ? stopWalk : startWalk}
                 className={walking ? "ma365-walk-btn walking" : "ma365-walk-btn"}
@@ -1204,7 +1245,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           { id: "profil",  label: "Profil",  icon: "👤", color: "#22D1C3" }, // Teal
           { id: "map",     label: "Karte",   icon: "🗺️", color: "#5ddaf0" }, // Cyan
           { id: "crew",    label: "Crew",    icon: "👥", color: "#FF2D78" }, // Magenta
-          { id: "shops",   label: "Shops",   icon: "🏪", color: "#FFD700" }, // Gold
+          { id: "shops",   label: "Deals",   icon: "🏪", color: "#FFD700" }, // Gold
           { id: "ranking", label: "Ranking", icon: "🏆", color: "#FF6B4A" }, // Coral
         ].map((tab) => {
           const active = activeTab === tab.id;
@@ -1522,6 +1563,8 @@ function ProfilTab({
   const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks">(null);
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
+  const [showGemShop, setShowGemShop] = useState(false);
+  const [showShopHub, setShowShopHub] = useState(false);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
 
   // Click auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal.
@@ -2023,73 +2066,63 @@ function ProfilTab({
         )}
 
         {p && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            {isPremium(p as never) ? (
-              <div style={{
-                padding: 14, borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(34,209,195,0.15), rgba(255,215,0,0.12))",
-                border: "1px solid rgba(34,209,195,0.5)",
-                display: "flex", alignItems: "center", gap: 10,
-              }}>
-                <span style={{ fontSize: 24 }}>💎</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "#22D1C3", fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>MYAREA+ AKTIV</div>
-                  <div style={{ color: "#a8b4cf", fontSize: 10 }}>
-                    {(p as unknown as { premium_expires_at?: string }).premium_expires_at
-                      ? `Gültig bis ${new Date((p as unknown as { premium_expires_at: string }).premium_expires_at).toLocaleDateString("de-DE")}`
-                      : "Lifetime — für immer"}
-                  </div>
-                </div>
-                <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>
-                  {(p as unknown as { streak_freezes_remaining?: number }).streak_freezes_remaining ?? 0} ❄️
-                </span>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowUpgrade("plus")}
-                style={{
-                  padding: 14, borderRadius: 14, border: "1px solid rgba(34,209,195,0.4)",
-                  background: "linear-gradient(135deg, rgba(34,209,195,0.08), rgba(255,45,120,0.08))",
-                  cursor: "pointer", textAlign: "left",
-                  display: "flex", alignItems: "center", gap: 10,
-                }}
-              >
-                <span style={{ fontSize: 24 }}>💎</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>MyArea+ freischalten</div>
-                  <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>Werbefrei · Offline-Karten · Themes · Streak-Freeze</div>
-                </div>
-                <span style={{ color: "#22D1C3", fontSize: 14, fontWeight: 900 }}>›</span>
-              </button>
-            )}
-
-            {hasActiveBoost(p as never) && (
-              <div style={{
-                padding: 10, borderRadius: 10,
-                background: "rgba(255, 215, 0, 0.15)", border: "1px solid rgba(255,215,0,0.5)",
-                display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 800, color: "#FFD700",
-              }}>
-                ⚡ {(p as unknown as { xp_boost_multiplier?: number }).xp_boost_multiplier ?? 2}× XP-Boost aktiv bis{" "}
-                {new Date((p as unknown as { xp_boost_until: string }).xp_boost_until).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
-              </div>
-            )}
-
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
             <button
-              onClick={() => setShowBoostShop(true)}
+              onClick={() => setShowShopHub(true)}
               style={{
-                padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(255, 215, 0, 0.4)",
-                background: "rgba(255, 215, 0, 0.08)", cursor: "pointer", textAlign: "left",
-                display: "flex", alignItems: "center", gap: 10,
+                position: "relative", overflow: "hidden",
+                padding: "14px 16px", borderRadius: 16, border: "1px solid rgba(34,209,195,0.35)",
+                background: "linear-gradient(135deg, rgba(34,209,195,0.14) 0%, rgba(93,218,240,0.08) 40%, rgba(255,215,0,0.10) 100%)",
+                cursor: "pointer", textAlign: "left",
+                display: "flex", alignItems: "center", gap: 12,
+                boxShadow: "0 2px 14px rgba(34,209,195,0.12)",
               }}
             >
-              <span style={{ fontSize: 22 }}>⚡</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>Power-Shop</div>
-                <div style={{ color: "#a8b4cf", fontSize: 11 }}>XP-Boosts · Streak-Freeze · Supporter-Badges</div>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, boxShadow: "0 0 16px rgba(34,209,195,0.45)",
+              }}>💎</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Shop</span>
+                  {isPremium(p as never) && (
+                    <span style={{
+                      fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                      padding: "2px 6px", borderRadius: 4,
+                      background: "rgba(34,209,195,0.2)", color: "#22D1C3",
+                      border: "1px solid rgba(34,209,195,0.45)",
+                    }}>MYAREA+ AKTIV</span>
+                  )}
+                  {hasActiveBoost(p as never) && (
+                    <span style={{
+                      fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                      padding: "2px 6px", borderRadius: 4,
+                      background: "rgba(255,215,0,0.18)", color: "#FFD700",
+                      border: "1px solid rgba(255,215,0,0.45)",
+                    }}>⚡ BOOST</span>
+                  )}
+                </div>
+                <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
+                  MyArea+ · Power · Diamanten
+                  {isPremium(p as never) && (p as unknown as { premium_expires_at?: string }).premium_expires_at && (
+                    <> · bis {new Date((p as unknown as { premium_expires_at: string }).premium_expires_at).toLocaleDateString("de-DE")}</>
+                  )}
+                </div>
               </div>
-              <span style={{ color: "#FFD700", fontSize: 14, fontWeight: 900 }}>›</span>
+              {isPremium(p as never) && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 3,
+                  padding: "4px 8px", borderRadius: 999,
+                  background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.3)",
+                  color: "#FFD700", fontSize: 11, fontWeight: 800, flexShrink: 0,
+                }}>
+                  {(p as unknown as { streak_freezes_remaining?: number }).streak_freezes_remaining ?? 0} ❄️
+                </div>
+              )}
+              <span style={{ color: "#22D1C3", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
             </button>
-
           </div>
         )}
 
@@ -2289,6 +2322,12 @@ function ProfilTab({
 
       {showBoostShop && p && (
         <PowerShopModal userId={p.id} onClose={() => setShowBoostShop(false)} />
+      )}
+
+      {showGemShop && <GemShopModal onClose={() => setShowGemShop(false)} />}
+
+      {showShopHub && p && (
+        <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} />
       )}
 
       {runnerProfileUserId && (
@@ -4014,7 +4053,7 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
                   <span style={{
                     fontSize: 9, color: w.isToday ? teamColor : MUTED,
                     fontWeight: w.isToday ? 800 : 600,
-                  }}>{w.label}{w.km > 0 ? ` · ${w.km.toFixed(1)}` : ""}</span>
+                  }}>{w.label}{w.km > 0 ? ` · ${w.km.toFixed(1)} km` : ""}</span>
                 </div>
               );
             })}
@@ -8800,7 +8839,7 @@ function ShopsTab() {
       }}>
         {([
           { id: "b2c", label: "🎁 Für Runner" },
-          { id: "b2b", label: "🏪 Für Shops" },
+          { id: "b2b", label: "🏪 Für Partner" },
         ] as const).map((m) => {
           const active = view === m.id;
           return (

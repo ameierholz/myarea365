@@ -58,7 +58,10 @@ export async function computeAndApplyWalkBonuses(
     }
   }
 
-  const totalMult = happyHourMult * boostMult * crewBoostMult;
+  // Personal- und Crew-Boost kombinieren sich NICHT (max, nicht Produkt)
+  // Verhindert 2× + 2× = 4× Exploit
+  const boostCombined = Math.max(boostMult, crewBoostMult);
+  const totalMult = happyHourMult * boostCombined;
   const finalXp = Math.round((baseXp + streakBonus) * totalMult);
 
   // Echte Zähler aus 3-Ebenen-Modell holen

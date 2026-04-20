@@ -32,22 +32,55 @@ export function currentMultiplier(user: User | null | undefined): number {
   return hasActiveBoost(user) ? (user?.xp_boost_multiplier ?? 2) : 1;
 }
 
+// Hard-Cap für Stacking: max 14 Tage Restzeit gleichzeitig
+export const BOOST_STACK_CAP_MS = 14 * 24 * 3600 * 1000;
+
+/**
+ * Berechnet das neue xp_boost_until beim Kauf eines Boost-Packs.
+ * Regel: Wenn aktiver Boost mit gleichem Multiplikator läuft, werden Stunden aufaddiert.
+ * Bei unterschiedlichem Multiplikator wird überschrieben.
+ * Restzeit ist immer auf 14 Tage ab jetzt gecappt.
+ */
+export function stackBoostUntil(
+  currentUntilIso: string | null | undefined,
+  currentMult: number | null | undefined,
+  addHours: number,
+  newMult: number,
+): { until: string; mult: number; capped: boolean } {
+  const now = Date.now();
+  const currentUntil = currentUntilIso ? new Date(currentUntilIso).getTime() : 0;
+  const isActiveSameMult = currentUntil > now && (currentMult ?? 0) === newMult;
+  const baseTime = isActiveSameMult ? currentUntil : now;
+  const targetTime = baseTime + addHours * 3600 * 1000;
+  const maxTime = now + BOOST_STACK_CAP_MS;
+  const capped = targetTime > maxTime;
+  const finalTime = Math.min(targetTime, maxTime);
+  return { until: new Date(finalTime).toISOString(), mult: newMult, capped };
+}
+
+/**
+ * Effektiver XP-Multiplikator: Max aus Personal- und Crew-Boost (nicht Produkt).
+ * Verhindert, dass jemand Solo 2× + Crew 2× = 4× laufen kann.
+ */
+export function effectiveMultiplier(personal: number, crew: number): number {
+  return Math.max(1, personal || 1, crew || 1);
+}
+
 // ── Preise (in Cents) ────────────────────────────────────────
 
 export const PLANS = {
-  plus_monthly:     { sku: "plus_monthly",     name: "MyArea+ Monat",       price: 399,   duration_days: 30,  target: "user" as const },
-  plus_yearly:      { sku: "plus_yearly",      name: "MyArea+ Jahr",        price: 2900,  duration_days: 365, target: "user" as const, savings_pct: 40 },
-  plus_lifetime:    { sku: "plus_lifetime",    name: "MyArea+ Lifetime",    price: 9900,  duration_days: null, target: "user" as const },
+  plus_monthly:     { sku: "plus_monthly",     name: "MyArea+ Monat",       price: 999,   duration_days: 30,  target: "user" as const },
+  plus_yearly:      { sku: "plus_yearly",      name: "MyArea+ Jahr",        price: 9900,  duration_days: 365, target: "user" as const, savings_pct: 17 },
   crew_pro_monthly: { sku: "crew_pro_monthly", name: "Crew-Pro Monat",      price: 999,   duration_days: 30,  target: "crew" as const },
   crew_pro_yearly:  { sku: "crew_pro_yearly",  name: "Crew-Pro Jahr",       price: 7900,  duration_days: 365, target: "crew" as const, savings_pct: 34 },
 };
 
 export const BOOST_PACKS = {
-  boost_24h:     { sku: "boost_24h",     name: "24 Stunden Doppel-XP",   price: 99,  multiplier: 2, hours: 24,  icon: "⚡" },
-  boost_48h:     { sku: "boost_48h",     name: "48 Stunden Doppel-XP",   price: 199, multiplier: 2, hours: 48,  icon: "⚡" },
-  boost_week_2x: { sku: "boost_week_2x", name: "1 Woche Doppel-XP",      price: 499, multiplier: 2, hours: 168, icon: "⚡" },
-  boost_week_3x: { sku: "boost_week_3x", name: "1 Woche Triple-XP",      price: 899, multiplier: 3, hours: 168, icon: "🔥" },
-  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",       price: 399, multiplier: 2, hours: 24,  icon: "👥", desc: "2× XP für alle deine Crew-Mitglieder" },
+  boost_24h:      { sku: "boost_24h",      name: "24 Stunden Doppel-XP", price: 199, multiplier: 2, hours: 24,  icon: "⚡" },
+  boost_48h:      { sku: "boost_48h",      name: "48 Stunden Doppel-XP", price: 299, multiplier: 2, hours: 48,  icon: "⚡" },
+  boost_weekend:  { sku: "boost_weekend",  name: "Weekend Doppel-XP",    price: 249, multiplier: 2, hours: 48,  icon: "🎉", desc: "2× XP für 2 Tage" },
+  boost_week_2x:  { sku: "boost_week_2x",  name: "1 Woche Doppel-XP",    price: 499, multiplier: 2, hours: 168, icon: "⚡" },
+  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",       price: 499, multiplier: 2, hours: 24,  icon: "👥", desc: "2× XP für alle deine Crew-Mitglieder" },
 };
 
 export const XP_PACKS = {
@@ -161,17 +194,17 @@ export const AD_REWARDS = {
 };
 
 // MyArea+ Features (als Display-Liste)
-export const PLUS_FEATURES = [
-  { icon: "🚫", title: "Werbefrei", desc: "Keine Banner, keine Pflicht-Videos" },
-  { icon: "📴", title: "Offline-Karten", desc: "Läufe ohne Datenvolumen aufzeichnen" },
-  { icon: "📊", title: "Erweiterte Statistik", desc: "Jahresvergleich, Kiez-Heatmap, HR-Import" },
-  { icon: "🎨", title: "Custom-Marker", desc: "Eigene Farbe & Emoji-Mix für deinen Pin" },
-  { icon: "🌈", title: "Profil-Themes", desc: "Animierte Banner & exklusive Badges" },
-  { icon: "❄️", title: "Streak-Freeze", desc: "3× / Monat Streak pausieren" },
-  { icon: "⚡", title: "Flash-Deal-Priorität", desc: "5 Min vor allen anderen sehen" },
-  { icon: "🔒", title: "Private Runs", desc: "Läufe aus öffentlichem Leaderboard halten" },
-  { icon: "📤", title: "GPX/TCX-Export", desc: "Zu Strava/Garmin exportieren" },
-  { icon: "🎙️", title: "Pace-Coach Voice", desc: "KI-Motivation während Lauf" },
+export const PLUS_FEATURES: { icon: string; title: string; desc: string; status: "live" | "soon" }[] = [
+  { icon: "🚫", title: "Werbefrei",             desc: "Keine Banner, keine Pflicht-Videos",                    status: "live" },
+  { icon: "❄️", title: "Streak-Freeze",          desc: "3× / Monat Streak pausieren",                           status: "live" },
+  { icon: "📤", title: "GPX/TCX-Export",         desc: "Zu Strava/Garmin exportieren",                          status: "live" },
+  { icon: "🎨", title: "Custom-Marker",          desc: "Eigene Farbe & Emoji-Mix für deinen Pin",               status: "soon" },
+  { icon: "🌈", title: "Profil-Themes",          desc: "Animierte Banner & exklusive Badges",                   status: "soon" },
+  { icon: "📴", title: "Offline-Karten",         desc: "Läufe ohne Datenvolumen aufzeichnen",                   status: "soon" },
+  { icon: "📊", title: "Erweiterte Statistik",   desc: "Jahresvergleich, Kiez-Heatmap, HR-Import",              status: "soon" },
+  { icon: "⚡", title: "Flash-Deal-Priorität",   desc: "5 Min vor allen anderen sehen",                         status: "soon" },
+  { icon: "🔒", title: "Private Runs",           desc: "Läufe aus öffentlichem Leaderboard halten",             status: "soon" },
+  { icon: "🎙️", title: "Pace-Coach Voice",       desc: "KI-Motivation während Lauf",                            status: "soon" },
 ];
 
 export const CREW_PRO_FEATURES = [

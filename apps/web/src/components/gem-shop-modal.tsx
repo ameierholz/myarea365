@@ -47,7 +47,26 @@ const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: 
   crew_emblem: { label: "Crew-Anpassung",   icon: "🏳️", accent: "#FF6B4A" },
 };
 
+export function GemShopBody() {
+  return <GemShopInner onClose={() => {}} embedded />;
+}
+
 export function GemShopModal({ onClose }: { onClose: () => void }) {
+  return <GemShopInner onClose={onClose} embedded={false} />;
+}
+
+type GemTab = "home" | "passes" | "boosters" | "skins" | "crew";
+
+const GEM_TABS: { id: GemTab; label: string; icon: string; color: string }[] = [
+  { id: "home",     label: "Start",      icon: "🏠", color: "#FFD700" },
+  { id: "passes",   label: "Packs",      icon: "🎫", color: "#FFD700" },
+  { id: "boosters", label: "Booster",    icon: "⚡", color: "#22D1C3" },
+  { id: "skins",    label: "Skins",      icon: "✨", color: "#a855f7" },
+  { id: "crew",     label: "Crew",       icon: "🏳️", color: "#FF6B4A" },
+];
+
+function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: boolean }) {
+  const [gemTab, setGemTab] = useState<GemTab>("home");
   const [items, setItems] = useState<ShopItem[]>([]);
   const [gems, setGems] = useState<Gems | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -200,56 +219,64 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
   const resetHours = Math.floor(resetIn / 3600);
   const resetMins = Math.floor((resetIn % 3600) / 60);
 
-  return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
-      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "92vh", display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 20, border: "1px solid rgba(255,215,0,0.5)",
-        boxShadow: "0 0 40px rgba(255,215,0,0.25)", color: "#F0F0F0", overflow: "hidden",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
-          background: "linear-gradient(180deg, rgba(255,215,0,0.15), transparent)",
-          borderBottom: "1px solid rgba(255,215,0,0.25)",
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>EDELSTEIN-SHOP</div>
-            <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Fair-Play · kein Pay-to-Win</div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+  const body = (
+    <>
+        {/* Sub-Tab-Bar */}
+        <div style={{ display: "flex", gap: 2, padding: "8px 12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", overflowX: "auto" }}>
+          {GEM_TABS.map((t) => {
+            const active = gemTab === t.id;
+            return (
+              <button key={t.id} onClick={() => setGemTab(t.id)} style={{
+                flexShrink: 0, background: "transparent", border: "none", cursor: "pointer",
+                padding: "8px 10px", color: active ? t.color : "#8B8FA3",
+                fontSize: 11, fontWeight: 800,
+                borderBottom: active ? `2px solid ${t.color}` : "2px solid transparent",
+                display: "flex", alignItems: "center", gap: 5,
+              }}>
+                <span style={{ fontSize: 14 }}>{t.icon}</span>
+                {t.label}
+              </button>
+            );
+          })}
+          <div style={{ flex: 1 }} />
+          <div style={{
+            alignSelf: "center", padding: "4px 10px", borderRadius: 999,
+            background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.35)",
+            color: "#FFD700", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", gap: 4,
+          }}>💎 {gems?.gems ?? 0}</div>
         </div>
 
-        {/* Balance */}
-        <div style={{
-          margin: 14, padding: 12, borderRadius: 12,
-          background: "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,107,74,0.08))",
-          border: "1px solid rgba(255,215,0,0.4)",
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          <div style={{ fontSize: 32 }}>💎</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>DEIN STAND</div>
-            <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{gems?.gems ?? 0}</div>
+        {/* Balance (nur Startseite) */}
+        {gemTab === "home" && (
+          <div style={{
+            margin: 14, padding: 12, borderRadius: 12,
+            background: "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,107,74,0.08))",
+            border: "1px solid rgba(255,215,0,0.4)",
+            display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <div style={{ fontSize: 32 }}>💎</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>DEIN STAND</div>
+              <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{gems?.gems ?? 0}</div>
+            </div>
+            <button onClick={devTopup} style={{
+              padding: "6px 10px", borderRadius: 10,
+              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+              color: "#FFF", fontSize: 11, fontWeight: 800, cursor: "pointer",
+            }}>+ 1000 (Dev)</button>
           </div>
-          <button onClick={devTopup} style={{
-            padding: "6px 10px", borderRadius: 10,
-            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-            color: "#FFF", fontSize: 11, fontWeight: 800, cursor: "pointer",
-          }}>+ 1000 (Dev)</button>
-        </div>
+        )}
 
         {/* Kategorien */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 14px" }}>
+          {gemTab === "home" && (
           <div style={{ marginBottom: 10, padding: 8, borderRadius: 8, background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.3)", fontSize: 11, color: "#a8b4cf" }}>
             <b style={{ color: "#22D1C3" }}>Fair-Play:</b> Edelsteine kaufen nur Skins, Booster, Komfort. Siegel, Wächter, XP — nur durchs Gehen.
           </div>
+          )}
 
           {/* 💎 EDELSTEINE KAUFEN */}
+          {gemTab === "home" && (
           <section style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 18 }}>💎</span>
@@ -262,7 +289,8 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
                 const total = totalGemsOfBundle(b);
                 const badge = b.badge === "best_value" ? { text: "BESTER WERT", color: "#FFD700" }
                   : b.badge === "most_popular" ? { text: "BELIEBT", color: "#FF2D78" }
-                  : b.badge === "starter" ? { text: "STARTER", color: "#22D1C3" } : null;
+                  : b.badge === "starter" ? { text: "STARTER", color: "#22D1C3" }
+                  : b.badge === "supporter" ? { text: "💛 SUPPORTER", color: "#ff6b9d" } : null;
                 return (
                   <button key={b.sku}
                     onClick={() => buyBundle(b)}
@@ -310,10 +338,11 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
               Sichere Zahlung via Stripe · Edelsteine werden sofort gutgeschrieben
             </div>
           </section>
+          )}
 
 
           {/* 🎫 AKTIVE MONATSPACKS (Daily Claim) */}
-          {monthlyActive.length > 0 && (
+          {gemTab === "passes" && monthlyActive.length > 0 && (
             <section style={{ marginBottom: 16 }}>
               <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
                 🎫 AKTIVE MONATSPACKS
@@ -361,6 +390,7 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
           )}
 
           {/* 🎨 RUNNER-PIN-THEME PICKER */}
+          {gemTab === "skins" && (
           <section style={{ marginBottom: 16 }}>
             <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
               🎨 RUNNER-PIN
@@ -405,9 +435,10 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
               Verziert deinen eigenen Runner-Pin auf der Karte · Shop- und Boss-Pins bleiben neutral
             </div>
           </section>
+          )}
 
           {/* 🔥 TÄGLICHE ANGEBOTE */}
-          {daily && daily.packs.length > 0 && (
+          {gemTab === "home" && daily && daily.packs.length > 0 && (
             <section style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -483,7 +514,13 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
               </div>
             </section>
           )}
-          {(Object.keys(CATEGORY_META) as CategoryKey[]).map((cat) => {
+          {(Object.keys(CATEGORY_META) as CategoryKey[]).filter((cat) => {
+            if (gemTab === "passes")   return cat === "monthly_pass";
+            if (gemTab === "boosters") return cat === "booster" || cat === "convenience";
+            if (gemTab === "skins")    return cat === "cosmetic";
+            if (gemTab === "crew")     return cat === "crew_emblem";
+            return false;
+          }).map((cat) => {
             const meta = CATEGORY_META[cat];
             const list = grouped[cat];
             if (list.length === 0) return null;
@@ -539,6 +576,36 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
             color: "#FFF", fontSize: 11, fontWeight: 800, zIndex: 100,
           }}>{toast}</div>
         )}
+    </>
+  );
+
+  if (embedded) {
+    return <div style={{ display: "flex", flexDirection: "column", color: "#F0F0F0" }}>{body}</div>;
+  }
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 3700,
+      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 640, maxHeight: "92vh", display: "flex", flexDirection: "column",
+        background: "#1A1D23", borderRadius: 20, border: "1px solid rgba(255,215,0,0.5)",
+        boxShadow: "0 0 40px rgba(255,215,0,0.25)", color: "#F0F0F0", overflow: "hidden",
+      }}>
+        <div style={{
+          padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
+          background: "linear-gradient(180deg, rgba(255,215,0,0.15), transparent)",
+          borderBottom: "1px solid rgba(255,215,0,0.25)",
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>EDELSTEIN-SHOP</div>
+            <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Fair-Play · kein Pay-to-Win</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+        </div>
+        {body}
       </div>
     </div>
   );
