@@ -771,6 +771,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return !!(until && new Date(until).getTime() > Date.now());
               })()}
               mapTheme={(p as unknown as { map_theme?: string | null })?.map_theme ?? null}
+              pinTheme={((p as unknown as { pin_theme?: "default"|"neon"|"cyberpunk"|"arcade"|"golden"|"frost"|null })?.pin_theme) ?? "default"}
               walkedSegments={walkedSegments}
               claimedStreets={claimedStreets}
               ownedTerritories={ownedTerritories}

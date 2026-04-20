@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GEM_BUNDLES, totalGemsOfBundle, type GemBundle } from "@/lib/gem-bundles";
+import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
 
 type ShopItem = {
   id: string;
@@ -56,16 +57,23 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
   const [resetIn, setResetIn] = useState<number>(0);
 
   const [monthlyActive, setMonthlyActive] = useState<MonthlyActivePass[]>([]);
+  const [pinThemeActive, setPinThemeActive] = useState<PinTheme>("default");
+  const [pinThemesUnlocked, setPinThemesUnlocked] = useState<Set<string>>(new Set(["default"]));
 
   const load = useCallback(async () => {
-    const [s, d, m] = await Promise.all([
+    const [s, d, m, p] = await Promise.all([
       fetch("/api/shop/gems").then((r) => r.ok ? r.json() : null),
       fetch("/api/shop/daily").then((r) => r.ok ? r.json() : null),
       fetch("/api/shop/monthly").then((r) => r.ok ? r.json() : null),
+      fetch("/api/shop/pin-theme").then((r) => r.ok ? r.json() : null),
     ]);
     if (s) { setItems(s.items ?? []); setGems(s.gems ?? null); setPurchases(s.purchases ?? []); }
     if (d) { setDaily(d as DailyResponse); setResetIn(d.reset_in_seconds ?? 0); }
     if (m) { setMonthlyActive((m.active_passes ?? []) as MonthlyActivePass[]); }
+    if (p) {
+      setPinThemeActive((p.active ?? "default") as PinTheme);
+      setPinThemesUnlocked(new Set((p.unlocked ?? ["default"]) as string[]));
+    }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -163,6 +171,26 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
       const json = await res.json() as { ok?: boolean; claimed_gems?: number; error?: string };
       if (json.ok) { setToast(`🎁 +${json.claimed_gems} Edelsteine erhalten!`); await load(); }
       else setToast(json.error === "already_claimed_today" ? "Heute schon abgeholt" : (json.error ?? "Fehler"));
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  async function switchPinTheme(theme: PinTheme) {
+    setBusy(`theme_${theme}`);
+    try {
+      const res = await fetch("/api/shop/pin-theme", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ theme }),
+      });
+      const json = await res.json() as { ok?: boolean; error?: string };
+      if (json.ok) {
+        setPinThemeActive(theme);
+        setToast(`🎨 Theme „${PIN_THEME_META[theme].name}" aktiv`);
+        // Map neu laden damit data-pin-theme gesetzt wird — hartes Reload
+        if (typeof window !== "undefined") setTimeout(() => window.location.reload(), 600);
+      } else setToast(json.error ?? "Theme-Wechsel fehlgeschlagen");
     } finally {
       setBusy(null);
       setTimeout(() => setToast(null), 3000);
@@ -331,6 +359,52 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
               </div>
             </section>
           )}
+
+          {/* 🎨 PIN-THEME PICKER */}
+          <section style={{ marginBottom: 16 }}>
+            <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
+              🎨 KARTEN-THEME
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+              {ALL_PIN_THEMES.map((tid) => {
+                const t = PIN_THEME_META[tid];
+                const unlocked = pinThemesUnlocked.has(tid);
+                const active = pinThemeActive === tid;
+                return (
+                  <button key={tid}
+                    onClick={() => unlocked && !active && switchPinTheme(tid)}
+                    disabled={!unlocked || active || busy === `theme_${tid}`}
+                    style={{
+                      padding: 8, borderRadius: 10, cursor: unlocked && !active ? "pointer" : "default",
+                      background: `linear-gradient(135deg, ${t.preview.bg}, rgba(15,17,21,0.9))`,
+                      border: `2px solid ${active ? t.preview.accent : unlocked ? `${t.preview.accent}44` : "rgba(255,255,255,0.08)"}`,
+                      boxShadow: active ? `0 0 14px ${t.preview.glow}` : "none",
+                      color: "#FFF", textAlign: "center", opacity: unlocked ? 1 : 0.55,
+                      position: "relative",
+                    }}>
+                    {active && (
+                      <div style={{
+                        position: "absolute", top: -6, right: -4,
+                        padding: "2px 6px", borderRadius: 999,
+                        background: "#4ade80", color: "#0F1115",
+                        fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
+                      }}>AKTIV</div>
+                    )}
+                    <div style={{ fontSize: 22 }}>{t.icon}</div>
+                    <div style={{ color: t.preview.accent, fontSize: 10, fontWeight: 900, marginTop: 2 }}>
+                      {t.name.toUpperCase()}
+                    </div>
+                    {!unlocked && (
+                      <div style={{ fontSize: 8, color: "#8B8FA3", marginTop: 1 }}>🔒 kaufen</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
+              Ändert das Aussehen aller Karten-Markierungen (Shops, Boss, Loot, Sanctuaries)
+            </div>
+          </section>
 
           {/* 🔥 TÄGLICHE ANGEBOTE */}
           {daily && daily.packs.length > 0 && (

@@ -10,6 +10,7 @@ import "@/styles/globals.css";
 import { PrefsBoot } from "@/components/prefs-boot";
 import { ReferralCapture } from "@/components/referral-capture";
 import { AppDialogProvider } from "@/components/app-dialog";
+import { PinThemeStyles } from "@/components/pin-theme-styles";
 
 export const metadata: Metadata = {
   title: {
@@ -46,6 +47,7 @@ export default async function RootLayout({
         <PrefsBoot />
         <ReferralCapture />
         <AppDialogProvider />
+        <PinThemeStyles />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>

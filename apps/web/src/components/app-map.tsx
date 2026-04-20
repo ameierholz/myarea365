@@ -349,6 +349,7 @@ interface AppMapProps {
   equippedTrail?: string | null;
   auraActive?: boolean;
   mapTheme?: string | null;
+  pinTheme?: "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Territorium) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
@@ -528,6 +529,7 @@ export function AppMap({
   equippedTrail = null,
   auraActive = false,
   mapTheme = null,
+  pinTheme = "default",
   walkedSegments = [],
   claimedStreets = [],
   ownedTerritories = [],
@@ -2061,7 +2063,7 @@ export function AppMap({
   }, [mapReady, shopReviews, shops]);
 
   return (
-    <div style={{ position: "absolute", inset: 0 }}>
+    <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
     </div>
   );
