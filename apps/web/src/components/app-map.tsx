@@ -559,20 +559,25 @@ function buildSelfMarkerEl(
       @keyframes auraPulse{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.1);opacity:0.5}}
     </style>
   `;
-  // Click-Handler direkt an der Node — inline onclick innerhalb von Mapbox-Markern
-  // wird gelegentlich verschluckt, deshalb nochmal programmatisch sichern.
+  // Click-Handler direkt an der Node. Mapbox ruft auf Marker-mousedown teils
+  // preventDefault auf, was das folgende `click`-Event unterdruecken kann.
+  // Deshalb feuern wir bereits auf pointerdown/mouseup — nicht nur auf click.
   const badgeEl = el.querySelector(".ma365-runner-badge") as HTMLElement | null;
   if (badgeEl) {
+    let fired = false;
     const fire = (ev: Event) => {
       ev.preventDefault();
       ev.stopPropagation();
+      (ev as Event).stopImmediatePropagation?.();
+      if (fired) return;
+      fired = true;
+      setTimeout(() => { fired = false; }, 500);
       window.dispatchEvent(new CustomEvent("ma365:open-runner-profile"));
     };
-    badgeEl.addEventListener("pointerdown", (ev) => ev.stopPropagation());
-    badgeEl.addEventListener("mousedown", (ev) => ev.stopPropagation());
-    badgeEl.addEventListener("touchstart", (ev) => ev.stopPropagation(), { passive: false });
+    badgeEl.addEventListener("pointerdown", fire);
+    badgeEl.addEventListener("mouseup", fire);
     badgeEl.addEventListener("click", fire);
-    badgeEl.addEventListener("touchend", fire);
+    badgeEl.addEventListener("touchend", fire, { passive: false });
   }
   return el;
 }

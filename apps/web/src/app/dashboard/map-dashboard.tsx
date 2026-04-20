@@ -177,6 +177,34 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
   const [pinThemeOverride, setPinThemeOverride] = useState<"default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null>(null);
+  const [rootRunnerProfileUserId, setRootRunnerProfileUserId] = useState<string | null>(null);
+
+  // Klick auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal (Map-Tab).
+  // Listener MUESSEN auf Root-Level sein, weil der ProfilTab nicht gemountet ist
+  // waehrend man auf der Karte ist.
+  useEffect(() => {
+    const uid = initialProfile?.id ?? null;
+    const open = () => { if (uid) setRootRunnerProfileUserId(uid); };
+    const onOpen = () => open();
+    const onDocClick = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (t && t.closest('[data-action="open-runner-profile"]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        open();
+      }
+    };
+    window.addEventListener("ma365:open-runner-profile", onOpen);
+    document.addEventListener("click", onDocClick, true);
+    document.addEventListener("pointerdown", onDocClick, true);
+    document.addEventListener("touchend", onDocClick, true);
+    return () => {
+      window.removeEventListener("ma365:open-runner-profile", onOpen);
+      document.removeEventListener("click", onDocClick, true);
+      document.removeEventListener("pointerdown", onDocClick, true);
+      document.removeEventListener("touchend", onDocClick, true);
+    };
+  }, [initialProfile?.id]);
   const [recentRuns, setRecentRuns] = useState<Territory[]>([]);
 
   // Walk state
@@ -1357,6 +1385,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             setWalkSummary(null);
           }}
         />
+      )}
+      {rootRunnerProfileUserId && (
+        <RunnerStatsModal userId={rootRunnerProfileUserId} onClose={() => setRootRunnerProfileUserId(null)} />
       )}
     </div>
   );
