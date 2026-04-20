@@ -34,16 +34,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ userId: string
     id: string; name: string; color: string | null; role: string | null;
     custom_banner_url: string | null; custom_logo_url: string | null;
     member_count: number | null; zip: string | null; created_at: string | null;
+    crew_faction: string | null;
   } | null = null;
   if (u.current_crew_id) {
     const { data: c } = await sb.from("crews")
-      .select("id, name, color, custom_banner_url, custom_logo_url, member_count, zip, created_at")
+      .select("id, name, color, custom_banner_url, custom_logo_url, member_count, zip, created_at, crew_faction")
       .eq("id", u.current_crew_id)
-      .maybeSingle<{ id: string; name: string; color: string | null; custom_banner_url: string | null; custom_logo_url: string | null; member_count: number | null; zip: string | null; created_at: string | null }>();
+      .maybeSingle<{ id: string; name: string; color: string | null; custom_banner_url: string | null; custom_logo_url: string | null; member_count: number | null; zip: string | null; created_at: string | null; crew_faction: string | null }>();
     if (c) crew = {
       id: c.id, name: c.name, color: c.color, role: null,
       custom_banner_url: c.custom_banner_url, custom_logo_url: c.custom_logo_url,
       member_count: c.member_count, zip: c.zip, created_at: c.created_at,
+      crew_faction: c.crew_faction,
     };
   }
 

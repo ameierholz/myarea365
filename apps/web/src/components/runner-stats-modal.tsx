@@ -6,6 +6,7 @@ import {
   rarityMeta, TYPE_META, statsAtLevel,
   type GuardianArchetype,
 } from "@/lib/guardian";
+import { CREW_FACTIONS, type CrewFactionId } from "@/lib/crew-factions";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -33,6 +34,7 @@ type RunnerProfileData = {
     id: string; name: string; color: string | null; role: string | null;
     custom_banner_url: string | null; custom_logo_url: string | null;
     member_count: number | null; zip: string | null; created_at: string | null;
+    crew_faction: CrewFactionId | null;
   } | null;
   active_guardian?: {
     id: string; custom_name: string | null; level: number;
@@ -244,6 +246,36 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6, marginTop: 10 }}>
                         <Stat label="MITGLIEDER" value={data.crew.member_count ?? 0} color={cc} />
                       </div>
+                      {data.crew.crew_faction && (() => {
+                        const f = CREW_FACTIONS[data.crew.crew_faction];
+                        return (
+                          <div style={{
+                            marginTop: 10, padding: "10px 12px", borderRadius: 12,
+                            background: `${f.color}18`, border: `1px solid ${f.color}55`,
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{
+                                width: 34, height: 34, borderRadius: 10,
+                                background: `${f.color}33`, border: `1px solid ${f.color}`,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 18,
+                              }}>{f.icon}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ color: MUTED, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>FRAKTION</div>
+                                <div style={{ color: f.color, fontSize: 13, fontWeight: 900 }}>{f.name}</div>
+                              </div>
+                              <div style={{
+                                padding: "3px 8px", borderRadius: 999,
+                                background: f.color, color: "#0F1115",
+                                fontSize: 10, fontWeight: 900,
+                              }}>{f.buff}</div>
+                            </div>
+                            <div style={{ color: TEXT_SOFT, fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
+                              {f.buffDetail}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );

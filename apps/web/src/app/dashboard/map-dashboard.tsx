@@ -526,7 +526,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         (profile.total_walks || 0) + 1,
       );
 
-      const totalXpGained = bonuses.finalXp + bonuses.achievementXp;
+      // Pfadfinder-Crew-Fraktion: +10% Lauf-XP
+      let totalXpGained = bonuses.finalXp + bonuses.achievementXp;
+      if (myCrew && (myCrew as { crew_faction?: string }).crew_faction === "pfadfinder") {
+        totalXpGained = Math.round(totalXpGained * 1.10);
+      }
 
       // 4) Walk-Row aktualisieren mit echten Werten
       const { error } = await supabase.from("territories").update({
@@ -5488,6 +5492,7 @@ function CrewTab({
   const [newType, setNewType] = useState<CrewTypeId>("friends");
   const [newColor, setNewColor] = useState<string>(CREW_COLORS[0]);
   const [newPrivacy, setNewPrivacy] = useState<CrewPrivacy>("invite");
+  const [newCrewFaction, setNewCrewFaction] = useState<"pfadfinder" | "waechterorden" | "stadtlaeufer" | "mystiker">("pfadfinder");
   const [joinCode, setJoinCode] = useState("");
 
   async function handleCreate() {
@@ -5500,6 +5505,8 @@ function CrewTab({
       color: newColor,
       owner_id: p.id,
       faction: p.faction || "syndicate",
+      crew_faction: newCrewFaction,
+      crew_faction_switched_at: new Date().toISOString(),
     }).select().single();
 
     if (error) return appAlert(error.message);
@@ -5561,6 +5568,7 @@ function CrewTab({
             type={newType}                setType={setNewType}
             color={newColor}              setColor={setNewColor}
             privacy={newPrivacy}          setPrivacy={setNewPrivacy}
+            crewFaction={newCrewFaction}  setCrewFaction={setNewCrewFaction}
             onSubmit={handleCreate}
             onCancel={() => setMode("idle")}
           />
@@ -7003,7 +7011,9 @@ function inputStyle(): React.CSSProperties {
 /* ═══ Create Crew Form ═══ */
 function CreateCrewForm({
   name, setName, motto, setMotto, zip, setZip, type, setType,
-  color, setColor, privacy, setPrivacy, onSubmit, onCancel,
+  color, setColor, privacy, setPrivacy,
+  crewFaction, setCrewFaction,
+  onSubmit, onCancel,
 }: {
   name: string; setName: (s: string) => void;
   motto: string; setMotto: (s: string) => void;
@@ -7011,6 +7021,8 @@ function CreateCrewForm({
   type: CrewTypeId; setType: (t: CrewTypeId) => void;
   color: string; setColor: (c: string) => void;
   privacy: CrewPrivacy; setPrivacy: (p: CrewPrivacy) => void;
+  crewFaction: "pfadfinder" | "waechterorden" | "stadtlaeufer" | "mystiker";
+  setCrewFaction: (f: "pfadfinder" | "waechterorden" | "stadtlaeufer" | "mystiker") => void;
   onSubmit: () => void; onCancel: () => void;
 }) {
   const selectedType = CREW_TYPES.find((t) => t.id === type)!;
@@ -7163,6 +7175,48 @@ function CreateCrewForm({
                 </button>
               );
             })}
+          </div>
+
+          {/* ═══ CREW-FRAKTION ═══ */}
+          <div>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+              4. CREW-FRAKTION · Buff für alle Mitglieder
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+              {([
+                { id: "pfadfinder",    icon: "🏃", name: "Pfadfinder",    color: "#4ade80", buff: "+10 % Lauf-XP",        hint: "Mehr XP pro Walk" },
+                { id: "waechterorden", icon: "⚔️", name: "Wächter-Orden", color: "#FF6B4A", buff: "+5 % HP & ATK",         hint: "Stärkere Wächter" },
+                { id: "stadtlaeufer",  icon: "🏙️", name: "Stadtläufer",   color: "#22D1C3", buff: "+15 % Siegel",         hint: "Mehr Loot" },
+                { id: "mystiker",      icon: "🔮", name: "Mystiker",       color: "#a855f7", buff: "+10 % Wächter-XP",     hint: "Schnelleres Leveln" },
+              ] as const).map((f) => {
+                const active = crewFaction === f.id;
+                return (
+                  <button key={f.id} onClick={() => setCrewFaction(f.id)}
+                    style={{
+                      padding: 10, borderRadius: 12, textAlign: "left",
+                      background: active ? `${f.color}22` : CARD,
+                      border: active ? `2px solid ${f.color}` : `1px solid ${BORDER}`,
+                      color: "#FFF", cursor: "pointer",
+                      boxShadow: active ? `0 0 18px ${f.color}55` : "none",
+                    }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 22 }}>{f.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: f.color }}>{f.name}</div>
+                        <div style={{ fontSize: 10, color: MUTED }}>{f.hint}</div>
+                      </div>
+                      {active && <span style={{ color: f.color, fontSize: 16 }}>✓</span>}
+                    </div>
+                    <div style={{ marginTop: 6, padding: "3px 8px", borderRadius: 999, background: `${f.color}33`, color: f.color, fontSize: 10, fontWeight: 900, display: "inline-block" }}>
+                      {f.buff}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 6 }}>
+              Wechsel später kostet 1.200 💎 und hat 30 Tage Cooldown.
+            </div>
           </div>
 
           <button
