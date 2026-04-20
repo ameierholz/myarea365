@@ -278,6 +278,231 @@ const PIN_THEME_CSS = `
   0%,100% { box-shadow: 0 0 26px #8B0000, 0 0 52px rgba(220,20,60,0.7); transform: scale(1); }
   50%     { box-shadow: 0 0 38px #DC143C, 0 0 70px #8B0000; transform: scale(1.04); }
 }
+
+/* ══════════════════════════════════════════════════════════
+   THUNDERSTORM — Elektrische Bögen + zuckende Blitze
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="thunderstorm"] .ma365-runner-pin .runner-ring {
+  background: radial-gradient(circle, rgba(96,165,250,0.3), rgba(10,16,32,0.95)) !important;
+  border: 2px solid #FFEE00 !important;
+  box-shadow:
+    0 0 22px #FFEE00,
+    0 0 44px rgba(96,165,250,0.75),
+    inset 0 0 16px rgba(255,238,0,0.3) !important;
+  animation: ma365ThemeThunderFlash 2.4s steps(30, end) infinite !important;
+}
+[data-pin-theme="thunderstorm"] .ma365-runner-pin::before {
+  content: "";
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  background:
+    conic-gradient(from 0deg,
+      transparent 0deg, #FFEE00 20deg, transparent 40deg,
+      transparent 120deg, #60a5fa 140deg, transparent 160deg,
+      transparent 240deg, #FFEE00 260deg, transparent 280deg,
+      transparent 360deg) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: ma365ThemeThunderSpin 0.9s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+[data-pin-theme="thunderstorm"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 10px #FFEE00) drop-shadow(0 0 18px #60a5fa) !important;
+}
+@keyframes ma365ThemeThunderFlash {
+  0%, 92%, 100% { filter: brightness(1); }
+  93%, 95%      { filter: brightness(1.9) hue-rotate(10deg); }
+}
+@keyframes ma365ThemeThunderSpin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════════
+   VOID — Schwarzes Loch mit verzerrtem Licht-Ring
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="void"] .ma365-runner-pin .runner-ring {
+  background: radial-gradient(circle, #000 0%, #1a0030 40%, #8B5CF644 70%, transparent 100%) !important;
+  box-shadow:
+    0 0 28px #8B5CF6,
+    0 0 56px rgba(236,72,153,0.7),
+    inset 0 0 20px rgba(0,0,0,0.9) !important;
+  animation: ma365ThemeVoidSuck 2.2s ease-in-out infinite !important;
+}
+[data-pin-theme="void"] .ma365-runner-pin::before {
+  content: "";
+  position: absolute; inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    rgba(139,92,246,0.8), rgba(236,72,153,0.6), rgba(96,165,250,0.4),
+    transparent, rgba(139,92,246,0.8));
+  filter: blur(6px);
+  animation: ma365ThemeVoidSpin 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+[data-pin-theme="void"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 8px #8B5CF6) drop-shadow(0 0 18px #ec4899) contrast(1.2) !important;
+}
+@keyframes ma365ThemeVoidSuck {
+  0%,100% { transform: scale(1); box-shadow: 0 0 28px #8B5CF6, 0 0 56px rgba(236,72,153,0.7); }
+  50%     { transform: scale(0.94); box-shadow: 0 0 36px #ec4899, 0 0 70px rgba(139,92,246,0.9); }
+}
+@keyframes ma365ThemeVoidSpin { to { transform: rotate(-360deg); } }
+
+/* ══════════════════════════════════════════════════════════
+   LAVA — Geschmolzener Stein + glühende Risse
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="lava"] .ma365-runner-pin .runner-ring {
+  background:
+    radial-gradient(ellipse at 30% 20%, #FFC700 0%, #FF6B00 30%, #8B0000 70%, #1a0a00 100%) !important;
+  border: 1.5px solid #FF6B00 !important;
+  box-shadow:
+    0 0 24px #FF6B00,
+    0 0 48px rgba(255,199,0,0.7),
+    inset 0 0 14px rgba(139,0,0,0.7) !important;
+  animation: ma365ThemeLavaBoil 2s ease-in-out infinite !important;
+}
+[data-pin-theme="lava"] .ma365-runner-pin::after {
+  content: "";
+  position: absolute; inset: 8px;
+  border-radius: 50%;
+  background:
+    radial-gradient(1px 1px at 30% 40%, #FFC700 50%, transparent 52%),
+    radial-gradient(1.5px 1.5px at 70% 30%, #FF6B00 50%, transparent 52%),
+    radial-gradient(1px 1px at 50% 70%, #FFC700 50%, transparent 52%),
+    radial-gradient(2px 2px at 20% 60%, #FFEE00 50%, transparent 52%);
+  animation: ma365ThemeLavaEmber 1.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-pin-theme="lava"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 6px #FFC700) drop-shadow(0 0 14px #FF6B00) saturate(1.3) !important;
+}
+@keyframes ma365ThemeLavaBoil {
+  0%,100% { transform: scale(1); box-shadow: 0 0 24px #FF6B00, 0 0 48px rgba(255,199,0,0.7); }
+  50%     { transform: scale(1.04); box-shadow: 0 0 36px #FFC700, 0 0 60px #FF6B00; }
+}
+@keyframes ma365ThemeLavaEmber {
+  0%,100% { transform: translateY(0) scale(1); opacity: 0.9; }
+  50%     { transform: translateY(-3px) scale(0.85); opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   CELESTIAL — Göttliche Gold-Strahlen, rotierender Halo
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="celestial"] .ma365-runner-pin .runner-ring {
+  background: radial-gradient(circle, #FFFFFF 0%, #FFE066 45%, #FFAC33 75%, transparent 100%) !important;
+  border: 1.5px solid #FFE066 !important;
+  box-shadow:
+    0 0 30px #FFE066,
+    0 0 60px rgba(255,255,255,0.8),
+    inset 0 0 20px rgba(255,255,255,0.5) !important;
+  animation: ma365ThemeCelestialHalo 3s ease-in-out infinite !important;
+}
+[data-pin-theme="celestial"] .ma365-runner-pin::before {
+  content: "";
+  position: absolute; inset: -14px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg,
+      transparent 0deg, rgba(255,224,102,0.75) 10deg, transparent 30deg,
+      transparent 60deg, rgba(255,255,255,0.6) 70deg, transparent 90deg,
+      transparent 120deg, rgba(255,224,102,0.75) 130deg, transparent 150deg,
+      transparent 180deg, rgba(255,255,255,0.6) 190deg, transparent 210deg,
+      transparent 240deg, rgba(255,224,102,0.75) 250deg, transparent 270deg,
+      transparent 300deg, rgba(255,255,255,0.6) 310deg, transparent 330deg,
+      transparent 360deg);
+  animation: ma365ThemeCelestialSpin 12s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(1px);
+}
+[data-pin-theme="celestial"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 10px #FFFFFF) drop-shadow(0 0 18px #FFE066) brightness(1.1) !important;
+}
+@keyframes ma365ThemeCelestialHalo {
+  0%,100% { filter: brightness(1); }
+  50%     { filter: brightness(1.15); }
+}
+@keyframes ma365ThemeCelestialSpin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════════
+   TOXIC — Radioaktive grüne Blasen + tropfender Slime
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="toxic"] .ma365-runner-pin .runner-ring {
+  background: radial-gradient(circle, rgba(102,255,0,0.5), rgba(10,26,5,0.95)) !important;
+  border: 2px solid #66FF00 !important;
+  box-shadow:
+    0 0 26px #66FF00,
+    0 0 52px rgba(204,255,51,0.7),
+    inset 0 0 18px rgba(102,255,0,0.5) !important;
+  animation: ma365ThemeToxicPulse 1.6s ease-in-out infinite !important;
+}
+[data-pin-theme="toxic"] .ma365-runner-pin::after {
+  content: "";
+  position: absolute; inset: 4px;
+  border-radius: 50%;
+  background:
+    radial-gradient(3px 3px at 25% 35%, #CCFF33 50%, transparent 52%),
+    radial-gradient(2px 2px at 70% 25%, #66FF00 50%, transparent 52%),
+    radial-gradient(4px 4px at 50% 65%, #CCFF33 50%, transparent 52%),
+    radial-gradient(2.5px 2.5px at 30% 75%, #66FF00 50%, transparent 52%),
+    radial-gradient(2px 2px at 80% 60%, #CCFF33 50%, transparent 52%);
+  animation: ma365ThemeToxicBubble 1.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-pin-theme="toxic"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 8px #66FF00) drop-shadow(0 0 14px #CCFF33) !important;
+}
+@keyframes ma365ThemeToxicPulse {
+  0%,100% { transform: scale(1); box-shadow: 0 0 26px #66FF00, 0 0 52px rgba(204,255,51,0.7); }
+  50%     { transform: scale(1.03); box-shadow: 0 0 36px #CCFF33, 0 0 68px #66FF00; }
+}
+@keyframes ma365ThemeToxicBubble {
+  0%,100% { transform: translateY(0); opacity: 0.9; }
+  50%     { transform: translateY(-2px); opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PRISMATIC — Kristall-Refraktion mit rotierendem Regenbogen
+   ══════════════════════════════════════════════════════════ */
+[data-pin-theme="prismatic"] .ma365-runner-pin .runner-ring {
+  background: conic-gradient(from 0deg,
+    #FF00FF, #FF0080, #FF4500, #FFC700, #66FF00, #00FFFF, #0080FF, #8B5CF6, #FF00FF) !important;
+  box-shadow:
+    0 0 28px rgba(255,0,255,0.8),
+    0 0 56px rgba(0,255,255,0.7),
+    inset 0 0 18px rgba(255,255,255,0.35) !important;
+  animation: ma365ThemePrismSpin 6s linear infinite, ma365ThemePrismHue 4s ease-in-out infinite !important;
+}
+[data-pin-theme="prismatic"] .ma365-runner-pin::after {
+  content: "";
+  position: absolute; inset: 6px;
+  border-radius: 50%;
+  background:
+    linear-gradient(45deg,
+      rgba(255,255,255,0) 30%,
+      rgba(255,255,255,0.5) 50%,
+      rgba(255,255,255,0) 70%);
+  background-size: 200% 200%;
+  animation: ma365ThemePrismShine 2.5s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+[data-pin-theme="prismatic"] .ma365-runner-pin .runner-emoji {
+  filter: drop-shadow(0 0 6px #FF00FF) drop-shadow(0 0 14px #00FFFF) saturate(1.4) !important;
+  animation: ma365ThemePrismHue 4s ease-in-out infinite !important;
+}
+@keyframes ma365ThemePrismSpin { to { transform: rotate(360deg); } }
+@keyframes ma365ThemePrismHue {
+  0%,100% { filter: hue-rotate(0deg) saturate(1.3); }
+  50%     { filter: hue-rotate(180deg) saturate(1.6); }
+}
+@keyframes ma365ThemePrismShine {
+  0% { background-position: -100% -100%; }
+  100% { background-position: 200% 200%; }
+}
 `;
 
 export function PinThemeStyles() {

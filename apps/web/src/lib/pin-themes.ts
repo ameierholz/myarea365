@@ -1,6 +1,7 @@
 export type PinTheme =
   | "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost"
-  | "hologram" | "vaporwave" | "matrix" | "inferno" | "nebula" | "bloodmoon";
+  | "hologram" | "vaporwave" | "matrix" | "inferno" | "nebula" | "bloodmoon"
+  | "thunderstorm" | "void" | "lava" | "celestial" | "toxic" | "prismatic";
 
 export const PIN_THEME_META: Record<PinTheme, {
   id: PinTheme;
@@ -106,9 +107,58 @@ export const PIN_THEME_META: Record<PinTheme, {
     preview: { bg: "#1a0000", accent: "#DC143C", glow: "#8B0000" },
     shopItemId: "pin_theme_bloodmoon",
   },
+  thunderstorm: {
+    id: "thunderstorm",
+    name: "Thunderstorm",
+    icon: "⛈️",
+    description: "Elektrische Bögen + zuckende Blitze um den Pin",
+    preview: { bg: "#0a1020", accent: "#FFEE00", glow: "#60a5fa" },
+    shopItemId: "pin_theme_thunderstorm",
+  },
+  void: {
+    id: "void",
+    name: "Void",
+    icon: "🌀",
+    description: "Schwarzes Loch mit verzerrtem Licht-Ring",
+    preview: { bg: "#05000a", accent: "#8B5CF6", glow: "#ec4899" },
+    shopItemId: "pin_theme_void",
+  },
+  lava: {
+    id: "lava",
+    name: "Lava",
+    icon: "🌋",
+    description: "Geschmolzener Stein mit glühenden Rissen",
+    preview: { bg: "#1a0a00", accent: "#FF6B00", glow: "#FFC700" },
+    shopItemId: "pin_theme_lava",
+  },
+  celestial: {
+    id: "celestial",
+    name: "Celestial",
+    icon: "👼",
+    description: "Göttliche Goldstrahlen, rotierender Halo",
+    preview: { bg: "#1a1505", accent: "#FFE066", glow: "#FFFFFF" },
+    shopItemId: "pin_theme_celestial",
+  },
+  toxic: {
+    id: "toxic",
+    name: "Toxic",
+    icon: "☢️",
+    description: "Radioaktive grüne Blasen, tropfender Slime",
+    preview: { bg: "#0a1a05", accent: "#66FF00", glow: "#CCFF33" },
+    shopItemId: "pin_theme_toxic",
+  },
+  prismatic: {
+    id: "prismatic",
+    name: "Prismatic",
+    icon: "💎",
+    description: "Kristall-Refraktion mit rotierendem Regenbogen",
+    preview: { bg: "#0a0a1a", accent: "#FF00FF", glow: "#00FFFF" },
+    shopItemId: "pin_theme_prismatic",
+  },
 };
 
 export const ALL_PIN_THEMES: PinTheme[] = [
   "default","neon","cyberpunk","arcade","golden","frost",
   "hologram","vaporwave","matrix","inferno","nebula","bloodmoon",
+  "thunderstorm","void","lava","celestial","toxic","prismatic",
 ];
