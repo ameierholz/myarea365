@@ -271,9 +271,14 @@ export function buildMarkerPrompt(input: {
 
   const styleGuidance =
     "Style MATCHES the subject naturally — let the motif drive the aesthetic: " +
-    "a phoenix should feel fiery and mythical; a rocket shiny-chrome and futuristic; " +
-    "an animal lively and recognizable with fur/feather texture; a lightning bolt electric and crackling; " +
+    "a phoenix should feel fiery and mythical; an animal lively and recognizable with fur/feather texture; " +
     "a butterfly vivid and delicate. Do NOT force every icon into the same visual treatment.";
+
+  const directionGuidance =
+    "DIRECTION: the subject must face LEFT and/or move toward the LEFT side of the frame. " +
+    "Profile view (side view), head and body oriented left. If it's an animal running, it runs to the LEFT. " +
+    "If it's a human walking/running, they stride to the LEFT. Flying creatures: wings/body angled so they are heading LEFT. " +
+    "This must be consistent across all map icons for visual coherence.";
 
   if (input.mode === "video") {
     return [
@@ -282,6 +287,7 @@ export function buildMarkerPrompt(input: {
       input.hint ? `Motif hint: ${input.hint}.` : "",
       humanInstruction,
       styleGuidance,
+      directionGuidance,
       fillDisclaimer,
       noPinDisclaimer,
       `Motion: motion appropriate to the subject (e.g. flames flicker, wings flap slowly, sparkles drift, fur breathes). Slow bob 4-5 px if helpful. No rotation of the whole subject.`,
