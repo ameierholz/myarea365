@@ -465,7 +465,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const finalRoute = snapped?.path ?? activeRoute;
     const finalDistance = snapped?.distance_m ?? Math.round(distance);
     const finalDuration = snapped?.duration_s ?? elapsed;
-    const finalStreet = snapped?.streets[0] ?? currentStreet;
+    // Straßenname: immer aus Live-GPS (currentStreet), nicht aus Snap-Ergebnis —
+    // Snap-to-Roads matcht zu oft die falsche Straße.
+    const finalStreet = currentStreet ?? snapped?.streets[0] ?? null;
 
     if (profile) {
       const km = finalDistance / 1000;
@@ -596,7 +598,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           distance_m: Math.round(finalDistance),
           duration_s: Math.round(finalDuration),
           xp_earned: bonuses.finalXp,
-          streets: snapped?.streets ?? (finalStreet ? [finalStreet] : []),
+          streets: finalStreet ? [finalStreet] : (snapped?.streets ?? []),
           segment_count: segResp.total_new,
           street_count: segResp.newly_claimed_streets.length,
           territory_count: territoryCountNew,
