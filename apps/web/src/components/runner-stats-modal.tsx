@@ -28,7 +28,12 @@ type RunnerProfileData = {
   total_calories: number;
   longest_run_m: number;
   territory_count: number;
-  crew?: { name: string; color: string | null; role: string | null } | null;
+  banner_url: string | null;
+  crew?: {
+    id: string; name: string; color: string | null; role: string | null;
+    custom_banner_url: string | null; custom_logo_url: string | null;
+    member_count: number | null; zip: string | null; created_at: string | null;
+  } | null;
   active_guardian?: {
     id: string; custom_name: string | null; level: number;
     xp: number; wins: number; losses: number;
@@ -39,17 +44,34 @@ type RunnerProfileData = {
   collection_total: number;
 };
 
-export function RunnerStatsModal({ userId, onClose }: { userId: string; onClose: () => void }) {
+export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { userId: string; onClose: () => void; canEditBanner?: boolean }) {
   const [data, setData] = useState<RunnerProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bannerBusy, setBannerBusy] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const res = await fetch(`/api/runner/profile/${userId}`);
-      if (!res.ok) { setError("Profil konnte nicht geladen werden"); return; }
-      setData(await res.json() as RunnerProfileData);
-    })();
-  }, [userId]);
+  const reload = async () => {
+    const res = await fetch(`/api/runner/profile/${userId}`);
+    if (!res.ok) { setError("Profil konnte nicht geladen werden"); return; }
+    setData(await res.json() as RunnerProfileData);
+  };
+  useEffect(() => { reload(); }, [userId]);
+
+  async function onBannerFile(file: File) {
+    setBannerBusy(true);
+    try {
+      const { uploadRunnerBanner } = await import("@/lib/banner-upload");
+      const r = await uploadRunnerBanner(file);
+      if (r.ok) await reload();
+    } finally { setBannerBusy(false); }
+  }
+  async function onBannerRemove() {
+    setBannerBusy(true);
+    try {
+      const { deleteRunnerBanner } = await import("@/lib/banner-upload");
+      await deleteRunnerBanner();
+      await reload();
+    } finally { setBannerBusy(false); }
+  }
 
   const color = data?.crew?.color ?? data?.team_color ?? PRIMARY;
   const kmTotal = data ? (data.total_distance_m / 1000).toFixed(1) : "–";
@@ -86,16 +108,24 @@ export function RunnerStatsModal({ userId, onClose }: { userId: string; onClose:
           <div style={{ overflowY: "auto" }}>
             {/* ═══ HERO BAND ═══ */}
             <div style={{
-              height: 120, position: "relative",
-              background: `linear-gradient(135deg, ${color} 0%, ${color}77 60%, ${color}33 100%)`,
+              height: 140, position: "relative",
+              background: data.banner_url
+                ? `url("${data.banner_url}") center/cover`
+                : `linear-gradient(135deg, ${color} 0%, ${color}77 60%, ${color}33 100%)`,
             }}>
+              {data.banner_url && (
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(20,26,45,0.7) 100%)`,
+                }} />
+              )}
               <button onClick={onClose} style={{
                 position: "absolute", top: 12, left: 12,
                 width: 34, height: 34, borderRadius: 17,
                 background: "rgba(0,0,0,0.55)", border: "none",
                 color: "#FFF", fontSize: 18, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontWeight: 900,
+                fontWeight: 900, zIndex: 2,
               }}>×</button>
               {tierBadge && (
                 <div style={{
@@ -104,9 +134,34 @@ export function RunnerStatsModal({ userId, onClose }: { userId: string; onClose:
                   background: tierBadge.bg,
                   color: tierBadge.text, fontSize: 10, fontWeight: 900, letterSpacing: 1,
                   display: "flex", alignItems: "center", gap: 4,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)", zIndex: 2,
                 }}>
                   <span>★</span> {tierBadge.label}
+                </div>
+              )}
+              {canEditBanner && (
+                <div style={{
+                  position: "absolute", bottom: 10, right: 12, zIndex: 2,
+                  display: "flex", gap: 6,
+                }}>
+                  <label style={{
+                    padding: "6px 10px", borderRadius: 8,
+                    background: "rgba(0,0,0,0.6)", color: "#FFF",
+                    fontSize: 10, fontWeight: 900, cursor: bannerBusy ? "default" : "pointer",
+                    border: `1px solid ${color}88`,
+                  }}>
+                    {bannerBusy ? "…" : data.banner_url ? "🖼️ Banner ändern" : "🖼️ Banner hochladen"}
+                    <input type="file" accept="image/*" hidden disabled={bannerBusy}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) onBannerFile(f); e.target.value = ""; }} />
+                  </label>
+                  {data.banner_url && (
+                    <button onClick={onBannerRemove} disabled={bannerBusy} style={{
+                      padding: "6px 8px", borderRadius: 8,
+                      background: "rgba(0,0,0,0.6)", color: PINK,
+                      fontSize: 10, fontWeight: 900, cursor: "pointer",
+                      border: `1px solid ${PINK}66`,
+                    }}>🗑️</button>
+                  )}
                 </div>
               )}
               {/* Avatar-Puck */}
@@ -133,26 +188,66 @@ export function RunnerStatsModal({ userId, onClose }: { userId: string; onClose:
                 {data.xp > 0 && <span style={{ color: GOLD, fontWeight: 800 }}>{data.xp.toLocaleString("de-DE")} XP</span>}
               </div>
 
-              {/* Crew-Pill */}
-              {data.crew && (
-                <div style={{
-                  marginTop: 12, padding: "10px 12px", borderRadius: 12,
-                  background: "rgba(0,0,0,0.3)", border: `1px solid ${data.crew.color ?? color}55`,
-                  display: "flex", alignItems: "center", gap: 10,
-                }}>
+              {/* ══ CREW-CARD (mit Banner + Stats) ══ */}
+              {data.crew && (() => {
+                const cc = data.crew!.color ?? color;
+                return (
                   <div style={{
-                    width: 30, height: 30, borderRadius: 8,
-                    background: data.crew.color ?? color,
-                    boxShadow: `0 0 10px ${data.crew.color ?? color}99`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 15,
-                  }}>🏴</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: MUTED, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>CREW</div>
-                    <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{data.crew.name}</div>
+                    marginTop: 14, borderRadius: 16,
+                    border: `1px solid ${cc}66`,
+                    boxShadow: `0 0 18px ${cc}33`,
+                    overflow: "hidden",
+                    background: "rgba(0,0,0,0.3)",
+                  }}>
+                    {/* Crew-Banner */}
+                    <div style={{
+                      height: 72, position: "relative",
+                      background: data.crew.custom_banner_url
+                        ? `url("${data.crew.custom_banner_url}") center/cover`
+                        : `linear-gradient(135deg, ${cc} 0%, ${cc}77 50%, ${cc}22 100%)`,
+                    }}>
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        background: `linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.55) 100%)`,
+                      }} />
+                      <div style={{
+                        position: "absolute", left: 12, bottom: -22,
+                        width: 48, height: 48, borderRadius: 12,
+                        background: data.crew.custom_logo_url ? "#0F1115" : cc,
+                        border: `2px solid ${cc}`,
+                        boxShadow: `0 0 12px ${cc}aa, 0 0 0 3px #141a2d`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 22, overflow: "hidden",
+                      }}>
+                        {data.crew.custom_logo_url
+                          ? <img src={data.crew.custom_logo_url} alt="Crew-Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          : "🏴"}
+                      </div>
+                      <div style={{
+                        position: "absolute", top: 8, right: 10,
+                        padding: "3px 8px", borderRadius: 999,
+                        background: "rgba(0,0,0,0.55)", color: "#FFF",
+                        fontSize: 9, fontWeight: 900, letterSpacing: 1,
+                      }}>CREW</div>
+                    </div>
+                    {/* Crew-Info */}
+                    <div style={{ padding: "28px 14px 14px" }}>
+                      <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900, lineHeight: 1.15 }}>
+                        {data.crew.name}
+                      </div>
+                      <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 3, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                        {data.crew.zip && <span style={{ padding: "2px 6px", borderRadius: 999, background: `${cc}22`, color: cc, fontWeight: 800 }}>PLZ {data.crew.zip}</span>}
+                        {data.crew.created_at && (
+                          <span>Gegründet {new Date(data.crew.created_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                        )}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6, marginTop: 10 }}>
+                        <Stat label="MITGLIEDER" value={data.crew.member_count ?? 0} color={cc} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* ══ AKTIVER WÄCHTER ══ */}
               {data.active_guardian && (() => {

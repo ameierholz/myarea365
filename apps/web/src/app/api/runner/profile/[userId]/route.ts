@@ -9,7 +9,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ userId: string
   const sb = await createClient();
 
   const [userRes, guardianRes, collectionCountRes, totalArchetypesRes, territoryRes] = await Promise.all([
-    sb.from("users").select("username, display_name, faction, team_color, supporter_tier, xp, level, total_distance_m, total_walks, total_calories, longest_run_m, current_crew_id").eq("id", userId).maybeSingle(),
+    sb.from("users").select("username, display_name, faction, team_color, supporter_tier, xp, level, total_distance_m, total_walks, total_calories, longest_run_m, current_crew_id, banner_url").eq("id", userId).maybeSingle(),
     sb.from("user_guardians")
       .select("id, custom_name, level, xp, wins, losses, talent_points_available, archetype:archetype_id(id, name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd, ability_id, ability_name, ability_desc, lore, image_url, video_url)")
       .eq("user_id", userId).eq("is_active", true).maybeSingle(),
@@ -27,12 +27,26 @@ export async function GET(_req: Request, ctx: { params: Promise<{ userId: string
     total_distance_m: number | null; total_walks: number | null;
     total_calories: number | null; longest_run_m: number | null;
     current_crew_id: string | null;
+    banner_url: string | null;
   };
 
-  let crew: { name: string; color: string | null; role: string | null } | null = null;
+  let crew: {
+    id: string; name: string; color: string | null; role: string | null;
+    custom_banner_url: string | null; custom_logo_url: string | null;
+    member_count: number | null; total_power: number | null;
+    treasure_xp: number | null; zip: string | null; faction: string | null;
+    plan: string | null;
+  } | null = null;
   if (u.current_crew_id) {
-    const { data: c } = await sb.from("crews").select("name, color").eq("id", u.current_crew_id).maybeSingle<{ name: string; color: string | null }>();
-    if (c) crew = { name: c.name, color: c.color, role: null };
+    const { data: c } = await sb.from("crews")
+      .select("id, name, color, custom_banner_url, custom_logo_url, member_count, zip, created_at")
+      .eq("id", u.current_crew_id)
+      .maybeSingle<{ id: string; name: string; color: string | null; custom_banner_url: string | null; custom_logo_url: string | null; member_count: number | null; zip: string | null; created_at: string | null }>();
+    if (c) crew = {
+      id: c.id, name: c.name, color: c.color, role: null,
+      custom_banner_url: c.custom_banner_url, custom_logo_url: c.custom_logo_url,
+      member_count: c.member_count, zip: c.zip, created_at: c.created_at,
+    };
   }
 
   return NextResponse.json({
@@ -48,6 +62,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ userId: string
     total_calories: u.total_calories ?? 0,
     longest_run_m: u.longest_run_m ?? 0,
     territory_count: territoryRes.count ?? 0,
+    banner_url: u.banner_url,
     crew,
     active_guardian: guardianRes.data ?? null,
     collection_size: collectionCountRes.count ?? 0,

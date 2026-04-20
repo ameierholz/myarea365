@@ -1387,7 +1387,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         />
       )}
       {rootRunnerProfileUserId && (
-        <RunnerStatsModal userId={rootRunnerProfileUserId} onClose={() => setRootRunnerProfileUserId(null)} />
+        <RunnerStatsModal
+          userId={rootRunnerProfileUserId}
+          onClose={() => setRootRunnerProfileUserId(null)}
+          canEditBanner={rootRunnerProfileUserId === initialProfile?.id}
+        />
       )}
     </div>
   );
