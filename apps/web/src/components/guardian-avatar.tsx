@@ -52,15 +52,61 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
   const [portraitFailed, setPortraitFailed] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef2 = useRef<HTMLVideoElement>(null);
 
-  // Bei Attack/Crit einmal abspielen dann auf Idle zurueck via Ref
+  // Crossfade-Loop: 2 Videos leicht versetzt, eins faded raus, das andere rein.
+  // Verdeckt Nahtstelle bei nicht-perfekten Loops (z.B. Gemini/Runway-Output).
+  // Überlappung = 0.6s am Ende.
+  const CROSSFADE_SECONDS = 0.6;
+  const [useFadeLoop, setUseFadeLoop] = useState(false);
+  const [topOnA, setTopOnA] = useState(true); // welches Video oben liegt
+
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     v.currentTime = 0;
-    v.loop = variant === "idle";
+    v.loop = variant === "idle" && !useFadeLoop;
     void v.play().catch(() => {});
-  }, [variant, animation]);
+    if (videoRef2.current) {
+      videoRef2.current.currentTime = 0;
+      videoRef2.current.pause();
+    }
+  }, [variant, animation, useFadeLoop]);
+
+  // Nur beim Idle-Loop aus externem MP4 den Crossfade aktivieren
+  useEffect(() => {
+    const isExternalVideo = !!archetype.video_url;
+    if (!isExternalVideo || variant !== "idle") { setUseFadeLoop(false); return; }
+    setUseFadeLoop(true);
+
+    const a = videoRef.current;
+    const b = videoRef2.current;
+    if (!a || !b) return;
+
+    a.loop = false;
+    b.loop = false;
+
+    const scheduleHandoff = (from: HTMLVideoElement, to: HTMLVideoElement) => () => {
+      if (!from.duration || isNaN(from.duration)) return;
+      const remaining = from.duration - from.currentTime;
+      if (remaining <= CROSSFADE_SECONDS && to.paused) {
+        to.currentTime = 0;
+        void to.play().catch(() => {});
+        // Nach Ablauf dieses Videos sofort das andere neu starten
+        setTopOnA((prev) => !prev);
+        from.onended = () => { from.currentTime = 0; /* wartet auf nächsten Handoff */ };
+      }
+    };
+
+    const ta = scheduleHandoff(a, b);
+    const tb = scheduleHandoff(b, a);
+    a.addEventListener("timeupdate", ta);
+    b.addEventListener("timeupdate", tb);
+    return () => {
+      a.removeEventListener("timeupdate", ta);
+      b.removeEventListener("timeupdate", tb);
+    };
+  }, [archetype.video_url, variant]);
 
   if (useVideo && !videoFailed) {
     return (
@@ -89,17 +135,39 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           autoPlay
           muted
           playsInline
-          loop={variant === "idle"}
+          loop={variant === "idle" && !useFadeLoop}
           onError={() => setVideoFailed(true)}
-          poster={`/guardians/${archetype.id}_idle.png`}
+          poster={archetype.image_url ?? `/guardians/${archetype.id}_idle.png`}
           style={{
-            position: "relative",
+            position: "absolute", inset: 0,
             width: "100%", height: "100%",
             objectFit: "contain",
             transform: flip,
             filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
+            opacity: useFadeLoop && !topOnA ? 0 : 1,
+            transition: `opacity ${CROSSFADE_SECONDS}s linear`,
+            zIndex: topOnA ? 2 : 1,
           }}
         />
+        {/* Zweites Video fuer Crossfade-Loop (nur aktiv bei externen MP4s) */}
+        {useFadeLoop && (
+          <video
+            ref={videoRef2}
+            src={videoSrc}
+            muted
+            playsInline
+            loop={false}
+            style={{
+              position: "absolute", inset: 0,
+              width: "100%", height: "100%",
+              objectFit: "contain",
+              transform: flip,
+              opacity: topOnA ? 0 : 1,
+              transition: `opacity ${CROSSFADE_SECONDS}s linear`,
+              zIndex: topOnA ? 1 : 2,
+            }}
+          />
+        )}
         <style jsx>{`
           .aura-ring { animation: aura-pulse 2.6s ease-in-out infinite; }
           .anim-crit video { animation: crit-zoom 0.55s cubic-bezier(0.4, 1.7, 0.5, 0.95); }
