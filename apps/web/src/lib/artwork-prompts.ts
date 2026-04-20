@@ -233,30 +233,44 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
 
 export function buildMarkerPrompt(input: { name: string; hint?: string; mode: "image" | "video" }): string {
   const noPinDisclaimer =
-    "IMPORTANT: Render ONLY the standalone symbol/creature/object itself. " +
-    "Do NOT add a map pin shape, NO teardrop marker, NO location pin envelope, " +
-    "NO pointed bottom tip, NO circular badge background, NO frame, NO plate. " +
-    "The icon must be the pure symbol floating freely — nothing around it.";
+    "IMPORTANT: Render ONLY the standalone subject itself. " +
+    "Do NOT add a map pin shape, NO teardrop marker, NO location-pin envelope, " +
+    "NO pointed bottom tip, NO circular badge background, NO frame, NO plate, NO pedestal.";
+
+  const fillDisclaimer =
+    "The subject must be FULLY RENDERED and SOLIDLY FILLED — a complete, dimensional illustration " +
+    "with form, light, shadow and material. NOT outline-only, NOT a flat wireframe, NOT a line-drawing sticker. " +
+    "Think premium mobile-game icon quality (like Hearthstone / Marvel Snap / Clash Royale card art).";
+
+  const styleGuidance =
+    "Style MATCHES the subject naturally — let the motif drive the aesthetic: " +
+    "a phoenix should feel fiery and mythical; a rocket shiny-chrome and futuristic; " +
+    "an animal lively and recognizable with fur/feather texture; a lightning bolt electric and crackling; " +
+    "a butterfly vivid and delicate. Do NOT force every icon into the same visual treatment.";
 
   if (input.mode === "video") {
     return [
       `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024x1024, 30 fps, fully transparent background (alpha channel, PNG-style).`,
-      `Subject: a stylized glowing symbol representing "${input.name}". Centered, iconic silhouette, readable at very small sizes (32-64 px).`,
+      `Subject: "${input.name}" — centered, iconic silhouette, readable at very small sizes (32-64 px).`,
       input.hint ? `Motif hint: ${input.hint}.` : "",
+      styleGuidance,
+      fillDisclaimer,
       noPinDisclaimer,
-      `Motion: gentle pulsing glow, slow bob up and down (4-5 px), subtle ambient sparkles. No rotation.`,
-      `Style: neon cyber-fantasy, thick clean outlines, high saturation, teal-cyan (#22D1C3) and magenta-pink (#FF2D78) accent rim-light, soft inner glow.`,
+      `Motion: motion appropriate to the subject (e.g. flames flicker, wings flap slowly, sparkles drift, fur breathes). Slow bob 4-5 px if helpful. No rotation of the whole subject.`,
+      `Lighting: warm-and-cool rim-light to pop against any background. Soft ambient glow appropriate to the subject's color.`,
       `The final frame must exactly match the first frame for seamless looping.`,
-      `No audio. No text, no labels, no watermark, no logo, no background, no pin, no marker shape — fully transparent outside the symbol silhouette.`,
+      `No audio. No text, no labels, no watermark, no logo, no background, no pin, no marker shape — fully transparent outside the subject silhouette.`,
     ].filter(Boolean).join(" ");
   }
   return [
-    `A stylized glowing symbol representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
+    `A premium game icon representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
     input.hint ? `Motif hint: ${input.hint}.` : "",
+    styleGuidance,
+    fillDisclaimer,
     noPinDisclaimer,
-    `Style: neon cyber-fantasy, thick clean outlines, high saturation, soft inner glow, teal-cyan (#22D1C3) and magenta-pink (#FF2D78) rim-light accents.`,
-    `Iconic readable silhouette usable at 32-64 px. Crisp edges, no anti-aliased halo.`,
-    `No text, no labels, no watermark, no logo, no background, no pin, no map marker shape, no teardrop, no frame.`,
+    `Lighting: warm-and-cool rim-light for readability, soft ambient glow appropriate to the subject's theme.`,
+    `Iconic readable silhouette usable at 32-64 px. Crisp edges, rich material detail, vibrant colors, no anti-aliased halo.`,
+    `No text, no labels, no watermark, no logo, no background, no pin, no map-marker shape, no teardrop, no frame, no pedestal.`,
   ].filter(Boolean).join(" ");
 }
 
