@@ -14,6 +14,7 @@ import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
+import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton, GuardianGuideBanner } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -1425,6 +1426,23 @@ function ProfilTab({
   const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks">(null);
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
+  const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
+
+  // Click auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const badge = target.closest('[data-action="open-runner-profile"]') as HTMLElement | null;
+      if (badge && p?.id) {
+        e.preventDefault();
+        e.stopPropagation();
+        setRunnerProfileUserId(p.id);
+      }
+    };
+    document.addEventListener("click", onDocClick, true);
+    return () => document.removeEventListener("click", onDocClick, true);
+  }, [p?.id]);
 
   const handleRewardedAd = async () => {
     if (await appConfirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
@@ -2164,6 +2182,10 @@ function ProfilTab({
 
       {showBoostShop && p && (
         <PowerShopModal userId={p.id} onClose={() => setShowBoostShop(false)} />
+      )}
+
+      {runnerProfileUserId && (
+        <RunnerStatsModal userId={runnerProfileUserId} onClose={() => setRunnerProfileUserId(null)} />
       )}
 
 

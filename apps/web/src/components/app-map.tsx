@@ -301,6 +301,82 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-review-stars { color: #FFD700; font-size: 8px; letter-spacing: 0.5px; }
     .ma365-review-count { color: #8B8FA3; font-size: 8px; }
+
+    /* ═══════════════════════════════════════════════════════
+       Runner-Badge — frosted glass mit Speech-Bubble-Pfeil
+       ═══════════════════════════════════════════════════════ */
+    .ma365-runner-badge {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px 4px 10px;
+      background: rgba(15, 17, 21, 0.72);
+      backdrop-filter: blur(10px) saturate(1.4);
+      -webkit-backdrop-filter: blur(10px) saturate(1.4);
+      border: 1.5px solid var(--badge-color, #22D1C3);
+      border-radius: 999px;
+      color: #FFF;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+      box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.55),
+        0 0 14px color-mix(in srgb, var(--badge-color, #22D1C3) 45%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 4;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: ma365BadgeFloat 3.2s ease-in-out infinite;
+    }
+    .ma365-runner-badge::before {
+      /* Speech-Bubble-Pfeil nach oben zum Pin */
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 10px;
+      height: 10px;
+      background: inherit;
+      backdrop-filter: inherit;
+      -webkit-backdrop-filter: inherit;
+      border-left: 1.5px solid var(--badge-color, #22D1C3);
+      border-top: 1.5px solid var(--badge-color, #22D1C3);
+      border-top-left-radius: 3px;
+      z-index: -1;
+    }
+    .ma365-runner-badge:hover {
+      transform: translateX(-50%) scale(1.06);
+      box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.7),
+        0 0 22px color-mix(in srgb, var(--badge-color, #22D1C3) 70%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .ma365-runner-badge-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      box-shadow: 0 0 6px currentColor;
+    }
+    .ma365-runner-badge-at {
+      color: var(--badge-color, #22D1C3);
+      font-weight: 900;
+    }
+    .ma365-runner-badge-name {
+      color: #FFF;
+    }
+    @keyframes ma365BadgeFloat {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%      { transform: translateX(-50%) translateY(-1.5px); }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -429,15 +505,17 @@ function buildSelfMarkerEl(
   const supporterChip = tierCfg
     ? `<div style="position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:11px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
     : "";
-  // Name-Pill direkt unter dem Pin. Bei Crew-Mitgliedschaft bekommt die Pill
-  // einen Crew-farbigen Border + kleinen Crew-Farb-Dot als Marker. Kollidiert
-  // nicht mit Theme (stylt Pin oben) oder Supporter-Badge (oben rechts).
+  // Name-Badge (frosted glass, crew-color border glow, Speech-Bubble-Pfeil, klickbar)
   const cleanName = (displayName ?? "").trim();
-  const crewDot = crewColor
-    ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${crewColor};box-shadow:0 0 6px ${crewColor};vertical-align:middle;margin-right:4px"></span>`
-    : "";
+  const badgeColor = crewColor ?? "#22D1C3";
   const nameLabel = cleanName
-    ? `<div title="${crewName ? "Crew: " + crewName : "Solo"}" style="position:absolute;top:calc(100% - 4px);left:50%;transform:translateX(-50%);padding:3px 9px;background:rgba(15,17,21,0.88);border:1.5px solid ${crewColor ?? "rgba(255,255,255,0.18)"};border-radius:999px;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.9);letter-spacing:0.2px;pointer-events:none;z-index:4;box-shadow:0 2px 8px rgba(0,0,0,0.6)${crewColor ? `,0 0 12px ${crewColor}66` : ""}">${crewDot}@${cleanName}</div>`
+    ? `<div class="ma365-runner-badge" data-action="open-runner-profile"
+            title="${crewName ? "Crew: " + crewName + " · Klick für Profil" : "Klick für Profil"}"
+            style="--badge-color:${badgeColor}"
+       >
+        ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
+        <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
+       </div>`
     : "";
   const auraLayer = auraActive
     ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>
