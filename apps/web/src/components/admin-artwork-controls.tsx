@@ -4,10 +4,11 @@ import { useRef, useState } from "react";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 
 export function AdminArtworkControls({
-  targetType, targetId, buildPrompt, hasImage, hasVideo, onUploaded,
+  targetType, targetId, variant, buildPrompt, hasImage, hasVideo, onUploaded,
 }: {
   targetType: "marker" | "light" | "pin_theme";
   targetId: string;
+  variant?: "neutral" | "male" | "female";
   buildPrompt: (mode: "image" | "video") => string;
   hasImage: boolean;
   hasVideo: boolean;
@@ -28,7 +29,7 @@ export function AdminArtworkControls({
   async function upload(file: File) {
     setBusy(true); setErr(null);
     try {
-      const result = await uploadArtworkDirect(file, targetType, targetId);
+      const result = await uploadArtworkDirect(file, targetType, targetId, variant);
       if (!result.ok) setErr(result.error); else onUploaded?.();
     } finally { setBusy(false); }
   }

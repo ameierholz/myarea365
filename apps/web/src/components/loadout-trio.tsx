@@ -39,12 +39,13 @@ type CollectionResponse = {
 };
 
 export function LoadoutTrio({
-  userXp, equippedMarker, equippedLight, onEquipMarker, onEquipLight, isAdmin = false, onPinThemeChange,
+  userXp, equippedMarker, equippedMarkerVariant = "neutral", equippedLight, onEquipMarker, onEquipLight, isAdmin = false, onPinThemeChange,
 }: {
   userXp: number;
   equippedMarker: string;
+  equippedMarkerVariant?: "neutral" | "male" | "female";
   equippedLight: string;
-  onEquipMarker: (id: string) => void;
+  onEquipMarker: (id: string, variant: "neutral" | "male" | "female") => void;
   onEquipLight: (id: string) => void;
   isAdmin?: boolean;
   onPinThemeChange?: (theme: PinTheme) => void;
@@ -60,7 +61,7 @@ export function LoadoutTrio({
   type HelpTab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss";
   const [helpTab, setHelpTab] = useState<HelpTab | null>(null);
   const [cosmeticArt, setCosmeticArt] = useState<{
-    marker:    Record<string, { image_url: string | null; video_url: string | null }>;
+    marker:    Record<string, Record<string, { image_url: string | null; video_url: string | null }>>;
     light:     Record<string, { image_url: string | null; video_url: string | null }>;
     pin_theme: Record<string, { image_url: string | null; video_url: string | null }>;
   }>({ marker: {}, light: {}, pin_theme: {} });
@@ -268,7 +269,8 @@ export function LoadoutTrio({
         <div style={tileStyle()} onClick={() => setMarkerOpen(true)}>
           <div style={labelStyle()}>MAP-ICON</div>
           {(() => {
-            const mArt = cosmeticArt.marker[currentMarker.id];
+            const variants = cosmeticArt.marker[currentMarker.id];
+            const mArt = variants?.[equippedMarkerVariant] ?? variants?.neutral;
             if (mArt?.video_url) return <video src={mArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />;
             if (mArt?.image_url) return <img src={mArt.image_url} alt={currentMarker.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />;
             return <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>;
@@ -360,6 +362,7 @@ export function LoadoutTrio({
         <MarkerPickerModal
           userXp={userXp}
           currentId={equippedMarker}
+          currentVariant={equippedMarkerVariant}
           onPick={onEquipMarker}
           onClose={() => setMarkerOpen(false)}
           isAdmin={isAdmin}

@@ -175,6 +175,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [victoryTrigger, setVictoryTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>("map");
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
+  const [equippedMarkerVariant, setEquippedMarkerVariant] = useState<"neutral" | "male" | "female">(
+    ((initialProfile as unknown as { equipped_marker_variant?: "neutral"|"male"|"female" })?.equipped_marker_variant) || "neutral"
+  );
   const [equippedLight, setEquippedLight] = useState(initialProfile?.equipped_light_id || "classic");
   const [pinThemeOverride, setPinThemeOverride] = useState<import("@/lib/pin-themes").PinTheme | null>(null);
   const [rootRunnerProfileUserId, setRootRunnerProfileUserId] = useState<string | null>(null);
@@ -810,6 +813,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               teamColor={teamColor}
               username={p?.display_name || p?.username || "Ich"}
               markerId={equippedMarker}
+              markerVariant={equippedMarkerVariant}
               lightId={equippedLight}
               activeRoute={activeRoute}
               savedTerritories={[]}
@@ -1117,6 +1121,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               setProfile={setProfile}
               equippedMarker={equippedMarker}
               setEquippedMarker={setEquippedMarker}
+              equippedMarkerVariant={equippedMarkerVariant}
+              setEquippedMarkerVariant={setEquippedMarkerVariant}
               equippedLight={equippedLight}
               setEquippedLight={setEquippedLight}
               setPinThemeOverride={setPinThemeOverride}
@@ -1410,6 +1416,8 @@ function ProfilTab({
   setProfile,
   equippedMarker,
   setEquippedMarker,
+  equippedMarkerVariant,
+  setEquippedMarkerVariant,
   equippedLight,
   setEquippedLight,
   setPinThemeOverride,
@@ -1428,6 +1436,8 @@ function ProfilTab({
   setProfile: (p: Profile) => void;
   equippedMarker: string;
   setEquippedMarker: (s: string) => void;
+  equippedMarkerVariant: "neutral" | "male" | "female";
+  setEquippedMarkerVariant: (v: "neutral" | "male" | "female") => void;
   equippedLight: string;
   setEquippedLight: (s: string) => void;
   setPinThemeOverride: (t: import("@/lib/pin-themes").PinTheme | null) => void;
@@ -1526,9 +1536,10 @@ function ProfilTab({
     }
   };
 
-  async function equipMarker(id: string) {
+  async function equipMarker(id: string, variant: "neutral" | "male" | "female" = "neutral") {
     setEquippedMarker(id);
-    if (p) await supabase.from("users").update({ equipped_marker_id: id }).eq("id", p.id);
+    setEquippedMarkerVariant(variant);
+    if (p) await supabase.from("users").update({ equipped_marker_id: id, equipped_marker_variant: variant }).eq("id", p.id);
   }
 
   async function equipLight(id: string) {
@@ -1930,6 +1941,7 @@ function ProfilTab({
         <LoadoutTrio
           userXp={userXp}
           equippedMarker={equippedMarker}
+          equippedMarkerVariant={equippedMarkerVariant}
           equippedLight={equippedLight}
           onEquipMarker={equipMarker}
           onEquipLight={equipLight}

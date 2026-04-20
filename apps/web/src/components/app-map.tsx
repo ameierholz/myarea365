@@ -430,6 +430,7 @@ interface AppMapProps {
   teamColor?: string;
   username?: string;
   markerId?: string;
+  markerVariant?: "neutral" | "male" | "female";
   lightId?: string;
   activeRoute?: Array<{ lat: number; lng: number }>;
   savedTerritories?: Array<Array<{ lat: number; lng: number }>>;
@@ -662,6 +663,7 @@ export function AppMap({
   trackingActive,
   teamColor = "#5ddaf0",
   markerId = "foot",
+  markerVariant = "neutral",
   lightId = "classic",
   activeRoute = [],
   savedTerritories = [],
@@ -723,13 +725,14 @@ export function AppMap({
       try {
         const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
         if (!res.ok) return;
-        const j = await res.json() as { marker: Record<string, { image_url: string | null; video_url: string | null }> };
-        const art = j.marker?.[markerId] ?? null;
+        const j = await res.json() as { marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+        const variants = j.marker?.[markerId];
+        const art = variants?.[markerVariant] ?? variants?.neutral ?? null;
         if (alive) setMarkerArt(art);
       } catch {}
     })();
     return () => { alive = false; };
-  }, [markerId]);
+  }, [markerId, markerVariant]);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string; el: HTMLElement }>>([]);

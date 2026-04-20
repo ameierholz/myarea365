@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     target_id: string;
     file_name: string;
     content_type: string;
+    variant?: "neutral" | "male" | "female";
   };
 
   if (!body.target_id || !body.file_name) {
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
 
   const ext = (body.file_name.split(".").pop() || "png").toLowerCase();
   const safeId = body.target_id.replace(/[^a-z0-9_-]/gi, "_");
+  const variant = body.variant && ["neutral","male","female"].includes(body.variant) ? body.variant : "neutral";
   const isVideo = (body.content_type || "").startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
 
   const folder = body.target_type === "archetype"
@@ -51,7 +53,8 @@ export async function POST(req: Request) {
         : body.target_type === "pin_theme"
           ? (isVideo ? "pin-themes/video" : "pin-themes")
           : "items";
-  const path = `${folder}/${safeId}.${ext}`;
+  const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;
+  const path = `${folder}/${filename}`;
 
   const { data, error } = await sb.storage.from("artwork").createSignedUploadUrl(path, { upsert: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -61,5 +64,6 @@ export async function POST(req: Request) {
     token: data.token,
     path: data.path,
     is_video: isVideo,
+    variant,
   });
 }

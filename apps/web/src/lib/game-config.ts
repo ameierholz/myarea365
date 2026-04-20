@@ -39,7 +39,7 @@ export const FACTIONS = [
 
 export type FactionId = "syndicate" | "vanguard";
 
-// 20 Map-Icons — exponentielle Kostenkurve (~×1.6 pro Stufe), Endgame nur für Hardcore
+// 30 Map-Icons — exponentielle Kostenkurve, Endgame nur für Hardcore
 export const UNLOCKABLE_MARKERS = [
   { id: "foot",        icon: "👣",  cost: 0,         name: "Basic"         },
   { id: "walker",      icon: "🚶",  cost: 100,       name: "Wanderer"      },
@@ -49,19 +49,38 @@ export const UNLOCKABLE_MARKERS = [
   { id: "rabbit",      icon: "🐇",  cost: 2000,      name: "Hase"          },
   { id: "turtle",      icon: "🐢",  cost: 3500,      name: "Schildkröte"   },
   { id: "dog",         icon: "🐕",  cost: 6000,      name: "Hund"          },
-  { id: "rocket",      icon: "🚀",  cost: 10000,     name: "Rakete"        },
-  { id: "deer",        icon: "🦌",  cost: 16000,     name: "Hirsch"        },
+  { id: "fox",         icon: "🦊",  cost: 9000,      name: "Fuchs"         },
+  { id: "rocket",      icon: "🚀",  cost: 13000,     name: "Rakete"        },
+  { id: "deer",        icon: "🦌",  cost: 18000,     name: "Hirsch"        },
   { id: "lightning",   icon: "⚡",  cost: 25000,     name: "Blitz"         },
-  { id: "wolf",        icon: "🐺",  cost: 40000,     name: "Wolf"          },
-  { id: "ufo",         icon: "🛸",  cost: 65000,     name: "Alien"         },
-  { id: "butterfly",   icon: "🦋",  cost: 100000,    name: "Schmetterling" },
+  { id: "wolf",        icon: "🐺",  cost: 35000,     name: "Wolf"          },
+  { id: "bear",        icon: "🐻",  cost: 50000,     name: "Bär"           },
+  { id: "ufo",         icon: "🛸",  cost: 70000,     name: "Alien"         },
+  { id: "butterfly",   icon: "🦋",  cost: 95000,     name: "Schmetterling" },
+  { id: "tiger",       icon: "🐅",  cost: 125000,    name: "Tiger"         },
   { id: "phoenix",     icon: "🔥",  cost: 160000,    name: "Phoenix"       },
-  { id: "eagle",       icon: "🦅",  cost: 250000,    name: "Adler"         },
-  { id: "dragon",      icon: "🐉",  cost: 400000,    name: "Drache"        },
-  { id: "meteor",      icon: "☄️",  cost: 650000,    name: "Komet"         },
+  { id: "eagle",       icon: "🦅",  cost: 210000,    name: "Adler"         },
+  { id: "ghost",       icon: "👻",  cost: 280000,    name: "Geist"         },
+  { id: "skull",       icon: "💀",  cost: 360000,    name: "Totenkopf"     },
+  { id: "dragon",      icon: "🐉",  cost: 460000,    name: "Drache"        },
+  { id: "meteor",      icon: "☄️",  cost: 600000,    name: "Komet"         },
+  { id: "crown",       icon: "👑",  cost: 780000,    name: "Krone"         },
   { id: "unicorn",     icon: "🦄",  cost: 1000000,   name: "Einhorn"       },
-  { id: "hero",        icon: "🦸",  cost: 1500000,   name: "Legende"       },
+  { id: "trophy",      icon: "🏆",  cost: 1300000,   name: "Pokal"         },
+  { id: "diamond",     icon: "💎",  cost: 1700000,   name: "Diamant"       },
+  { id: "star",        icon: "⭐",  cost: 2200000,   name: "Stern"         },
+  { id: "galaxy",      icon: "🌌",  cost: 2800000,   name: "Galaxie"       },
+  { id: "hero",        icon: "🦸",  cost: 3500000,   name: "Legende"       },
 ] as const;
+
+// Icons mit geschlechtsspezifischen Varianten (Dropdown: neutral/male/female)
+export const GENDERED_MARKER_IDS = ["walker", "runner", "hero"] as const;
+export type GenderedMarkerId = typeof GENDERED_MARKER_IDS[number];
+export const MARKER_VARIANT_LABEL: Record<"neutral" | "male" | "female", string> = {
+  neutral: "Gender-Neutral",
+  male:    "Männlich",
+  female:  "Weiblich",
+};
 
 // 20 Runner Lights — exponentielle Kostenkurve (~×1.6 pro Stufe)
 export const RUNNER_LIGHTS = [

@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
-import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
+import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 
@@ -34,10 +34,11 @@ const ROLE_LABEL: Record<string, string> = {
   dps: "DPS", tank: "Tank", support: "Support", balanced: "Balanced",
 };
 
+type Art = { image_url: string | null; video_url: string | null };
 type CosmeticArt = {
-  marker:    Record<string, { image_url: string | null; video_url: string | null }>;
-  light:     Record<string, { image_url: string | null; video_url: string | null }>;
-  pin_theme: Record<string, { image_url: string | null; video_url: string | null }>;
+  marker:    Record<string, Record<string, Art>>; // marker[id][variant]
+  light:     Record<string, Art>;
+  pin_theme: Record<string, Art>;
 };
 
 type TabId = "archetype" | "marker" | "light" | "pin_theme";
@@ -61,7 +62,7 @@ export function ArtworkAdminClient() {
   useEffect(() => { reload(); }, []);
 
   const doneArch   = archetypes.filter(a => a.image_url || a.video_url).length;
-  const doneMark   = Object.values(cosmetic.marker).filter(a => a.image_url || a.video_url).length;
+  const doneMark   = Object.values(cosmetic.marker).reduce((acc, variants) => acc + Object.values(variants).filter(a => a.image_url || a.video_url).length, 0);
   const doneLight  = Object.values(cosmetic.light).filter(a => a.image_url || a.video_url).length;
   const doneTheme  = Object.values(cosmetic.pin_theme).filter(a => a.image_url || a.video_url).length;
 
@@ -113,33 +114,54 @@ export function ArtworkAdminClient() {
 /*  Tab: Map-Icons / Runner-Lights / Pin-Themes               */
 /* ═════════════════════════════════════════════════════════ */
 
-function MarkerTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+function MarkerTab({ artMap, onChange }: { artMap: Record<string, Record<string, { image_url: string | null; video_url: string | null }>>; onChange: () => void }) {
   return (
-    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
       {UNLOCKABLE_MARKERS.map((m) => {
-        const art = artMap[m.id];
+        const isGendered = (GENDERED_MARKER_IDS as readonly string[]).includes(m.id);
+        const variants: Array<"neutral" | "male" | "female"> = isGendered ? ["neutral","male","female"] : ["neutral"];
+        const headArt = (artMap[m.id]?.neutral) ?? (artMap[m.id]?.male) ?? (artMap[m.id]?.female);
         return (
           <div key={m.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-[#0F1115] text-3xl">
-                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
-                  : art?.image_url ? <img src={art.image_url} alt={m.name} className="w-16 h-16 object-contain" />
+                {headArt?.video_url ? <video src={headArt.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
+                  : headArt?.image_url ? <img src={headArt.image_url} alt={m.name} className="w-16 h-16 object-contain" />
                   : <span>{m.icon}</span>}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">MAP-ICON</div>
+                <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">MAP-ICON{isGendered ? " · Varianten" : ""}</div>
                 <div className="text-sm font-black text-white truncate">{m.name}</div>
                 <div className="text-[10px] text-[#a8b4cf]">{m.cost >= 1000 ? `${m.cost/1000}k` : m.cost} XP</div>
               </div>
             </div>
-            <AdminArtworkControls
-              targetType="marker"
-              targetId={m.id}
-              hasImage={!!art?.image_url}
-              hasVideo={!!art?.video_url}
-              buildPrompt={(mode) => buildMarkerPrompt({ id: m.id, name: m.name, hint: m.icon, mode })}
-              onUploaded={onChange}
-            />
+            {variants.map((v) => {
+              const vArt = artMap[m.id]?.[v];
+              return (
+                <div key={v} className="mb-2 pb-2 border-b border-white/5 last:border-0 last:mb-0 last:pb-0">
+                  {isGendered && (
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="w-10 h-10 flex items-center justify-center rounded bg-[#0F1115]">
+                        {vArt?.video_url ? <video src={vArt.video_url} autoPlay loop muted playsInline className="w-10 h-10 object-contain" />
+                          : vArt?.image_url ? <img src={vArt.image_url} alt="" className="w-10 h-10 object-contain" />
+                          : <span className="text-xl">{m.icon}</span>}
+                      </div>
+                      <div className="text-[11px] font-bold text-white flex-1">{MARKER_VARIANT_LABEL[v]}</div>
+                      {!(vArt?.image_url || vArt?.video_url) && <span className="text-[9px] font-bold text-[#FF2D78]">LEER</span>}
+                    </div>
+                  )}
+                  <AdminArtworkControls
+                    targetType="marker"
+                    targetId={m.id}
+                    variant={v}
+                    hasImage={!!vArt?.image_url}
+                    hasVideo={!!vArt?.video_url}
+                    buildPrompt={(mode) => buildMarkerPrompt({ id: m.id, name: m.name, hint: m.icon, mode, gender: v })}
+                    onUploaded={onChange}
+                  />
+                </div>
+              );
+            })}
           </div>
         );
       })}

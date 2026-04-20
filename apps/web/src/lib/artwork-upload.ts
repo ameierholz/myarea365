@@ -5,6 +5,7 @@ export async function uploadArtworkDirect(
   file: File,
   targetType: "archetype" | "item" | "marker" | "light" | "pin_theme",
   targetId: string,
+  variant?: "neutral" | "male" | "female",
 ): Promise<{ ok: true; image_url: string | null; video_url: string | null; is_video: boolean } | { ok: false; error: string }> {
   try {
     // 1) Signed Upload URL holen
@@ -16,6 +17,7 @@ export async function uploadArtworkDirect(
         target_id: targetId,
         file_name: file.name,
         content_type: file.type || "application/octet-stream",
+        variant,
       }),
     });
     if (!signRes.ok) {
@@ -47,6 +49,7 @@ export async function uploadArtworkDirect(
         target_id: targetId,
         path: sign.path,
         is_video: sign.is_video,
+        variant,
       }),
     });
     if (!finRes.ok) {
