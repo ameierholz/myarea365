@@ -172,39 +172,36 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const ability   = in_.abilityName ? `signature ability: '${in_.abilityName}'` : "";
   const loreLine  = in_.lore ? `lore hint: ${in_.lore}` : "";
 
+  // Charakter-Archetyp in generischer Beschreibung (ohne Eigennamen-Referenzen)
+  const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
+
   if (in_.mode === "video") {
-    // Canva Magic Animate / Midjourney Video / Runway / Pika-tauglich
+    // Schlank: Subjekt + Motion + Licht. Art-Style wählst du im Tool selbst.
     return [
-      `Short looping idle animation (3-5 seconds, seamless loop) of '${in_.name}', a humanoid urban-fantasy MyArea365 guardian.`,
-      `Portrait 9:16 aspect ratio, vertical, full body visible, character centered.`,
-      typeMod && `Character: ${typeMod}.`,
-      roleMod && `Role: ${roleMod}.`,
-      `Rarity feel: ${rarityMod}.`,
-      ability,
+      `Short looping idle clip, 3 to 5 seconds, seamless first-to-last-frame loop, vertical 9:16 portrait composition.`,
+      `Subject: a single original humanoid warrior character, full body visible, centered, standing on a dark rooftop at night.`,
+      `The character wears a stylized mix of modern street-wear and light armor.`,
+      archetypeHint && `Character traits: ${archetypeHint}.`,
+      `Mood and detail level: ${rarityMod}.`,
+      ability ? `Subtle signature aura effect around the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}.` : "",
       loreLine,
-      `Motion: ${animMod || "subtle breathing, slight weight shift, clothing and hair reacting to wind"}.`,
-      `Camera: locked static shot, no pan, no zoom. Character stays centered.`,
-      `Keep background very dark and stable (dark gradient #0F1115 to #1A1D23), only the character and its FX animate.`,
-      `Ambient FX: faint rising dust/particles, soft rim-light flicker, slow aura pulse.`,
-      `Setting: gritty modern city (street neon glow, rooftop silhouette) — NOT medieval fantasy.`,
-      `Accent colors #22D1C3 (teal) and #FF2D78 (pink-magenta), with #FFD700 gold highlights for legendary.`,
-      `Style: Magic The Gathering animated card, League of Legends champion splash in motion, Diablo 4 login-screen loop.`,
-      `Smooth 24-30fps, seamless first-to-last-frame loop, MP4/WebM, 1080x1920, no text, no logo, no watermark.`,
+      `Motion: ${animMod || "subtle breathing, slight weight shift, clothing and hair reacting to a gentle wind"}. Camera locked, no pan, no zoom.`,
+      `Background: deeply out-of-focus night city, only blurred hints of distant lights. Dark overall tone.`,
+      `Lighting: teal and magenta rim light on the character, soft ambient particles rising.`,
+      `No text, no captions, no logos, no watermark. Fully original invented character, not based on any existing franchise, brand, or real person.`,
     ].filter(Boolean).join(" ");
   }
 
   return [
-    `Character key art portrait of '${in_.name}', a humanoid urban-fantasy MyArea365 guardian.`,
-    `3/4 view, heroic pose, detailed face and outfit, full body visible, single character, dynamic composition.`,
-    typeMod && `Class: ${typeMod}.`,
-    roleMod && `Role: ${roleMod}.`,
-    `Rarity feel: ${rarityMod}.`,
-    ability,
+    `A single original humanoid warrior character, full body visible, 3/4 view, heroic standing pose, centered in frame.`,
+    `The character wears a stylized mix of modern street-wear and light armor.`,
+    archetypeHint && `Character traits: ${archetypeHint}.`,
+    `Mood and detail level: ${rarityMod}.`,
+    ability ? `Subtle signature aura effect around the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}.` : "",
     loreLine,
-    `Setting: gritty modern city (streets, alleys, neon, rooftops) — NOT medieval fantasy.`,
-    `Dark gradient background #0F1115 to #1A1D23, cinematic rim lighting.`,
-    `Accent colors #22D1C3 (teal) and #FF2D78 (pink-magenta), with #FFD700 gold highlights for legendary.`,
-    `Style: Magic The Gathering card art, League of Legends splash, Diablo 4 hero portrait.`,
-    `1024x1024, centered, transparency-safe edges, no text, no logo, no watermark.`,
+    `Setting: dark night rooftop, deeply out-of-focus city lights in the background.`,
+    `Lighting: teal and magenta rim light on the character, warm gold highlights only if the character should look legendary.`,
+    `Composition: centered, square 1:1, full character visible.`,
+    `No text, no captions, no logos, no watermark. Fully original invented character, not based on any existing franchise, brand, or real person.`,
   ].filter(Boolean).join(" ");
 }
