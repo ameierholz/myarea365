@@ -511,6 +511,7 @@ function buildSelfMarkerEl(
   auraActive = false,
   crewColor?: string | null, crewName?: string | null,
   displayName?: string | null,
+  markerArt?: { image_url: string | null; video_url: string | null } | null,
 ): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
@@ -550,7 +551,12 @@ function buildSelfMarkerEl(
   el.innerHTML = `
     ${auraLayer}
     <div class="runner-ring" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
-    <span class="runner-emoji" style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
+    ${markerArt?.video_url
+      ? `<video class="runner-emoji" src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;width:${isRunning ? 56 : 48}px;height:${isRunning ? 56 : 48}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)"></video>`
+      : markerArt?.image_url
+        ? `<img class="runner-emoji" src="${markerArt.image_url}" alt="" style="position:relative;width:${isRunning ? 56 : 48}px;height:${isRunning ? 56 : 48}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)" />`
+        : `<span class="runner-emoji" style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>`
+    }
     ${supporterChip}
     ${nameLabel}
     <style>
@@ -710,6 +716,20 @@ export function AppMap({
   const userInteractedRef = useRef(false);
   const watchRef = useRef<number | null>(null);
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [markerArt, setMarkerArt] = useState<{ image_url: string | null; video_url: string | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json() as { marker: Record<string, { image_url: string | null; video_url: string | null }> };
+        const art = j.marker?.[markerId] ?? null;
+        if (alive) setMarkerArt(art);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, [markerId]);
   const runnerMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const dropMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const spotlightBadgeMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; shopId: string; el: HTMLElement }>>([]);
@@ -926,7 +946,7 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
       wrapForZoomScale(el);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
@@ -939,7 +959,7 @@ export function AppMap({
   // Tier-/Crew-Wechsel: Marker neu bauen
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName);
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
     wrapForZoomScale(el);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
@@ -949,7 +969,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive, markerArt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {
