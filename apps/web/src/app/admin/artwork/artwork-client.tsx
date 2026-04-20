@@ -119,8 +119,8 @@ function MarkerTab({ artMap, onChange }: { artMap: Record<string, Record<string,
     <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
       {UNLOCKABLE_MARKERS.map((m) => {
         const isGendered = (GENDERED_MARKER_IDS as readonly string[]).includes(m.id);
-        const variants: Array<"neutral" | "male" | "female"> = isGendered ? ["neutral","male","female"] : ["neutral"];
-        const headArt = (artMap[m.id]?.neutral) ?? (artMap[m.id]?.male) ?? (artMap[m.id]?.female);
+        const variants: Array<"neutral" | "male" | "female"> = isGendered ? ["male","female"] : ["neutral"];
+        const headArt = (artMap[m.id]?.male) ?? (artMap[m.id]?.female) ?? (artMap[m.id]?.neutral);
         return (
           <div key={m.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
             <div className="flex items-center gap-2 mb-2">

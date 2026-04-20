@@ -87,7 +87,11 @@ function MarkerCard({
   onArtReload: () => void;
 }) {
   const isGendered = (GENDERED_MARKER_IDS as readonly string[]).includes(m.id);
-  const [localVariant, setLocalVariant] = useState<Variant>(currentId === m.id ? currentVariant : "neutral");
+  // Gendered Markers haben nur male/female — "neutral" wird auf "male" normalisiert.
+  const initialVariant: Variant = isGendered
+    ? (currentId === m.id && (currentVariant === "male" || currentVariant === "female") ? currentVariant : "male")
+    : "neutral";
+  const [localVariant, setLocalVariant] = useState<Variant>(initialVariant);
   const effectiveVariant = isGendered ? localVariant : "neutral";
 
   const unlocked = isAdmin || userXp >= m.cost;
@@ -142,7 +146,6 @@ function MarkerCard({
             background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.12)",
             color: "#FFF", fontSize: 10, fontWeight: 800, cursor: "pointer",
           }}>
-          <option value="neutral">🧍 Gender-Neutral</option>
           <option value="male">🚹 Männlich</option>
           <option value="female">🚺 Weiblich</option>
         </select>
