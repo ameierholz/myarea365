@@ -33,9 +33,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ userId: string
   let crew: {
     id: string; name: string; color: string | null; role: string | null;
     custom_banner_url: string | null; custom_logo_url: string | null;
-    member_count: number | null; total_power: number | null;
-    treasure_xp: number | null; zip: string | null; faction: string | null;
-    plan: string | null;
+    member_count: number | null; zip: string | null; created_at: string | null;
   } | null = null;
   if (u.current_crew_id) {
     const { data: c } = await sb.from("crews")
