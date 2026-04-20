@@ -15,6 +15,7 @@ import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
+import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
@@ -2067,6 +2068,7 @@ function ProfilTab({
 
         {p && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+            <DailyDealTeaser onOpen={() => setShowShopHub(true)} />
             <button
               onClick={() => setShowShopHub(true)}
               style={{

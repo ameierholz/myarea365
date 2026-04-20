@@ -102,12 +102,50 @@ export async function POST(req: Request) {
     return NextResponse.json(data);
   }
   if (action === "boss_damage") {
+    // Schaden wird server-seitig berechnet — Client-Wert wird ignoriert (Anti-Cheat).
+    // Formel: eff_atk × RNG[8..18] × crit-bonus × skill-bonus × (1 + talent.atk_pct)
+    const { data: g } = await sb.from("user_guardians")
+      .select("id, level, current_hp_pct, archetype_id, guardian_archetypes!inner(base_atk, base_hp)")
+      .eq("user_id", auth.user.id).eq("is_active", true).maybeSingle();
+    const gTyped = g as unknown as { id: string; level: number; current_hp_pct: number; guardian_archetypes: { base_atk: number; base_hp: number } } | null;
+    if (!gTyped) return NextResponse.json({ error: "no_active_guardian" }, { status: 400 });
+
+    // Equipment-Bonus
+    const { data: eqRows } = await sb.from("guardian_equipment")
+      .select("user_items!inner(item_catalog!inner(bonus_atk))")
+      .eq("guardian_id", gTyped.id);
+    let itemAtk = 0;
+    for (const row of (eqRows ?? []) as unknown as Array<{ user_items: { item_catalog: { bonus_atk: number } } }>) {
+      itemAtk += row.user_items?.item_catalog?.bonus_atk ?? 0;
+    }
+
+    // Talente & Skills laden
+    const { loadGuardianBattleContext } = await import("@/lib/guardian-battle-context");
+    const ctx = await loadGuardianBattleContext(sb, gTyped.id);
+
+    const baseAtk = gTyped.guardian_archetypes.base_atk * (1 + (gTyped.level - 1) * 0.06);
+    const effAtk = (baseAtk + itemAtk) * (1 + (ctx.talent_bonuses.atk_pct ?? 0));
+    const hpMod = 0.5 + 0.5 * (gTyped.current_hp_pct / 100); // verwundet → weniger Schaden
+
+    // Skill-Bonus: jeder Skill-Level addiert 6% Outgoing-Damage (5 Skills × 5 Level = max +150%)
+    const skillSum = ctx.skill_levels.active + ctx.skill_levels.passive + ctx.skill_levels.combat + ctx.skill_levels.role + ctx.skill_levels.expertise;
+    const skillMult = 1 + skillSum * 0.06;
+
+    // Krit
+    const critChance = Math.min(0.6, ctx.talent_bonuses.crit_pct ?? 0);
+    const critRoll = Math.random() < critChance;
+    const critMult = critRoll ? (1.5 + (ctx.talent_bonuses.crit_dmg ?? 0)) : 1;
+
+    // Basis-Range 8..18 ATK
+    const roll = 8 + Math.random() * 10;
+    const damage = Math.max(50, Math.round(effAtk * roll * hpMod * skillMult * critMult));
+
     const { data, error } = await sb.rpc("contribute_boss_damage", {
-      p_raid_id: body.raid_id as string, p_damage: body.damage as number,
+      p_raid_id: body.raid_id as string, p_damage: damage,
       p_user_lat: body.user_lat as number, p_user_lng: body.user_lng as number,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    return NextResponse.json({ ...data, damage, crit: critRoll });
   }
   if (action === "assign_loot") {
     const { data, error } = await sb.rpc("assign_boss_loot", {

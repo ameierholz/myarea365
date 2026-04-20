@@ -324,7 +324,7 @@ function SkillsTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Hero>
-        Jeder Wächter hat <b>5 Fähigkeiten</b>. Stufe 1–4 sind sofort freigeschaltet, Stufe 5 (Expertise) erst wenn die anderen 4 maxed sind. Upgrades kosten <b>Siegel</b> — kein Geld.
+        Jeder Wächter hat <b>5 Fähigkeiten</b>. Jede Fähigkeit muss mit <b>Siegeln</b> freigeschaltet werden. Stufe 5 (Expertise) öffnet sich erst, wenn die anderen 4 auf Max sind.
       </Hero>
 
       <Card title="5 Slots pro Wächter" color="#22D1C3">
@@ -335,9 +335,9 @@ function SkillsTab() {
         <SkillRow icon="💎" color="#c084fc" label="Expertise" desc="Endgame: Aktiv-Skill löst Zweitwirkung aus (freigeschaltet bei Skills 1-4 auf Max)" />
       </Card>
 
-      <Card title="Siegel — die Upgrade-Währung" color="#FFD700">
+      <Card title="Siegel — die Freischalt- & Upgrade-Währung" color="#FFD700">
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Jede Skill-Stufe kostet <b>typ-spezifische Siegel</b> — nicht kaufbar, nur durch Spielen verdienbar.
+          Jede Skill-Stufe kostet <b>typ-spezifische Siegel</b>. Primär durchs Gehen, Kämpfen & Missionen verdienbar — Tagesangebote können Siegel zusätzlich boosten.
         </div>
         <ul style={{ margin: "6px 0", paddingLeft: 18, fontSize: 11, lineHeight: 1.5, color: "#a8b4cf" }}>
           <li><b>Arena-Siege</b>: 1–3 Siegel vom Typ des Gegners</li>
@@ -387,7 +387,9 @@ function ArenaTab() {
           <li><b>GPS-Nähe</b>: Du musst ≤ <b>2 km</b> vom Shop sein um zu kämpfen</li>
           <li><b>Eligibility</b>: Du oder ein Crew-Mitglied muss in den letzten 3 Tagen dort eingelöst haben</li>
           <li><b>1 Kampf pro Arena pro Tag</b></li>
-          <li><b>Stats + Ausrüstung</b> deines Wächters fließen ein, plus aktive Power-Zone-Buffs</li>
+          <li><b>Level-Spread-Cap</b>: Max. ±5 Level zwischen Angreifer und Verteidiger</li>
+          <li><b>Revenge-Sperre 6h</b>: Wer gerade angegriffen wurde, kann erst nach 6h zurückschlagen</li>
+          <li><b>Weekly-Cap</b>: Max. 1 Kampf gegen denselben Runner pro Woche</li>
         </ul>
       </Card>
 
@@ -395,13 +397,28 @@ function ArenaTab() {
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
           <li><b>Sieg</b>: +500 Wächter-XP</li>
           <li><b>Niederlage</b>: +125 XP (Trostpreis)</li>
+          <li><b>Glückstreffer</b>: +100 XP bonus, wenn Verlierer unter 20% HP war</li>
+          <li><b>Underdog-Bonus</b>: +200 XP, wenn der niedriger-levelierte Wächter gewinnt</li>
           <li><b>3-Sieg-Streak</b>: Trophäe oder Fusion (wenn gleicher Archetyp)</li>
+          <li><b>Double-Down</b> (optional): Sieg +50% XP, Niederlage = 48h Verwundung</li>
           <li><b>Verwundung</b>: Verlierer-Wächter ist bis zu 24 h pausiert</li>
         </ul>
       </Card>
 
+      <Card title="🏆 Arena-Sessions (30 Tage)" color="#FF6B4A">
+        <div style={{ fontSize: 12, lineHeight: 1.55 }}>
+          Kämpfe zählen in laufende <b>30-Tage-Sessions</b> mit Punkten für Siege, Fusionen und Trophäen. Am Session-Ende:
+        </div>
+        <ul style={{ margin: "6px 0 0 0", paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
+          <li><b>Runner-Titel</b> (historisch im Profil): 🥇 Arena-Champion · 🥈 Herausforderer · 🥉 Finalist</li>
+          <li><b>Crew-Paket 1. Platz</b>: 80 Universal-Siegel + exklusives Banner + 500 💎 Crew-Schatz</li>
+          <li><b>Crew-Paket 2. Platz</b>: 50 Siegel + Banner</li>
+          <li><b>Crew-Paket 3. Platz</b>: 25 Siegel</li>
+        </ul>
+      </Card>
+
       <Card title="Spezialkräfte" color="#a855f7">
-        Jeder Archetyp hat eine einzigartige Spezialkraft die im Kampf automatisch zündet — z.B. <b>Paladin: +30% DEF in eigener Stadt</b>, <b>Berserker: +5% ATK pro erlittenem Treffer</b>, <b>Erzmagier: Gegner verliert 10% HP/Runde</b>.
+        Skills + Talente deines Wächters fließen ein: <b>Active-Ultimate</b> zündet bei Rage 1000, <b>Passive</b> gibt permanenten Stat-Bonus, <b>Combat</b> triggert bei Events (z.B. Krit), <b>Role</b> gibt Typ-Counter-Bonus, <b>Expertise</b> löst Zweitwirkung der Active aus.
       </Card>
     </div>
   );

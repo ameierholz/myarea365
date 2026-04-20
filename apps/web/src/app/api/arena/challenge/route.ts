@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { runBattle, type BattleInput } from "@/lib/battle-engine";
 import { GUARDIAN_LEVEL_CAP } from "@/lib/guardian";
+import { loadGuardianBattleContext } from "@/lib/guardian-battle-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,9 +37,9 @@ export async function POST(req: Request) {
 }
 
 async function handleChallenge(req: Request) {
-  let body: { business_id: string; defender_user_id: string; attacker_lat?: number; attacker_lng?: number };
+  let body: { business_id: string; defender_user_id: string; attacker_lat?: number; attacker_lng?: number; double_down?: boolean };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
-  const { business_id, defender_user_id, attacker_lat, attacker_lng } = body;
+  const { business_id, defender_user_id, attacker_lat, attacker_lng, double_down = false } = body;
   if (!business_id || !defender_user_id) return NextResponse.json({ error: "business_id + defender_user_id required" }, { status: 400 });
 
   const userClient = await createClient();
@@ -100,6 +101,28 @@ async function handleChallenge(req: Request) {
   if (!attEligible) return NextResponse.json({ error: "not_eligible", detail: "Weder du noch deine Crew hat hier in den letzten 3 Tagen eingelöst" }, { status: 403 });
   if (!defEligible) return NextResponse.json({ error: "defender_not_eligible", detail: "Der Gegner ist nicht eligible" }, { status: 403 });
 
+  // Revenge-Sperre 6h: Verteidiger darf Angreifer in 6h nicht wieder herausfordern (und umgekehrt)
+  const revengeSince = new Date(Date.now() - 6 * 3600000).toISOString();
+  const { count: revengeCount } = await sb.from("arena_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("challenger_user_id", defender_user_id)
+    .eq("defender_user_id", attacker_user_id)
+    .gte("created_at", revengeSince);
+  if ((revengeCount ?? 0) > 0) {
+    return NextResponse.json({ error: "revenge_locked", detail: "6h Revenge-Sperre: Dieser Gegner hat dich gerade angegriffen — warte kurz." }, { status: 429 });
+  }
+
+  // Weekly-Cap: max 1 Kampf gegen denselben Verteidiger pro Woche
+  const weekSince = new Date(Date.now() - 7 * 86400000).toISOString();
+  const { count: weeklyCount } = await sb.from("arena_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("challenger_user_id", attacker_user_id)
+    .eq("defender_user_id", defender_user_id)
+    .gte("created_at", weekSince);
+  if ((weeklyCount ?? 0) > 0) {
+    return NextResponse.json({ error: "weekly_cap", detail: "Du hast diesen Runner diese Woche schon herausgefordert." }, { status: 429 });
+  }
+
   // 1 Kampf pro Arena pro Angreifer/Tag
   const since = new Date(Date.now() - 24 * 3600000).toISOString();
   const { count: recentCount } = await sb.from("arena_battles")
@@ -141,6 +164,15 @@ async function handleChallenge(req: Request) {
     return NextResponse.json({ error: "defender_wounded", detail: "Der gegnerische Wächter ist noch verwundet" }, { status: 400 });
   }
 
+  // Level-Spread-Cap: max 5 Level Differenz — verhindert Stomps
+  const levelSpread = Math.abs(gA.level - gB.level);
+  if (levelSpread > 5) {
+    return NextResponse.json({
+      error: "level_gap",
+      detail: `Level-Differenz zu groß (${levelSpread}). Max. ±5 erlaubt — sonst wär's unfair.`,
+    }, { status: 403 });
+  }
+
   async function countMembers(crewId: string | null): Promise<number> {
     if (!crewId) return 1;
     const { count } = await sb.from("users").select("id", { count: "exact", head: true }).eq("current_crew_id", crewId);
@@ -148,15 +180,25 @@ async function handleChallenge(req: Request) {
   }
   const [attCount, defCount] = await Promise.all([countMembers(attProfile?.current_crew_id ?? null), countMembers(defProfile?.current_crew_id ?? null)]);
 
+  // Skill-Levels + Talent-Bonuses aus DB laden (sonst kämpfen alle Wächter ohne Progression-Boni)
+  const [ctxA, ctxB] = await Promise.all([
+    loadGuardianBattleContext(sb, gA.id),
+    loadGuardianBattleContext(sb, gB.id),
+  ]);
+
   const inputA: BattleInput = {
     guardian: { id: gA.id, level: gA.level, current_hp_pct: gA.current_hp_pct, archetype: gA.archetype },
     is_home: false, crew_member_count: attCount,
     item_bonuses: gA.item_bonuses,
+    skill_levels: ctxA.skill_levels,
+    talent_bonuses: ctxA.talent_bonuses,
   };
   const inputB: BattleInput = {
     guardian: { id: gB.id, level: gB.level, current_hp_pct: gB.current_hp_pct, archetype: gB.archetype },
     is_home: false, crew_member_count: defCount,
     item_bonuses: gB.item_bonuses,
+    skill_levels: ctxB.skill_levels,
+    talent_bonuses: ctxB.talent_bonuses,
   };
 
   const seed = `${business_id}:${attacker_user_id}:${defender_user_id}:${Date.now()}`;
@@ -181,14 +223,39 @@ async function handleChallenge(req: Request) {
   }).select("id").single<{ id: string }>();
   if (battleErr || !battleRow) return NextResponse.json({ error: "battle_save_failed", detail: battleErr?.message ?? "no row" }, { status: 500 });
 
-  async function applyOutcome(g: NonNullable<typeof gA>, won: boolean, finalHp: number) {
+  // Phase-1-Boni berechnen
+  const isUnderdog = result.winner === "A" ? gA.level < gB.level : result.winner === "B" ? gB.level < gA.level : false;
+  const underdogBonus = isUnderdog ? 200 : 0;
+  // Glückstreffer: Verlierer hat weniger als 20% HP (knapp verloren)
+  const loserFinalHp = result.winner === "A" ? result.final_hp_b : result.final_hp_a;
+  const loserMaxHp = (() => {
+    const g = result.winner === "A" ? gB : gA;
+    return Math.round(g.archetype.base_hp * (1 + (g.level - 1) * 0.06)) + (g.item_bonuses?.hp ?? 0);
+  })();
+  const closeLoss = result.winner !== "draw" && (loserFinalHp / loserMaxHp) < 0.20;
+  const closeBonus = closeLoss ? 100 : 0;
+
+  async function applyOutcome(g: NonNullable<typeof gA>, won: boolean, finalHp: number, side: "A" | "B") {
     const baseMaxHp = Math.round(g.archetype.base_hp * (1 + (g.level - 1) * 0.06));
     const maxHp = baseMaxHp + (g.item_bonuses?.hp ?? 0);
     const hpPct = Math.max(0, Math.round((finalHp / maxHp) * 100));
-    const xpGain = won ? result.xp_awarded : Math.round(result.xp_awarded * 0.25);
+    let xpGain = won ? result.xp_awarded : Math.round(result.xp_awarded * 0.25);
 
-    // W/L + HP speichern
-    const wounded = !won && finalHp <= 0 ? new Date(Date.now() + 24 * 3600000).toISOString() : null;
+    if (won) {
+      xpGain += underdogBonus;
+      // Double-Down: Angreifer hat Risiko eingelegt → +50% XP bei Sieg
+      if (double_down && side === "A") xpGain = Math.round(xpGain * 1.5);
+    } else {
+      // Glückstreffer-Trostpreis für Verlierer bei knapper Niederlage
+      xpGain += closeBonus;
+    }
+
+    // Verwundung: Standard 24h, Double-Down-Verlierer 48h
+    let woundHours = 0;
+    if (!won && finalHp <= 0) woundHours = 24;
+    if (!won && double_down && side === "A") woundHours = 48;
+    const wounded = woundHours > 0 ? new Date(Date.now() + woundHours * 3600000).toISOString() : null;
+
     await sb.from("user_guardians").update({
       wins: won ? g.wins + 1 : g.wins,
       losses: !won ? g.losses + 1 : g.losses,
@@ -196,15 +263,28 @@ async function handleChallenge(req: Request) {
       wounded_until: wounded,
     }).eq("id", g.id);
 
-    // XP + Level + Talentpunkte via RPC (respektiert Cap 60, vergibt Talentpunkte bei Level-Up)
     if (xpGain > 0 && g.level < GUARDIAN_LEVEL_CAP) {
       await sb.rpc("apply_guardian_xp", { p_guardian_id: g.id, p_xp: xpGain });
     }
   }
 
+  // Session-Score updaten (zählt Kämpfe in aktuelle Arena-Session ein)
+  if (winnerUserId && result.winner !== "draw") {
+    const loserUserId = winnerUserId === attacker_user_id ? defender_user_id : attacker_user_id;
+    const loserCrewId = winnerUserId === attacker_user_id ? (defProfile?.current_crew_id ?? null) : (attProfile?.current_crew_id ?? null);
+    await sb.rpc("record_arena_session_battle", {
+      p_winner_user_id: winnerUserId,
+      p_loser_user_id: loserUserId,
+      p_winner_crew_id: winnerCrewId,
+      p_loser_crew_id: loserCrewId,
+      p_fusion: false,
+      p_trophy: false,
+    });
+  }
+
   await Promise.all([
-    applyOutcome(gA, result.winner === "A", result.final_hp_a),
-    applyOutcome(gB, result.winner === "B", result.final_hp_b),
+    applyOutcome(gA, result.winner === "A", result.final_hp_a, "A"),
+    applyOutcome(gB, result.winner === "B", result.final_hp_b, "B"),
   ]);
 
   // Siegel + Edelsteine für den Sieger (typ-spezifisch basierend auf Gegner-Typ)
@@ -287,6 +367,11 @@ async function handleChallenge(req: Request) {
     final_hp_b: result.final_hp_b,
     fusion: fusionResult,
     rewards: arenaRewards,
+    bonuses: {
+      underdog: underdogBonus,
+      close_loss: closeBonus,
+      double_down: double_down,
+    },
     type_advantage: result.type_advantage,
   });
 }
