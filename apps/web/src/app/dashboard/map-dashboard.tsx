@@ -1457,12 +1457,28 @@ function ProfilTab({
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
 
   // Click auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal.
-  // Der Badge sendet ein Custom-Event (Mapbox-sichere Variante, weil der Marker
-  // selbst Clicks ggf. abfängt).
+  // Drei parallele Wege, damit Mapbox den Klick nicht schlucken kann:
+  //   1) Custom-Event vom Badge-eigenen onclick/addEventListener
+  //   2) Document-Capture-Listener (faengt Click VOR allen anderen Handlern)
   useEffect(() => {
-    const onOpen = () => { if (p?.id) setRunnerProfileUserId(p.id); };
+    const open = () => { if (p?.id) setRunnerProfileUserId(p.id); };
+    const onOpen = () => open();
+    const onDocClick = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && t.closest('[data-action="open-runner-profile"]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        open();
+      }
+    };
     window.addEventListener("ma365:open-runner-profile", onOpen);
-    return () => window.removeEventListener("ma365:open-runner-profile", onOpen);
+    document.addEventListener("click", onDocClick, true);
+    document.addEventListener("touchend", onDocClick as EventListener, true);
+    return () => {
+      window.removeEventListener("ma365:open-runner-profile", onOpen);
+      document.removeEventListener("click", onDocClick, true);
+      document.removeEventListener("touchend", onDocClick as EventListener, true);
+    };
   }, [p?.id]);
 
   const handleRewardedAd = async () => {

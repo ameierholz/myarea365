@@ -308,22 +308,22 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     .ma365-runner-badge {
       all: unset;
       position: absolute;
-      top: calc(100% + 12px);
+      top: calc(100% + 8px);
       left: 50%;
       transform: translateX(-50%);
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
+      gap: 4px;
+      padding: 3px 8px;
       background: linear-gradient(180deg,
         rgba(30,35,50,0.96) 0%,
         rgba(15,17,21,0.98) 100%);
-      border: 1.5px solid var(--badge-color, #22D1C3);
-      border-radius: 6px;
+      border: 1px solid var(--badge-color, #22D1C3);
+      border-radius: 5px;
       color: #FFF;
-      font-size: 12px;
+      font-size: 9px;
       font-weight: 900;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
       white-space: nowrap;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
       text-shadow: 0 1px 2px rgba(0,0,0,0.95);
@@ -357,11 +357,11 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     .ma365-runner-badge::after {
       content: "";
       position: absolute;
-      top: -5px;
+      top: -4px;
       left: 50%;
       transform: translateX(-50%) rotate(45deg);
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background: linear-gradient(135deg, rgba(30,35,50,0.98), rgba(15,17,21,0.98));
       border-left: 1.5px solid var(--badge-color, #22D1C3);
       border-top: 1.5px solid var(--badge-color, #22D1C3);
@@ -380,9 +380,9 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-runner-badge-dot {
       display: inline-block;
-      width: 7px; height: 7px;
+      width: 5px; height: 5px;
       border-radius: 50%;
-      box-shadow: 0 0 6px currentColor;
+      box-shadow: 0 0 5px currentColor;
       flex-shrink: 0;
     }
     .ma365-runner-badge-at {
