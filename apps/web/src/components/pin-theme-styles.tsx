@@ -96,7 +96,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="golden"] .ma365-runner-pin::before {
   /* 6 goldene Sterne kreisen um den Pin */
   content: "";
-  position: absolute; inset: -22px;
+  position: absolute; inset: -10px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><g fill='%23FFD700' font-family='Arial' font-size='20' font-weight='900'><text x='60' y='18' text-anchor='middle'>%E2%98%85</text><text x='108' y='42' text-anchor='middle'>%E2%98%85</text><text x='108' y='90' text-anchor='middle'>%E2%98%85</text><text x='60' y='114' text-anchor='middle'>%E2%98%85</text><text x='12' y='90' text-anchor='middle'>%E2%98%85</text><text x='12' y='42' text-anchor='middle'>%E2%98%85</text></g></svg>") center/contain no-repeat;
   filter: drop-shadow(0 0 6px #FFD700) drop-shadow(0 0 12px #FFAC33);
   animation: ma365ThemeGoldStarSpin 9s linear infinite;
@@ -105,7 +105,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="golden"] .ma365-runner-pin::after {
   /* Zweite Sterne-Ebene gegen-rotiert = Funkel-Effekt */
   content: "";
-  position: absolute; inset: -8px;
+  position: absolute; inset: -2px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%23FFF4C8' font-family='Arial' font-size='10' font-weight='900'><text x='30' y='14' text-anchor='middle'>%E2%9C%A6</text><text x='72' y='16' text-anchor='middle'>%E2%9C%A6</text><text x='18' y='80' text-anchor='middle'>%E2%9C%A6</text><text x='84' y='88' text-anchor='middle'>%E2%9C%A6</text></g></svg>") center/contain no-repeat;
   animation: ma365ThemeGoldStarSpin 4s linear infinite reverse;
   opacity: 0.8;
@@ -238,7 +238,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="inferno"] .ma365-runner-pin::before {
   /* Flammenzungen schlagen nach oben hinter dem Pin */
   content: "";
-  position: absolute; inset: -26px -12px -6px -12px;
+  position: absolute; inset: -14px -4px -2px -4px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'><g><path d='M50 10 C40 25 45 35 50 45 C55 35 60 25 50 10' fill='%23FFD700'/><path d='M30 20 C22 35 27 48 35 55 C38 45 40 38 30 20' fill='%23FF8C00' opacity='0.85'/><path d='M70 20 C78 35 73 48 65 55 C62 45 60 38 70 20' fill='%23FF8C00' opacity='0.85'/><path d='M15 40 C10 55 16 68 25 70 C23 58 22 52 15 40' fill='%23FF4500' opacity='0.7'/><path d='M85 40 C90 55 84 68 75 70 C77 58 78 52 85 40' fill='%23FF4500' opacity='0.7'/></g></svg>") center bottom/contain no-repeat;
   filter: drop-shadow(0 0 6px #FF6B00) drop-shadow(0 0 12px #FFD700);
   animation: ma365ThemeInfernoFlame 0.5s ease-in-out infinite alternate;
@@ -319,7 +319,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="thunderstorm"] .ma365-runner-pin::before {
   /* 3 Blitze schlagen hinter dem Pin ein — rotieren langsam */
   content: "";
-  position: absolute; inset: -24px;
+  position: absolute; inset: -12px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><g fill='%23FFEE00' stroke='%2360a5fa' stroke-width='1'><polygon points='60,5 52,45 64,45 56,75 70,40 58,40 66,5'/><polygon points='10,40 38,55 28,60 48,85 18,68 30,63 8,40'/><polygon points='110,40 82,55 92,60 72,85 102,68 90,63 112,40'/></g></svg>") center/contain no-repeat;
   filter: drop-shadow(0 0 8px #FFEE00) drop-shadow(0 0 14px #60a5fa);
   animation: ma365ThemeThunderSpin 7s linear infinite, ma365ThemeThunderBoltFlash 2.4s steps(30,end) infinite;
@@ -424,7 +424,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="celestial"] .ma365-runner-pin::before {
   /* 12 goldene Sonnenstrahlen rotieren */
   content: "";
-  position: absolute; inset: -28px;
+  position: absolute; inset: -14px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g fill='%23FFE066' opacity='0.85'><polygon points='100,0 105,45 95,45'/><polygon points='150,14 132,55 118,45'/><polygon points='186,50 148,75 140,63'/><polygon points='200,100 155,105 155,95'/><polygon points='186,150 140,137 148,125'/><polygon points='150,186 118,155 132,145'/><polygon points='100,200 95,155 105,155'/><polygon points='50,186 68,145 82,155'/><polygon points='14,150 52,125 60,137'/><polygon points='0,100 45,95 45,105'/><polygon points='14,50 60,63 52,75'/><polygon points='50,14 82,45 68,55'/></g></svg>") center/contain no-repeat;
   filter: drop-shadow(0 0 8px #FFE066) drop-shadow(0 0 16px #FFFFFF);
   animation: ma365ThemeCelestialSpin 14s linear infinite;
@@ -433,7 +433,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="celestial"] .ma365-runner-pin::after {
   /* 8 weisse Mini-Sparkles gegen-rotierend */
   content: "";
-  position: absolute; inset: -14px;
+  position: absolute; inset: -4px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%23FFFFFF'><circle cx='50' cy='8' r='2'/><circle cx='80' cy='20' r='1.5'/><circle cx='92' cy='50' r='2'/><circle cx='80' cy='80' r='1.5'/><circle cx='50' cy='92' r='2'/><circle cx='20' cy='80' r='1.5'/><circle cx='8' cy='50' r='2'/><circle cx='20' cy='20' r='1.5'/></g></svg>") center/contain no-repeat;
   animation: ma365ThemeCelestialSpin 8s linear infinite reverse;
   pointer-events: none; z-index: -1;
@@ -462,7 +462,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="toxic"] .ma365-runner-pin::before {
   /* Biohazard-Symbol rotierend hinter dem Pin */
   content: "";
-  position: absolute; inset: -22px;
+  position: absolute; inset: -10px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%2366FF00' opacity='0.55'><circle cx='50' cy='50' r='8'/><path d='M50 50 L25 18 A28 28 0 0 1 75 18 Z' opacity='0.7'/><path d='M50 50 L82 62 A28 28 0 0 1 52 92 Z' opacity='0.7'/><path d='M50 50 L18 62 A28 28 0 0 0 48 92 Z' opacity='0.7'/></g></svg>") center/contain no-repeat;
   filter: drop-shadow(0 0 10px #66FF00);
   animation: ma365ThemeToxicSpin 5s linear infinite;
@@ -511,7 +511,7 @@ const PIN_THEME_CSS = `
 [data-pin-theme="prismatic"] .ma365-runner-pin::before {
   /* 8-Punkt-Kristall-Strahlen hinter dem Pin */
   content: "";
-  position: absolute; inset: -24px;
+  position: absolute; inset: -12px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><g opacity='0.9'><polygon points='60,0 66,56 54,56' fill='%23FF00FF'/><polygon points='120,60 64,66 64,54' fill='%2300FFFF'/><polygon points='60,120 54,64 66,64' fill='%23FF00FF'/><polygon points='0,60 56,54 56,66' fill='%2300FFFF'/><polygon points='103,17 68,60 60,52' fill='%23FFC700' opacity='0.8'/><polygon points='103,103 60,68 68,60' fill='%2366FF00' opacity='0.8'/><polygon points='17,103 52,60 60,68' fill='%23FFC700' opacity='0.8'/><polygon points='17,17 60,52 52,60' fill='%2366FF00' opacity='0.8'/></g></svg>") center/contain no-repeat;
   filter: drop-shadow(0 0 10px rgba(255,0,255,0.7)) drop-shadow(0 0 18px rgba(0,255,255,0.5));
   animation: ma365ThemePrismSpin 8s linear infinite, ma365ThemePrismHue 4s ease-in-out infinite;
