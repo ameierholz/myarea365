@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
+import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
+import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
+import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 
 type Archetype = {
   id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
@@ -31,34 +34,191 @@ const ROLE_LABEL: Record<string, string> = {
   dps: "DPS", tank: "Tank", support: "Support", balanced: "Balanced",
 };
 
+type CosmeticArt = {
+  marker:    Record<string, { image_url: string | null; video_url: string | null }>;
+  light:     Record<string, { image_url: string | null; video_url: string | null }>;
+  pin_theme: Record<string, { image_url: string | null; video_url: string | null }>;
+};
+
+type TabId = "archetype" | "marker" | "light" | "pin_theme";
+
 export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {} });
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<TabId>("archetype");
 
   const reload = async () => {
     setLoading(true);
-    const res = await fetch("/api/admin/artwork", { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      setArchetypes(data.archetypes);
-    }
+    const [aw, co] = await Promise.all([
+      fetch("/api/admin/artwork", { cache: "no-store" }),
+      fetch("/api/cosmetic-artwork", { cache: "no-store" }),
+    ]);
+    if (aw.ok) setArchetypes((await aw.json()).archetypes);
+    if (co.ok) setCosmetic(await co.json());
     setLoading(false);
   };
   useEffect(() => { reload(); }, []);
 
-  const done = archetypes.filter(a => a.image_url || a.video_url).length;
+  const doneArch   = archetypes.filter(a => a.image_url || a.video_url).length;
+  const doneMark   = Object.values(cosmetic.marker).filter(a => a.image_url || a.video_url).length;
+  const doneLight  = Object.values(cosmetic.light).filter(a => a.image_url || a.video_url).length;
+  const doneTheme  = Object.values(cosmetic.pin_theme).filter(a => a.image_url || a.video_url).length;
+
+  const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
+    { id: "archetype", label: "🛡️ Wächter",        done: doneArch,  total: archetypes.length },
+    { id: "marker",    label: "📍 Map-Icons",       done: doneMark,  total: UNLOCKABLE_MARKERS.length },
+    { id: "light",     label: "✨ Runner-Lights",   done: doneLight, total: RUNNER_LIGHTS.length },
+    { id: "pin_theme", label: "🎨 Pin-Themes",      done: doneTheme, total: ALL_PIN_THEMES.length },
+  ];
 
   return (
     <div>
       <h1 className="text-2xl font-black mb-1">🎨 Artwork-Generator</h1>
-      <p className="text-sm text-[#a8b4cf] mb-4">
-        Generiere KI-Prompts (Bild & Video) für Gemini Pro / Veo 2 / Midjourney und lade die fertigen Assets direkt zu den 60 Wächtern hoch.
-        <span className="ml-2 px-2 py-0.5 rounded-full bg-[#22D1C3]/15 text-[#22D1C3] text-xs font-bold">
-          {done} / {archetypes.length}
-        </span>
+      <p className="text-sm text-[#a8b4cf] mb-3">
+        KI-Prompts (Bild & Video) für Gemini Pro / Veo 2 / Midjourney generieren und die fertigen Assets direkt hochladen — für Wächter, Map-Icons, Runner-Lights und Pin-Themes.
       </p>
 
-      {loading ? <LoadingBox /> : <ArchetypesTab archetypes={archetypes} onChange={reload} />}
+      {/* Tab-Switcher */}
+      <div className="flex flex-wrap gap-2 mb-4 border-b border-white/10 pb-2">
+        {tabs.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-3 py-2 rounded-lg text-sm font-bold transition ${
+                active
+                  ? "bg-[#22D1C3] text-[#0F1115]"
+                  : "bg-[#1A1D23] border border-white/10 text-[#a8b4cf] hover:text-white"
+              }`}>
+              {t.label}
+              <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${active ? "bg-[#0F1115]/20" : "bg-[#22D1C3]/15 text-[#22D1C3]"}`}>
+                {t.done}/{t.total}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {loading ? <LoadingBox /> : (
+        tab === "archetype"  ? <ArchetypesTab archetypes={archetypes} onChange={reload} />
+        : tab === "marker"    ? <MarkerTab    artMap={cosmetic.marker}    onChange={reload} />
+        : tab === "light"     ? <LightTab     artMap={cosmetic.light}     onChange={reload} />
+        : <PinThemeTab artMap={cosmetic.pin_theme} onChange={reload} />
+      )}
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Map-Icons / Runner-Lights / Pin-Themes               */
+/* ═════════════════════════════════════════════════════════ */
+
+function MarkerTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+      {UNLOCKABLE_MARKERS.map((m) => {
+        const art = artMap[m.id];
+        return (
+          <div key={m.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-[#0F1115] text-3xl">
+                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
+                  : art?.image_url ? <img src={art.image_url} alt={m.name} className="w-16 h-16 object-contain" />
+                  : <span>{m.icon}</span>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">MAP-ICON</div>
+                <div className="text-sm font-black text-white truncate">{m.name}</div>
+                <div className="text-[10px] text-[#a8b4cf]">{m.cost >= 1000 ? `${m.cost/1000}k` : m.cost} XP</div>
+              </div>
+            </div>
+            <AdminArtworkControls
+              targetType="marker"
+              targetId={m.id}
+              hasImage={!!art?.image_url}
+              hasVideo={!!art?.video_url}
+              buildPrompt={(mode) => buildMarkerPrompt({ name: m.name, hint: m.icon, mode })}
+              onUploaded={onChange}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LightTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+      {RUNNER_LIGHTS.map((l) => {
+        const art = artMap[l.id];
+        const grad = l.gradient.length > 1 ? `linear-gradient(90deg, ${l.gradient.join(", ")})` : l.color;
+        return (
+          <div key={l.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-20 h-12 flex items-center justify-center rounded-lg bg-[#0F1115]">
+                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-20 h-12 object-contain" />
+                  : art?.image_url ? <img src={art.image_url} alt={l.name} className="w-20 h-12 object-contain" />
+                  : <div style={{ width: 64, height: l.width, borderRadius: l.width/2, background: grad, boxShadow: `0 0 10px ${l.color}80` }} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">RUNNER-LIGHT</div>
+                <div className="text-sm font-black text-white truncate">{l.name}</div>
+                <div className="text-[10px] text-[#a8b4cf]">{l.cost >= 1000 ? `${l.cost/1000}k` : l.cost} XP</div>
+              </div>
+            </div>
+            <AdminArtworkControls
+              targetType="light"
+              targetId={l.id}
+              hasImage={!!art?.image_url}
+              hasVideo={!!art?.video_url}
+              buildPrompt={(mode) => buildLightPrompt({ name: l.name, colors: [...l.gradient], mode })}
+              onUploaded={onChange}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PinThemeTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+      {ALL_PIN_THEMES.map((id) => {
+        const m = PIN_THEME_META[id];
+        const art = artMap[id];
+        return (
+          <div key={id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center rounded-lg" style={{
+                width: 64, height: 64, background: m.preview.bg,
+                border: `2px solid ${m.preview.accent}`, boxShadow: `0 0 12px ${m.preview.glow}`,
+              }}>
+                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
+                  : art?.image_url ? <img src={art.image_url} alt={m.name} className="w-16 h-16 object-contain" />
+                  : <span style={{ fontSize: 28 }}>{m.icon}</span>}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">PIN-THEME</div>
+                <div className="text-sm font-black text-white truncate">{m.name}</div>
+                <div className="text-[10px] text-[#a8b4cf] truncate">{m.description}</div>
+              </div>
+            </div>
+            <AdminArtworkControls
+              targetType="pin_theme"
+              targetId={id}
+              hasImage={!!art?.image_url}
+              hasVideo={!!art?.video_url}
+              buildPrompt={(mode) => buildPinThemePrompt({
+                name: m.name, description: m.description,
+                bg: m.preview.bg, accent: m.preview.accent, glow: m.preview.glow, mode,
+              })}
+              onUploaded={onChange}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
