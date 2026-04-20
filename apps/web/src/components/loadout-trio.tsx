@@ -7,7 +7,7 @@ import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { MarkerPickerModal } from "@/components/marker-picker-modal";
 import { LightPickerModal } from "@/components/light-picker-modal";
 import {
-  rarityMeta, TYPE_META,
+  rarityMeta, TYPE_META, statsAtLevel, GUARDIAN_LEVEL_CAP,
   type GuardianArchetype, type GuardianType,
 } from "@/lib/guardian";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
@@ -142,41 +142,76 @@ export function LoadoutTrio({
         display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: 8,
         marginBottom: 14,
       }}>
-        {/* ── WÄCHTER ── */}
-        <div style={{
-          padding: 10, borderRadius: 14,
-          background: `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.7))`,
-          border: `1px solid ${r.color}66`,
-          boxShadow: `0 0 16px ${r.glow}`,
-          position: "relative",
-        }}>
-          {active.talent_points_available > 0 && (
+        {/* ── WÄCHTER (mit Stats-Strip) ── */}
+        {(() => {
+          const stats = statsAtLevel(active.archetype, active.level);
+          const totalBattles = active.wins + active.losses;
+          const winRate = totalBattles > 0 ? Math.round((active.wins / totalBattles) * 100) : 0;
+          const collectionPct = Math.round((col.owned.length / col.archetypes.length) * 100);
+          const levelPct = Math.min(100, Math.round((active.level / GUARDIAN_LEVEL_CAP) * 100));
+          return (
             <div style={{
-              position: "absolute", top: 6, right: 6,
-              padding: "2px 6px", borderRadius: 999,
-              background: "#FFD700", color: "#0F1115",
-              fontSize: 9, fontWeight: 900, zIndex: 2,
-            }}>+{active.talent_points_available}</div>
-          )}
-          <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 1 }}>
-            {r.label.toUpperCase()}{typ ? ` · ${typ.icon}` : ""}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-            <div style={{ width: 60, height: 75, flexShrink: 0 }}>
-              <GuardianAvatar archetype={active.archetype} size={60} animation="idle" />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {active.custom_name ?? active.archetype.name}
+              padding: 10, borderRadius: 14,
+              background: `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.75))`,
+              border: `1px solid ${r.color}66`,
+              boxShadow: `0 0 16px ${r.glow}`,
+              position: "relative",
+              display: "flex", flexDirection: "column",
+            }}>
+              {active.talent_points_available > 0 && (
+                <div style={{
+                  position: "absolute", top: 6, right: 6,
+                  padding: "2px 6px", borderRadius: 999,
+                  background: "#FFD700", color: "#0F1115",
+                  fontSize: 9, fontWeight: 900, zIndex: 2,
+                }}>+{active.talent_points_available}</div>
+              )}
+
+              {/* Top-Row: Avatar + Name + Rarity */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 64, height: 80, flexShrink: 0 }}>
+                  <GuardianAvatar archetype={active.archetype} size={64} animation="idle" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 1 }}>
+                    {r.label.toUpperCase()}{typ ? ` · ${typ.icon} ${typ.label.toUpperCase()}` : ""}
+                  </div>
+                  <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {active.custom_name ?? active.archetype.name}
+                  </div>
+                  <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
+                    Lvl {active.level} / {GUARDIAN_LEVEL_CAP}
+                  </div>
+                  {/* Level-Progress-Bar */}
+                  <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginTop: 3 }}>
+                    <div style={{ width: `${levelPct}%`, height: "100%", background: r.color }} />
+                  </div>
+                </div>
               </div>
-              <div style={{ color: "#a8b4cf", fontSize: 10 }}>Lvl {active.level}</div>
+
+              {/* Stats-Grid: HP/ATK/DEF/SPD */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 3, marginTop: 8 }}>
+                <MiniStat label="HP"  value={stats.hp}  color="#4ade80" />
+                <MiniStat label="ATK" value={stats.atk} color="#FF6B4A" />
+                <MiniStat label="DEF" value={stats.def} color="#5ddaf0" />
+                <MiniStat label="SPD" value={stats.spd} color="#FFD700" />
+              </div>
+
+              {/* Battle + Collection Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3, marginTop: 3 }}>
+                <MiniStat label="W / L"  value={`${active.wins} / ${active.losses}`} color="#a855f7" />
+                <MiniStat label="WIN %"  value={totalBattles > 0 ? `${winRate}%` : "–"}   color="#4ade80" />
+                <MiniStat label="COLL."  value={`${col.owned.length}/${col.archetypes.length}`} color="#22D1C3" small={`${collectionPct}%`} />
+              </div>
+
+              {/* CTA-Buttons */}
+              <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+                <button onClick={() => setDetailId(active.id)} style={btnSmall(r.color, true)}>Öffnen</button>
+                <button onClick={() => setGalleryOpen(true)} style={btnSmall(r.color, false)}>Wechseln</button>
+              </div>
             </div>
-          </div>
-          <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-            <button onClick={() => setDetailId(active.id)} style={btnSmall(r.color, true)}>Öffnen</button>
-            <button onClick={() => setGalleryOpen(true)} style={btnSmall(r.color, false)}>Wechseln</button>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* ── MAP-ICON ── */}
         <div style={tileStyle()} onClick={() => setMarkerOpen(true)}>
@@ -243,6 +278,22 @@ export function LoadoutTrio({
         />
       )}
     </>
+  );
+}
+
+function MiniStat({ label, value, color, small }: { label: string; value: string | number; color: string; small?: string }) {
+  return (
+    <div style={{
+      padding: "4px 2px", borderRadius: 6,
+      background: "rgba(15,17,21,0.55)",
+      border: "1px solid rgba(255,255,255,0.05)",
+      textAlign: "center",
+      display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
+    }}>
+      <div style={{ color: "#8B8FA3", fontSize: 7, fontWeight: 800, letterSpacing: 0.8 }}>{label}</div>
+      <div style={{ color, fontSize: 11, fontWeight: 900, marginTop: 1, lineHeight: 1 }}>{value}</div>
+      {small && <div style={{ color: "#6c7590", fontSize: 7, marginTop: 1 }}>{small}</div>}
+    </div>
   );
 }
 
