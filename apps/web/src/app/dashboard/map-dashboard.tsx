@@ -774,6 +774,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               pinTheme={((p as unknown as { pin_theme?: "default"|"neon"|"cyberpunk"|"arcade"|"golden"|"frost"|null })?.pin_theme) ?? "default"}
               crewColor={myCrew?.color ?? null}
               crewName={myCrew?.name ?? null}
+              displayName={p?.username ?? p?.display_name ?? null}
               walkedSegments={walkedSegments}
               claimedStreets={claimedStreets}
               ownedTerritories={ownedTerritories}

@@ -352,6 +352,7 @@ interface AppMapProps {
   pinTheme?: "default" | "neon" | "cyberpunk" | "arcade" | "golden" | "frost" | null;
   crewColor?: string | null;
   crewName?: string | null;
+  displayName?: string | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Territorium) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
@@ -410,6 +411,7 @@ function buildSelfMarkerEl(
   supporterTier?: "bronze" | "silver" | "gold" | null,
   auraActive = false,
   crewColor?: string | null, crewName?: string | null,
+  displayName?: string | null,
 ): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
@@ -427,9 +429,15 @@ function buildSelfMarkerEl(
   const supporterChip = tierCfg
     ? `<div style="position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:11px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
     : "";
-  // Crew-Standfuss: farbiges Band unter dem Pin (eigene Layer, kollidiert nicht mit Theme/Supporter)
-  const crewFoot = crewColor
-    ? `<div title="Crew: ${crewName ?? ""}" style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:30px;height:5px;border-radius:3px;background:${crewColor};border:1px solid rgba(255,255,255,0.55);box-shadow:0 2px 6px rgba(0,0,0,0.55),0 0 10px ${crewColor}99;z-index:2"></div>`
+  // Name-Pill direkt unter dem Pin. Bei Crew-Mitgliedschaft bekommt die Pill
+  // einen Crew-farbigen Border + kleinen Crew-Farb-Dot als Marker. Kollidiert
+  // nicht mit Theme (stylt Pin oben) oder Supporter-Badge (oben rechts).
+  const cleanName = (displayName ?? "").trim();
+  const crewDot = crewColor
+    ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${crewColor};box-shadow:0 0 6px ${crewColor};vertical-align:middle;margin-right:4px"></span>`
+    : "";
+  const nameLabel = cleanName
+    ? `<div title="${crewName ? "Crew: " + crewName : "Solo"}" style="position:absolute;top:calc(100% - 4px);left:50%;transform:translateX(-50%);padding:3px 9px;background:rgba(15,17,21,0.88);border:1.5px solid ${crewColor ?? "rgba(255,255,255,0.18)"};border-radius:999px;color:#FFF;font-size:10px;font-weight:800;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.9);letter-spacing:0.2px;pointer-events:none;z-index:4;box-shadow:0 2px 8px rgba(0,0,0,0.6)${crewColor ? `,0 0 12px ${crewColor}66` : ""}">${crewDot}@${cleanName}</div>`
     : "";
   const auraLayer = auraActive
     ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>
@@ -439,8 +447,8 @@ function buildSelfMarkerEl(
     ${auraLayer}
     <div class="runner-ring" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
     <span class="runner-emoji" style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>
-    ${crewFoot}
     ${supporterChip}
+    ${nameLabel}
     <style>
       @keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}
       @keyframes auraSpin{to{transform:rotate(360deg)}}
@@ -545,6 +553,7 @@ export function AppMap({
   pinTheme = "default",
   crewColor = null,
   crewName = null,
+  displayName = null,
   walkedSegments = [],
   claimedStreets = [],
   ownedTerritories = [],
@@ -793,7 +802,7 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName);
       wrapForZoomScale(el);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
@@ -801,12 +810,12 @@ export function AppMap({
     } else {
       selfMarkerRef.current.setLngLat([pos.lng, pos.lat]);
     }
-  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive, crewColor, crewName]);
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive, crewColor, crewName, displayName]);
 
   // Tier-/Crew-Wechsel: Marker neu bauen
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName);
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName);
     wrapForZoomScale(el);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
@@ -816,7 +825,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier, auraActive, crewColor, crewName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive, crewColor, crewName, displayName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {
