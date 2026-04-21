@@ -22,6 +22,7 @@ type Opponent = {
   rarity: string;
   guardian_type: string;
   role: string;
+  is_bot?: boolean;
 };
 
 type OpponentsResponse = {
@@ -49,7 +50,7 @@ type AttackResult = {
   message?: string;
 };
 
-export function RunnerFightsClient() {
+export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boolean; onClose?: () => void } = {}) {
   const [data, setData] = useState<OpponentsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [fighting, setFighting] = useState<Opponent | null>(null);
@@ -99,30 +100,34 @@ export function RunnerFightsClient() {
     void reload();
   }
 
+  const W = inModal
+    ? ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+    : Wrapper;
+
   if (loading || !data) {
-    return <div className="min-h-screen flex items-center justify-center text-[#8B8FA3]">Lade Gegner …</div>;
+    return <W><div className="p-10 text-center text-[#8B8FA3]">Lade Gegner …</div></W>;
   }
 
   if (!data.ok) {
     if (data.error === "no_active_guardian") {
       return (
-        <Wrapper>
+        <W>
           <div className="p-6 rounded-xl bg-[#1A1D23] border border-white/10 text-center">
             <div className="text-4xl mb-3">🛡️</div>
             <div className="text-white font-black">Kein aktiver Wächter</div>
             <div className="text-sm text-[#a8b4cf] mt-2">Wähle in deiner Crew einen aktiven Wächter aus, um zu kämpfen.</div>
           </div>
-        </Wrapper>
+        </W>
       );
     }
     return (
-      <Wrapper>
+      <W>
         <div className="p-6 rounded-xl bg-[#1A1D23] border border-[#FF2D78]/40 text-center">
           <div className="text-3xl mb-2">⚠️</div>
           <div className="text-[#FF2D78] font-black text-lg">{data.error ?? "Unbekannter Fehler"}</div>
           {data.detail && <div className="text-[#a8b4cf] text-sm mt-2">{data.detail}</div>}
         </div>
-      </Wrapper>
+      </W>
     );
   }
 
@@ -132,12 +137,17 @@ export function RunnerFightsClient() {
   const totalLimit = 30;
 
   return (
-    <Wrapper>
-      <div className="mb-4">
-        <h1 className="text-2xl font-black text-white mb-1">⚔️ Arena</h1>
-        <p className="text-sm text-[#a8b4cf]">
-          Fordere andere Runner heraus. Level ±3, Loot bei Sieg & Niederlage.
-        </p>
+    <W>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-white mb-1">⚔️ Arena</h1>
+          <p className="text-sm text-[#a8b4cf]">
+            Fordere andere Runner heraus. Level ±3, Loot bei Sieg & Niederlage.
+          </p>
+        </div>
+        {inModal && onClose && (
+          <button onClick={onClose} className="px-3 py-1.5 rounded-full bg-white/5 text-[#a8b4cf] text-lg hover:bg-white/10">✕</button>
+        )}
       </div>
 
       {/* Status-Bar */}
@@ -192,7 +202,7 @@ export function RunnerFightsClient() {
           winner={result.winner ?? null}
         />
       )}
-    </Wrapper>
+    </W>
   );
 }
 
@@ -224,7 +234,10 @@ function OpponentCard({ op, onAttack, busy, disabled }: { op: Opponent; onAttack
       <div className="flex items-center gap-3 mb-2">
         <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-[#0F1115] text-3xl">{op.archetype_emoji}</div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-black text-white truncate">{op.display_name ?? op.username}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-black text-white truncate">{op.display_name ?? op.username}</span>
+            {op.is_bot && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#8B8FA3]/20 text-[#8B8FA3] font-bold">🤖 BOT</span>}
+          </div>
           <div className="text-[10px] text-[#a8b4cf] truncate">@{op.username}</div>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <span className="text-[9px] px-1 py-0.5 rounded font-bold" style={{ background: `${rarityColor}22`, color: rarityColor }}>{op.archetype_name}</span>

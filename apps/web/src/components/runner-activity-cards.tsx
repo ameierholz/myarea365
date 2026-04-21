@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 
 type ActivityId = "walk" | "shop" | "runner_fight" | "arena" | "area_boss";
 
@@ -24,6 +25,7 @@ const ACTIVITIES: Activity[] = [
 
 export function RunnerActivityCards() {
   const [open, setOpen] = useState<ActivityId | null>(null);
+  const [showArena, setShowArena] = useState(false);
   return (
     <div style={{ padding: "0 20px", marginBottom: 24 }}>
       <div style={{
@@ -67,7 +69,23 @@ export function RunnerActivityCards() {
         ))}
       </div>
 
-      {open && <ActivityModal id={open} onClose={() => setOpen(null)} />}
+      {open && <ActivityModal id={open} onClose={() => setOpen(null)} onOpenArena={() => { setOpen(null); setShowArena(true); }} />}
+      {showArena && (
+        <div onClick={() => setShowArena(false)} style={{
+          position: "fixed", inset: 0, zIndex: 2600,
+          background: "rgba(15,17,21,0.95)", backdropFilter: "blur(14px)",
+          padding: 16, overflowY: "auto",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            maxWidth: 1200, margin: "0 auto", padding: 20,
+            background: "#0F1115", borderRadius: 20,
+            border: "1px solid rgba(255, 45, 120, 0.4)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          }}>
+            <RunnerFightsClient inModal onClose={() => setShowArena(false)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -173,7 +191,7 @@ const CONTENT: Record<ActivityId, ModalContent> = {
   },
 };
 
-function ActivityModal({ id, onClose }: { id: ActivityId; onClose: () => void }) {
+function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: () => void; onOpenArena?: () => void }) {
   const c = CONTENT[id];
   return (
     <div
@@ -265,15 +283,26 @@ function ActivityModal({ id, onClose }: { id: ActivityId; onClose: () => void })
           )}
 
           {c.cta && (
-            <Link href={c.cta.href} onClick={onClose} style={{
-              display: "block", width: "100%", padding: "14px 16px",
-              borderRadius: 12, textAlign: "center",
-              background: `linear-gradient(135deg, ${c.accent}, ${c.accent}aa)`,
-              color: "#0F1115", fontSize: 14, fontWeight: 900,
-              textDecoration: "none",
-            }}>
-              {c.cta.label}
-            </Link>
+            id === "runner_fight" && onOpenArena ? (
+              <button onClick={onOpenArena} style={{
+                display: "block", width: "100%", padding: "14px 16px",
+                borderRadius: 12, textAlign: "center", border: "none",
+                background: `linear-gradient(135deg, ${c.accent}, ${c.accent}aa)`,
+                color: "#0F1115", fontSize: 14, fontWeight: 900, cursor: "pointer",
+              }}>
+                {c.cta.label}
+              </button>
+            ) : (
+              <Link href={c.cta.href} onClick={onClose} style={{
+                display: "block", width: "100%", padding: "14px 16px",
+                borderRadius: 12, textAlign: "center",
+                background: `linear-gradient(135deg, ${c.accent}, ${c.accent}aa)`,
+                color: "#0F1115", fontSize: 14, fontWeight: 900,
+                textDecoration: "none",
+              }}>
+                {c.cta.label}
+              </Link>
+            )
           )}
         </div>
       </div>
