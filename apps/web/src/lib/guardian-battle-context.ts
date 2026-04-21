@@ -39,6 +39,10 @@ export type TalentBonuses = {
   vs_mage: number;
   stun_resist: number;
   debuff_cleanse: number;
+  berserker_key: number;
+  bollwerk_key: number;
+  awaken_key: number;
+  symbiose_key: number;
 };
 
 const EMPTY_SKILLS: SkillLevels = { active: 0, passive: 0, combat: 0, role: 0, expertise: 0 };
@@ -49,6 +53,7 @@ const EMPTY_TALENTS: TalentBonuses = {
   r1_atk_pct: 0, late_atk: 0, rage_gen: 0, pen_pct: 0, dot_dmg: 0, vs_full_hp: 0, vs_weak: 0,
   vs_infantry: 0, vs_cavalry: 0, vs_marksman: 0, vs_mage: 0,
   stun_resist: 0, debuff_cleanse: 0,
+  berserker_key: 0, bollwerk_key: 0, awaken_key: 0, symbiose_key: 0,
 };
 
 /**
@@ -115,7 +120,11 @@ export async function loadGuardianBattleContext(sb: SupabaseClient<any, any, any
       case "vs_mage":       talents.vs_mage       += eff; break;
       case "stun_resist":   talents.stun_resist   += eff; break;
       case "debuff_cleanse":talents.debuff_cleanse+= eff; break;
-      // Archetyp-Flags (*_key) werden von Engine über abilityId verarbeitet
+      // Keystone-Flags (rank>0 aktiviert, effect_per_rank ist 1.0 = Flag)
+      case "berserker_key": talents.berserker_key += eff; break;
+      case "bollwerk_key":  talents.bollwerk_key  += eff; break;
+      case "awaken_key":    talents.awaken_key    += eff; break;
+      case "symbiose_key":  talents.symbiose_key  += eff; break;
       default: break;
     }
   }

@@ -47,6 +47,11 @@ export type BattleInput = {
     vs_mage?: number;
     stun_resist?: number;       // Chance X Stuns zu widerstehen
     debuff_cleanse?: number;    // Chance X pro Runde Debuffs abzuschütteln
+    // Keystone-Talente (archetyp-spezifisch, boolean-like — rank>0 = aktiv)
+    berserker_key?: number;     // HP<30% → +50% ATK (DPS)
+    bollwerk_key?: number;      // 1× pro Kampf: absorbiert tödlichen Treffer (Tank)
+    awaken_key?: number;        // 1× pro Kampf: volle Rage zu Runde 3 (Support)
+    symbiose_key?: number;      // HP 40-60% → +10% aller Stats (Balanced)
   };
 };
 
@@ -121,6 +126,10 @@ type Combatant = {
     vsType: Partial<Record<GuardianType, number>>;
     stunResist: number;
     debuffCleanse: number;
+    berserkerKey: boolean;
+    bollwerkKey: boolean;
+    awakenKey: boolean;
+    symbioseKey: boolean;
   };
   // Rage
   rage: number;
@@ -133,6 +142,8 @@ type Combatant = {
     phoenixUsed: boolean;
     stunned: boolean;
     nineLivesUsed: boolean;
+    bollwerkUsed: boolean;
+    awakenUsed: boolean;
   };
   isHome: boolean;
   crewCount: number;
@@ -212,11 +223,15 @@ function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
       },
       stunResist: t.stun_resist ?? 0,
       debuffCleanse: t.debuff_cleanse ?? 0,
+      berserkerKey: (t.berserker_key ?? 0) > 0,
+      bollwerkKey:  (t.bollwerk_key  ?? 0) > 0,
+      awakenKey:    (t.awaken_key    ?? 0) > 0,
+      symbioseKey:  (t.symbiose_key  ?? 0) > 0,
     },
     rage: startRage,
     rageMax: 1000,
     ultFired: false,
-    state: { rageStacks: 0, poisonStacks: 0, phoenixUsed: false, stunned: false, nineLivesUsed: false },
+    state: { rageStacks: 0, poisonStacks: 0, phoenixUsed: false, stunned: false, nineLivesUsed: false, bollwerkUsed: false, awakenUsed: false },
     isHome: input.is_home,
     crewCount: input.crew_member_count,
   };
@@ -321,6 +336,22 @@ function computeDamage(
   if (round === 1 && attacker.talents.r1AtkPct > 0) atk *= 1 + attacker.talents.r1AtkPct;
   if (round >= 6 && attacker.talents.lateAtk > 0) atk *= 1 + attacker.talents.lateAtk;
 
+  // Keystone: Berserker — HP<30% → +50% ATK (DPS)
+  if (attacker.talents.berserkerKey && attacker.hp / attacker.hpMax < 0.3) {
+    atk *= 1.5;
+    note = (note ? note + " · " : "") + "🔥 Berserker";
+  }
+
+  // Keystone: Symbiose — HP 40-60% → +10% aller Stats (Balanced)
+  const attHpPct = attacker.hp / attacker.hpMax;
+  if (attacker.talents.symbioseKey && attHpPct >= 0.4 && attHpPct <= 0.6) {
+    atk *= 1.1;
+  }
+  const defHpPct = defender.hp / defender.hpMax;
+  if (defender.talents.symbioseKey && defHpPct >= 0.4 && defHpPct <= 0.6) {
+    def *= 1.1;
+  }
+
   // vs_full_hp — Bonus gegen volle HP
   if (defender.hp / defender.hpMax > 0.95 && attacker.talents.vsFullHp > 0) {
     atk *= 1 + attacker.talents.vsFullHp;
@@ -377,6 +408,17 @@ function applyDot(c: Combatant, source: Combatant, rounds: RoundEvent[], roundNu
 
 function checkSurvival(c: Combatant, rounds: RoundEvent[], round: number): void {
   if (c.hp > 0) return;
+  // Keystone: Bollwerk — 1× pro Kampf tödlichen Treffer auf 1 HP absorbieren (Tank)
+  if (c.talents.bollwerkKey && !c.state.bollwerkUsed) {
+    c.hp = 1; c.state.bollwerkUsed = true;
+    rounds.push({
+      round, actor: c.label, action: "revive", damage: 0,
+      hp_a_after: c.label === "A" ? c.hp : 0,
+      hp_b_after: c.label === "B" ? c.hp : 0,
+      note: "🛡️ Bollwerk — tödlicher Treffer absorbiert",
+    });
+    return;
+  }
   if (c.abilityId === "nineleaves" && !c.state.nineLivesUsed) {
     c.hp = 1; c.state.nineLivesUsed = true;
     rounds.push({
@@ -464,6 +506,22 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
 
   const MAX_ROUNDS = 15;
   for (let round = 1; round <= MAX_ROUNDS && ca.hp > 0 && cb.hp > 0; round++) {
+    // Keystone: Erwachen — 1× pro Kampf volle Rage zu Beginn Runde 3 (Support)
+    if (round === 3) {
+      for (const c of [ca, cb]) {
+        if (c.talents.awakenKey && !c.state.awakenUsed && c.hp > 0) {
+          c.rage = c.rageMax;
+          c.state.awakenUsed = true;
+          rounds.push({
+            round, actor: c.label, action: "special", damage: 0,
+            hp_a_after: ca.hp, hp_b_after: cb.hp,
+            rage_a_after: ca.rage, rage_b_after: cb.rage,
+            note: "✨ Erwachen — volle Rage",
+          });
+        }
+      }
+    }
+
     // Regen + Debuff-Cleanse zu Beginn der Runde
     for (const c of [ca, cb]) {
       // Regen
