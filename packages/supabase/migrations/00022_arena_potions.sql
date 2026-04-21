@@ -279,28 +279,28 @@ begin
 end $$;
 
 -- 9) Daily-Deal-Inhalte erweitern: jeder Pack bekommt 1 Trank
-update public.daily_deal_packs set contents = contents || '[{"type":"random_potion","rarity":"common","label":"1× Zufälliger Trank (Common)"}]'::jsonb
+update public.daily_deal_packs set contents = contents || '[{"type":"random_potion","rarity":"common","label":"1× Zufälliger Trank (Gewöhnlich)"}]'::jsonb
 where id = 'daily_bronze' and not (contents::text like '%random_potion%');
 
-update public.daily_deal_packs set contents = contents || '[{"type":"random_potion","rarity":"rare","label":"1× Zufälliger Trank (Rare)"}]'::jsonb
+update public.daily_deal_packs set contents = contents || '[{"type":"random_potion","rarity":"rare","label":"1× Zufälliger Trank (Selten)"}]'::jsonb
 where id = 'daily_silver' and not (contents::text like '%random_potion%');
 
-update public.daily_deal_packs set contents = contents || '[{"type":"random_potion","rarity":"epic","label":"1× Zufälliger Trank (Epic)"}]'::jsonb
+update public.daily_deal_packs set contents = contents || '[{"type":"random_potion","rarity":"epic","label":"1× Zufälliger Trank (Episch)"}]'::jsonb
 where id = 'daily_gold' and not (contents::text like '%random_potion%');
 
 -- Super-Bundle: je 1 von jeder Rarity
 update public.daily_deal_packs set contents = contents || '[
-  {"type":"random_potion","rarity":"common","label":"1× Zufälliger Trank (Common)"},
-  {"type":"random_potion","rarity":"rare","label":"1× Zufälliger Trank (Rare)"},
-  {"type":"random_potion","rarity":"epic","label":"1× Zufälliger Trank (Epic)"}
+  {"type":"random_potion","rarity":"common","label":"1× Zufälliger Trank (Gewöhnlich)"},
+  {"type":"random_potion","rarity":"rare","label":"1× Zufälliger Trank (Selten)"},
+  {"type":"random_potion","rarity":"epic","label":"1× Zufälliger Trank (Episch)"}
 ]'::jsonb
 where id = 'daily_super' and not (contents::text like '%random_potion%');
 
 -- 10) Gem-Shop: Zufällige Tränke kaufbar (Kategorie booster)
 insert into public.gem_shop_items (id, category, name, description, icon, price_gems, duration_hours, payload, sort) values
-  ('potion_random_common', 'booster', 'Trank-Paket (Common)', 'Zufälliger Trank aus dem Common-Pool. Aktiviert 1 Stunde Haltbarkeit.', '🧪',  50, null, '{"effect":"random_potion","rarity":"common"}', 200),
-  ('potion_random_rare',   'booster', 'Trank-Paket (Rare)',   'Zufälliger Trank aus dem Rare-Pool. Aktiviert 1 Stunde Haltbarkeit.',   '⚗️', 200, null, '{"effect":"random_potion","rarity":"rare"}',   210),
-  ('potion_random_epic',   'booster', 'Trank-Paket (Epic)',   'Zufälliger Trank aus dem Epic-Pool. Aktiviert 1 Stunde Haltbarkeit.',   '🔮', 500, null, '{"effect":"random_potion","rarity":"epic"}',   220)
+  ('potion_random_common', 'booster', 'Trank-Paket (Gewöhnlich)', 'Zufälliger Trank aus dem Pool der gewöhnlichen Tränke. 1 Stunde Haltbarkeit nach Aktivierung.', '🧪',  50, null, '{"effect":"random_potion","rarity":"common"}', 200),
+  ('potion_random_rare',   'booster', 'Trank-Paket (Selten)',     'Zufälliger Trank aus dem Pool der seltenen Tränke. 1 Stunde Haltbarkeit nach Aktivierung.',   '⚗️', 200, null, '{"effect":"random_potion","rarity":"rare"}',   210),
+  ('potion_random_epic',   'booster', 'Trank-Paket (Episch)',     'Zufälliger Trank aus dem Pool der epischen Tränke. 1 Stunde Haltbarkeit nach Aktivierung.',   '🔮', 500, null, '{"effect":"random_potion","rarity":"epic"}',   220)
 on conflict (id) do update set
   name = excluded.name, description = excluded.description, icon = excluded.icon,
   price_gems = excluded.price_gems, payload = excluded.payload, sort = excluded.sort, active = true;

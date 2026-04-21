@@ -261,8 +261,8 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                 const total = totalGemsOfBundle(b);
                 const badge = b.badge === "best_value" ? { text: "BESTER WERT", color: "#FFD700" }
                   : b.badge === "most_popular" ? { text: "BELIEBT", color: "#FF2D78" }
-                  : b.badge === "starter" ? { text: "STARTER", color: "#22D1C3" }
-                  : b.badge === "supporter" ? { text: "💛 SUPPORTER", color: "#ff6b9d" } : null;
+                  : b.badge === "starter" ? { text: "EINSTEIGER", color: "#22D1C3" }
+                  : b.badge === "supporter" ? { text: "💛 GÖNNER", color: "#ff6b9d" } : null;
                 return (
                   <button key={b.sku}
                     onClick={() => buyBundle(b)}

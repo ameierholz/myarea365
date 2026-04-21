@@ -23,9 +23,9 @@ type InventoryEntry = {
 };
 
 const RARITY_META: Record<CatalogEntry["rarity"], { label: string; color: string; glow: string }> = {
-  common: { label: "COMMON", color: "#a8b4cf",  glow: "rgba(168,180,207,0.25)" },
-  rare:   { label: "RARE",   color: "#5ddaf0",  glow: "rgba(93,218,240,0.35)" },
-  epic:   { label: "EPIC",   color: "#a855f7",  glow: "rgba(168,85,247,0.45)" },
+  common: { label: "GEWÖHNLICH", color: "#a8b4cf", glow: "rgba(168,180,207,0.25)" },
+  rare:   { label: "SELTEN",     color: "#5ddaf0", glow: "rgba(93,218,240,0.35)" },
+  epic:   { label: "EPISCH",     color: "#a855f7", glow: "rgba(168,85,247,0.45)" },
 };
 
 export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
