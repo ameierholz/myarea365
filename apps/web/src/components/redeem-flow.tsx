@@ -364,7 +364,11 @@ export function RedeemFlow(props: Props) {
               </div>
             )}
 
-            <button onClick={onClose} style={{ ...btnPrimary, marginTop: 20 }}>Schließen</button>
+            {redemptionId && (
+              <ReceiptBonusSection redemptionId={redemptionId} onClose={onClose} />
+            )}
+
+            <button onClick={onClose} style={{ ...btnSecondary, marginTop: 14 }}>Schließen</button>
             <style>{`@keyframes redeemPop { 0% { transform: scale(0.3); opacity: 0 } 60% { transform: scale(1.2) } 100% { transform: scale(1); opacity: 1 } }`}</style>
           </div>
         )}
@@ -381,6 +385,173 @@ export function RedeemFlow(props: Props) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+type BonusResult = {
+  ok: boolean;
+  loot?: {
+    rarity: "none" | "common" | "rare" | "epic" | "legendary";
+    bonus_universal: number;
+    bonus_typed: number;
+    typed_rarity: string;
+    item_id: string | null;
+  };
+  verified?: boolean;
+  ocr_amount_cents?: number | null;
+  ocr_confidence?: string;
+  error?: string;
+  message?: string;
+};
+
+function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; onClose: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<BonusResult | null>(null);
+
+  function pickFile(f: File) {
+    setFile(f);
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result as string);
+    reader.readAsDataURL(f);
+  }
+
+  async function submit() {
+    if (!file || !amount) return;
+    const cents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
+    if (!Number.isFinite(cents) || cents < 100) {
+      appAlert("Bitte gültigen Betrag in € eingeben (mind. 1,00 €).");
+      return;
+    }
+    setBusy(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary);
+      const res = await fetch("/api/deals/receipt", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          redemption_id: redemptionId,
+          amount_cents: cents,
+          receipt_image_base64: b64,
+          content_type: file.type,
+        }),
+      });
+      const json = (await res.json()) as BonusResult;
+      if (!json.ok) {
+        appAlert(json.message ?? json.error ?? "Fehler beim Prüfen");
+        setBusy(false);
+        return;
+      }
+      setResult(json);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (result) {
+    const r = result.loot;
+    const meta = r?.rarity === "legendary" ? { label: "LEGENDÄR", color: "#FFD700", emoji: "💎" }
+              : r?.rarity === "epic"      ? { label: "EPISCH",   color: "#a855f7", emoji: "🔮" }
+              : r?.rarity === "rare"      ? { label: "SELTEN",   color: "#22D1C3", emoji: "💠" }
+              : r?.rarity === "common"    ? { label: "BONUS",    color: "#8B8FA3", emoji: "📦" }
+              : { label: "KEIN BONUS",   color: "#8B8FA3", emoji: "—" };
+    return (
+      <div style={{ marginTop: 18, padding: 14, borderRadius: 14, background: `${meta.color}18`, border: `1px solid ${meta.color}55` }}>
+        <div style={{ fontSize: 40 }}>{meta.emoji}</div>
+        <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 2, marginTop: 4 }}>{meta.label}</div>
+        {r && r.rarity !== "none" && (
+          <>
+            {r.bonus_universal > 0 && <div style={{ color: "#FFF", fontSize: 13, marginTop: 6 }}>+{r.bonus_universal}× Universal-Siegel</div>}
+            {r.bonus_typed > 0 && <div style={{ color: "#FFF", fontSize: 13 }}>+{r.bonus_typed}× {r.typed_rarity}-Siegel</div>}
+            {r.item_id && <div style={{ color: "#FFD700", fontSize: 12, marginTop: 4, fontWeight: 700 }}>🎁 Ausrüstung erbeutet!</div>}
+          </>
+        )}
+        {!result.verified && (
+          <div style={{ color: "#FF6B4A", fontSize: 10, marginTop: 6 }}>
+            ⚠️ Betrag konnte nicht eindeutig verifiziert werden — nur halber Bonus
+          </div>
+        )}
+        <button onClick={onClose} style={{ ...btnPrimary, marginTop: 12 }}>Fertig</button>
+      </div>
+    );
+  }
+
+  if (!expanded) {
+    return (
+      <button onClick={() => setExpanded(true)} style={{
+        marginTop: 18, width: "100%", padding: "14px 16px", borderRadius: 12,
+        background: "linear-gradient(135deg, rgba(34,209,195,0.18), rgba(255,215,0,0.2))",
+        border: "1px dashed rgba(255,215,0,0.5)",
+        color: "#FFF", cursor: "pointer", fontSize: 13, fontWeight: 800, textAlign: "left",
+      }}>
+        <div style={{ fontSize: 20, marginBottom: 2 }}>🧾 Bonus-Loot freischalten</div>
+        <div style={{ fontSize: 11, fontWeight: 500, color: "#a8b4cf", lineHeight: 1.4 }}>
+          Kassenbon hochladen → Extra-Siegel & Ausrüstung je nach Einkaufswert
+        </div>
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 18, padding: 14, borderRadius: 14, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", textAlign: "left" }}>
+      <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>BONUS-LOOT</div>
+      <div style={{ color: "#a8b4cf", fontSize: 11, margin: "4px 0 10px", lineHeight: 1.4 }}>
+        Je höher dein Einkaufsbetrag, desto besser der Bonus. KI prüft den Bon automatisch.
+      </div>
+
+      <label style={{ display: "block", color: "#FFF", fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Kaufbetrag (€)</label>
+      <input
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        placeholder="z.B. 38,50"
+        inputMode="decimal"
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: 10,
+          background: "#0F1115", border: "1px solid rgba(255,255,255,0.15)",
+          color: "#FFF", fontSize: 14, marginBottom: 10,
+        }}
+      />
+
+      <label style={{ display: "block", color: "#FFF", fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Kassenbon-Foto</label>
+      {preview ? (
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Bon" style={{ width: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 10, background: "#0F1115" }} />
+          <button onClick={() => { setFile(null); setPreview(null); }} style={{
+            position: "absolute", top: 6, right: 6,
+            background: "rgba(0,0,0,0.7)", color: "#FFF", border: "none",
+            borderRadius: 999, width: 28, height: 28, cursor: "pointer",
+          }}>✕</button>
+        </div>
+      ) : (
+        <label style={{
+          display: "block", padding: "14px 12px", borderRadius: 10,
+          border: "1px dashed rgba(255,255,255,0.2)", textAlign: "center",
+          cursor: "pointer", marginBottom: 10, color: "#a8b4cf", fontSize: 12,
+        }}>
+          📷 Foto aufnehmen oder auswählen
+          <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+            style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) pickFile(f); }}
+          />
+        </label>
+      )}
+
+      <button
+        onClick={submit}
+        disabled={busy || !file || !amount}
+        style={{ ...btnPrimary, opacity: (!file || !amount || busy) ? 0.5 : 1 }}
+      >
+        {busy ? "Prüfe Bon …" : "Bonus einlösen"}
+      </button>
     </div>
   );
 }
