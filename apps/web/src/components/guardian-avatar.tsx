@@ -11,13 +11,9 @@ const VIDEO_AVAILABLE = new Set<string>([
 
 // Wenn Archetyp hier drin → statisches PNG wird gerendert
 // Dateien: apps/web/public/guardians/<id>_idle.png und <id>_attack.png
-const ARTWORK_AVAILABLE = new Set<string>([
-  "schattenfinger", // Elite marksman
-  "daechermoench",  // Epic cavalry
-  "blutstuermer",   // Legendary infantry
-  "eisenhand",      // Epic infantry
-  "flammenherr",    // Legendary mage
-]);
+// Statische PNGs unter public/guardians/<id>_idle.png. Leer = SVG-Fallback für alle.
+// Eintragen sobald die PNG-Dateien tatsächlich im Ordner liegen.
+const ARTWORK_AVAILABLE = new Set<string>([]);
 
 export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "special" | "ko" | "revive";
 
