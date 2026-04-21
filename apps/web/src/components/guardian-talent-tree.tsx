@@ -99,6 +99,15 @@ export function GuardianTalentTree(props: Props) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900, lineHeight: 1.2 }}>{n.name}</div>
                       <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.3, marginTop: 2 }}>{n.description}</div>
+                      {rank > 0 && (
+                        <div style={{
+                          color: meta.color, fontSize: 10, fontWeight: 900, marginTop: 3,
+                          display: "inline-block", padding: "1px 6px", borderRadius: 999,
+                          background: `${meta.color}18`, border: `1px solid ${meta.color}44`,
+                        }}>
+                          Aktiv: {formatTotalEffect(n, rank)}
+                        </div>
+                      )}
                     </div>
                     <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                       <div style={{ color: maxed ? meta.color : "#a8b4cf", fontSize: 10, fontWeight: 900 }}>
@@ -125,4 +134,49 @@ export function GuardianTalentTree(props: Props) {
       })}
     </div>
   );
+}
+
+/** Gesamt-Effekt für investierte Ränge berechnen + menschenlesbar formatieren. */
+function formatTotalEffect(n: TalentNode, rank: number): string {
+  const total = n.effect_per_rank * rank;
+  const map: Record<string, { label: string; pct?: boolean; flat?: boolean }> = {
+    hp_pct:          { label: "HP",                    pct: true },
+    atk_pct:         { label: "ATK",                   pct: true },
+    def_pct:         { label: "DEF",                   pct: true },
+    spd_pct:         { label: "SPD",                   pct: true },
+    crit_pct:        { label: "Krit-Chance",           pct: true },
+    crit_dmg:        { label: "Krit-Schaden",          pct: true },
+    evade_pct:       { label: "Ausweichen",            pct: true },
+    counter_pct:     { label: "Konter-Chance",         pct: true },
+    thorns_pct:      { label: "Dornen-Reflektion",     pct: true },
+    heal_on_hit:     { label: "Heilung pro Treffer",   pct: true },
+    rage_gen:        { label: "Rage-Generation",       pct: true },
+    rage_cost:       { label: "Rage-Kosten",           pct: true },
+    debuff_cleanse:  { label: "Debuff-Bannung",        pct: true },
+    regen_pct:       { label: "HP-Regen",              pct: true },
+    skill_dmg:       { label: "Skill-Schaden",         pct: true },
+    dot_dmg:         { label: "DoT-Schaden",           pct: true },
+    dmg_reduction:   { label: "Schadens-Reduktion",    pct: true },
+    stun_resist:     { label: "Stun-Resistenz",        pct: true },
+    r1_atk_pct:      { label: "ATK in Runde 1",        pct: true },
+    pen_pct:         { label: "DEF-Durchbruch",        pct: true },
+    late_atk:        { label: "ATK ab Runde 6",        pct: true },
+    vs_weak:         { label: "Schaden vs. schwache",  pct: true },
+    vs_full_hp:      { label: "Schaden vs. volle HP",  pct: true },
+    vs_infantry:     { label: "Schaden vs. Infanterie",pct: true },
+    vs_cavalry:      { label: "Schaden vs. Kavallerie",pct: true },
+    vs_marksman:     { label: "Schaden vs. Scharfsch.",pct: true },
+    vs_mage:         { label: "Schaden vs. Magier",    pct: true },
+    all_stats_pct:   { label: "alle Stats",            pct: true },
+    start_rage:      { label: "Start-Rage",            flat: true },
+    berserker_key:   { label: "Keystone Berserker" },
+    bollwerk_key:    { label: "Keystone Bollwerk" },
+    awaken_key:      { label: "Keystone Erwachen" },
+    symbiose_key:    { label: "Keystone Symbiose" },
+  };
+  const e = map[n.effect_key];
+  if (!e) return `${total > 0 ? "+" : ""}${total} ${n.effect_key}`;
+  if (e.pct)  return `+${Math.round(total * 1000) / 10}% ${e.label}`;
+  if (e.flat) return `+${total} ${e.label}`;
+  return `${e.label} aktiv`;
 }
