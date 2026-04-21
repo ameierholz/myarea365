@@ -833,6 +833,7 @@ function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => v
       <ChallengesPanel shop={shop} onUsed={reloadShop} />
       <CustomPinPanel shop={shop} onUsed={reloadShop} />
       <QrOrderPanel shop={shop} />
+      <ShopTerritoryBonusPanel businessId={shop.id} />
     </div>
   );
 }
@@ -954,7 +955,6 @@ function PerformanceTab({ shop }: { shop: ShopRow }) {
 function SettingsTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <ShopTerritoryBonusPanel businessId={shop.id} />
       <SettingsBlock title="🏪 Shop-Profil">
         <AccountRow label="Name, Adresse, Kategorie bearbeiten" />
         <AccountRow label="Öffnungszeiten" />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageTitle, Card, Badge, Stat } from "../../_components/ui";
 import { ShopActions } from "./actions";
+import { TerritoryBonusSettings } from "./territory-bonus-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,24 @@ export default async function ShopDetail({ params }: { params: Promise<{ id: str
             verified={!!shop.verified}
             plan={shop.plan ?? "free"}
             spotlightActive={!!shop.spotlight_until && new Date(shop.spotlight_until) > new Date()}
+          />
+        </Card>
+
+        <Card className="md:col-span-2">
+          <h2 className="font-bold mb-1">🏘️ Nachbarschafts-Prämie — Technische Parameter</h2>
+          <p className="text-xs text-[#8b8fa3] mb-4">
+            Stellt ein, welche Runner berechtigt sind und wieviel Extra-Belohnung sie bei Einlösung erhalten.
+            Der Shop-Besitzer sieht nur Paket &amp; Preis — die Mechanik wird hier vorgegeben.
+          </p>
+          <TerritoryBonusSettings
+            shopId={shop.id}
+            initial={{
+              radius_m:    shop.territory_bonus_radius_m ?? 500,
+              min_claims:  shop.territory_bonus_min_claims ?? 10,
+              xp_bonus:    shop.territory_bonus_xp ?? 150,
+              siegel_bonus: shop.territory_bonus_siegel ?? 1,
+              until:       shop.territory_bonus_until,
+            }}
           />
         </Card>
 

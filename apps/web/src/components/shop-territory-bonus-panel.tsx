@@ -9,13 +9,17 @@ type ShopRow = {
   territory_bonus_min_claims: number | null;
 };
 
+const PACKAGES = [
+  { days:  7, price:  19, label: "Schnupper-Woche", popular: false },
+  { days: 30, price:  59, label: "Ein Monat",       popular: true  },
+  { days: 90, price: 149, label: "Ein Quartal",     popular: false },
+];
+
 export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) {
   const sb = createClient();
   const [shop, setShop] = useState<ShopRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState("30");
-  const [radius, setRadius] = useState("500");
-  const [minClaims, setMinClaims] = useState("10");
+  const [selected, setSelected] = useState(30);
   const [busy, setBusy] = useState(false);
 
   async function reload() {
@@ -24,19 +28,20 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
       .select("territory_bonus_until, territory_bonus_radius_m, territory_bonus_min_claims")
       .eq("id", businessId).maybeSingle<ShopRow>();
     setShop(data ?? null);
-    if (data?.territory_bonus_radius_m) setRadius(String(data.territory_bonus_radius_m));
-    if (data?.territory_bonus_min_claims) setMinClaims(String(data.territory_bonus_min_claims));
     setLoading(false);
   }
   useEffect(() => { void reload(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
 
   async function activate() {
+    const pkg = PACKAGES.find((p) => p.days === selected);
+    if (!pkg) return;
+    if (!confirm(`Nachbarschafts-Prämie für ${pkg.days} Tage aktivieren?\n\nKosten: € ${pkg.price}`)) return;
     setBusy(true);
     const { data, error } = await sb.rpc("activate_territory_bonus", {
       p_business_id: businessId,
-      p_days: parseInt(days) || 30,
-      p_radius_m: parseInt(radius) || 500,
-      p_min_claims: parseInt(minClaims) || 10,
+      p_days: pkg.days,
+      p_radius_m: shop?.territory_bonus_radius_m ?? 500,
+      p_min_claims: shop?.territory_bonus_min_claims ?? 10,
     });
     setBusy(false);
     if (error || (data as { ok?: boolean })?.ok === false) {
@@ -44,60 +49,116 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
       return;
     }
     await reload();
-    alert("Territory-Bonus aktiviert!");
+    alert("Nachbarschafts-Prämie ist jetzt aktiv!");
   }
 
   const until = shop?.territory_bonus_until ? new Date(shop.territory_bonus_until) : null;
-  const active = until && until > new Date();
+  const active = !!(until && until > new Date());
   const daysLeft = active && until ? Math.ceil((until.getTime() - Date.now()) / 86400000) : 0;
 
   if (loading) return <div className="p-8 text-center text-[#8B8FA3] text-sm">Lade…</div>;
 
   return (
-    <div className="p-5 rounded-2xl bg-[#1A1D23] border border-white/10">
-      <div className="flex items-start justify-between mb-3 gap-3">
-        <div>
-          <h3 className="text-lg font-black text-white">👑 Territory-Bonus</h3>
-          <p className="text-xs text-[#a8b4cf]">
-            Runner, die Gebiete rings um deinen Shop erobert haben, bekommen Extra-XP & Siegel bei jeder Einlösung.
-            Das wirbt dich aktiv in deinem Viertel.
+    <div className="p-5 rounded-2xl" style={{
+      background: "radial-gradient(ellipse at top, rgba(255,215,0,0.08), transparent 60%), #1A1D23",
+      border: "1px solid rgba(255,215,0,0.25)",
+    }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <h3 className="text-lg font-black text-white flex items-center gap-2">
+            🏘️ Nachbarschafts-Prämie
+          </h3>
+          <p className="text-xs text-[#a8b4cf] mt-1">
+            Belohne treue Anwohner. Runner, die regelmäßig in deinem Viertel unterwegs sind,
+            erhalten bei Einlösungen in deinem Shop eine kleine Extra-Belohnung — und erinnern sich so an dich.
           </p>
         </div>
         {active && (
-          <div className="px-3 py-1 rounded-full bg-[#4ade80]/15 text-[#4ade80] text-xs font-bold whitespace-nowrap">
-            AKTIV · noch {daysLeft}d
+          <div className="px-3 py-1 rounded-full bg-[#4ade80]/15 text-[#4ade80] text-xs font-bold whitespace-nowrap flex-shrink-0">
+            ✓ Aktiv · noch {daysLeft} {daysLeft === 1 ? "Tag" : "Tage"}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div>
-          <div className="text-[10px] font-bold tracking-wider text-[#8B8FA3] mb-1">Laufzeit (Tage)</div>
-          <input type="number" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
-        </div>
-        <div>
-          <div className="text-[10px] font-bold tracking-wider text-[#8B8FA3] mb-1">Radius (200–1000m)</div>
-          <input type="number" min={200} max={1000} step={100} value={radius} onChange={(e) => setRadius(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
-        </div>
-        <div>
-          <div className="text-[10px] font-bold tracking-wider text-[#8B8FA3] mb-1">Min. Gebiete</div>
-          <input type="number" min={1} max={50} value={minClaims} onChange={(e) => setMinClaims(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
-        </div>
+      {/* Benefit-Punkte */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+        <Benefit icon="📍" title="Lokale Reichweite"
+          text="Du wirst den Runnern angezeigt, die in deiner Gegend am aktivsten sind." />
+        <Benefit icon="🔁" title="Wiederholungs-Besuche"
+          text="Die Extra-Belohnung ist ein Anreiz, den Shop öfter anzusteuern." />
+        <Benefit icon="⭐" title="Sichtbarkeits-Boost"
+          text="Dein Shop wird auf der Karte für berechtigte Runner hervorgehoben." />
       </div>
 
-      <div className="text-[11px] text-[#a8b4cf] mb-3 p-2 rounded-lg bg-white/5">
-        <b className="text-white">Regel:</b> Runner erobert ≥{minClaims} Gebiete im {radius}m-Radius in den letzten 30 Tagen → bekommt bei Einlösung
-        <span className="text-[#FFD700] font-bold"> +{Math.max(50, 10 * 15)} XP</span> (skaliert mit Wächter-Level) und
-        <span className="text-[#22D1C3] font-bold"> +1 Universal-Siegel</span> extra.
+      {/* Pakete als kompaktes Segmented-Control */}
+      <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-2">LAUFZEIT</div>
+      <div style={{
+        display: "flex", gap: 4, padding: 4, borderRadius: 10,
+        background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)",
+        marginBottom: 14,
+      }}>
+        {PACKAGES.map((p) => {
+          const isSel = selected === p.days;
+          return (
+            <button key={p.days} onClick={() => setSelected(p.days)}
+              style={{
+                position: "relative", flex: 1,
+                padding: "8px 6px", borderRadius: 7,
+                cursor: "pointer", border: "none",
+                background: isSel
+                  ? "linear-gradient(135deg, #FFD700 0%, #FF6B4A 100%)"
+                  : "transparent",
+                color: isSel ? "#0F1115" : "#a8b4cf",
+                fontSize: 12, fontWeight: 900,
+                textAlign: "center",
+                transition: "all 0.15s ease",
+              }}>
+              {p.popular && !isSel && (
+                <span style={{
+                  position: "absolute", top: -6, right: 6,
+                  padding: "1px 5px", borderRadius: 999,
+                  background: "#FFD700", color: "#0F1115",
+                  fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
+                }}>BELIEBT</span>
+              )}
+              <div>{p.days} Tage</div>
+              <div style={{
+                fontSize: 10, fontWeight: 700, opacity: isSel ? 0.85 : 0.6, marginTop: 1,
+              }}>€ {p.price}</div>
+            </button>
+          );
+        })}
       </div>
 
       <button onClick={activate} disabled={busy}
-        className="w-full py-2.5 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF2D78] text-[#0F1115] font-black text-sm disabled:opacity-50">
-        {busy ? "…" : active ? `+${days} Tage verlängern` : `Für ${days} Tage aktivieren`}
+        style={{
+          width: "100%", padding: "14px 16px", borderRadius: 12,
+          border: "none", cursor: busy ? "wait" : "pointer",
+          background: "linear-gradient(135deg, #FFD700 0%, #FF6B4A 100%)",
+          color: "#0F1115", fontSize: 14, fontWeight: 900, letterSpacing: 1,
+          boxShadow: "0 6px 20px rgba(255, 215, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
+          opacity: busy ? 0.6 : 1,
+        }}>
+        {busy ? "…" : active
+          ? `+${selected} TAGE VERLÄNGERN`
+          : `FÜR ${selected} TAGE AKTIVIEREN · € ${PACKAGES.find((p) => p.days === selected)?.price}`}
       </button>
+
+      <p className="text-[10px] text-[#6c7590] text-center mt-2">
+        Abrechnung einmalig, automatische Deaktivierung am Laufzeit-Ende. Keine Verlängerung ohne deine Zustimmung.
+      </p>
+    </div>
+  );
+}
+
+function Benefit({ icon, title, text }: { icon: string; title: string; text: string }) {
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.03] border border-white/5">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-base">{icon}</span>
+        <span className="text-xs font-black text-white">{title}</span>
+      </div>
+      <p className="text-[10px] text-[#a8b4cf] leading-relaxed">{text}</p>
     </div>
   );
 }

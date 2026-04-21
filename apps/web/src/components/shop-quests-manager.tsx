@@ -88,56 +88,82 @@ export function ShopQuestsManager({ businessId }: { businessId: string }) {
     await reload();
   }
 
+  const inputClass = "w-full px-3 py-2.5 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white focus:outline-none focus:border-[#22D1C3] focus:ring-1 focus:ring-[#22D1C3]/30 transition";
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-lg font-black text-white">📋 Shop-Quests</h2>
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-black text-white flex items-center gap-2">📋 Shop-Quests</h2>
           <p className="text-xs text-[#a8b4cf]">Runner lösen Quests automatisch beim Bon-Upload ein (KI erkennt Artikel).</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="px-3 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115] text-sm font-bold">
-          {showForm ? "Abbrechen" : "+ Neue Quest"}
+        <button
+          onClick={() => setShowForm(!showForm)}
+          style={{
+            padding: "10px 16px", borderRadius: 10, whiteSpace: "nowrap", cursor: "pointer",
+            border: "none", fontSize: 13, fontWeight: 900, letterSpacing: 0.5,
+            background: showForm
+              ? "rgba(255, 45, 120, 0.15)"
+              : "linear-gradient(135deg, #22D1C3 0%, #0f8178 100%)",
+            color: showForm ? "#FF2D78" : "#0F1115",
+            boxShadow: showForm ? "none" : "0 4px 14px rgba(34, 209, 195, 0.3)",
+          }}
+        >
+          {showForm ? "✕ Abbrechen" : "+ Neue Quest"}
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={createQuest} className="p-4 rounded-xl bg-[#1A1D23] border border-white/10 mb-4 space-y-3">
+        <form onSubmit={createQuest}
+          className="p-5 rounded-2xl mb-4 space-y-4"
+          style={{
+            background: "radial-gradient(ellipse at top, rgba(34, 209, 195, 0.08), transparent 60%), #1A1D23",
+            border: "1px solid rgba(34, 209, 195, 0.25)",
+          }}>
           <FormField label="Titel (für Runner sichtbar)">
             <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder='z.B. "Kaufe eine Winterjacke"' className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
+              placeholder='z.B. "Kaufe eine Winterjacke"' className={inputClass} />
           </FormField>
           <FormField label='Artikel-Muster (Substring-Match auf Kassenbon — z.B. "Jacke" matcht "Winterjacke Damen Gr.M")'>
             <input required value={form.article_pattern} onChange={(e) => setForm({ ...form, article_pattern: e.target.value })}
-              placeholder='z.B. "Jacke"' className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
+              placeholder='z.B. "Jacke"' className={inputClass} />
           </FormField>
           <FormField label="Beschreibung (optional)">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2} className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
+              rows={2} className={inputClass}
+              placeholder="Kontext für den Runner — wird unter dem Titel angezeigt" />
           </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="XP-Belohnung (max 5000)">
-              <input type="number" min={0} max={5000} value={form.reward_xp} onChange={(e) => setForm({ ...form, reward_xp: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
+            <FormField label="⚡ XP-Belohnung (max 5000)">
+              <input type="number" min={0} max={5000} value={form.reward_xp}
+                onChange={(e) => setForm({ ...form, reward_xp: e.target.value })} className={inputClass} />
             </FormField>
-            <FormField label="Loot-Drop">
-              <select value={form.reward_loot_rarity} onChange={(e) => setForm({ ...form, reward_loot_rarity: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white">
+            <FormField label="🎁 Loot-Drop">
+              <select value={form.reward_loot_rarity}
+                onChange={(e) => setForm({ ...form, reward_loot_rarity: e.target.value })} className={inputClass}>
                 {RARITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Max. Einlösungen pro Runner">
-              <input type="number" min={1} max={99} value={form.max_completions_per_user} onChange={(e) => setForm({ ...form, max_completions_per_user: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
+            <FormField label="👥 Max. Einlösungen pro Runner">
+              <input type="number" min={1} max={99} value={form.max_completions_per_user}
+                onChange={(e) => setForm({ ...form, max_completions_per_user: e.target.value })} className={inputClass} />
             </FormField>
-            <FormField label="Läuft ab (optional)">
-              <input type="datetime-local" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-[#0F1115] border border-white/10 text-sm text-white" />
+            <FormField label="⏱️ Läuft ab (optional)">
+              <input type="datetime-local" value={form.expires_at}
+                onChange={(e) => setForm({ ...form, expires_at: e.target.value })} className={inputClass} />
             </FormField>
           </div>
-          <button type="submit" className="w-full py-2.5 rounded-lg bg-gradient-to-r from-[#22D1C3] to-[#FFD700] text-[#0F1115] font-bold text-sm">
-            Quest anlegen
+          <button type="submit"
+            style={{
+              width: "100%", padding: "14px 16px", borderRadius: 12,
+              border: "none", cursor: "pointer",
+              background: "linear-gradient(135deg, #22D1C3 0%, #FFD700 100%)",
+              color: "#0F1115", fontSize: 14, fontWeight: 900, letterSpacing: 1,
+              boxShadow: "0 6px 20px rgba(34, 209, 195, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
+            }}>
+            ✨ QUEST ANLEGEN
           </button>
         </form>
       )}
@@ -145,7 +171,14 @@ export function ShopQuestsManager({ businessId }: { businessId: string }) {
       {loading ? (
         <div className="p-10 text-center text-sm text-[#8B8FA3]">Lade…</div>
       ) : quests.length === 0 ? (
-        <div className="p-10 text-center text-sm text-[#8B8FA3]">Noch keine Quests. Leg eine an um Runner zu besonderen Käufen zu motivieren.</div>
+        <div className="p-8 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02]">
+          <div className="text-4xl mb-3">📋</div>
+          <div className="text-sm font-bold text-white mb-1">Noch keine Quests angelegt</div>
+          <div className="text-xs text-[#8B8FA3] max-w-sm mx-auto">
+            Motiviere Runner zu gezielten Käufen — z.B. „Kaufe einen Rucksack" → +500 XP.
+            Die KI erkennt den Artikel automatisch auf dem hochgeladenen Bon.
+          </div>
+        </div>
       ) : (
         <div className="space-y-2">
           {quests.map((q) => {

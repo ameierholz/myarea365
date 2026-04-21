@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { openLegalModal } from "@/components/legal-modal";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -2242,8 +2244,18 @@ function ProfilTab({
           </div>
         </div>
 
-        <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 20 }}>
-          MyArea365 · v0.1 · Made with ❤️ in Berlin
+        <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 20, lineHeight: 1.8 }}>
+          <div>© MyArea365 {new Date().getFullYear()} · Alle Rechte vorbehalten · v0.3</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", alignItems: "center" }}>
+            <FooterLink onClick={() => openLegalModal("impressum")}>Impressum</FooterLink>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <FooterLink onClick={() => openLegalModal("datenschutz")}>Datenschutz</FooterLink>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <FooterLink onClick={() => openLegalModal("agb")}>AGB</FooterLink>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <a href="mailto:support@myarea365.de" style={{ color: MUTED, textDecoration: "none" }}>Support</a>
+          </div>
+          <div>Made with ❤️ in Berlin</div>
         </div>
       </div>
 
@@ -11530,5 +11542,20 @@ function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
         <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
       </div>
     </div>
+  );
+}
+
+
+function FooterLink({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: "none", border: "none", color: "inherit", font: "inherit",
+        cursor: "pointer", padding: 0, textDecoration: "none",
+      }}
+    >
+      {children}
+    </button>
   );
 }

@@ -12,6 +12,7 @@ import { ReferralCapture } from "@/components/referral-capture";
 import { AppDialogProvider } from "@/components/app-dialog";
 import { PinThemeStyles } from "@/components/pin-theme-styles";
 import { LegalFooter } from "@/components/legal-footer";
+import { LegalModal } from "@/components/legal-modal";
 
 export const metadata: Metadata = {
   title: {
@@ -52,6 +53,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
           <LegalFooter />
+          <LegalModal />
         </NextIntlClientProvider>
         {/* <Analytics /> — Vercel Analytics im Dashboard aktivieren, dann entkommentieren */}
         {/* <SpeedInsights /> — Speed Insights im Dashboard aktivieren, dann entkommentieren */}
