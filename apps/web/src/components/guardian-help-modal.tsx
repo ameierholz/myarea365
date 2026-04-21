@@ -5,7 +5,7 @@ import Link from "next/link";
 import { RARITY_META, type GuardianArchetype } from "@/lib/guardian";
 import { createClient } from "@/lib/supabase/client";
 
-type Tab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss" | "fair";
+type Tab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss" | "effects" | "fair";
 
 const TABS: Array<{ id: Tab; icon: string; label: string }> = [
   { id: "overview",  icon: "🧭", label: "Übersicht" },
@@ -14,6 +14,7 @@ const TABS: Array<{ id: Tab; icon: string; label: string }> = [
   { id: "skills",    icon: "⚡", label: "Fähigkeiten" },
   { id: "arena",     icon: "🏟️", label: "Arena" },
   { id: "boss",      icon: "👹", label: "Area-Boss" },
+  { id: "effects",   icon: "✨", label: "Buffs & Debuffs" },
   { id: "fair",      icon: "⚖️", label: "Fair-Play" },
 ];
 
@@ -152,6 +153,7 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
           {tab === "skills"    && <SkillsTab />}
           {tab === "arena"     && <ArenaTab />}
           {tab === "boss"      && <BossTab />}
+          {tab === "effects"   && <EffectsTab />}
           {tab === "fair"      && <FairTab />}
         </div>
 
@@ -514,6 +516,74 @@ function LootRow({ participants, badges }: { participants: string; badges: Array
 /* ═══════════════════════════════════════════════════════
    TAB: FAIR-PLAY
    ═══════════════════════════════════════════════════════ */
+function EffectsTab() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Hero>
+        Alle <b>Buffs, Debuffs & Kampf-Effekte</b>, die während eines Arena- oder Boss-Kampfs auftreten können. Aktive Effekte werden als <b>Icons unter der HP-Leiste</b> angezeigt.
+      </Hero>
+
+      <Card title="☠️ Debuffs (negativ)" color="#FF2D78">
+        <EffectRow icon="😵" name="Betäubt" color="#FFD700" desc="Überspringt deinen nächsten Zug. Wird durch Sturzflug-Ability (30% Chance) ausgelöst. stun_resist-Talent kann dagegenhalten." />
+        <EffectRow icon="☠️" name="Gift ×N" color="#a855f7" desc="Verursacht 5% MaxHP Schaden pro Stack pro Runde. Stackt bis ×3. debuff_cleanse-Talent entfernt Stacks." />
+        <EffectRow icon="🔥" name="Flamme" color="#FF6B4A" desc="10% MaxHP Schaden pro Runde (DOT). dot_dmg-Talent verstärkt DOTs." />
+      </Card>
+
+      <Card title="💚 Heilung & Survival" color="#4ade80">
+        <EffectRow icon="💚" name="Regen" color="#4ade80" desc="Regenerierst zu Rundenbeginn X% MaxHP (regen_pct-Talent)." />
+        <EffectRow icon="🩸" name="Lifesteal" color="#FF2D78" desc="Heilst X% des ausgeteilten Schadens (heal_on_hit-Talent)." />
+        <EffectRow icon="🪽" name="Wiedergeburt" color="#FF6B4A" desc="Phoenix-Ability: Bei 0 HP einmalig voll geheilt." />
+        <EffectRow icon="🐈" name="Neun Leben" color="#FFD700" desc="Katzen-Ability: Bei 0 HP einmalig mit 1 HP überlebt." />
+        <EffectRow icon="✨" name="Debuff abgeschüttelt" color="#a855f7" desc="debuff_cleanse-Talent triggert, entfernt Stun + 1 Gift-Stack." />
+      </Card>
+
+      <Card title="⚔️ Offensiv-Buffs" color="#FFD700">
+        <EffectRow icon="💥" name="Krit" color="#FFD700" desc="1.5× Schaden + Bonus aus crit_dmg-Talent. Basis-Krit 10% + crit_pct-Talent." />
+        <EffectRow icon="🔥" name="Berserker (Keystone)" color="#FF2D78" desc="DPS-Keystone: HP<30% triggert +50% ATK. Leuchtet unter HP-Bar solange aktiv." />
+        <EffectRow icon="☯️" name="Symbiose (Keystone)" color="#4ade80" desc="Balanced-Keystone: HP 40–60% triggert +10% ATK/DEF. Leuchtet unter HP-Bar solange aktiv." />
+        <EffectRow icon="🌵" name="Dornen" color="#FFD700" desc="Angreifer bekommt X% des erlittenen Schadens zurück (thorns_pct-Talent)." />
+        <EffectRow icon="⚔️" name="Konter" color="#5ddaf0" desc="Chance auf Gegenangriff mit halbem Schaden (counter_pct-Talent)." />
+        <EffectRow icon="🎯" name="Erster Treffer" color="#FFD700" desc="vs_full_hp-Talent: +X% Schaden gegen Gegner auf ≥95% HP." />
+        <EffectRow icon="⚰️" name="Gnadenstoß" color="#FF2D78" desc="vs_weak-Talent: +X% Schaden gegen Gegner unter 50% HP." />
+      </Card>
+
+      <Card title="🛡️ Defensiv-Buffs" color="#60a5fa">
+        <EffectRow icon="🛡️" name="Bollwerk (Keystone)" color="#60a5fa" desc="Tank-Keystone: 1× pro Kampf absorbiert tödlichen Treffer (HP → 1). Icon verschwindet wenn verbraucht." />
+        <EffectRow icon="🍃" name="Ausgewichen" color="#22D1C3" desc="evade_pct-Talent oder Evade-Ability vermeidet Schaden komplett." />
+        <EffectRow icon="💪" name="DMG-Reduktion" color="#60a5fa" desc="dmg_reduction-Talent: reduziert erlittenen Schaden um X% (dauerhaft)." />
+      </Card>
+
+      <Card title="⚡ Rage & Ultimates" color="#a855f7">
+        <EffectRow icon="⚡" name="Rage" color="#a855f7" desc="0–1000. +100 pro Angriff, +50 pro erlittenem Treffer. Bei 1000 zündet Active-Ultimate." />
+        <EffectRow icon="✨" name="Erwachen (Keystone)" color="#a855f7" desc="Support-Keystone: 1× pro Kampf volle Rage zu Beginn Runde 3. Icon verschwindet wenn verbraucht." />
+        <EffectRow icon="💥" name="ULT" color="#FF2D78" desc="Active-Skill-Ultimate: Basis 3× ATK, pro Skill-Level +20%, +25% pro Expertise-Level." />
+      </Card>
+
+      <Card title="🎭 Typ- & Rollen-Effekte" color="#22D1C3">
+        <EffectRow icon="⚔️" name="Typ-Vorteil" color="#4ade80" desc="Infanterie→Kavallerie→Scharfschütze→Infanterie: +25% Schaden. Magier neutral." />
+        <EffectRow icon="🎭" name="Rollen-Bonus" color="#22D1C3" desc="Role-Skill: +3% pro Stufe gegen natürlichen Typ-Gegner. Magier: +2% gegen alle." />
+        <EffectRow icon="🌍" name="Power-Zone-Buff" color="#22D1C3" desc="Parks/Landmarks: flat +HP/+ATK/+DEF/+SPD solange du in der Zone bist (nur Angreifer)." />
+      </Card>
+    </div>
+  );
+}
+
+function EffectRow({ icon, name, color, desc }: { icon: string; name: string; color: string; desc: string }) {
+  return (
+    <div style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{
+        flexShrink: 0, width: 32, height: 32, borderRadius: 8,
+        background: `${color}22`, border: `1px solid ${color}66`,
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
+      }}>{icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color, fontSize: 12, fontWeight: 900 }}>{name}</div>
+        <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.45, marginTop: 1 }}>{desc}</div>
+      </div>
+    </div>
+  );
+}
+
 function FairTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

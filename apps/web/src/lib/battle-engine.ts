@@ -55,6 +55,17 @@ export type BattleInput = {
   };
 };
 
+export type SideStatus = {
+  poisonStacks: number;
+  stunned: boolean;
+  bollwerkReady: boolean;  // Bollwerk-Keystone noch verfügbar
+  awakenReady: boolean;    // Erwachen-Keystone noch verfügbar
+  inBerserker: boolean;    // HP<30% UND Berserker-Keystone aktiv
+  inSymbiose: boolean;     // HP 40-60% UND Symbiose-Keystone aktiv
+  phoenixReady: boolean;   // Wiedergeburt-Ability verfügbar
+  nineLivesReady: boolean; // Neun-Leben-Ability verfügbar
+};
+
 export type RoundEvent = {
   round: number;
   actor: "A" | "B";
@@ -65,6 +76,8 @@ export type RoundEvent = {
   rage_a_after?: number;
   rage_b_after?: number;
   note?: string;
+  status_a?: SideStatus;
+  status_b?: SideStatus;
 };
 
 export type BattleResult = {
@@ -77,6 +90,29 @@ export type BattleResult = {
 };
 
 // Mulberry32 PRNG
+function patchStatusFrom(rounds: RoundEvent[], fromIdx: number, ca: Combatant, cb: Combatant): void {
+  const sa = snapshotStatus(ca);
+  const sb = snapshotStatus(cb);
+  for (let i = fromIdx; i < rounds.length; i++) {
+    if (!rounds[i].status_a) rounds[i].status_a = sa;
+    if (!rounds[i].status_b) rounds[i].status_b = sb;
+  }
+}
+
+function snapshotStatus(c: Combatant): SideStatus {
+  const hpPct = c.hp / c.hpMax;
+  return {
+    poisonStacks: c.state.poisonStacks,
+    stunned: c.state.stunned,
+    bollwerkReady: c.talents.bollwerkKey && !c.state.bollwerkUsed,
+    awakenReady: c.talents.awakenKey && !c.state.awakenUsed,
+    inBerserker: c.talents.berserkerKey && hpPct < 0.3,
+    inSymbiose: c.talents.symbioseKey && hpPct >= 0.4 && hpPct <= 0.6,
+    phoenixReady: c.abilityId === "rebirth" && !c.state.phoenixUsed,
+    nineLivesReady: c.abilityId === "nineleaves" && !c.state.nineLivesUsed,
+  };
+}
+
 function mulberry32(seed: number): () => number {
   let t = seed;
   return function () {
@@ -650,6 +686,9 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
       checkSurvival(defender, rounds, round);
       if (defender.hp <= 0) break;
     }
+    // Status aller in dieser Runde emittierten Events patchen
+    // (setzt Snapshots vom Ende der Runde — reicht für UI-Buff/Debuff-Anzeige)
+    patchStatusFrom(rounds, 0, ca, cb);
   }
 
   let winner: "A" | "B" | "draw";

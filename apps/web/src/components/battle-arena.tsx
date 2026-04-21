@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { RoundEvent } from "@/lib/battle-engine";
+import type { RoundEvent, SideStatus } from "@/lib/battle-engine";
 import type { GuardianArchetype } from "@/lib/guardian";
 import { GuardianAvatar, type AvatarAnimation } from "@/components/guardian-avatar";
 
@@ -64,15 +64,23 @@ export function CinematicBattleArena({
       setTimeout(() => setBannerText(null), 1100);
     }
 
-    // Damage-Number
+    // Damage-Number (oder Heal)
     if (event.damage > 0) {
-      const side = victim === "A" ? "left" : "right";
+      const isHeal = event.action === "heal";
+      // Heil geht auf den Actor, Schaden auf das Opfer
+      const floatSide = isHeal
+        ? (actor === "A" ? "left" : "right")
+        : (victim === "A" ? "left" : "right");
       const newFloat: FloatNum = {
         id: ++floatId.current,
-        x: side === "left" ? 18 : 72,
+        x: floatSide === "left" ? 18 : 72,
         y: 32,
-        text: `-${event.damage}`,
-        color: event.action === "crit" ? "#FFD700" : event.action === "flame" ? "#FF6B4A" : event.action === "poison" ? "#4ade80" : "#FF2D78",
+        text: isHeal ? `+${event.damage}` : `-${event.damage}`,
+        color: isHeal ? "#4ade80"
+          : event.action === "crit" ? "#FFD700"
+          : event.action === "flame" ? "#FF6B4A"
+          : event.action === "poison" ? "#4ade80"
+          : "#FF2D78",
         crit: event.action === "crit",
       };
       setFloats((f) => [...f, newFloat]);
@@ -136,8 +144,8 @@ export function CinematicBattleArena({
 
       {/* HP-Balken oben */}
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, position: "relative", zIndex: 2, marginBottom: 6 }}>
-        <HpBar side="left" name={sideA.name} hp={hpA} max={sideA.maxHp} pct={pctA} level={sideA.level} />
-        <HpBar side="right" name={sideB.name} hp={hpB} max={sideB.maxHp} pct={pctB} level={sideB.level} />
+        <HpBar side="left"  name={sideA.name} hp={hpA} max={sideA.maxHp} pct={pctA} level={sideA.level} status={event?.status_a} />
+        <HpBar side="right" name={sideB.name} hp={hpB} max={sideB.maxHp} pct={pctB} level={sideB.level} status={event?.status_b} />
       </div>
 
       {/* Arena-Stage mit Avataren */}
@@ -193,17 +201,21 @@ export function CinematicBattleArena({
       {/* Rundentext unten */}
       <div style={{ position: "relative", zIndex: 2, marginTop: 8, textAlign: "center", minHeight: 32 }}>
         {event ? (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "4px 12px", borderRadius: 999, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(168,85,247,0.3)" }}>
-            <span style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>RUNDE {event.round}</span>
-            <span style={{ color: "#a8b4cf", fontSize: 11 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "4px 12px", borderRadius: 999, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(168,85,247,0.3)", maxWidth: "100%" }}>
+            <span style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1, flexShrink: 0 }}>RUNDE {event.round}</span>
+            <span style={{ color: "#a8b4cf", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {event.actor === "A" ? sideA.name : sideB.name}
-              {event.action === "attack" && " greift an"}
-              {event.action === "crit" && " · Kritischer Treffer!"}
-              {event.action === "miss" && " · Fehlschlag"}
-              {event.action === "flame" && " · Flammenangriff"}
-              {event.action === "poison" && " · Gift"}
-              {event.action === "revive" && " · Auferstanden!"}
-              {event.action === "stunned" && " · Betäubt"}
+              {event.action === "attack"  && ` · Angriff (-${event.damage})`}
+              {event.action === "crit"    && ` · 💥 Krit (-${event.damage})`}
+              {event.action === "ult"     && ` · 💥 ULT (-${event.damage})`}
+              {event.action === "miss"    && " · Fehlschlag"}
+              {event.action === "flame"   && ` · 🔥 Flamme (-${event.damage})`}
+              {event.action === "poison"  && ` · ☠️ Gift (-${event.damage})`}
+              {event.action === "heal"    && ` · 💚 Heilung (+${event.damage})`}
+              {event.action === "revive"  && " · 🪽 Auferstanden"}
+              {event.action === "stunned" && " · 😵 Betäubt"}
+              {event.action === "special" && event.note && ` · ${event.note}`}
+              {event.note && (event.action === "attack" || event.action === "crit" || event.action === "ult") && ` · ${event.note}`}
             </span>
           </div>
         ) : (
@@ -241,9 +253,27 @@ export function CinematicBattleArena({
   );
 }
 
-function HpBar({ side, name, hp, max, pct, level }: { side: "left" | "right"; name: string; hp: number; max: number; pct: number; level: number }) {
+function HpBar({ side, name, hp, max, pct, level, status }: {
+  side: "left" | "right"; name: string; hp: number; max: number; pct: number; level: number; status?: SideStatus;
+}) {
   const align = side === "left" ? "flex-start" : "flex-end";
   const barColor = pct > 50 ? "linear-gradient(90deg, #4ade80, #22D1C3)" : pct > 25 ? "linear-gradient(90deg, #FFD700, #FF6B4A)" : "linear-gradient(90deg, #FF2D78, #FF6B4A)";
+
+  const buffs: Array<{ icon: string; label: string; color: string; kind: "buff" | "debuff" }> = [];
+  if (status) {
+    // Debuffs zuerst (rot)
+    if (status.stunned) buffs.push({ icon: "😵", label: "Betäubt", color: "#FFD700", kind: "debuff" });
+    if (status.poisonStacks > 0) buffs.push({ icon: "☠️", label: `Gift ×${status.poisonStacks}`, color: "#a855f7", kind: "debuff" });
+    // Aktive Keystones (blinkend)
+    if (status.inBerserker) buffs.push({ icon: "🔥", label: "Berserker", color: "#FF2D78", kind: "buff" });
+    if (status.inSymbiose) buffs.push({ icon: "☯️", label: "Symbiose", color: "#4ade80", kind: "buff" });
+    // Verfügbare Keystones
+    if (status.bollwerkReady) buffs.push({ icon: "🛡️", label: "Bollwerk bereit", color: "#60a5fa", kind: "buff" });
+    if (status.awakenReady) buffs.push({ icon: "✨", label: "Erwachen bereit", color: "#a855f7", kind: "buff" });
+    if (status.phoenixReady) buffs.push({ icon: "🪽", label: "Wiedergeburt", color: "#FF6B4A", kind: "buff" });
+    if (status.nineLivesReady) buffs.push({ icon: "🐈", label: "Neun Leben", color: "#FFD700", kind: "buff" });
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: align, flex: 1, maxWidth: 220 }}>
       <div style={{ fontSize: 11, fontWeight: 900, color: "#FFF", textAlign: side, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
@@ -268,6 +298,31 @@ function HpBar({ side, name, hp, max, pct, level }: { side: "left" | "right"; na
       <div style={{ color: "#a8b4cf", fontSize: 9, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
         {hp} / {max}
       </div>
+      {/* Buff/Debuff-Leiste */}
+      {buffs.length > 0 && (
+        <div style={{
+          display: "flex", gap: 3, marginTop: 3, flexWrap: "wrap",
+          justifyContent: side === "right" ? "flex-end" : "flex-start",
+        }}>
+          {buffs.map((b, i) => (
+            <div key={i} title={b.label} style={{
+              width: 18, height: 18, borderRadius: 4,
+              background: `${b.color}28`, border: `1px solid ${b.color}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, lineHeight: 1,
+              animation: b.kind === "buff" && (b.label === "Berserker" || b.label === "Symbiose") ? "status-pulse 1.2s ease-in-out infinite" : undefined,
+            }}>
+              {b.icon}
+            </div>
+          ))}
+        </div>
+      )}
+      <style jsx>{`
+        @keyframes status-pulse {
+          0%, 100% { filter: brightness(1); transform: scale(1); }
+          50% { filter: brightness(1.5); transform: scale(1.1); }
+        }
+      `}</style>
     </div>
   );
 }
