@@ -73,14 +73,23 @@ export function RunnerActivityCards() {
       {showArena && (
         <div onClick={() => setShowArena(false)} style={{
           position: "fixed", inset: 0, zIndex: 2600,
-          background: "rgba(15,17,21,0.95)", backdropFilter: "blur(14px)",
+          background: `
+            radial-gradient(ellipse at 50% 100%, rgba(255,107,74,0.18) 0%, transparent 60%),
+            radial-gradient(ellipse at 0% 0%, rgba(168,85,247,0.12) 0%, transparent 50%),
+            rgba(5,5,10,0.96)
+          `,
+          backdropFilter: "blur(16px)",
           padding: 16, overflowY: "auto",
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            maxWidth: 1200, margin: "0 auto", padding: 20,
-            background: "#0F1115", borderRadius: 20,
+            maxWidth: 1200, margin: "0 auto", padding: 18,
+            background: `
+              radial-gradient(ellipse at top, rgba(255,215,0,0.06) 0%, transparent 40%),
+              linear-gradient(180deg, #12090e 0%, #0a0a0f 100%)
+            `,
+            borderRadius: 20,
             border: "1px solid rgba(255, 45, 120, 0.4)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+            boxShadow: "0 20px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}>
             <RunnerFightsClient inModal onClose={() => setShowArena(false)} />
           </div>

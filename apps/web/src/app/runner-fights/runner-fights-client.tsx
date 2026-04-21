@@ -25,9 +25,23 @@ type Opponent = {
   is_bot?: boolean;
 };
 
+type MyGuardian = {
+  guardian_id: string;
+  archetype_id: string;
+  level: number;
+  xp: number;
+  wins: number;
+  losses: number;
+  current_hp_pct: number;
+  archetype_name: string;
+  archetype_emoji: string;
+  rarity: string;
+};
+
 type OpponentsResponse = {
   ok: boolean;
   opponents: Opponent[];
+  my_guardian?: MyGuardian | null;
   fights_used_today: number;
   gems_spent_today: number;
   refresh_used_today: number;
@@ -138,31 +152,15 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
 
   return (
     <W>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-white mb-1">⚔️ Arena</h1>
-          <p className="text-sm text-[#a8b4cf]">
-            Fordere andere Runner heraus. Level ±3, Loot bei Sieg & Niederlage.
-          </p>
-        </div>
-        {inModal && onClose && (
-          <button onClick={onClose} className="px-3 py-1.5 rounded-full bg-white/5 text-[#a8b4cf] text-lg hover:bg-white/10">✕</button>
-        )}
-      </div>
-
-      {/* Status-Bar */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <Card label="Gratis-Fights" value={`${freeLeft}/10`} tone={freeLeft > 0 ? "#4ade80" : "#8B8FA3"} />
-        <Card label="Fights heute" value={`${used}/${totalLimit}`} tone="#22D1C3" />
-        <Card label="💎 Balance" value={data.gems_available.toLocaleString("de-DE")} tone="#FFD700" />
-      </div>
-
-      {used >= 10 && nextCost !== -1 && (
-        <div className="mb-3 p-3 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 text-xs text-[#a8b4cf]">
-          <span className="text-[#FFD700] font-bold">Nächster Fight:</span> <b>{nextCost} 💎</b>
-          <span className="opacity-60"> · Preis steigt alle 5 weitere Fights</span>
-        </div>
-      )}
+      <ArenaHeader
+        onClose={inModal ? onClose : undefined}
+        myGuardian={data.my_guardian ?? null}
+        freeLeft={freeLeft}
+        used={used}
+        totalLimit={totalLimit}
+        gemsAvailable={data.gems_available}
+        nextCost={nextCost}
+      />
 
       {nextCost === -1 && (
         <div className="mb-3 p-3 rounded-xl bg-[#FF2D78]/10 border border-[#FF2D78]/30 text-sm text-[#FF2D78] font-bold">
@@ -227,6 +225,197 @@ function Card({ label, value, tone }: { label: string; value: string; tone: stri
     <div className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
       <div className="text-[10px] font-bold tracking-wider text-[#8B8FA3]">{label}</div>
       <div className="text-lg font-black mt-0.5" style={{ color: tone }}>{value}</div>
+    </div>
+  );
+}
+
+function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvailable, nextCost }: {
+  onClose?: () => void;
+  myGuardian: MyGuardian | null;
+  freeLeft: number;
+  used: number;
+  totalLimit: number;
+  gemsAvailable: number;
+  nextCost: number | null;
+}) {
+  const rarityMeta = myGuardian?.rarity === "legendary"
+    ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
+    : myGuardian?.rarity === "epic"
+    ? { color: "#a855f7", label: "EPISCH",   glow: "rgba(168,85,247,0.4)" }
+    : { color: "#22D1C3", label: "ELITE",    glow: "rgba(34,209,195,0.3)" };
+
+  return (
+    <div style={{
+      position: "relative",
+      marginBottom: 20,
+      borderRadius: 18,
+      overflow: "hidden",
+      background: `
+        radial-gradient(ellipse at 50% 120%, rgba(255,107,74,0.25) 0%, transparent 55%),
+        radial-gradient(ellipse at 0% 0%, rgba(168,85,247,0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 100% 0%, rgba(34,209,195,0.12) 0%, transparent 40%),
+        linear-gradient(180deg, #1a0e14 0%, #0a0a0f 100%)
+      `,
+      border: "1px solid rgba(255,107,74,0.35)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 40px rgba(0,0,0,0.5)",
+    }}>
+      {/* Dekorative Kolosseum-Bögen (CSS Pseudo-Arches) */}
+      <div style={{
+        position: "absolute", top: -30, left: 0, right: 0, height: 60,
+        pointerEvents: "none", opacity: 0.25,
+        background: "repeating-linear-gradient(90deg, transparent 0 40px, rgba(255,107,74,0.3) 40px 42px)",
+        maskImage: "radial-gradient(ellipse at center bottom, black 0%, transparent 70%)",
+      }} />
+
+      {/* Crossed Swords Watermark */}
+      <div style={{
+        position: "absolute", right: -20, top: -10,
+        fontSize: 140, opacity: 0.05,
+        pointerEvents: "none",
+        transform: "rotate(-12deg)",
+      }}>⚔️</div>
+
+      {/* Header-Leiste */}
+      <div style={{
+        position: "relative", padding: "14px 18px 10px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 22 }}>⚔️</div>
+          <div>
+            <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 3 }}>DER RUF DER ARENA</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>Arena</div>
+          </div>
+        </div>
+        {onClose && (
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
+            width: 34, height: 34, borderRadius: 999, cursor: "pointer", fontSize: 18,
+          }}>✕</button>
+        )}
+      </div>
+
+      {/* Body: Wächter links + Stat-Kacheln rechts */}
+      <div style={{
+        position: "relative", padding: "16px 18px 14px",
+        display: "grid", gridTemplateColumns: myGuardian ? "auto 1fr" : "1fr",
+        gap: 16, alignItems: "center",
+      }}>
+        {/* My Guardian Hero-Card */}
+        {myGuardian && (
+          <div style={{
+            position: "relative",
+            minWidth: 140,
+            padding: "10px 10px 12px",
+            borderRadius: 14,
+            background: `radial-gradient(circle at 50% 0%, ${rarityMeta.glow} 0%, transparent 70%), linear-gradient(180deg, rgba(15,17,21,0.7) 0%, rgba(15,17,21,0.95) 100%)`,
+            border: `1px solid ${rarityMeta.color}55`,
+            boxShadow: `0 4px 24px ${rarityMeta.glow}`,
+            textAlign: "center",
+          }}>
+            <div style={{
+              position: "absolute", top: 6, left: 6, zIndex: 2,
+              padding: "2px 6px", borderRadius: 999,
+              background: `${rarityMeta.color}dd`, color: "#0F1115",
+              fontSize: 8, fontWeight: 900, letterSpacing: 1.2,
+            }}>{rarityMeta.label}</div>
+
+            {/* Pedestal mit Portrait */}
+            <div style={{
+              marginTop: 4,
+              height: 88,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: `radial-gradient(circle at 50% 30%, ${rarityMeta.color}26 0%, transparent 60%)`,
+            }}>
+              <div style={{
+                fontSize: 64,
+                filter: `drop-shadow(0 6px 10px ${rarityMeta.glow})`,
+                animation: "heroFloat 3s ease-in-out infinite",
+              }}>{myGuardian.archetype_emoji}</div>
+            </div>
+
+            {/* Spotlight-Kreis */}
+            <div style={{
+              width: 80, height: 6, margin: "2px auto 6px",
+              borderRadius: "50%",
+              background: `radial-gradient(ellipse, ${rarityMeta.color}80, transparent 70%)`,
+            }} />
+
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, lineHeight: 1.1 }}>
+              {myGuardian.archetype_name}
+            </div>
+            <div style={{ color: rarityMeta.color, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
+              Stufe {myGuardian.level}
+            </div>
+            <div style={{
+              marginTop: 6, display: "flex", justifyContent: "center", gap: 8, fontSize: 10,
+            }}>
+              <span style={{ color: "#4ade80", fontWeight: 700 }}>🏆 {myGuardian.wins}</span>
+              <span style={{ color: "#FF2D78", fontWeight: 700 }}>💀 {myGuardian.losses}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Stat-Kacheln */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          <ArenaStatTile
+            label="GRATIS-FIGHTS"
+            value={`${freeLeft}/10`}
+            sub={freeLeft > 0 ? "noch frei" : "aufgebraucht"}
+            icon="⚡"
+            color={freeLeft > 0 ? "#4ade80" : "#8B8FA3"}
+          />
+          <ArenaStatTile
+            label="FIGHTS HEUTE"
+            value={`${used}/${totalLimit}`}
+            sub="Tages-Counter"
+            icon="🗡️"
+            color="#22D1C3"
+          />
+          <ArenaStatTile
+            label="DIAMANTEN"
+            value={gemsAvailable.toLocaleString("de-DE")}
+            sub={nextCost && nextCost > 0 ? `nächster: ${nextCost} 💎` : "balance"}
+            icon="💎"
+            color="#FFD700"
+          />
+        </div>
+      </div>
+
+      {nextCost === -1 && (
+        <div style={{ padding: "10px 18px", background: "rgba(255,45,120,0.14)", borderTop: "1px solid rgba(255,45,120,0.3)", color: "#FF2D78", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+          🚫 Tageslimit (30) erreicht — morgen wieder frische Fights!
+        </div>
+      )}
+
+      <style>{`
+        @keyframes heroFloat {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50%      { transform: translateY(-4px) scale(1.02); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function ArenaStatTile({ label, value, sub, icon, color }: { label: string; value: string; sub: string; icon: string; color: string }) {
+  return (
+    <div style={{
+      position: "relative",
+      padding: "10px 12px",
+      borderRadius: 12,
+      background: `linear-gradient(135deg, ${color}18 0%, rgba(15,17,21,0.6) 70%)`,
+      border: `1px solid ${color}44`,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px ${color}15`,
+    }}>
+      <div style={{
+        position: "absolute", top: 6, right: 8,
+        fontSize: 18, opacity: 0.5,
+      }}>{icon}</div>
+      <div style={{ color: "#8B8FA3", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>{label}</div>
+      <div style={{ color, fontSize: 20, fontWeight: 900, lineHeight: 1.1, marginTop: 2 }}>{value}</div>
+      <div style={{ color: "#a8b4cf", fontSize: 9, marginTop: 2 }}>{sub}</div>
     </div>
   );
 }

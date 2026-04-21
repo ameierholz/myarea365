@@ -42,6 +42,25 @@ export async function GET(req: NextRequest) {
     const fightsUsed = state?.fights_used_today ?? 0;
     const { data: nextCost } = await sb.rpc("runner_fight_next_gem_cost", { p_used: fightsUsed });
 
+    // Eigener aktiver Wächter (für Hero-Anzeige)
+    const { data: myGuardianRow } = await sb.from("user_guardians")
+      .select("id, archetype_id, level, xp, wins, losses, current_hp_pct, guardian_archetypes!inner(name, emoji, rarity, guardian_type, role)")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    const myGuardian = myGuardianRow ? {
+      guardian_id: (myGuardianRow as { id: string }).id,
+      archetype_id: (myGuardianRow as { archetype_id: string }).archetype_id,
+      level:        (myGuardianRow as { level: number }).level,
+      xp:           (myGuardianRow as { xp: number }).xp,
+      wins:         (myGuardianRow as { wins: number }).wins,
+      losses:       (myGuardianRow as { losses: number }).losses,
+      current_hp_pct: (myGuardianRow as { current_hp_pct: number }).current_hp_pct,
+      archetype_name:  (myGuardianRow as unknown as { guardian_archetypes: { name: string } }).guardian_archetypes.name,
+      archetype_emoji: (myGuardianRow as unknown as { guardian_archetypes: { emoji: string } }).guardian_archetypes.emoji,
+      rarity:          (myGuardianRow as unknown as { guardian_archetypes: { rarity: string } }).guardian_archetypes.rarity,
+    } : null;
+
     const oppData = (oppRes.data as { ok?: boolean; opponents?: Array<Record<string, unknown>>; error?: string } | null) ?? { ok: true, opponents: [] };
     const realOpponents = oppData.opponents ?? [];
 
@@ -84,6 +103,7 @@ export async function GET(req: NextRequest) {
       ok: oppData.ok !== false || opponents.length > 0 || oppData.error === "no_active_guardian" ? (oppData.error === "no_active_guardian" ? false : true) : false,
       error: oppData.error,
       opponents,
+      my_guardian: myGuardian,
       fights_used_today: fightsUsed,
       gems_spent_today: state?.gems_spent_today ?? 0,
       refresh_used_today: state?.refresh_used_today ?? 0,
