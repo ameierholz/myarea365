@@ -120,6 +120,52 @@ update public.talent_nodes     set id = 'flammenherr'      || substr(id, length(
 update public.talent_nodes     set id = 'lichtbringer'     || substr(id, length('phoenix')+1)      where id like 'phoenix.%';
 update public.talent_nodes     set id = 'donnerreiter'     || substr(id, length('wyvern')+1)       where id like 'wyvern.%';
 
+-- requires_node_id parallel mit-umbenennen (FK ist zur Rename-Zeit gedroppt)
+update public.talent_nodes set requires_node_id = 'schattenfinger'   || substr(requires_node_id, length('stadtfuchs')+1)   where requires_node_id like 'stadtfuchs.%';
+update public.talent_nodes set requires_node_id = 'grenzwaechter'    || substr(requires_node_id, length('dachs')+1)        where requires_node_id like 'dachs.%';
+update public.talent_nodes set requires_node_id = 'klingentaenzer'   || substr(requires_node_id, length('taube')+1)        where requires_node_id like 'taube.%';
+update public.talent_nodes set requires_node_id = 'gossenfluesterer' || substr(requires_node_id, length('spatz')+1)        where requires_node_id like 'spatz.%';
+update public.talent_nodes set requires_node_id = 'freischaerler'    || substr(requires_node_id, length('strassenhund')+1) where requires_node_id like 'strassenhund.%';
+update public.talent_nodes set requires_node_id = 'giftmischer'      || substr(requires_node_id, length('ratte')+1)        where requires_node_id like 'ratte.%';
+update public.talent_nodes set requires_node_id = 'neonmagier'       || substr(requires_node_id, length('nachteule')+1)    where requires_node_id like 'nachteule.%';
+update public.talent_nodes set requires_node_id = 'meisterdieb'      || substr(requires_node_id, length('waschbaer')+1)    where requires_node_id like 'waschbaer.%';
+update public.talent_nodes set requires_node_id = 'daechermoench'    || substr(requires_node_id, length('stadtkatze')+1)   where requires_node_id like 'stadtkatze.%';
+update public.talent_nodes set requires_node_id = 'runenleserin'     || substr(requires_node_id, length('eule')+1)         where requires_node_id like 'eule.%';
+update public.talent_nodes set requires_node_id = 'nebelgaenger'     || substr(requires_node_id, length('fledermaus')+1)   where requires_node_id like 'fledermaus.%';
+update public.talent_nodes set requires_node_id = 'dolchfluesterer'  || substr(requires_node_id, length('moewe')+1)        where requires_node_id like 'moewe.%';
+update public.talent_nodes set requires_node_id = 'feldkommandant'   || substr(requires_node_id, length('rudelalpha')+1)   where requires_node_id like 'rudelalpha.%';
+update public.talent_nodes set requires_node_id = 'eisenhand'        || substr(requires_node_id, length('eber')+1)         where requires_node_id like 'eber.%';
+update public.talent_nodes set requires_node_id = 'schattenklinge'   || substr(requires_node_id, length('wolf')+1)         where requires_node_id like 'wolf.%';
+update public.talent_nodes set requires_node_id = 'blutstuermer'     || substr(requires_node_id, length('baer')+1)         where requires_node_id like 'baer.%';
+update public.talent_nodes set requires_node_id = 'stahlfeder'       || substr(requires_node_id, length('falke')+1)        where requires_node_id like 'falke.%';
+update public.talent_nodes set requires_node_id = 'flammenherr'      || substr(requires_node_id, length('drache')+1)       where requires_node_id like 'drache.%';
+update public.talent_nodes set requires_node_id = 'lichtbringer'     || substr(requires_node_id, length('phoenix')+1)      where requires_node_id like 'phoenix.%';
+update public.talent_nodes set requires_node_id = 'donnerreiter'     || substr(requires_node_id, length('wyvern')+1)       where requires_node_id like 'wyvern.%';
+
+-- guardian_talents.node_id manuell mit-umbenennen (FK gedroppt)
+if to_regclass('public.guardian_talents') is not null then
+  update public.guardian_talents set node_id = 'schattenfinger'   || substr(node_id, length('stadtfuchs')+1)   where node_id like 'stadtfuchs.%';
+  update public.guardian_talents set node_id = 'grenzwaechter'    || substr(node_id, length('dachs')+1)        where node_id like 'dachs.%';
+  update public.guardian_talents set node_id = 'klingentaenzer'   || substr(node_id, length('taube')+1)        where node_id like 'taube.%';
+  update public.guardian_talents set node_id = 'gossenfluesterer' || substr(node_id, length('spatz')+1)        where node_id like 'spatz.%';
+  update public.guardian_talents set node_id = 'freischaerler'    || substr(node_id, length('strassenhund')+1) where node_id like 'strassenhund.%';
+  update public.guardian_talents set node_id = 'giftmischer'      || substr(node_id, length('ratte')+1)        where node_id like 'ratte.%';
+  update public.guardian_talents set node_id = 'neonmagier'       || substr(node_id, length('nachteule')+1)    where node_id like 'nachteule.%';
+  update public.guardian_talents set node_id = 'meisterdieb'      || substr(node_id, length('waschbaer')+1)    where node_id like 'waschbaer.%';
+  update public.guardian_talents set node_id = 'daechermoench'    || substr(node_id, length('stadtkatze')+1)   where node_id like 'stadtkatze.%';
+  update public.guardian_talents set node_id = 'runenleserin'     || substr(node_id, length('eule')+1)         where node_id like 'eule.%';
+  update public.guardian_talents set node_id = 'nebelgaenger'     || substr(node_id, length('fledermaus')+1)   where node_id like 'fledermaus.%';
+  update public.guardian_talents set node_id = 'dolchfluesterer'  || substr(node_id, length('moewe')+1)        where node_id like 'moewe.%';
+  update public.guardian_talents set node_id = 'feldkommandant'   || substr(node_id, length('rudelalpha')+1)   where node_id like 'rudelalpha.%';
+  update public.guardian_talents set node_id = 'eisenhand'        || substr(node_id, length('eber')+1)         where node_id like 'eber.%';
+  update public.guardian_talents set node_id = 'schattenklinge'   || substr(node_id, length('wolf')+1)         where node_id like 'wolf.%';
+  update public.guardian_talents set node_id = 'blutstuermer'     || substr(node_id, length('baer')+1)         where node_id like 'baer.%';
+  update public.guardian_talents set node_id = 'stahlfeder'       || substr(node_id, length('falke')+1)        where node_id like 'falke.%';
+  update public.guardian_talents set node_id = 'flammenherr'      || substr(node_id, length('drache')+1)       where node_id like 'drache.%';
+  update public.guardian_talents set node_id = 'lichtbringer'     || substr(node_id, length('phoenix')+1)      where node_id like 'phoenix.%';
+  update public.guardian_talents set node_id = 'donnerreiter'     || substr(node_id, length('wyvern')+1)       where node_id like 'wyvern.%';
+end if;
+
 -- Self-ref + Kind-FKs mit ON UPDATE CASCADE re-erstellen
 alter table public.talent_nodes
   add constraint talent_nodes_requires_node_id_fkey
@@ -169,8 +215,30 @@ update public.archetype_skills set id = 'flammenherr'      || substr(id, length(
 update public.archetype_skills set id = 'lichtbringer'     || substr(id, length('phoenix')+1)      where id like 'phoenix.%';
 update public.archetype_skills set id = 'donnerreiter'     || substr(id, length('wyvern')+1)       where id like 'wyvern.%';
 
--- Kind-FK mit ON UPDATE CASCADE re-erstellen
+-- guardian_skill_levels.skill_id manuell mit-umbenennen (FK gedroppt)
 if to_regclass('public.guardian_skill_levels') is not null then
+  update public.guardian_skill_levels set skill_id = 'schattenfinger'   || substr(skill_id, length('stadtfuchs')+1)   where skill_id like 'stadtfuchs.%';
+  update public.guardian_skill_levels set skill_id = 'grenzwaechter'    || substr(skill_id, length('dachs')+1)        where skill_id like 'dachs.%';
+  update public.guardian_skill_levels set skill_id = 'klingentaenzer'   || substr(skill_id, length('taube')+1)        where skill_id like 'taube.%';
+  update public.guardian_skill_levels set skill_id = 'gossenfluesterer' || substr(skill_id, length('spatz')+1)        where skill_id like 'spatz.%';
+  update public.guardian_skill_levels set skill_id = 'freischaerler'    || substr(skill_id, length('strassenhund')+1) where skill_id like 'strassenhund.%';
+  update public.guardian_skill_levels set skill_id = 'giftmischer'      || substr(skill_id, length('ratte')+1)        where skill_id like 'ratte.%';
+  update public.guardian_skill_levels set skill_id = 'neonmagier'       || substr(skill_id, length('nachteule')+1)    where skill_id like 'nachteule.%';
+  update public.guardian_skill_levels set skill_id = 'meisterdieb'      || substr(skill_id, length('waschbaer')+1)    where skill_id like 'waschbaer.%';
+  update public.guardian_skill_levels set skill_id = 'daechermoench'    || substr(skill_id, length('stadtkatze')+1)   where skill_id like 'stadtkatze.%';
+  update public.guardian_skill_levels set skill_id = 'runenleserin'     || substr(skill_id, length('eule')+1)         where skill_id like 'eule.%';
+  update public.guardian_skill_levels set skill_id = 'nebelgaenger'     || substr(skill_id, length('fledermaus')+1)   where skill_id like 'fledermaus.%';
+  update public.guardian_skill_levels set skill_id = 'dolchfluesterer'  || substr(skill_id, length('moewe')+1)        where skill_id like 'moewe.%';
+  update public.guardian_skill_levels set skill_id = 'feldkommandant'   || substr(skill_id, length('rudelalpha')+1)   where skill_id like 'rudelalpha.%';
+  update public.guardian_skill_levels set skill_id = 'eisenhand'        || substr(skill_id, length('eber')+1)         where skill_id like 'eber.%';
+  update public.guardian_skill_levels set skill_id = 'schattenklinge'   || substr(skill_id, length('wolf')+1)         where skill_id like 'wolf.%';
+  update public.guardian_skill_levels set skill_id = 'blutstuermer'     || substr(skill_id, length('baer')+1)         where skill_id like 'baer.%';
+  update public.guardian_skill_levels set skill_id = 'stahlfeder'       || substr(skill_id, length('falke')+1)        where skill_id like 'falke.%';
+  update public.guardian_skill_levels set skill_id = 'flammenherr'      || substr(skill_id, length('drache')+1)       where skill_id like 'drache.%';
+  update public.guardian_skill_levels set skill_id = 'lichtbringer'     || substr(skill_id, length('phoenix')+1)      where skill_id like 'phoenix.%';
+  update public.guardian_skill_levels set skill_id = 'donnerreiter'     || substr(skill_id, length('wyvern')+1)       where skill_id like 'wyvern.%';
+
+  -- FK re-erstellen
   alter table public.guardian_skill_levels
     add constraint guardian_skill_levels_skill_id_fkey
       foreign key (skill_id) references public.archetype_skills(id) on update cascade on delete cascade;
