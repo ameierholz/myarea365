@@ -389,30 +389,48 @@ function FightModal({ onClose, opponent, rounds, settle, winner }: {
   const [phase, setPhase] = useState<"fight" | "result">("fight");
 
   return (
-    <div className="fixed inset-0 z-[2500] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-[#0F1115] rounded-2xl border border-white/10 overflow-hidden">
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 2500,
+      background: "rgba(0,0,0,0.92)", backdropFilter: "blur(14px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      overflow: "auto",
+    }}>
+      <div style={{
+        width: "100%", maxWidth: 700,
+        background: "#0F1115", borderRadius: 20,
+        border: "1px solid rgba(255, 45, 120, 0.4)",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 60px rgba(255,45,120,0.2)",
+        overflow: "hidden",
+      }}>
         {phase === "fight" ? (
-          <div className="p-4">
+          <div style={{ padding: 16 }}>
             <CinematicBattleArena
               sideA={{ name: "Du", archetype: { id: "-", emoji: "🛡️", rarity: "elite" }, level: 1, maxHp: 100 }}
               sideB={{ name: opponent.display_name ?? opponent.username ?? "Gegner", archetype: { id: opponent.archetype_id, emoji: opponent.archetype_emoji, rarity: opponent.rarity as "elite"|"epic"|"legendary" }, level: opponent.level, maxHp: 100 }}
               rounds={rounds}
               onFinished={() => setPhase("result")}
             />
-            <button onClick={() => setPhase("result")} className="mt-3 w-full py-2 rounded-lg bg-white/5 text-[#a8b4cf] font-bold text-xs">
+            <button onClick={() => setPhase("result")} style={{
+              marginTop: 12, width: "100%", padding: "8px 16px",
+              borderRadius: 10, background: "rgba(255,255,255,0.05)",
+              color: "#a8b4cf", fontSize: 12, fontWeight: 700,
+              border: "none", cursor: "pointer",
+            }}>
               Überspringen →
             </button>
           </div>
         ) : (
-          <ResultView onClose={onClose} settle={settle} winner={winner} />
+          <ResultView onClose={onClose} opponent={opponent} rounds={rounds} settle={settle} winner={winner} />
         )}
       </div>
     </div>
   );
 }
 
-function ResultView({ onClose, settle, winner }: {
+function ResultView({ onClose, opponent, rounds, settle, winner }: {
   onClose: () => void;
+  opponent: Opponent;
+  rounds: RoundEvent[];
   settle?: { won: boolean; xp: number; rarity: string; siegel_type: string; item_id: string | null };
   winner: "A" | "B" | null;
 }) {
@@ -420,23 +438,218 @@ function ResultView({ onClose, settle, winner }: {
   const rarityMeta = settle?.rarity === "epic" ? { label: "EPISCH", color: "#a855f7" }
                     : settle?.rarity === "rare" ? { label: "SELTEN", color: "#22D1C3" }
                     : { label: "GEWÖHNLICH", color: "#8B8FA3" };
+
+  // Damage-Stats aus den Rounds berechnen
+  let dmgA = 0, dmgB = 0, critsA = 0, critsB = 0;
+  for (const r of rounds) {
+    const dmg = r.damage ?? 0;
+    const isCrit = r.action === "crit" || r.action === "ult";
+    if (r.actor === "A") { dmgA += dmg; if (isCrit) critsA++; }
+    if (r.actor === "B") { dmgB += dmg; if (isCrit) critsB++; }
+  }
+  const lastRound = rounds[rounds.length - 1];
+  const finalHpA = lastRound?.hp_a_after ?? 100;
+  const finalHpB = lastRound?.hp_b_after ?? 100;
+
+  const bannerColor = won ? "#4ade80" : "#FF2D78";
+  const bannerLabel = won ? "SIEG" : "NIEDERLAGE";
+  const bannerIcon = won ? "🏆" : "💀";
+  const flavorText = won
+    ? "Dieser Gegner war bestimmt nicht ganz ohne. Jetzt ist er es aber."
+    : "Heute ging's nicht auf. Morgen ist ein neuer Kampftag.";
+
   return (
-    <div className="p-8 text-center">
-      <div className="text-6xl mb-2">{won ? "🏆" : "💀"}</div>
-      <div className="text-2xl font-black" style={{ color: won ? "#4ade80" : "#FF2D78" }}>
-        {won ? "SIEG!" : "Niederlage"}
+    <div style={{ position: "relative", overflow: "hidden" }}>
+      {/* Hintergrund: Schiffsplanken-Feeling */}
+      <div style={{
+        position: "absolute", inset: 0, opacity: 0.4,
+        background: "linear-gradient(180deg, rgba(139,69,19,0.15) 0%, rgba(15,17,21,0.8) 100%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Top-Banner */}
+      <div style={{
+        position: "relative",
+        padding: "20px 16px 14px",
+        textAlign: "center",
+        background: `linear-gradient(180deg, ${bannerColor}22 0%, transparent 100%)`,
+        borderBottom: `2px solid ${bannerColor}`,
+      }}>
+        <div style={{ fontSize: 48, marginBottom: 4, animation: "victoryPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>{bannerIcon}</div>
+        <div style={{
+          display: "inline-block",
+          padding: "6px 28px",
+          background: `linear-gradient(180deg, ${bannerColor} 0%, ${bannerColor}88 100%)`,
+          color: won ? "#0F1115" : "#FFF",
+          fontSize: 20, fontWeight: 900, letterSpacing: 4,
+          borderRadius: 4,
+          boxShadow: `0 4px 12px ${bannerColor}55, inset 0 -2px 4px rgba(0,0,0,0.3)`,
+          textShadow: won ? "none" : "0 1px 2px rgba(0,0,0,0.5)",
+        }}>{bannerLabel}</div>
+        <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 10, maxWidth: 480, margin: "10px auto 0" }}>
+          {flavorText}
+        </div>
       </div>
+
+      {/* Split-Screen: Beide Kämpfer */}
+      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 0, padding: "20px 12px" }}>
+        {/* Du */}
+        <FighterPanel
+          side="left"
+          name="Du"
+          emoji="🛡️"
+          level={1}
+          hpPct={finalHpA}
+          dmgDealt={dmgA}
+          crits={critsA}
+          winner={won}
+        />
+
+        {/* Schwert-Trenner */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#8B8FA3", fontSize: 32, padding: "0 8px",
+          transform: "rotate(-15deg)",
+        }}>⚔️</div>
+
+        {/* Gegner */}
+        <FighterPanel
+          side="right"
+          name={opponent.display_name ?? opponent.username ?? "Gegner"}
+          emoji={opponent.archetype_emoji}
+          level={opponent.level}
+          hpPct={finalHpB}
+          dmgDealt={dmgB}
+          crits={critsB}
+          winner={!won}
+        />
+      </div>
+
+      {/* Beute-Box (nur bei Sieg) */}
       {settle && (
-        <div className="mt-5 p-4 rounded-xl inline-block text-left" style={{ background: `${rarityMeta.color}15`, border: `1px solid ${rarityMeta.color}44`, minWidth: 220 }}>
-          <div className="text-xs font-black tracking-widest mb-2" style={{ color: rarityMeta.color }}>{rarityMeta.label} BEUTE</div>
-          <div className="text-sm text-white">⚡ +{settle.xp} XP</div>
-          <div className="text-sm text-white mt-1">🔖 +1× {settle.siegel_type}-Siegel</div>
-          {settle.item_id && <div className="text-sm text-[#FFD700] mt-1 font-bold">🎁 Ausrüstung erbeutet!</div>}
+        <div style={{
+          position: "relative", margin: "0 20px 16px",
+          padding: 14, borderRadius: 12,
+          background: `linear-gradient(135deg, ${rarityMeta.color}22 0%, transparent 70%)`,
+          border: `1px solid ${rarityMeta.color}55`,
+        }}>
+          <div style={{ color: rarityMeta.color, fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 8 }}>
+            💰 ENTWICKLUNG
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <RewardTile icon="⚡" label="XP" value={`+${settle.xp.toLocaleString("de-DE")}`} color="#FFD700" />
+            <RewardTile icon="🔖" label={`${settle.siegel_type}-Siegel`} value="+1" color={rarityMeta.color} />
+            {settle.item_id && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <RewardTile icon="🎁" label="Ausrüstung erbeutet!" value="RARE+" color="#FFD700" />
+              </div>
+            )}
+          </div>
         </div>
       )}
-      <button onClick={onClose} className="mt-6 px-6 py-3 rounded-lg bg-[#22D1C3] text-[#0F1115] font-black text-sm">
-        Weiter kämpfen →
-      </button>
+
+      <div style={{ position: "relative", padding: "0 20px 20px" }}>
+        <button onClick={onClose} style={{
+          display: "block", width: "100%", padding: "14px 16px",
+          borderRadius: 10,
+          background: "linear-gradient(180deg, #22D1C3 0%, #0f8178 100%)",
+          color: "#0F1115", fontSize: 14, fontWeight: 900, letterSpacing: 1.5,
+          border: "none", cursor: "pointer",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)",
+        }}>
+          WEITER KÄMPFEN →
+        </button>
+      </div>
+
+      <style>{`
+        @keyframes victoryPop {
+          0%   { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+          60%  { transform: scale(1.2) rotate(4deg); }
+          100% { transform: scale(1)   rotate(0);    opacity: 1; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function FighterPanel({ side, name, emoji, level, hpPct, dmgDealt, crits, winner }: {
+  side: "left" | "right";
+  name: string;
+  emoji: string;
+  level: number;
+  hpPct: number;
+  dmgDealt: number;
+  crits: number;
+  winner: boolean;
+}) {
+  const color = winner ? "#4ade80" : "#FF2D78";
+  return (
+    <div style={{
+      position: "relative", padding: 10,
+      borderRadius: 12,
+      background: winner ? `${color}08` : "rgba(255,45,120,0.04)",
+      border: `1px solid ${color}44`,
+      textAlign: side === "left" ? "left" : "right",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexDirection: side === "right" ? "row-reverse" : "row" }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: 10,
+          background: `radial-gradient(circle, ${color}22 0%, #0F1115 80%)`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 36, flexShrink: 0,
+          border: `1px solid ${color}66`,
+        }}>{emoji}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, lineHeight: 1.1 }}>{name}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10 }}>Stufe {level}</div>
+        </div>
+      </div>
+
+      {/* HP-Bar */}
+      <div style={{ marginTop: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#a8b4cf", marginBottom: 2 }}>
+          <span>HP</span>
+          <span style={{ color: hpPct > 50 ? "#4ade80" : hpPct > 20 ? "#FFD700" : "#FF2D78", fontWeight: 900 }}>
+            {Math.round(hpPct)}%
+          </span>
+        </div>
+        <div style={{ height: 8, borderRadius: 4, background: "rgba(0,0,0,0.5)", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div style={{
+            height: "100%",
+            width: `${Math.max(0, Math.min(100, hpPct))}%`,
+            background: hpPct > 50 ? "linear-gradient(90deg, #4ade80, #22c55e)" : hpPct > 20 ? "linear-gradient(90deg, #FFD700, #f59e0b)" : "linear-gradient(90deg, #FF2D78, #dc2626)",
+            transition: "width 0.8s ease",
+          }} />
+        </div>
+      </div>
+
+      {/* Damage-Stats */}
+      <div style={{ marginTop: 8, fontSize: 10, color: "#a8b4cf" }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Schaden</span>
+          <span style={{ color: "#FF6B4A", fontWeight: 900 }}>{dmgDealt.toLocaleString("de-DE")}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+          <span>Krit-Treffer</span>
+          <span style={{ color: "#FFD700", fontWeight: 900 }}>{crits}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RewardTile({ icon, label, value, color }: { icon: string; label: string; value: string; color: string }) {
+  return (
+    <div style={{
+      padding: "8px 10px", borderRadius: 8,
+      background: "rgba(0,0,0,0.3)", border: `1px solid ${color}33`,
+      display: "flex", alignItems: "center", gap: 8,
+    }}>
+      <span style={{ fontSize: 22 }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ color: "#a8b4cf", fontSize: 9, letterSpacing: 0.5 }}>{label}</div>
+        <div style={{ color, fontSize: 15, fontWeight: 900 }}>{value}</div>
+      </div>
     </div>
   );
 }

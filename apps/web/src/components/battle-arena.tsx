@@ -29,6 +29,9 @@ export function CinematicBattleArena({
   const [flashColor, setFlashColor] = useState<string | null>(null);
   const [floats, setFloats] = useState<FloatNum[]>([]);
   const [bannerText, setBannerText] = useState<string | null>(null);
+  const [slashKey, setSlashKey] = useState(0);
+  const [slashDirection, setSlashDirection] = useState<"A" | "B">("A");
+  const [critBurstKey, setCritBurstKey] = useState(0);
   const floatId = useRef(0);
   const [hpA, setHpA] = useState(sideA.maxHp);
   const [hpB, setHpB] = useState(sideB.maxHp);
@@ -43,8 +46,8 @@ export function CinematicBattleArena({
     const setVictimAnim = victim === "A" ? setAnimA : setAnimB;
 
     // Actor-Animation bestimmen
-    if (event.action === "attack") setActorAnim("attack");
-    else if (event.action === "crit") { setActorAnim("crit"); setShake(true); setFlashColor("#FFD700"); }
+    if (event.action === "attack") { setActorAnim("attack"); setSlashDirection(actor); setSlashKey((k) => k + 1); }
+    else if (event.action === "crit") { setActorAnim("crit"); setShake(true); setFlashColor("#FFD700"); setSlashDirection(actor); setSlashKey((k) => k + 1); setCritBurstKey((k) => k + 1); }
     else if (event.action === "miss") setVictimAnim("evade");
     else if (event.action === "flame" || event.action === "poison") setActorAnim("special");
     else if (event.action === "revive") setVictimAnim("revive");
@@ -196,6 +199,53 @@ export function CinematicBattleArena({
             animation: "flash-fade 0.5s ease-out forwards",
           }} />
         )}
+
+        {/* Slash-Effect */}
+        {slashKey > 0 && (
+          <div
+            key={`slash-${slashKey}`}
+            style={{
+              position: "absolute", inset: 0,
+              pointerEvents: "none", zIndex: 8,
+              background: `linear-gradient(${slashDirection === "A" ? "115deg" : "65deg"},
+                transparent 30%,
+                rgba(255,255,255,0.85) 48%,
+                rgba(255,215,0,0.95) 50%,
+                rgba(255,255,255,0.85) 52%,
+                transparent 70%)`,
+              transform: slashDirection === "A" ? "translateX(-100%)" : "translateX(100%)",
+              animation: `${slashDirection === "A" ? "slashA" : "slashB"} 0.45s cubic-bezier(0.65, 0, 0.35, 1) forwards`,
+              mixBlendMode: "screen",
+              filter: "blur(0.5px)",
+            }}
+          />
+        )}
+
+        {/* Crit-Burst-Partikel */}
+        {critBurstKey > 0 && (
+          <div
+            key={`crit-${critBurstKey}`}
+            style={{
+              position: "absolute", inset: 0,
+              pointerEvents: "none", zIndex: 9,
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => {
+              const angle = (i / 12) * 360;
+              return (
+                <div key={i} style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  width: 4, height: 4, borderRadius: 999,
+                  background: "#FFD700",
+                  boxShadow: "0 0 8px #FFD700, 0 0 16px #FF6B4A",
+                  transform: `rotate(${angle}deg) translateY(-8px)`,
+                  animation: `critBurst 0.7s ease-out forwards`,
+                  animationDelay: `${i * 10}ms`,
+                }} />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Rundentext unten */}
@@ -243,6 +293,20 @@ export function CinematicBattleArena({
           35%  { transform: translate(-50%, -50%) scale(1.15) rotate(2deg); opacity: 1; }
           70%  { transform: translate(-50%, -50%) scale(1) rotate(0deg);    opacity: 1; }
           100% { transform: translate(-50%, -50%) scale(0.95) rotate(0);     opacity: 0; }
+        }
+        @keyframes slashA {
+          0%   { transform: translateX(-100%) rotate(0);    opacity: 0; }
+          40%  { opacity: 1; }
+          100% { transform: translateX(100%)  rotate(0);    opacity: 0; }
+        }
+        @keyframes slashB {
+          0%   { transform: translateX(100%)  rotate(0);    opacity: 0; }
+          40%  { opacity: 1; }
+          100% { transform: translateX(-100%) rotate(0);    opacity: 0; }
+        }
+        @keyframes critBurst {
+          0%   { transform: rotate(var(--angle, 0deg)) translateY(0)    scale(1);   opacity: 1; }
+          100% { transform: rotate(var(--angle, 0deg)) translateY(-80px) scale(0.2); opacity: 0; }
         }
         @keyframes flash-fade {
           0% { opacity: 1; }

@@ -338,10 +338,24 @@ type PastSession = Session & {
   }>;
 };
 
+type HallOfHonorRow = {
+  user_id: string;
+  username: string | null;
+  display_name: string | null;
+  level: number;
+  faction: string | null;
+  crew_name: string | null;
+  crew_color: string | null;
+  wins: number;
+  losses: number;
+  honor: number;
+};
+
 function ArenaTab() {
-  const [view, setView] = useState<"current"|"past">("current");
+  const [view, setView] = useState<"current"|"past"|"honor">("current");
   const [current, setCurrent] = useState<{ session: Session | null; runners: ArenaRunnerScore[]; crews: ArenaCrewScore[] } | null>(null);
   const [past, setPast] = useState<PastSession[]>([]);
+  const [honor, setHonor] = useState<HallOfHonorRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -349,17 +363,21 @@ function ArenaTab() {
     Promise.all([
       fetch("/api/arena/session").then((r) => r.json()).catch(() => null),
       fetch("/api/leaderboard/past-sessions").then((r) => r.json()).catch(() => ({ sessions: [] })),
-    ]).then(([a, b]) => { setCurrent(a); setPast(b.sessions ?? []); }).finally(() => setLoading(false));
+      fetch("/api/leaderboard/hall-of-honor").then((r) => r.json()).catch(() => ({ rows: [] })),
+    ]).then(([a, b, c]) => { setCurrent(a); setPast(b.sessions ?? []); setHonor(c.rows ?? []); }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Loading />;
 
   return (
     <div>
-      <div className="flex gap-1.5 mb-3">
+      <div className="flex gap-1.5 mb-3 flex-wrap">
         <Chip active={view==="current"} onClick={() => setView("current")}>🔥 Aktuelle Session</Chip>
+        <Chip active={view==="honor"}   onClick={() => setView("honor")}>⚔️ Hall of Honor</Chip>
         <Chip active={view==="past"}    onClick={() => setView("past")}>📜 Hall of Fame</Chip>
       </div>
+
+      {view === "honor" && <HallOfHonorView rows={honor} />}
 
       {view === "current" && (
         !current?.session ? <Empty text="Keine aktive Area-Liga-Session." /> : (
@@ -438,6 +456,85 @@ function ArenaTab() {
           </div>
         )
       )}
+    </div>
+  );
+}
+
+/* ═════════════════ HALL OF HONOR (S&F-Style) ═════════════════ */
+
+function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
+  if (rows.length === 0) {
+    return <Empty text="Noch keine Kämpfe ausgetragen. Sei der erste Gladiator!" />;
+  }
+  return (
+    <div className="rounded-xl overflow-hidden border border-[#FFD700]/30" style={{
+      background: "linear-gradient(180deg, rgba(255,215,0,0.06) 0%, rgba(15,17,21,0.95) 100%)",
+    }}>
+      {/* Header */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "48px 1fr 1.2fr 60px 100px",
+        gap: 8, padding: "10px 12px",
+        background: "linear-gradient(180deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05))",
+        borderBottom: "1px solid rgba(255,215,0,0.3)",
+        fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700",
+      }}>
+        <div>RANG</div>
+        <div>NAME</div>
+        <div>CREW</div>
+        <div className="text-right">STUFE</div>
+        <div className="text-right">EHRE</div>
+      </div>
+
+      {/* Rows */}
+      {rows.map((r, i) => {
+        const bgColor = i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)";
+        const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3";
+        const flagEmoji = i < 3 ? "👑" : "🇩🇪";
+        const factionColor = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#F0F0F0";
+        return (
+          <div key={r.user_id} style={{
+            display: "grid",
+            gridTemplateColumns: "48px 1fr 1.2fr 60px 100px",
+            gap: 8, padding: "8px 12px",
+            background: bgColor,
+            borderBottom: "1px solid rgba(255,255,255,0.04)",
+            alignItems: "center",
+            fontSize: 12,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ color: rankColor, fontWeight: 900, minWidth: 22 }}>{i + 1}</span>
+              <span style={{ fontSize: 14 }}>{flagEmoji}</span>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: factionColor, fontWeight: 900, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {r.display_name ?? r.username ?? "—"}
+              </div>
+              <div style={{ color: "#8B8FA3", fontSize: 10 }}>
+                {r.wins}W / {r.losses}L
+              </div>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              {r.crew_name ? (
+                <span style={{
+                  display: "inline-block", padding: "2px 8px", borderRadius: 999,
+                  background: `${r.crew_color ?? "#8B8FA3"}15`,
+                  border: `1px solid ${r.crew_color ?? "#8B8FA3"}44`,
+                  color: r.crew_color ?? "#F0F0F0",
+                  fontSize: 11, fontWeight: 700,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%",
+                }}>[{r.crew_name}]</span>
+              ) : (
+                <span style={{ color: "#4a5370", fontSize: 10 }}>—</span>
+              )}
+            </div>
+            <div className="text-right" style={{ color: "#F0F0F0", fontWeight: 700 }}>{r.level}</div>
+            <div className="text-right" style={{ color: "#FFD700", fontWeight: 900, fontSize: 13, fontFamily: "ui-monospace, monospace" }}>
+              {r.honor.toLocaleString("de-DE")}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
