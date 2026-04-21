@@ -41,11 +41,18 @@ export async function POST(req: Request) {
   if (body.action === "finalize") {
     const { data: pub } = admin.storage.from("artwork").getPublicUrl(body.path);
     const url = `${pub.publicUrl}?v=${Date.now()}`;
+
+    // KI-Vormoderation: approved=true → auto-approve; approved=false → auto-reject; null → pending
+    const { moderateImageUrl } = await import("@/lib/ai-moderation");
+    const mod = await moderateImageUrl(url);
+    const newStatus = mod.approved === true ? "approved" : mod.approved === false ? "rejected" : "pending";
+    const rejection = mod.approved === false ? `KI-Vorfilter: ${mod.reason ?? "unerlaubter Inhalt"}` : null;
+
     const { error } = await sb.from("users").update({
-      banner_url: url, banner_status: "pending", media_rejection_reason: null,
+      banner_url: url, banner_status: newStatus, media_rejection_reason: rejection,
     }).eq("id", auth.user.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, banner_url: url, status: "pending" });
+    return NextResponse.json({ ok: true, banner_url: url, status: newStatus, rejection });
   }
 
   if (body.action === "delete") {

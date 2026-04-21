@@ -12,21 +12,43 @@ function adminSb() {
   return createAdminClient(url, key, { auth: { persistSession: false } });
 }
 
+type Kind = "banner" | "logo";
+
+/**
+ * POST /api/crew/media
+ * Body:
+ *   { action: "sign",     kind, crew_id, file_name, content_type } -> { upload_url, path }
+ *   { action: "finalize", kind, crew_id, path }                    -> { ok, url, status, rejection? }
+ *   { action: "delete",   kind, crew_id }                          -> { ok }
+ *
+ * Berechtigt: nur crew.owner_id
+ */
 export async function POST(req: Request) {
   const sb = await createClient();
   const { data: auth } = await sb.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = await req.json() as
-    | { action: "sign"; file_name: string; content_type: string }
-    | { action: "finalize"; path: string }
-    | { action: "delete" };
+    | { action: "sign"; kind: Kind; crew_id: string; file_name: string; content_type: string }
+    | { action: "finalize"; kind: Kind; crew_id: string; path: string }
+    | { action: "delete"; kind: Kind; crew_id: string };
 
   const admin = adminSb();
 
+  // Nur Crew-Owner darf Medien ändern
+  const { data: crew } = await sb.from("crews").select("owner_id").eq("id", body.crew_id).maybeSingle<{ owner_id: string }>();
+  if (!crew || crew.owner_id !== auth.user.id) {
+    return NextResponse.json({ error: "forbidden", detail: "Nur der Crew-Gründer darf Medien ändern." }, { status: 403 });
+  }
+
+  const kind = body.kind;
+  const urlField    = kind === "banner" ? "custom_banner_url"    : "custom_logo_url";
+  const statusField = kind === "banner" ? "custom_banner_status" : "custom_logo_status";
+  const reasonField = kind === "banner" ? "custom_banner_rejection_reason" : "custom_logo_rejection_reason";
+
   if (body.action === "sign") {
     const ext = (body.file_name.split(".").pop() || "jpg").toLowerCase();
-    const path = `avatars/${auth.user.id}.${ext}`;
+    const path = `crews/${body.crew_id}-${kind}.${ext}`;
     const { data, error } = await admin.storage.from("artwork").createSignedUploadUrl(path, { upsert: true });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ upload_url: data.signedUrl, token: data.token, path: data.path });
@@ -42,20 +64,21 @@ export async function POST(req: Request) {
     const newStatus = mod.approved === true ? "approved" : mod.approved === false ? "rejected" : "pending";
     const rejection = mod.approved === false ? `KI-Vorfilter: ${mod.reason ?? "unerlaubter Inhalt"}` : null;
 
-    const { error } = await sb.from("users").update({
-      avatar_url: url, avatar_status: newStatus, media_rejection_reason: rejection,
-    }).eq("id", auth.user.id);
+    const { error } = await sb.from("crews").update({
+      [urlField]: url, [statusField]: newStatus, [reasonField]: rejection,
+    }).eq("id", body.crew_id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, avatar_url: url, status: newStatus, rejection });
+    return NextResponse.json({ ok: true, url, status: newStatus, rejection });
   }
 
   if (body.action === "delete") {
-    const { data: row } = await sb.from("users").select("avatar_url").eq("id", auth.user.id).maybeSingle<{ avatar_url: string | null }>();
-    if (row?.avatar_url) {
-      const m = row.avatar_url.match(/\/artwork\/(.+?)(\?|$)/);
+    const { data: row } = await sb.from("crews").select(urlField).eq("id", body.crew_id).maybeSingle<Record<string, string | null>>();
+    const currentUrl = row?.[urlField];
+    if (currentUrl) {
+      const m = currentUrl.match(/\/artwork\/(.+?)(\?|$)/);
       if (m) await admin.storage.from("artwork").remove([m[1]]);
     }
-    await sb.from("users").update({ avatar_url: null, avatar_status: "approved" }).eq("id", auth.user.id);
+    await sb.from("crews").update({ [urlField]: null, [statusField]: "approved", [reasonField]: null }).eq("id", body.crew_id);
     return NextResponse.json({ ok: true });
   }
 

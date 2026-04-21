@@ -913,12 +913,18 @@ export function AppMap({
     };
   }, [handlePosition]);
 
-  // Recenter (expliziter Klick) → Auto-Follow wieder aktivieren
+  // Recenter (expliziter Klick) → Auto-Follow wieder aktivieren.
+  // Dep: NUR recenterAt (nicht pos), sonst fliegt die Karte bei jedem GPS-Update.
+  const posRef = useRef(pos);
+  useEffect(() => { posRef.current = pos; }, [pos]);
   useEffect(() => {
-    if (!mapReady || !recenterAt || !pos) return;
+    if (!mapReady || !recenterAt) return;
+    const p = posRef.current;
+    if (!p) return;
     userInteractedRef.current = false;
-    mapRef.current?.flyTo({ center: [pos.lng, pos.lat], zoom: 17, pitch: 50, duration: 900 });
-  }, [recenterAt, mapReady, pos]);
+    mapRef.current?.flyTo({ center: [p.lng, p.lat], zoom: 17, pitch: 50, duration: 900 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterAt, mapReady]);
 
   // User-Gesten erkennen → Auto-Follow deaktivieren
   useEffect(() => {

@@ -9,6 +9,7 @@ import {
   type GuardianArchetype, type GuardianTalent, type TalentNode,
   type ArchetypeSkill, type GuardianSkillLevel, type UserSiegel,
 } from "@/lib/guardian";
+import { computeEffectiveStats } from "@/lib/guardian-effective";
 
 type DetailResponse = {
   guardian: {
@@ -82,6 +83,13 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
   const rarity = rarityMeta(a.rarity);
   const typeMeta = a.guardian_type ? TYPE_META[a.guardian_type] : null;
   const stats = statsAtLevel(a, g.level);
+  const eff = computeEffectiveStats(
+    a, g.level,
+    data.guardian_skill_levels as unknown as Array<{ skill_id: string; level: number }>,
+    data.archetype_skills as unknown as Array<{ id: string; skill_slot: "active" | "passive" | "combat" | "role" | "expertise" }>,
+    data.guardian_talents as unknown as Array<{ node_id: string; rank: number }>,
+    data.talent_nodes as unknown as Array<{ id: string; effect_key: string; effect_per_rank: number }>,
+  );
   const xpNext = xpForLevel(g.level);
   const xpPct = Math.min(100, Math.round((g.xp / xpNext) * 100));
 
@@ -109,11 +117,16 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
       {/* Stats + XP */}
       <div style={{ padding: "8px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4, marginBottom: 6 }}>
-          <Stat label="HP"  value={stats.hp}  color="#4ade80" />
-          <Stat label="ATK" value={stats.atk} color="#FF6B4A" />
-          <Stat label="DEF" value={stats.def} color="#5ddaf0" />
-          <Stat label="SPD" value={stats.spd} color="#FFD700" />
+          <Stat label="HP"  value={eff.effective.hp}  delta={eff.delta.hp}  color="#4ade80" />
+          <Stat label="ATK" value={eff.effective.atk} delta={eff.delta.atk} color="#FF6B4A" />
+          <Stat label="DEF" value={eff.effective.def} delta={eff.delta.def} color="#5ddaf0" />
+          <Stat label="SPD" value={eff.effective.spd} delta={eff.delta.spd} color="#FFD700" />
         </div>
+        {(eff.bonusPct.crit > 0) && (
+          <div style={{ fontSize: 9, color: "#a8b4cf", marginBottom: 4 }}>
+            +{Math.round(eff.bonusPct.crit * 100)}% Krit-Chance durch Talente/Skills
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#a8b4cf" }}>
           <span>XP</span><span>{g.xp} / {xpNext}</span>
         </div>
@@ -176,11 +189,14 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+function Stat({ label, value, color, delta }: { label: string; value: number; color: string; delta?: number }) {
   return (
     <div style={{ padding: "5px 3px", borderRadius: 8, background: "rgba(15,17,21,0.6)", textAlign: "center" }}>
       <div style={{ color: "#8B8FA3", fontSize: 8, fontWeight: 800, letterSpacing: 1 }}>{label}</div>
       <div style={{ color, fontSize: 14, fontWeight: 900, marginTop: 2 }}>{value}</div>
+      {delta !== undefined && delta > 0 && (
+        <div style={{ color: "#4ade80", fontSize: 8, fontWeight: 900, marginTop: 1 }}>+{delta}</div>
+      )}
     </div>
   );
 }

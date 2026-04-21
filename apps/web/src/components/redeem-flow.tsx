@@ -135,12 +135,17 @@ export function RedeemFlow(props: Props) {
     try {
       // Deal-ID holen (erster aktiver Deal dieses Shops, der passt)
       const { data: deal } = await sb.from("deals")
-        .select("id, title, xp_cost")
+        .select("id, title, xp_cost, min_order_amount_cents")
         .eq("business_id", businessId)
         .eq("active", true)
         .limit(1)
-        .maybeSingle();
+        .maybeSingle<{ id: string; title: string; xp_cost: number; min_order_amount_cents: number | null }>();
       if (!deal) throw new Error("Kein aktiver Deal für diesen Shop");
+      if (deal.min_order_amount_cents && deal.min_order_amount_cents > 0) {
+        const euro = (deal.min_order_amount_cents / 100).toFixed(2).replace(".", ",");
+        const ok = typeof window !== "undefined" ? window.confirm(`Dieser Deal gilt ab einem Bestellwert von ${euro} €. Fortfahren?`) : true;
+        if (!ok) { setStep("confirm"); return; }
+      }
 
       const res = await fetch("/api/deals/redeem", {
         method: "POST",
