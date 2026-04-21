@@ -186,11 +186,16 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
       {data.opponents.length === 0 ? (
         <div className="p-10 text-center text-[#8B8FA3] text-sm">Keine passenden Gegner gerade online. Versuche es später nochmal.</div>
       ) : (
-        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-          {data.opponents.map((op) => (
-            <OpponentCard key={op.guardian_id} op={op} onAttack={() => attack(op)} busy={busyId === op.guardian_id} disabled={!!busyId} />
-          ))}
-        </div>
+        <>
+          <div className="text-center text-xs font-black tracking-widest text-[#FFD700] mb-3">
+            ⚔️ WÄHLE EINEN GEGNER ⚔️
+          </div>
+          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+            {data.opponents.map((op) => (
+              <OpponentCard key={op.guardian_id} op={op} onAttack={() => attack(op)} busy={busyId === op.guardian_id} disabled={!!busyId} />
+            ))}
+          </div>
+        </>
       )}
 
       {fighting && result?.rounds && (
@@ -228,36 +233,150 @@ function Card({ label, value, tone }: { label: string; value: string; tone: stri
 
 function OpponentCard({ op, onAttack, busy, disabled }: { op: Opponent; onAttack: () => void; busy: boolean; disabled: boolean }) {
   const factionColor = op.faction === "syndicate" ? "#22D1C3" : op.faction === "vanguard" ? "#FF6B4A" : "#8B8FA3";
-  const rarityColor = op.rarity === "legendary" ? "#FFD700" : op.rarity === "epic" ? "#a855f7" : "#22D1C3";
+  const rarityMeta = op.rarity === "legendary"
+    ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
+    : op.rarity === "epic"
+    ? { color: "#a855f7", label: "EPISCH",   glow: "rgba(168,85,247,0.4)" }
+    : { color: "#22D1C3", label: "ELITE",    glow: "rgba(34,209,195,0.3)" };
+
+  // S&F-Style Base-Stats (gleiche Formel wie Engine nutzt)
+  const base = estimateStats(op.archetype_emoji, op.level, op.rarity);
+
   return (
-    <div className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-[#0F1115] text-3xl">{op.archetype_emoji}</div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-black text-white truncate">{op.display_name ?? op.username}</span>
-            {op.is_bot && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#8B8FA3]/20 text-[#8B8FA3] font-bold">🤖 BOT</span>}
-          </div>
-          <div className="text-[10px] text-[#a8b4cf] truncate">@{op.username}</div>
-          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-            <span className="text-[9px] px-1 py-0.5 rounded font-bold" style={{ background: `${rarityColor}22`, color: rarityColor }}>{op.archetype_name}</span>
-            <span className="text-[9px] px-1 py-0.5 rounded font-bold" style={{ background: `${factionColor}22`, color: factionColor }}>Lvl {op.level}</span>
-          </div>
+    <div style={{
+      position: "relative",
+      borderRadius: 14,
+      background: `linear-gradient(180deg, ${rarityMeta.glow} 0%, #0F1115 60%)`,
+      border: `2px solid ${rarityMeta.color}`,
+      boxShadow: `0 4px 24px ${rarityMeta.glow}, inset 0 1px 0 rgba(255,255,255,0.08)`,
+      overflow: "hidden",
+      opacity: disabled && !busy ? 0.5 : 1,
+      transition: "transform 0.15s ease",
+    }}
+    onMouseOver={(e) => { if (!disabled) e.currentTarget.style.transform = "translateY(-3px)"; }}
+    onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      {/* Rarity-Badge oben rechts */}
+      <div style={{
+        position: "absolute", top: 8, right: 8, zIndex: 2,
+        padding: "3px 8px", borderRadius: 999,
+        background: `${rarityMeta.color}dd`, color: "#0F1115",
+        fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
+      }}>{rarityMeta.label}</div>
+
+      {op.is_bot && (
+        <div style={{
+          position: "absolute", top: 8, left: 8, zIndex: 2,
+          padding: "3px 8px", borderRadius: 999,
+          background: "rgba(0,0,0,0.6)", color: "#a8b4cf",
+          fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
+        }}>🤖 BOT</div>
+      )}
+
+      {/* Portrait-Bereich: großer Emoji-Avatar auf Farbverlauf */}
+      <div style={{
+        height: 140, display: "flex", alignItems: "center", justifyContent: "center",
+        background: `radial-gradient(circle at 50% 40%, ${rarityMeta.color}33 0%, transparent 70%)`,
+        borderBottom: `1px solid ${rarityMeta.color}33`,
+      }}>
+        <div style={{
+          fontSize: 80,
+          filter: `drop-shadow(0 4px 8px ${rarityMeta.glow})`,
+        }}>{op.archetype_emoji}</div>
+      </div>
+
+      {/* Name-Block */}
+      <div style={{ padding: "10px 12px 6px", textAlign: "center" }}>
+        <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900, lineHeight: 1.1 }}>
+          {op.display_name ?? op.username}
+        </div>
+        <div style={{ color: factionColor, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
+          [{op.archetype_name}]
         </div>
       </div>
-      <div className="flex items-center gap-2 text-[10px] text-[#8B8FA3] mb-2">
-        <span>🏆 {op.wins}W / {op.losses}L</span>
-        <span className="opacity-60">· HP {op.current_hp_pct}%</span>
+
+      {/* Level-Bar (wie S&F) */}
+      <div style={{ padding: "0 12px 6px" }}>
+        <div style={{
+          height: 28, borderRadius: 6,
+          background: "linear-gradient(180deg, #2b1010, #0f0505)",
+          border: "1px solid #FF2D7855",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#FFF", fontSize: 13, fontWeight: 900, letterSpacing: 1,
+          textShadow: "0 1px 2px #000",
+          boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
+        }}>
+          Stufe {op.level}
+        </div>
       </div>
+
+      {/* Stat-Grid (S&F-Style Zeilen) */}
+      <div style={{ padding: "4px 12px 8px" }}>
+        <StatRow label="Stärke"      value={base.atk} icon="⚔️" color="#FF6B4A" />
+        <StatRow label="Verteidigung" value={base.def} icon="🛡️" color="#60a5fa" />
+        <StatRow label="Lebensenergie" value={base.hp}  icon="❤️" color="#4ade80" />
+        <StatRow label="Geschwindigkeit" value={base.spd} icon="💨" color="#FFD700" />
+      </div>
+
+      {/* Record */}
+      <div style={{
+        padding: "6px 12px",
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", justifyContent: "space-between", fontSize: 10,
+      }}>
+        <span style={{ color: "#4ade80", fontWeight: 700 }}>🏆 {op.wins} Siege</span>
+        <span style={{ color: "#FF2D78", fontWeight: 700 }}>💀 {op.losses} Niederlagen</span>
+      </div>
+
+      {/* Angreifen-Button (groß, rot, wie S&F) */}
       <button
         onClick={onAttack}
         disabled={disabled}
-        className="w-full py-2 rounded-lg bg-gradient-to-r from-[#FF2D78] to-[#a855f7] text-white font-bold text-sm disabled:opacity-40"
+        style={{
+          display: "block", width: "100%", padding: "12px 16px",
+          border: "none",
+          background: busy
+            ? "#8B8FA3"
+            : "linear-gradient(180deg, #FF2D78 0%, #a80d3c 100%)",
+          color: "#FFF",
+          fontSize: 14, fontWeight: 900, letterSpacing: 2,
+          cursor: disabled ? "not-allowed" : "pointer",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.4)",
+          textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+        }}
       >
-        {busy ? "Kämpfe…" : "⚔️ Angreifen"}
+        {busy ? "⚔️ KÄMPFE…" : "⚔️ ANGREIFEN"}
       </button>
     </div>
   );
+}
+
+function StatRow({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "3px 0", borderBottom: "1px solid rgba(255,255,255,0.04)",
+      fontSize: 11,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#a8b4cf" }}>
+        <span>{icon}</span>
+        <span>{label}</span>
+      </div>
+      <div style={{ color, fontWeight: 900 }}>{value.toLocaleString("de-DE")}</div>
+    </div>
+  );
+}
+
+/** Groben Stat-Wert aus Level + Rarity schätzen (für Anzeige; echter Kampf nutzt DB-Werte). */
+function estimateStats(_emoji: string, level: number, rarity: string) {
+  const rarityMult = rarity === "legendary" ? 2.0 : rarity === "epic" ? 1.5 : 1.0;
+  const lvlMult = 1 + level * 0.15;
+  return {
+    hp:  Math.round(120 * rarityMult * lvlMult * 10),
+    atk: Math.round( 22 * rarityMult * lvlMult),
+    def: Math.round( 18 * rarityMult * lvlMult),
+    spd: Math.round( 22 * rarityMult * lvlMult * 0.3),
+  };
 }
 
 function FightModal({ onClose, opponent, rounds, settle, winner }: {
