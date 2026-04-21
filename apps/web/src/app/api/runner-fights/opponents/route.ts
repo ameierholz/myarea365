@@ -9,26 +9,36 @@ export const dynamic = "force-dynamic";
  * Liefert 10 Matchmade-Gegner + Tagesstatus (Fights-Used, nächster Gem-Preis).
  */
 export async function GET(req: NextRequest) {
-  const sb = await createClient();
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
+  try {
+    const sb = await createClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
 
-  const url = new URL(req.url);
-  const refresh = url.searchParams.get("refresh") === "1";
+    const url = new URL(req.url);
+    const refresh = url.searchParams.get("refresh") === "1";
 
-  const [oppRes, stateRes, gemsRes] = await Promise.all([
-    sb.rpc("runner_fight_get_opponents", { p_user_id: user.id, p_force_refresh: refresh }),
-    sb.from("runner_fight_state").select("fights_used_today, gems_spent_today, refresh_used_today").eq("user_id", user.id).maybeSingle(),
-    sb.from("user_gems").select("gems").eq("user_id", user.id).maybeSingle(),
-  ]);
+    const [oppRes, stateRes, gemsRes] = await Promise.all([
+      sb.rpc("runner_fight_get_opponents", { p_user_id: user.id, p_force_refresh: refresh }),
+      sb.from("runner_fight_state").select("fights_used_today, gems_spent_today, refresh_used_today").eq("user_id", user.id).maybeSingle(),
+      sb.from("user_gems").select("gems").eq("user_id", user.id).maybeSingle(),
+    ]);
 
-  if (oppRes.error) {
-    const msg = oppRes.error.message ?? "RPC-Fehler";
-    const hint = msg.includes("does not exist") || oppRes.error.code === "42883" || oppRes.error.code === "42P01"
-      ? "Migration 00027 fehlt — bitte im Supabase SQL Editor ausführen."
-      : msg;
-    return NextResponse.json({ ok: false, error: "rpc_failed", detail: hint, opponents: [] }, { status: 500 });
-  }
+    console.log("[runner-fights/opponents]", {
+      oppErr: oppRes.error?.message, oppCode: oppRes.error?.code, oppData: oppRes.data ? "present" : "null",
+      stateErr: stateRes.error?.message, stateCode: stateRes.error?.code,
+      gemsErr: gemsRes.error?.message,
+    });
+
+    if (oppRes.error) {
+      const msg = oppRes.error.message ?? "RPC-Fehler";
+      const hint = msg.includes("does not exist") || oppRes.error.code === "42883" || oppRes.error.code === "42P01"
+        ? "Migration 00027 fehlt — bitte im Supabase SQL Editor ausführen."
+        : msg;
+      return NextResponse.json({ ok: false, error: "rpc_failed", detail: hint, opponents: [] }, { status: 500 });
+    }
+    if (stateRes.error && stateRes.error.code === "42P01") {
+      return NextResponse.json({ ok: false, error: "table_missing", detail: "Tabelle runner_fight_state fehlt — Migration 00027 ausführen.", opponents: [] }, { status: 500 });
+    }
 
   const state = stateRes.data;
   const gems = gemsRes.data;
@@ -44,4 +54,13 @@ export async function GET(req: NextRequest) {
     gems_available: gems?.gems ?? 0,
     refresh_cost: (state?.refresh_used_today ?? 0) < 1 ? 0 : 30,
   });
+  } catch (e) {
+    console.error("[runner-fights/opponents] unexpected", e);
+    return NextResponse.json({
+      ok: false,
+      error: "exception",
+      detail: e instanceof Error ? e.message : String(e),
+      opponents: [],
+    }, { status: 500 });
+  }
 }

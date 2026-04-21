@@ -128,7 +128,6 @@ begin
      where ug.is_active
        and ug.user_id <> p_user_id
        and ug.level between greatest(1, v_level - 3) and v_level + 3
-       and (u.last_seen_at is null or u.last_seen_at > now() - interval '14 days')
      order by random()
      limit 10
   ) t;
