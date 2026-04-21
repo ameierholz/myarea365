@@ -11,8 +11,17 @@ type Experiment = {
   events?: Array<{ variant: string; event: string; count: number }>;
 };
 
+const DEMO_EXPERIMENTS: Experiment[] = [
+  { id: "d1", key: "onboarding_v2", description: "Vereinfachter Wächter-Pick-Flow beim ersten Login", variants: [{ key: "control", weight: 50 }, { key: "simplified", weight: 50 }], status: "running", started_at: new Date(Date.now() - 12 * 86400_000).toISOString(), ended_at: null, created_at: new Date(Date.now() - 15 * 86400_000).toISOString(), assignments: 1842 },
+  { id: "d2", key: "gem_pricing_test", description: "15% günstigeres 500-Diamanten-Pack für Variante A", variants: [{ key: "control", weight: 50 }, { key: "discount_15", weight: 50 }], status: "running", started_at: new Date(Date.now() - 5 * 86400_000).toISOString(), ended_at: null, created_at: new Date(Date.now() - 5 * 86400_000).toISOString(), assignments: 673 },
+  { id: "d3", key: "arena_cta_color", description: "Roter vs. pinker Angreifen-Button", variants: [{ key: "red", weight: 33 }, { key: "pink", weight: 33 }, { key: "gradient", weight: 34 }], status: "completed", started_at: new Date(Date.now() - 45 * 86400_000).toISOString(), ended_at: new Date(Date.now() - 15 * 86400_000).toISOString(), created_at: new Date(Date.now() - 50 * 86400_000).toISOString(), assignments: 3214 },
+  { id: "d4", key: "push_morning_vs_evening", description: "Push-Reminder 08:00 vs. 18:00 Uhr", variants: [{ key: "morning", weight: 50 }, { key: "evening", weight: 50 }], status: "paused", started_at: new Date(Date.now() - 8 * 86400_000).toISOString(), ended_at: null, created_at: new Date(Date.now() - 10 * 86400_000).toISOString(), assignments: 412 },
+  { id: "d5", key: "season_pass_price", description: "€ 4,99 vs. € 6,99 Season-Pass", variants: [{ key: "cheap", weight: 50 }, { key: "expensive", weight: 50 }], status: "draft", started_at: null, ended_at: null, created_at: new Date(Date.now() - 2 * 86400_000).toISOString(), assignments: 0 },
+];
+
 export function ExperimentsClient() {
   const [items, setItems] = useState<Experiment[] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newVariants, setNewVariants] = useState("control,variant_a");
@@ -21,7 +30,9 @@ export function ExperimentsClient() {
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/experiments", { cache: "no-store" });
     const j = await res.json();
-    setItems(j.experiments ?? []);
+    const rows = (j.experiments ?? []) as Experiment[];
+    if (rows.length === 0) { setItems(DEMO_EXPERIMENTS); setIsDemo(true); }
+    else { setItems(rows); setIsDemo(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -56,6 +67,12 @@ export function ExperimentsClient() {
 
   return (
     <div>
+      {isDemo && (
+        <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
+          <span className="text-base">🤖</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Experimente. Hier sind fiktive Beispiele.</span>
+        </div>
+      )}
       {/* Neu */}
       <div className="p-4 rounded-lg bg-[#0F1115] border border-white/10 mb-6">
         <h3 className="text-sm font-black text-[#FFD700] tracking-widest mb-3">NEUES EXPERIMENT</h3>

@@ -9,14 +9,22 @@ type Season = {
   created_at: string;
 };
 
+const DEMO_SEASONS: Season[] = [
+  { id: "d1", number: 1, name: "Saison der Klingen", starts_at: new Date(Date.now() - 12 * 86400_000).toISOString(), ends_at: new Date(Date.now() + 78 * 86400_000).toISOString(), status: "active",   created_at: new Date(Date.now() - 14 * 86400_000).toISOString() },
+  { id: "d2", number: 0, name: "Pre-Saison (Beta)",   starts_at: new Date(Date.now() - 90 * 86400_000).toISOString(), ends_at: new Date(Date.now() - 12 * 86400_000).toISOString(), status: "archived", created_at: new Date(Date.now() - 90 * 86400_000).toISOString() },
+];
+
 export function SeasonsClient() {
   const [seasons, setSeasons] = useState<Season[] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function load() {
     const res = await fetch("/api/admin/seasons", { cache: "no-store" });
     const j = await res.json();
-    setSeasons(j.seasons ?? []);
+    const rows = (j.seasons ?? []) as Season[];
+    if (rows.length === 0) { setSeasons(DEMO_SEASONS); setIsDemo(true); }
+    else { setSeasons(rows); setIsDemo(false); }
   }
   useEffect(() => { void load(); }, []);
 
@@ -58,6 +66,12 @@ export function SeasonsClient() {
 
   return (
     <div className="space-y-5">
+      {isDemo && (
+        <div className="p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
+          <span className="text-base">🤖</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Saisons. Migration 00031 im SQL Editor ausführen, dann ↻.</span>
+        </div>
+      )}
       <div className="flex gap-2 flex-wrap">
         <button onClick={startSeason} disabled={busy || !!active}
           title={active ? "Es läuft bereits eine Saison" : ""}

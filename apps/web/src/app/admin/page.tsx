@@ -39,15 +39,22 @@ export default async function AdminDashboard() {
     <>
       <PageTitle title="Dashboard" subtitle="Übersicht der wichtigsten KPIs" />
 
+      {(totalUsers ?? 0) === 0 && (
+        <div className="mb-4 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
+          <span className="text-base">🤖</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — DB ist (fast) leer. Hier werden für alle KPIs synthetische Werte angezeigt.</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="Runner gesamt" value={totalUsers ?? 0} />
-        <Stat label="Aktiv (24h)" value={activeToday ?? 0} color="#4ade80" />
-        <Stat label="Neuanmeldungen (7d)" value={signupsWeek ?? 0} color="#FFD700" />
-        <Stat label="Crews" value={crewsCount ?? 0} color="#a855f7" />
-        <Stat label="Shops" value={shopsCount ?? 0} color="#FF6B4A" />
-        <Stat label="Offene Meldungen" value={openReports ?? 0} color="#FF2D78" />
-        <Stat label="Sales Leads" value={pendingLeads ?? 0} color="#22D1C3" />
-        <Stat label="E-Mails (7d)" value={emailsSent} delta={`${emailsBounced} Bounces`} color="#4ade80" />
+        <Stat label="Runner gesamt" value={(totalUsers ?? 0) || 3_214} />
+        <Stat label="Aktiv (24h)" value={(activeToday ?? 0) || 487} color="#4ade80" />
+        <Stat label="Neuanmeldungen (7d)" value={(signupsWeek ?? 0) || 142} color="#FFD700" />
+        <Stat label="Crews" value={(crewsCount ?? 0) || 87} color="#a855f7" />
+        <Stat label="Shops" value={(shopsCount ?? 0) || 34} color="#FF6B4A" />
+        <Stat label="Offene Meldungen" value={(openReports ?? 0) || 5} color="#FF2D78" />
+        <Stat label="Sales Leads" value={(pendingLeads ?? 0) || 12} color="#22D1C3" />
+        <Stat label="E-Mails (7d)" value={emailsSent || 1_843} delta={`${emailsBounced || 12} Bounces`} color="#4ade80" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -71,7 +78,24 @@ export default async function AdminDashboard() {
         <Card>
           <h2 className="text-lg font-bold mb-4">📋 Letzte Admin-Aktionen</h2>
           <div className="space-y-2">
-            {(recent ?? []).length === 0 && <p className="text-sm text-[#8b8fa3]">Noch keine Aktionen geloggt.</p>}
+            {(recent ?? []).length === 0 && [
+              { actor_role: "support", action: "user.ban", target_type: "user", created_at: new Date(Date.now() - 5 * 60_000).toISOString() },
+              { actor_role: "admin",   action: "territory.delete", target_type: "territory", created_at: new Date(Date.now() - 18 * 60_000).toISOString() },
+              { actor_role: "marketing", action: "broadcast.sent", target_type: "broadcast", created_at: new Date(Date.now() - 42 * 60_000).toISOString() },
+              { actor_role: "sales",   action: "lead.won", target_type: "lead", created_at: new Date(Date.now() - 2 * 3600_000).toISOString() },
+              { actor_role: "admin",   action: "user.role_change", target_type: "user", created_at: new Date(Date.now() - 4 * 3600_000).toISOString() },
+              { actor_role: "support", action: "ticket.resolved", target_type: "support_ticket", created_at: new Date(Date.now() - 6 * 3600_000).toISOString() },
+            ].map((r, i) => (
+              <div key={`demo-${i}`} className="flex items-center justify-between text-xs border-b border-white/5 py-1.5 last:border-0">
+                <span className="text-[#dde3f5]">
+                  <Badge tone="info">{r.actor_role}</Badge>{" "}
+                  <span className="font-mono">{r.action}</span>
+                  <span className="text-[#8b8fa3]"> · {r.target_type}</span>
+                  <span className="text-[9px] ml-1 text-[#c084fc]">🤖</span>
+                </span>
+                <span className="text-[#8b8fa3]">{new Date(r.created_at).toLocaleString("de-DE")}</span>
+              </div>
+            ))}
             {(recent ?? []).map((r, i) => (
               <div key={i} className="flex items-center justify-between text-xs border-b border-white/5 py-1.5 last:border-0">
                 <span className="text-[#dde3f5]">

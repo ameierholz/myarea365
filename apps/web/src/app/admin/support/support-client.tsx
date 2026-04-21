@@ -11,8 +11,20 @@ type Ticket = {
 
 type Filter = "open" | "in_progress" | "resolved" | "all";
 
+const DEMO_TICKETS: Ticket[] = [
+  { id: "d1", email: "mia.r@example.com", name: "Mia R.", subject: "App zeigt GPS-Track falsch an", body: "Mein gestriger Lauf in Kreuzberg wurde nur zur Hälfte aufgezeichnet. Nach der Schönhauser Allee bricht der Track ab, obwohl ich weitergelaufen bin.", category: "bug", status: "open", priority: "high", created_at: new Date(Date.now() - 2 * 3600_000).toISOString(), resolved_at: null, internal_notes: null, source: "contact_form" },
+  { id: "d2", email: "oliver.p@example.com", name: "Oliver P.", subject: "Diamanten-Kauf fehlgeschlagen", body: "Habe 500 Diamanten gekauft, wurde abgebucht (€ 4,99) aber Diamanten nicht gutgeschrieben. Transaktions-ID: pi_3NxK9m2eZvKYlo2C1x5g3Rxg", category: "billing", status: "open", priority: "urgent", created_at: new Date(Date.now() - 45 * 60_000).toISOString(), resolved_at: null, internal_notes: null, source: "in_app" },
+  { id: "d3", email: "kaffeehaus@example.com", name: "Café Luna", subject: "Partner-Integration Interesse", body: "Hallo, wir sind ein Café in Prenzlauer Berg und würden gerne als Partner mitmachen. Wie läuft der Prozess ab?", category: "partner", status: "in_progress", priority: "normal", created_at: new Date(Date.now() - 18 * 3600_000).toISOString(), resolved_at: null, internal_notes: "Demo gebucht für Freitag 14:00", source: "email" },
+  { id: "d4", email: "titan@example.com", name: "Titan", subject: "Anderer Runner beleidigt mich im Chat", body: "User @raze schreibt mir ständig anstößige Nachrichten über die Crew-Mention. Bitte prüfen.", category: "abuse", status: "open", priority: "high", created_at: new Date(Date.now() - 6 * 3600_000).toISOString(), resolved_at: null, internal_notes: null, source: "in_app" },
+  { id: "d5", email: "zephyr@example.com", name: "Zephyr", subject: "Wie funktioniert das Saison-Wächter-System?", body: "Ich habe gerade meinen Saison-Wächter gewählt, aber mein alter Wächter ist jetzt Level 1?", category: "general", status: "resolved", priority: "low", created_at: new Date(Date.now() - 3 * 86400_000).toISOString(), resolved_at: new Date(Date.now() - 2 * 86400_000).toISOString(), internal_notes: "Saison-Wächter vs. Ewiger Wächter erklärt — User zufrieden", source: "contact_form" },
+  { id: "d6", email: "frost@example.com", name: "Frost", subject: "Arena-Kampf hängt", body: "Bei Klick auf 'Angreifen' lädt es ewig, nichts passiert. Chrome auf Android 14.", category: "bug", status: "in_progress", priority: "high", created_at: new Date(Date.now() - 4 * 3600_000).toISOString(), resolved_at: null, internal_notes: "Logs gecheckt, scheint Race-Condition in settle-RPC", source: "contact_form" },
+  { id: "d7", email: "anonym@example.com", name: null, subject: "Login geht nicht mehr", body: "Bekomme seit heute morgen 'invalid credentials', obwohl Passwort korrekt ist.", category: "general", status: "open", priority: "normal", created_at: new Date(Date.now() - 90 * 60_000).toISOString(), resolved_at: null, internal_notes: null, source: "contact_form" },
+  { id: "d8", email: "draven@example.com", name: "Draven", subject: "QR-Code am Kiosk nicht lesbar", body: "Der QR-Code beim Späti in der Bergmannstraße wird von der App nicht erkannt. Andere QRs funktionieren.", category: "bug", status: "resolved", priority: "normal", created_at: new Date(Date.now() - 5 * 86400_000).toISOString(), resolved_at: new Date(Date.now() - 4 * 86400_000).toISOString(), internal_notes: "QR-Code war abgenutzt, Partner hat neuen gedruckt", source: "in_app" },
+];
+
 export function SupportClient() {
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [filter, setFilter] = useState<Filter>("open");
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [busy, setBusy] = useState(false);
@@ -20,7 +32,15 @@ export function SupportClient() {
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/support?filter=${filter}`, { cache: "no-store" });
     const j = await res.json();
-    setTickets(j.tickets ?? []);
+    const apiRows = (j.tickets ?? []) as Ticket[];
+    if (apiRows.length === 0) {
+      const filtered = filter === "all" ? DEMO_TICKETS : DEMO_TICKETS.filter((t) => t.status === filter);
+      setTickets(filtered);
+      setIsDemo(true);
+    } else {
+      setTickets(apiRows);
+      setIsDemo(false);
+    }
   }, [filter]);
   useEffect(() => { void load(); }, [load]);
 
@@ -40,6 +60,7 @@ export function SupportClient() {
 
   return (
     <div>
+      {isDemo && <DemoBanner />}
       <div className="flex gap-2 mb-4">
         {(["open","in_progress","resolved","all"] as Filter[]).map((f) => (
           <button key={f} onClick={() => setFilter(f)}
@@ -133,6 +154,15 @@ export function SupportClient() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function DemoBanner() {
+  return (
+    <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
+      <span className="text-base">🤖</span>
+      <span><b className="font-black tracking-wider">DEMO-DATEN</b> — DB ist leer. Hier werden fiktive Tickets angezeigt, damit du die UI testen kannst.</span>
     </div>
   );
 }

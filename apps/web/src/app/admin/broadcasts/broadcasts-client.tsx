@@ -8,8 +8,18 @@ type Broadcast = {
   status: string; sent_at: string | null; sent_by_email: string | null; created_at: string;
 };
 
+const DEMO_BROADCASTS: Broadcast[] = [
+  { id: "d1", title: "⚔️ Arena-Saison 2 startet!", body: "Wähle deinen Saison-Wächter und kämpfe in der Arena um Ehre und Prestige. Jetzt live!", channel: "push", segment: { min_level: 5 }, recipient_count: 1847, status: "sent", sent_at: new Date(Date.now() - 3 * 86400_000).toISOString(), sent_by_email: "admin@myarea365.de", created_at: new Date(Date.now() - 3 * 86400_000).toISOString() },
+  { id: "d2", title: "🔥 7-Tage-Streak-Bonus", body: "Diese Woche: doppelte XP für alle Runner mit 7-Tage-Streak!", channel: "inapp", segment: {}, recipient_count: 4231, status: "sent", sent_at: new Date(Date.now() - 7 * 86400_000).toISOString(), sent_by_email: "marketing@myarea365.de", created_at: new Date(Date.now() - 7 * 86400_000).toISOString() },
+  { id: "d3", title: "Wir vermissen dich 👋", body: "Du warst länger nicht mehr da — dein Gebiet wird von anderen beansprucht. Schau vorbei!", channel: "email", segment: { inactive_days: 14 }, recipient_count: 623, status: "sent", sent_at: new Date(Date.now() - 2 * 86400_000).toISOString(), sent_by_email: "marketing@myarea365.de", created_at: new Date(Date.now() - 2 * 86400_000).toISOString() },
+  { id: "d4", title: "☀️ Sonnenwacht-Wochenende", body: "Nur Sonnenwacht: 50% mehr XP am Samstag und Sonntag. Zeigt was ihr könnt!", channel: "push", segment: { faction: "vanguard" }, recipient_count: 892, status: "sent", sent_at: new Date(Date.now() - 10 * 86400_000).toISOString(), sent_by_email: "admin@myarea365.de", created_at: new Date(Date.now() - 10 * 86400_000).toISOString() },
+  { id: "d5", title: "Neue Partner in Berlin-Mitte", body: "3 neue Cafés und 1 Bäckerei in Mitte — scanne den QR-Code für bis zu 20% Rabatt.", channel: "inapp", segment: { city: "Berlin" }, recipient_count: 1456, status: "sent", sent_at: new Date(Date.now() - 4 * 86400_000).toISOString(), sent_by_email: "sales@myarea365.de", created_at: new Date(Date.now() - 4 * 86400_000).toISOString() },
+  { id: "d6", title: "Test-Broadcast (Dry-Run)", body: "Interne Test-Nachricht.", channel: "inapp", segment: { min_level: 30 }, recipient_count: 47, status: "pending", sent_at: null, sent_by_email: "admin@myarea365.de", created_at: new Date(Date.now() - 3600_000).toISOString() },
+];
+
 export function BroadcastsClient() {
   const [history, setHistory] = useState<Broadcast[] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody]   = useState("");
   const [channel, setChannel] = useState<"inapp" | "push" | "email">("inapp");
@@ -30,7 +40,14 @@ export function BroadcastsClient() {
   async function loadHistory() {
     const res = await fetch("/api/admin/broadcasts", { cache: "no-store" });
     const j = await res.json();
-    setHistory(j.broadcasts ?? []);
+    const rows = (j.broadcasts ?? []) as Broadcast[];
+    if (rows.length === 0) {
+      setHistory(DEMO_BROADCASTS);
+      setIsDemo(true);
+    } else {
+      setHistory(rows);
+      setIsDemo(false);
+    }
   }
   useEffect(() => { void loadHistory(); }, []);
 
@@ -128,7 +145,7 @@ export function BroadcastsClient() {
       </div>
 
       <div>
-        <h2 className="text-lg font-bold mb-3">Historie</h2>
+        <h2 className="text-lg font-bold mb-3">Historie {isDemo && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#a855f7]/20 border border-[#a855f7]/50 text-[#c084fc] font-black ml-2">🤖 DEMO</span>}</h2>
         {!history ? (
           <div className="text-sm text-[#8B8FA3]">Lade …</div>
         ) : history.length === 0 ? (

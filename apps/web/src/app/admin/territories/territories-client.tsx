@@ -12,8 +12,24 @@ type Polygon = {
   display_name: string | null;
 };
 
+const DEMO_POLYGONS: Polygon[] = [
+  { id: "d1",  owner_user_id: "u1", area_m2: 24_318, xp_awarded: 500, created_at: new Date(Date.now() - 2 * 3600_000).toISOString(),   username: "valkyr",   display_name: "Valkyr" },
+  { id: "d2",  owner_user_id: "u2", area_m2: 18_052, xp_awarded: 500, created_at: new Date(Date.now() - 5 * 3600_000).toISOString(),   username: "nyx",      display_name: "Nyx" },
+  { id: "d3",  owner_user_id: "u3", area_m2: 41_204, xp_awarded: 800, created_at: new Date(Date.now() - 8 * 3600_000).toISOString(),   username: "titan",    display_name: "Titan" },
+  { id: "d4",  owner_user_id: "u1", area_m2: 16_890, xp_awarded: 500, created_at: new Date(Date.now() - 24 * 3600_000).toISOString(),  username: "valkyr",   display_name: "Valkyr" },
+  { id: "d5",  owner_user_id: "u4", area_m2: 28_741, xp_awarded: 500, created_at: new Date(Date.now() - 36 * 3600_000).toISOString(),  username: "shade",    display_name: "Shade" },
+  { id: "d6",  owner_user_id: "u5", area_m2: 32_119, xp_awarded: 500, created_at: new Date(Date.now() - 48 * 3600_000).toISOString(),  username: "ember",    display_name: "Ember" },
+  { id: "d7",  owner_user_id: "u2", area_m2: 14_603, xp_awarded: 500, created_at: new Date(Date.now() - 2 * 86400_000).toISOString(),  username: "nyx",      display_name: "Nyx" },
+  { id: "d8",  owner_user_id: "u6", area_m2: 22_450, xp_awarded: 500, created_at: new Date(Date.now() - 3 * 86400_000).toISOString(),  username: "kaelthor", display_name: "Kaelthor" },
+  { id: "d9",  owner_user_id: "u3", area_m2: 35_812, xp_awarded: 700, created_at: new Date(Date.now() - 4 * 86400_000).toISOString(),  username: "titan",    display_name: "Titan" },
+  { id: "d10", owner_user_id: null, area_m2: 12_004, xp_awarded: 500, created_at: new Date(Date.now() - 5 * 86400_000).toISOString(),  username: null,       display_name: null },
+  { id: "d11", owner_user_id: "u7", area_m2: 19_728, xp_awarded: 500, created_at: new Date(Date.now() - 6 * 86400_000).toISOString(),  username: "zephyr",   display_name: "Zephyr" },
+  { id: "d12", owner_user_id: "u4", area_m2: 26_331, xp_awarded: 500, created_at: new Date(Date.now() - 7 * 86400_000).toISOString(),  username: "shade",    display_name: "Shade" },
+];
+
 export function TerritoriesClient() {
   const [rows, setRows] = useState<Polygon[] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -21,7 +37,9 @@ export function TerritoriesClient() {
   async function load() {
     const res = await fetch(`/api/admin/territories?q=${encodeURIComponent(search)}`, { cache: "no-store" });
     const j = await res.json();
-    setRows(j.rows ?? []);
+    const apiRows = (j.rows ?? []) as Polygon[];
+    if (apiRows.length === 0) { setRows(DEMO_POLYGONS); setIsDemo(true); }
+    else { setRows(apiRows); setIsDemo(false); }
     setSelected(new Set());
   }
   useEffect(() => { void load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
@@ -55,6 +73,12 @@ export function TerritoriesClient() {
 
   return (
     <div>
+      {isDemo && (
+        <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
+          <span className="text-base">🤖</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Territorien in der DB. Hier sind 12 fiktive Polygone.</span>
+        </div>
+      )}
       <div className="flex items-center gap-3 mb-4">
         <input
           value={search}

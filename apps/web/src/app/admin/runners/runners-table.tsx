@@ -11,7 +11,24 @@ type Row = {
   created_at: string; last_seen_at: string | null;
 };
 
+const DEMO_RUNNERS: Row[] = [
+  { id: "dx1",  username: "valkyr",   display_name: "Valkyr",   faction: "vanguard",  total_distance_m: 284_120, total_walks: 87, role: "user",    is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 120 * 86400_000).toISOString(), last_seen_at: new Date(Date.now() - 1 * 3600_000).toISOString() },
+  { id: "dx2",  username: "nyx",      display_name: "Nyx",      faction: "syndicate", total_distance_m: 198_540, total_walks: 62, role: "user",    is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 90 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 4 * 3600_000).toISOString() },
+  { id: "dx3",  username: "titan",    display_name: "Titan",    faction: "vanguard",  total_distance_m: 412_890, total_walks: 134, role: "admin",  is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 180 * 86400_000).toISOString(), last_seen_at: new Date(Date.now() - 15 * 60_000).toISOString() },
+  { id: "dx4",  username: "shade",    display_name: "Shade",    faction: "syndicate", total_distance_m:  87_340, total_walks: 41, role: "user",    is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 60 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 26 * 3600_000).toISOString() },
+  { id: "dx5",  username: "ember",    display_name: "Ember",    faction: "vanguard",  total_distance_m: 156_780, total_walks: 53, role: "support", is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 75 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 2 * 3600_000).toISOString() },
+  { id: "dx6",  username: "kaelthor", display_name: "Kaelthor", faction: null,        total_distance_m: 321_450, total_walks: 98, role: "user",    is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 150 * 86400_000).toISOString(), last_seen_at: new Date(Date.now() - 8 * 86400_000).toISOString() },
+  { id: "dx7",  username: "zephyr",   display_name: "Zephyr",   faction: "syndicate", total_distance_m:  42_180, total_walks: 18, role: "user",    is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 30 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 45 * 86400_000).toISOString() },
+  { id: "dx8",  username: "frost",    display_name: "Frost",    faction: "vanguard",  total_distance_m:  68_920, total_walks: 27, role: "user",    is_banned: false, shadow_banned: true,  created_at: new Date(Date.now() - 45 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 12 * 3600_000).toISOString() },
+  { id: "dx9",  username: "raze",     display_name: "Raze",     faction: "syndicate", total_distance_m:   8_430, total_walks: 4,  role: "user",    is_banned: true,  shadow_banned: false, created_at: new Date(Date.now() - 10 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 6 * 86400_000).toISOString() },
+  { id: "dx10", username: "blaze",    display_name: "Blaze",    faction: "vanguard",  total_distance_m: 104_560, total_walks: 38, role: "marketing", is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 55 * 86400_000).toISOString(), last_seen_at: new Date(Date.now() - 30 * 60_000).toISOString() },
+  { id: "dx11", username: "mira",     display_name: "Mira",     faction: "syndicate", total_distance_m:  52_110, total_walks: 22, role: "user",    is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 20 * 86400_000).toISOString(),  last_seen_at: new Date(Date.now() - 3 * 86400_000).toISOString() },
+  { id: "dx12", username: "draven",   display_name: "Draven",   faction: null,        total_distance_m: 187_240, total_walks: 71, role: "sales",   is_banned: false, shadow_banned: false, created_at: new Date(Date.now() - 100 * 86400_000).toISOString(), last_seen_at: new Date(Date.now() - 5 * 3600_000).toISOString() },
+];
+
 export function RunnersTable({ rows }: { rows: Row[] }) {
+  const isDemo = rows.length === 0;
+  const displayRows = isDemo ? DEMO_RUNNERS : rows;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -22,8 +39,8 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
     setSelected(s);
   }
   function toggleAll() {
-    if (selected.size === rows.length) setSelected(new Set());
-    else setSelected(new Set(rows.map((r) => r.id)));
+    if (selected.size === displayRows.length) setSelected(new Set());
+    else setSelected(new Set(displayRows.map((r) => r.id)));
   }
 
   async function bulkAction(action: "ban" | "unban" | "shadow_ban" | "notify" | "export") {
@@ -77,6 +94,12 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
 
   return (
     <div>
+      {isDemo && (
+        <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
+          <span className="text-base">🤖</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Runner passen zu den Filtern. Hier 12 fiktive Runner zum Testen der UI.</span>
+        </div>
+      )}
       {selected.size > 0 && (
         <div className="mb-3 p-3 rounded-lg bg-[#22D1C3]/10 border border-[#22D1C3]/40 flex items-center gap-2 flex-wrap">
           <span className="text-sm font-bold text-[#22D1C3]">{selected.size} ausgewählt</span>
@@ -95,7 +118,7 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
           <thead className="bg-white/5 text-[11px] tracking-wider text-[#8B8FA3]">
             <tr>
               <th className="p-2 w-8">
-                <input type="checkbox" checked={selected.size === rows.length && rows.length > 0} onChange={toggleAll} />
+                <input type="checkbox" checked={selected.size === displayRows.length && displayRows.length > 0} onChange={toggleAll} />
               </th>
               <th className="text-left p-2">Runner</th>
               <th className="text-left p-2">Aktivität</th>
@@ -106,7 +129,7 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {displayRows.map((r) => (
               <tr key={r.id} className="border-t border-white/5 hover:bg-white/5">
                 <td className="p-2 text-center">
                   <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
@@ -134,7 +157,7 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && (
+            {displayRows.length === 0 && (
               <tr><td colSpan={7} className="p-8 text-center text-[#8B8FA3] text-sm">Keine Runner gefunden.</td></tr>
             )}
           </tbody>
