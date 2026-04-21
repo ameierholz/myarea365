@@ -83,8 +83,22 @@ update public.guardian_archetypes set id = 'donnerreiter'     where id = 'wyvern
 -- manuell umbenannt werden. Self-Ref requires_node_id cascadet beim Update automatisch.
 
 do $$
+declare r record;
 begin
 if to_regclass('public.talent_nodes') is null then return; end if;
+
+-- Self-ref FK und alle FKs, die talent_nodes.id referenzieren, vor Mass-Rename droppen (werden später wieder angelegt)
+for r in
+  select c.conname, n.nspname as schemaname, t.relname as tablename
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    join pg_class tr on tr.oid = c.confrelid
+   where c.contype = 'f' and tr.relname = 'talent_nodes'
+loop
+  execute format('alter table %I.%I drop constraint %I', r.schemaname, r.tablename, r.conname);
+end loop;
+
 update public.talent_nodes     set id = 'schattenfinger'   || substr(id, length('stadtfuchs')+1)   where id like 'stadtfuchs.%';
 update public.talent_nodes     set id = 'grenzwaechter'    || substr(id, length('dachs')+1)        where id like 'dachs.%';
 update public.talent_nodes     set id = 'klingentaenzer'   || substr(id, length('taube')+1)        where id like 'taube.%';
@@ -105,11 +119,35 @@ update public.talent_nodes     set id = 'stahlfeder'       || substr(id, length(
 update public.talent_nodes     set id = 'flammenherr'      || substr(id, length('drache')+1)       where id like 'drache.%';
 update public.talent_nodes     set id = 'lichtbringer'     || substr(id, length('phoenix')+1)      where id like 'phoenix.%';
 update public.talent_nodes     set id = 'donnerreiter'     || substr(id, length('wyvern')+1)       where id like 'wyvern.%';
+
+-- Self-ref + Kind-FKs mit ON UPDATE CASCADE re-erstellen
+alter table public.talent_nodes
+  add constraint talent_nodes_requires_node_id_fkey
+    foreign key (requires_node_id) references public.talent_nodes(id) on update cascade on delete set null;
+if to_regclass('public.guardian_talents') is not null then
+  alter table public.guardian_talents
+    add constraint guardian_talents_node_id_fkey
+      foreign key (node_id) references public.talent_nodes(id) on update cascade on delete cascade;
+end if;
 end $$;
 
 do $$
+declare r record;
 begin
 if to_regclass('public.archetype_skills') is null then return; end if;
+
+-- FKs, die archetype_skills.id referenzieren, droppen
+for r in
+  select c.conname, n.nspname as schemaname, t.relname as tablename
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    join pg_class tr on tr.oid = c.confrelid
+   where c.contype = 'f' and tr.relname = 'archetype_skills'
+loop
+  execute format('alter table %I.%I drop constraint %I', r.schemaname, r.tablename, r.conname);
+end loop;
+
 update public.archetype_skills set id = 'schattenfinger'   || substr(id, length('stadtfuchs')+1)   where id like 'stadtfuchs.%';
 update public.archetype_skills set id = 'grenzwaechter'    || substr(id, length('dachs')+1)        where id like 'dachs.%';
 update public.archetype_skills set id = 'klingentaenzer'   || substr(id, length('taube')+1)        where id like 'taube.%';
@@ -130,6 +168,13 @@ update public.archetype_skills set id = 'stahlfeder'       || substr(id, length(
 update public.archetype_skills set id = 'flammenherr'      || substr(id, length('drache')+1)       where id like 'drache.%';
 update public.archetype_skills set id = 'lichtbringer'     || substr(id, length('phoenix')+1)      where id like 'phoenix.%';
 update public.archetype_skills set id = 'donnerreiter'     || substr(id, length('wyvern')+1)       where id like 'wyvern.%';
+
+-- Kind-FK mit ON UPDATE CASCADE re-erstellen
+if to_regclass('public.guardian_skill_levels') is not null then
+  alter table public.guardian_skill_levels
+    add constraint guardian_skill_levels_skill_id_fkey
+      foreign key (skill_id) references public.archetype_skills(id) on update cascade on delete cascade;
+end if;
 end $$;
 
 -- ─── Coole Titel für alle 60 Wächter ──────────────────────────────
