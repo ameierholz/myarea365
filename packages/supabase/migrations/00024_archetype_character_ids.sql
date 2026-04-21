@@ -4,36 +4,52 @@
 -- FKs bekommen ON UPDATE CASCADE, damit IDs rename-safe sind.
 -- ═══════════════════════════════════════════════════════════════════
 
--- ─── FKs mit ON UPDATE CASCADE neu anlegen (defensiv: nur wenn Tabellen existieren) ──
+-- ─── FKs mit ON UPDATE CASCADE neu anlegen (dynamisch: findet alle FKs auf guardian_archetypes/talent_nodes/archetype_skills) ──
 
 do $$
+declare
+  r record;
+  v_on_delete char(1);
+  v_delete_clause text;
+  v_cols text;
+  v_refcols text;
 begin
-  if to_regclass('public.crew_guardians') is not null then
-    execute 'alter table public.crew_guardians drop constraint if exists crew_guardians_archetype_id_fkey';
-    execute 'alter table public.crew_guardians add constraint crew_guardians_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade';
-  end if;
-  if to_regclass('public.guardian_trophies') is not null then
-    execute 'alter table public.guardian_trophies drop constraint if exists guardian_trophies_archetype_id_fkey';
-    execute 'alter table public.guardian_trophies add constraint guardian_trophies_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade';
-  end if;
-  if to_regclass('public.talent_nodes') is not null then
-    execute 'alter table public.talent_nodes drop constraint if exists talent_nodes_archetype_id_fkey';
-    execute 'alter table public.talent_nodes add constraint talent_nodes_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade on delete cascade';
-    execute 'alter table public.talent_nodes drop constraint if exists talent_nodes_requires_node_id_fkey';
-    execute 'alter table public.talent_nodes add constraint talent_nodes_requires_node_id_fkey foreign key (requires_node_id) references public.talent_nodes(id) on update cascade on delete set null';
-  end if;
-  if to_regclass('public.archetype_skills') is not null then
-    execute 'alter table public.archetype_skills drop constraint if exists archetype_skills_archetype_id_fkey';
-    execute 'alter table public.archetype_skills add constraint archetype_skills_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade on delete cascade';
-  end if;
-  if to_regclass('public.guardian_talents') is not null then
-    execute 'alter table public.guardian_talents drop constraint if exists guardian_talents_node_id_fkey';
-    execute 'alter table public.guardian_talents add constraint guardian_talents_node_id_fkey foreign key (node_id) references public.talent_nodes(id) on update cascade on delete cascade';
-  end if;
-  if to_regclass('public.guardian_skill_levels') is not null then
-    execute 'alter table public.guardian_skill_levels drop constraint if exists guardian_skill_levels_skill_id_fkey';
-    execute 'alter table public.guardian_skill_levels add constraint guardian_skill_levels_skill_id_fkey foreign key (skill_id) references public.archetype_skills(id) on update cascade on delete cascade';
-  end if;
+  -- Alle FKs auf guardian_archetypes, talent_nodes, archetype_skills finden und rekreieren
+  for r in
+    select c.conname, c.oid as conoid, c.confdeltype as ondel,
+           n.nspname as schemaname, t.relname as tablename,
+           nr.nspname as ref_schema, tr.relname as ref_table
+      from pg_constraint c
+      join pg_class t on t.oid = c.conrelid
+      join pg_namespace n on n.oid = t.relnamespace
+      join pg_class tr on tr.oid = c.confrelid
+      join pg_namespace nr on nr.oid = tr.relnamespace
+     where c.contype = 'f'
+       and nr.nspname = 'public'
+       and tr.relname in ('guardian_archetypes','talent_nodes','archetype_skills')
+  loop
+    -- Spaltenliste (FK-Spalten und Ref-Spalten) aus pg_constraint aufbauen
+    select string_agg(quote_ident(a.attname), ',' order by k.ord)
+      into v_cols
+      from unnest((select conkey from pg_constraint where oid = r.conoid)) with ordinality k(attnum, ord)
+      join pg_attribute a on a.attnum = k.attnum and a.attrelid = (select conrelid from pg_constraint where oid = r.conoid);
+    select string_agg(quote_ident(a.attname), ',' order by k.ord)
+      into v_refcols
+      from unnest((select confkey from pg_constraint where oid = r.conoid)) with ordinality k(attnum, ord)
+      join pg_attribute a on a.attnum = k.attnum and a.attrelid = (select confrelid from pg_constraint where oid = r.conoid);
+
+    v_delete_clause := case r.ondel
+                         when 'c' then ' on delete cascade'
+                         when 'n' then ' on delete set null'
+                         when 'd' then ' on delete set default'
+                         when 'r' then ' on delete restrict'
+                         else '' end;
+
+    execute format('alter table %I.%I drop constraint if exists %I', r.schemaname, r.tablename, r.conname);
+    execute format('alter table %I.%I add constraint %I foreign key (%s) references %I.%I(%s) on update cascade%s',
+                   r.schemaname, r.tablename, r.conname, v_cols,
+                   r.ref_schema, r.ref_table, v_refcols, v_delete_clause);
+  end loop;
 end $$;
 
 -- ─── Archetype-IDs umbenennen (Tier → Charakter) ──────────────────
