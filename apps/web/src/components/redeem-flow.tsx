@@ -239,6 +239,8 @@ export function RedeemFlow(props: Props) {
               </div>
             </div>
 
+            <ShopQuestsPreview businessId={businessId} />
+
             <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
               Im nächsten Schritt scannst du den <b>Shop-QR-Code</b> vor Ort. XP werden erst bei erfolgreichem Scan abgezogen.
               Eine Bestätigung bleibt <b>5 Minuten gültig</b>.
@@ -389,6 +391,46 @@ export function RedeemFlow(props: Props) {
   );
 }
 
+type QuestPreview = {
+  id: string;
+  title: string;
+  description: string | null;
+  article_pattern: string;
+  reward_xp: number;
+  reward_loot_rarity: string | null;
+  my_completions: number;
+  max_completions_per_user: number;
+};
+
+function ShopQuestsPreview({ businessId }: { businessId: string }) {
+  const [quests, setQuests] = useState<QuestPreview[]>([]);
+  useEffect(() => {
+    fetch(`/api/shop/quests?business_id=${businessId}`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setQuests(d.quests ?? []); })
+      .catch(() => {});
+  }, [businessId]);
+  const open = quests.filter((q) => q.my_completions < q.max_completions_per_user);
+  if (open.length === 0) return null;
+  return (
+    <div style={{ padding: 12, borderRadius: 12, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", marginBottom: 14 }}>
+      <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>🎯 OFFENE QUESTS</div>
+      {open.slice(0, 3).map((q) => (
+        <div key={q.id} style={{ padding: "6px 0", borderTop: "1px solid rgba(34,209,195,0.15)" }}>
+          <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>{q.title}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+            Tipp: Kaufe &quot;{q.article_pattern}&quot; → {q.reward_xp > 0 && `+${q.reward_xp} XP`}
+            {q.reward_loot_rarity && ` + 🎁 ${q.reward_loot_rarity}-Item`}
+          </div>
+        </div>
+      ))}
+      <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 6 }}>
+        Wird automatisch freigeschaltet wenn du den Bon hochlädst.
+      </div>
+    </div>
+  );
+}
+
 type BonusResult = {
   ok: boolean;
   loot?: {
@@ -401,6 +443,8 @@ type BonusResult = {
   verified?: boolean;
   ocr_amount_cents?: number | null;
   ocr_confidence?: string;
+  ocr_items?: string[];
+  quests?: { ok: boolean; completed: Array<{ quest_id: string; title: string; matched_text: string; reward_xp: number; reward_loot_rarity: string | null; item_id: string | null }> } | null;
   error?: string;
   message?: string;
 };
@@ -477,6 +521,20 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
         {!result.verified && (
           <div style={{ color: "#FF6B4A", fontSize: 10, marginTop: 6 }}>
             ⚠️ Betrag konnte nicht eindeutig verifiziert werden — nur halber Bonus
+          </div>
+        )}
+        {result.quests && result.quests.completed.length > 0 && (
+          <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.4)", textAlign: "left" }}>
+            <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>🎯 QUEST{result.quests.completed.length > 1 ? "S" : ""} ABGESCHLOSSEN!</div>
+            {result.quests.completed.map((q) => (
+              <div key={q.quest_id} style={{ padding: "6px 0", borderTop: "1px solid rgba(255,215,0,0.15)" }}>
+                <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>✓ {q.title}</div>
+                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+                  {q.reward_xp > 0 && <span>+{q.reward_xp} XP</span>}
+                  {q.reward_loot_rarity && <span>{q.reward_xp > 0 ? " · " : ""}🎁 {q.reward_loot_rarity}-Item</span>}
+                </div>
+              </div>
+            ))}
           </div>
         )}
         <button onClick={onClose} style={{ ...btnPrimary, marginTop: 12 }}>Fertig</button>

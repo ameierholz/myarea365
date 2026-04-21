@@ -6,6 +6,7 @@ export type ReceiptExtraction = {
   currency: string | null;
   confidence: "high" | "medium" | "low" | "failed";
   merchant_hint?: string;
+  items?: string[];
   raw_text?: string;
   reason?: string;
 };
@@ -15,15 +16,16 @@ type ClaudeResponse = {
   error?: { message: string };
 };
 
-const RECEIPT_PROMPT = `Du bist ein Kassenbon-Analyst. Extrahiere aus dem Foto den GESAMTBETRAG der Kasse (nicht einzelne Positionen, nicht Trinkgeld).
+const RECEIPT_PROMPT = `Du bist ein Kassenbon-Analyst. Extrahiere aus dem Foto den GESAMTBETRAG und die gekauften Artikel.
 
 Antworte EXAKT in diesem JSON-Format (keine Markdown-Fences, nichts sonst):
-{"amount_cents": 1234, "currency": "EUR", "confidence": "high" | "medium" | "low", "merchant_hint": "kurzer Shop-Name oder null"}
+{"amount_cents": 1234, "currency": "EUR", "confidence": "high" | "medium" | "low", "merchant_hint": "kurzer Shop-Name oder null", "items": ["Artikel 1", "Artikel 2"]}
 
 Regeln:
-- amount_cents = Betrag in Cent (z.B. 12,34 € → 1234)
+- amount_cents = Gesamtbetrag in Cent (z.B. 12,34 € → 1234); NICHT einzelne Positionen, NICHT Trinkgeld
+- items = Liste der Artikel-Bezeichnungen (max 20), wie auf dem Bon; ohne Preise/Mengen
 - Wenn kein klarer Gesamtbetrag erkennbar: amount_cents = null, confidence = "low"
-- Wenn kein Kassenbon im Bild: amount_cents = null, confidence = "failed"
+- Wenn kein Kassenbon im Bild: amount_cents = null, confidence = "failed", items = []
 - Bei Verdacht auf Fälschung / bearbeiteter Screenshot: confidence = "low"
 - Nur Euro-Beträge extrahieren; andere Währungen → confidence = "low"`;
 
@@ -64,7 +66,7 @@ export async function extractReceiptAmount(imageBase64: string, contentType: str
 
     const raw = json.content[0].text.trim();
     try {
-      const parsed = JSON.parse(raw) as { amount_cents: number | null; currency: string | null; confidence: string; merchant_hint?: string };
+      const parsed = JSON.parse(raw) as { amount_cents: number | null; currency: string | null; confidence: string; merchant_hint?: string; items?: string[] };
       return {
         amount_cents: typeof parsed.amount_cents === "number" ? parsed.amount_cents : null,
         currency: parsed.currency ?? null,
@@ -72,6 +74,7 @@ export async function extractReceiptAmount(imageBase64: string, contentType: str
           ? (parsed.confidence as "high" | "medium" | "low" | "failed")
           : "low",
         merchant_hint: parsed.merchant_hint,
+        items: Array.isArray(parsed.items) ? parsed.items.filter((x): x is string => typeof x === "string").slice(0, 20) : [],
         raw_text: raw,
       };
     } catch {

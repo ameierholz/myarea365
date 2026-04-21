@@ -10,6 +10,7 @@ import {
 } from "@/components/shop-features";
 import { ShopRedemptionsLive } from "@/components/shop-redemptions-live";
 import { ShopArenaPanel } from "@/components/shop-arena-panel";
+import { ShopQuestsManager } from "@/components/shop-quests-manager";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -105,7 +106,7 @@ const DEMO_TOP_RUNNERS = [
 
 /* ═══════════════════════════════════════════════════════ */
 
-type SubTab = "overview" | "deals" | "flash" | "spotlight" | "customers" | "performance" | "settings";
+type SubTab = "overview" | "deals" | "quests" | "flash" | "spotlight" | "customers" | "performance" | "settings";
 
 type ShopRow = {
   id: string; name: string;
@@ -214,6 +215,7 @@ export default function ShopDashboardPage() {
           {([
             { id: "overview",    label: "Übersicht",    icon: "🏠" },
             { id: "deals",       label: "Deals",        icon: "🎁" },
+            { id: "quests",      label: "Quests",       icon: "🎯" },
             { id: "flash",       label: "Flash-Deals",  icon: "⚡" },
             { id: "spotlight",   label: "Spotlight",    icon: "🏆" },
             { id: "customers",   label: "Stammkunden",  icon: "🧑‍🤝‍🧑" },
@@ -246,6 +248,7 @@ export default function ShopDashboardPage() {
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "20px" }}>
         {tab === "overview"    && <OverviewTab />}
         {tab === "deals"       && <DealsTab />}
+        {tab === "quests"      && <ShopQuestsManager businessId={shop.id} />}
         {tab === "flash"       && <FlashTab shop={shop} reloadShop={reloadShop} />}
         {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} />}
         {tab === "customers"   && <CustomersTab />}

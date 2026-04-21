@@ -98,6 +98,18 @@ export async function POST(req: NextRequest) {
     receipt_ocr_amount_cents: ocr.amount_cents ?? null,
   }).eq("id", body.redemption_id);
 
+  // Shop-Quests gegen erkannte Bon-Items matchen (nur bei verifiziertem Bon)
+  let quests: unknown = null;
+  if (verified && ocr.items && ocr.items.length > 0) {
+    const { data: qmatch } = await sb.rpc("match_shop_quests", {
+      p_user_id: user.id,
+      p_business_id: red.business_id,
+      p_redemption_id: body.redemption_id,
+      p_items: ocr.items,
+    });
+    quests = qmatch;
+  }
+
   return NextResponse.json({
     ok: true,
     loot,
@@ -105,5 +117,7 @@ export async function POST(req: NextRequest) {
     ocr_amount_cents: ocr.amount_cents,
     ocr_confidence: ocr.confidence,
     ocr_reason: ocr.reason,
+    ocr_items: ocr.items,
+    quests,
   });
 }
