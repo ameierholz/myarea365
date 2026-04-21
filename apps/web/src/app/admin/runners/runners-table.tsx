@@ -97,7 +97,7 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
       {isDemo && (
         <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
           <span className="text-base">🤖</span>
-          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Runner passen zu den Filtern. Hier 12 fiktive Runner zum Testen der UI.</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Runner passen zu den Filtern. Hier sind 12 fiktive Runner zum Testen der Oberfläche.</span>
         </div>
       )}
       {selected.size > 0 && (
@@ -173,11 +173,13 @@ function LastActive({ at }: { at: string | null }) {
   const hours = ms / 3_600_000;
   const days = hours / 24;
 
-  const meta = days > 30 ? { c: "#FF2D78", l: `${Math.round(days)}d` }
-             : days > 7  ? { c: "#FF6B4A", l: `${Math.round(days)}d` }
-             : days > 1  ? { c: "#FFD700", l: `${Math.round(days)}d` }
-             : hours > 1 ? { c: "#4ade80", l: `${Math.round(hours)}h` }
-             :              { c: "#22D1C3", l: "jetzt" };
+  const dd = Math.round(days);
+  const hh = Math.round(hours);
+  const meta = days > 30 ? { c: "#FF2D78", l: `vor ${dd} Tagen` }
+             : days > 7  ? { c: "#FF6B4A", l: `vor ${dd} Tagen` }
+             : days > 1  ? { c: "#FFD700", l: `vor ${dd} Tagen` }
+             : hours > 1 ? { c: "#4ade80", l: `vor ${hh} Stunden` }
+             :              { c: "#22D1C3", l: "gerade eben" };
 
   return <span className="text-xs font-black" style={{ color: meta.c }}>{meta.l}</span>;
 }

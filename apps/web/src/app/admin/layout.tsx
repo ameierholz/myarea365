@@ -32,7 +32,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/shops",     label: "🏪 Shops" },
       { href: "/admin/deals",     label: "⚡ Deals" },
       { href: "/admin/qr-codes",  label: "📱 QR-Codes" },
-      { href: "/admin/sales",      label: "💰 Sales & Revenue" },
+      { href: "/admin/sales",      label: "💰 Vertrieb & Umsatz" },
       { href: "/admin/marketing",  label: "📧 Marketing" },
       { href: "/admin/broadcasts", label: "📢 Broadcasts" },
     ],
@@ -42,7 +42,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/admin/gamification", label: "🏆 Gamification" },
       { href: "/admin/seasons",      label: "🗓️ Saisons" },
-      { href: "/admin/experiments",  label: "🧪 A/B-Experimente" },
+      { href: "/admin/experiments",  label: "🧪 A/B-Tests" },
       { href: "/admin/artwork",      label: "🎨 Artwork" },
     ],
   },

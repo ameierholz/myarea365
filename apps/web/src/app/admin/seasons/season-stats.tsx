@@ -114,9 +114,9 @@ export function SeasonStats() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <KPI label="KÄMPFE GESAMT" value={kpis?.total_fights ?? 0} color="#22D1C3" />
-        <KPI label="KÄMPFE 24H" value={kpis?.fights_24h ?? 0} color="#FFD700" />
-        <KPI label="KÄMPFE 7T" value={kpis?.fights_7d ?? 0} color="#FF6B4A" />
-        <KPI label="SAISON-PICKER" value={kpis?.seasonal_pickers ?? 0} color="#a855f7" />
+        <KPI label="KÄMPFE LETZTE 24 STUNDEN" value={kpis?.fights_24h ?? 0} color="#FFD700" />
+        <KPI label="KÄMPFE LETZTE 7 TAGE" value={kpis?.fights_7d ?? 0} color="#FF6B4A" />
+        <KPI label="SAISON-WÄCHTER GEWÄHLT" value={kpis?.seasonal_pickers ?? 0} color="#a855f7" />
       </div>
 
       {/* Daily Chart */}
@@ -158,12 +158,12 @@ export function SeasonStats() {
                         <div style={{ width: `${pickPct}%`, height: "100%", background: meta.color }} />
                       </div>
                     </div>
-                    <div className="text-[10px] text-[#a8b4cf] w-12 text-right">{pickPct}% Pick</div>
+                    <div className="text-[10px] text-[#a8b4cf] w-16 text-right">{pickPct}% gewählt</div>
                   </div>
-                  <div className="text-xs font-black w-16 text-right" style={{ color: c.win_pct >= 55 ? "#4ade80" : c.win_pct <= 45 ? "#FF2D78" : "#a8b4cf" }}>
-                    {c.win_pct}% WR
+                  <div className="text-xs font-black w-24 text-right" style={{ color: c.win_pct >= 55 ? "#4ade80" : c.win_pct <= 45 ? "#FF2D78" : "#a8b4cf" }}>
+                    {c.win_pct}% Siegquote
                   </div>
-                  <div className="text-[10px] text-[#8B8FA3] w-20 text-right">{c.wins}W / {c.losses}L</div>
+                  <div className="text-[10px] text-[#8B8FA3] w-32 text-right">{c.wins} Siege / {c.losses} Niederlagen</div>
                 </div>
               );
             })}
@@ -174,7 +174,7 @@ export function SeasonStats() {
       {/* Top Fighters */}
       {top_fighters && top_fighters.length > 0 && (
         <div>
-          <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-2">TOP 10 SAISON-FIGHTER</div>
+          <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-2">TOP 10 KÄMPFER DER SAISON</div>
           <div className="grid grid-cols-2 gap-2">
             {top_fighters.map((f, i) => {
               const arch = unnest(f.guardian_archetypes);
@@ -185,9 +185,9 @@ export function SeasonStats() {
                   <div className="text-lg">{arch?.emoji ?? "⚔️"}</div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-white truncate">{user?.display_name ?? user?.username}</div>
-                    <div className="text-[10px] text-[#8B8FA3] truncate">{arch?.name} · Lv {f.level}</div>
+                    <div className="text-[10px] text-[#8B8FA3] truncate">{arch?.name} · Level {f.level}</div>
                   </div>
-                  <div className="text-[10px] text-[#4ade80] font-black">{f.wins}W</div>
+                  <div className="text-[10px] text-[#4ade80] font-black">{f.wins} Siege</div>
                 </div>
               );
             })}

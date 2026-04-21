@@ -145,7 +145,7 @@ function StatusPill({ status }: { status: Experiment["status"] }) {
   const m = status === "running" ? { c: "#4ade80", l: "LÄUFT" }
           : status === "paused"  ? { c: "#FFD700", l: "PAUSIERT" }
           : status === "completed" ? { c: "#8B8FA3", l: "BEENDET" }
-          : { c: "#22D1C3", l: "DRAFT" };
+          : { c: "#22D1C3", l: "ENTWURF" };
   return <span className="px-2 py-0.5 rounded-full text-[9px] font-black" style={{ background: `${m.c}22`, color: m.c, border: `1px solid ${m.c}44` }}>{m.l}</span>;
 }
 function Btn({ onClick, color, children }: { onClick: () => void; color: string; children: React.ReactNode }) {

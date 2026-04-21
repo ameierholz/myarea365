@@ -127,7 +127,7 @@ export function SeasonsClient() {
 function StatusPill({ status }: { status: Season["status"] }) {
   const meta = status === "active"  ? { label: "AKTIV",    color: "#4ade80", bg: "rgba(74,222,128,0.15)" }
              : status === "upcoming" ? { label: "KOMMEND", color: "#22D1C3", bg: "rgba(34,209,195,0.15)" }
-             :                         { label: "ARCHIV",  color: "#8B8FA3", bg: "rgba(139,143,163,0.15)" };
+             :                         { label: "ARCHIVIERT",  color: "#8B8FA3", bg: "rgba(139,143,163,0.15)" };
   return (
     <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider"
       style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}44` }}>

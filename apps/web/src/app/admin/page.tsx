@@ -42,19 +42,19 @@ export default async function AdminDashboard() {
       {(totalUsers ?? 0) === 0 && (
         <div className="mb-4 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
           <span className="text-base">🤖</span>
-          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — DB ist (fast) leer. Hier werden für alle KPIs synthetische Werte angezeigt.</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — Datenbank ist (fast) leer. Für alle Kennzahlen werden synthetische Werte angezeigt.</span>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Stat label="Runner gesamt" value={(totalUsers ?? 0) || 3_214} />
-        <Stat label="Aktiv (24h)" value={(activeToday ?? 0) || 487} color="#4ade80" />
-        <Stat label="Neuanmeldungen (7d)" value={(signupsWeek ?? 0) || 142} color="#FFD700" />
+        <Stat label="Aktiv (letzte 24 Stunden)" value={(activeToday ?? 0) || 487} color="#4ade80" />
+        <Stat label="Neuanmeldungen (letzte 7 Tage)" value={(signupsWeek ?? 0) || 142} color="#FFD700" />
         <Stat label="Crews" value={(crewsCount ?? 0) || 87} color="#a855f7" />
         <Stat label="Shops" value={(shopsCount ?? 0) || 34} color="#FF6B4A" />
         <Stat label="Offene Meldungen" value={(openReports ?? 0) || 5} color="#FF2D78" />
-        <Stat label="Sales Leads" value={(pendingLeads ?? 0) || 12} color="#22D1C3" />
-        <Stat label="E-Mails (7d)" value={emailsSent || 1_843} delta={`${emailsBounced || 12} Bounces`} color="#4ade80" />
+        <Stat label="Vertriebs-Interessenten" value={(pendingLeads ?? 0) || 12} color="#22D1C3" />
+        <Stat label="E-Mails (letzte 7 Tage)" value={emailsSent || 1_843} delta={`${emailsBounced || 12} unzustellbar`} color="#4ade80" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 mb-6">

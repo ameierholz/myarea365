@@ -162,7 +162,7 @@ function DemoBanner() {
   return (
     <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
       <span className="text-base">🤖</span>
-      <span><b className="font-black tracking-wider">DEMO-DATEN</b> — DB ist leer. Hier werden fiktive Tickets angezeigt, damit du die UI testen kannst.</span>
+      <span><b className="font-black tracking-wider">DEMO-DATEN</b> — Datenbank ist leer. Hier werden fiktive Tickets angezeigt, damit du die Oberfläche testen kannst.</span>
     </div>
   );
 }

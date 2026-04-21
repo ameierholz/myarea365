@@ -76,7 +76,7 @@ export function TerritoriesClient() {
       {isDemo && (
         <div className="mb-3 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
           <span className="text-base">🤖</span>
-          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Territorien in der DB. Hier sind 12 fiktive Polygone.</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Territorien in der Datenbank. Hier sind 12 fiktive Polygone.</span>
         </div>
       )}
       <div className="flex items-center gap-3 mb-4">

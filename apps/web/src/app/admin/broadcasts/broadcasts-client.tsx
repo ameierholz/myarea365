@@ -14,7 +14,7 @@ const DEMO_BROADCASTS: Broadcast[] = [
   { id: "d3", title: "Wir vermissen dich 👋", body: "Du warst länger nicht mehr da — dein Gebiet wird von anderen beansprucht. Schau vorbei!", channel: "email", segment: { inactive_days: 14 }, recipient_count: 623, status: "sent", sent_at: new Date(Date.now() - 2 * 86400_000).toISOString(), sent_by_email: "marketing@myarea365.de", created_at: new Date(Date.now() - 2 * 86400_000).toISOString() },
   { id: "d4", title: "☀️ Sonnenwacht-Wochenende", body: "Nur Sonnenwacht: 50% mehr XP am Samstag und Sonntag. Zeigt was ihr könnt!", channel: "push", segment: { faction: "vanguard" }, recipient_count: 892, status: "sent", sent_at: new Date(Date.now() - 10 * 86400_000).toISOString(), sent_by_email: "admin@myarea365.de", created_at: new Date(Date.now() - 10 * 86400_000).toISOString() },
   { id: "d5", title: "Neue Partner in Berlin-Mitte", body: "3 neue Cafés und 1 Bäckerei in Mitte — scanne den QR-Code für bis zu 20% Rabatt.", channel: "inapp", segment: { city: "Berlin" }, recipient_count: 1456, status: "sent", sent_at: new Date(Date.now() - 4 * 86400_000).toISOString(), sent_by_email: "sales@myarea365.de", created_at: new Date(Date.now() - 4 * 86400_000).toISOString() },
-  { id: "d6", title: "Test-Broadcast (Dry-Run)", body: "Interne Test-Nachricht.", channel: "inapp", segment: { min_level: 30 }, recipient_count: 47, status: "pending", sent_at: null, sent_by_email: "admin@myarea365.de", created_at: new Date(Date.now() - 3600_000).toISOString() },
+  { id: "d6", title: "Test-Broadcast (nur Probelauf)", body: "Interne Test-Nachricht.", channel: "inapp", segment: { min_level: 30 }, recipient_count: 47, status: "pending", sent_at: null, sent_by_email: "admin@myarea365.de", created_at: new Date(Date.now() - 3600_000).toISOString() },
 ];
 
 export function BroadcastsClient() {
@@ -68,7 +68,7 @@ export function BroadcastsClient() {
     if (!title || !body) { alert("Titel und Text ausfüllen."); return; }
     const seg = buildSegment();
     const confirmMsg = dry
-      ? "Dry-Run: nur loggen, nichts senden."
+      ? "Probelauf: nur protokollieren, nichts senden."
       : `${preview ?? 0} Empfänger erhalten diese Nachricht wirklich?`;
     if (!confirm(confirmMsg)) return;
 
@@ -122,7 +122,7 @@ export function BroadcastsClient() {
           <Field label="Inaktiv seit (Tage)">
             <input value={inactiveDays} onChange={(e) => setInactiveDays(e.target.value)} placeholder="7" type="number" className="w-full bg-[#0F1115] border border-white/10 rounded px-2 py-1.5 text-xs" />
           </Field>
-          <Field label="Min. Level">
+          <Field label="Mindest-Level">
             <input value={minLevel} onChange={(e) => setMinLevel(e.target.value)} placeholder="10" type="number" className="w-full bg-[#0F1115] border border-white/10 rounded px-2 py-1.5 text-xs" />
           </Field>
         </div>
@@ -135,7 +135,7 @@ export function BroadcastsClient() {
         <div className="flex gap-2">
           <button onClick={() => send(true)} disabled={busy}
             className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-[#a8b4cf] disabled:opacity-40">
-            🧪 Dry-Run
+            🧪 Probelauf
           </button>
           <button onClick={() => send(false)} disabled={busy || !preview}
             className="flex-1 px-4 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115] text-sm font-bold disabled:opacity-40">

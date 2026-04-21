@@ -68,24 +68,24 @@ export default async function SalesPage() {
 
   return (
     <>
-      <PageTitle title="💰 Sales & Revenue" subtitle="Shop-Abos, Diamant-Käufe, Pipeline" />
+      <PageTitle title="💰 Vertrieb & Umsatz" subtitle="Shop-Abonnements, Diamanten-Käufe und Interessenten-Pipeline" />
 
       {isDemo && (
         <div className="mb-4 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
           <span className="text-base">🤖</span>
-          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Abos & Diamant-Käufe in der DB. Alle Zahlen sind synthetisch.</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine Abonnements und Diamanten-Käufe in der Datenbank. Alle Zahlen sind synthetisch.</span>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="MRR" value={`€ ${mrr.toFixed(0)}`} delta={`ARR € ${arr.toFixed(0)}`} color="#4ade80" />
-        <Stat label="Aktive Abos" value={demoActiveSubs} delta={`Ø € ${avgSubPrice.toFixed(0)}`} color="#22D1C3" />
-        <Stat label="Diamant-Umsatz 30T" value={`€ ${gemRevenue30d.toFixed(0)}`} delta={`${uniqueBuyers30d} Käufer`} color="#FFD700" />
-        <Stat label="ARPPU (Diamanten)" value={`€ ${arpPayingUser.toFixed(2)}`} delta={`${gemsBought30d.toLocaleString("de-DE")} 💎 · 30T`} color="#a855f7" />
+        <Stat label="Monatlich wiederkehrender Umsatz" value={`€ ${mrr.toFixed(0)}`} delta={`Hochgerechnet € ${arr.toFixed(0)} pro Jahr`} color="#4ade80" />
+        <Stat label="Aktive Abonnements" value={demoActiveSubs} delta={`Durchschnittlich € ${avgSubPrice.toFixed(0)} pro Abo`} color="#22D1C3" />
+        <Stat label="Diamanten-Umsatz letzte 30 Tage" value={`€ ${gemRevenue30d.toFixed(0)}`} delta={`${uniqueBuyers30d} einzelne Käufer`} color="#FFD700" />
+        <Stat label="Umsatz pro zahlendem Nutzer" value={`€ ${arpPayingUser.toFixed(2)}`} delta={`${gemsBought30d.toLocaleString("de-DE")} 💎 in 30 Tagen`} color="#a855f7" />
       </div>
 
       <Card className="mb-6">
-        <h2 className="text-lg font-bold mb-3">💎 Diamant-Umsatz (14 Tage)</h2>
+        <h2 className="text-lg font-bold mb-3">💎 Diamanten-Umsatz (letzte 14 Tage)</h2>
         {!isDemo && gemTx.length === 0 ? (
           <div className="text-sm text-[#8b8fa3] text-center py-6">Noch keine Käufe — Tabelle leer oder nur Reward-Gems.</div>
         ) : (
@@ -105,10 +105,10 @@ export default async function SalesPage() {
         )}
       </Card>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="Offene Leads" value={demoLeads?.open ?? ((leadsByStatus.new ?? 0) + (leadsByStatus.contacted ?? 0))} color="#FFD700" />
-        <Stat label="Won (gesamt)" value={demoLeads?.won ?? (leadsByStatus.won ?? 0)} color="#22D1C3" />
+        <Stat label="Offene Interessenten" value={demoLeads?.open ?? ((leadsByStatus.new ?? 0) + (leadsByStatus.contacted ?? 0))} color="#FFD700" />
+        <Stat label="Gewonnen (gesamt)" value={demoLeads?.won ?? (leadsByStatus.won ?? 0)} color="#22D1C3" />
         <Stat label="Demos gebucht" value={demoLeads?.demo ?? (leadsByStatus.demo_booked ?? 0)} color="#a855f7" />
-        <Stat label="Lost" value={demoLeads?.lost ?? (leadsByStatus.lost ?? 0)} color="#FF2D78" />
+        <Stat label="Verloren" value={demoLeads?.lost ?? (leadsByStatus.lost ?? 0)} color="#FF2D78" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

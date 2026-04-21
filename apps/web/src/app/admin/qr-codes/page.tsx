@@ -58,7 +58,7 @@ export default async function QrCodesAdminPage() {
       {isDemo && (
         <div className="mb-4 p-2.5 rounded-lg bg-[#a855f7]/10 border border-[#a855f7]/40 text-xs text-[#c084fc] flex items-center gap-2">
           <span className="text-base">🤖</span>
-          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine QR-Codes in der DB.</span>
+          <span><b className="font-black tracking-wider">DEMO-DATEN</b> — noch keine QR-Codes in der Datenbank.</span>
         </div>
       )}
 
