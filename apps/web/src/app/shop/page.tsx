@@ -28,7 +28,7 @@ type Purchase = { id: string; shop_item_id: string; price_paid_gems: number; exp
 type CategoryKey = "arena_pass" | "booster" | "cosmetic" | "convenience" | "crew_emblem";
 
 const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = {
-  arena_pass:  { label: "Arena-Pass",        icon: "🎫", accent: "#FFD700" },
+  arena_pass:  { label: "Area-Liga-Pass",    icon: "🎫", accent: "#FFD700" },
   booster:     { label: "XP-Booster",        icon: "⚡", accent: "#22D1C3" },
   cosmetic:    { label: "Skins & Designs",   icon: "✨", accent: "#a855f7" },
   convenience: { label: "Komfort",           icon: "🎯", accent: "#5ddaf0" },
@@ -130,7 +130,7 @@ export default function ShopPage() {
         </div>
         {gems?.arena_pass_expires_at && new Date(gems.arena_pass_expires_at) > new Date() && (
           <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(34,209,195,0.12)", border: "1px solid rgba(34,209,195,0.4)", fontSize: 11 }}>
-            🎫 Arena-Pass aktiv bis {new Date(gems.arena_pass_expires_at).toLocaleDateString("de-DE")}
+            🎫 Area-Liga-Pass aktiv bis {new Date(gems.arena_pass_expires_at).toLocaleDateString("de-DE")}
           </div>
         )}
       </div>

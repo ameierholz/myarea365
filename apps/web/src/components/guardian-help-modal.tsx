@@ -407,12 +407,12 @@ function ArenaTab() {
         </ul>
       </Card>
 
-      <Card title="🏆 Arena-Sessions (30 Tage)" color="#FF6B4A">
+      <Card title="🏆 Area-Liga (30 Tage)" color="#FF6B4A">
         <div style={{ fontSize: 12, lineHeight: 1.55 }}>
           Kämpfe zählen in laufende <b>30-Tage-Sessions</b> mit Punkten für Siege, Fusionen und Trophäen. Am Session-Ende:
         </div>
         <ul style={{ margin: "6px 0 0 0", paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
-          <li><b>Runner-Titel</b> (historisch im Profil): 🥇 Arena-Champion · 🥈 Herausforderer · 🥉 Finalist</li>
+          <li><b>Runner-Titel</b> (historisch im Profil): 🥇 Area-Liga-Champion · 🥈 Herausforderer · 🥉 Finalist</li>
           <li><b>Crew-Paket 1. Platz</b>: 80 Universal-Siegel + exklusives Banner + 500 💎 Crew-Schatz</li>
           <li><b>Crew-Paket 2. Platz</b>: 50 Siegel + Banner</li>
           <li><b>Crew-Paket 3. Platz</b>: 25 Siegel</li>

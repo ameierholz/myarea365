@@ -17,8 +17,8 @@ type Activity = {
 const ACTIVITIES: Activity[] = [
   { id: "walk",         icon: "🥾", title: "Gehen & Laufen",     hook: "Die Basis — wandle Schritte in XP.",     gradient: ["#22D1C3", "#5ddaf0"], accent: "#22D1C3" },
   { id: "shop",         icon: "🏪", title: "Shop-Einlösungen",   hook: "Rabatte + Bonus-Loot per Kassenbon.",    gradient: ["#FFD700", "#FF6B4A"], accent: "#FFD700" },
-  { id: "runner_fight", icon: "⚔️", title: "Runner-Kämpfe",      hook: "10/Tag PvP mit Matchmaking.",            gradient: ["#FF2D78", "#a855f7"], accent: "#FF2D78" },
-  { id: "arena",        icon: "🏛️", title: "Arena-Sessions",     hook: "30-Tage-Meta mit Titeln & Belohnung.",   gradient: ["#a855f7", "#5ddaf0"], accent: "#a855f7" },
+  { id: "runner_fight", icon: "⚔️", title: "Arena",              hook: "10/Tag PvP mit Matchmaking.",            gradient: ["#FF2D78", "#a855f7"], accent: "#FF2D78" },
+  { id: "arena",        icon: "🏛️", title: "Area-Liga",          hook: "30-Tage-Meta mit Titeln & Belohnung.",   gradient: ["#a855f7", "#5ddaf0"], accent: "#a855f7" },
   { id: "area_boss",    icon: "👹", title: "Area-Boss",          hook: "Crew-Raid auf Karte — größter Schaden gewinnt.", gradient: ["#FF6B4A", "#FF2D78"], accent: "#FF6B4A" },
 ];
 
@@ -120,7 +120,7 @@ const CONTENT: Record<ActivityId, ModalContent> = {
     reward: "Rabatt · Bonus-Loot (Siegel + Items) · Quest-XP · Gebietsfürst-Bonus",
   },
   runner_fight: {
-    icon: "⚔️", title: "Runner-Kämpfe",
+    icon: "⚔️", title: "Arena",
     subtitle: "PvP-Grind mit fairem Matchmaking.",
     accent: "#FF2D78",
     how: [
@@ -135,14 +135,14 @@ const CONTENT: Record<ActivityId, ModalContent> = {
       "Matchmaker mischen: 1× gratis pro Tag, danach 30 💎.",
     ],
     reward: "XP auf Wächter · Siegel (Common → Epic) · Ausrüstung",
-    cta: { label: "Zur Kampfarena →", href: "/runner-fights" },
+    cta: { label: "Zur Arena →", href: "/runner-fights" },
   },
   arena: {
-    icon: "🏛️", title: "Arena-Sessions",
+    icon: "🏛️", title: "Area-Liga",
     subtitle: "30-Tage-Wettkampf um Ruhm und Titel.",
     accent: "#a855f7",
     how: [
-      { step: 1, text: "Jede Arena ist ein Shop mit aktivem Arena-Pass." },
+      { step: 1, text: "Jede Area-Liga läuft in einem Shop mit aktivem Liga-Pass." },
       { step: 2, text: "Fordere einen anderen Runner heraus, der dort eingelöst hat (3-Tage-Eligibility)." },
       { step: 3, text: "Session-Punkte sammeln durch Siege. Crew-Punkte aggregieren." },
       { step: 4, text: "Session-Ende: Top 3 Runner + Top 3 Crews kriegen permanente Titel." },

@@ -7840,7 +7840,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
           border: "1px solid rgba(255,107,74,0.4)",
         }}>
           <div style={{ color: "#FF6B4A", fontSize: 10, fontWeight: 900, letterSpacing: 1.2, marginBottom: 8 }}>
-            🏆 ARENA-SESSION-TITEL
+            🏆 AREA-LIGA-TITEL
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {crewTitles.map((t) => {
@@ -10302,7 +10302,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           boxShadow: "0 0 16px rgba(255,107,74,0.4)", flexShrink: 0,
         }}>🏆</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FF6B4A" }}>🔥 ARENA-SESSION</div>
+          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FF6B4A" }}>🔥 AREA-LIGA</div>
           <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
             Session-Leaderboard & Titel
           </div>

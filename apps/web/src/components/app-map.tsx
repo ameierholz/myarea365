@@ -1190,7 +1190,7 @@ export function AppMap({
       badgeOuter.style.pointerEvents = "none";
       const badgeInner = document.createElement("div");
       badgeInner.className = "ma365-arena-badge";
-      badgeInner.innerHTML = `<span class="shield">🛡️</span><span>ARENA</span>`;
+      badgeInner.innerHTML = `<span class="shield">🏆</span><span>LIGA</span>`;
       badgeOuter.appendChild(badgeInner);
       const badgeMarker = new mapboxgl.Marker({ element: badgeOuter, anchor: "bottom", offset: [0, -40] })
         .setLngLat([s.lng, s.lat]).addTo(map);

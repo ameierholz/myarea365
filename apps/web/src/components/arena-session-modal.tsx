@@ -190,7 +190,7 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
             <div style={{ color: "#FF6B4A", fontWeight: 900, marginBottom: 6, letterSpacing: 0.5 }}>🎁 BELOHNUNGEN AM SESSION-ENDE</div>
             {tab === "runners" ? (
               <>
-                <div>🥇 <b style={{ color: "#FFD700" }}>Arena-Champion</b> · 🥈 Herausforderer · 🥉 Finalist</div>
+                <div>🥇 <b style={{ color: "#FFD700" }}>Area-Liga-Champion</b> · 🥈 Herausforderer · 🥉 Finalist</div>
                 <div style={{ marginTop: 4 }}>Titel bleiben dauerhaft im Profil</div>
               </>
             ) : (

@@ -129,7 +129,7 @@ export function RunnerFightsClient() {
   return (
     <Wrapper>
       <div className="mb-4">
-        <h1 className="text-2xl font-black text-white mb-1">⚔️ Kampfarena</h1>
+        <h1 className="text-2xl font-black text-white mb-1">⚔️ Arena</h1>
         <p className="text-sm text-[#a8b4cf]">
           Fordere andere Runner heraus. Level ±3, Loot bei Sieg & Niederlage.
         </p>

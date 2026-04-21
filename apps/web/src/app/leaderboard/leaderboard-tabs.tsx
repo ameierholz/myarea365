@@ -10,7 +10,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: "guardians", label: "🛡️ Wächter" },
   { id: "factions",  label: "🏛️ Fraktionen" },
   { id: "crews",     label: "👥 Crews" },
-  { id: "arena",     label: "⚔️ Arena" },
+  { id: "arena",     label: "🏆 Area-Liga" },
 ];
 
 export function LeaderboardTabs() {
@@ -362,7 +362,7 @@ function ArenaTab() {
       </div>
 
       {view === "current" && (
-        !current?.session ? <Empty text="Keine aktive Arena-Session." /> : (
+        !current?.session ? <Empty text="Keine aktive Area-Liga-Session." /> : (
           <div>
             <div className="mb-3 p-3 rounded-xl bg-[#22D1C3]/10 border border-[#22D1C3]/30">
               <div className="text-xs text-[#22D1C3] font-bold tracking-wider">AKTIVE SESSION</div>
