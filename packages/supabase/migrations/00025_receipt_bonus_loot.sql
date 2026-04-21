@@ -72,12 +72,17 @@ begin
       update public.user_siegel set siegel_universal = siegel_universal + v_bonus_universal, updated_at = now() where user_id = v_user;
     end if;
     if v_bonus_typed > 0 then
-      -- verteile auf zufälligen Typ
-      perform case (floor(random()*4)::int)
-        when 0 then (update public.user_siegel set siegel_infantry = siegel_infantry + v_bonus_typed, updated_at = now() where user_id = v_user)
-        when 1 then (update public.user_siegel set siegel_cavalry  = siegel_cavalry  + v_bonus_typed, updated_at = now() where user_id = v_user)
-        when 2 then (update public.user_siegel set siegel_marksman = siegel_marksman + v_bonus_typed, updated_at = now() where user_id = v_user)
-        else      (update public.user_siegel set siegel_mage      = siegel_mage      + v_bonus_typed, updated_at = now() where user_id = v_user)
+      declare v_col int := floor(random()*4)::int;
+      begin
+        if v_col = 0 then
+          update public.user_siegel set siegel_infantry = siegel_infantry + v_bonus_typed, updated_at = now() where user_id = v_user;
+        elsif v_col = 1 then
+          update public.user_siegel set siegel_cavalry  = siegel_cavalry  + v_bonus_typed, updated_at = now() where user_id = v_user;
+        elsif v_col = 2 then
+          update public.user_siegel set siegel_marksman = siegel_marksman + v_bonus_typed, updated_at = now() where user_id = v_user;
+        else
+          update public.user_siegel set siegel_mage     = siegel_mage     + v_bonus_typed, updated_at = now() where user_id = v_user;
+        end if;
       end;
     end if;
   end if;
