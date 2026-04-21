@@ -17,7 +17,6 @@ import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
-import { ArenaSessionModal } from "@/components/arena-session-modal";
 import { PotionInventoryModal } from "@/components/potion-inventory-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
@@ -10182,9 +10181,9 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
   const [leagueFilter, setLeagueFilter] = useState<string | null>(null);
   const [sortRunner, setSortRunner] = useState<RankingSortRunner>("weekly_xp");
   const [sortCrew, setSortCrew] = useState<RankingSortCrew>("weekly_km");
-  const [arenaSessionOpen, setArenaSessionOpen] = useState(false);
 
   const [isWide, setIsWide] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 860px)");
     setIsWide(mq.matches);
@@ -10273,55 +10272,38 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
     Object.values(filters).filter(Boolean).length +
     (leagueFilter ? 1 : 0) + (search ? 1 : 0);
 
+  // Meine Position in der Liste finden
+  const myPositionRunner = p?.username
+    ? filteredRunners.findIndex((r) => r.username === p.username)
+    : -1;
+  const myRunnerRow = myPositionRunner >= 0 ? filteredRunners[myPositionRunner] : null;
+
   return (
-    <div style={{ padding: "24px 20px 40px", width: "100%", maxWidth: 1100, margin: "0 auto" }}>
-      {/* Kopf */}
-      <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
-        Rangliste
-      </div>
-      <div style={{ color: MUTED, fontSize: 13, marginBottom: 14 }}>
-        Bestenlisten für Runner und Crews — filter nach Region und Liga.
-      </div>
-
-      {/* Arena-Session-Banner */}
-      <button
-        onClick={() => setArenaSessionOpen(true)}
-        style={{
-          width: "100%", marginBottom: 16,
-          padding: "12px 14px", borderRadius: 14, textAlign: "left",
-          background: "linear-gradient(135deg, rgba(255,107,74,0.18), rgba(255,215,0,0.12))",
-          border: "1px solid rgba(255,107,74,0.4)",
-          boxShadow: "0 0 14px rgba(255,107,74,0.18)",
-          cursor: "pointer", display: "flex", alignItems: "center", gap: 12, color: "#FFF",
-        }}
-      >
-        <div style={{
-          width: 44, height: 44, borderRadius: 12,
-          background: "linear-gradient(135deg, #FF6B4A, #FFD700)",
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
-          boxShadow: "0 0 16px rgba(255,107,74,0.4)", flexShrink: 0,
-        }}>🏆</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FF6B4A" }}>🔥 AREA-LIGA</div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
-            Session-Leaderboard & Titel
-          </div>
-          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-            30 Tage · Runner-Titel · Crew-Pakete mit Siegeln
-          </div>
+    <div style={{ padding: "20px 20px 40px", width: "100%", maxWidth: 1100, margin: "0 auto" }}>
+      {/* Kompakter Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 10, flexWrap: "wrap" }}>
+        <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
+          🏆 Rangliste
+          <span style={{
+            padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
+            background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.5)", color: "#c084fc",
+          }}>🤖 DEMO-DATEN</span>
         </div>
-        <span style={{ color: "#FFD700", fontSize: 16, fontWeight: 900, flexShrink: 0 }}>›</span>
-      </button>
+        {scopeLabel !== "Weltweit" && (
+          <button onClick={clearAll} style={{
+            padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 800,
+            background: "rgba(255,45,120,0.15)", color: "#FF2D78", border: "1px solid rgba(255,45,120,0.3)",
+            cursor: "pointer",
+          }}>✕ Filter: {scopeLabel}</button>
+        )}
+      </div>
 
-      {arenaSessionOpen && (
-        <ArenaSessionModal currentUserId={p?.id ?? null} onClose={() => setArenaSessionOpen(false)} />
-      )}
-
-      {/* Mode-Toggle */}
+      {/* Mode-Toggle — horizontal scrollbar auf Mobile */}
       <div style={{
-        display: "inline-flex", padding: 4, borderRadius: 12,
+        display: "flex", gap: 4, marginBottom: 18,
+        overflowX: "auto", padding: 4, borderRadius: 12,
         background: "rgba(30, 38, 60, 0.55)", border: `1px solid ${BORDER}`,
-        marginBottom: 18,
+        scrollbarWidth: "none",
       }}>
         {([
           { id: "runners",   label: "🏃 Runner" },
@@ -10333,7 +10315,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           const active = mode === m.id;
           return (
             <button key={m.id} onClick={() => setMode(m.id)} style={{
-              padding: "8px 18px", borderRadius: 9,
+              padding: "8px 16px", borderRadius: 9, flexShrink: 0, whiteSpace: "nowrap",
               background: active ? PRIMARY : "transparent",
               color: active ? BG_DEEP : "#FFF",
               border: "none", fontSize: 13, fontWeight: 900, cursor: "pointer",
@@ -10344,19 +10326,68 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
         })}
       </div>
 
+      {/* "Meine Position" — nur bei Runner-Tab und wenn in Liste */}
+      {mode === "runners" && myRunnerRow && (
+        <div style={{
+          marginBottom: 14, padding: "12px 16px", borderRadius: 14,
+          background: "linear-gradient(135deg, rgba(34,209,195,0.2), rgba(34,209,195,0.06))",
+          border: `1.5px solid ${PRIMARY}`,
+          boxShadow: `0 0 16px ${PRIMARY}33`,
+          display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 10,
+            background: PRIMARY, color: BG_DEEP,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, fontWeight: 900,
+            flexShrink: 0,
+          }}>#{myPositionRunner + 1}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: PRIMARY }}>DEINE POSITION</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF" }}>
+              {myRunnerRow.display_name} · {myRunnerRow[sortRunner].toLocaleString("de-DE")} {sortRunner === "weekly_km" ? "km" : "XP"}
+            </div>
+            <div style={{ fontSize: 11, color: MUTED }}>
+              {myPositionRunner === 0 ? "🥇 Du führst!" :
+               myPositionRunner <= 2 ? "🏅 Podium! Halte die Position." :
+               myPositionRunner <= 9 ? `Top 10 · Nur noch ${(filteredRunners[myPositionRunner - 1][sortRunner] - myRunnerRow[sortRunner]).toLocaleString("de-DE")} ${sortRunner === "weekly_km" ? "km" : "XP"} zum nächsten Rang` :
+               `${filteredRunners.length - myPositionRunner - 1} Runner hinter dir`}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile-Filter-Toggle */}
+      {!isWide && mode !== "arena" && (
+        <button
+          onClick={() => setMobileFiltersOpen((v) => !v)}
+          style={{
+            width: "100%", marginBottom: 12, padding: "10px 14px",
+            borderRadius: 10, textAlign: "left", cursor: "pointer",
+            background: mobileFiltersOpen ? `${PRIMARY}15` : "rgba(30, 38, 60, 0.55)",
+            border: `1px solid ${mobileFiltersOpen ? PRIMARY : BORDER}`,
+            color: "#FFF", fontSize: 13, fontWeight: 800,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          }}
+        >
+          <span>🎛️ Filter & Sortierung{activeFilterCount > 0 ? ` (${activeFilterCount} aktiv)` : ""}</span>
+          <span style={{ color: MUTED, fontSize: 12 }}>{mobileFiltersOpen ? "▲" : "▼"}</span>
+        </button>
+      )}
+
       <div style={{
         display: "grid",
         gridTemplateColumns: isWide && mode !== "arena" ? "260px 1fr" : "1fr",
         gap: 20, alignItems: "start",
       }}>
         {/* ═══ SIDEBAR ═══ */}
-        {mode !== "arena" && <aside style={{
+        {mode !== "arena" && (isWide || mobileFiltersOpen) && <aside style={{
           position: isWide ? "sticky" : "static",
           top: isWide ? 12 : undefined,
-          background: isWide ? "rgba(30, 38, 60, 0.45)" : "transparent",
-          border: isWide ? `1px solid ${BORDER}` : "none",
-          borderRadius: isWide ? 14 : 0,
-          padding: isWide ? 14 : 0,
+          background: isWide ? "rgba(30, 38, 60, 0.45)" : "rgba(30, 38, 60, 0.35)",
+          border: `1px solid ${BORDER}`,
+          borderRadius: 14,
+          padding: 14,
         }}>
           <input
             value={search} onChange={(e) => setSearch(e.target.value)}
@@ -10539,31 +10570,6 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
         </main>
       </div>
 
-      {/* Legacy leaderboard (Supabase-Live-Daten) — nur anzeigen wenn vorhanden */}
-      {mode !== "factions" && mode !== "arena" && leaderboard.length > 0 && (
-        <div style={{ marginTop: 30 }}>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.5 }}>
-            LIVE-LEADERBOARD (SUPABASE)
-          </div>
-          {leaderboard.slice(0, 10).map((entry, i) => {
-            const isMe = entry.id === p?.id;
-            return (
-              <div key={entry.id} style={{
-                display: "flex", alignItems: "center", gap: 12,
-                background: "rgba(30, 38, 60, 0.55)", padding: "10px 14px", borderRadius: 12,
-                marginBottom: 6, border: `1px solid ${isMe ? PRIMARY : BORDER}`,
-              }}>
-                <span style={{ color: MUTED, fontWeight: 900, width: 30 }}>#{i + 1}</span>
-                <span style={{ color: "#FFF", flex: 1, fontWeight: 700 }}>
-                  {entry.display_name || entry.username}
-                  {isMe && <span style={{ color: PRIMARY, fontSize: 10, marginLeft: 8 }}>(Du)</span>}
-                </span>
-                <span style={{ color: PRIMARY, fontWeight: 900 }}>{entry.xp || 0} XP</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -10682,17 +10688,19 @@ function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
       ? `${r.total_xp.toLocaleString("de-DE")} XP`
       : `${r.weekly_xp.toLocaleString("de-DE")} XP`;
   const primaryLabel = sortBy === "weekly_km" ? "Woche km" : sortBy === "total_xp" ? "Gesamt" : "Woche XP";
+  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
-      background: isMe ? `${PRIMARY}18` : "rgba(30, 38, 60, 0.55)",
+      background: isMe ? `linear-gradient(135deg, ${PRIMARY}22, ${PRIMARY}08)` : "rgba(30, 38, 60, 0.55)",
       padding: "10px 14px", borderRadius: 12,
-      border: `1px solid ${isMe ? PRIMARY : BORDER}`,
+      border: `${isMe ? 2 : 1}px solid ${isMe ? PRIMARY : BORDER}`,
+      boxShadow: isMe ? `0 0 12px ${PRIMARY}44` : "none",
     }}>
       <span style={{
-        color: rank <= 10 ? "#FFD700" : MUTED,
-        fontWeight: 900, fontSize: 14, width: 34, textAlign: "right",
-      }}>#{rank}</span>
+        color: rank <= 3 ? "#FFD700" : rank <= 10 ? "#FFD700cc" : MUTED,
+        fontWeight: 900, fontSize: medal ? 18 : 14, width: 34, textAlign: "right",
+      }}>{medal ?? `#${rank}`}</span>
       <span style={{ fontSize: 20 }}>{r.avatar_emoji}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
