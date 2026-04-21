@@ -18,10 +18,23 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   // Nach erfolgreichem Verify: Loot rollen und auf Runner-Waechter anwenden.
-  const verifyResult = data as { ok?: boolean; id?: string; xp_paid?: number } | null;
+  const verifyResult = data as { ok?: boolean; id?: string; xp_paid?: number; user_id?: string; business_id?: string } | null;
   if (verifyResult?.ok && verifyResult.id) {
-    const { data: loot } = await sb.rpc("award_redemption_loot", { p_redemption_id: verifyResult.id });
-    return NextResponse.json({ ...verifyResult, loot });
+    const [{ data: loot }, { data: redemption }] = await Promise.all([
+      sb.rpc("award_redemption_loot", { p_redemption_id: verifyResult.id }),
+      sb.from("deal_redemptions").select("user_id, business_id").eq("id", verifyResult.id).maybeSingle<{ user_id: string; business_id: string }>(),
+    ]);
+    // Territory-Lord-Bonus (Premium-Feature des Shops)
+    let territoryBonus = null;
+    if (redemption?.user_id && redemption?.business_id) {
+      const { data: bonus } = await sb.rpc("grant_territory_lord_bonus", {
+        p_user_id: redemption.user_id,
+        p_business_id: redemption.business_id,
+        p_redemption_id: verifyResult.id,
+      });
+      territoryBonus = bonus;
+    }
+    return NextResponse.json({ ...verifyResult, loot, territory_bonus: territoryBonus });
   }
   return NextResponse.json(data);
 }

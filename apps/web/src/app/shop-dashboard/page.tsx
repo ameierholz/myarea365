@@ -11,6 +11,7 @@ import {
 import { ShopRedemptionsLive } from "@/components/shop-redemptions-live";
 import { ShopArenaPanel } from "@/components/shop-arena-panel";
 import { ShopQuestsManager } from "@/components/shop-quests-manager";
+import { ShopTerritoryBonusPanel } from "@/components/shop-territory-bonus-panel";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -953,6 +954,7 @@ function PerformanceTab({ shop }: { shop: ShopRow }) {
 function SettingsTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <ShopTerritoryBonusPanel businessId={shop.id} />
       <SettingsBlock title="🏪 Shop-Profil">
         <AccountRow label="Name, Adresse, Kategorie bearbeiten" />
         <AccountRow label="Öffnungszeiten" />

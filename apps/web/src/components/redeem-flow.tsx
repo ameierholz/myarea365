@@ -46,14 +46,18 @@ export function RedeemFlow(props: Props) {
 
   // Live-Poll: ob Shop verified hat (+ Loot einsammeln)
   const [loot, setLoot] = useState<{ rarity: "common"|"rare"|"epic"|"legend"|"none"; xp: number } | null>(null);
+  const [territoryBonus, setTerritoryBonus] = useState<{ xp: number; siegel: boolean } | null>(null);
   useEffect(() => {
     if (step !== "active" || !redemptionId) return;
     const poll = async () => {
       const { data } = await sb.from("deal_redemptions")
-        .select("status, loot_rarity, loot_xp").eq("id", redemptionId).single<{ status: string; loot_rarity: string | null; loot_xp: number | null }>();
+        .select("status, loot_rarity, loot_xp, territory_bonus_xp, territory_bonus_siegel").eq("id", redemptionId).single<{ status: string; loot_rarity: string | null; loot_xp: number | null; territory_bonus_xp: number | null; territory_bonus_siegel: boolean | null }>();
       if (data?.status === "verified") {
         if (data.loot_rarity && data.loot_rarity !== "none") {
           setLoot({ rarity: data.loot_rarity as "common"|"rare"|"epic"|"legend", xp: data.loot_xp ?? 0 });
+        }
+        if ((data.territory_bonus_xp ?? 0) > 0 || data.territory_bonus_siegel) {
+          setTerritoryBonus({ xp: data.territory_bonus_xp ?? 0, siegel: !!data.territory_bonus_siegel });
         }
         setStep("done");
       }
@@ -239,6 +243,7 @@ export function RedeemFlow(props: Props) {
               </div>
             </div>
 
+            <TerritoryLordBadge businessId={businessId} />
             <ShopQuestsPreview businessId={businessId} />
 
             <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
@@ -366,6 +371,19 @@ export function RedeemFlow(props: Props) {
               </div>
             )}
 
+            {territoryBonus && (
+              <div style={{
+                marginTop: 12, padding: 12, borderRadius: 12,
+                background: "linear-gradient(135deg, rgba(255,215,0,0.15), rgba(168,85,247,0.1))",
+                border: "1px solid rgba(255,215,0,0.4)",
+              }}>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>👑</div>
+                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>GEBIETSFÜRST-BONUS</div>
+                {territoryBonus.xp > 0 && <div style={{ color: "#FFF", fontSize: 12, marginTop: 4 }}>+{territoryBonus.xp} XP</div>}
+                {territoryBonus.siegel && <div style={{ color: "#FFF", fontSize: 12 }}>+1× Universal-Siegel</div>}
+              </div>
+            )}
+
             {redemptionId && (
               <ReceiptBonusSection redemptionId={redemptionId} onClose={onClose} />
             )}
@@ -386,6 +404,42 @@ export function RedeemFlow(props: Props) {
             <button onClick={onClose} style={btnSecondary}>Schließen</button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function TerritoryLordBadge({ businessId }: { businessId: string }) {
+  const [state, setState] = useState<{ is_lord: boolean; active: boolean; radius_m: number; min_claims: number } | null>(null);
+  useEffect(() => {
+    fetch(`/api/shop/territory-lord?business_id=${businessId}`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setState(d); })
+      .catch(() => {});
+  }, [businessId]);
+  if (!state || !state.active) return null;
+  if (state.is_lord) {
+    return (
+      <div style={{
+        padding: 10, borderRadius: 12, marginBottom: 10,
+        background: "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(168,85,247,0.15))",
+        border: "1px solid rgba(255,215,0,0.4)", display: "flex", alignItems: "center", gap: 10,
+      }}>
+        <span style={{ fontSize: 24 }}>👑</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>GEBIETSFÜRST</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10 }}>Extra-XP & Siegel bei dieser Einlösung</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{
+      padding: 10, borderRadius: 12, marginBottom: 10,
+      background: "rgba(139,143,163,0.1)", border: "1px dashed rgba(139,143,163,0.3)",
+    }}>
+      <div style={{ color: "#a8b4cf", fontSize: 11 }}>
+        🗺️ Erobere <b>{state.min_claims}</b> Gebiete im <b>{state.radius_m}m</b>-Radius rings um diesen Shop (letzte 30 Tage) für den Gebietsfürst-Bonus.
       </div>
     </div>
   );
