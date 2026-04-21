@@ -235,6 +235,14 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
 // Fuer diese Marker erzwingt der Prompt eine geschlechtsneutrale Silhouette.
 const HUMAN_FIGURE_HINTS = ["foot","walker","runner","hero","basic","wanderer","athlet"];
 
+// Icon-IDs/Namen die ein Tier zeigen (für Walking-Pose Erzwingen).
+const ANIMAL_FIGURE_HINTS = [
+  "dog","cat","wolf","fox","bear","deer","horse","rabbit","hare","tiger","lion",
+  "owl","hawk","eagle","falcon","raven","butterfly","bee","beetle",
+  "hund","katze","wolf","fuchs","baer","hirsch","pferd","hase","tiger","loewe",
+  "eule","falke","adler","rabe","schmetterling","biene","kaefer","tier","pet",
+];
+
 export function buildMarkerPrompt(input: {
   name: string;
   hint?: string;
@@ -243,8 +251,22 @@ export function buildMarkerPrompt(input: {
   gender?: "neutral" | "male" | "female";
 }): string {
   const idOrName = (input.id || input.name || "").toLowerCase();
-  const isHuman = HUMAN_FIGURE_HINTS.some((h) => idOrName.includes(h));
+  const hintLower = (input.hint || "").toLowerCase();
+  const combined = `${idOrName} ${hintLower}`;
+  const isHuman = HUMAN_FIGURE_HINTS.some((h) => combined.includes(h));
+  const isAnimal = ANIMAL_FIGURE_HINTS.some((h) => combined.includes(h));
+  const needsWalkingPose = isHuman || isAnimal;
   const gender = input.gender || "neutral";
+
+  const walkingPoseInstruction = !needsWalkingPose ? "" :
+    isHuman
+      ? "POSE: clear WALKING or JOGGING stride — full body visible including BOTH LEGS and BOTH FEET from hip to toe. " +
+        "One leg forward, one leg back in mid-step, knees slightly bent, feet fully drawn (not cropped, not hidden). " +
+        "Arms swinging naturally. Dynamic forward motion readable at a glance."
+      : "POSE: clear WALKING / TROTTING / RUNNING / FLYING motion appropriate to the animal — " +
+        "full body visible including ALL LEGS and PAWS/HOOVES (or wings for birds/insects) from shoulder to foot. " +
+        "Legs in mid-step (one set forward, one back), feet fully drawn and not cropped. " +
+        "Dynamic forward motion readable at a glance.";
 
   const humanInstruction = !isHuman ? "" :
     gender === "male"
@@ -275,10 +297,10 @@ export function buildMarkerPrompt(input: {
     "a butterfly vivid and delicate. Do NOT force every icon into the same visual treatment.";
 
   const directionGuidance =
-    "DIRECTION: the subject must face LEFT and/or move toward the LEFT side of the frame. " +
-    "Profile view (side view), head and body oriented left. If it's an animal running, it runs to the LEFT. " +
+    "DIRECTION: the subject MUST face LEFT and move toward the LEFT side of the frame. " +
+    "Strict side-profile view (side view), head and body oriented LEFT. If it's an animal running, it runs to the LEFT. " +
     "If it's a human walking/running, they stride to the LEFT. Flying creatures: wings/body angled so they are heading LEFT. " +
-    "This must be consistent across all map icons for visual coherence.";
+    "This is a mandatory rule for all map icons — no front-facing, no three-quarter, no right-facing subjects.";
 
   if (input.mode === "video") {
     return [
@@ -286,11 +308,14 @@ export function buildMarkerPrompt(input: {
       `Subject: "${input.name}" — centered, iconic silhouette, readable at very small sizes (32-64 px).`,
       input.hint ? `Motif hint: ${input.hint}.` : "",
       humanInstruction,
+      walkingPoseInstruction,
       styleGuidance,
       directionGuidance,
       fillDisclaimer,
       noPinDisclaimer,
-      `Motion: motion appropriate to the subject (e.g. flames flicker, wings flap slowly, sparkles drift, fur breathes). Slow bob 4-5 px if helpful. No rotation of the whole subject.`,
+      needsWalkingPose
+        ? `Motion: looping walking/running cycle — legs alternating in a clean stride loop, feet never disappearing from view, arms/tail/wings swinging in rhythm. Camera and body position stay fixed; only the walk cycle animates.`
+        : `Motion: motion appropriate to the subject (e.g. flames flicker, wings flap slowly, sparkles drift, fur breathes). Slow bob 4-5 px if helpful. No rotation of the whole subject.`,
       `Lighting: warm-and-cool rim-light to pop against any background. Soft ambient glow appropriate to the subject's color.`,
       `The final frame must exactly match the first frame for seamless looping.`,
       `No audio. No text, no labels, no watermark, no logo, no background, no pin, no marker shape — fully transparent outside the subject silhouette.`,
@@ -300,6 +325,8 @@ export function buildMarkerPrompt(input: {
     `A premium game icon representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
     input.hint ? `Motif hint: ${input.hint}.` : "",
     humanInstruction,
+    walkingPoseInstruction,
+    directionGuidance,
     styleGuidance,
     fillDisclaimer,
     noPinDisclaimer,

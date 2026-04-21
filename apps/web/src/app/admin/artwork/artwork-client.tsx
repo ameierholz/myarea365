@@ -369,9 +369,21 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const upload = async (file: File) => {
     setBusy(true); setErr(null);
     try {
+      console.log("[artwork-upload]", { archetype: a.id, name: file.name, type: file.type, size: file.size });
       const result = await uploadArtworkDirect(file, "archetype", a.id);
-      if (!result.ok) setErr(result.error);
-      else onChange();
+      if (!result.ok) {
+        console.error("[artwork-upload] failed", result.error);
+        setErr(result.error);
+        alert(`Upload-Fehler für "${a.name}":\n\n${result.error}`);
+      } else {
+        console.log("[artwork-upload] ok", result);
+        onChange();
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "unknown_error";
+      console.error("[artwork-upload] exception", e);
+      setErr(msg);
+      alert(`Upload-Fehler: ${msg}`);
     } finally { setBusy(false); }
   };
 
@@ -491,7 +503,11 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
             className="w-full mt-1 bg-[#0F1115] border border-white/10 rounded-lg p-2 text-[10px] text-[#DDD] font-mono h-28 resize-none" />
         </details>
 
-        {err && <div className="text-[10px] text-[#FF2D78] mt-2">{err}</div>}
+        {err && (
+          <div className="mt-2 p-2 rounded-lg bg-[#FF2D78]/15 border border-[#FF2D78]/50 text-[11px] text-[#FF2D78] wrap-break-word">
+            <strong className="block mb-0.5">Fehler:</strong>{err}
+          </div>
+        )}
       </div>
     </div>
   );
