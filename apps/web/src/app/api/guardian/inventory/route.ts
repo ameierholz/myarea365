@@ -22,7 +22,7 @@ export async function GET() {
     .maybeSingle<{ id: string }>();
 
   const { data: items } = await sb.from("user_items")
-    .select("id, item_id, acquired_at, source, item_catalog:item_id(id, name, emoji, slot, rarity, bonus_hp, bonus_atk, bonus_def, bonus_spd, lore)")
+    .select("id, item_id, acquired_at, source, upgrade_tier, item_catalog:item_id(id, name, emoji, slot, rarity, bonus_hp, bonus_atk, bonus_def, bonus_spd, lore, image_url)")
     .eq("user_id", auth.user.id)
     .order("acquired_at", { ascending: false });
 
@@ -33,8 +33,8 @@ export async function GET() {
   const equippedMap = new Map((equipRows ?? []).map((r: { slot: string; user_item_id: string }) => [r.slot, r.user_item_id]));
   const equippedIds = new Set(equippedMap.values());
 
-  type Catalog = { id: string; name: string; emoji: string; slot: string; rarity: string; bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number; lore: string | null };
-  type Row = { id: string; item_id: string; acquired_at: string; source: string; item_catalog: Catalog | Catalog[] };
+  type Catalog = { id: string; name: string; emoji: string; slot: string; rarity: string; bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number; lore: string | null; image_url: string | null };
+  type Row = { id: string; item_id: string; acquired_at: string; source: string; upgrade_tier: number | null; item_catalog: Catalog | Catalog[] };
   const normalizedItems = (items ?? []).map((r: Row) => {
     const cat = Array.isArray(r.item_catalog) ? r.item_catalog[0] : r.item_catalog;
     return {
@@ -42,18 +42,20 @@ export async function GET() {
       item_id: r.item_id,
       acquired_at: r.acquired_at,
       source: r.source,
+      upgrade_tier: r.upgrade_tier ?? 0,
       catalog: cat,
       equipped: equippedIds.has(r.id),
     };
   });
 
-  const equipped = { helm: null as typeof normalizedItems[0] | null, armor: null as typeof normalizedItems[0] | null, amulet: null as typeof normalizedItems[0] | null };
+  // Alle 9 Slots initialisieren + eingerüstete Items einsortieren
+  const equipped: Record<string, typeof normalizedItems[0] | null> = {
+    helm: null, chest: null, hands: null, shoulders: null, boots: null,
+    wrist: null, neck: null, ring: null, weapon: null,
+    armor: null, amulet: null,  // Legacy
+  };
   for (const it of normalizedItems) {
-    if (it.equipped) {
-      if (it.catalog.slot === "helm") equipped.helm = it;
-      if (it.catalog.slot === "armor") equipped.armor = it;
-      if (it.catalog.slot === "amulet") equipped.amulet = it;
-    }
+    if (it.equipped) equipped[it.catalog.slot] = it;
   }
 
   return NextResponse.json({

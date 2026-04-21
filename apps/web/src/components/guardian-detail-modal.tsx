@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { GuardianAvatar } from "@/components/guardian-avatar";
+import { GuardianPaperDoll } from "@/components/guardian-paper-doll";
 import { GuardianTalentTree } from "@/components/guardian-talent-tree";
 import { GuardianSkillsPanel } from "@/components/guardian-skills-panel";
 import {
@@ -24,7 +25,7 @@ type DetailResponse = {
   siegel: UserSiegel;
 };
 
-type Tab = "overview" | "talents" | "skills";
+type Tab = "overview" | "equipment" | "talents" | "skills";
 
 export function GuardianDetailModal({ guardianId, onClose }: { guardianId: string; onClose: () => void }) {
   const [data, setData] = useState<DetailResponse | null>(null);
@@ -137,7 +138,7 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
 
       {/* Tabs */}
       <div style={{ padding: "8px 12px", display: "flex", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        {(["overview", "talents", "skills"] as Tab[]).map((t) => (
+        {(["overview", "equipment", "talents", "skills"] as Tab[]).map((t) => (
           <button key={t} onClick={() => setTab(t)} style={{
             flex: 1, padding: "8px 4px", borderRadius: 10,
             background: tab === t ? "#22D1C3" : "rgba(255,255,255,0.06)",
@@ -145,7 +146,7 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
             border: "none", fontSize: 11, fontWeight: 900, letterSpacing: 1,
             cursor: "pointer",
           }}>
-            {t === "overview" ? "ÜBERSICHT" : t === "talents" ? `TALENTE${g.talent_points_available > 0 ? ` (${g.talent_points_available})` : ""}` : "FÄHIGKEITEN"}
+            {t === "overview" ? "ÜBERSICHT" : t === "equipment" ? "⚔️ AUSRÜSTUNG" : t === "talents" ? `TALENTE${g.talent_points_available > 0 ? ` (${g.talent_points_available})` : ""}` : "FÄHIGKEITEN"}
           </button>
         ))}
       </div>
@@ -164,6 +165,12 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
               💡 Wechsle zum <b>Talente</b>- oder <b>Fähigkeiten</b>-Tab, um deinen Wächter zu optimieren.
             </div>
           </div>
+        )}
+        {tab === "equipment" && (
+          <GuardianPaperDoll
+            avatar={<GuardianAvatar archetype={a} size={140} animation="idle" />}
+            onChange={() => { /* reload not needed, modal holds local state */ }}
+          />
         )}
         {tab === "talents" && (
           <GuardianTalentTree
