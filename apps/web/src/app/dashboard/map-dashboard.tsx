@@ -17,6 +17,7 @@ import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { ArenaSessionModal } from "@/components/arena-session-modal";
+import { PotionInventoryModal } from "@/components/potion-inventory-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
@@ -886,7 +887,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
               onPowerZoneClick={setViewingPowerZone}
-              onLootClick={(id) => {
+              onLootClick={async (id) => {
                 const drop = lootDrops.find((d) => d.id === id);
                 if (!drop) return;
                 if (userCenter) {
@@ -903,6 +904,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   }
                 }
                 setLootDrops((prev) => prev.filter((d) => d.id !== id));
+                // Trank-Roll: 30% common, 10% rare, 3% epic
+                try {
+                  const r = await fetch("/api/loot/potion-roll", { method: "POST" });
+                  if (r.ok) {
+                    const j = await r.json() as { ok?: boolean; potion?: null; name?: string; icon?: string; rarity?: string };
+                    if (j.ok && j.name) {
+                      appAlert(`🎁 Loot + ${j.icon ?? "🧪"} ${j.name}! +25 XP`);
+                      return;
+                    }
+                  }
+                } catch { /* stumm */ }
                 appAlert("🎁 Loot aufgesammelt! +25 XP · Drop-Raten transparent unter /loot-drops");
               }}
             />
@@ -7769,6 +7781,7 @@ function CrewStat({ label, value, accent }: { label: string; value: string; acce
 
 /* ═══ Overview ═══ */
 function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean; onLeave: () => void }) {
+  const [potionsOpen, setPotionsOpen] = useState(false);
   const topChallenge = DEMO_CREW_CHALLENGES[0];
   const topEvent = DEMO_CREW_EVENTS[0];
   const pct = Math.min(100, (topChallenge.current / topChallenge.target) * 100);
@@ -7851,12 +7864,25 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
               {trophies.length > 0 && (
                 <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900 }}>🏆 {trophies.length}</span>
               )}
+              <button
+                onClick={() => setPotionsOpen(true)}
+                title="Trank-Inventar"
+                style={{
+                  padding: "4px 8px", borderRadius: 6, border: "1px solid rgba(168,85,247,0.4)",
+                  background: "rgba(168,85,247,0.12)", color: "#a855f7",
+                  fontSize: 11, fontWeight: 800, cursor: "pointer",
+                }}
+              >
+                🧪 Tränke
+              </button>
               <GuardianHelpButton />
             </div>
           </div>
           <GuardianCard guardian={guardian} compact />
         </div>
       )}
+
+      {potionsOpen && <PotionInventoryModal onClose={() => setPotionsOpen(false)} />}
 
       {/* Rivalen-Duell */}
       <div style={{

@@ -122,10 +122,21 @@ export async function POST(req: Request) {
     // Talente & Skills laden
     const { loadGuardianBattleContext } = await import("@/lib/guardian-battle-context");
     const { getPowerZoneBuffs } = await import("@/lib/power-zone-buffs");
-    const [ctx, zone] = await Promise.all([
+    const [ctx, zone, potionsRes] = await Promise.all([
       loadGuardianBattleContext(sb, gTyped.id),
       getPowerZoneBuffs(sb, body.user_lat as number | null, body.user_lng as number | null),
+      sb.rpc("get_active_potions", { p_user_id: auth.user.id }),
     ]);
+    // Aktive Tränke einrechnen
+    type PotionRow = { effect_key: string; effect_value: number };
+    for (const row of ((potionsRes.data ?? []) as PotionRow[])) {
+      const key = row.effect_key as keyof typeof ctx.talent_bonuses;
+      const val = Number(row.effect_value ?? 0);
+      if (key in ctx.talent_bonuses) {
+        (ctx.talent_bonuses as unknown as Record<string, number>)[key] =
+          ((ctx.talent_bonuses as unknown as Record<string, number>)[key] ?? 0) + val;
+      }
+    }
 
     const baseAtk = gTyped.guardian_archetypes.base_atk * (1 + (gTyped.level - 1) * 0.06);
     const effAtk = (baseAtk + itemAtk + zone.atk) * (1 + (ctx.talent_bonuses.atk_pct ?? 0));

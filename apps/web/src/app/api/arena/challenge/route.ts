@@ -183,11 +183,29 @@ async function handleChallenge(req: Request) {
 
   // Skill-Levels + Talent-Bonuses aus DB laden (sonst kämpfen alle Wächter ohne Progression-Boni)
   // Power-Zone-Buffs aus aktueller Position des Angreifers (nur Attacker hat GPS übermittelt)
-  const [ctxA, ctxB, zoneA] = await Promise.all([
+  const [ctxA, ctxB, zoneA, potionsARes, potionsBRes] = await Promise.all([
     loadGuardianBattleContext(sb, gA.id),
     loadGuardianBattleContext(sb, gB.id),
     getPowerZoneBuffs(sb, attacker_lat ?? null, attacker_lng ?? null),
+    sb.rpc("get_active_potions", { p_user_id: attacker_user_id }),
+    sb.rpc("get_active_potions", { p_user_id: defender_user_id }),
   ]);
+
+  // Aktive Tränke als Talent-Bonus einrechnen (additiv, keys matchen BattleInput)
+  type PotionRow = { effect_key: string; effect_value: number };
+  function mergePotions(ctx: typeof ctxA, rows: PotionRow[] | null | undefined) {
+    for (const row of rows ?? []) {
+      const key = row.effect_key as keyof typeof ctx.talent_bonuses;
+      const val = Number(row.effect_value ?? 0);
+      if (key in ctx.talent_bonuses) {
+        (ctx.talent_bonuses as unknown as Record<string, number>)[key] =
+          ((ctx.talent_bonuses as unknown as Record<string, number>)[key] ?? 0) + val;
+      }
+    }
+    return ctx;
+  }
+  mergePotions(ctxA, potionsARes.data as PotionRow[] | null);
+  mergePotions(ctxB, potionsBRes.data as PotionRow[] | null);
 
   // Power-Zone-Buffs flach auf item_bonuses addieren (beide sind Stat-Bonuses)
   const itemA = {
@@ -291,6 +309,13 @@ async function handleChallenge(req: Request) {
       p_fusion: false,
       p_trophy: false,
     });
+  }
+
+  // Aktive Tränke des Verlierers konsumieren (Haltbarkeit 1h, aber auch Verlust bei Niederlage)
+  if (result.winner === "A") {
+    await sb.rpc("consume_active_potions", { p_user_id: defender_user_id });
+  } else if (result.winner === "B") {
+    await sb.rpc("consume_active_potions", { p_user_id: attacker_user_id });
   }
 
   await Promise.all([

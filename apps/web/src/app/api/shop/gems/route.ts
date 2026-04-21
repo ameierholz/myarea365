@@ -89,6 +89,12 @@ export async function POST(req: Request) {
       user_id: auth.user.id, delta: -item.price_gems, reason: `shop:${item.category}`, metadata: { item_id: item.id },
     });
 
+    // Booster-Effekte: Trank-Pakete grant_random_potion aufrufen
+    if (item.category === "booster" && (item.payload?.effect as string) === "random_potion") {
+      const rarity = (item.payload?.rarity as string) ?? "common";
+      await sb.rpc("grant_random_potion", { p_user_id: auth.user.id, p_rarity: rarity });
+    }
+
     // Crew-Emblem-Effekte anwenden
     if (item.category === "crew_emblem") {
       const effect = (item.payload?.effect as string) ?? item.id;
