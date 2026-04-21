@@ -16,6 +16,7 @@ import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
+import { ArenaSessionModal } from "@/components/arena-session-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
@@ -10112,6 +10113,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
   const [leagueFilter, setLeagueFilter] = useState<string | null>(null);
   const [sortRunner, setSortRunner] = useState<RankingSortRunner>("weekly_xp");
   const [sortCrew, setSortCrew] = useState<RankingSortCrew>("weekly_km");
+  const [arenaSessionOpen, setArenaSessionOpen] = useState(false);
 
   const [isWide, setIsWide] = useState(false);
   useEffect(() => {
@@ -10211,6 +10213,40 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
       <div style={{ color: MUTED, fontSize: 13, marginBottom: 14 }}>
         Bestenlisten für Runner und Crews — filter nach Region und Liga.
       </div>
+
+      {/* Arena-Session-Banner */}
+      <button
+        onClick={() => setArenaSessionOpen(true)}
+        style={{
+          width: "100%", marginBottom: 16,
+          padding: "12px 14px", borderRadius: 14, textAlign: "left",
+          background: "linear-gradient(135deg, rgba(255,107,74,0.18), rgba(255,215,0,0.12))",
+          border: "1px solid rgba(255,107,74,0.4)",
+          boxShadow: "0 0 14px rgba(255,107,74,0.18)",
+          cursor: "pointer", display: "flex", alignItems: "center", gap: 12, color: "#FFF",
+        }}
+      >
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: "linear-gradient(135deg, #FF6B4A, #FFD700)",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+          boxShadow: "0 0 16px rgba(255,107,74,0.4)", flexShrink: 0,
+        }}>🏆</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FF6B4A" }}>🔥 ARENA-SESSION</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
+            Session-Leaderboard & Titel
+          </div>
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+            30 Tage · Runner-Titel · Crew-Pakete mit Siegeln
+          </div>
+        </div>
+        <span style={{ color: "#FFD700", fontSize: 16, fontWeight: 900, flexShrink: 0 }}>›</span>
+      </button>
+
+      {arenaSessionOpen && (
+        <ArenaSessionModal currentUserId={p?.id ?? null} onClose={() => setArenaSessionOpen(false)} />
+      )}
 
       {/* Mode-Toggle */}
       <div style={{

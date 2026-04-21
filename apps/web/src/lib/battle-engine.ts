@@ -28,6 +28,22 @@ export type BattleInput = {
     hp_pct?: number; atk_pct?: number; def_pct?: number; spd_pct?: number;
     crit_pct?: number; crit_dmg?: number; dmg_reduction?: number; evade_pct?: number;
     start_rage?: number;
+    // Ergänzte Keys (seit Talent-Engine-Erweiterung)
+    regen_pct?: number;         // Heilt X% von HpMax pro Runde
+    thorns_pct?: number;        // X% erlittenen Schaden zurück an Angreifer
+    heal_on_hit?: number;       // X% des ausgeteilten Schadens als Heilung
+    counter_pct?: number;       // Chance X einen Konter-Angriff auszulösen
+    skill_dmg?: number;         // +X% Schaden auf Active/Expertise-Skill
+    r1_atk_pct?: number;        // +X% ATK nur in Runde 1
+    late_atk?: number;          // +X% ATK ab Runde 6
+    rage_gen?: number;          // +X% Rage-Generierung
+    pen_pct?: number;           // Ignoriert X% der gegnerischen DEF
+    dot_dmg?: number;           // +X% auf DoT-Ticks (Gift, Flamme)
+    vs_full_hp?: number;        // +X% Schaden wenn Gegner auf >95% HP
+    vs_infantry?: number;
+    vs_cavalry?: number;
+    vs_marksman?: number;
+    vs_mage?: number;
   };
 };
 
@@ -87,6 +103,18 @@ type Combatant = {
     critDmg: number;
     dmgReduction: number;
     evadePct: number;
+    regenPct: number;
+    thornsPct: number;
+    healOnHit: number;
+    counterPct: number;
+    skillDmg: number;
+    r1AtkPct: number;
+    lateAtk: number;
+    rageGen: number;
+    penPct: number;
+    dotDmg: number;
+    vsFullHp: number;
+    vsType: Partial<Record<GuardianType, number>>;
   };
   // Rage
   rage: number;
@@ -158,6 +186,23 @@ function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
       critDmg: t.crit_dmg ?? 0,
       dmgReduction: t.dmg_reduction ?? 0,
       evadePct: t.evade_pct ?? 0,
+      regenPct: t.regen_pct ?? 0,
+      thornsPct: t.thorns_pct ?? 0,
+      healOnHit: t.heal_on_hit ?? 0,
+      counterPct: t.counter_pct ?? 0,
+      skillDmg: (t.skill_dmg ?? 0) + passiveSkillDmg,
+      r1AtkPct: t.r1_atk_pct ?? 0,
+      lateAtk: t.late_atk ?? 0,
+      rageGen: t.rage_gen ?? 0,
+      penPct: t.pen_pct ?? 0,
+      dotDmg: t.dot_dmg ?? 0,
+      vsFullHp: t.vs_full_hp ?? 0,
+      vsType: {
+        infantry: t.vs_infantry ?? 0,
+        cavalry:  t.vs_cavalry  ?? 0,
+        marksman: t.vs_marksman ?? 0,
+        mage:     t.vs_mage     ?? 0,
+      },
     },
     rage: startRage,
     rageMax: 1000,
@@ -263,6 +308,25 @@ function computeDamage(
   // DMG-Reduktion (Talent)
   const reduction = 1 - (defender.talents.dmgReduction ?? 0);
 
+  // r1_atk_pct / late_atk — Runden-basierte ATK-Talente
+  if (round === 1 && attacker.talents.r1AtkPct > 0) atk *= 1 + attacker.talents.r1AtkPct;
+  if (round >= 6 && attacker.talents.lateAtk > 0) atk *= 1 + attacker.talents.lateAtk;
+
+  // vs_full_hp — Bonus gegen volle HP
+  if (defender.hp / defender.hpMax > 0.95 && attacker.talents.vsFullHp > 0) {
+    atk *= 1 + attacker.talents.vsFullHp;
+    note = (note ? note + " · " : "") + "Erster Treffer";
+  }
+
+  // vs_TYP — Typ-spezifischer Bonus (zusätzlich zu Typ-Counter)
+  if (defender.archetypeType) {
+    const typBonus = attacker.talents.vsType[defender.archetypeType] ?? 0;
+    if (typBonus > 0) atk *= 1 + typBonus;
+  }
+
+  // Penetration (Talent) — ignoriert X% DEF
+  if (attacker.talents.penPct > 0) def *= Math.max(0, 1 - attacker.talents.penPct);
+
   // Formel: atk*crit*typ*role*reduction - def/2, min 1
   const raw = atk * critMult * typeMult * roleMult * reduction - def / 2;
   const dmg = Math.max(1, Math.round(raw));
@@ -270,8 +334,9 @@ function computeDamage(
 }
 
 function applyDot(c: Combatant, source: Combatant, rounds: RoundEvent[], roundNum: number): void {
+  const dotAmp = 1 + (source.talents.dotDmg ?? 0);
   if (source.abilityId === "flame") {
-    const burn = Math.round(c.hpMax * 0.1);
+    const burn = Math.round(c.hpMax * 0.1 * dotAmp);
     c.hp = Math.max(0, c.hp - burn);
     rounds.push({
       round: roundNum, actor: source.label, action: "flame", damage: burn,
@@ -284,7 +349,7 @@ function applyDot(c: Combatant, source: Combatant, rounds: RoundEvent[], roundNu
     c.state.poisonStacks++;
   }
   if (c.state.poisonStacks > 0 && source.abilityId === "poison") {
-    const pois = Math.round(c.hpMax * 0.05 * c.state.poisonStacks);
+    const pois = Math.round(c.hpMax * 0.05 * c.state.poisonStacks * dotAmp);
     c.hp = Math.max(0, c.hp - pois);
     rounds.push({
       round: roundNum, actor: source.label, action: "poison", damage: pois,
@@ -332,7 +397,12 @@ function fireUltimate(
   // Expertise: +25% pro Stufe
   const expMult = 1 + attacker.skillLvl.expertise * 0.25;
 
-  const raw = attacker.atk * ultMult * typeMult * expMult - defender.def * 0.25;
+  // Skill-Dmg-Talent: +X% auf Active/Expertise-Schaden
+  const skillDmgMult = 1 + (attacker.talents.skillDmg ?? 0);
+  // Penetration wirkt auch auf Ult
+  const defAfterPen = defender.def * Math.max(0, 1 - (attacker.talents.penPct ?? 0));
+
+  const raw = attacker.atk * ultMult * typeMult * expMult * skillDmgMult - defAfterPen * 0.25;
   const dmg = Math.max(1, Math.round(raw));
   defender.hp = Math.max(0, defender.hp - dmg);
   rounds.push({
@@ -379,6 +449,21 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
 
   const MAX_ROUNDS = 15;
   for (let round = 1; round <= MAX_ROUNDS && ca.hp > 0 && cb.hp > 0; round++) {
+    // Regen-Talent: beide heilen zu Beginn der Runde X% von HpMax
+    for (const c of [ca, cb]) {
+      if (c.talents.regenPct > 0 && c.hp > 0 && c.hp < c.hpMax) {
+        const heal = Math.round(c.hpMax * c.talents.regenPct);
+        const before = c.hp;
+        c.hp = Math.min(c.hpMax, c.hp + heal);
+        if (c.hp > before) {
+          rounds.push({
+            round, actor: c.label, action: "heal", damage: c.hp - before,
+            hp_a_after: ca.hp, hp_b_after: cb.hp, note: "💚 Regen",
+          });
+        }
+      }
+    }
+
     // Support-Rolle: per-round Rage
     ca.rage = Math.min(ca.rageMax, ca.rage + combatSkillRage(ca, "per_round"));
     cb.rage = Math.min(cb.rageMax, cb.rage + combatSkillRage(cb, "per_round"));
@@ -416,15 +501,50 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
         // Sturzflug: 30% stun
         if (attacker.abilityId === "dive" && rng() < 0.3) defender.state.stunned = true;
 
-        // Rage-Aufbau
-        attacker.rage = Math.min(attacker.rageMax, attacker.rage + 100);
-        defender.rage = Math.min(defender.rageMax, defender.rage + 50);
+        // Rage-Aufbau (mit Talent rage_gen)
+        const rageBoostA = 1 + (attacker.talents.rageGen ?? 0);
+        const rageBoostD = 1 + (defender.talents.rageGen ?? 0);
+        attacker.rage = Math.min(attacker.rageMax, attacker.rage + Math.round(100 * rageBoostA));
+        defender.rage = Math.min(defender.rageMax, defender.rage + Math.round(50 * rageBoostD));
 
         // Combat-Skill Bonus-Rage
         if (crit) attacker.rage = Math.min(attacker.rageMax, attacker.rage + combatSkillRage(attacker, "on_crit"));
         defender.rage = Math.min(defender.rageMax, defender.rage + combatSkillRage(defender, "on_hit"));
         if (defender.hp / defender.hpMax < 0.5) {
           defender.rage = Math.min(defender.rageMax, defender.rage + combatSkillRage(defender, "low_hp"));
+        }
+
+        // Heal-on-Hit (Lifesteal) — Attacker heilt X% des ausgeteilten Schadens
+        if (attacker.talents.healOnHit > 0 && attacker.hp > 0) {
+          const heal = Math.round(dmg * attacker.talents.healOnHit);
+          const before = attacker.hp;
+          attacker.hp = Math.min(attacker.hpMax, attacker.hp + heal);
+          if (attacker.hp > before) {
+            rounds.push({
+              round, actor: attacker.label, action: "heal", damage: attacker.hp - before,
+              hp_a_after: ca.hp, hp_b_after: cb.hp, note: "🩸 Lifesteal",
+            });
+          }
+        }
+
+        // Thorns — Angreifer bekommt X% des erlittenen Schadens zurück
+        if (defender.talents.thornsPct > 0 && attacker.hp > 0) {
+          const back = Math.max(1, Math.round(dmg * defender.talents.thornsPct));
+          attacker.hp = Math.max(0, attacker.hp - back);
+          rounds.push({
+            round, actor: defender.label, action: "attack", damage: back,
+            hp_a_after: ca.hp, hp_b_after: cb.hp, note: "🌵 Dornen",
+          });
+        }
+
+        // Counter-Angriff — Chance auf Gegenschlag (halber Schaden, kein Crit)
+        if (defender.hp > 0 && defender.talents.counterPct > 0 && rng() < defender.talents.counterPct) {
+          const counter = Math.max(1, Math.round((defender.atk - attacker.def / 2) * 0.5));
+          attacker.hp = Math.max(0, attacker.hp - counter);
+          rounds.push({
+            round, actor: defender.label, action: "attack", damage: counter,
+            hp_a_after: ca.hp, hp_b_after: cb.hp, note: "⚔️ Konter",
+          });
         }
       }
 

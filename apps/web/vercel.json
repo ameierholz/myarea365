@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/arena-session",
+      "schedule": "5 0 * * *"
+    }
+  ]
+}

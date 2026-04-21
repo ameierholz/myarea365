@@ -51,8 +51,11 @@ type RunnerProfileData = {
   collection_total: number;
 };
 
+type ArenaTitle = { id: string; rank: number; title: string; awarded_at: string; arena_sessions: { name: string } };
+
 export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { userId: string; onClose: () => void; canEditBanner?: boolean }) {
   const [data, setData] = useState<RunnerProfileData | null>(null);
+  const [titles, setTitles] = useState<ArenaTitle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [bannerBusy, setBannerBusy] = useState(false);
 
@@ -62,6 +65,17 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
     setData(await res.json() as RunnerProfileData);
   };
   useEffect(() => { reload(); }, [userId]);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetch(`/api/arena/session?for_user_id=${userId}`);
+        if (r.ok) {
+          const j = await r.json() as { titles?: ArenaTitle[] };
+          setTitles(j.titles ?? []);
+        }
+      } catch { /* stumm */ }
+    })();
+  }, [userId]);
 
   async function onBannerFile(file: File) {
     setBannerBusy(true);
@@ -403,6 +417,28 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                   <Stat label="WIN-RATE"    value={`${winRate}%`} color={GOLD} />
                 </div>
               </SectionCard>
+
+              {/* ══ ARENA-TITEL ══ */}
+              {titles.length > 0 && (
+                <SectionCard title="ARENA-TITEL" color="#FF6B4A" icon="🏆" style={{ marginTop: 14 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {titles.map((t) => {
+                      const color = t.rank === 1 ? "#FFD700" : t.rank === 2 ? "#e8e8e8" : "#cd7f32";
+                      return (
+                        <div key={t.id} style={{
+                          padding: "6px 10px", borderRadius: 999,
+                          background: `${color}20`,
+                          border: `1px solid ${color}`,
+                          color,
+                          fontSize: 11, fontWeight: 800,
+                        }}>
+                          {t.title} · <span style={{ color: MUTED, fontWeight: 600 }}>{t.arena_sessions.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </SectionCard>
+              )}
 
               {/* ══ WALKING ══ */}
               <SectionCard title="WALKING-STATISTIK" color={PRIMARY} icon="🏃" style={{ marginTop: 10 }}>

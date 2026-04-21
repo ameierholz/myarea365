@@ -4,6 +4,7 @@ import { createClient as createAdminClient, type SupabaseClient } from "@supabas
 import { runBattle, type BattleInput } from "@/lib/battle-engine";
 import { GUARDIAN_LEVEL_CAP } from "@/lib/guardian";
 import { loadGuardianBattleContext } from "@/lib/guardian-battle-context";
+import { getPowerZoneBuffs } from "@/lib/power-zone-buffs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -181,15 +182,25 @@ async function handleChallenge(req: Request) {
   const [attCount, defCount] = await Promise.all([countMembers(attProfile?.current_crew_id ?? null), countMembers(defProfile?.current_crew_id ?? null)]);
 
   // Skill-Levels + Talent-Bonuses aus DB laden (sonst kämpfen alle Wächter ohne Progression-Boni)
-  const [ctxA, ctxB] = await Promise.all([
+  // Power-Zone-Buffs aus aktueller Position des Angreifers (nur Attacker hat GPS übermittelt)
+  const [ctxA, ctxB, zoneA] = await Promise.all([
     loadGuardianBattleContext(sb, gA.id),
     loadGuardianBattleContext(sb, gB.id),
+    getPowerZoneBuffs(sb, attacker_lat ?? null, attacker_lng ?? null),
   ]);
+
+  // Power-Zone-Buffs flach auf item_bonuses addieren (beide sind Stat-Bonuses)
+  const itemA = {
+    hp:  (gA.item_bonuses?.hp  ?? 0) + zoneA.hp,
+    atk: (gA.item_bonuses?.atk ?? 0) + zoneA.atk,
+    def: (gA.item_bonuses?.def ?? 0) + zoneA.def,
+    spd: (gA.item_bonuses?.spd ?? 0) + zoneA.spd,
+  };
 
   const inputA: BattleInput = {
     guardian: { id: gA.id, level: gA.level, current_hp_pct: gA.current_hp_pct, archetype: gA.archetype },
     is_home: false, crew_member_count: attCount,
-    item_bonuses: gA.item_bonuses,
+    item_bonuses: itemA,
     skill_levels: ctxA.skill_levels,
     talent_bonuses: ctxA.talent_bonuses,
   };

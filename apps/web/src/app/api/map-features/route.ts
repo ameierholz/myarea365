@@ -121,10 +121,14 @@ export async function POST(req: Request) {
 
     // Talente & Skills laden
     const { loadGuardianBattleContext } = await import("@/lib/guardian-battle-context");
-    const ctx = await loadGuardianBattleContext(sb, gTyped.id);
+    const { getPowerZoneBuffs } = await import("@/lib/power-zone-buffs");
+    const [ctx, zone] = await Promise.all([
+      loadGuardianBattleContext(sb, gTyped.id),
+      getPowerZoneBuffs(sb, body.user_lat as number | null, body.user_lng as number | null),
+    ]);
 
     const baseAtk = gTyped.guardian_archetypes.base_atk * (1 + (gTyped.level - 1) * 0.06);
-    const effAtk = (baseAtk + itemAtk) * (1 + (ctx.talent_bonuses.atk_pct ?? 0));
+    const effAtk = (baseAtk + itemAtk + zone.atk) * (1 + (ctx.talent_bonuses.atk_pct ?? 0));
     const hpMod = 0.5 + 0.5 * (gTyped.current_hp_pct / 100); // verwundet → weniger Schaden
 
     // Skill-Bonus: jeder Skill-Level addiert 6% Outgoing-Damage (5 Skills × 5 Level = max +150%)
@@ -145,7 +149,7 @@ export async function POST(req: Request) {
       p_user_lat: body.user_lat as number, p_user_lng: body.user_lng as number,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ...data, damage, crit: critRoll });
+    return NextResponse.json({ ...data, damage, crit: critRoll, power_zones: zone.zones });
   }
   if (action === "assign_loot") {
     const { data, error } = await sb.rpc("assign_boss_loot", {
