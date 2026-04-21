@@ -8,30 +8,30 @@ insert into public.guardian_archetypes
    ability_id, ability_name, ability_desc, lore)
 values
   -- ═══ ELITE (Einsteiger) ═══
-  ('stadtfuchs',    'Gossendieb',     '🥷', 'elite', 'marksman', 'dps',      100, 22, 15, 25, 'xp_steal',    'Listiger Zug',    '+10% XP bei Sieg',                                    'Schnelle Finger, schnelle Füße.'),
-  ('dachs',         'Schildwache',    '🛡️', 'elite', 'infantry', 'tank',     120, 18, 25, 12, 'wall',        'Bollwerk',        '+20% DEF in der ersten Runde',                        'Wer an ihm vorbeikommt hat sich verlaufen.'),
-  ('taube',         'Tänzer',         '💃', 'elite', 'marksman', 'dps',       90, 16, 12, 28, 'evade',       'Flatterhaft',     '20% Chance Angriffe auszuweichen',                    'Schwerelos zwischen Schlägen.'),
-  ('spatz',         'Gassenjunge',    '🧒', 'elite', 'cavalry',  'dps',       85, 20, 10, 30, 'swarm',       'Schwarm',         'Erster Angriff trifft doppelt',                       'Schmal, schnell, kommt in Schwärmen.'),
-  ('strassenhund',  'Söldner',        '🤺', 'elite', 'infantry', 'balanced', 110, 21, 18, 20, 'loyal',       'Treuer Biss',     '+15% ATK wenn HP unter 50%',                          'Bezahlt mit Treue — wenn sie knapp wird, wird er gefährlich.'),
-  ('ratte',         'Apotheker',      '⚗️', 'elite', 'mage',     'support',   95, 19, 14, 26, 'poison',      'Gift-Mischung',   '5% HP des Gegners pro Runde (max 3)',                 'Heilung für Freunde, Gift für Feinde.'),
+  ('schattenfinger',   'Schattenfinger',  '🥷', 'elite', 'marksman', 'dps',      100, 22, 15, 25, 'xp_steal',    'Listiger Zug',    '+10% XP bei Sieg',                                    'Schnelle Finger, schnelle Füße.'),
+  ('grenzwaechter',    'Grenzwächter',    '🛡️', 'elite', 'infantry', 'tank',     120, 18, 25, 12, 'wall',        'Bollwerk',        '+20% DEF in der ersten Runde',                        'Wer an ihm vorbeikommt hat sich verlaufen.'),
+  ('klingentaenzer',   'Klingen-Tänzer',  '💃', 'elite', 'marksman', 'dps',       90, 16, 12, 28, 'evade',       'Flatterhaft',     '20% Chance Angriffe auszuweichen',                    'Schwerelos zwischen Schlägen.'),
+  ('gossenfluesterer', 'Gossenflüsterer', '🧒', 'elite', 'cavalry',  'dps',       85, 20, 10, 30, 'swarm',       'Schwarm',         'Erster Angriff trifft doppelt',                       'Schmal, schnell, kommt in Schwärmen.'),
+  ('freischaerler',    'Freischärler',    '🤺', 'elite', 'infantry', 'balanced', 110, 21, 18, 20, 'loyal',       'Treuer Biss',     '+15% ATK wenn HP unter 50%',                          'Bezahlt mit Treue — wenn sie knapp wird, wird er gefährlich.'),
+  ('giftmischer',      'Giftmischer',     '⚗️', 'elite', 'mage',     'support',   95, 19, 14, 26, 'poison',      'Gift-Mischung',   '5% HP des Gegners pro Runde (max 3)',                 'Heilung für Freunde, Gift für Feinde.'),
 
   -- ═══ EPIC ═══
-  ('nachteule',     'Straßenmagier',  '🧙', 'epic', 'mage',      'dps',      130, 24, 18, 22, 'nightsight',  'Nachtsicht',      '+30% ATK wenn Kampf nach 20 Uhr',                     'Er sieht deine Angriffe bevor du sie denkst.'),
-  ('waschbaer',     'Dieb',           '🦹', 'epic', 'mage',      'support',  125, 22, 20, 22, 'thief',       'Diebesgriff',     '30% Chance Gegner-Buff zu klauen',                    'Dir fehlt etwas. Er hat es.'),
-  ('stadtkatze',    'Parkour-Mönch',  '🧘', 'epic', 'cavalry',   'balanced', 115, 26, 15, 27, 'nineleaves',  'Neun Leben',      'Überlebt ersten tödlichen Treffer mit 1 HP',          'Gefallen, aufgestanden, wieder gefallen — und wieder auf.'),
-  ('eule',          'Gelehrte',       '📜', 'epic', 'mage',      'dps',      120, 20, 22, 24, 'focus',       'Fokus',           'Ignoriert 50% DEF bei kritischen Treffern',           'Studiert jeden Gegner bevor sie zuschlägt.'),
-  ('fledermaus',    'Schatten',       '👤', 'epic', 'marksman',  'dps',      105, 23, 16, 29, 'echolot',     'Echolot',         'Trifft immer zuerst in Runde 1',                      'Du hörst sie nicht, du siehst sie nicht, du triffst sie nicht.'),
-  ('moewe',         'Meuchler',       '🗡️', 'epic', 'marksman',  'dps',      110, 25, 14, 28, 'ambush',      'Hinterhalt',      '+50% ATK bei erstem Treffer',                         'Einmal zuschlagen, einmal verschwinden.'),
-  ('rudelalpha',    'Hauptmann',      '🎖️', 'epic', 'infantry',  'support',  160, 30, 22, 24, 'pack',        'Rudel-Ruf',       '+10% ATK für jedes lebende Crew-Mitglied (max +50%)', 'Wo er steht, steht die ganze Crew.'),
-  ('eber',          'Paladin',        '🛡️', 'epic', 'infantry',  'tank',     180, 28, 30, 18, 'fortress',    'Festung',         '+30% DEF wenn Arena in eigener Stadt',                'Der Boden bebt wenn er anrückt.'),
+  ('neonmagier',       'Neon-Magier',     '🧙', 'epic', 'mage',      'dps',      130, 24, 18, 22, 'nightsight',  'Nachtsicht',      '+30% ATK wenn Kampf nach 20 Uhr',                     'Er sieht deine Angriffe bevor du sie denkst.'),
+  ('meisterdieb',      'Meisterdieb',     '🦹', 'epic', 'mage',      'support',  125, 22, 20, 22, 'thief',       'Diebesgriff',     '30% Chance Gegner-Buff zu klauen',                    'Dir fehlt etwas. Er hat es.'),
+  ('daechermoench',    'Dächer-Mönch',    '🧘', 'epic', 'cavalry',   'balanced', 115, 26, 15, 27, 'nineleaves',  'Neun Leben',      'Überlebt ersten tödlichen Treffer mit 1 HP',          'Gefallen, aufgestanden, wieder gefallen — und wieder auf.'),
+  ('runenleserin',     'Runenleserin',    '📜', 'epic', 'mage',      'dps',      120, 20, 22, 24, 'focus',       'Fokus',           'Ignoriert 50% DEF bei kritischen Treffern',           'Studiert jeden Gegner bevor sie zuschlägt.'),
+  ('nebelgaenger',     'Nebelgänger',     '👤', 'epic', 'marksman',  'dps',      105, 23, 16, 29, 'echolot',     'Echolot',         'Trifft immer zuerst in Runde 1',                      'Du hörst sie nicht, du siehst sie nicht, du triffst sie nicht.'),
+  ('dolchfluesterer',  'Dolchflüsterer',  '🗡️', 'epic', 'marksman',  'dps',      110, 25, 14, 28, 'ambush',      'Hinterhalt',      '+50% ATK bei erstem Treffer',                         'Einmal zuschlagen, einmal verschwinden.'),
+  ('feldkommandant',   'Feldkommandant',  '🎖️', 'epic', 'infantry',  'support',  160, 30, 22, 24, 'pack',        'Rudel-Ruf',       '+10% ATK für jedes lebende Crew-Mitglied (max +50%)', 'Wo er steht, steht die ganze Crew.'),
+  ('eisenhand',        'Eisenhand',       '🛡️', 'epic', 'infantry',  'tank',     180, 28, 30, 18, 'fortress',    'Festung',         '+30% DEF wenn Arena in eigener Stadt',                'Der Boden bebt wenn er anrückt.'),
 
   -- ═══ LEGENDARY ═══
-  ('wolf',          'Assassine',      '🥷', 'legendary', 'cavalry',  'dps',      150, 32, 20, 27, 'stealth',     'Schatten',        '25% Chance einen Angriff zu verdoppeln',              'Er schlägt zweimal bevor du ihn siehst.'),
-  ('baer',          'Berserker',      '🪓', 'legendary', 'infantry', 'dps',      200, 28, 28, 14, 'rage',        'Wut-Aufbau',      '+5% ATK pro erlittenem Treffer (max +40%)',           'Je mehr du triffst, desto gefährlicher wird er.'),
-  ('falke',         'Schnellklinge',  '⚔️', 'legendary', 'marksman', 'dps',      170, 38, 22, 32, 'firststrike', 'Erstschlag',      'Erste Runde: +100% ATK, immer kritisch',              'Legende erzählt: ein Hieb reicht.'),
-  ('drache',        'Erzmagier',      '🔥', 'legendary', 'mage',     'dps',      220, 40, 32, 20, 'flame',       'Flamme',          'Gegner verliert 10% HP pro Runde (ignoriert DEF)',    'Aus einer Zeit vor Städten und Straßen.'),
-  ('phoenix',       'Hohepriester',   '✨', 'legendary', 'mage',     'support',  160, 36, 24, 30, 'rebirth',     'Wiedergeburt',    'Einmal pro Kampf: voll geheilt bei 0 HP',             'Tod ist für ihn nur ein Übergang.'),
-  ('wyvern',        'Sturmritter',    '⚡', 'legendary', 'cavalry',  'balanced', 190, 38, 28, 26, 'dive',        'Sturzflug',       '30% Chance Gegner zu betäuben (1 Runde ohne Angriff)','Dächer sind seine Jagdgründe, Straßen seine Speisekammer.')
+  ('schattenklinge',   'Schattenklinge',  '🥷', 'legendary', 'cavalry',  'dps',      150, 32, 20, 27, 'stealth',     'Schatten',        '25% Chance einen Angriff zu verdoppeln',              'Er schlägt zweimal bevor du ihn siehst.'),
+  ('blutstuermer',     'Blutstürmer',     '🪓', 'legendary', 'infantry', 'dps',      200, 28, 28, 14, 'rage',        'Wut-Aufbau',      '+5% ATK pro erlittenem Treffer (max +40%)',           'Je mehr du triffst, desto gefährlicher wird er.'),
+  ('stahlfeder',       'Stahlfeder',      '⚔️', 'legendary', 'marksman', 'dps',      170, 38, 22, 32, 'firststrike', 'Erstschlag',      'Erste Runde: +100% ATK, immer kritisch',              'Legende erzählt: ein Hieb reicht.'),
+  ('flammenherr',      'Flammenherr',     '🔥', 'legendary', 'mage',     'dps',      220, 40, 32, 20, 'flame',       'Flamme',          'Gegner verliert 10% HP pro Runde (ignoriert DEF)',    'Aus einer Zeit vor Städten und Straßen.'),
+  ('lichtbringer',     'Lichtbringer',    '✨', 'legendary', 'mage',     'support',  160, 36, 24, 30, 'rebirth',     'Wiedergeburt',    'Einmal pro Kampf: voll geheilt bei 0 HP',             'Tod ist für ihn nur ein Übergang.'),
+  ('donnerreiter',     'Donnerreiter',    '⚡', 'legendary', 'cavalry',  'balanced', 190, 38, 28, 26, 'dive',        'Sturzflug',       '30% Chance Gegner zu betäuben (1 Runde ohne Angriff)','Dächer sind seine Jagdgründe, Straßen seine Speisekammer.')
 on conflict (id) do update set
   name          = excluded.name,
   emoji         = excluded.emoji,
@@ -240,8 +240,8 @@ insert into public.gem_shop_items (id, category, name, description, icon, price_
   ('respec_token',      'convenience', 'Respec-Token',       'Talentbaum einmalig kostenlos neu vergeben','🔄', 200, null, '{"respec_guardians":1}'::jsonb,         20),
   ('extra_loadout',     'convenience', 'Extra Build-Slot',   '+1 Loadout-Speicher pro Wächter',           '💾', 300, null, '{"extra_loadouts":1}'::jsonb,           21),
   ('arena_pass_month',  'arena_pass',  'Arena-Pass (30 Tage)','Täglich 20 Edelsteine · 1,5× XP · exklusive Skins','🎫', 999,  720, '{"xp_multiplier":1.5,"daily_gems":20}'::jsonb, 1),
-  ('skin_paladin_gold', 'cosmetic',    'Gold-Paladin',       'Legendärer Skin für Paladin',               '👑', 800, null, '{"skin_id":"paladin_gold","archetype":"eber"}'::jsonb, 30),
-  ('skin_drache_void',  'cosmetic',    'Void-Drache',        'Schatten-Skin für Erzmagier',               '🌑', 1200, null,'{"skin_id":"drache_void","archetype":"drache"}'::jsonb, 31),
+  ('skin_paladin_gold', 'cosmetic',    'Gold-Paladin',       'Legendärer Skin für Paladin',               '👑', 800, null, '{"skin_id":"paladin_gold","archetype":"eisenhand"}'::jsonb, 30),
+  ('skin_drache_void',  'cosmetic',    'Void-Drache',        'Schatten-Skin für Erzmagier',               '🌑', 1200, null,'{"skin_id":"drache_void","archetype":"flammenherr"}'::jsonb, 31),
   ('pin_theme_neon',    'cosmetic',    'Neon-Pin-Theme',     'Karten-Pins im Neon-Glow',                  '💠', 400, null, '{"pin_theme":"neon"}'::jsonb,           40),
   ('crew_emblem_pro',   'crew_emblem', 'Crew-Emblem Pro',    'Eigenes Logo + Farben + Banner',            '🏳️', 600, null, '{"emblem_pro":true}'::jsonb,            50)
 on conflict (id) do update set

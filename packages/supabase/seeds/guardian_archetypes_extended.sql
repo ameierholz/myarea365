@@ -11,61 +11,61 @@ insert into public.guardian_archetypes
 values
   -- ═══ ELITE (14 neue — insg. 20 Elite) ═══
   -- Infantry (4 neu)
-  ('tuersteher',    'Türsteher',     '🧱', 'elite', 'infantry', 'tank',     125, 19, 24, 14, 'wall',        'Bollwerk',       '+20% DEF in der ersten Runde',                        'Kein Pass, kein Durchkommen.'),
-  ('schrotthaendler','Schrotthändler','⚒️', 'elite', 'infantry', 'balanced', 115, 20, 20, 18, 'loyal',       'Zäher Handel',   '+15% ATK wenn HP unter 50%',                          'Was kaputt ist, wird Waffe.'),
-  ('gerichtsvollzieher','Gerichtsvollzieher','📋','elite','infantry','dps',  108, 23, 18, 16, 'ambush',      'Eintreibung',    '+50% ATK bei erstem Treffer',                         'Er kommt immer in schwarz.'),
-  ('sanitaeter',    'Sanitäter',     '🚑', 'elite', 'infantry', 'support',  118, 17, 22, 16, 'wall',        'Feldbett',       '+20% DEF in der ersten Runde',                        'Rettet, bevor er kämpft.'),
+  ('tuersteher',    'Clubwächter',     '🧱', 'elite', 'infantry', 'tank',     125, 19, 24, 14, 'wall',        'Bollwerk',       '+20% DEF in der ersten Runde',                        'Kein Pass, kein Durchkommen.'),
+  ('schrotthaendler','Altmetall-Krieger','⚒️', 'elite', 'infantry', 'balanced', 115, 20, 20, 18, 'loyal',       'Zäher Handel',   '+15% ATK wenn HP unter 50%',                          'Was kaputt ist, wird Waffe.'),
+  ('gerichtsvollzieher','Schuldeneintreiber','📋','elite','infantry','dps',  108, 23, 18, 16, 'ambush',      'Eintreibung',    '+50% ATK bei erstem Treffer',                         'Er kommt immer in schwarz.'),
+  ('sanitaeter',    'Feldfelcher',     '🚑', 'elite', 'infantry', 'support',  118, 17, 22, 16, 'wall',        'Feldbett',       '+20% DEF in der ersten Runde',                        'Rettet, bevor er kämpft.'),
   -- Cavalry (4 neu)
-  ('kurier',        'Fahrradkurier', '🚲', 'elite', 'cavalry',  'dps',       88, 22, 10, 32, 'swarm',       'Schwarm',        'Erster Angriff trifft doppelt',                       'Schneller als jede Ampel.'),
-  ('skater',        'Skater',        '🛹', 'elite', 'cavalry',  'dps',       92, 21, 12, 30, 'evade',       'Grind',          '20% Chance Angriffe auszuweichen',                    'Der Asphalt liebt ihn.'),
-  ('laeufer',       'Marathoni',     '🏃', 'elite', 'cavalry',  'balanced',  95, 20, 14, 28, 'xp_steal',    'Endlos-Lauf',    '+10% XP bei Sieg',                                    'Gehen ist Medizin, Laufen ist Religion.'),
-  ('parkour_alt',   'Traceur',       '🏃', 'elite', 'cavalry',  'dps',       90, 22, 11, 29, 'evade',       'Sprung',         '20% Chance Angriffe auszuweichen',                    'Mauern sind nur Vorschläge.'),
+  ('kurier',        'Asphalt-Kurier', '🚲', 'elite', 'cavalry',  'dps',       88, 22, 10, 32, 'swarm',       'Schwarm',        'Erster Angriff trifft doppelt',                       'Schneller als jede Ampel.'),
+  ('skater',        'Deck-Reiter',        '🛹', 'elite', 'cavalry',  'dps',       92, 21, 12, 30, 'evade',       'Grind',          '20% Chance Angriffe auszuweichen',                    'Der Asphalt liebt ihn.'),
+  ('laeufer',       'Dauerläufer',     '🏃', 'elite', 'cavalry',  'balanced',  95, 20, 14, 28, 'xp_steal',    'Endlos-Lauf',    '+10% XP bei Sieg',                                    'Gehen ist Medizin, Laufen ist Religion.'),
+  ('parkour_alt',   'Mauerläufer',       '🏃', 'elite', 'cavalry',  'dps',       90, 22, 11, 29, 'evade',       'Sprung',         '20% Chance Angriffe auszuweichen',                    'Mauern sind nur Vorschläge.'),
   -- Marksman (3 neu)
-  ('fotograf',      'Streetfotograf','📷', 'elite', 'marksman', 'support',   95, 19, 14, 26, 'focus',       'Scharfer Blick', 'Ignoriert 50% DEF bei kritischen Treffern',           'Wer eine Linse hält, hat ein Ziel.'),
-  ('taschendieb',   'Taschendieb',   '👛', 'elite', 'marksman', 'dps',       85, 23, 10, 30, 'xp_steal',    'Langer Finger',  '+10% XP bei Sieg',                                    'Du bemerkst ihn erst, wenn du zahlen willst.'),
-  ('barista',       'Barista',       '☕', 'elite', 'marksman', 'support',   92, 20, 14, 26, 'focus',       'Koffein-Rausch', 'Ignoriert 50% DEF bei kritischen Treffern',           'Gib ihm 5 Minuten und er wacht auf.'),
+  ('fotograf',      'Linsenfänger','📷', 'elite', 'marksman', 'support',   95, 19, 14, 26, 'focus',       'Scharfer Blick', 'Ignoriert 50% DEF bei kritischen Treffern',           'Wer eine Linse hält, hat ein Ziel.'),
+  ('taschendieb',   'Fingerflinker',   '👛', 'elite', 'marksman', 'dps',       85, 23, 10, 30, 'xp_steal',    'Langer Finger',  '+10% XP bei Sieg',                                    'Du bemerkst ihn erst, wenn du zahlen willst.'),
+  ('barista',       'Koffein-Alchemistin',       '☕', 'elite', 'marksman', 'support',   92, 20, 14, 26, 'focus',       'Koffein-Rausch', 'Ignoriert 50% DEF bei kritischen Treffern',           'Gib ihm 5 Minuten und er wacht auf.'),
   -- Mage (3 neu)
-  ('graffiti',      'Graffiti-Magier','🎨','elite', 'mage',     'dps',      100, 22, 14, 24, 'poison',      'Sprühnebel',     '5% HP des Gegners pro Runde (max 3)',                 'Seine Kunst brennt in der Netzhaut.'),
-  ('dj',            'Straßen-DJ',    '🎧', 'elite', 'mage',     'support',   98, 18, 18, 24, 'poison',      'Beat-Drop',      '5% HP des Gegners pro Runde (max 3)',                 'Der Bass schlägt schneller als dein Herz.'),
-  ('poet',          'Slam-Poet',     '📝', 'elite', 'mage',     'balanced',  95, 20, 16, 24, 'nightsight',  'Wortsalve',      '+30% ATK wenn Kampf nach 20 Uhr',                     'Worte können mehr verletzen als Klingen.'),
+  ('graffiti',      'Sprühzauberer','🎨','elite', 'mage',     'dps',      100, 22, 14, 24, 'poison',      'Sprühnebel',     '5% HP des Gegners pro Runde (max 3)',                 'Seine Kunst brennt in der Netzhaut.'),
+  ('dj',            'Beatmacher',    '🎧', 'elite', 'mage',     'support',   98, 18, 18, 24, 'poison',      'Beat-Drop',      '5% HP des Gegners pro Runde (max 3)',                 'Der Bass schlägt schneller als dein Herz.'),
+  ('poet',          'Wortschmied',     '📝', 'elite', 'mage',     'balanced',  95, 20, 16, 24, 'nightsight',  'Wortsalve',      '+30% ATK wenn Kampf nach 20 Uhr',                     'Worte können mehr verletzen als Klingen.'),
 
   -- ═══ EPIC (12 neue — insg. 20 Epic) ═══
   -- Infantry (3 neu)
-  ('wachmann',      'Wachmann',      '👮', 'epic', 'infantry',  'tank',     170, 26, 28, 18, 'fortress',    'Revier-Schutz',  '+30% DEF wenn Arena in eigener Stadt',                'Er kennt jede Gasse seines Viertels.'),
-  ('brauer',        'Bierbrauer',    '🍺', 'epic', 'infantry',  'dps',      155, 29, 24, 20, 'rage',        'Gärungswut',     '+5% ATK pro erlittenem Treffer (max +40%)',           'Nach dem 10. Krug wird er gefährlich.'),
-  ('schmied',       'Straßenschmied','🔨', 'epic', 'infantry',  'balanced', 160, 28, 26, 20, 'pack',        'Handwerks-Schlag','+10% ATK pro Crew-Mitglied (max +50%)',             'Jedes Werkzeug wird Waffe in seinen Händen.'),
+  ('wachmann',      'Revier-Hüter',      '👮', 'epic', 'infantry',  'tank',     170, 26, 28, 18, 'fortress',    'Revier-Schutz',  '+30% DEF wenn Arena in eigener Stadt',                'Er kennt jede Gasse seines Viertels.'),
+  ('brauer',        'Gärungs-Alchemist',    '🍺', 'epic', 'infantry',  'dps',      155, 29, 24, 20, 'rage',        'Gärungswut',     '+5% ATK pro erlittenem Treffer (max +40%)',           'Nach dem 10. Krug wird er gefährlich.'),
+  ('schmied',       'Schmiedehammer','🔨', 'epic', 'infantry',  'balanced', 160, 28, 26, 20, 'pack',        'Handwerks-Schlag','+10% ATK pro Crew-Mitglied (max +50%)',             'Jedes Werkzeug wird Waffe in seinen Händen.'),
   -- Cavalry (3 neu)
-  ('reiter',        'Polizei-Reiter','🐴', 'epic', 'cavalry',   'tank',     155, 28, 24, 26, 'fortress',    'Berittene Hoheit','+30% DEF wenn Arena in eigener Stadt',               'Wo er vorbeireitet, verstummt der Krawall.'),
-  ('bote',          'Express-Bote',  '📦', 'epic', 'cavalry',   'dps',      130, 30, 18, 28, 'stealth',     'Blitzlieferung', '25% Chance einen Angriff zu verdoppeln',              'Heute bestellt, jetzt dein Problem.'),
-  ('jockey',        'Rennjockey',    '🏇', 'epic', 'cavalry',   'dps',      125, 31, 17, 29, 'firststrike', 'Start-Schuss',   'Runde 1: +100% ATK, immer kritisch',                  'Der erste Meter entscheidet.'),
+  ('reiter',        'Streifenreiter','🐴', 'epic', 'cavalry',   'tank',     155, 28, 24, 26, 'fortress',    'Berittene Hoheit','+30% DEF wenn Arena in eigener Stadt',               'Wo er vorbeireitet, verstummt der Krawall.'),
+  ('bote',          'Blitz-Bote',  '📦', 'epic', 'cavalry',   'dps',      130, 30, 18, 28, 'stealth',     'Blitzlieferung', '25% Chance einen Angriff zu verdoppeln',              'Heute bestellt, jetzt dein Problem.'),
+  ('jockey',        'Startblitz',    '🏇', 'epic', 'cavalry',   'dps',      125, 31, 17, 29, 'firststrike', 'Start-Schuss',   'Runde 1: +100% ATK, immer kritisch',                  'Der erste Meter entscheidet.'),
   -- Marksman (3 neu)
-  ('dachdecker',    'Dachdecker',    '🏠', 'epic', 'marksman',  'dps',      115, 27, 17, 27, 'echolot',     'Hoher Winkel',   'Trifft immer zuerst in Runde 1',                      'Er sieht dich, bevor du aufstehst.'),
-  ('busfahrer',     'Nachtbusfahrer','🚌', 'epic', 'marksman',  'support',  120, 24, 20, 25, 'nightsight',  'Letzte Tour',    '+30% ATK wenn Kampf nach 20 Uhr',                     'Er kennt jede Seitenstraße.'),
-  ('strassenmaler', 'Straßenmaler',  '🖌️', 'epic', 'marksman',  'balanced', 118, 25, 19, 25, 'focus',       'Perspektive',    'Ignoriert 50% DEF bei kritischen Treffern',           'Jeder Strich ein Treffer.'),
+  ('dachdecker',    'Giebel-Schütze',    '🏠', 'epic', 'marksman',  'dps',      115, 27, 17, 27, 'echolot',     'Hoher Winkel',   'Trifft immer zuerst in Runde 1',                      'Er sieht dich, bevor du aufstehst.'),
+  ('busfahrer',     'Nachtpilot','🚌', 'epic', 'marksman',  'support',  120, 24, 20, 25, 'nightsight',  'Letzte Tour',    '+30% ATK wenn Kampf nach 20 Uhr',                     'Er kennt jede Seitenstraße.'),
+  ('strassenmaler', 'Perspektiv-Meister',  '🖌️', 'epic', 'marksman',  'balanced', 118, 25, 19, 25, 'focus',       'Perspektive',    'Ignoriert 50% DEF bei kritischen Treffern',           'Jeder Strich ein Treffer.'),
   -- Mage (3 neu)
-  ('kartenleserin', 'Kartenleserin', '🔮', 'epic', 'mage',      'support',  130, 23, 21, 23, 'thief',       'Vorsehung',      '30% Chance Gegner-Buff zu klauen',                    'Sie wusste, dass du das tun würdest.'),
-  ('alchemist',     'Alchemist',     '⚗️', 'epic', 'mage',      'dps',      125, 25, 20, 22, 'poison',      'Elixier',        '5% HP des Gegners pro Runde (max 3)',                 'Was er braut, macht süchtig oder krank.'),
+  ('kartenleserin', 'Schicksalsleserin', '🔮', 'epic', 'mage',      'support',  130, 23, 21, 23, 'thief',       'Vorsehung',      '30% Chance Gegner-Buff zu klauen',                    'Sie wusste, dass du das tun würdest.'),
+  ('alchemist',     'Trank-Meister',     '⚗️', 'epic', 'mage',      'dps',      125, 25, 20, 22, 'poison',      'Elixier',        '5% HP des Gegners pro Runde (max 3)',                 'Was er braut, macht süchtig oder krank.'),
   ('stadtschamane', 'Stadtschamane', '🪶', 'epic', 'mage',      'balanced', 128, 22, 22, 23, 'nightsight',  'Großstadt-Geist','+30% ATK wenn Kampf nach 20 Uhr',                     'Er hört das Flüstern der U-Bahn.'),
 
   -- ═══ LEGENDARY (14 neue — insg. 20 Legendary) ═══
   -- Infantry (4 neu)
-  ('boxer',         'Untergrund-Boxer','🥊', 'legendary','infantry','dps',  195, 36, 26, 18, 'rage',        'Kettenhiebe',    '+5% ATK pro erlittenem Treffer (max +40%)',           'Runden sind für Leute mit Angst.'),
-  ('koloss',        'Koloss',        '🗿', 'legendary','infantry','tank',   230, 26, 36, 12, 'fortress',    'Monolith',       '+30% DEF wenn Arena in eigener Stadt',                'Er ist älter als diese Stadt.'),
-  ('veteran',       'Veteran',       '🎖️', 'legendary','infantry','balanced',200,34, 30, 16, 'pack',       'Kommando',       '+10% ATK pro Crew-Mitglied (max +50%)',               'Er hat mehr überlebt als die meisten je sehen werden.'),
-  ('wachritter',    'Wachritter',    '⚔️', 'legendary','infantry','tank',   215, 30, 34, 14, 'wall',        'Eiserner Wall',  '+20% DEF in der ersten Runde',                        'Er steht, wo andere fallen.'),
+  ('boxer',         'Faustkönig','🥊', 'legendary','infantry','dps',  195, 36, 26, 18, 'rage',        'Kettenhiebe',    '+5% ATK pro erlittenem Treffer (max +40%)',           'Runden sind für Leute mit Angst.'),
+  ('koloss',        'Steingigant',        '🗿', 'legendary','infantry','tank',   230, 26, 36, 12, 'fortress',    'Monolith',       '+30% DEF wenn Arena in eigener Stadt',                'Er ist älter als diese Stadt.'),
+  ('veteran',       'Schlachten-Veteran',       '🎖️', 'legendary','infantry','balanced',200,34, 30, 16, 'pack',       'Kommando',       '+10% ATK pro Crew-Mitglied (max +50%)',               'Er hat mehr überlebt als die meisten je sehen werden.'),
+  ('wachritter',    'Eisenwall',    '⚔️', 'legendary','infantry','tank',   215, 30, 34, 14, 'wall',        'Eiserner Wall',  '+20% DEF in der ersten Runde',                        'Er steht, wo andere fallen.'),
   -- Cavalry (4 neu)
-  ('kuriernomade',  'Kurier-Nomade', '🏍️', 'legendary','cavalry', 'dps',    165, 36, 22, 30, 'firststrike', 'Überschall',     'Runde 1: +100% ATK, immer kritisch',                  'Sein Motor ist sein Atem.'),
-  ('streetracer',   'Streetracer',   '🏎️', 'legendary','cavalry', 'dps',    160, 37, 20, 31, 'stealth',     'Überholmanöver', '25% Chance einen Angriff zu verdoppeln',              'Regeln sind für Leute, die gewinnen wollen.'),
-  ('stormrider',    'Sturmreiter',   '🌪️', 'legendary','cavalry', 'balanced',175,35, 25, 28, 'dive',        'Sturzflug',      '30% Chance Gegner zu betäuben',                       'Er bringt seinen eigenen Wind mit.'),
-  ('kuriergoettin', 'Fahrradgöttin', '🚴', 'legendary','cavalry', 'support',170, 33, 24, 30, 'rebirth',     'Kette springt', 'Einmal pro Kampf: voll geheilt bei 0 HP',             'Sie kennt jeden Schleichweg.'),
+  ('kuriernomade',  'Überschall-Bote', '🏍️', 'legendary','cavalry', 'dps',    165, 36, 22, 30, 'firststrike', 'Überschall',     'Runde 1: +100% ATK, immer kritisch',                  'Sein Motor ist sein Atem.'),
+  ('streetracer',   'Asphalt-König',   '🏎️', 'legendary','cavalry', 'dps',    160, 37, 20, 31, 'stealth',     'Überholmanöver', '25% Chance einen Angriff zu verdoppeln',              'Regeln sind für Leute, die gewinnen wollen.'),
+  ('stormrider',    'Wolken-Reiter',   '🌪️', 'legendary','cavalry', 'balanced',175,35, 25, 28, 'dive',        'Sturzflug',      '30% Chance Gegner zu betäuben',                       'Er bringt seinen eigenen Wind mit.'),
+  ('kuriergoettin', 'Speichenherrin', '🚴', 'legendary','cavalry', 'support',170, 33, 24, 30, 'rebirth',     'Kette springt', 'Einmal pro Kampf: voll geheilt bei 0 HP',             'Sie kennt jeden Schleichweg.'),
   -- Marksman (3 neu)
-  ('heckenschuetze','Heckenschütze', '🎯', 'legendary','marksman','dps',    160, 39, 21, 31, 'firststrike', 'Ein-Schuss',    'Runde 1: +100% ATK, immer kritisch',                  'Zweite Chance brauchst du nicht.'),
-  ('bogenmeisterin','Bogenmeisterin','🏹', 'legendary','marksman','dps',    165, 37, 22, 30, 'focus',       'Atemstille',     'Ignoriert 50% DEF bei kritischen Treffern',           'Sie atmet, wenn ihr Pfeil landet.'),
-  ('schattenjaeger','Schattenjäger', '🌑', 'legendary','marksman','balanced',170,36, 24, 29, 'echolot',     'Blindschuss',    'Trifft immer zuerst in Runde 1',                      'Er jagt nur, wenn du glaubst, er sei weg.'),
+  ('heckenschuetze','Adlerauge', '🎯', 'legendary','marksman','dps',    160, 39, 21, 31, 'firststrike', 'Ein-Schuss',    'Runde 1: +100% ATK, immer kritisch',                  'Zweite Chance brauchst du nicht.'),
+  ('bogenmeisterin','Bogenkönigin','🏹', 'legendary','marksman','dps',    165, 37, 22, 30, 'focus',       'Atemstille',     'Ignoriert 50% DEF bei kritischen Treffern',           'Sie atmet, wenn ihr Pfeil landet.'),
+  ('schattenjaeger','Dämmerjäger', '🌑', 'legendary','marksman','balanced',170,36, 24, 29, 'echolot',     'Blindschuss',    'Trifft immer zuerst in Runde 1',                      'Er jagt nur, wenn du glaubst, er sei weg.'),
   -- Mage (3 neu)
-  ('netzweber',     'Netzweber',     '🕸️', 'legendary','mage',    'support',170, 34, 26, 28, 'thief',       'Bann-Netz',      '30% Chance Gegner-Buff zu klauen',                    'Alles ist verbunden — sogar du.'),
-  ('chronist',      'Chronist',      '📜', 'legendary','mage',    'balanced',165,35, 28, 25, 'nightsight',  'Zeitwende',      '+30% ATK wenn Kampf nach 20 Uhr',                     'Er schreibt das Ende, bevor es beginnt.'),
-  ('aschenmagier',  'Aschen-Magier', '🌋', 'legendary','mage',    'dps',    175, 40, 24, 22, 'flame',       'Phönix-Asche',   'Gegner verliert 10% HP pro Runde (ignoriert DEF)',    'Aus Ruinen entstand sein Wissen.')
+  ('netzweber',     'Bann-Weber',     '🕸️', 'legendary','mage',    'support',170, 34, 26, 28, 'thief',       'Bann-Netz',      '30% Chance Gegner-Buff zu klauen',                    'Alles ist verbunden — sogar du.'),
+  ('chronist',      'Zeitweber',      '📜', 'legendary','mage',    'balanced',165,35, 28, 25, 'nightsight',  'Zeitwende',      '+30% ATK wenn Kampf nach 20 Uhr',                     'Er schreibt das Ende, bevor es beginnt.'),
+  ('aschenmagier',  'Phönix-Magier', '🌋', 'legendary','mage',    'dps',    175, 40, 24, 22, 'flame',       'Phönix-Asche',   'Gegner verliert 10% HP pro Runde (ignoriert DEF)',    'Aus Ruinen entstand sein Wissen.')
 on conflict (id) do update set
   name = excluded.name, emoji = excluded.emoji, rarity = excluded.rarity,
   guardian_type = excluded.guardian_type, role = excluded.role,
