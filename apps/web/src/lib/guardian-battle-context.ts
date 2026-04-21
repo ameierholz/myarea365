@@ -32,10 +32,13 @@ export type TalentBonuses = {
   pen_pct: number;
   dot_dmg: number;
   vs_full_hp: number;
+  vs_weak: number;
   vs_infantry: number;
   vs_cavalry: number;
   vs_marksman: number;
   vs_mage: number;
+  stun_resist: number;
+  debuff_cleanse: number;
 };
 
 const EMPTY_SKILLS: SkillLevels = { active: 0, passive: 0, combat: 0, role: 0, expertise: 0 };
@@ -43,8 +46,9 @@ const EMPTY_TALENTS: TalentBonuses = {
   hp_pct: 0, atk_pct: 0, def_pct: 0, spd_pct: 0,
   crit_pct: 0, crit_dmg: 0, dmg_reduction: 0, evade_pct: 0, start_rage: 0,
   regen_pct: 0, thorns_pct: 0, heal_on_hit: 0, counter_pct: 0, skill_dmg: 0,
-  r1_atk_pct: 0, late_atk: 0, rage_gen: 0, pen_pct: 0, dot_dmg: 0, vs_full_hp: 0,
+  r1_atk_pct: 0, late_atk: 0, rage_gen: 0, pen_pct: 0, dot_dmg: 0, vs_full_hp: 0, vs_weak: 0,
   vs_infantry: 0, vs_cavalry: 0, vs_marksman: 0, vs_mage: 0,
+  stun_resist: 0, debuff_cleanse: 0,
 };
 
 /**
@@ -103,13 +107,15 @@ export async function loadGuardianBattleContext(sb: SupabaseClient<any, any, any
       case "rage_gen":     talents.rage_gen     += eff; break;
       case "pen_pct":      talents.pen_pct      += eff; break;
       case "dot_dmg":      talents.dot_dmg      += eff; break;
-      case "vs_full_hp":   talents.vs_full_hp   += eff; break;
-      case "vs_infantry":  talents.vs_infantry  += eff; break;
-      case "vs_cavalry":   talents.vs_cavalry   += eff; break;
-      case "vs_marksman":  talents.vs_marksman  += eff; break;
-      case "vs_mage":      talents.vs_mage      += eff; break;
-      // Noch nicht verdrahtet: stun_resist, debuff_cleanse, vs_weak,
-      // berserker_key / bollwerk_key / symbiose_key / awaken_key (archetypische Flags)
+      case "vs_full_hp":    talents.vs_full_hp    += eff; break;
+      case "vs_weak":       talents.vs_weak       += eff; break;
+      case "vs_infantry":   talents.vs_infantry   += eff; break;
+      case "vs_cavalry":    talents.vs_cavalry    += eff; break;
+      case "vs_marksman":   talents.vs_marksman   += eff; break;
+      case "vs_mage":       talents.vs_mage       += eff; break;
+      case "stun_resist":   talents.stun_resist   += eff; break;
+      case "debuff_cleanse":talents.debuff_cleanse+= eff; break;
+      // Archetyp-Flags (*_key) werden von Engine über abilityId verarbeitet
       default: break;
     }
   }

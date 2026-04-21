@@ -40,10 +40,13 @@ export type BattleInput = {
     pen_pct?: number;           // Ignoriert X% der gegnerischen DEF
     dot_dmg?: number;           // +X% auf DoT-Ticks (Gift, Flamme)
     vs_full_hp?: number;        // +X% Schaden wenn Gegner auf >95% HP
+    vs_weak?: number;           // +X% Schaden wenn Gegner <50% HP (Coup de Grâce)
     vs_infantry?: number;
     vs_cavalry?: number;
     vs_marksman?: number;
     vs_mage?: number;
+    stun_resist?: number;       // Chance X Stuns zu widerstehen
+    debuff_cleanse?: number;    // Chance X pro Runde Debuffs abzuschütteln
   };
 };
 
@@ -114,7 +117,10 @@ type Combatant = {
     penPct: number;
     dotDmg: number;
     vsFullHp: number;
+    vsWeak: number;
     vsType: Partial<Record<GuardianType, number>>;
+    stunResist: number;
+    debuffCleanse: number;
   };
   // Rage
   rage: number;
@@ -197,12 +203,15 @@ function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
       penPct: t.pen_pct ?? 0,
       dotDmg: t.dot_dmg ?? 0,
       vsFullHp: t.vs_full_hp ?? 0,
+      vsWeak: t.vs_weak ?? 0,
       vsType: {
         infantry: t.vs_infantry ?? 0,
         cavalry:  t.vs_cavalry  ?? 0,
         marksman: t.vs_marksman ?? 0,
         mage:     t.vs_mage     ?? 0,
       },
+      stunResist: t.stun_resist ?? 0,
+      debuffCleanse: t.debuff_cleanse ?? 0,
     },
     rage: startRage,
     rageMax: 1000,
@@ -316,6 +325,12 @@ function computeDamage(
   if (defender.hp / defender.hpMax > 0.95 && attacker.talents.vsFullHp > 0) {
     atk *= 1 + attacker.talents.vsFullHp;
     note = (note ? note + " · " : "") + "Erster Treffer";
+  }
+
+  // vs_weak — Coup de Grâce gegen verwundete Gegner
+  if (defender.hp / defender.hpMax < 0.5 && attacker.talents.vsWeak > 0) {
+    atk *= 1 + attacker.talents.vsWeak;
+    note = (note ? note + " · " : "") + "Gnadenstoß";
   }
 
   // vs_TYP — Typ-spezifischer Bonus (zusätzlich zu Typ-Counter)
@@ -449,8 +464,9 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
 
   const MAX_ROUNDS = 15;
   for (let round = 1; round <= MAX_ROUNDS && ca.hp > 0 && cb.hp > 0; round++) {
-    // Regen-Talent: beide heilen zu Beginn der Runde X% von HpMax
+    // Regen + Debuff-Cleanse zu Beginn der Runde
     for (const c of [ca, cb]) {
+      // Regen
       if (c.talents.regenPct > 0 && c.hp > 0 && c.hp < c.hpMax) {
         const heal = Math.round(c.hpMax * c.talents.regenPct);
         const before = c.hp;
@@ -461,6 +477,15 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
             hp_a_after: ca.hp, hp_b_after: cb.hp, note: "💚 Regen",
           });
         }
+      }
+      // Debuff-Cleanse: Stun + ein Gift-Stack abschütteln
+      if (c.talents.debuffCleanse > 0 && (c.state.stunned || c.state.poisonStacks > 0) && rng() < c.talents.debuffCleanse) {
+        c.state.stunned = false;
+        if (c.state.poisonStacks > 0) c.state.poisonStacks--;
+        rounds.push({
+          round, actor: c.label, action: "special", damage: 0,
+          hp_a_after: ca.hp, hp_b_after: cb.hp, note: "✨ Debuff abgeschüttelt",
+        });
       }
     }
 
@@ -498,8 +523,11 @@ export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleR
         defender.hp = Math.max(0, defender.hp - dmg);
         // Legacy: Berserker-Rage-Stacks
         if (defender.abilityId === "rage") defender.state.rageStacks = Math.min(8, defender.state.rageStacks + 1);
-        // Sturzflug: 30% stun
-        if (attacker.abilityId === "dive" && rng() < 0.3) defender.state.stunned = true;
+        // Sturzflug: 30% stun — stun_resist reduziert die Chance
+        if (attacker.abilityId === "dive" && rng() < 0.3) {
+          const resisted = defender.talents.stunResist > 0 && rng() < defender.talents.stunResist;
+          if (!resisted) defender.state.stunned = true;
+        }
 
         // Rage-Aufbau (mit Talent rage_gen)
         const rageBoostA = 1 + (attacker.talents.rageGen ?? 0);

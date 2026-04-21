@@ -12,6 +12,7 @@ export async function GET(req: Request) {
   const sb = await createClient();
   const url = new URL(req.url);
   const forUserId = url.searchParams.get("for_user_id");
+  const forCrewId = url.searchParams.get("for_crew_id");
 
   const { data: sessions } = await sb.from("arena_sessions")
     .select("id, name, starts_at, ends_at, status")
@@ -20,16 +21,18 @@ export async function GET(req: Request) {
     .limit(1);
   const session = sessions?.[0] ?? null;
 
+  async function fetchTitles(column: "user_id" | "crew_id", value: string) {
+    const { data } = await sb.from("arena_session_titles")
+      .select("id, session_id, rank, title, awarded_at, arena_sessions!inner(name)")
+      .eq(column, value)
+      .order("awarded_at", { ascending: false })
+      .limit(10);
+    return data ?? [];
+  }
+
   if (!session) {
-    // Auch ohne aktive Session noch Titel-Historie zurückgeben (z.B. für Profil)
-    if (forUserId) {
-      const { data: titles } = await sb.from("arena_session_titles")
-        .select("id, session_id, rank, title, awarded_at, arena_sessions!inner(name)")
-        .eq("user_id", forUserId)
-        .order("awarded_at", { ascending: false })
-        .limit(10);
-      return NextResponse.json({ session: null, runners: [], crews: [], titles: titles ?? [] });
-    }
+    if (forUserId) return NextResponse.json({ session: null, runners: [], crews: [], titles: await fetchTitles("user_id", forUserId) });
+    if (forCrewId) return NextResponse.json({ session: null, runners: [], crews: [], titles: await fetchTitles("crew_id", forCrewId) });
     return NextResponse.json({ session: null, runners: [], crews: [] });
   }
 
@@ -46,13 +49,11 @@ export async function GET(req: Request) {
       .order("points", { ascending: false })
       .order("wins", { ascending: false })
       .limit(20),
-    forUserId
-      ? sb.from("arena_session_titles")
-          .select("id, session_id, rank, title, awarded_at, arena_sessions!inner(name)")
-          .eq("user_id", forUserId)
-          .order("awarded_at", { ascending: false })
-          .limit(10)
-      : Promise.resolve({ data: [] as Array<{ id: string; session_id: string; rank: number; title: string; awarded_at: string; arena_sessions: { name: string } }> }),
+    (async () => {
+      if (forUserId) return { data: await fetchTitles("user_id", forUserId) };
+      if (forCrewId) return { data: await fetchTitles("crew_id", forCrewId) };
+      return { data: [] as Array<{ id: string; session_id: string; rank: number; title: string; awarded_at: string; arena_sessions: { name: string } }> };
+    })(),
   ]);
 
   return NextResponse.json({ session, runners: runners ?? [], crews: crews ?? [], titles: titles ?? [] });

@@ -7786,6 +7786,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
   const sb = useMemo(() => createClient(), []);
   const [guardian, setGuardian] = useState<GuardianWithArchetype | null>(null);
   const [trophies, setTrophies] = useState<Array<{ id: string; archetype_id: string; captured_level: number }>>([]);
+  const [crewTitles, setCrewTitles] = useState<Array<{ id: string; rank: number; title: string; arena_sessions: { name: string } }>>([]);
   useEffect(() => {
     (async () => {
       const { data: { user } } = await sb.auth.getUser();
@@ -7800,9 +7801,47 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       if (t) setTrophies(t);
     })();
   }, [sb]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(`/api/arena/session?for_crew_id=${crew.id}`);
+        if (r.ok) {
+          const j = await r.json() as { titles?: Array<{ id: string; rank: number; title: string; arena_sessions: { name: string } }> };
+          setCrewTitles(j.titles ?? []);
+        }
+      } catch { /* stumm */ }
+    })();
+  }, [crew.id]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* ═══ Arena-Titel der Crew ═══ */}
+      {crewTitles.length > 0 && (
+        <div style={{
+          padding: 12, borderRadius: 14,
+          background: "linear-gradient(135deg, rgba(255,107,74,0.14), rgba(255,215,0,0.10))",
+          border: "1px solid rgba(255,107,74,0.4)",
+        }}>
+          <div style={{ color: "#FF6B4A", fontSize: 10, fontWeight: 900, letterSpacing: 1.2, marginBottom: 8 }}>
+            🏆 ARENA-SESSION-TITEL
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {crewTitles.map((t) => {
+              const color = t.rank === 1 ? "#FFD700" : t.rank === 2 ? "#e8e8e8" : "#cd7f32";
+              return (
+                <div key={t.id} style={{
+                  padding: "5px 10px", borderRadius: 999,
+                  background: `${color}22`, border: `1px solid ${color}`,
+                  color, fontSize: 10, fontWeight: 800,
+                }}>
+                  {t.title} · <span style={{ color: MUTED, fontWeight: 600 }}>{t.arena_sessions.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ═══ Aktiver Waechter (kompakt) ═══ */}
       {guardian && (
         <div>
