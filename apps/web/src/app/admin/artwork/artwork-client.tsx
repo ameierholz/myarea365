@@ -41,10 +41,16 @@ type CosmeticArt = {
   pin_theme: Record<string, Art>;
 };
 
-type TabId = "archetype" | "marker" | "light" | "pin_theme";
+type TabId = "archetype" | "item" | "marker" | "light" | "pin_theme";
+
+type Item = {
+  id: string; name: string; emoji: string; slot: string; rarity: string;
+  image_url: string | null;
+};
 
 export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {} });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
@@ -55,19 +61,25 @@ export function ArtworkAdminClient() {
       fetch("/api/admin/artwork", { cache: "no-store" }),
       fetch("/api/cosmetic-artwork", { cache: "no-store" }),
     ]);
-    if (aw.ok) setArchetypes((await aw.json()).archetypes);
+    if (aw.ok) {
+      const j = await aw.json();
+      setArchetypes(j.archetypes);
+      setItems(j.items ?? []);
+    }
     if (co.ok) setCosmetic(await co.json());
     setLoading(false);
   };
   useEffect(() => { reload(); }, []);
 
   const doneArch   = archetypes.filter(a => a.image_url || a.video_url).length;
+  const doneItems  = items.filter(i => i.image_url).length;
   const doneMark   = Object.values(cosmetic.marker).reduce((acc, variants) => acc + Object.values(variants).filter(a => a.image_url || a.video_url).length, 0);
   const doneLight  = Object.values(cosmetic.light).filter(a => a.image_url || a.video_url).length;
   const doneTheme  = Object.values(cosmetic.pin_theme).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,  total: archetypes.length },
+    { id: "item",      label: "⚔️ Ausrüstung",     done: doneItems, total: items.length },
     { id: "marker",    label: "📍 Map-Icons",       done: doneMark,  total: UNLOCKABLE_MARKERS.length },
     { id: "light",     label: "✨ Runner-Lights",   done: doneLight, total: RUNNER_LIGHTS.length },
     { id: "pin_theme", label: "🎨 Pin-Themes",      done: doneTheme, total: ALL_PIN_THEMES.length },
@@ -102,6 +114,7 @@ export function ArtworkAdminClient() {
 
       {loading ? <LoadingBox /> : (
         tab === "archetype"  ? <ArchetypesTab archetypes={archetypes} onChange={reload} />
+        : tab === "item"      ? <ItemsTab     items={items}              onChange={reload} />
         : tab === "marker"    ? <MarkerTab    artMap={cosmetic.marker}    onChange={reload} />
         : tab === "light"     ? <LightTab     artMap={cosmetic.light}     onChange={reload} />
         : <PinThemeTab artMap={cosmetic.pin_theme} onChange={reload} />
@@ -247,6 +260,178 @@ function PinThemeTab({ artMap, onChange }: { artMap: Record<string, { image_url:
 
 function LoadingBox() {
   return <div className="p-10 text-center text-sm text-[#8B8FA3]">Lade…</div>;
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Ausrüstung (Items)                                   */
+/* ═════════════════════════════════════════════════════════ */
+
+const SLOT_LABEL: Record<string, string> = { helm: "Helm", armor: "Rüstung", amulet: "Amulett" };
+const ITEM_RARITY_META: Record<string, { label: string; color: string }> = {
+  common: { label: "GEWÖHNLICH", color: "#8B8FA3" },
+  rare:   { label: "SELTEN",     color: "#22D1C3" },
+  epic:   { label: "EPISCH",     color: "#a855f7" },
+  legend: { label: "LEGENDÄR",   color: "#FFD700" },
+};
+
+function ItemsTab({ items, onChange }: { items: Item[]; onChange: () => void }) {
+  const [filterSlot, setFilterSlot] = useState<string>("ALL");
+  const [filterRarity, setFilterRarity] = useState<string>("ALL");
+  const [missingOnly, setMissingOnly] = useState(false);
+
+  const filtered = items.filter((i) => {
+    if (filterSlot !== "ALL" && i.slot !== filterSlot) return false;
+    if (filterRarity !== "ALL" && i.rarity !== filterRarity) return false;
+    if (missingOnly && i.image_url) return false;
+    return true;
+  });
+
+  const done = items.filter(i => i.image_url).length;
+  const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
+
+  return (
+    <div>
+      {/* Filter-Bar */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <select value={filterSlot} onChange={(e) => setFilterSlot(e.target.value)}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="ALL">Alle Slots</option>
+          <option value="helm">⛑️ Helme</option>
+          <option value="armor">🛡️ Rüstungen</option>
+          <option value="amulet">📿 Amulette</option>
+        </select>
+        <select value={filterRarity} onChange={(e) => setFilterRarity(e.target.value)}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="ALL">Alle Raritäten</option>
+          <option value="common">Common</option>
+          <option value="rare">Rare</option>
+          <option value="epic">Epic</option>
+          <option value="legend">Legend</option>
+        </select>
+        <label className="flex items-center gap-2 bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
+          Nur ohne Bild
+        </label>
+      </div>
+
+      {/* Progress */}
+      <div className="mb-4 p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+        <div className="flex items-center justify-between mb-2 text-xs text-[#a8b4cf]">
+          <span><strong className="text-white">{filtered.length}</strong> gefiltert · {done}/{items.length} mit Bild ({pct}%)</span>
+          <span className="text-[#4ade80] font-bold">{done === items.length ? "🎉 Alle fertig!" : `${items.length - done} offen`}</span>
+        </div>
+        <div className="h-2 bg-[#0F1115] rounded overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#22D1C3] to-[#FFD700] transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+        {filtered.map((item) => (
+          <ItemCard key={item.id} item={item} onChange={onChange} />
+        ))}
+      </div>
+      {filtered.length === 0 && (
+        <div className="p-10 text-center text-sm text-[#8B8FA3]">Keine Items passen zu den Filtern.</div>
+      )}
+    </div>
+  );
+}
+
+function ItemCard({ item, onChange }: { item: Item; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const rarity = ITEM_RARITY_META[item.rarity] ?? ITEM_RARITY_META.common;
+  const hasImage = !!item.image_url;
+
+  const prompt = buildItemPrompt(item);
+
+  const upload = async (file: File) => {
+    setBusy(true); setErr(null);
+    try {
+      const result = await uploadArtworkDirect(file, "item", item.id);
+      if (!result.ok) setErr(result.error);
+      else onChange();
+    } finally { setBusy(false); }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Bild für "${item.name}" löschen?`)) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/admin/artwork?target_type=item&target_id=${item.id}`, { method: "DELETE" });
+      onChange();
+    } finally { setBusy(false); }
+  };
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: "#1A1D23", border: `1px solid ${rarity.color}44` }}>
+      <div className="aspect-square bg-[#0F1115] flex items-center justify-center relative">
+        {hasImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.image_url!} alt={item.name} className="w-full h-full object-cover" />
+        ) : (
+          <>
+            <div className="text-7xl opacity-20">{item.emoji}</div>
+            <div className="absolute inset-x-0 bottom-0 py-1.5 text-center text-[10px] font-bold text-[#FF2D78] bg-gradient-to-t from-[#FF2D78]/20 to-transparent">
+              KEIN ARTWORK
+            </div>
+          </>
+        )}
+        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
+          style={{ background: rarity.color + "22", color: rarity.color, border: `1px solid ${rarity.color}` }}>
+          {rarity.label}
+        </div>
+        {hasImage && (
+          <button onClick={remove} disabled={busy} className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-lg hover:bg-[#FF2D78]">
+            × Löschen
+          </button>
+        )}
+      </div>
+      <div className="p-3">
+        <div className="font-black text-sm text-white">{item.emoji} {item.name}</div>
+        <div className="text-[10px] text-[#a8b4cf] mt-1">{SLOT_LABEL[item.slot] ?? item.slot} · {item.id}</div>
+
+        <button onClick={copy} className={`mt-2 w-full text-[11px] rounded-lg py-1.5 font-bold ${hasImage ? "bg-[#4ade80]/15 border border-[#4ade80]/50 text-[#4ade80]" : "bg-[#0F1115] border border-[#22D1C3]/40 text-[#22D1C3]"}`}>
+          {copied ? "✓ Kopiert" : "📋 Bild-Prompt"}
+        </button>
+
+        <label className={`mt-2 block w-full text-center text-[11px] rounded-lg py-1.5 cursor-pointer font-bold ${
+          busy ? "bg-[#333] text-[#888]" : hasImage ? "bg-[#4ade80] text-[#0F1115]" : "bg-gradient-to-r from-[#FF2D78] to-[#a855f7] text-white"
+        }`}>
+          {busy ? "Lädt…" : hasImage ? "🔄 Ersetzen" : "⬆️ Bild hochladen"}
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
+          />
+        </label>
+
+        {err && <div className="mt-2 p-2 rounded-lg bg-[#FF2D78]/15 border border-[#FF2D78]/50 text-[11px] text-[#FF2D78]">{err}</div>}
+      </div>
+    </div>
+  );
+}
+
+function buildItemPrompt(item: Item): string {
+  const slotPrompt = item.slot === "helm" ? "fantasy helmet headpiece"
+                   : item.slot === "armor" ? "fantasy body armor chest plate"
+                   : "fantasy amulet pendant necklace";
+  const rarityPrompt = item.rarity === "legend" ? "legendary rare artifact, glowing golden energy, floating particles, ornate engravings, holy aura"
+                     : item.rarity === "epic"   ? "epic magical enchantment, purple arcane energy, pulsating runes, mystical glow"
+                     : item.rarity === "rare"   ? "rare quality, cyan glowing accents, crystal inlays, polished finish"
+                     : "common worn gear, battle-used, subtle details";
+  return [
+    `Game asset icon, square 1:1 1024x1024, ${slotPrompt} called "${item.name}".`,
+    `Quality tier: ${rarityPrompt}.`,
+    `Style: cyber-fantasy mobile-game icon, Hearthstone/Marvel Snap quality, centered composition, fully rendered and solidly filled.`,
+    `Lighting: warm-cool rim light, soft ambient glow.`,
+    `Fully transparent background (PNG with alpha). No text, no watermark, no frame, no pedestal.`,
+  ].join(" ");
 }
 
 /* ═════════════════════════════════════════════════════════ */

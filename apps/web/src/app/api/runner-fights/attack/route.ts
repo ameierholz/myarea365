@@ -149,6 +149,9 @@ export async function POST(req: NextRequest) {
     const curVal = (curSiegel as Record<string, number> | null)?.[siegelCol] ?? 0;
     await sb.from("user_siegel").update({ [siegelCol]: curVal + 1, updated_at: new Date().toISOString() }).eq("user_id", user.id);
 
+    // Material-Drop (rarity-abhängig)
+    await sb.rpc("roll_material_drop", { p_user_id: user.id, p_context_rarity: rarity });
+
     // Tagesstatus + Gems
     const { data: curState } = await sb.from("runner_fight_state").select("fights_used_today, gems_spent_today").eq("user_id", user.id).maybeSingle<{ fights_used_today: number; gems_spent_today: number }>();
     await sb.from("runner_fight_state").update({
@@ -173,6 +176,11 @@ export async function POST(req: NextRequest) {
     });
     if (settleErr) return NextResponse.json({ ok: false, error: settleErr.message }, { status: 500 });
     settled = rpcSettled;
+    // Material-Drop basierend auf Loot-Rarity
+    const rarity = (rpcSettled as { rarity?: string } | null)?.rarity ?? "common";
+    if (rarity !== "none") {
+      await sb.rpc("roll_material_drop", { p_user_id: user.id, p_context_rarity: rarity });
+    }
   }
 
   return NextResponse.json({
