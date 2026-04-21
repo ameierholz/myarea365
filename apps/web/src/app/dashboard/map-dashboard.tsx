@@ -15,6 +15,7 @@ import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
+import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { ArenaSessionModal } from "@/components/arena-session-modal";
 import { PotionInventoryModal } from "@/components/potion-inventory-modal";
@@ -1840,6 +1841,9 @@ function ProfilTab({
           )}
         </div>
       </div>
+
+      {/* ═══ WAS DU HIER TUN KANNST — Aktivitäten-Overview mit Info-Modals ═══ */}
+      <RunnerActivityCards />
 
       <div style={{ paddingLeft: 20, paddingRight: 20 }}>
 
