@@ -40,20 +40,20 @@ Antworte EXAKT in diesem JSON-Format (ohne Markdown):
 export async function moderateImageUrl(imageUrl: string): Promise<ModerationResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return { approved: null, reason: "no_ai" };
+    return { approved: null, reason: "KI-Prüfung nicht konfiguriert" };
   }
 
   try {
     // Bild laden und zu base64 konvertieren (Anthropic akzeptiert auch URL, aber public-URL-Zugriff aus edge ist unzuverlässig)
     const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) return { approved: null, reason: "image_fetch_failed" };
+    if (!imgRes.ok) return { approved: null, reason: "Bild konnte nicht geladen werden" };
     const contentType = imgRes.headers.get("content-type") || "image/jpeg";
     if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(contentType)) {
-      return { approved: false, reason: "unsupported_format", categories: ["invalid"] };
+      return { approved: false, reason: "Dateiformat nicht unterstützt (nur JPG/PNG/GIF/WEBP)", categories: ["invalid"] };
     }
     const buf = Buffer.from(await imgRes.arrayBuffer());
     if (buf.length > 5 * 1024 * 1024) {
-      return { approved: null, reason: "image_too_large" };
+      return { approved: null, reason: "Bild zu groß (max. 5 MB)" };
     }
     const b64 = buf.toString("base64");
 
@@ -79,7 +79,7 @@ export async function moderateImageUrl(imageUrl: string): Promise<ModerationResu
 
     const json = await resp.json() as ClaudeResponse;
     if (json.error || !json.content?.[0]?.text) {
-      return { approved: null, reason: json.error?.message ?? "ai_no_response" };
+      return { approved: null, reason: json.error?.message ?? "KI-Dienst ohne Antwort" };
     }
 
     const raw = json.content[0].text.trim();
@@ -94,9 +94,9 @@ export async function moderateImageUrl(imageUrl: string): Promise<ModerationResu
       // Fallback: wenn "approved" im Text auftaucht, approve; sonst Nein
       return raw.toLowerCase().includes("approved") && raw.toLowerCase().includes("true")
         ? { approved: true }
-        : { approved: null, reason: "parse_error" };
+        : { approved: null, reason: "Antwort nicht lesbar" };
     }
   } catch (e) {
-    return { approved: null, reason: e instanceof Error ? e.message : "unknown_error" };
+    return { approved: null, reason: e instanceof Error ? e.message : "Unbekannter Fehler" };
   }
 }

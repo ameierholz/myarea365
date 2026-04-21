@@ -80,7 +80,7 @@ export function UserMediaClient() {
           {rows.map((u) => (
             <div key={u.id} className="p-4 rounded-xl bg-[#1A1D23] border border-white/10">
               <div className="flex items-center gap-3 mb-3">
-                <div className="text-sm font-black text-white">{u.display_name || u.username || "Unknown"}</div>
+                <div className="text-sm font-black text-white">{u.display_name || u.username || "Unbekannt"}</div>
                 <div className="text-xs text-[#a8b4cf]">@{u.username}</div>
               </div>
 
@@ -99,7 +99,7 @@ export function UserMediaClient() {
               )}
               {u.avatar_url && (
                 <MediaBlock
-                  label="AVATAR"
+                  label="PROFILBILD"
                   url={u.avatar_url}
                   status={u.avatar_status ?? "pending"}
                   aspectRatio="1 / 1"
