@@ -34,6 +34,7 @@ type OpponentsResponse = {
   gems_available: number;
   refresh_cost: number;
   error?: string;
+  detail?: string;
 };
 
 type AttackResult = {
@@ -116,7 +117,11 @@ export function RunnerFightsClient() {
     }
     return (
       <Wrapper>
-        <div className="p-6 text-center text-[#FF2D78]">Fehler: {data.error}</div>
+        <div className="p-6 rounded-xl bg-[#1A1D23] border border-[#FF2D78]/40 text-center">
+          <div className="text-3xl mb-2">⚠️</div>
+          <div className="text-[#FF2D78] font-black text-lg">{data.error ?? "Unbekannter Fehler"}</div>
+          {data.detail && <div className="text-[#a8b4cf] text-sm mt-2">{data.detail}</div>}
+        </div>
       </Wrapper>
     );
   }
