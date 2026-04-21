@@ -68,6 +68,29 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
         </div>
       )}
 
+      {guardian.kind === "seasonal" && (
+        <div style={{
+          position: "absolute", top: 8, left: 8,
+          padding: "3px 10px", borderRadius: 999,
+          background: "linear-gradient(135deg, #22D1C3, #0f8178)",
+          color: "#0F1115", fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
+          boxShadow: "0 0 12px rgba(34,209,195,0.5)",
+        }}>
+          ⚔️ SAISON
+        </div>
+      )}
+      {guardian.kind === "eternal" && (
+        <div style={{
+          position: "absolute", top: 8, left: 8,
+          padding: "3px 10px", borderRadius: 999,
+          background: "linear-gradient(135deg, #FFD700, #b8860b)",
+          color: "#0F1115", fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
+          boxShadow: "0 0 12px rgba(255,215,0,0.5)",
+        }}>
+          ♾️ EWIG
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "minmax(160px, 240px) 1fr", gap: 20, alignItems: "stretch" }}>
         {/* Avatar-Spalte */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>

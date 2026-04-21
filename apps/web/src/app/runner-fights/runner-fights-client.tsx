@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CinematicBattleArena } from "@/components/battle-arena";
 import type { RoundEvent } from "@/lib/battle-engine";
+import { TYPE_META, typeCounter, type GuardianType } from "@/lib/guardian";
 
 type Opponent = {
   guardian_id: string;
@@ -25,6 +26,13 @@ type Opponent = {
   is_bot?: boolean;
 };
 
+type StatBlock = { hp: number; atk: number; def: number; spd: number };
+type EquippedItem = {
+  user_item_id: string;
+  slot: string; name: string; emoji: string; rarity: string; upgrade_tier: number;
+  bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number;
+  image_url: string | null;
+};
 type MyGuardian = {
   guardian_id: string;
   archetype_id: string;
@@ -36,6 +44,13 @@ type MyGuardian = {
   archetype_name: string;
   archetype_emoji: string;
   rarity: string;
+  guardian_type: string | null;
+  role: string | null;
+  base_stats: StatBlock;
+  bonus_stats: StatBlock;
+  effective_stats: StatBlock;
+  equipped: EquippedItem[];
+  inventory_by_slot: Record<string, EquippedItem[]>;
 };
 
 type OpponentsResponse = {
@@ -64,8 +79,17 @@ type AttackResult = {
   message?: string;
 };
 
+type SeasonInfo = {
+  ok: boolean;
+  season: { id: string; number: number; name: string; starts_at: string; ends_at: string; status: string } | null;
+  seasonal_guardian: { id: string } | null;
+  eternal_guardian: { id: string; guardian_archetypes: { name: string; emoji: string } } | null;
+  needs_pick: boolean;
+};
+
 export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boolean; onClose?: () => void } = {}) {
   const [data, setData] = useState<OpponentsResponse | null>(null);
+  const [season, setSeason] = useState<SeasonInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [fighting, setFighting] = useState<Opponent | null>(null);
   const [result, setResult] = useState<AttackResult | null>(null);
@@ -73,8 +97,12 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
 
   async function reload(refresh = false) {
     setLoading(true);
-    const res = await fetch(`/api/runner-fights/opponents${refresh ? "?refresh=1" : ""}`, { cache: "no-store" });
-    if (res.ok) setData(await res.json());
+    const [oppRes, seasonRes] = await Promise.all([
+      fetch(`/api/runner-fights/opponents${refresh ? "?refresh=1" : ""}`, { cache: "no-store" }),
+      fetch("/api/arena/season", { cache: "no-store" }),
+    ]);
+    if (oppRes.ok)    setData(await oppRes.json());
+    if (seasonRes.ok) setSeason(await seasonRes.json());
     setLoading(false);
   }
   useEffect(() => { void reload(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
@@ -82,7 +110,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
   async function attack(op: Opponent) {
     const nextCost = data?.next_gem_cost ?? 0;
     if (nextCost === -1) {
-      alert("Tageslimit (30) erreicht.");
+      alert("Tageslimit (15) erreicht.");
       return;
     }
     if (nextCost > 0) {
@@ -122,6 +150,19 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
     return <W><div className="p-10 text-center text-[#8B8FA3]">Lade Gegner …</div></W>;
   }
 
+  if (season?.season && season.needs_pick) {
+    return (
+      <W>
+        <SeasonPicker
+          season={season.season}
+          eternal={season.eternal_guardian}
+          onPicked={() => reload()}
+          onClose={inModal ? onClose : undefined}
+        />
+      </W>
+    );
+  }
+
   if (!data.ok) {
     if (data.error === "no_active_guardian") {
       return (
@@ -146,9 +187,9 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
   }
 
   const used = data.fights_used_today;
-  const freeLeft = Math.max(0, 10 - used);
+  const freeLeft = Math.max(0, 5 - used);
   const nextCost = data.next_gem_cost ?? 0;
-  const totalLimit = 30;
+  const totalLimit = 15;
 
   return (
     <W>
@@ -160,11 +201,12 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
         totalLimit={totalLimit}
         gemsAvailable={data.gems_available}
         nextCost={nextCost}
+        onChanged={() => reload()}
       />
 
       {nextCost === -1 && (
         <div className="mb-3 p-3 rounded-xl bg-[#FF2D78]/10 border border-[#FF2D78]/30 text-sm text-[#FF2D78] font-bold">
-          🚫 Tageslimit (30) erreicht — morgen wieder frische Fights!
+          🚫 Tageslimit (15) erreicht — morgen wieder frische Fights!
         </div>
       )}
 
@@ -190,7 +232,14 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {data.opponents.map((op) => (
-              <OpponentCard key={op.guardian_id} op={op} onAttack={() => attack(op)} busy={busyId === op.guardian_id} disabled={!!busyId} />
+              <OpponentCard
+                key={op.guardian_id}
+                op={op}
+                myType={(data.my_guardian?.guardian_type ?? null) as GuardianType | null}
+                onAttack={() => attack(op)}
+                busy={busyId === op.guardian_id}
+                disabled={!!busyId}
+              />
             ))}
           </div>
         </>
@@ -205,6 +254,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
           winner={result.winner ?? null}
         />
       )}
+
     </W>
   );
 }
@@ -220,16 +270,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Card({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <div className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
-      <div className="text-[10px] font-bold tracking-wider text-[#8B8FA3]">{label}</div>
-      <div className="text-lg font-black mt-0.5" style={{ color: tone }}>{value}</div>
-    </div>
-  );
-}
-
-function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvailable, nextCost }: {
+function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvailable, nextCost, onChanged }: {
   onClose?: () => void;
   myGuardian: MyGuardian | null;
   freeLeft: number;
@@ -237,7 +278,10 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
   totalLimit: number;
   gemsAvailable: number;
   nextCost: number | null;
+  onChanged: () => void | Promise<void>;
 }) {
+  const myType = myGuardian?.guardian_type && (myGuardian.guardian_type in TYPE_META)
+    ? TYPE_META[myGuardian.guardian_type as GuardianType] : null;
   const rarityMeta = myGuardian?.rarity === "legendary"
     ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
     : myGuardian?.rarity === "epic"
@@ -296,72 +340,19 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
         )}
       </div>
 
-      {/* Body: Wächter links + Stat-Kacheln rechts */}
+      {/* Body: Hero-Panel mit Portrait + Stats + Gear */}
+      {myGuardian && (
+        <HeroPanel myGuardian={myGuardian} myType={myType} rarityMeta={rarityMeta} onChanged={onChanged} />
+      )}
+
+      {/* Arena-Stat-Kacheln */}
       <div style={{
-        position: "relative", padding: "16px 18px 14px",
-        display: "grid", gridTemplateColumns: myGuardian ? "auto 1fr" : "1fr",
-        gap: 16, alignItems: "center",
+        position: "relative", padding: "0 18px 14px",
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
       }}>
-        {/* My Guardian Hero-Card */}
-        {myGuardian && (
-          <div style={{
-            position: "relative",
-            minWidth: 140,
-            padding: "10px 10px 12px",
-            borderRadius: 14,
-            background: `radial-gradient(circle at 50% 0%, ${rarityMeta.glow} 0%, transparent 70%), linear-gradient(180deg, rgba(15,17,21,0.7) 0%, rgba(15,17,21,0.95) 100%)`,
-            border: `1px solid ${rarityMeta.color}55`,
-            boxShadow: `0 4px 24px ${rarityMeta.glow}`,
-            textAlign: "center",
-          }}>
-            <div style={{
-              position: "absolute", top: 6, left: 6, zIndex: 2,
-              padding: "2px 6px", borderRadius: 999,
-              background: `${rarityMeta.color}dd`, color: "#0F1115",
-              fontSize: 8, fontWeight: 900, letterSpacing: 1.2,
-            }}>{rarityMeta.label}</div>
-
-            {/* Pedestal mit Portrait */}
-            <div style={{
-              marginTop: 4,
-              height: 88,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: `radial-gradient(circle at 50% 30%, ${rarityMeta.color}26 0%, transparent 60%)`,
-            }}>
-              <div style={{
-                fontSize: 64,
-                filter: `drop-shadow(0 6px 10px ${rarityMeta.glow})`,
-                animation: "heroFloat 3s ease-in-out infinite",
-              }}>{myGuardian.archetype_emoji}</div>
-            </div>
-
-            {/* Spotlight-Kreis */}
-            <div style={{
-              width: 80, height: 6, margin: "2px auto 6px",
-              borderRadius: "50%",
-              background: `radial-gradient(ellipse, ${rarityMeta.color}80, transparent 70%)`,
-            }} />
-
-            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, lineHeight: 1.1 }}>
-              {myGuardian.archetype_name}
-            </div>
-            <div style={{ color: rarityMeta.color, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
-              Stufe {myGuardian.level}
-            </div>
-            <div style={{
-              marginTop: 6, display: "flex", justifyContent: "center", gap: 8, fontSize: 10,
-            }}>
-              <span style={{ color: "#4ade80", fontWeight: 700 }}>🏆 {myGuardian.wins}</span>
-              <span style={{ color: "#FF2D78", fontWeight: 700 }}>💀 {myGuardian.losses}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Stat-Kacheln */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           <ArenaStatTile
             label="GRATIS-FIGHTS"
-            value={`${freeLeft}/10`}
+            value={`${freeLeft}/5`}
             sub={freeLeft > 0 ? "noch frei" : "aufgebraucht"}
             icon="⚡"
             color={freeLeft > 0 ? "#4ade80" : "#8B8FA3"}
@@ -380,12 +371,11 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
             icon="💎"
             color="#FFD700"
           />
-        </div>
       </div>
 
       {nextCost === -1 && (
         <div style={{ padding: "10px 18px", background: "rgba(255,45,120,0.14)", borderTop: "1px solid rgba(255,45,120,0.3)", color: "#FF2D78", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
-          🚫 Tageslimit (30) erreicht — morgen wieder frische Fights!
+          🚫 Tageslimit (15) erreicht — morgen wieder frische Fights!
         </div>
       )}
 
@@ -395,6 +385,327 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
           50%      { transform: translateY(-4px) scale(1.02); }
         }
       `}</style>
+    </div>
+  );
+}
+
+const SLOT_ORDER: Array<{ key: string; icon: string; label: string }> = [
+  { key: "helm",      icon: "⛑️", label: "Helm" },
+  { key: "shoulders", icon: "🦾", label: "Schultern" },
+  { key: "chest",     icon: "🛡️", label: "Brust" },
+  { key: "hands",     icon: "🧤", label: "Hände" },
+  { key: "wrist",     icon: "🔗", label: "Armschienen" },
+  { key: "boots",     icon: "🥾", label: "Stiefel" },
+  { key: "neck",      icon: "📿", label: "Halskette" },
+  { key: "ring",      icon: "💍", label: "Ring" },
+  { key: "weapon",    icon: "⚔️", label: "Waffe" },
+];
+
+const TIER_COLORS = ["#8B8FA3", "#4ade80", "#a855f7", "#FFD700"];
+
+function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
+  myGuardian: MyGuardian;
+  myType: { label: string; icon: string; color: string } | null;
+  rarityMeta: { color: string; label: string; glow: string };
+  onChanged: () => void | Promise<void>;
+}) {
+  const eff = myGuardian.effective_stats;
+  const bon = myGuardian.bonus_stats;
+  const equippedMap = new Map(myGuardian.equipped.map((e) => [e.slot, e]));
+  const equippedCount = myGuardian.equipped.length;
+  const [openSlot, setOpenSlot] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function equip(userItemId: string) {
+    setBusy(true);
+    try {
+      await fetch("/api/guardian/inventory", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "equip", user_item_id: userItemId }),
+      });
+      setOpenSlot(null);
+      await onChanged();
+    } finally { setBusy(false); }
+  }
+  async function unequip(slot: string) {
+    setBusy(true);
+    try {
+      await fetch("/api/guardian/inventory", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "unequip", slot }),
+      });
+      setOpenSlot(null);
+      await onChanged();
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{
+      position: "relative", margin: "0 18px 12px", padding: 14,
+      borderRadius: 14,
+      background: `radial-gradient(circle at 15% 20%, ${rarityMeta.glow} 0%, transparent 55%), linear-gradient(180deg, rgba(15,17,21,0.75) 0%, rgba(15,17,21,0.95) 100%)`,
+      border: `1px solid ${rarityMeta.color}55`,
+      boxShadow: `0 4px 28px ${rarityMeta.glow}, inset 0 1px 0 rgba(255,255,255,0.05)`,
+      display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, alignItems: "center",
+    }}>
+      {/* Portrait */}
+      <div style={{
+        position: "relative",
+        width: 120, height: 130,
+        borderRadius: 12,
+        background: `radial-gradient(circle at 50% 40%, ${rarityMeta.color}35 0%, transparent 65%), linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%)`,
+        border: `1px solid ${rarityMeta.color}66`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <div style={{
+          position: "absolute", top: 6, left: 6,
+          padding: "2px 6px", borderRadius: 999,
+          background: `${rarityMeta.color}dd`, color: "#0F1115",
+          fontSize: 8, fontWeight: 900, letterSpacing: 1.2,
+        }}>{rarityMeta.label}</div>
+        <div style={{
+          fontSize: 70,
+          filter: `drop-shadow(0 6px 12px ${rarityMeta.glow})`,
+          animation: "heroFloat 3s ease-in-out infinite",
+        }}>{myGuardian.archetype_emoji}</div>
+        <div style={{
+          position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)",
+          width: 80, height: 5, borderRadius: "50%",
+          background: `radial-gradient(ellipse, ${rarityMeta.color}aa, transparent 70%)`,
+        }} />
+      </div>
+
+      {/* Mitte: Name + Stats + Gear-Strip */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, lineHeight: 1 }}>
+            {myGuardian.archetype_name}
+          </div>
+          <div style={{
+            padding: "2px 8px", borderRadius: 999,
+            background: `${rarityMeta.color}22`, border: `1px solid ${rarityMeta.color}66`,
+            color: rarityMeta.color, fontSize: 10, fontWeight: 900, letterSpacing: 1,
+          }}>Stufe {myGuardian.level}</div>
+          {myType && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "2px 8px", borderRadius: 999,
+              background: `${myType.color}22`, border: `1px solid ${myType.color}77`,
+              color: myType.color, fontSize: 10, fontWeight: 900, letterSpacing: 1,
+            }}>
+              <span>{myType.icon}</span>
+              {myType.label.toUpperCase()}
+            </div>
+          )}
+          <div style={{ fontSize: 10, color: "#a8b4cf" }}>
+            🏆 <b style={{ color: "#4ade80" }}>{myGuardian.wins}</b> · 💀 <b style={{ color: "#FF2D78" }}>{myGuardian.losses}</b>
+          </div>
+        </div>
+
+        {/* Stat-Grid 4x */}
+        <div style={{
+          marginTop: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6,
+        }}>
+          <GearStat label="HP"  value={eff.hp}  bonus={bon.hp}  icon="❤️" color="#4ade80" />
+          <GearStat label="ATK" value={eff.atk} bonus={bon.atk} icon="⚔️" color="#FF6B4A" />
+          <GearStat label="DEF" value={eff.def} bonus={bon.def} icon="🛡️" color="#60a5fa" />
+          <GearStat label="SPD" value={eff.spd} bonus={bon.spd} icon="💨" color="#FFD700" />
+        </div>
+
+        {/* Equipment-Strip (klickbar → Inline-Picker) */}
+        <div style={{ marginTop: 12 }}>
+          <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
+            ⚒️ AUSRÜSTUNG · {equippedCount}/{SLOT_ORDER.length} SLOTS
+            <span style={{ color: "#6c7590", fontSize: 10, fontWeight: 700, marginLeft: 8, letterSpacing: 0 }}>
+              (Slot klicken zum Wechseln)
+            </span>
+          </div>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 6,
+          }}>
+            {SLOT_ORDER.map((s) => {
+              const eq = equippedMap.get(s.key);
+              const tier = eq?.upgrade_tier ?? 0;
+              const tierColor = TIER_COLORS[Math.max(0, Math.min(3, tier))];
+              const empty = !eq;
+              const bonusSummary = eq ? summarizeBonus(eq, tier) : null;
+              const isOpen = openSlot === s.key;
+              const available = myGuardian.inventory_by_slot[s.key] ?? [];
+
+              return (
+                <div key={s.key} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setOpenSlot(isOpen ? null : s.key)}
+                    disabled={busy}
+                    style={{
+                      width: "100%",
+                      padding: "6px 8px 7px",
+                      borderRadius: 10,
+                      background: empty ? "rgba(255,255,255,0.03)" : `linear-gradient(180deg, ${tierColor}22 0%, rgba(0,0,0,0.4) 100%)`,
+                      border: `1.5px solid ${empty ? "rgba(255,255,255,0.1)" : tierColor}`,
+                      boxShadow: empty ? "none" : `0 0 10px ${tierColor}33`,
+                      cursor: busy ? "wait" : "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 6, flexShrink: 0,
+                        background: empty ? "rgba(0,0,0,0.3)" : `${tierColor}33`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 18, opacity: empty ? 0.5 : 1,
+                      }}>{eq ? eq.emoji : s.icon}</div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: 1, color: "#8B8FA3" }}>
+                          {s.label.toUpperCase()}
+                        </div>
+                        <div style={{
+                          fontSize: 10, fontWeight: 900, color: empty ? "#6c7590" : tierColor,
+                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        }}>
+                          {eq ? eq.name : "— leer —"}
+                        </div>
+                      </div>
+                    </div>
+                    {bonusSummary && (
+                      <div style={{
+                        marginTop: 3, fontSize: 9, color: "#4ade80", fontWeight: 900,
+                        letterSpacing: 0.3, lineHeight: 1.2,
+                      }}>
+                        {bonusSummary}
+                      </div>
+                    )}
+                  </button>
+
+                  {isOpen && (
+                    <SlotPicker
+                      slotLabel={s.label}
+                      available={available}
+                      equippedId={eq?.user_item_id ?? null}
+                      onPick={equip}
+                      onUnequip={eq ? () => unequip(s.key) : null}
+                      onClose={() => setOpenSlot(null)}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+const TIER_MULT = [1.0, 1.5, 2.25, 3.5];
+
+function summarizeBonus(it: EquippedItem, tier: number): string | null {
+  const m = TIER_MULT[Math.max(0, Math.min(3, tier))];
+  const parts: string[] = [];
+  if (it.bonus_hp)  parts.push(`+${Math.round(it.bonus_hp  * m)} HP`);
+  if (it.bonus_atk) parts.push(`+${Math.round(it.bonus_atk * m)} ATK`);
+  if (it.bonus_def) parts.push(`+${Math.round(it.bonus_def * m)} DEF`);
+  if (it.bonus_spd) parts.push(`+${Math.round(it.bonus_spd * m)} SPD`);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function SlotPicker({ slotLabel, available, equippedId, onPick, onUnequip, onClose }: {
+  slotLabel: string;
+  available: EquippedItem[];
+  equippedId: string | null;
+  onPick: (id: string) => void;
+  onUnequip: (() => void) | null;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
+      <div style={{
+        position: "absolute", zIndex: 51, top: "100%", left: 0, right: 0, marginTop: 4,
+        minWidth: 220,
+        background: "linear-gradient(180deg, #1a1d23 0%, #0f1115 100%)",
+        border: "1px solid rgba(255,215,0,0.4)",
+        borderRadius: 10,
+        boxShadow: "0 10px 40px rgba(0,0,0,0.7), 0 0 20px rgba(255,215,0,0.15)",
+        padding: 6, maxHeight: 280, overflowY: "auto",
+      }}>
+        <div style={{ padding: "4px 6px 6px", color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>
+          {slotLabel.toUpperCase()} WÄHLEN
+        </div>
+        {available.length === 0 ? (
+          <div style={{ padding: "10px 8px", fontSize: 10, color: "#6c7590", textAlign: "center" }}>
+            Keine Items für diesen Slot.
+          </div>
+        ) : (
+          available.map((it) => {
+            const tier = it.upgrade_tier;
+            const tierColor = TIER_COLORS[Math.max(0, Math.min(3, tier))];
+            const isEquipped = it.user_item_id === equippedId;
+            const bonus = summarizeBonus(it, tier);
+            return (
+              <button
+                key={it.user_item_id}
+                onClick={() => isEquipped ? onClose() : onPick(it.user_item_id)}
+                style={{
+                  display: "block", width: "100%", padding: "6px 8px",
+                  marginTop: 2,
+                  background: isEquipped ? `${tierColor}22` : "rgba(255,255,255,0.02)",
+                  border: `1px solid ${isEquipped ? tierColor : "transparent"}`,
+                  borderRadius: 8, cursor: "pointer", textAlign: "left",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 18 }}>{it.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: tierColor, fontSize: 11, fontWeight: 900 }}>
+                      {it.name}{tier > 0 ? ` T${tier}` : ""}
+                    </div>
+                    {bonus && (
+                      <div style={{ color: "#4ade80", fontSize: 9, fontWeight: 700 }}>
+                        {bonus}
+                      </div>
+                    )}
+                  </div>
+                  {isEquipped && <span style={{ fontSize: 9, color: tierColor, fontWeight: 900 }}>✓</span>}
+                </div>
+              </button>
+            );
+          })
+        )}
+        {onUnequip && (
+          <button
+            onClick={onUnequip}
+            style={{
+              display: "block", width: "100%", marginTop: 6, padding: "6px 8px",
+              background: "rgba(255,45,120,0.1)", border: "1px solid rgba(255,45,120,0.3)",
+              borderRadius: 8, color: "#FF2D78", fontSize: 10, fontWeight: 900,
+              cursor: "pointer",
+            }}
+          >
+            ✕ AUSZIEHEN
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+function GearStat({ label, value, bonus, icon, color }: { label: string; value: number; bonus: number; icon: string; color: string }) {
+  return (
+    <div style={{
+      position: "relative", padding: "6px 8px", borderRadius: 8,
+      background: `linear-gradient(135deg, ${color}12 0%, rgba(0,0,0,0.35) 90%)`,
+      border: `1px solid ${color}33`,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 9, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1 }}>
+        <span>{icon} {label}</span>
+        {bonus > 0 && <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 900 }}>+{bonus.toLocaleString("de-DE")}</span>}
+      </div>
+      <div style={{ color, fontSize: 15, fontWeight: 900, lineHeight: 1.1, marginTop: 2 }}>
+        {value.toLocaleString("de-DE")}
+      </div>
     </div>
   );
 }
@@ -420,13 +731,22 @@ function ArenaStatTile({ label, value, sub, icon, color }: { label: string; valu
   );
 }
 
-function OpponentCard({ op, onAttack, busy, disabled }: { op: Opponent; onAttack: () => void; busy: boolean; disabled: boolean }) {
+function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; myType: GuardianType | null; onAttack: () => void; busy: boolean; disabled: boolean }) {
   const factionColor = op.faction === "syndicate" ? "#22D1C3" : op.faction === "vanguard" ? "#FF6B4A" : "#8B8FA3";
   const rarityMeta = op.rarity === "legendary"
     ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
     : op.rarity === "epic"
     ? { color: "#a855f7", label: "EPISCH",   glow: "rgba(168,85,247,0.4)" }
     : { color: "#22D1C3", label: "ELITE",    glow: "rgba(34,209,195,0.3)" };
+
+  const opType = op.guardian_type && (op.guardian_type in TYPE_META) ? TYPE_META[op.guardian_type as GuardianType] : null;
+  const mult = myType && op.guardian_type && (op.guardian_type in TYPE_META)
+    ? typeCounter(myType, op.guardian_type as GuardianType) : 1;
+  const matchup = mult > 1
+    ? { label: "VORTEIL", color: "#4ade80", icon: "✅" }
+    : mult < 1
+    ? { label: "NACHTEIL", color: "#FF2D78", icon: "⚠️" }
+    : null;
 
   // S&F-Style Base-Stats (gleiche Formel wie Engine nutzt)
   const base = estimateStats(op.archetype_emoji, op.level, op.rarity);
@@ -462,6 +782,16 @@ function OpponentCard({ op, onAttack, busy, disabled }: { op: Opponent; onAttack
         }}>🤖 BOT</div>
       )}
 
+      {matchup && (
+        <div style={{
+          position: "absolute", top: 36, left: 8, zIndex: 2,
+          padding: "3px 8px", borderRadius: 999,
+          background: `${matchup.color}dd`, color: "#0F1115",
+          fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+          boxShadow: `0 2px 8px ${matchup.color}66`,
+        }}>{matchup.icon} {matchup.label}</div>
+      )}
+
       {/* Portrait-Bereich: großer Emoji-Avatar auf Farbverlauf */}
       <div style={{
         height: 140, display: "flex", alignItems: "center", justifyContent: "center",
@@ -482,6 +812,17 @@ function OpponentCard({ op, onAttack, busy, disabled }: { op: Opponent; onAttack
         <div style={{ color: factionColor, fontSize: 11, fontWeight: 700, marginTop: 2 }}>
           [{op.archetype_name}]
         </div>
+        {opType && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            marginTop: 6, padding: "3px 10px", borderRadius: 999,
+            background: `${opType.color}22`, border: `1px solid ${opType.color}77`,
+            color: opType.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+          }}>
+            <span style={{ fontSize: 11 }}>{opType.icon}</span>
+            {opType.label.toUpperCase()}
+          </div>
+        )}
       </div>
 
       {/* Level-Bar (wie S&F) */}
@@ -827,6 +1168,7 @@ function FighterPanel({ side, name, emoji, level, hpPct, dmgDealt, crits, winner
   );
 }
 
+
 function RewardTile({ icon, label, value, color }: { icon: string; label: string; value: string; color: string }) {
   return (
     <div style={{
@@ -839,6 +1181,129 @@ function RewardTile({ icon, label, value, color }: { icon: string; label: string
         <div style={{ color: "#a8b4cf", fontSize: 9, letterSpacing: 0.5 }}>{label}</div>
         <div style={{ color, fontSize: 15, fontWeight: 900 }}>{value}</div>
       </div>
+    </div>
+  );
+}
+
+/* ═══ Season Picker (Saison-Wächter wählen) ═══ */
+type Archetype = { id: string; name: string; emoji: string; rarity: string; guardian_type: string | null; role: string | null; ability_name: string; ability_desc: string };
+
+function SeasonPicker({ season, eternal, onPicked, onClose }: {
+  season: { id: string; number: number; name: string; ends_at: string };
+  eternal: { id: string; guardian_archetypes: { name: string; emoji: string } } | null;
+  onPicked: () => void;
+  onClose?: () => void;
+}) {
+  const [archetypes, setArchetypes] = useState<Archetype[] | null>(null);
+  const [pickingId, setPickingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/arena/season/pick", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setArchetypes(j.archetypes ?? []));
+  }, []);
+
+  async function pick(archetypeId: string) {
+    if (!confirm("Diesen Wächter für die gesamte Saison einsetzen? Er startet bei Level 1.")) return;
+    setPickingId(archetypeId);
+    const res = await fetch("/api/arena/season/pick", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ archetype_id: archetypeId }),
+    });
+    const j = await res.json() as { ok: boolean; error?: string };
+    if (!j.ok) { alert(j.error ?? "Fehler"); setPickingId(null); return; }
+    onPicked();
+  }
+
+  const daysLeft = Math.max(0, Math.ceil((new Date(season.ends_at).getTime() - Date.now()) / 86_400_000));
+
+  return (
+    <div style={{
+      padding: 20, borderRadius: 16,
+      background: "radial-gradient(ellipse at top, rgba(255,215,0,0.14) 0%, transparent 60%), linear-gradient(180deg, #1a0e14 0%, #0a0a0f 100%)",
+      border: "1px solid rgba(255,215,0,0.4)",
+      boxShadow: "0 10px 40px rgba(0,0,0,0.5), 0 0 40px rgba(255,215,0,0.15)",
+    }}>
+      {onClose && (
+        <button onClick={onClose} style={{
+          position: "absolute", top: 20, right: 20,
+          background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
+          width: 34, height: 34, borderRadius: 999, cursor: "pointer", fontSize: 18,
+        }}>✕</button>
+      )}
+
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3 }}>
+          SAISON {season.number} · {season.name.toUpperCase()}
+        </div>
+        <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginTop: 4 }}>
+          ⚔️ Wähle deinen Saison-Wächter
+        </div>
+        <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 6, maxWidth: 540, margin: "6px auto 0" }}>
+          Dein <b style={{ color: "#22D1C3" }}>Saison-Wächter</b> startet bei Level 1 und kämpft in der Arena dieser Saison.
+          Dein <b style={{ color: "#FFD700" }}>Ewiger Wächter</b> bleibt unberührt — alle Items die du hier loots wandern automatisch in sein Inventar.
+          Noch <b>{daysLeft} Tage</b>.
+        </div>
+      </div>
+
+      {eternal && (
+        <div style={{
+          margin: "0 auto 16px", maxWidth: 420, padding: "10px 14px", borderRadius: 10,
+          background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <div style={{ fontSize: 26 }}>{eternal.guardian_archetypes.emoji}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>EWIGER WÄCHTER</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 700 }}>{eternal.guardian_archetypes.name}</div>
+          </div>
+          <span style={{ color: "#a8b4cf", fontSize: 10 }}>erbt die Beute</span>
+        </div>
+      )}
+
+      {!archetypes ? (
+        <div className="p-10 text-center text-[#8B8FA3]">Lade Wächter …</div>
+      ) : archetypes.length === 0 ? (
+        <div className="p-8 text-center text-[#8B8FA3] text-sm">
+          Keine Wächter verfügbar. Sammle zuerst Wächter über die Map.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
+          {archetypes.map((a) => {
+            const rarityColor = a.rarity === "legendary" ? "#FFD700" : a.rarity === "epic" ? "#a855f7" : "#22D1C3";
+            const busy = pickingId === a.id;
+            return (
+              <button key={a.id} onClick={() => pick(a.id)} disabled={!!pickingId}
+                style={{
+                  padding: 12, borderRadius: 12, textAlign: "left", cursor: pickingId ? "wait" : "pointer",
+                  background: `radial-gradient(circle at 50% 0%, ${rarityColor}22 0%, transparent 70%), rgba(15,17,21,0.8)`,
+                  border: `1.5px solid ${rarityColor}66`,
+                  opacity: pickingId && !busy ? 0.4 : 1,
+                }}>
+                <div style={{ textAlign: "center", fontSize: 48, filter: `drop-shadow(0 4px 8px ${rarityColor}66)` }}>
+                  {a.emoji}
+                </div>
+                <div style={{ color: rarityColor, fontSize: 9, fontWeight: 900, letterSpacing: 1.5, marginTop: 4, textAlign: "center" }}>
+                  {a.rarity === "legendary" ? "LEGENDÄR" : a.rarity === "epic" ? "EPISCH" : "ELITE"}
+                </div>
+                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, marginTop: 2, textAlign: "center" }}>
+                  {a.name}
+                </div>
+                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 6, textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>
+                  „{a.ability_name}"
+                </div>
+                <div style={{
+                  marginTop: 8, padding: "6px 8px", borderRadius: 6, textAlign: "center",
+                  background: busy ? "#8B8FA3" : `linear-gradient(180deg, ${rarityColor} 0%, ${rarityColor}aa 100%)`,
+                  color: "#0F1115", fontSize: 10, fontWeight: 900, letterSpacing: 1.2,
+                }}>
+                  {busy ? "WIRD GEWÄHLT…" : "⚔️ WÄHLEN"}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

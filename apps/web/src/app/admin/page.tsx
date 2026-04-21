@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Stat, PageTitle, Card, Badge } from "./_components/ui";
+import { EngagementCard, SignupTrendCard, RetentionCard, FunnelCard } from "./_components/engagement-widgets";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,13 @@ export default async function AdminDashboard() {
         <Stat label="Offene Meldungen" value={openReports ?? 0} color="#FF2D78" />
         <Stat label="Sales Leads" value={pendingLeads ?? 0} color="#22D1C3" />
         <Stat label="E-Mails (7d)" value={emailsSent} delta={`${emailsBounced} Bounces`} color="#4ade80" />
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        <EngagementCard />
+        <SignupTrendCard />
+        <RetentionCard />
+        <FunnelCard />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

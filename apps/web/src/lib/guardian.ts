@@ -49,6 +49,8 @@ export type CrewGuardian = {
   talent_points_available: number;
   talent_points_spent: number;
   last_respec_at: string | null;
+  kind?: "eternal" | "seasonal";
+  season_id?: string | null;
 };
 
 export type GuardianWithArchetype = CrewGuardian & { archetype: GuardianArchetype };

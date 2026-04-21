@@ -92,7 +92,7 @@ export function RunnerActions({ userId, username, isBanned, shadowBanned, role, 
         </Button>
       </div>
 
-      <div className="pt-2 border-t border-white/10 flex gap-2">
+      <div className="pt-2 border-t border-white/10 flex gap-2 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => {
           navigator.clipboard.writeText(userId); appAlert("User-ID kopiert");
         }}>📋 ID kopieren</Button>
@@ -101,6 +101,26 @@ export function RunnerActions({ userId, username, isBanned, shadowBanned, role, 
             window.open(`/@${username}`, "_blank");
           }}>🔗 Profil öffnen</Button>
         )}
+        <Button variant="ghost" size="sm" onClick={() => {
+          window.open(`/api/admin/export/user/${userId}`, "_blank");
+        }}>📥 DSGVO-Export (JSON)</Button>
+        <Button variant="secondary" size="sm" onClick={async () => {
+          if (!(await appConfirm({
+            message: `Magic-Link für @${username ?? userId} generieren? Der Link ist 60 Minuten gültig. Öffne ihn NUR im Private-Window, sonst ersetzt er deine Admin-Session.`,
+            danger: false,
+            confirmLabel: "Link generieren",
+          }))) return;
+          const res = await fetch("/api/admin/impersonate", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ user_id: userId }),
+          });
+          const j = await res.json();
+          if (!j.ok) { appAlert("Fehler: " + (j.error ?? "unbekannt")); return; }
+          await navigator.clipboard.writeText(j.action_link);
+          appAlert(`Magic-Link wurde in die Zwischenablage kopiert.\n\nImpersoniere @${j.target.username} (${j.target.email}).\n\n⚠️ NUR in Private-Window öffnen!`);
+        }} disabled={pending}>
+          🎭 Impersonate (Magic-Link)
+        </Button>
       </div>
     </div>
   );

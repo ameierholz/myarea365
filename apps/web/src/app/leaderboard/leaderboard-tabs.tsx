@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-type TabId = "runners" | "guardians" | "factions" | "crews" | "arena";
+type TabId = "runners" | "guardians" | "factions" | "crews" | "arena" | "arena-fights";
 
 const TABS: Array<{ id: TabId; label: string }> = [
-  { id: "runners",   label: "🏃 Runner" },
-  { id: "guardians", label: "🛡️ Wächter" },
-  { id: "factions",  label: "🏛️ Fraktionen" },
-  { id: "crews",     label: "👥 Crews" },
-  { id: "arena",     label: "🏆 Area-Liga" },
+  { id: "runners",       label: "🏃 Runner" },
+  { id: "guardians",     label: "🛡️ Wächter" },
+  { id: "factions",      label: "🏛️ Fraktionen" },
+  { id: "crews",         label: "👥 Crews" },
+  { id: "arena-fights",  label: "⚔️ Arena" },
+  { id: "arena",         label: "🏆 Area-Liga" },
 ];
 
 export function LeaderboardTabs() {
@@ -30,11 +31,12 @@ export function LeaderboardTabs() {
         ))}
       </div>
 
-      {tab === "runners"   && <RunnersTab />}
-      {tab === "guardians" && <GuardiansTab />}
-      {tab === "factions"  && <FactionsTab />}
-      {tab === "crews"     && <CrewsTab />}
-      {tab === "arena"     && <ArenaTab />}
+      {tab === "runners"      && <RunnersTab />}
+      {tab === "guardians"    && <GuardiansTab />}
+      {tab === "factions"     && <FactionsTab />}
+      {tab === "crews"        && <CrewsTab />}
+      {tab === "arena-fights" && <ArenaFightsTab />}
+      {tab === "arena"        && <ArenaTab />}
     </div>
   );
 }
@@ -320,7 +322,99 @@ function CrewsTab() {
   );
 }
 
-/* ═════════════════ ARENA ═════════════════ */
+/* ═════════════════ ARENA (Wächter-PvP-Kämpfe) ═════════════════ */
+
+function ArenaFightsTab() {
+  const [rows, setRows] = useState<HallOfHonorRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<"honor" | "wins" | "winrate">("honor");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/leaderboard/hall-of-honor")
+      .then((r) => r.json())
+      .then((d) => setRows(d.rows ?? []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Loading />;
+
+  const sorted = [...rows].sort((a, b) => {
+    if (sortBy === "wins") return b.wins - a.wins;
+    if (sortBy === "winrate") {
+      const wa = a.wins + a.losses > 0 ? a.wins / (a.wins + a.losses) : 0;
+      const wb = b.wins + b.losses > 0 ? b.wins / (b.wins + b.losses) : 0;
+      return wb - wa;
+    }
+    return b.honor - a.honor;
+  });
+
+  const topThree = sorted.slice(0, 3);
+
+  return (
+    <div>
+      <div className="mb-4 p-4 rounded-xl border border-[#FFD700]/30" style={{
+        background: "radial-gradient(ellipse at top, rgba(255,107,74,0.15) 0%, transparent 60%), linear-gradient(180deg, rgba(255,215,0,0.08) 0%, rgba(15,17,21,0.9) 100%)",
+      }}>
+        <div className="flex items-center gap-3">
+          <div className="text-3xl">⚔️</div>
+          <div className="flex-1">
+            <div className="text-[10px] font-black tracking-widest text-[#FFD700]">KAMPFARENA</div>
+            <div className="text-lg font-black text-white">Rangliste der Gladiatoren</div>
+            <div className="text-xs text-[#a8b4cf]">Ehre = Siege × Level × 10</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Podium Top 3 */}
+      {topThree.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {[topThree[1], topThree[0], topThree[2]].filter(Boolean).map((r, idx) => {
+            const actualRank = r === topThree[0] ? 1 : r === topThree[1] ? 2 : 3;
+            const medal = actualRank === 1 ? "🥇" : actualRank === 2 ? "🥈" : "🥉";
+            const color = actualRank === 1 ? "#FFD700" : actualRank === 2 ? "#C0C0C0" : "#CD7F32";
+            const height = actualRank === 1 ? 120 : actualRank === 2 ? 100 : 80;
+            return (
+              <div key={r.user_id} className="flex flex-col items-center justify-end">
+                <div style={{ fontSize: 32 }}>{medal}</div>
+                <div className="text-xs font-black text-white text-center truncate w-full px-1" title={r.display_name ?? r.username ?? ""}>
+                  {r.display_name ?? r.username}
+                </div>
+                <div className="text-[10px] text-[#8B8FA3] mb-1">{r.wins}W · Lvl {r.level}</div>
+                <div style={{
+                  width: "100%", height,
+                  background: `linear-gradient(180deg, ${color}dd 0%, ${color}55 100%)`,
+                  borderRadius: "8px 8px 0 0",
+                  border: `1px solid ${color}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexDirection: "column",
+                  boxShadow: `0 0 16px ${color}55`,
+                }}>
+                  <div className="text-xs font-black" style={{ color: "#0F1115" }}>#{actualRank}</div>
+                  <div className="text-[10px] font-black" style={{ color: "#0F1115" }}>{r.honor.toLocaleString("de-DE")}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-1.5 mb-3 flex-wrap">
+        <Chip active={sortBy==="honor"}   onClick={() => setSortBy("honor")}>🏆 Ehre</Chip>
+        <Chip active={sortBy==="wins"}    onClick={() => setSortBy("wins")}>⚔️ Siege</Chip>
+        <Chip active={sortBy==="winrate"} onClick={() => setSortBy("winrate")}>📊 Win-Rate</Chip>
+      </div>
+
+      {sorted.length === 0 ? (
+        <Empty text="Noch keine Kämpfe ausgetragen. Sei der erste Gladiator!" />
+      ) : (
+        <HallOfHonorView rows={sorted} />
+      )}
+    </div>
+  );
+}
+
+/* ═════════════════ ARENA (Area-Liga) ═════════════════ */
 
 type Session = { id: string; name: string; starts_at: string; ends_at: string; status: string };
 type ArenaRunnerScore = {

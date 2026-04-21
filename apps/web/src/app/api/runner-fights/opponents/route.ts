@@ -42,37 +42,106 @@ export async function GET(req: NextRequest) {
     const fightsUsed = state?.fights_used_today ?? 0;
     const { data: nextCost } = await sb.rpc("runner_fight_next_gem_cost", { p_used: fightsUsed });
 
-    // Eigener aktiver Wächter (für Hero-Anzeige)
+    // Eigener aktiver Wächter (für Hero-Anzeige) + Base-Stats
     const { data: myGuardianRow } = await sb.from("user_guardians")
-      .select("id, archetype_id, level, xp, wins, losses, current_hp_pct, guardian_archetypes!inner(name, emoji, rarity, guardian_type, role)")
+      .select("id, archetype_id, level, xp, wins, losses, current_hp_pct, guardian_archetypes!inner(name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
-    const myGuardian = myGuardianRow ? {
-      guardian_id: (myGuardianRow as { id: string }).id,
-      archetype_id: (myGuardianRow as { archetype_id: string }).archetype_id,
-      level:        (myGuardianRow as { level: number }).level,
-      xp:           (myGuardianRow as { xp: number }).xp,
-      wins:         (myGuardianRow as { wins: number }).wins,
-      losses:       (myGuardianRow as { losses: number }).losses,
-      current_hp_pct: (myGuardianRow as { current_hp_pct: number }).current_hp_pct,
-      archetype_name:  (myGuardianRow as unknown as { guardian_archetypes: { name: string } }).guardian_archetypes.name,
-      archetype_emoji: (myGuardianRow as unknown as { guardian_archetypes: { emoji: string } }).guardian_archetypes.emoji,
-      rarity:          (myGuardianRow as unknown as { guardian_archetypes: { rarity: string } }).guardian_archetypes.rarity,
-    } : null;
+
+    type ArchRow = { name: string; emoji: string; rarity: string; guardian_type: string | null; role: string | null; base_hp: number; base_atk: number; base_def: number; base_spd: number };
+    const arch = myGuardianRow ? (myGuardianRow as unknown as { guardian_archetypes: ArchRow }).guardian_archetypes : null;
+
+    // Equipped + Inventar (für Hero-Anzeige & inline Slot-Picker)
+    type EqItem = { user_item_id: string; slot: string; name: string; emoji: string; rarity: string; upgrade_tier: number; bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number; image_url: string | null };
+    let myEquipped: EqItem[] = [];
+    let myInventoryBySlot: Record<string, EqItem[]> = {};
+    if (myGuardianRow) {
+      const gid = (myGuardianRow as { id: string }).id;
+      const { data: equipRows } = await sb.from("guardian_equipment")
+        .select("slot, user_item_id")
+        .eq("guardian_id", gid);
+      const equippedIds = new Set(((equipRows ?? []) as Array<{ user_item_id: string }>).map((r) => r.user_item_id));
+      const slotByEqId = new Map(((equipRows ?? []) as Array<{ slot: string; user_item_id: string }>).map((r) => [r.user_item_id, r.slot]));
+
+      const { data: items } = await sb.from("user_items")
+        .select("id, upgrade_tier, item_catalog:item_id(name, emoji, slot, rarity, bonus_hp, bonus_atk, bonus_def, bonus_spd, image_url)")
+        .eq("user_id", user.id);
+
+      type ItemRow = { id: string; upgrade_tier: number | null; item_catalog: { name: string; emoji: string; slot: string; rarity: string; bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number; image_url: string | null } | Array<{ name: string; emoji: string; slot: string; rarity: string; bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number; image_url: string | null }> };
+      const allItems: EqItem[] = ((items ?? []) as ItemRow[]).map((r) => {
+        const cat = Array.isArray(r.item_catalog) ? r.item_catalog[0] : r.item_catalog;
+        return {
+          user_item_id: r.id,
+          slot: slotByEqId.get(r.id) ?? cat.slot,
+          name: cat.name, emoji: cat.emoji, rarity: cat.rarity,
+          upgrade_tier: r.upgrade_tier ?? 0,
+          bonus_hp: cat.bonus_hp, bonus_atk: cat.bonus_atk, bonus_def: cat.bonus_def, bonus_spd: cat.bonus_spd,
+          image_url: cat.image_url ?? null,
+        };
+      });
+      myEquipped = allItems.filter((it) => equippedIds.has(it.user_item_id));
+      myInventoryBySlot = allItems.reduce<Record<string, EqItem[]>>((acc, it) => {
+        (acc[it.slot] ??= []).push(it);
+        return acc;
+      }, {});
+    }
+
+    // Base + Effektive Stats (Tier-Multiplier 1.0/1.5/2.25/3.5)
+    const TIER_MULT = [1.0, 1.5, 2.25, 3.5];
+    const myGuardian = myGuardianRow && arch ? (() => {
+      const lvl = (myGuardianRow as { level: number }).level;
+      const hpMult  = 1 + (lvl - 1) * 0.06;
+      const atkMult = 1 + (lvl - 1) * 0.04;
+      const defMult = 1 + (lvl - 1) * 0.04;
+      const spdMult = 1 + (lvl - 1) * 0.02;
+      const base = {
+        hp:  Math.round(arch.base_hp  * hpMult),
+        atk: Math.round(arch.base_atk * atkMult),
+        def: Math.round(arch.base_def * defMult),
+        spd: Math.round(arch.base_spd * spdMult),
+      };
+      let bHp = 0, bAtk = 0, bDef = 0, bSpd = 0;
+      for (const it of myEquipped) {
+        const m = TIER_MULT[Math.max(0, Math.min(3, it.upgrade_tier))];
+        bHp  += Math.round(it.bonus_hp  * m);
+        bAtk += Math.round(it.bonus_atk * m);
+        bDef += Math.round(it.bonus_def * m);
+        bSpd += Math.round(it.bonus_spd * m);
+      }
+      return {
+        guardian_id: (myGuardianRow as { id: string }).id,
+        archetype_id: (myGuardianRow as { archetype_id: string }).archetype_id,
+        level:        lvl,
+        xp:           (myGuardianRow as { xp: number }).xp,
+        wins:         (myGuardianRow as { wins: number }).wins,
+        losses:       (myGuardianRow as { losses: number }).losses,
+        current_hp_pct: (myGuardianRow as { current_hp_pct: number }).current_hp_pct,
+        archetype_name:  arch.name,
+        archetype_emoji: arch.emoji,
+        rarity:          arch.rarity,
+        guardian_type:   arch.guardian_type,
+        role:            arch.role,
+        base_stats: base,
+        bonus_stats: { hp: bHp, atk: bAtk, def: bDef, spd: bSpd },
+        effective_stats: { hp: base.hp + bHp, atk: base.atk + bAtk, def: base.def + bDef, spd: base.spd + bSpd },
+        equipped: myEquipped,
+        inventory_by_slot: myInventoryBySlot,
+      };
+    })() : null;
 
     const oppData = (oppRes.data as { ok?: boolean; opponents?: Array<Record<string, unknown>>; error?: string } | null) ?? { ok: true, opponents: [] };
     const realOpponents = oppData.opponents ?? [];
 
-    // Dev-Fallback: mit Bots auffüllen
-    let opponents = [...realOpponents];
-    if (opponents.length < 10 && oppData.error !== "no_active_guardian") {
-      const { data: myGuardian } = await sb.from("user_guardians").select("level").eq("user_id", user.id).eq("is_active", true).maybeSingle<{ level: number }>();
-      const myLevel = myGuardian?.level ?? 1;
+    // Dev-Fallback: mit Bots auf 4 auffüllen
+    let opponents = [...realOpponents].slice(0, 4);
+    if (opponents.length < 4 && oppData.error !== "no_active_guardian") {
+      const { data: myLvlRow } = await sb.from("user_guardians").select("level").eq("user_id", user.id).eq("is_active", true).maybeSingle<{ level: number }>();
+      const myLevel = myLvlRow?.level ?? 1;
       const { data: archetypes } = await sb.from("guardian_archetypes")
         .select("id, name, emoji, rarity, guardian_type, role");
       const shuffled = (archetypes ?? []).slice().sort(() => Math.random() - 0.5);
-      const botsNeeded = 10 - opponents.length;
+      const botsNeeded = 4 - opponents.length;
       for (let i = 0; i < botsNeeded && i < shuffled.length; i++) {
         const a = shuffled[i] as { id: string; name: string; emoji: string; rarity: string; guardian_type: string; role: string };
         const levelOffset = Math.floor(Math.random() * 7) - 3;

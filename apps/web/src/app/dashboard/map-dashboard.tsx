@@ -7809,7 +7809,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
       const { data: g } = await sb.from("user_guardians")
-        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, kind, season_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
       if (!g) return;
       const { data: arch } = await sb.from("guardian_archetypes").select("*").eq("id", g.archetype_id).single();
@@ -8078,7 +8078,7 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
       const [guardsRes, trophiesRes, battlesRes] = await Promise.all([
         memberIds.length > 0
           ? sb.from("user_guardians")
-              .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source")
+              .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, kind, season_id")
               .in("user_id", memberIds).eq("is_active", true)
           : Promise.resolve({ data: [] }),
         memberIds.length > 0
@@ -8234,7 +8234,7 @@ function ProfileGuardianBlock({ userId }: { userId: string | null }) {
     (async () => {
       // CoD-Rework: crew_guardians (neues System) — alte user_guardians-Tabelle raus
       const { data: g } = await sb.from("user_guardians")
-        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, talent_points_available, talent_points_spent, last_respec_at, archetype:archetype_id(*)")
+        .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, kind, season_id, talent_points_available, talent_points_spent, last_respec_at, archetype:archetype_id(*)")
         .eq("user_id", userId).eq("is_active", true).maybeSingle();
       if (g) {
         const row = g as unknown as GuardianWithArchetype & { talent_points_available?: number };
@@ -10000,7 +10000,7 @@ function ShopsPartnerView() {
  * RANKING TAB (1:1 alte App)
  * ═══════════════════════════════════════════════════════ */
 
-type RankingMode = "runners" | "crews" | "factions" | "guardians";
+type RankingMode = "runners" | "crews" | "factions" | "guardians" | "arena";
 type RankingSortRunner = "weekly_xp" | "weekly_km" | "total_xp";
 type RankingSortCrew = "weekly_km" | "member_count";
 
@@ -10328,6 +10328,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           { id: "crews",     label: "👥 Crews" },
           { id: "factions",  label: "⚔️ Fraktionen" },
           { id: "guardians", label: "🛡️ Wächter" },
+          { id: "arena",     label: "🏟️ Arena" },
         ] as const).map((m) => {
           const active = mode === m.id;
           return (
@@ -10345,11 +10346,11 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: isWide ? "260px 1fr" : "1fr",
+        gridTemplateColumns: isWide && mode !== "arena" ? "260px 1fr" : "1fr",
         gap: 20, alignItems: "start",
       }}>
         {/* ═══ SIDEBAR ═══ */}
-        <aside style={{
+        {mode !== "arena" && <aside style={{
           position: isWide ? "sticky" : "static",
           top: isWide ? 12 : undefined,
           background: isWide ? "rgba(30, 38, 60, 0.45)" : "transparent",
@@ -10446,7 +10447,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
               </div>
             </div>
           )}
-        </aside>
+        </aside>}
 
         {/* ═══ MAIN ═══ */}
         <main>
@@ -10532,11 +10533,14 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           {mode === "guardians" && (
             <GuardianLeaderboardView />
           )}
+          {mode === "arena" && (
+            <ArenaLeaderboardView />
+          )}
         </main>
       </div>
 
       {/* Legacy leaderboard (Supabase-Live-Daten) — nur anzeigen wenn vorhanden */}
-      {mode !== "factions" && leaderboard.length > 0 && (
+      {mode !== "factions" && mode !== "arena" && leaderboard.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.5 }}>
             LIVE-LEADERBOARD (SUPABASE)
@@ -10898,7 +10902,7 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
 type GuardianLeaderRow = {
   id: string; user_id: string; archetype_id: string;
   level: number; xp?: number; wins: number; losses: number;
-  guardian_archetypes: { name: string; emoji: string; rarity: string } | { name: string; emoji: string; rarity: string }[] | null;
+  guardian_archetypes: { name: string; emoji: string; rarity: string; guardian_type?: string | null } | { name: string; emoji: string; rarity: string; guardian_type?: string | null }[] | null;
   users: { username: string; display_name: string | null; team_color: string | null } | { username: string; display_name: string | null; team_color: string | null }[] | null;
 };
 type WinRateRow = {
@@ -10909,9 +10913,19 @@ type WinRateRow = {
   arch_name: string; arch_emoji: string; arch_rarity: string;
 };
 
+type GuardianTypeFilter = "all" | "infantry" | "cavalry" | "marksman" | "mage";
+const GUARDIAN_TYPE_CHIPS: Array<{ id: GuardianTypeFilter; label: string; color: string }> = [
+  { id: "all",      label: "🌐 Alle",         color: "#22D1C3" },
+  { id: "infantry", label: "🛡️ Infanterie",   color: "#60a5fa" },
+  { id: "cavalry",  label: "🐎 Kavallerie",   color: "#fb923c" },
+  { id: "marksman", label: "🏹 Scharfschütze", color: "#4ade80" },
+  { id: "mage",     label: "🔮 Magier",       color: "#c084fc" },
+];
+
 function GuardianLeaderboardView() {
   const [data, setData] = useState<{ top_level: GuardianLeaderRow[]; most_played: GuardianLeaderRow[]; top_win_rate: WinRateRow[] } | null>(null);
   const [subTab, setSubTab] = useState<"level" | "played" | "winrate">("level");
+  const [typeFilter, setTypeFilter] = useState<GuardianTypeFilter>("all");
 
   useEffect(() => {
     fetch("/api/leaderboard/guardians").then(r => r.json()).then(setData).catch(() => {});
@@ -10924,19 +10938,19 @@ function GuardianLeaderboardView() {
     return Array.isArray(x) ? (x[0] ?? null) : x;
   };
 
-  const currentRows: Array<{
-    rank: number; emoji: string; archName: string; archRarity: string;
+  const rawRows: Array<{
+    emoji: string; archName: string; archRarity: string; guardianType: string | null;
     level: number; stat: string; username: string; teamColor: string;
   }> = (() => {
     if (subTab === "level") {
-      return data.top_level.map((r, i) => {
+      return data.top_level.map((r) => {
         const arch = unnest(r.guardian_archetypes);
         const user = unnest(r.users);
         return {
-          rank: i + 1,
           emoji: arch?.emoji ?? "🛡️",
           archName: arch?.name ?? "?",
           archRarity: arch?.rarity ?? "common",
+          guardianType: arch?.guardian_type ?? null,
           level: r.level,
           stat: `Lvl ${r.level} · ${r.wins}W/${r.losses}L`,
           username: user?.display_name || user?.username || "?",
@@ -10945,14 +10959,14 @@ function GuardianLeaderboardView() {
       });
     }
     if (subTab === "played") {
-      return data.most_played.map((r, i) => {
+      return data.most_played.map((r) => {
         const arch = unnest(r.guardian_archetypes);
         const user = unnest(r.users);
         return {
-          rank: i + 1,
           emoji: arch?.emoji ?? "🛡️",
           archName: arch?.name ?? "?",
           archRarity: arch?.rarity ?? "common",
+          guardianType: arch?.guardian_type ?? null,
           level: r.level,
           stat: `${r.wins + r.losses} Kämpfe · ${r.wins}W/${r.losses}L`,
           username: user?.display_name || user?.username || "?",
@@ -10960,11 +10974,11 @@ function GuardianLeaderboardView() {
         };
       });
     }
-    return data.top_win_rate.map((r, i) => ({
-      rank: i + 1,
+    return data.top_win_rate.map((r) => ({
       emoji: r.arch_emoji,
       archName: r.arch_name,
       archRarity: r.arch_rarity,
+      guardianType: null,
       level: r.level,
       stat: `${r.win_rate}% · ${r.wins}W/${r.losses}L`,
       username: r.display_name || r.username,
@@ -10972,10 +10986,40 @@ function GuardianLeaderboardView() {
     }));
   })();
 
+  const filtered = typeFilter === "all"
+    ? rawRows
+    : rawRows.filter((r) => r.guardianType === typeFilter);
+  const currentRows = filtered.slice(0, 30).map((r, i) => ({ ...r, rank: i + 1 }));
+
   const rarityColor: Record<string, string> = { common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legend: "#FFD700" };
 
   return (
     <div>
+      {/* Typ-Filter */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {GUARDIAN_TYPE_CHIPS.map((c) => {
+          const active = typeFilter === c.id;
+          const disabled = subTab === "winrate" && c.id !== "all";
+          return (
+            <button
+              key={c.id}
+              onClick={() => !disabled && setTypeFilter(c.id)}
+              disabled={disabled}
+              title={disabled ? "Typ-Filter nicht verfügbar für Win-Rate" : ""}
+              style={{
+                padding: "6px 12px", borderRadius: 999,
+                border: `1px solid ${active ? c.color : "rgba(255,255,255,0.1)"}`,
+                background: active ? `${c.color}22` : "rgba(255,255,255,0.04)",
+                color: active ? c.color : disabled ? "#4a5370" : "#a8b4cf",
+                fontSize: 11, fontWeight: 900,
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled ? 0.5 : 1,
+              }}
+            >{c.label}</button>
+          );
+        })}
+      </div>
+
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         {([
           { id: "level",   label: "⭐ Top-Level" },
@@ -11030,6 +11074,397 @@ function GuardianLeaderboardView() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ═══ Arena Leaderboard (Wächter-PvP) ═══ */
+type ArenaHonorRow = {
+  user_id: string;
+  username: string | null;
+  display_name: string | null;
+  level: number;
+  faction: string | null;
+  country?: string | null;
+  guardian_type?: string | null;
+  guardian_emoji?: string | null;
+  crew_name: string | null;
+  crew_color: string | null;
+  wins: number;
+  losses: number;
+  streak?: number;
+  honor: number;
+};
+
+const DEMO_ARENA_ROWS: ArenaHonorRow[] = [
+  { user_id: "d1", username: "valkyr",   display_name: "Valkyr",   level: 58, faction: "vanguard",  country: "Deutschland",     guardian_type: "cavalry",  guardian_emoji: "⚔️", crew_name: "Kreuzkölln Runners",   crew_color: "#FF6B4A", wins: 214, losses: 42, streak: 18, honor: 124_120 },
+  { user_id: "d2", username: "nyx",      display_name: "Nyx",      level: 55, faction: "syndicate", country: "Deutschland",     guardian_type: "mage",     guardian_emoji: "🔮", crew_name: "Nachtpuls Berlin",     crew_color: "#22D1C3", wins: 198, losses: 54, streak: 11, honor: 108_900 },
+  { user_id: "d3", username: "titan",    display_name: "Titan",    level: 60, faction: "vanguard",  country: "Vereinigte Staaten", guardian_type: "infantry", guardian_emoji: "🛡️", crew_name: "Sonnenwacht Prenzl.",  crew_color: "#FFD700", wins: 176, losses: 38, streak: 24, honor: 105_600 },
+  { user_id: "d4", username: "shade",    display_name: "Shade",    level: 52, faction: "syndicate", country: "Niederlande",     guardian_type: "marksman", guardian_emoji: "🏹", crew_name: "Schatten-Syndikat",    crew_color: "#a855f7", wins: 161, losses: 61, streak:  7, honor:  83_720 },
+  { user_id: "d5", username: "ember",    display_name: "Ember",    level: 49, faction: "vanguard",  country: "Vereinigte Staaten", guardian_type: "mage",     guardian_emoji: "🔮", crew_name: "Central Park Crew",    crew_color: "#FF6B4A", wins: 148, losses: 47, streak: 13, honor:  72_520 },
+  { user_id: "d6", username: "kaelth",   display_name: "Kaelthor", level: 56, faction: null,        country: "Deutschland",     guardian_type: "infantry", guardian_emoji: "🛡️", crew_name: null,                   crew_color: null,      wins: 132, losses: 58, streak:  9, honor:  73_920 },
+  { user_id: "d7", username: "zephyr",   display_name: "Zephyr",   level: 44, faction: "syndicate", country: "Niederlande",     guardian_type: "cavalry",  guardian_emoji: "⚔️", crew_name: "Vondelpark Pack",      crew_color: "#22D1C3", wins: 122, losses: 51, streak:  5, honor:  53_680 },
+  { user_id: "d8", username: "frost",    display_name: "Frost",    level: 47, faction: "vanguard",  country: "Vereinigtes Königreich", guardian_type: "marksman", guardian_emoji: "🏹", crew_name: "Regent's Park Pacers", crew_color: "#FF6B4A", wins: 118, losses: 64, streak:  3, honor:  55_460 },
+  { user_id: "d9", username: "raze",     display_name: "Raze",     level: 41, faction: "syndicate", country: "Deutschland",     guardian_type: "mage",     guardian_emoji: "🔮", crew_name: "Nachtpuls Hamburg",    crew_color: "#22D1C3", wins: 104, losses: 56, streak:  6, honor:  42_640 },
+  { user_id: "d10",username: "blaze",    display_name: "Blaze",    level: 43, faction: "vanguard",  country: "Vereinigtes Königreich", guardian_type: "cavalry",  guardian_emoji: "⚔️", crew_name: "Camden Striders",      crew_color: "#FFD700", wins:  97, losses: 48, streak:  8, honor:  41_710 },
+  { user_id: "d11",username: "mira",     display_name: "Mira",     level: 38, faction: "syndicate", country: "Österreich",      guardian_type: "infantry", guardian_emoji: "🛡️", crew_name: null,                   crew_color: null,      wins:  89, losses: 51, streak:  4, honor:  33_820 },
+  { user_id: "d12",username: "draven",   display_name: "Draven",   level: 40, faction: null,        country: "Schweiz",         guardian_type: "marksman", guardian_emoji: "🏹", crew_name: "Freelance",            crew_color: "#8B8FA3", wins:  82, losses: 47, streak:  2, honor:  32_800 },
+  { user_id: "d13",username: "lumen",    display_name: "Lumen",    level: 36, faction: "vanguard",  country: "Vereinigte Staaten", guardian_type: "mage",     guardian_emoji: "🔮", crew_name: "Upper West Side",      crew_color: "#FF6B4A", wins:  76, losses: 44, streak:  5, honor:  27_360 },
+  { user_id: "d14",username: "onyx",     display_name: "Onyx",     level: 34, faction: "syndicate", country: "Deutschland",     guardian_type: "cavalry",  guardian_emoji: "⚔️", crew_name: "Kreuzberg Wölfe",      crew_color: "#22D1C3", wins:  71, losses: 52, streak:  0, honor:  24_140 },
+  { user_id: "d15",username: "vex",      display_name: "Vex",      level: 32, faction: "vanguard",  country: "Frankreich",      guardian_type: "infantry", guardian_emoji: "🛡️", crew_name: null,                   crew_color: null,      wins:  64, losses: 41, streak:  1, honor:  20_480 },
+];
+
+const ARENA_TYPE_META: Record<string, { label: string; icon: string; color: string }> = {
+  infantry: { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
+  cavalry:  { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
+  marksman: { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
+  mage:     { label: "Magier",        icon: "🔮", color: "#c084fc" },
+};
+
+type ArenaView = "honor" | "wins" | "winrate" | "classes";
+
+function ArenaLeaderboardView() {
+  const [rows, setRows] = useState<ArenaHonorRow[] | null>(null);
+  const [view, setView] = useState<ArenaView>("honor");
+
+  useEffect(() => {
+    fetch("/api/leaderboard/hall-of-honor")
+      .then((r) => r.json())
+      .then((j) => {
+        const apiRows = (j.rows ?? []) as ArenaHonorRow[];
+        // Fallback wenn API leer oder keine Klassen-Daten liefert (demo zeigt die UI besser)
+        const hasTypeData = apiRows.some((r) => r.guardian_type);
+        setRows(apiRows.length > 0 && hasTypeData ? apiRows : DEMO_ARENA_ROWS);
+      })
+      .catch(() => setRows(DEMO_ARENA_ROWS));
+  }, []);
+
+  if (!rows) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Arena-Rangliste…</div>;
+  const isDemo = rows === DEMO_ARENA_ROWS;
+
+  const sorted = [...rows].sort((a, b) => {
+    if (view === "wins") return b.wins - a.wins;
+    if (view === "winrate") {
+      const wa = a.wins + a.losses > 0 ? a.wins / (a.wins + a.losses) : 0;
+      const wb = b.wins + b.losses > 0 ? b.wins / (b.wins + b.losses) : 0;
+      return wb - wa;
+    }
+    return b.honor - a.honor;
+  });
+
+  const top3 = sorted.slice(0, 3);
+  return (
+    <div style={{ padding: 12 }}>
+      {/* Hero-Banner */}
+      <div style={{
+        padding: 14, borderRadius: 14, marginBottom: 14,
+        background: "radial-gradient(ellipse at top, rgba(255,107,74,0.18) 0%, transparent 60%), linear-gradient(180deg, rgba(255,215,0,0.08) 0%, rgba(15,17,21,0.9) 100%)",
+        border: "1px solid rgba(255,215,0,0.35)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>🏟️ KAMPFARENA</div>
+          {isDemo && (
+            <span style={{
+              padding: "2px 8px", borderRadius: 999,
+              background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.5)",
+              color: "#c084fc", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+            }}>🤖 DEMO-DATEN</span>
+          )}
+        </div>
+        <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2 }}>Rangliste der Gladiatoren</div>
+        <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>Ehre = Siege × Level × 10 — Wächter-PvP aus der Arena</div>
+      </div>
+
+      {/* Globale Stats (über Podium) */}
+      <ArenaGlobalStats rows={rows} />
+
+      {/* Podium Top 3 */}
+      {top3.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14, alignItems: "end" }}>
+          {[top3[1], top3[0], top3[2]].filter(Boolean).map((r) => {
+            const rank = r === top3[0] ? 1 : r === top3[1] ? 2 : 3;
+            const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
+            const color = rank === 1 ? "#FFD700" : rank === 2 ? "#C0C0C0" : "#CD7F32";
+            const h = rank === 1 ? 110 : rank === 2 ? 90 : 70;
+            return (
+              <div key={r.user_id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div style={{ fontSize: 28 }}>{medal}</div>
+                <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, textAlign: "center", width: "100%", padding: "0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.display_name ?? r.username}
+                </div>
+                <div style={{ color: "#8B8FA3", fontSize: 9, marginBottom: 4 }}>{r.wins}W · Lvl {r.level}</div>
+                <div style={{
+                  width: "100%", height: h,
+                  background: `linear-gradient(180deg, ${color}dd 0%, ${color}55 100%)`,
+                  borderRadius: "8px 8px 0 0",
+                  border: `1px solid ${color}`,
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 14px ${color}44`,
+                }}>
+                  <div style={{ color: "#0F1115", fontSize: 11, fontWeight: 900 }}>#{rank}</div>
+                  <div style={{ color: "#0F1115", fontSize: 10, fontWeight: 900 }}>{r.honor.toLocaleString("de-DE")}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tabs: Ehre / Siege / Win-Rate / Klassen-Statistik */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        {([
+          { k: "honor",   label: "🏆 Ehre" },
+          { k: "wins",    label: "⚔️ Siege" },
+          { k: "winrate", label: "📊 Win-Rate" },
+          { k: "classes", label: "⚔️ Klassen-Statistik" },
+        ] as const).map((c) => (
+          <button key={c.k} onClick={() => setView(c.k)} style={{
+            padding: "8px 16px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.1)",
+            background: view === c.k ? "#22D1C3" : "rgba(255,255,255,0.05)",
+            color: view === c.k ? "#0F1115" : "#a8b4cf",
+            fontSize: 13, fontWeight: 900, cursor: "pointer",
+          }}>{c.label}</button>
+        ))}
+      </div>
+
+      {view === "classes" ? (
+        <ArenaClassesPanel rows={rows} />
+      ) : (
+
+      /* Table */
+      <div style={{
+        borderRadius: 14, overflow: "hidden",
+        border: "1px solid rgba(255,215,0,0.3)",
+        background: "linear-gradient(180deg, rgba(255,215,0,0.04) 0%, rgba(15,17,21,0.9) 100%)",
+      }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "50px 28px 1fr 110px 90px 70px 90px",
+          gap: 8,
+          padding: "12px 14px",
+          background: "rgba(255,215,0,0.12)",
+          borderBottom: "1px solid rgba(255,215,0,0.3)",
+          fontSize: 11, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700",
+        }}>
+          <div>RANG</div>
+          <div></div>
+          <div>KÄMPFER</div>
+          <div style={{ textAlign: "center" }}>SIEGE/NIEDERL.</div>
+          <div style={{ textAlign: "center" }}>STREAK</div>
+          <div style={{ textAlign: "right" }}>STUFE</div>
+          <div style={{ textAlign: "right" }}>EHRE</div>
+        </div>
+        {sorted.slice(0, 100).map((r, i) => {
+          const factionColor = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#F0F0F0";
+          const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3";
+          const typeMeta = r.guardian_type ? ARENA_TYPE_META[r.guardian_type] : null;
+          const streak = r.streak ?? 0;
+          return (
+            <div key={r.user_id} style={{
+              display: "grid",
+              gridTemplateColumns: "50px 28px 1fr 110px 90px 70px 90px",
+              gap: 8,
+              padding: "12px 14px", alignItems: "center", fontSize: 14,
+              borderBottom: "1px solid rgba(255,255,255,0.04)",
+              background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+            }}>
+              <div style={{ color: rankColor, fontWeight: 900, fontSize: 16 }}>
+                {i < 3 ? (i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉") : `#${i + 1}`}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {r.country ? <CountryFlag country={r.country} size={24} /> : <span style={{ fontSize: 16 }}>🏳️</span>}
+              </div>
+              <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
+                {typeMeta && (
+                  <div title={typeMeta.label} style={{
+                    width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                    background: `${typeMeta.color}22`, border: `1px solid ${typeMeta.color}77`,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+                  }}>{typeMeta.icon}</div>
+                )}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ color: factionColor, fontWeight: 900, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {r.display_name ?? r.username}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#8B8FA3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {typeMeta && <span style={{ color: typeMeta.color, fontWeight: 700 }}>{typeMeta.label}</span>}
+                    {typeMeta && r.crew_name && " · "}
+                    {r.crew_name && <span style={{ color: r.crew_color ?? "#8B8FA3", fontWeight: 700 }}>[{r.crew_name}]</span>}
+                  </div>
+                </div>
+              </div>
+              <div style={{ textAlign: "center", fontSize: 13 }}>
+                <span style={{ color: "#4ade80", fontWeight: 900 }}>{r.wins}</span>
+                <span style={{ color: "#8B8FA3" }}> / </span>
+                <span style={{ color: "#FF2D78", fontWeight: 900 }}>{r.losses}</span>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                {streak >= 3 ? (
+                  <span style={{
+                    padding: "3px 9px", borderRadius: 999,
+                    background: streak >= 10 ? "rgba(255,45,120,0.25)" : "rgba(255,107,74,0.2)",
+                    border: `1px solid ${streak >= 10 ? "#FF2D78" : "#FF6B4A"}`,
+                    color: streak >= 10 ? "#FF2D78" : "#FF6B4A",
+                    fontSize: 12, fontWeight: 900,
+                  }}>🔥 {streak}</span>
+                ) : (
+                  <span style={{ color: "#8B8FA3", fontSize: 12 }}>{streak || "—"}</span>
+                )}
+              </div>
+              <div style={{ textAlign: "right", color: "#F0F0F0", fontWeight: 700, fontSize: 14 }}>{r.level}</div>
+              <div style={{ textAlign: "right", color: "#FFD700", fontWeight: 900, fontFamily: "ui-monospace, monospace", fontSize: 14 }}>
+                {r.honor.toLocaleString("de-DE")}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      )}
+    </div>
+  );
+}
+
+function ArenaGlobalStats({ rows }: { rows: ArenaHonorRow[] }) {
+  const totalFights = rows.reduce((s, r) => s + r.wins + r.losses, 0);
+  const topStreak = rows.reduce((best, r) => Math.max(best, r.streak ?? 0), 0);
+  const streakHolder = rows.find((r) => (r.streak ?? 0) === topStreak && topStreak > 0);
+
+  const vanguardWins = rows.filter((r) => r.faction === "vanguard").reduce((s, r) => s + r.wins, 0);
+  const syndicateWins = rows.filter((r) => r.faction === "syndicate").reduce((s, r) => s + r.wins, 0);
+  const facTotal = vanguardWins + syndicateWins || 1;
+  const vanguardPct = Math.round((vanguardWins / facTotal) * 100);
+
+  const countryCounts = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.country) continue;
+    countryCounts.set(r.country, (countryCounts.get(r.country) ?? 0) + 1);
+  }
+  const topCountries = Array.from(countryCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 14 }}>
+      <StatCard icon="⚔️" label="GESAMT-KÄMPFE" value={totalFights.toLocaleString("de-DE")} sub="seit Launch" color="#22D1C3" />
+      <StatCard icon="🔥" label="LÄNGSTE SERIE" value={topStreak > 0 ? `${topStreak} Siege` : "—"} sub={streakHolder?.display_name ?? streakHolder?.username ?? "Noch keine Serie"} color="#FF2D78" />
+      <StatCard icon="🏛️" label="FRAKTIONS-DUELL"
+        value={`${vanguardPct}% vs ${100 - vanguardPct}%`}
+        sub="☀️ Sonnenwacht vs 🌙 Nachtpuls"
+        color="#FF6B4A" />
+      <StatCard icon="🌍" label="TOP-LÄNDER"
+        value={topCountries.length > 0 ? topCountries.map(([, c]) => c).join(" · ") : "—"}
+        sub={topCountries.length > 0 ? topCountries.map(([c]) => c).join(", ") : "—"}
+        color="#a855f7" />
+    </div>
+  );
+}
+
+function ArenaClassesPanel({ rows }: { rows: ArenaHonorRow[] }) {
+  const typeStats = new Map<string, { picks: number; wins: number; losses: number; honor: number }>();
+  for (const r of rows) {
+    const t = r.guardian_type;
+    if (!t) continue;
+    const cur = typeStats.get(t) ?? { picks: 0, wins: 0, losses: 0, honor: 0 };
+    cur.picks += 1;
+    cur.wins += r.wins;
+    cur.losses += r.losses;
+    cur.honor += r.honor;
+    typeStats.set(t, cur);
+  }
+  const totalPicks = Array.from(typeStats.values()).reduce((s, v) => s + v.picks, 0) || 1;
+
+  // Top-Typ nach Win-Rate
+  const typeRanking = Object.keys(ARENA_TYPE_META)
+    .map((k) => {
+      const s = typeStats.get(k) ?? { picks: 0, wins: 0, losses: 0, honor: 0 };
+      const total = s.wins + s.losses;
+      return { key: k, winPct: total > 0 ? s.wins / total : 0, picks: s.picks };
+    })
+    .sort((a, b) => b.winPct - a.winPct);
+
+  return (
+    <div>
+      <div style={{
+        padding: 14, borderRadius: 14, marginBottom: 12,
+        background: "rgba(30,38,60,0.45)", border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900, letterSpacing: 2, marginBottom: 12 }}>
+          ⚔️ KLASSEN-VERTEILUNG & WIN-RATE
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+          {Object.entries(ARENA_TYPE_META).map(([key, meta]) => {
+            const stat = typeStats.get(key) ?? { picks: 0, wins: 0, losses: 0, honor: 0 };
+            const pickPct = Math.round((stat.picks / totalPicks) * 100);
+            const total = stat.wins + stat.losses;
+            const winPct = total > 0 ? Math.round((stat.wins / total) * 100) : 0;
+            const isMeta = typeRanking[0]?.key === key && winPct > 0;
+            return (
+              <div key={key} style={{
+                position: "relative",
+                padding: 14, borderRadius: 12,
+                background: `linear-gradient(135deg, ${meta.color}22 0%, rgba(15,17,21,0.8) 100%)`,
+                border: `1px solid ${meta.color}77`,
+                boxShadow: isMeta ? `0 0 20px ${meta.color}55` : "none",
+              }}>
+                {isMeta && (
+                  <div style={{
+                    position: "absolute", top: 8, right: 8,
+                    padding: "2px 8px", borderRadius: 999,
+                    background: "#FFD700", color: "#0F1115",
+                    fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+                  }}>👑 META</div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 10,
+                    background: `${meta.color}33`, border: `1px solid ${meta.color}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+                  }}>{meta.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: meta.color, fontSize: 15, fontWeight: 900 }}>{meta.label}</div>
+                    <div style={{ color: "#8B8FA3", fontSize: 11 }}>{stat.picks} Runner · {stat.wins}W/{stat.losses}L</div>
+                  </div>
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a8b4cf", marginBottom: 3 }}>
+                    <span>Pick-Rate</span><span style={{ color: meta.color, fontWeight: 900, fontSize: 13 }}>{pickPct}%</span>
+                  </div>
+                  <div style={{ height: 7, background: "rgba(0,0,0,0.4)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${pickPct}%`, height: "100%", background: meta.color }} />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#a8b4cf", marginBottom: 3 }}>
+                    <span>Win-Rate</span><span style={{ color: winPct >= 50 ? "#4ade80" : "#FF2D78", fontWeight: 900, fontSize: 13 }}>{winPct}%</span>
+                  </div>
+                  <div style={{ height: 7, background: "rgba(0,0,0,0.4)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${winPct}%`, height: "100%", background: winPct >= 50 ? "#4ade80" : "#FF2D78" }} />
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a8b4cf" }}>
+                  <span>Ehre-Beitrag</span>
+                  <span style={{ color: "#FFD700", fontWeight: 900 }}>{stat.honor.toLocaleString("de-DE")}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, sub, color }: { icon: string; label: string; value: string; sub: string; color: string }) {
+  return (
+    <div style={{
+      position: "relative",
+      padding: "12px 14px", borderRadius: 12,
+      background: `linear-gradient(135deg, ${color}18 0%, rgba(15,17,21,0.7) 90%)`,
+      border: `1px solid ${color}55`,
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06)`,
+    }}>
+      <div style={{ position: "absolute", top: 8, right: 10, fontSize: 22, opacity: 0.35 }}>{icon}</div>
+      <div style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>{label}</div>
+      <div style={{ color, fontSize: 18, fontWeight: 900, lineHeight: 1.2, marginTop: 3 }}>{value}</div>
+      <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>
     </div>
   );
 }

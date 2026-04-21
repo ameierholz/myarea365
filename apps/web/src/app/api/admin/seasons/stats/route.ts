@@ -1,0 +1,96 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { requireStaff } from "@/lib/admin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/admin/seasons/stats
+ * Live-Metriken der aktiven Saison: Fights, Klassen-Balance, Top-User, etc.
+ */
+export async function GET() {
+  await requireStaff();
+  const sb = await createClient();
+
+  const { data: season } = await sb.from("arena_seasons")
+    .select("id, number, name, starts_at, ends_at")
+    .eq("status", "active")
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!season) {
+    return NextResponse.json({ ok: true, season: null });
+  }
+
+  const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const since7d  = new Date(Date.now() -  7 * 24 * 3600 * 1000).toISOString();
+
+  const [fightsRes, fights24hRes, fights7dRes, pickersRes] = await Promise.all([
+    sb.from("runner_fights").select("id", { count: "exact", head: true }).eq("season_id", (season as { id: string }).id),
+    sb.from("runner_fights").select("id", { count: "exact", head: true }).eq("season_id", (season as { id: string }).id).gte("created_at", since24h),
+    sb.from("runner_fights").select("id", { count: "exact", head: true }).eq("season_id", (season as { id: string }).id).gte("created_at", since7d),
+    sb.from("user_guardians").select("id", { count: "exact", head: true }).eq("kind", "seasonal").eq("season_id", (season as { id: string }).id),
+  ]);
+
+  // Klassen-Balance: Pick + Win pro guardian_type
+  const { data: seasonalGuardians } = await sb.from("user_guardians")
+    .select("user_id, archetype_id, wins, losses, guardian_archetypes!inner(guardian_type)")
+    .eq("kind", "seasonal")
+    .eq("season_id", (season as { id: string }).id);
+
+  type TypeStat = { picks: number; wins: number; losses: number };
+  const typeStats = new Map<string, TypeStat>();
+  type SGRow = { user_id: string; archetype_id: string; wins: number; losses: number; guardian_archetypes: { guardian_type: string | null } | { guardian_type: string | null }[] };
+  for (const g of (seasonalGuardians ?? []) as SGRow[]) {
+    const ga = Array.isArray(g.guardian_archetypes) ? g.guardian_archetypes[0] : g.guardian_archetypes;
+    const t = ga?.guardian_type ?? "unknown";
+    const cur = typeStats.get(t) ?? { picks: 0, wins: 0, losses: 0 };
+    cur.picks += 1; cur.wins += g.wins; cur.losses += g.losses;
+    typeStats.set(t, cur);
+  }
+
+  const classBalance = Array.from(typeStats.entries()).map(([type, s]) => ({
+    type,
+    picks: s.picks,
+    wins: s.wins,
+    losses: s.losses,
+    win_pct: s.wins + s.losses > 0 ? Math.round((s.wins / (s.wins + s.losses)) * 100) : 0,
+  })).sort((a, b) => b.picks - a.picks);
+
+  // Top 10 Fighter dieser Saison
+  const { data: topFighters } = await sb.from("user_guardians")
+    .select("user_id, wins, losses, level, guardian_archetypes!inner(name, emoji), users!inner(username, display_name)")
+    .eq("kind", "seasonal")
+    .eq("season_id", (season as { id: string }).id)
+    .order("wins", { ascending: false })
+    .limit(10);
+
+  // Fights pro Tag (letzte 14 Tage)
+  const { data: recentFights } = await sb.from("runner_fights")
+    .select("created_at")
+    .eq("season_id", (season as { id: string }).id)
+    .gte("created_at", new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString())
+    .limit(5000);
+  const byDay = new Map<string, number>();
+  for (const f of recentFights ?? []) {
+    const d = new Date((f as { created_at: string }).created_at).toISOString().slice(0, 10);
+    byDay.set(d, (byDay.get(d) ?? 0) + 1);
+  }
+  const daily = Array.from(byDay.entries()).sort().map(([day, count]) => ({ day, count }));
+
+  return NextResponse.json({
+    ok: true,
+    season,
+    kpis: {
+      total_fights:   fightsRes.count ?? 0,
+      fights_24h:     fights24hRes.count ?? 0,
+      fights_7d:      fights7dRes.count ?? 0,
+      seasonal_pickers: pickersRes.count ?? 0,
+    },
+    class_balance: classBalance,
+    top_fighters:  topFighters ?? [],
+    daily,
+  });
+}
