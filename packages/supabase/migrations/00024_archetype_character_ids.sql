@@ -4,42 +4,37 @@
 -- FKs bekommen ON UPDATE CASCADE, damit IDs rename-safe sind.
 -- ═══════════════════════════════════════════════════════════════════
 
--- ─── FKs mit ON UPDATE CASCADE neu anlegen ────────────────────────
+-- ─── FKs mit ON UPDATE CASCADE neu anlegen (defensiv: nur wenn Tabellen existieren) ──
 
-alter table public.crew_guardians
-  drop constraint if exists crew_guardians_archetype_id_fkey,
-  add constraint crew_guardians_archetype_id_fkey
-    foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade;
-
-alter table public.guardian_trophies
-  drop constraint if exists guardian_trophies_archetype_id_fkey,
-  add constraint guardian_trophies_archetype_id_fkey
-    foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade;
-
-alter table public.talent_nodes
-  drop constraint if exists talent_nodes_archetype_id_fkey,
-  add constraint talent_nodes_archetype_id_fkey
-    foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade on delete cascade;
-
-alter table public.talent_nodes
-  drop constraint if exists talent_nodes_requires_node_id_fkey,
-  add constraint talent_nodes_requires_node_id_fkey
-    foreign key (requires_node_id) references public.talent_nodes(id) on update cascade on delete set null;
-
-alter table public.archetype_skills
-  drop constraint if exists archetype_skills_archetype_id_fkey,
-  add constraint archetype_skills_archetype_id_fkey
-    foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade on delete cascade;
-
-alter table public.guardian_talents
-  drop constraint if exists guardian_talents_node_id_fkey,
-  add constraint guardian_talents_node_id_fkey
-    foreign key (node_id) references public.talent_nodes(id) on update cascade on delete cascade;
-
-alter table public.guardian_skill_levels
-  drop constraint if exists guardian_skill_levels_skill_id_fkey,
-  add constraint guardian_skill_levels_skill_id_fkey
-    foreign key (skill_id) references public.archetype_skills(id) on update cascade on delete cascade;
+do $$
+begin
+  if to_regclass('public.crew_guardians') is not null then
+    execute 'alter table public.crew_guardians drop constraint if exists crew_guardians_archetype_id_fkey';
+    execute 'alter table public.crew_guardians add constraint crew_guardians_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade';
+  end if;
+  if to_regclass('public.guardian_trophies') is not null then
+    execute 'alter table public.guardian_trophies drop constraint if exists guardian_trophies_archetype_id_fkey';
+    execute 'alter table public.guardian_trophies add constraint guardian_trophies_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade';
+  end if;
+  if to_regclass('public.talent_nodes') is not null then
+    execute 'alter table public.talent_nodes drop constraint if exists talent_nodes_archetype_id_fkey';
+    execute 'alter table public.talent_nodes add constraint talent_nodes_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade on delete cascade';
+    execute 'alter table public.talent_nodes drop constraint if exists talent_nodes_requires_node_id_fkey';
+    execute 'alter table public.talent_nodes add constraint talent_nodes_requires_node_id_fkey foreign key (requires_node_id) references public.talent_nodes(id) on update cascade on delete set null';
+  end if;
+  if to_regclass('public.archetype_skills') is not null then
+    execute 'alter table public.archetype_skills drop constraint if exists archetype_skills_archetype_id_fkey';
+    execute 'alter table public.archetype_skills add constraint archetype_skills_archetype_id_fkey foreign key (archetype_id) references public.guardian_archetypes(id) on update cascade on delete cascade';
+  end if;
+  if to_regclass('public.guardian_talents') is not null then
+    execute 'alter table public.guardian_talents drop constraint if exists guardian_talents_node_id_fkey';
+    execute 'alter table public.guardian_talents add constraint guardian_talents_node_id_fkey foreign key (node_id) references public.talent_nodes(id) on update cascade on delete cascade';
+  end if;
+  if to_regclass('public.guardian_skill_levels') is not null then
+    execute 'alter table public.guardian_skill_levels drop constraint if exists guardian_skill_levels_skill_id_fkey';
+    execute 'alter table public.guardian_skill_levels add constraint guardian_skill_levels_skill_id_fkey foreign key (skill_id) references public.archetype_skills(id) on update cascade on delete cascade';
+  end if;
+end $$;
 
 -- ─── Archetype-IDs umbenennen (Tier → Charakter) ──────────────────
 -- FK-Cascade propagiert archetype_id an Kind-Tabellen automatisch.
@@ -71,6 +66,9 @@ update public.guardian_archetypes set id = 'donnerreiter'     where id = 'wyvern
 -- Cascade auf FK-Spalten hat diese bereits synchronisiert, aber eigene PK-IDs müssen
 -- manuell umbenannt werden. Self-Ref requires_node_id cascadet beim Update automatisch.
 
+do $$
+begin
+if to_regclass('public.talent_nodes') is null then return; end if;
 update public.talent_nodes     set id = 'schattenfinger'   || substr(id, length('stadtfuchs')+1)   where id like 'stadtfuchs.%';
 update public.talent_nodes     set id = 'grenzwaechter'    || substr(id, length('dachs')+1)        where id like 'dachs.%';
 update public.talent_nodes     set id = 'klingentaenzer'   || substr(id, length('taube')+1)        where id like 'taube.%';
@@ -91,7 +89,11 @@ update public.talent_nodes     set id = 'stahlfeder'       || substr(id, length(
 update public.talent_nodes     set id = 'flammenherr'      || substr(id, length('drache')+1)       where id like 'drache.%';
 update public.talent_nodes     set id = 'lichtbringer'     || substr(id, length('phoenix')+1)      where id like 'phoenix.%';
 update public.talent_nodes     set id = 'donnerreiter'     || substr(id, length('wyvern')+1)       where id like 'wyvern.%';
+end $$;
 
+do $$
+begin
+if to_regclass('public.archetype_skills') is null then return; end if;
 update public.archetype_skills set id = 'schattenfinger'   || substr(id, length('stadtfuchs')+1)   where id like 'stadtfuchs.%';
 update public.archetype_skills set id = 'grenzwaechter'    || substr(id, length('dachs')+1)        where id like 'dachs.%';
 update public.archetype_skills set id = 'klingentaenzer'   || substr(id, length('taube')+1)        where id like 'taube.%';
@@ -112,6 +114,7 @@ update public.archetype_skills set id = 'stahlfeder'       || substr(id, length(
 update public.archetype_skills set id = 'flammenherr'      || substr(id, length('drache')+1)       where id like 'drache.%';
 update public.archetype_skills set id = 'lichtbringer'     || substr(id, length('phoenix')+1)      where id like 'phoenix.%';
 update public.archetype_skills set id = 'donnerreiter'     || substr(id, length('wyvern')+1)       where id like 'wyvern.%';
+end $$;
 
 -- ─── Coole Titel für alle 60 Wächter ──────────────────────────────
 
@@ -183,10 +186,13 @@ update public.guardian_archetypes set name = 'Eisenwall'           where id = 'w
 
 -- ─── Skin-Payloads im Shop mit neuen IDs aktualisieren ────────────
 
+do $$
+begin
+if to_regclass('public.gem_shop_items') is null then return; end if;
 update public.gem_shop_items
   set payload = payload - 'archetype' || jsonb_build_object('archetype', 'eisenhand')
   where id = 'skin_paladin_gold';
-
 update public.gem_shop_items
   set payload = payload - 'archetype' || jsonb_build_object('archetype', 'flammenherr')
   where id = 'skin_drache_void';
+end $$;
