@@ -3,6 +3,8 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
+import { InboxContent } from "./inbox-content";
+import { SupportContent } from "./support-content";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -1576,7 +1578,7 @@ function ProfilTab({
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
-  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks">(null);
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support">(null);
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [showGemShop, setShowGemShop] = useState(false);
@@ -2071,8 +2073,8 @@ function ProfilTab({
             </div>
           )}
 
-          <ModalTriggerButton icon="📬" label="Posteingang" onClick={() => { window.location.href = "/inbox"; }} />
-          <ModalTriggerButton icon="🎫" label="Support & Kontakt" onClick={() => { window.location.href = "/support"; }} />
+          <ModalTriggerButton icon="📬" label="Posteingang" onClick={() => setOpenModal("inbox")} />
+          <ModalTriggerButton icon="🎫" label="Support & Kontakt" onClick={() => setOpenModal("support")} />
           <ModalTriggerButton icon="⭐" label="Wofür gibt es XP?" onClick={() => setOpenModal("xpguide")} />
           <ModalTriggerButton icon="⚙️" label="Einstellungen" onClick={() => setOpenModal("settings")} />
           <ModalTriggerButton icon="👤" label="Account" onClick={() => setOpenModal("account")} />
@@ -2459,6 +2461,21 @@ function ProfilTab({
           <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 14, fontStyle: "italic" }}>
             XP sammelst du durch Läufe, Territorien, Streaks & Achievements.
           </div>
+        </Modal>
+      )}
+
+      {openModal === "inbox" && (
+        <Modal title="Posteingang" subtitle="Nachrichten vom MyArea365-Team" icon="📬" accent="#22D1C3" onClose={() => setOpenModal(null)}>
+          <InboxContent />
+        </Modal>
+      )}
+
+      {openModal === "support" && (
+        <Modal title="Support & Kontakt" subtitle="Bug, Frage oder Partner-Anfrage" icon="🎫" accent="#FFD700" onClose={() => setOpenModal(null)}>
+          <SupportContent
+            prefillEmail={(p as unknown as { email?: string })?.email ?? ""}
+            prefillName={p?.display_name ?? p?.username ?? ""}
+          />
         </Modal>
       )}
 
