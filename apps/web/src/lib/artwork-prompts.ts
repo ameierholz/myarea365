@@ -279,28 +279,33 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
 
   // ══════ VIDEO-PROMPT ══════
+  // Hinweis: Veo/Gemini/Runway produzieren NICHT verlässlich transparente Videos,
+  // deshalb verlangen wir stattdessen einen extrem dunklen, klar abgrenzbaren Hintergrund
+  // der später in der UI visuell verschmilzt (unser App-BG ist #0F1115).
   if (in_.mode === "video") {
     return [
-      // 1) Shot-Spec — quadratisch und transparent, perfekt loopbar
-      `Shot: a 4-second perfectly seamless looping idle clip, square 1:1 composition, 1024x1024, 24 fps, fully TRANSPARENT BACKGROUND with alpha channel (NO BACKGROUND, the character floats on pure transparency).`,
-      // 2) Subject
+      // 1) Shot-Spec
+      `Shot: a 4-second perfectly seamless looping idle clip, square 1:1 composition, 1024x1024, 24 fps.`,
+      // 2) Background — solid dark to blend with app UI (kein Checkerboard, kein transparenter Alpha)
+      `Background: SOLID pure black (#000000) flat color, completely empty, no texture, no patterns, no environment, no scene, no checkerboard — just pure uniform black void behind the character so it blends perfectly with a dark game UI.`,
+      // 3) Subject
       `Subject: ${subjectBase}, full body visible, ${pose}, fully invented fictional character (not based on any existing franchise or celebrity).`,
       `Hair and head: ${hair}.`,
       `Armor and outfit: ${armor} — unique to this specific character, distinct from other characters in the set.`,
       archetypeHint && `Character archetype traits: ${archetypeHint}.`,
       `Rarity and material feel: ${rarityMod}.`,
-      // 3) Aura / Signature-FX — pro Wächter eigene Farbe
+      // 4) Aura / Signature-FX — pro Wächter eigene Farbe
       `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. The aura pulses gently in sync with breathing.`,
       abilityTheme && `The aura also visually references the character's signature ability "${abilityTheme}".`,
       `Additional effect: ${effect}.`,
-      // 4) Motion
+      // 5) Motion
       `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), cloth, hair, and aura reacting to a steady gentle wind, weight planted"}. Smooth, continuous, no sudden actions.`,
-      // 5) Camera
+      // 6) Camera
       `Camera: locked static medium-wide shot, no pan, no tilt, no zoom, no dolly, character perfectly centered the entire clip.`,
-      // 6) Seamless-Loop — ganz vorne + ganz hinten identisch
-      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets to frame 1 at the end. No frozen hold, no fade, no black — just a pure mathematical loop where frame_last = frame_first so the clip plays forever without a visible seam or stutter.`,
-      // 7) Negatives
-      `NO BACKGROUND. NO rooftop, NO city, NO sky, NO moon, NO ground. Character is rendered against pure transparent alpha channel only.`,
+      // 7) Seamless-Loop
+      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first so the clip plays forever without any visible seam.`,
+      // 8) Negatives
+      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. Only the pure black background + character + aura.`,
       `No audio, no sound, no music, no voice. Silent video only.`,
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
     ].filter(Boolean).join(" ");

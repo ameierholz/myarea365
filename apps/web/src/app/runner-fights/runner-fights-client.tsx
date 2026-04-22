@@ -5,6 +5,7 @@ import Link from "next/link";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { CinematicBattleArena } from "@/components/battle-arena";
 import { PotionInventoryModal } from "@/components/potion-inventory-modal";
+import { GuardianAvatar } from "@/components/guardian-avatar";
 import type { RoundEvent } from "@/lib/battle-engine";
 import { TYPE_META, typeCounter, type GuardianType } from "@/lib/guardian";
 
@@ -45,6 +46,8 @@ type MyGuardian = {
   current_hp_pct: number;
   archetype_name: string;
   archetype_emoji: string;
+  archetype_image_url?: string | null;
+  archetype_video_url?: string | null;
   rarity: string;
   guardian_type: string | null;
   role: string | null;
@@ -520,21 +523,23 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
         flexShrink: 0,
       }}>
         <div style={{
-          position: "absolute", top: 6, left: 6,
+          position: "absolute", top: 6, left: 6, zIndex: 2,
           padding: "2px 6px", borderRadius: 999,
           background: `${rarityMeta.color}dd`, color: "#0F1115",
           fontSize: 8, fontWeight: 900, letterSpacing: 1.2,
         }}>{rarityMeta.label}</div>
-        <div style={{
-          fontSize: 70,
-          filter: `drop-shadow(0 6px 12px ${rarityMeta.glow})`,
-          animation: "heroFloat 3s ease-in-out infinite",
-        }}>{myGuardian.archetype_emoji}</div>
-        <div style={{
-          position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)",
-          width: 80, height: 5, borderRadius: "50%",
-          background: `radial-gradient(ellipse, ${rarityMeta.color}aa, transparent 70%)`,
-        }} />
+        <GuardianAvatar
+          archetype={{
+            id: myGuardian.archetype_id,
+            emoji: myGuardian.archetype_emoji,
+            rarity: myGuardian.rarity as "elite" | "epic" | "legendary",
+            image_url: myGuardian.archetype_image_url ?? null,
+            video_url: myGuardian.archetype_video_url ?? null,
+          }}
+          size={120}
+          fillMode="cover"
+          animation="idle"
+        />
       </div>
 
       {/* Mitte: Name + Stats + Gear-Strip */}

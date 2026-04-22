@@ -62,48 +62,13 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
     const v = videoRef.current;
     if (!v) return;
     v.currentTime = 0;
-    v.loop = variant === "idle" && !useFadeLoop;
+    v.loop = variant === "idle"; // einfacher nativer Loop — Prompt verlangt nahtlos
     void v.play().catch(() => {});
-    if (videoRef2.current) {
-      videoRef2.current.currentTime = 0;
-      videoRef2.current.pause();
-    }
-  }, [variant, animation, useFadeLoop]);
+  }, [variant, animation]);
 
-  // Nur beim Idle-Loop aus externem MP4 den Crossfade aktivieren
-  useEffect(() => {
-    const isExternalVideo = !!archetype.video_url;
-    if (!isExternalVideo || variant !== "idle") { setUseFadeLoop(false); return; }
-    setUseFadeLoop(true);
-
-    const a = videoRef.current;
-    const b = videoRef2.current;
-    if (!a || !b) return;
-
-    a.loop = false;
-    b.loop = false;
-
-    const scheduleHandoff = (from: HTMLVideoElement, to: HTMLVideoElement) => () => {
-      if (!from.duration || isNaN(from.duration)) return;
-      const remaining = from.duration - from.currentTime;
-      if (remaining <= CROSSFADE_SECONDS && to.paused) {
-        to.currentTime = 0;
-        void to.play().catch(() => {});
-        // Nach Ablauf dieses Videos sofort das andere neu starten
-        setTopOnA((prev) => !prev);
-        from.onended = () => { from.currentTime = 0; /* wartet auf nächsten Handoff */ };
-      }
-    };
-
-    const ta = scheduleHandoff(a, b);
-    const tb = scheduleHandoff(b, a);
-    a.addEventListener("timeupdate", ta);
-    b.addEventListener("timeupdate", tb);
-    return () => {
-      a.removeEventListener("timeupdate", ta);
-      b.removeEventListener("timeupdate", tb);
-    };
-  }, [archetype.video_url, variant]);
+  // Crossfade deaktiviert — Prompt garantiert bereits seamless Loop.
+  useEffect(() => { setUseFadeLoop(false); }, [archetype.video_url, variant]);
+  void setTopOnA; // stabilisiert, ignorier
 
   if (useVideo && !videoFailed) {
     return (
@@ -132,7 +97,7 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           autoPlay
           muted
           playsInline
-          loop={variant === "idle" && !useFadeLoop}
+          loop={variant === "idle"}
           onError={() => setVideoFailed(true)}
           poster={archetype.image_url ?? `/guardians/${archetype.id}_idle.png`}
           style={{

@@ -44,12 +44,12 @@ export async function GET(req: NextRequest) {
 
     // Eigener aktiver Wächter (für Hero-Anzeige) + Base-Stats
     const { data: myGuardianRow } = await sb.from("user_guardians")
-      .select("id, archetype_id, level, xp, wins, losses, current_hp_pct, guardian_archetypes!inner(name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd)")
+      .select("id, archetype_id, level, xp, wins, losses, current_hp_pct, guardian_archetypes!inner(name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd, image_url, video_url)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
 
-    type ArchRow = { name: string; emoji: string; rarity: string; guardian_type: string | null; role: string | null; base_hp: number; base_atk: number; base_def: number; base_spd: number };
+    type ArchRow = { name: string; emoji: string; rarity: string; guardian_type: string | null; role: string | null; base_hp: number; base_atk: number; base_def: number; base_spd: number; image_url: string | null; video_url: string | null };
     const arch = myGuardianRow ? (myGuardianRow as unknown as { guardian_archetypes: ArchRow }).guardian_archetypes : null;
 
     // Equipped + Inventar (für Hero-Anzeige & inline Slot-Picker)
@@ -119,6 +119,8 @@ export async function GET(req: NextRequest) {
         current_hp_pct: (myGuardianRow as { current_hp_pct: number }).current_hp_pct,
         archetype_name:  arch.name,
         archetype_emoji: arch.emoji,
+        archetype_image_url: arch.image_url,
+        archetype_video_url: arch.video_url,
         rarity:          arch.rarity,
         guardian_type:   arch.guardian_type,
         role:            arch.role,
