@@ -117,6 +117,21 @@ export const EXTRAS = {
   badge_gold:    { sku: "badge_gold",    name: "Gold-Supporter-Badge",     price: 999, icon: "🥇" },
 };
 
+// ═══════════════════════════════════════════════════════
+// CREW PAY-TO-PROGRESS (Diamanten fließen in Crew-Pool)
+// ═══════════════════════════════════════════════════════
+export const CREW_GEM_PACKS = {
+  crew_gems_500:   { sku: "crew_gems_500",   name: "Crew-Paket S",  gems: 500,  bonus: 0,    price: 499,  icon: "💎" },
+  crew_gems_1500:  { sku: "crew_gems_1500",  name: "Crew-Paket M",  gems: 1500, bonus: 200,  price: 1299, icon: "💎" },
+  crew_gems_5000:  { sku: "crew_gems_5000",  name: "Crew-Paket L",  gems: 5000, bonus: 1000, price: 3999, icon: "💎" },
+  crew_gems_12000: { sku: "crew_gems_12000", name: "Crew-Paket XL", gems: 12000, bonus: 3000, price: 7999, icon: "💎" },
+};
+
+export const CREW_SLOT_PACKS = {
+  crew_slots_plus5:  { sku: "crew_slots_plus5",  name: "+5 Mitglieder-Slots",  slots: 5,  price: 299, icon: "👥" },
+  crew_slots_plus10: { sku: "crew_slots_plus10", name: "+10 Mitglieder-Slots", slots: 10, price: 499, icon: "👥" },
+};
+
 export function formatPrice(cents: number): string {
   return `€ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 }

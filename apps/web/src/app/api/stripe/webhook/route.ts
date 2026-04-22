@@ -118,6 +118,25 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     }
     return;
   }
+  // Crew-Diamanten-Pakete → landen direkt im Crew-Pool
+  if (sku.startsWith("crew_gems_") && crewId) {
+    const { CREW_GEM_PACKS } = await import("@/lib/monetization");
+    const pack = (CREW_GEM_PACKS as Record<string, { gems: number; bonus: number }>)[sku];
+    if (pack) {
+      const add = pack.gems + pack.bonus;
+      await sb.rpc("crew_gem_pool_topup", { p_crew_id: crewId, p_gems: add, p_reason: sku });
+    }
+    return;
+  }
+  // Crew-Slot-Packs → erhöhen member_cap
+  if (sku.startsWith("crew_slots_") && crewId) {
+    const { CREW_SLOT_PACKS } = await import("@/lib/monetization");
+    const pack = (CREW_SLOT_PACKS as Record<string, { slots: number }>)[sku];
+    if (pack) {
+      await sb.rpc("crew_increase_member_cap", { p_crew_id: crewId, p_delta: pack.slots });
+    }
+    return;
+  }
   if (sku.startsWith("gems_")) {
     // Edelstein-Kauf — Basis + Bonus anschreiben
     const { findGemBundle, totalGemsOfBundle } = await import("@/lib/gem-bundles");

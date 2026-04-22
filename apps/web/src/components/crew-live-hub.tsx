@@ -12,7 +12,7 @@ type Crew = {
   invite_code: string | null;
 };
 
-type Tab = "overview" | "war" | "season" | "flags" | "duel" | "challenges" | "events" | "chat" | "feed" | "shop";
+type Tab = "overview" | "war" | "season" | "flags" | "duel" | "challenges" | "events" | "chat" | "feed" | "shop" | "power";
 
 const TABS: Array<{ id: Tab; label: string; icon: string; color: string }> = [
   { id: "overview",  label: "Mitglieder",  icon: "👥", color: "#22D1C3" },
@@ -25,6 +25,7 @@ const TABS: Array<{ id: Tab; label: string; icon: string; color: string }> = [
   { id: "chat",      label: "Chat",        icon: "💬", color: "#5ddaf0" },
   { id: "feed",      label: "Feed",        icon: "📜", color: "#a855f7" },
   { id: "shop",      label: "Shop",        icon: "💎", color: "#FF6B4A" },
+  { id: "power",     label: "Power",       icon: "⚡", color: "#FFD700" },
 ];
 
 export function CrewLiveHub({ crew, userId, isAdmin }: {
@@ -83,6 +84,7 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
       {tab === "chat"       && <ChatPanel    crew={crew} userId={userId} />}
       {tab === "feed"       && <FeedPanel    crew={crew} />}
       {tab === "shop"       && <ShopPanel    crew={crew} userId={userId} isAdmin={isAdmin} />}
+      {tab === "power"      && <PowerPanel   crew={crew} userId={userId} isAdmin={isAdmin} />}
     </div>
   );
 }
@@ -1322,6 +1324,13 @@ const TAB_INFO: Record<Tab, InfoContent> = {
     loot: "Keine XP — rein kosmetisch für Bragging-Rights und Crew-Identität. Einige Items verbessern die Sichtbarkeit auf der Karte (z. B. eigene Territory-Farbe).",
     tips: "Lohnt sich erst ab ~10 aktiven Mitgliedern. Startet mit Custom-Flagge (500 💎) für Wiedererkennung.",
   },
+  power: {
+    icon: "⚡", color: "#FFD700",
+    title: "Crew-Power (Pay-to-Progress)",
+    how: "Gemeinsame Crew-Kasse mit Diamanten. Mitglieder zahlen 💎 aus ihrem Konto in den Pool, Admins aktivieren damit 7 Power-Items (Score-Boosts, Shield, Flaggen-Spawn, Reroll, Duel-Pick). Boosts pushen NUR Crew-Rankings (Duell/War/Saison), nicht die persönliche XP — damit Runner-Ränge wertvoll bleiben.",
+    loot: "Kein direktes XP. Aber: +50 % Crew-Score-Multiplier in Duell/War/Saison/Challenges, Schutz vor Territorium-Diebstahl, strategische Vorteile. Limit: max 1 Boost aktiv gleichzeitig, max 72 h Boost-Zeit pro Woche.",
+    tips: "Score-Boosts lohnen vor allem kurz vor Ende eines Duells/Krieges. Territory-Shield bei laufenden Feindangriffen. Member-Slot-Packs (€) wenn Crew voll wird (Start: 10 Slots, max. 100).",
+  },
 };
 
 function CrewTabInfo({ tab }: { tab: Tab }) {
@@ -1386,6 +1395,286 @@ function CrewTabInfo({ tab }: { tab: Tab }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ═══ POWER (Pay-to-Progress: Gem-Pool + Boost-Items + €-Pakete) ═══
+type PoolData = {
+  pool: { gems: number; total_deposited: number; total_spent: number };
+  my_gems: number;
+  recent_transactions: Array<{ kind: string; amount: number; reason: string | null; created_at: string }>;
+};
+type BoostCatalog = Record<string, { cost: number; duration_hours: number | null; name: string; icon: string; description: string }>;
+type ActiveBoost = { id: string; kind: string; activated_at: string; expires_at: string | null; consumed_at: string | null; gems_paid: number };
+
+const CREW_GEM_PACKS_CLIENT = [
+  { sku: "crew_gems_500",   name: "Crew-Paket S",  gems: 500,   bonus: 0,    price: 499,  icon: "💎" },
+  { sku: "crew_gems_1500",  name: "Crew-Paket M",  gems: 1500,  bonus: 200,  price: 1299, icon: "💎" },
+  { sku: "crew_gems_5000",  name: "Crew-Paket L",  gems: 5000,  bonus: 1000, price: 3999, icon: "💎" },
+  { sku: "crew_gems_12000", name: "Crew-Paket XL", gems: 12000, bonus: 3000, price: 7999, icon: "💎" },
+];
+
+const CREW_SLOT_PACKS_CLIENT = [
+  { sku: "crew_slots_plus5",  name: "+5 Slots",  slots: 5,  price: 299 },
+  { sku: "crew_slots_plus10", name: "+10 Slots", slots: 10, price: 499 },
+];
+
+function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAdmin: boolean }) {
+  const [pool, setPool] = useState<PoolData | null>(null);
+  const [catalog, setCatalog] = useState<BoostCatalog>({});
+  const [active, setActive] = useState<ActiveBoost[]>([]);
+  const [depositAmount, setDepositAmount] = useState<string>("100");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [memberCap, setMemberCap] = useState<number>(10);
+  const [memberCount, setMemberCount] = useState<number>(0);
+  const sb = useMemo(() => createClient(), []);
+
+  const load = useCallback(async () => {
+    const [{ data: crewRow }, { data: members }] = await Promise.all([
+      sb.from("crews").select("member_cap").eq("id", crew.id).maybeSingle<{ member_cap: number }>(),
+      sb.from("crew_members").select("user_id", { count: "exact" }).eq("crew_id", crew.id),
+    ]);
+    setMemberCap(crewRow?.member_cap ?? 10);
+    setMemberCount((members ?? []).length);
+
+    const [poolRes, boostsRes] = await Promise.all([
+      fetch(`/api/crew/gem-pool?crew_id=${crew.id}`),
+      fetch(`/api/crew/boosts?crew_id=${crew.id}`),
+    ]);
+    const poolJ = await poolRes.json();
+    const boostsJ = await boostsRes.json();
+    setPool(poolJ);
+    setCatalog(boostsJ.catalog ?? {});
+    setActive(boostsJ.active ?? []);
+  }, [crew.id, sb]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function deposit() {
+    const amount = parseInt(depositAmount, 10);
+    if (!amount || amount <= 0) return;
+    if (!pool || pool.my_gems < amount) { await appAlert("Nicht genug Diamanten auf deinem Konto."); return; }
+    if (!await appConfirm(`${amount} 💎 in den Crew-Pool einzahlen?`)) return;
+    setBusy("deposit");
+    try {
+      const r = await fetch("/api/crew/gem-pool", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ crew_id: crew.id, amount }),
+      });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(`Fehler: ${j.error ?? r.status}`); return; }
+      await appAlert(`✅ ${amount} 💎 eingezahlt.`);
+      setDepositAmount("100");
+      await load();
+    } finally { setBusy(null); }
+  }
+
+  async function activate(kind: string) {
+    if (!isAdmin) { await appAlert("Nur Admins/Owner können Boosts aktivieren."); return; }
+    const item = catalog[kind];
+    if (!item) return;
+    if ((pool?.pool.gems ?? 0) < item.cost) { await appAlert(`Nicht genug Pool-Diamanten: ${pool?.pool.gems ?? 0} / ${item.cost}`); return; }
+    if (!await appConfirm(`"${item.name}" für ${item.cost} 💎 aktivieren?`)) return;
+    setBusy(kind);
+    try {
+      const r = await fetch("/api/crew/boosts", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ crew_id: crew.id, kind }),
+      });
+      const j = await r.json();
+      if (!r.ok) { await appAlert(`${j.error ?? "Fehler"}`); return; }
+      await appAlert(`⚡ "${item.name}" aktiviert!`);
+      await load();
+    } finally { setBusy(null); }
+  }
+
+  async function buyPack(sku: string, name: string, price: number) {
+    setBusy(sku);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sku, name, amount_cents: price, crew_id: crew.id, ui_mode: "hosted" }),
+      });
+      const j = await res.json();
+      if (j.url) { window.location.href = j.url; return; }
+      if (!res.ok) { await appAlert(`Stripe-Fehler: ${j.error ?? res.status}`); return; }
+    } finally { setBusy(null); }
+  }
+
+  if (!pool) return <div><CrewTabInfo tab="power" /><Loading /></div>;
+
+  return (
+    <div>
+      <CrewTabInfo tab="power" />
+
+      {/* Gem-Pool-Status */}
+      <div style={{
+        padding: 14, borderRadius: 12, marginBottom: 10,
+        background: "linear-gradient(135deg, rgba(93,218,240,0.12), rgba(255,215,0,0.08))",
+        border: "1px solid rgba(93,218,240,0.35)",
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#5ddaf0" }}>💎 CREW-POOL</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
+          <div style={{ color: "#FFF", fontSize: 26, fontWeight: 900 }}>{pool.pool.gems.toLocaleString("de-DE")}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>💎 verfügbar</div>
+        </div>
+        <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 2 }}>
+          Eingezahlt: {pool.pool.total_deposited.toLocaleString("de-DE")} · Ausgegeben: {pool.pool.total_spent.toLocaleString("de-DE")}
+        </div>
+
+        {/* Deposit */}
+        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+          <input
+            type="number" min="1" value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+            style={{
+              flex: 1, padding: "8px 10px", borderRadius: 8,
+              background: "rgba(0,0,0,0.3)", color: "#FFF",
+              border: "1px solid rgba(255,255,255,0.1)", fontSize: 13,
+            }}
+            placeholder="💎"
+          />
+          <button
+            onClick={deposit}
+            disabled={busy === "deposit"}
+            style={{
+              padding: "8px 14px", borderRadius: 8, border: "none",
+              background: "linear-gradient(135deg,#5ddaf0,#22D1C3)",
+              color: "#0F1115", fontSize: 12, fontWeight: 900, cursor: "pointer",
+              opacity: busy === "deposit" ? 0.6 : 1,
+            }}
+          >Einzahlen (Dein Guthaben: 💎 {pool.my_gems})</button>
+        </div>
+      </div>
+
+      {/* Aktive Boosts */}
+      {active.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, color: "#4ade80", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>AKTIVE BOOSTS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {active.map((b) => {
+              const item = catalog[b.kind];
+              const remainingMs = b.expires_at ? new Date(b.expires_at).getTime() - Date.now() : 0;
+              const remainingH = Math.max(0, Math.ceil(remainingMs / 3600000));
+              return (
+                <div key={b.id} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 10px", borderRadius: 8,
+                  background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.35)",
+                }}>
+                  <span style={{ fontSize: 14 }}>{item?.icon ?? "⚡"}</span>
+                  <span style={{ color: "#FFF", fontSize: 11, fontWeight: 800, flex: 1 }}>{item?.name ?? b.kind}</span>
+                  <span style={{ color: "#4ade80", fontSize: 10, fontWeight: 800 }}>
+                    {b.expires_at ? (remainingH > 24 ? `${Math.ceil(remainingH/24)}d` : `${remainingH}h`) : "bereit"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Power-Items */}
+      <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>⚡ POWER-ITEMS</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+        {Object.entries(catalog).map(([kind, item]) => {
+          const alreadyActive = active.some((a) => a.kind === kind);
+          const canAfford = (pool.pool.gems ?? 0) >= item.cost;
+          return (
+            <div key={kind} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: 10, borderRadius: 10,
+              background: "rgba(15,17,21,0.5)",
+              border: "1px solid rgba(255,215,0,0.25)",
+              opacity: alreadyActive ? 0.55 : 1,
+            }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.4)",
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+              }}>{item.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{item.name}</div>
+                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>{item.description}</div>
+              </div>
+              <button
+                onClick={() => activate(kind)}
+                disabled={busy === kind || alreadyActive || !canAfford || !isAdmin}
+                title={!isAdmin ? "Nur Admins" : alreadyActive ? "Schon aktiv" : !canAfford ? "Pool zu klein" : ""}
+                style={{
+                  padding: "6px 10px", borderRadius: 8, border: "none", flexShrink: 0,
+                  background: alreadyActive ? "rgba(74,222,128,0.2)" : canAfford && isAdmin ? "linear-gradient(135deg,#FFD700,#FF6B4A)" : "rgba(255,255,255,0.05)",
+                  color: alreadyActive ? "#4ade80" : canAfford && isAdmin ? "#0F1115" : "#8B8FA3",
+                  fontSize: 11, fontWeight: 900,
+                  cursor: alreadyActive || !canAfford || !isAdmin ? "not-allowed" : "pointer",
+                  opacity: busy === kind ? 0.6 : 1,
+                }}
+              >{alreadyActive ? "✓ aktiv" : `💎 ${item.cost}`}</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* €-Gem-Packs */}
+      <div style={{ fontSize: 10, color: "#5ddaf0", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>💎 DIAMANTEN-PAKETE (IN POOL)</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
+        {CREW_GEM_PACKS_CLIENT.map((p) => (
+          <button
+            key={p.sku}
+            onClick={() => buyPack(p.sku, p.name, p.price)}
+            disabled={busy === p.sku}
+            style={{
+              padding: 10, borderRadius: 10,
+              background: "rgba(93,218,240,0.08)",
+              border: "1px solid rgba(93,218,240,0.35)",
+              color: "#FFF", cursor: "pointer", textAlign: "left",
+              opacity: busy === p.sku ? 0.6 : 1,
+            }}
+          >
+            <div style={{ fontSize: 18 }}>{p.icon}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, marginTop: 2 }}>{p.gems.toLocaleString("de-DE")} 💎{p.bonus > 0 && <span style={{ color: "#4ade80" }}> +{p.bonus}</span>}</div>
+            <div style={{ fontSize: 10, color: "#a8b4cf" }}>{p.name}</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", marginTop: 4 }}>€ {(p.price / 100).toFixed(2).replace(".", ",")}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Member-Slots */}
+      <div style={{ fontSize: 10, color: "#22D1C3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>👥 MITGLIEDER-SLOTS</div>
+      <div style={{
+        padding: 10, borderRadius: 10, marginBottom: 6,
+        background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span style={{ color: "#22D1C3", fontSize: 11, fontWeight: 700 }}>Belegt</span>
+          <span style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>
+            {memberCount} / {memberCap} <span style={{ color: "#8B8FA3", fontSize: 10 }}>(max 100)</span>
+          </span>
+        </div>
+        <div style={{ marginTop: 6, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${Math.min(100, (memberCount / memberCap) * 100)}%`, background: "linear-gradient(90deg,#22D1C3,#5ddaf0)" }} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {CREW_SLOT_PACKS_CLIENT.map((p) => (
+          <button
+            key={p.sku}
+            onClick={() => buyPack(p.sku, p.name, p.price)}
+            disabled={busy === p.sku || memberCap >= 100}
+            style={{
+              flex: 1, padding: 10, borderRadius: 10,
+              background: memberCap >= 100 ? "rgba(255,255,255,0.04)" : "rgba(34,209,195,0.1)",
+              border: `1px solid ${memberCap >= 100 ? "rgba(255,255,255,0.1)" : "rgba(34,209,195,0.4)"}`,
+              color: memberCap >= 100 ? "#8B8FA3" : "#FFF",
+              cursor: memberCap >= 100 ? "not-allowed" : "pointer",
+              opacity: busy === p.sku ? 0.6 : 1,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 900 }}>+{p.slots} Slots</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", marginTop: 4 }}>€ {(p.price / 100).toFixed(2).replace(".", ",")}</div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
