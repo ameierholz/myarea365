@@ -472,6 +472,10 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
   const equippedCount = myGuardian.equipped.length;
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Ausrüstung auf Mobil eingeklappt, Desktop aufgeklappt
+  const [gearOpen, setGearOpen] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 640 : true,
+  );
 
   async function equip(userItemId: string) {
     setBusy(true);
@@ -572,14 +576,34 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
 
         {/* Equipment-Strip (klickbar → Inline-Picker) */}
         <div style={{ marginTop: 12 }}>
-          <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
-            ⚒️ AUSRÜSTUNG · {equippedCount}/{SLOT_ORDER.length} SLOTS
-            <span style={{ color: "#6c7590", fontSize: 10, fontWeight: 700, marginLeft: 8, letterSpacing: 0 }}>
-              (Slot klicken zum Wechseln)
+          <button
+            type="button"
+            onClick={() => setGearOpen((v) => !v)}
+            aria-expanded={gearOpen}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "transparent", border: "none", padding: "4px 2px",
+              color: "#8B8FA3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
+              cursor: "pointer", marginBottom: gearOpen ? 6 : 0,
+            }}
+          >
+            <span>
+              ⚒️ AUSRÜSTUNG · <span style={{ color: equippedCount > 0 ? "#FFD700" : "#8B8FA3" }}>{equippedCount}/{SLOT_ORDER.length}</span> SLOTS
+              {gearOpen && (
+                <span style={{ color: "#6c7590", fontSize: 10, fontWeight: 700, marginLeft: 8, letterSpacing: 0 }}>
+                  (Slot klicken zum Wechseln)
+                </span>
+              )}
             </span>
-          </div>
+            <span style={{
+              fontSize: 12, color: "#8B8FA3",
+              transform: gearOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 200ms ease",
+            }}>▾</span>
+          </button>
           <div style={{
-            display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 6,
+            display: gearOpen ? "grid" : "none",
+            gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 6,
           }}>
             {SLOT_ORDER.map((s, idx) => {
               const eq = equippedMap.get(s.key);
