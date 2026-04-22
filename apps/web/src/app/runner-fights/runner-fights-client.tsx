@@ -23,6 +23,8 @@ type Opponent = {
   avatar_url: string | null;
   archetype_name: string;
   archetype_emoji: string;
+  archetype_image_url?: string | null;
+  archetype_video_url?: string | null;
   rarity: string;
   guardian_type: string;
   role: string;
@@ -885,16 +887,23 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
         }}>{matchup.icon} {matchup.label}</div>
       )}
 
-      {/* Portrait-Bereich: großer Emoji-Avatar auf Farbverlauf */}
+      {/* Portrait-Bereich: Video > Bild > großer Emoji-Avatar */}
       <div style={{
         height: 140, display: "flex", alignItems: "center", justifyContent: "center",
         background: `radial-gradient(circle at 50% 40%, ${rarityMeta.color}33 0%, transparent 70%)`,
         borderBottom: `1px solid ${rarityMeta.color}33`,
+        overflow: "hidden",
       }}>
-        <div style={{
-          fontSize: 80,
-          filter: `drop-shadow(0 4px 8px ${rarityMeta.glow})`,
-        }}>{op.archetype_emoji}</div>
+        {op.archetype_video_url ? (
+          <video src={op.archetype_video_url} autoPlay loop muted playsInline
+            style={{ width: "100%", height: "100%", objectFit: "contain", filter: `url(#ma365-chroma-black) drop-shadow(0 4px 8px ${rarityMeta.glow})` }} />
+        ) : op.archetype_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={op.archetype_image_url} alt={op.archetype_name}
+            style={{ width: "100%", height: "100%", objectFit: "contain", filter: `drop-shadow(0 4px 8px ${rarityMeta.glow})` }} />
+        ) : (
+          <div style={{ fontSize: 80, filter: `drop-shadow(0 4px 8px ${rarityMeta.glow})` }}>{op.archetype_emoji}</div>
+        )}
       </div>
 
       {/* Name-Block */}

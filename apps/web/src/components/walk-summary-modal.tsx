@@ -22,6 +22,10 @@ export type WalkSummary = {
   };
   newAchievements?: Array<{ id: string; name: string; xp: number; icon: string }>;
   achievementXp?: number;
+  /** Zeit-abhängiger Bonus für erneut begangene Abschnitte. */
+  reclaim?: { reclaim_count: number; reclaim_xp: number; segments_cooldown: number } | null;
+  /** Solo-Läufer: Territorien sind pending_crew — zeigen Aufforderung zum Crew-Join. */
+  pending_territory_count?: number;
 };
 
 export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
@@ -193,6 +197,41 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
               {summary.stolen_count && summary.stolen_count > 0 ? (
                 <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78", fontSize: 11, fontWeight: 800 }}>
                   ⚔️ {summary.stolen_count}× Territorium erobert (zurueckgeholt!)
+                </div>
+              ) : null}
+
+              {/* Zeit-abhängiger Reclaim-Bonus */}
+              {summary.reclaim && (summary.reclaim.reclaim_xp > 0 || summary.reclaim.segments_cooldown > 0) && (
+                <div style={{
+                  marginTop: 8, padding: 8, borderRadius: 8,
+                  background: "rgba(34,209,195,0.12)", border: "1px solid rgba(34,209,195,0.4)",
+                  color: "#22D1C3", fontSize: 11, fontWeight: 800,
+                  display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                }}>
+                  {summary.reclaim.reclaim_xp > 0 && (
+                    <span>♻️ Reclaim-Bonus: +{summary.reclaim.reclaim_xp} XP ({summary.reclaim.reclaim_count} bekannte Abschnitte)</span>
+                  )}
+                  {summary.reclaim.segments_cooldown > 0 && (
+                    <span style={{ color: "#8B8FA3", fontWeight: 700 }}>
+                      ⏱️ {summary.reclaim.segments_cooldown} Abschnitt{summary.reclaim.segments_cooldown === 1 ? "" : "e"} noch im Cooldown
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Pending-Territorien (Solo ohne Crew) */}
+              {summary.pending_territory_count && summary.pending_territory_count > 0 ? (
+                <div style={{
+                  marginTop: 8, padding: 10, borderRadius: 8,
+                  background: "rgba(255,215,0,0.12)", border: "1px dashed rgba(255,215,0,0.55)",
+                  color: "#FFD700", fontSize: 11, fontWeight: 800,
+                  lineHeight: 1.45,
+                }}>
+                  🏆 {summary.pending_territory_count}× Territorium geschlossen — aber noch <b>ohne Crew</b>.
+                  <br />
+                  <span style={{ color: "#a8b4cf", fontWeight: 700 }}>
+                    Tritt einer Crew bei, um je +500 XP rückwirkend zu kassieren.
+                  </span>
                 </div>
               ) : null}
             </div>

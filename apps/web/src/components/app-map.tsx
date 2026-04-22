@@ -32,6 +32,11 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
   const style = document.createElement("style");
   style.id = "mapbox-marker-animations";
   style.textContent = `
+    /* Mapbox-Logo dimmen — ToS-konform (bleibt sichtbar), aber weniger aufdringlich im dunklen Theme */
+    .mapboxgl-ctrl-logo { opacity: 0.45; transform: scale(0.8); transform-origin: bottom left; transition: opacity 0.2s; }
+    .mapboxgl-ctrl-logo:hover { opacity: 1; }
+    .mapboxgl-ctrl-attrib.mapboxgl-compact { opacity: 0.55; }
+    .mapboxgl-ctrl-attrib.mapboxgl-compact:hover { opacity: 1; }
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
     @keyframes runnerRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
     @keyframes runnerBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
@@ -1673,15 +1678,29 @@ export function AppMap({
         id: fillId, type: "fill", source: sourceId,
         paint: {
           "fill-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
-          "fill-opacity": 0.22,
+          // pending_crew: stark reduzierte Deckkraft als Ghost-Layer
+          "fill-opacity": ["case", ["==", ["get", "status"], "pending_crew"], 0.08, 0.22],
         },
       });
+      // Aktive Territorien: solide Linie
       map.addLayer({
         id: strokeId, type: "line", source: sourceId,
+        filter: ["!=", ["get", "status"], "pending_crew"],
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
           "line-opacity": 0.9,
           "line-width": zoomWidth(2.5),
+        },
+      });
+      // Pending-Crew Territorien: gestrichelte Linie als "Anwartschaft"
+      map.addLayer({
+        id: strokeId + "-pending", type: "line", source: sourceId,
+        filter: ["==", ["get", "status"], "pending_crew"],
+        paint: {
+          "line-color": ["case", ["get", "is_mine"], "#FFD700", "#FF2D78"],
+          "line-opacity": 0.6,
+          "line-width": zoomWidth(2.0),
+          "line-dasharray": [3, 3],
         },
       });
       if (onOwnershipClick) {
@@ -1733,17 +1752,17 @@ export function AppMap({
     if (existing) existing.setData(data);
     else {
       map.addSource(srcId, { type: "geojson", data });
-      // Dunkler Overlay über gesamten Viewport
+      // Dunkler Overlay über gesamten Viewport — verdunkelt unerforschte Gebiete
       map.addLayer({
         id: fogLayerId, type: "background",
-        paint: { "background-color": "#0F1115", "background-opacity": 0.0 },
+        paint: { "background-color": "#0F1115", "background-opacity": 0.55 },
       });
-      // Explored Cells "stanzen" ein Loch durch subtile Aufhellung
+      // Explored Cells markieren sichtbar mit Cyan-Glow → zeigen erforschtes Gebiet
       map.addLayer({
         id: layerId, type: "fill", source: srcId,
         paint: {
           "fill-color": "#22D1C3",
-          "fill-opacity": 0.06,
+          "fill-opacity": 0.28,
           "fill-outline-color": "#22D1C3",
         },
       });
@@ -2120,13 +2139,18 @@ export function AppMap({
     const crateByRarity: Record<string, string> = {
       common: "📦", rare: "🎁", epic: "💎", legendary: "👑",
     };
+    // Aktuelle Zoom-Skalierung sofort anwenden, damit neue Drops nicht riesig spawnen
+    // und erst beim nächsten Zoom-Event schrumpfen.
+    const zoom = map.getZoom();
+    const initialLootScale = Math.max(0.22, Math.min(0.85, (zoom - 12) / 6 * 0.65 + 0.25));
+
     lootDrops.forEach((d) => {
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       const color = rarityColor[d.rarity] || "#5ddaf0";
       const crate = crateByRarity[d.rarity] || "📦";
       outer.innerHTML = `
-        <div class="ma365-loot-wrap" style="--color:${color}">
+        <div class="ma365-loot-wrap" style="--color:${color}; --loot-scale:${initialLootScale.toFixed(2)}">
           <div class="ma365-loot-proximity"></div>
           <div class="ma365-loot-proximity two"></div>
           <div class="ma365-loot-crate">${crate}</div>

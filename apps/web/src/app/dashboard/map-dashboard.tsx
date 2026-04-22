@@ -22,6 +22,10 @@ import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
+import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
+import { MapHelpButton } from "@/components/map-help-button";
+import { OnboardingModal, markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
+import { FaqModal } from "@/components/faq-modal";
 import { PotionInventoryModal } from "@/components/potion-inventory-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal } from "@/components/runner-stats-modal";
@@ -76,7 +80,6 @@ import {
   DEMO_NEARBY_CREWS_MAP,
   DEMO_RUNNERS,
   generateDemoMapData,
-  DEMO_MISSIONS,
   DEMO_BOOSTS,
   generateDemoRecentRuns,
   getCurrentHappyHour,
@@ -272,6 +275,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [leaderboard, setLeaderboard] = useState<Profile[]>([]);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup auf Unmount — verhindert Timer-Leak wenn User die App schließt oder
+  // das Dashboard unmountet während ein Walk läuft.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
   const lastPosRef = useRef<Coord | null>(null);
   const lastPosTimeRef = useRef<number>(0);
   const speedViolationRef = useRef<number>(0);
@@ -301,7 +315,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const [segsRes, streetsRes, terrsRes] = await Promise.all([
         supabase.from("street_segments").select("id, user_id, crew_id, street_name, geom").limit(2000),
         supabase.from("streets_claimed").select("id, user_id, crew_id, street_name"),
-        supabase.from("territory_polygons").select("id, owner_user_id, owner_crew_id, polygon, status").eq("status", "active"),
+        supabase.from("territory_polygons").select("id, owner_user_id, owner_crew_id, claimed_by_user_id, polygon, status").in("status", ["active", "pending_crew"]),
       ]);
       if (cancelled) return;
 
@@ -338,10 +352,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
       if (terrsRes.data) {
         setOwnedTerritories(
-          (terrsRes.data as Array<{ id: string; owner_user_id: string | null; owner_crew_id: string | null; polygon: Array<{ lat: number; lng: number }>; status: string }>).map((t) => ({
+          (terrsRes.data as Array<{ id: string; owner_user_id: string | null; owner_crew_id: string | null; claimed_by_user_id: string | null; polygon: Array<{ lat: number; lng: number }>; status: string }>).map((t) => ({
             id: t.id,
             polygon: t.polygon,
-            is_mine: t.owner_user_id === profile.id,
+            // pending_crew: claimed_by_user_id gehört dem User, owner_user_id ist null → trotzdem als "is_mine" markieren
+            is_mine: t.owner_user_id === profile.id || (t.status === "pending_crew" && t.claimed_by_user_id === profile.id),
             is_crew: !!(myCrewId && t.owner_crew_id === myCrewId),
             status: t.status,
           })),
@@ -512,7 +527,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         total_length_m: number;
         newly_claimed_streets: Array<{ street_name: string; segments_count: number; total_length_m: number }>;
         new_territory: { id: string; area_m2: number } | null;
-        new_territories?: Array<{ id: string; area_m2: number; stole_from: boolean }>;
+        new_territories?: Array<{ id: string; area_m2: number; stole_from: boolean; pending_crew?: boolean }>;
+        reclaim?: { reclaim_count: number; reclaim_xp: number; segments_cooldown: number } | null;
       };
       let segResp: SegmentsResp = { total_new: 0, total_length_m: 0, newly_claimed_streets: [], new_territory: null, new_territories: [] };
       try {
@@ -608,6 +624,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         }
 
         const stoleCount = (segResp.new_territories ?? []).filter((t) => t.stole_from).length;
+        const pendingCount = (segResp.new_territories ?? []).filter((t) => t.pending_crew).length;
 
         setWalkSummary({
           distance_m: Math.round(finalDistance),
@@ -618,6 +635,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           street_count: segResp.newly_claimed_streets.length,
           territory_count: territoryCountNew,
           stolen_count: stoleCount,
+          pending_territory_count: pendingCount,
+          reclaim: segResp.reclaim ?? null,
           bonuses: {
             streakBonus: bonuses.streakBonus,
             happyHourMult: bonuses.happyHourMult,
@@ -932,6 +951,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               xpBoost={1}
             />
 
+            {/* Floating Badge für Tagesangebote (dismissible, pro Tag) — während Walking ausgeblendet, um Kollision mit LivePaceHud zu vermeiden */}
+            <DailyDealMapBadge userId={p?.id} hidden={walking} />
+
+            {/* Help/FAQ-Button oben links */}
+            <MapHelpButton />
+
             {/* Snap-Loading-Indikator */}
             {snapping && (
               <div style={{
@@ -1005,7 +1030,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     onClick={() => setOverviewMode(!overviewMode)}
                     active={overviewMode}
                   />
-                  <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={DEMO_MISSIONS.length} />
+                  <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
                   <MapIconButton icon="⚡" label="Boost-Shop" onClick={() => setBoostShopOpen(true)} accent="#FFD700" />
                   <MapIconButton
                     icon="🌫️"
@@ -1543,6 +1568,14 @@ function ProfilTab({
       }
     } catch { /* ignore */ }
   }, []);
+
+  // Onboarding-Modal beim ersten Login automatisch zeigen
+  useEffect(() => {
+    if (origP && shouldShowOnboarding()) {
+      const t = setTimeout(() => setOpenModal("onboarding"), 600);
+      return () => clearTimeout(t);
+    }
+  }, [origP]);
   const toggleDemoOverride = () => {
     const next = !demoOverride;
     setDemoOverride(next);
@@ -1579,12 +1612,48 @@ function ProfilTab({
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
-  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support" | "arena">(null);
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support" | "arena" | "faq" | "onboarding">(null);
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [showGemShop, setShowGemShop] = useState(false);
   const [showShopHub, setShowShopHub] = useState(false);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
+
+  // Aktiver Wächter für den Profil-Teaser-Block
+  type ActiveGuardian = {
+    id: string; level: number; wins: number; losses: number;
+    current_hp_pct: number;
+    archetype: { id: string; name: string; emoji: string; rarity: string; guardian_type: string | null; image_url: string | null; video_url: string | null } | null;
+    siegel_count: number;
+  };
+  const [activeGuardian, setActiveGuardian] = useState<ActiveGuardian | null>(null);
+  useEffect(() => {
+    if (!p?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data: g } = await supabase.from("user_guardians")
+        .select("id, level, wins, losses, current_hp_pct, archetype:archetype_id(id, name, emoji, rarity, guardian_type, image_url, video_url)")
+        .eq("user_id", p.id).eq("is_active", true).maybeSingle();
+      if (cancelled || !g) { setActiveGuardian(null); return; }
+      const { count: siegelCount } = await supabase.from("user_siegel")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", p.id);
+      if (cancelled) return;
+      const arch = Array.isArray((g as { archetype?: unknown }).archetype)
+        ? ((g as { archetype: unknown[] }).archetype[0] as ActiveGuardian["archetype"])
+        : ((g as { archetype: unknown }).archetype as ActiveGuardian["archetype"]);
+      setActiveGuardian({
+        id: (g as { id: string }).id,
+        level: (g as { level: number }).level,
+        wins: (g as { wins: number }).wins,
+        losses: (g as { losses: number }).losses,
+        current_hp_pct: (g as { current_hp_pct: number }).current_hp_pct,
+        archetype: arch,
+        siegel_count: siegelCount ?? 0,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [p?.id, supabase]);
 
   // Click auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal.
   // Drei parallele Wege, damit Mapbox den Klick nicht schlucken kann:
@@ -1693,7 +1762,7 @@ function ProfilTab({
     .filter((a) => !a.unlocked)
     .sort((a, b) => b.pct - a.pct);
   const recentlyUnlocked = achievementStatus.filter((a) => a.unlocked);
-  const topAchievements = [...inProgress, ...recentlyUnlocked].slice(0, 5);
+  const topAchievements = [...inProgress, ...recentlyUnlocked].slice(0, 3);
 
   return (
     <div style={{ background: BG, paddingBottom: 30 }}>
@@ -1762,29 +1831,44 @@ function ProfilTab({
             fontStyle: "italic", textAlign: "center", maxWidth: 340,
           }}>{motto}</div>
 
-          {/* Holographic Rank Badge — klickbar für alle Ränge */}
-          <button
-            onClick={() => setOpenModal("ranks")}
-            style={{
-              marginTop: 14, paddingLeft: 18, paddingRight: 28, paddingTop: 8, paddingBottom: 8,
-              borderRadius: 22, border: "none",
-              background: currentRankLive.color,
-              position: "relative", overflow: "hidden", cursor: "pointer",
-              boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
-            }}
-            aria-label="Alle Ränge anzeigen"
-          >
-            <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
-              {currentRankLive.name} · {userXp.toLocaleString()} XP
-            </span>
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 1, color: BG_DEEP, fontSize: 14, fontWeight: 900 }}>›</span>
-            <span style={{
-              position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",
-              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
-              animation: "rankShimmer 4s ease-in-out infinite",
-              pointerEvents: "none",
-            }} />
-          </button>
+          {/* Rang-Badge + Streak-Badge */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 14, flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              onClick={() => setOpenModal("ranks")}
+              style={{
+                paddingLeft: 18, paddingRight: 28, paddingTop: 8, paddingBottom: 8,
+                borderRadius: 22, border: "none",
+                background: currentRankLive.color,
+                position: "relative", overflow: "hidden", cursor: "pointer",
+                boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
+              }}
+              aria-label="Alle Ränge anzeigen"
+            >
+              <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
+                {currentRankLive.name} · {userXp.toLocaleString()} XP
+              </span>
+              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 1, color: BG_DEEP, fontSize: 14, fontWeight: 900 }}>›</span>
+              <span style={{
+                position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",
+                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
+                animation: "rankShimmer 4s ease-in-out infinite",
+                pointerEvents: "none",
+              }} />
+            </button>
+            {(p?.streak_days ?? 0) > 0 && (
+              <div style={{
+                padding: "6px 12px", borderRadius: 22,
+                background: (p!.streak_days >= 7) ? "rgba(255,45,120,0.18)" : "rgba(255,107,74,0.16)",
+                border: `1px solid ${(p!.streak_days >= 7) ? "#FF2D78" : "#FF6B4A"}`,
+                color: (p!.streak_days >= 7) ? "#FF2D78" : "#FF6B4A",
+                fontSize: 13, fontWeight: 900, letterSpacing: 0.3,
+                display: "flex", alignItems: "center", gap: 4,
+                boxShadow: `0 0 14px ${(p!.streak_days >= 7) ? "rgba(255,45,120,0.35)" : "rgba(255,107,74,0.3)"}`,
+              }} title={`${p!.streak_days}-Tage-Streak — weiter so!`}>
+                🔥 {p!.streak_days}
+              </div>
+            )}
+          </div>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 
           {/* Next Rank — animierter Balken mit klaren Anker-Werten */}
@@ -1862,6 +1946,90 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
+        {/* ═══ QUICK ACTIONS — 4 große Kacheln: Arena · Shop · Crew · Inbox ═══ */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr",
+          gap: 8, marginTop: 14,
+        }}>
+          {[
+            { key: "arena", icon: "⚔️", label: "Arena",  color: "#FF2D78", onClick: () => setOpenModal("arena") },
+            { key: "shop",  icon: "💎", label: "Shop",   color: "#22D1C3", onClick: () => setShowShopHub(true) },
+            { key: "crew",  icon: "👥", label: "Crew",   color: "#FFD700", onClick: () => setActiveTab("crew") },
+            { key: "inbox", icon: "📬", label: "Inbox",  color: "#a855f7", onClick: () => setOpenModal("inbox") },
+          ].map((a) => (
+            <button key={a.key} onClick={a.onClick} style={{
+              padding: "12px 6px", borderRadius: 14,
+              background: `linear-gradient(135deg, ${a.color}22 0%, rgba(15,17,21,0.7) 100%)`,
+              border: `1px solid ${a.color}55`,
+              color: "#FFF", cursor: "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              boxShadow: `0 2px 10px ${a.color}22`,
+            }}>
+              <span style={{ fontSize: 24, filter: `drop-shadow(0 0 8px ${a.color}88)` }}>{a.icon}</span>
+              <span style={{ fontSize: 11, fontWeight: 900, color: a.color, letterSpacing: 0.5 }}>{a.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ═══ AKTIVER WÄCHTER — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
+        {activeGuardian && activeGuardian.archetype && (
+          <button
+            onClick={() => setOpenModal("arena")}
+            style={{
+              marginTop: 12, width: "100%", padding: 14, borderRadius: 16,
+              background: "linear-gradient(135deg, rgba(255,45,120,0.10) 0%, rgba(168,85,247,0.10) 50%, rgba(34,209,195,0.10) 100%)",
+              border: "1px solid rgba(255,45,120,0.35)",
+              display: "flex", alignItems: "center", gap: 12,
+              cursor: "pointer", textAlign: "left",
+              boxShadow: "0 2px 16px rgba(255,45,120,0.15)",
+            }}
+            aria-label="Zur Arena"
+          >
+            {/* Portrait */}
+            <div style={{
+              width: 76, height: 84, borderRadius: 12, overflow: "hidden", flexShrink: 0,
+              background: "rgba(15,17,21,0.85)",
+              border: `1px solid ${ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78"}77`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 0 14px ${ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78"}44`,
+            }}>
+              {activeGuardian.archetype.video_url ? (
+                <video src={activeGuardian.archetype.video_url} autoPlay loop muted playsInline
+                  style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+              ) : activeGuardian.archetype.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={activeGuardian.archetype.image_url} alt={activeGuardian.archetype.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 40 }}>{activeGuardian.archetype.emoji}</span>
+              )}
+            </div>
+
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: "#FF6B4A" }}>⚔️ AKTIVER WÄCHTER</div>
+              <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {activeGuardian.archetype.name}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap" }}>
+                <span style={{ color: "#FFD700", fontWeight: 800 }}>Lvl {activeGuardian.level}</span>
+                <span style={{ color: "#4ade80", fontWeight: 800 }}>{activeGuardian.wins}W</span>
+                <span style={{ color: "#FF2D78", fontWeight: 800 }}>{activeGuardian.losses}L</span>
+                <span style={{ color: "#a855f7", fontWeight: 800 }}>🏅 {activeGuardian.siegel_count} Siegel</span>
+              </div>
+              {activeGuardian.current_hp_pct < 100 && (
+                <div style={{ marginTop: 6, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", width: `${activeGuardian.current_hp_pct}%`,
+                    background: activeGuardian.current_hp_pct > 50 ? "#4ade80" : activeGuardian.current_hp_pct > 25 ? "#FFD700" : "#FF2D78",
+                  }} />
+                </div>
+              )}
+            </div>
+            <span style={{ color: "#FF2D78", fontSize: 22, fontWeight: 900, flexShrink: 0 }}>›</span>
+          </button>
+        )}
+
         {/* ═══ LETZTE LÄUFE ═══ */}
         <SectionHeader title="LETZTE LÄUFE" />
         {effectiveRecentRuns.length === 0 ? (
@@ -1876,82 +2044,83 @@ function ProfilTab({
           </div>
         )}
 
-        {/* ═══ VERWALTETE CREW (nur wenn User Admin ist) ═══ */}
-        {myCrew && p && myCrew.owner_id === p.id && (
-          <>
-            <SectionHeader
-              title="VERWALTETE CREW"
-              action={
+        {/* ═══ CREW — einheitlicher Block für Admin & Mitglied ═══ */}
+        {(() => {
+          const isAdmin = !!(myCrew && p && myCrew.owner_id === p.id);
+          return (
+            <>
+              <SectionHeader
+                title={isAdmin ? "VERWALTETE CREW" : "DEINE CREW"}
+                action={myCrew ? (
+                  <button
+                    onClick={() => setActiveTab("crew")}
+                    style={{
+                      background: `${myCrew.color}22`, border: `1px solid ${myCrew.color}88`,
+                      borderRadius: 14, padding: "6px 12px",
+                      color: myCrew.color, fontSize: 12, fontWeight: 800, cursor: "pointer",
+                    }}
+                  >{isAdmin ? "Dashboard →" : "Öffnen →"}</button>
+                ) : null}
+              />
+              {myCrew ? (
+                <div style={{
+                  display: "flex", flexDirection: "row",
+                  background: `linear-gradient(135deg, ${myCrew.color}22 0%, rgba(70, 82, 122, 0.45) 100%)`,
+                  padding: 18, borderRadius: 18, alignItems: "center", gap: 14,
+                  border: `1px solid ${myCrew.color}55`,
+                }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14,
+                    background: `linear-gradient(135deg, ${myCrew.color}, ${myCrew.color}aa)`,
+                    color: BG_DEEP, display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 24, fontWeight: 900,
+                    boxShadow: `0 0 14px ${myCrew.color}88`,
+                  }}>
+                    {myCrew.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{myCrew.name}</span>
+                      {isAdmin && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
+                          padding: "2px 6px", borderRadius: 6,
+                          background: `${PRIMARY}22`, color: PRIMARY, border: `1px solid ${PRIMARY}55`,
+                        }}>👑 ADMIN</span>
+                      )}
+                      <span style={{
+                        padding: "2px 8px", borderRadius: 10,
+                        background: `${myCrew.color}20`, border: `1px solid ${myCrew.color}40`,
+                        color: myCrew.color, fontSize: 9, fontWeight: 900,
+                      }}>{p?.faction === "vanguard" ? "VANGUARD" : "SYNDICATE"}</span>
+                    </div>
+                    <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+                      PLZ {myCrew.zip} · {myCrew.member_count} Mitglieder
+                      {isAdmin && <> · Invite: <span style={{ fontFamily: "monospace", color: myCrew.color }}>{myCrew.invite_code}</span></>}
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <button
                   onClick={() => setActiveTab("crew")}
                   style={{
-                    background: `${myCrew.color}22`, border: `1px solid ${myCrew.color}88`,
-                    borderRadius: 14, padding: "6px 12px",
-                    color: myCrew.color, fontSize: 12, fontWeight: 800, cursor: "pointer",
+                    width: "100%", display: "flex", flexDirection: "row",
+                    background: "rgba(70, 82, 122, 0.45)",
+                    padding: 20, borderRadius: 18, alignItems: "center",
+                    border: `1px dashed ${BORDER}`, cursor: "pointer", textAlign: "left",
                   }}
                 >
-                  Dashboard →
+                  <div style={{ width: 22, height: 44, borderRadius: 11, marginRight: 15, background: "#333" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>Keine Crew</div>
+                    <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>Werde jetzt aktiv — tritt einer Crew bei oder gründe deine eigene!</div>
+                  </div>
+                  <span style={{ color: PRIMARY, fontSize: 20, fontWeight: 900 }}>›</span>
                 </button>
-              }
-            />
-            <div style={{
-              display: "flex", flexDirection: "row",
-              background: `linear-gradient(135deg, ${myCrew.color}22 0%, rgba(70, 82, 122, 0.45) 100%)`,
-              padding: 18, borderRadius: 18, alignItems: "center", gap: 14,
-              border: `1px solid ${myCrew.color}55`,
-            }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 14,
-                background: `linear-gradient(135deg, ${myCrew.color}, ${myCrew.color}aa)`,
-                color: BG_DEEP, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 24, fontWeight: 900,
-                boxShadow: `0 0 14px ${myCrew.color}88`,
-              }}>
-                {myCrew.name.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{myCrew.name}</span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
-                    padding: "2px 6px", borderRadius: 6,
-                    background: `${PRIMARY}22`, color: PRIMARY, border: `1px solid ${PRIMARY}55`,
-                  }}>👑 ADMIN</span>
-                </div>
-                <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>
-                  PLZ {myCrew.zip} · {myCrew.member_count} Mitglieder · Invite: <span style={{ fontFamily: "monospace", color: myCrew.color }}>{myCrew.invite_code}</span>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ═══ DEINE CREW ═══ */}
-        <SectionHeader title="DEINE CREW" />
-        <div style={{
-          display: "flex", flexDirection: "row", background: "rgba(70, 82, 122, 0.45)",
-          padding: 20, borderRadius: 18, alignItems: "center",
-        }}>
-          <div style={{ width: 22, height: 44, borderRadius: 11, marginRight: 15, background: myCrew?.color || "#333" }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>
-              {myCrew ? myCrew.name : "Keine Crew"}
-            </div>
-            <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-              {myCrew ? `Revier: PLZ ${myCrew.zip}` : "Werde jetzt aktiv!"}
-            </div>
-          </div>
-          {myCrew && (
-            <div style={{
-              padding: "4px 10px", borderRadius: 12,
-              background: `${myCrew.color}20`, border: `1px solid ${myCrew.color}40`,
-            }}>
-              <span style={{ color: myCrew.color, fontSize: 10, fontWeight: "bold" }}>
-                {p?.faction === "vanguard" ? "VANGUARD" : "SYNDICATE"}
-              </span>
-            </div>
-          )}
-        </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* ═══ GESUNDHEITSDATEN (nur 2 Kennzahlen, Rest im Modal) ═══ */}
         <SectionHeader
@@ -2033,32 +2202,11 @@ function ProfilTab({
           onPinThemeChange={(t) => setPinThemeOverride(t)}
         />
 
-        {/* ═══ EINSTELLUNGEN, ACCOUNT, XP-GUIDE, SHARE als Modal-Trigger ═══ */}
-        <div style={{ marginTop: 30, display: "flex", flexDirection: "column", gap: 10 }}>
-          <ModalTriggerButton
-            icon="📤"
-            label="Profil teilen"
-            onClick={async () => {
-              const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} XP\n${effectiveTerritoryCount} Territorien · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
-              const shareData = {
-                title: "Mein MyArea365 Profil",
-                text: shareText,
-                url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de",
-              };
-              try {
-                if (navigator.share) {
-                  await navigator.share(shareData);
-                } else {
-                  await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`);
-                  appAlert("Profil-Text in Zwischenablage kopiert!");
-                }
-              } catch { /* User hat abgebrochen */ }
-            }}
-          />
-
+        {/* ═══ MENÜ als kompaktes 2-Spalten-Icon-Grid ═══ */}
+        <div style={{ marginTop: 24 }}>
           {p && !isPremium(p as never) && (
             <div style={{
-              padding: 14, borderRadius: 14,
+              padding: 14, borderRadius: 14, marginBottom: 10,
               background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,107,74,0.08))",
               border: "1px solid rgba(255,215,0,0.3)",
               display: "flex", flexDirection: "column", gap: 8,
@@ -2074,11 +2222,34 @@ function ProfilTab({
             </div>
           )}
 
-          <ModalTriggerButton icon="📬" label="Posteingang" onClick={() => setOpenModal("inbox")} />
-          <ModalTriggerButton icon="🎫" label="Support & Kontakt" onClick={() => setOpenModal("support")} />
-          <ModalTriggerButton icon="⭐" label="Wofür gibt es XP?" onClick={() => setOpenModal("xpguide")} />
-          <ModalTriggerButton icon="⚙️" label="Einstellungen" onClick={() => setOpenModal("settings")} />
-          <ModalTriggerButton icon="👤" label="Account" onClick={() => setOpenModal("account")} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {[
+              { icon: "❓", label: "Hilfe & FAQ",  onClick: () => setOpenModal("faq") },
+              { icon: "📤", label: "Profil teilen", onClick: async () => {
+                const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} XP\n${effectiveTerritoryCount} Territorien · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
+                const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
+                try {
+                  if (navigator.share) await navigator.share(shareData);
+                  else { await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`); appAlert("Profil-Text in Zwischenablage kopiert!"); }
+                } catch { /* cancel */ }
+              } },
+              { icon: "⭐", label: "XP-Guide",     onClick: () => setOpenModal("xpguide") },
+              { icon: "🎫", label: "Support",      onClick: () => setOpenModal("support") },
+              { icon: "⚙️", label: "Einstellungen", onClick: () => setOpenModal("settings") },
+              { icon: "👤", label: "Account",      onClick: () => setOpenModal("account") },
+            ].map((b, i) => (
+              <button key={i} onClick={b.onClick} style={{
+                padding: "14px 10px", borderRadius: 12,
+                background: "rgba(30, 38, 60, 0.55)",
+                border: `1px solid ${BORDER}`,
+                color: "#FFF", cursor: "pointer", textAlign: "center",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              }}>
+                <span style={{ fontSize: 22 }}>{b.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: TEXT_SOFT }}>{b.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {p && (
@@ -2090,104 +2261,13 @@ function ProfilTab({
         )}
 
         {p && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+          <div style={{ marginTop: 14 }}>
             <DailyDealTeaser onOpen={() => setShowShopHub(true)} />
-            <button
-              onClick={() => setShowShopHub(true)}
-              style={{
-                position: "relative", overflow: "hidden",
-                padding: "14px 16px", borderRadius: 16, border: "1px solid rgba(34,209,195,0.35)",
-                background: "linear-gradient(135deg, rgba(34,209,195,0.14) 0%, rgba(93,218,240,0.08) 40%, rgba(255,215,0,0.10) 100%)",
-                cursor: "pointer", textAlign: "left",
-                display: "flex", alignItems: "center", gap: 12,
-                boxShadow: "0 2px 14px rgba(34,209,195,0.12)",
-              }}
-            >
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22, boxShadow: "0 0 16px rgba(34,209,195,0.45)",
-              }}>💎</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Shop</span>
-                  {isPremium(p as never) && (
-                    <span style={{
-                      fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
-                      padding: "2px 6px", borderRadius: 4,
-                      background: "rgba(34,209,195,0.2)", color: "#22D1C3",
-                      border: "1px solid rgba(34,209,195,0.45)",
-                    }}>MYAREA+ AKTIV</span>
-                  )}
-                  {hasActiveBoost(p as never) && (
-                    <span style={{
-                      fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
-                      padding: "2px 6px", borderRadius: 4,
-                      background: "rgba(255,215,0,0.18)", color: "#FFD700",
-                      border: "1px solid rgba(255,215,0,0.45)",
-                    }}>⚡ BOOST</span>
-                  )}
-                </div>
-                <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
-                  MyArea+ · Power · Diamanten
-                  {isPremium(p as never) && (p as unknown as { premium_expires_at?: string }).premium_expires_at && (
-                    <> · bis {new Date((p as unknown as { premium_expires_at: string }).premium_expires_at).toLocaleDateString("de-DE")}</>
-                  )}
-                </div>
-              </div>
-              {isPremium(p as never) && (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 3,
-                  padding: "4px 8px", borderRadius: 999,
-                  background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.3)",
-                  color: "#FFD700", fontSize: 11, fontWeight: 800, flexShrink: 0,
-                }}>
-                  {(p as unknown as { streak_freezes_remaining?: number }).streak_freezes_remaining ?? 0} ❄️
-                </div>
-              )}
-              <span style={{ color: "#22D1C3", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
-            </button>
-
-            {/* Arena — 1v1 Kampfarena */}
-            <button
-              onClick={() => setOpenModal("arena")}
-              style={{
-                position: "relative", overflow: "hidden",
-                padding: "14px 16px", borderRadius: 16,
-                border: "1px solid rgba(255,45,120,0.4)",
-                background: "linear-gradient(135deg, rgba(255,45,120,0.16) 0%, rgba(255,107,74,0.10) 50%, rgba(255,215,0,0.10) 100%)",
-                cursor: "pointer", textAlign: "left",
-                display: "flex", alignItems: "center", gap: 12,
-                boxShadow: "0 2px 14px rgba(255,45,120,0.15)",
-              }}
-            >
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22, boxShadow: "0 0 16px rgba(255,45,120,0.5)",
-              }}>⚔️</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Kampfarena</span>
-                  <span style={{
-                    fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
-                    padding: "2px 6px", borderRadius: 4,
-                    background: "rgba(255,215,0,0.18)", color: "#FFD700",
-                    border: "1px solid rgba(255,215,0,0.45)",
-                  }}>5 FREI / TAG</span>
-                </div>
-                <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
-                  Runner vs Runner · Siegel &amp; Ausrüstung looten
-                </div>
-              </div>
-              <span style={{ color: "#FF6B4A", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
-            </button>
           </div>
         )}
 
-        {/* Demo-Zone für Owner/Testing */}
+        {/* Demo-Zone nur für Admins/Super-Admins */}
+        {["admin","super_admin"].includes((p as unknown as { role?: string })?.role ?? "user") && (
         <div style={{
           marginTop: 20, padding: 14, borderRadius: 14,
           background: "rgba(255, 215, 0, 0.08)",
@@ -2284,6 +2364,7 @@ function ProfilTab({
             )}
           </div>
         </div>
+        )}
 
         <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 20, lineHeight: 1.8 }}>
           <div>© MyArea365 {new Date().getFullYear()} · Alle Rechte vorbehalten · v0.3</div>
@@ -2399,6 +2480,13 @@ function ProfilTab({
 
       {showShopHub && p && (
         <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} />
+      )}
+
+      {openModal === "onboarding" && (
+        <OnboardingModal onClose={() => { markOnboardingSeen(); setOpenModal(null); }} />
+      )}
+      {openModal === "faq" && (
+        <FaqModal onClose={() => setOpenModal(null)} />
       )}
 
       {runnerProfileUserId && (
@@ -3908,9 +3996,60 @@ function BoostRow({ boost: b, affordable, onBuy }: { boost: Boost; affordable: b
   );
 }
 
+type LiveMission = {
+  assignment_id: string;
+  id: string;
+  code: string;
+  type: "daily" | "weekly";
+  category: string;
+  name: string;
+  description: string;
+  icon: string;
+  target_metric: string;
+  target: number;
+  reward_xp: number;
+  progress: number;
+  completed_at: string | null;
+  claimed_at: string | null;
+};
+
 function MissionsModal({ onClose }: { onClose: () => void }) {
-  const daily = DEMO_MISSIONS.filter((m) => m.type === "daily");
-  const weekly = DEMO_MISSIONS.filter((m) => m.type === "weekly");
+  const [missions, setMissions] = useState<LiveMission[] | null>(null);
+  const [claiming, setClaiming] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const r = await fetch("/api/missions/daily", { cache: "no-store" });
+      const j = await r.json();
+      setMissions(j.missions ?? []);
+    } catch {
+      setMissions([]);
+    }
+  };
+  useEffect(() => { void load(); }, []);
+
+  const claim = async (assignmentId: string) => {
+    setClaiming(assignmentId);
+    try {
+      const r = await fetch("/api/missions/daily", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ assignment_id: assignmentId, action: "claim" }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        await appAlert(`🎉 +${j.reward_xp} XP kassiert!`);
+        await load();
+      } else {
+        const j = await r.json().catch(() => ({}));
+        await appAlert(`Fehler: ${j.error ?? "unbekannt"}`);
+      }
+    } finally { setClaiming(null); }
+  };
+
+  const daily = (missions ?? []).filter((m) => m.type === "daily");
+  const weekly = (missions ?? []).filter((m) => m.type === "weekly");
+
   return (
     <Modal
       title="Missionen"
@@ -3919,30 +4058,42 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
       accent="#FF6B4A"
       onClose={onClose}
     >
-      <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>
-        <DemoBadge label="DEMO-INHALTE" hint="Live-Missionen werden ab Launch aus der Datenbank geladen" />
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12, color: "#FF6B4A", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-          ⏰ TÄGLICH
+      {missions === null ? (
+        <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>Lade Missionen…</div>
+      ) : missions.length === 0 ? (
+        <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>
+          Noch keine Missionen verfügbar.<br />
+          <span style={{ fontSize: 11, opacity: 0.7 }}>Admin muss erst Missionen im Pool anlegen.</span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {daily.map((m) => <MissionRow key={m.id} mission={m} />)}
-        </div>
-      </div>
-      <div>
-        <div style={{ fontSize: 12, color: "#FFD700", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-          🗓️ WÖCHENTLICH
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {weekly.map((m) => <MissionRow key={m.id} mission={m} />)}
-        </div>
-      </div>
+      ) : (
+        <>
+          {daily.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: "#FF6B4A", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+                ⏰ TÄGLICH (Reset um Mitternacht)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {daily.map((m) => <MissionRow key={m.assignment_id} mission={m} claiming={claiming === m.assignment_id} onClaim={() => claim(m.assignment_id)} />)}
+              </div>
+            </div>
+          )}
+          {weekly.length > 0 && (
+            <div>
+              <div style={{ fontSize: 12, color: "#FFD700", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
+                🗓️ WÖCHENTLICH (Reset montags)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {weekly.map((m) => <MissionRow key={m.assignment_id} mission={m} claiming={claiming === m.assignment_id} onClaim={() => claim(m.assignment_id)} />)}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </Modal>
   );
 }
 
-function MissionRow({ mission: m }: { mission: typeof DEMO_MISSIONS[number] }) {
+function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; claiming?: boolean; onClaim?: () => void }) {
   const pct = Math.min(100, (m.progress / m.target) * 100);
   const done = m.progress >= m.target;
   const accent = m.type === "daily" ? "#FF6B4A" : "#FFD700";
@@ -3979,15 +4130,31 @@ function MissionRow({ mission: m }: { mission: typeof DEMO_MISSIONS[number] }) {
           }} />
         </div>
       </div>
-      <div style={{
-        padding: "3px 8px", borderRadius: 8, flexShrink: 0,
-        background: done ? accent : `${accent}22`,
-        border: `1px solid ${accent}`,
-      }}>
-        <span style={{ color: done ? BG_DEEP : accent, fontSize: 10, fontWeight: 900 }}>
-          {done ? "✓ " : ""}+{m.reward_xp} XP
-        </span>
-      </div>
+      {done && !m.claimed_at && onClaim ? (
+        <button
+          onClick={onClaim}
+          disabled={claiming}
+          style={{
+            padding: "6px 10px", borderRadius: 10, flexShrink: 0,
+            background: accent, border: `1px solid ${accent}`,
+            color: BG_DEEP, fontSize: 10, fontWeight: 900, cursor: "pointer",
+            boxShadow: `0 0 10px ${accent}66`,
+            opacity: claiming ? 0.5 : 1,
+          }}
+        >
+          {claiming ? "…" : `💰 +${m.reward_xp} XP`}
+        </button>
+      ) : (
+        <div style={{
+          padding: "3px 8px", borderRadius: 8, flexShrink: 0,
+          background: m.claimed_at ? "rgba(74,222,128,0.15)" : `${accent}22`,
+          border: `1px solid ${m.claimed_at ? "#4ade80" : accent}`,
+        }}>
+          <span style={{ color: m.claimed_at ? "#4ade80" : accent, fontSize: 10, fontWeight: 900 }}>
+            {m.claimed_at ? "✓ Geholt" : `+${m.reward_xp} XP`}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -5678,10 +5845,18 @@ function CrewTab({
     await supabase.from("crew_members").insert({ crew_id: data.id, user_id: p.id, role: "admin" });
     await supabase.from("users").update({ current_crew_id: data.id, team_color: newColor }).eq("id", p.id);
 
+    // Pending-Territorien vom Solo-Zeit upgraden + XP gutschreiben
+    const { data: promote } = await supabase.rpc("promote_pending_territories", { p_user_id: p.id });
+    const promoted = Array.isArray(promote) && promote[0] ? promote[0] as { promoted_count: number; xp_granted: number } : null;
+
     setMyCrew(data);
     setProfile({ ...p, current_crew_id: data.id, team_color: newColor });
     setMode("idle");
-    appAlert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
+    if (promoted && promoted.promoted_count > 0) {
+      appAlert(`✅ "${newName}" gegründet! 🏆 ${promoted.promoted_count} Solo-Territorien aktiviert · +${promoted.xp_granted} XP`);
+    } else {
+      appAlert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
+    }
   }
 
   async function handleLeave() {
@@ -10982,10 +11157,11 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
 }
 
 /* ═══ Guardian-Leaderboard ═══ */
+type GuardianArchMini = { name: string; emoji: string; rarity: string; guardian_type?: string | null; image_url?: string | null; video_url?: string | null };
 type GuardianLeaderRow = {
   id: string; user_id: string; archetype_id: string;
   level: number; xp?: number; wins: number; losses: number;
-  guardian_archetypes: { name: string; emoji: string; rarity: string; guardian_type?: string | null } | { name: string; emoji: string; rarity: string; guardian_type?: string | null }[] | null;
+  guardian_archetypes: GuardianArchMini | GuardianArchMini[] | null;
   users: { username: string; display_name: string | null; team_color: string | null } | { username: string; display_name: string | null; team_color: string | null }[] | null;
 };
 type WinRateRow = {
@@ -11022,7 +11198,8 @@ function GuardianLeaderboardView() {
   };
 
   const rawRows: Array<{
-    emoji: string; archName: string; archRarity: string; guardianType: string | null;
+    emoji: string; imageUrl: string | null; videoUrl: string | null;
+    archName: string; archRarity: string; guardianType: string | null;
     level: number; stat: string; username: string; teamColor: string;
   }> = (() => {
     if (subTab === "level") {
@@ -11031,6 +11208,8 @@ function GuardianLeaderboardView() {
         const user = unnest(r.users);
         return {
           emoji: arch?.emoji ?? "🛡️",
+          imageUrl: arch?.image_url ?? null,
+          videoUrl: arch?.video_url ?? null,
           archName: arch?.name ?? "?",
           archRarity: arch?.rarity ?? "common",
           guardianType: arch?.guardian_type ?? null,
@@ -11047,6 +11226,8 @@ function GuardianLeaderboardView() {
         const user = unnest(r.users);
         return {
           emoji: arch?.emoji ?? "🛡️",
+          imageUrl: arch?.image_url ?? null,
+          videoUrl: arch?.video_url ?? null,
           archName: arch?.name ?? "?",
           archRarity: arch?.rarity ?? "common",
           guardianType: arch?.guardian_type ?? null,
@@ -11059,6 +11240,8 @@ function GuardianLeaderboardView() {
     }
     return data.top_win_rate.map((r) => ({
       emoji: r.arch_emoji,
+      imageUrl: null,
+      videoUrl: null,
       archName: r.arch_name,
       archRarity: r.arch_rarity,
       guardianType: null,
@@ -11141,9 +11324,25 @@ function GuardianLeaderboardView() {
               }}>
                 {r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : `#${r.rank}`}
               </span>
-              <span style={{ fontSize: 26, lineHeight: 1, filter: `drop-shadow(0 0 6px ${rarityColor[r.archRarity]}66)` }}>
-                {r.emoji}
-              </span>
+              <div style={{
+                width: 44, height: 48, borderRadius: 8, overflow: "hidden",
+                background: "rgba(255,255,255,0.03)",
+                border: `1px solid ${rarityColor[r.archRarity] ?? "#8B8FA3"}55`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: `0 0 10px ${rarityColor[r.archRarity] ?? "#8B8FA3"}33`,
+              }}>
+                {r.videoUrl ? (
+                  <video src={r.videoUrl} autoPlay loop muted playsInline
+                    style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+                ) : r.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.imageUrl} alt={r.archName}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontSize: 24, filter: `drop-shadow(0 0 6px ${rarityColor[r.archRarity]}66)` }}>{r.emoji}</span>
+                )}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{r.archName}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
@@ -11184,8 +11383,8 @@ type ArenaHonorRow = {
 };
 
 const DEMO_ARENA_ROWS: ArenaHonorRow[] = [
-  { user_id: "d1", username: "valkyr",   display_name: "Valkyr",   level: 58, faction: "vanguard",  country: "Deutschland",     guardian_type: "cavalry",  guardian_emoji: "⚔️", crew_name: "Kreuzkölln Runners",   crew_color: "#FF6B4A", wins: 214, losses: 42, streak: 18, honor: 124_120 },
-  { user_id: "d2", username: "nyx",      display_name: "Nyx",      level: 55, faction: "syndicate", country: "Deutschland",     guardian_type: "mage",     guardian_emoji: "🔮", crew_name: "Nachtpuls Berlin",     crew_color: "#22D1C3", wins: 198, losses: 54, streak: 11, honor: 108_900 },
+  { user_id: "d1", username: "iron_fist", display_name: "Kaelthor Malven", level: 58, faction: "vanguard", country: "Deutschland", guardian_type: "infantry", guardian_name: "Eisenhand",         guardian_emoji: "🛡️", crew_name: "Kreuzkölln Runners", crew_color: "#FF6B4A", wins: 214, losses: 42, streak: 18, honor: 124_120 },
+  { user_id: "d2", username: "scrapking", display_name: "Savo_BMW",        level: 55, faction: "syndicate", country: "Deutschland", guardian_type: "infantry", guardian_name: "Altmetall-Krieger", guardian_emoji: "⚒️", crew_name: "Nachtpuls Berlin",   crew_color: "#22D1C3", wins: 198, losses: 54, streak: 11, honor: 108_900 },
   { user_id: "d3", username: "titan",    display_name: "Titan",    level: 60, faction: "vanguard",  country: "Vereinigte Staaten", guardian_type: "infantry", guardian_emoji: "🛡️", crew_name: "Sonnenwacht Prenzl.",  crew_color: "#FFD700", wins: 176, losses: 38, streak: 24, honor: 105_600 },
   { user_id: "d4", username: "shade",    display_name: "Shade",    level: 52, faction: "syndicate", country: "Niederlande",     guardian_type: "marksman", guardian_emoji: "🏹", crew_name: "Schatten-Syndikat",    crew_color: "#a855f7", wins: 161, losses: 61, streak:  7, honor:  83_720 },
   { user_id: "d5", username: "ember",    display_name: "Ember",    level: 49, faction: "vanguard",  country: "Vereinigte Staaten", guardian_type: "mage",     guardian_emoji: "🔮", crew_name: "Central Park Crew",    crew_color: "#FF6B4A", wins: 148, losses: 47, streak: 13, honor:  72_520 },
@@ -11212,22 +11411,57 @@ type ArenaView = "honor" | "wins" | "winrate" | "classes";
 
 function ArenaLeaderboardView() {
   const [rows, setRows] = useState<ArenaHonorRow[] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [view, setView] = useState<ArenaView>("honor");
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const upd = () => setIsMobile(mq.matches);
+    upd();
+    mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
 
   useEffect(() => {
-    fetch("/api/leaderboard/hall-of-honor")
-      .then((r) => r.json())
-      .then((j) => {
+    (async () => {
+      try {
+        const r = await fetch("/api/leaderboard/hall-of-honor");
+        const j = await r.json();
         const apiRows = (j.rows ?? []) as ArenaHonorRow[];
-        // Fallback wenn API leer oder keine Klassen-Daten liefert (demo zeigt die UI besser)
-        const hasTypeData = apiRows.some((r) => r.guardian_type);
-        setRows(apiRows.length > 0 && hasTypeData ? apiRows : DEMO_ARENA_ROWS);
-      })
-      .catch(() => setRows(DEMO_ARENA_ROWS));
+        const hasTypeData = apiRows.some((rr) => rr.guardian_type);
+        if (apiRows.length > 0 && hasTypeData) {
+          setRows(apiRows);
+          setIsDemo(false);
+          return;
+        }
+      } catch {}
+      setIsDemo(true);
+      // Demo-Rows mit realen Wächter-URLs anreichern (Eisenhand + Altmetall-Krieger)
+      try {
+        const r = await fetch("/api/guardian/archetypes-public?ids=eisenhand,schrotthaendler");
+        const j = await r.json();
+        const artMap = new Map<string, { image_url: string | null; video_url: string | null }>(
+          ((j.archetypes ?? []) as Array<{ id: string; image_url: string | null; video_url: string | null }>).map((a) => [a.id, { image_url: a.image_url, video_url: a.video_url }]),
+        );
+        const patched = DEMO_ARENA_ROWS.map((row) => {
+          if (row.user_id === "d1") {
+            const art = artMap.get("eisenhand");
+            return { ...row, guardian_archetype_id: "eisenhand", guardian_image_url: art?.image_url ?? null, guardian_video_url: art?.video_url ?? null };
+          }
+          if (row.user_id === "d2") {
+            const art = artMap.get("schrotthaendler");
+            return { ...row, guardian_archetype_id: "schrotthaendler", guardian_image_url: art?.image_url ?? null, guardian_video_url: art?.video_url ?? null };
+          }
+          return row;
+        });
+        setRows(patched);
+      } catch {
+        setRows(DEMO_ARENA_ROWS);
+      }
+    })();
   }, []);
 
   if (!rows) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Arena-Rangliste…</div>;
-  const isDemo = rows === DEMO_ARENA_ROWS;
 
   const sorted = [...rows].sort((a, b) => {
     if (view === "wins") return b.wins - a.wins;
@@ -11267,15 +11501,36 @@ function ArenaLeaderboardView() {
 
       {/* Podium Top 3 */}
       {top3.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14, alignItems: "end" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: isMobile ? 4 : 8, marginBottom: 14, alignItems: "end" }}>
           {[top3[1], top3[0], top3[2]].filter(Boolean).map((r) => {
             const rank = r === top3[0] ? 1 : r === top3[1] ? 2 : 3;
             const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
             const color = rank === 1 ? "#FFD700" : rank === 2 ? "#C0C0C0" : "#CD7F32";
-            const h = rank === 1 ? 110 : rank === 2 ? 90 : 70;
+            const h = isMobile ? (rank === 1 ? 78 : rank === 2 ? 62 : 48) : (rank === 1 ? 110 : rank === 2 ? 90 : 70);
+            const avatarSize = isMobile ? (rank === 1 ? 54 : 44) : (rank === 1 ? 72 : 56);
             return (
               <div key={r.user_id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <div style={{ fontSize: 28 }}>{medal}</div>
+                {/* Wächter-Avatar (Video > Bild > Emoji) */}
+                <div style={{
+                  width: avatarSize, height: avatarSize, borderRadius: "50%", overflow: "hidden",
+                  border: `2px solid ${color}`,
+                  boxShadow: `0 0 14px ${color}66`,
+                  background: "rgba(15,17,21,0.8)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  marginBottom: 4,
+                }}>
+                  {r.guardian_video_url ? (
+                    <video src={r.guardian_video_url} autoPlay loop muted playsInline
+                      style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+                  ) : r.guardian_image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.guardian_image_url} alt={r.guardian_name ?? ""}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <span style={{ fontSize: avatarSize * 0.5 }}>{r.guardian_emoji ?? "🛡️"}</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 22, marginTop: -6, filter: `drop-shadow(0 0 4px ${color})` }}>{medal}</div>
                 <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, textAlign: "center", width: "100%", padding: "0 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {r.display_name ?? r.username}
                 </div>
@@ -11318,35 +11573,106 @@ function ArenaLeaderboardView() {
         <ArenaClassesPanel rows={rows} />
       ) : (
 
-      /* Table */
+      /* Table / Card-List */
       <div style={{
         borderRadius: 14, overflow: "hidden",
         border: "1px solid rgba(255,215,0,0.3)",
         background: "linear-gradient(180deg, rgba(255,215,0,0.04) 0%, rgba(15,17,21,0.9) 100%)",
       }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "50px 28px 52px 1fr 110px 90px 70px 90px",
-          gap: 8,
-          padding: "12px 14px",
-          background: "rgba(255,215,0,0.12)",
-          borderBottom: "1px solid rgba(255,215,0,0.3)",
-          fontSize: 11, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700",
-        }}>
-          <div>RANG</div>
-          <div></div>
-          <div></div>
-          <div>KÄMPFER</div>
-          <div style={{ textAlign: "center" }}>SIEGE/NIEDERL.</div>
-          <div style={{ textAlign: "center" }}>STREAK</div>
-          <div style={{ textAlign: "right" }}>STUFE</div>
-          <div style={{ textAlign: "right" }}>EHRE</div>
-        </div>
+        {!isMobile && (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "50px 28px 52px 1fr 110px 90px 70px 90px",
+            gap: 8,
+            padding: "12px 14px",
+            background: "rgba(255,215,0,0.12)",
+            borderBottom: "1px solid rgba(255,215,0,0.3)",
+            fontSize: 11, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700",
+          }}>
+            <div>RANG</div>
+            <div></div>
+            <div></div>
+            <div>KÄMPFER</div>
+            <div style={{ textAlign: "center" }}>SIEGE/NIEDERL.</div>
+            <div style={{ textAlign: "center" }}>STREAK</div>
+            <div style={{ textAlign: "right" }}>STUFE</div>
+            <div style={{ textAlign: "right" }}>EHRE</div>
+          </div>
+        )}
         {sorted.slice(0, 100).map((r, i) => {
           const factionColor = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#F0F0F0";
           const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3";
           const typeMeta = r.guardian_type ? ARENA_TYPE_META[r.guardian_type] : null;
           const streak = r.streak ?? 0;
+          const avatar = (
+            <div style={{
+              width: isMobile ? 44 : 48, height: isMobile ? 48 : 52, borderRadius: 8, overflow: "hidden",
+              background: typeMeta ? `${typeMeta.color}11` : "rgba(255,255,255,0.03)",
+              border: typeMeta ? `1px solid ${typeMeta.color}55` : "1px solid rgba(255,255,255,0.08)",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              {r.guardian_video_url ? (
+                <video src={r.guardian_video_url} autoPlay loop muted playsInline
+                  style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+              ) : r.guardian_image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={r.guardian_image_url} alt={r.guardian_name ?? ""}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 22 }}>{r.guardian_emoji ?? typeMeta?.icon ?? "🛡️"}</span>
+              )}
+            </div>
+          );
+
+          if (isMobile) {
+            // Mobile Karten-Layout
+            return (
+              <div key={r.user_id} style={{
+                display: "flex", gap: 10, alignItems: "center",
+                padding: "10px 12px",
+                borderBottom: "1px solid rgba(255,255,255,0.04)",
+                background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+              }}>
+                <div style={{ color: rankColor, fontWeight: 900, fontSize: 14, width: 34, textAlign: "center", flexShrink: 0 }}>
+                  {i < 3 ? (i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉") : `#${i + 1}`}
+                </div>
+                {avatar}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {r.country && <CountryFlag country={r.country} size={14} />}
+                    <div style={{ color: factionColor, fontWeight: 900, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                      {r.display_name ?? r.username}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 10, color: "#8B8FA3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>
+                    Lvl {r.level}
+                    {typeMeta && <> · <span style={{ color: typeMeta.color, fontWeight: 700 }}>{typeMeta.label}</span></>}
+                    {r.crew_name && <> · <span style={{ color: r.crew_color ?? "#8B8FA3", fontWeight: 700 }}>[{r.crew_name}]</span></>}
+                  </div>
+                  <div style={{ fontSize: 10, marginTop: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span><span style={{ color: "#4ade80", fontWeight: 900 }}>{r.wins}</span><span style={{ color: "#8B8FA3" }}>/</span><span style={{ color: "#FF2D78", fontWeight: 900 }}>{r.losses}</span></span>
+                    {streak >= 3 && (
+                      <span style={{
+                        padding: "1px 6px", borderRadius: 999,
+                        background: streak >= 10 ? "rgba(255,45,120,0.25)" : "rgba(255,107,74,0.2)",
+                        border: `1px solid ${streak >= 10 ? "#FF2D78" : "#FF6B4A"}`,
+                        color: streak >= 10 ? "#FF2D78" : "#FF6B4A",
+                        fontSize: 10, fontWeight: 900,
+                      }}>🔥 {streak}</span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ color: "#FFD700", fontWeight: 900, fontFamily: "ui-monospace, monospace", fontSize: 13, lineHeight: 1 }}>
+                    {r.honor.toLocaleString("de-DE")}
+                  </div>
+                  <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 2 }}>Ehre</div>
+                </div>
+              </div>
+            );
+          }
+
+          // Desktop Tabellen-Layout
           return (
             <div key={r.user_id} style={{
               display: "grid",
@@ -11362,24 +11688,7 @@ function ArenaLeaderboardView() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {r.country ? <CountryFlag country={r.country} size={24} /> : <span style={{ fontSize: 16 }}>🏳️</span>}
               </div>
-              {/* Wächter-Avatar: Video > Bild > Emoji */}
-              <div style={{
-                width: 48, height: 52, borderRadius: 8, overflow: "hidden",
-                background: typeMeta ? `${typeMeta.color}11` : "rgba(255,255,255,0.03)",
-                border: typeMeta ? `1px solid ${typeMeta.color}55` : "1px solid rgba(255,255,255,0.08)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {r.guardian_video_url ? (
-                  <video src={r.guardian_video_url} autoPlay loop muted playsInline
-                    style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
-                ) : r.guardian_image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.guardian_image_url} alt={r.guardian_name ?? ""}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <span style={{ fontSize: 22 }}>{r.guardian_emoji ?? typeMeta?.icon ?? "🛡️"}</span>
-                )}
-              </div>
+              {avatar}
               <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ color: factionColor, fontWeight: 900, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

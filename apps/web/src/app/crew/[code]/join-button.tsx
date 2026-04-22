@@ -23,6 +23,8 @@ export function CrewJoinButton({ crewId, code, accent }: { crewId: string; code:
       }
       await sb.from("crew_members").upsert({ crew_id: crewId, user_id: user.id, role: "member" });
       await sb.from("users").update({ current_crew_id: crewId }).eq("id", user.id);
+      // Pending-Territorien upgraden — Solo-Polygone werden jetzt mit Crew und XP aktiviert
+      try { await sb.rpc("promote_pending_territories", { p_user_id: user.id }); } catch { /* stumm */ }
       setJoined(true);
       setTimeout(() => router.push("/dashboard"), 1200);
     });

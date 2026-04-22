@@ -41,6 +41,7 @@ const NAV: NavGroup[] = [
     title: "GAME-DESIGN",
     items: [
       { href: "/admin/gamification", label: "🏆 Gamification" },
+      { href: "/admin/missions",     label: "🎯 Missionen" },
       { href: "/admin/seasons",      label: "🗓️ Saisons" },
       { href: "/admin/experiments",  label: "🧪 A/B-Tests" },
       { href: "/admin/artwork",      label: "🎨 Artwork" },

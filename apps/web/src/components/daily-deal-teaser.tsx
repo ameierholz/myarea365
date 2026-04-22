@@ -77,59 +77,118 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
   const unclaimed = data.packs.filter((p) => !data.purchased_today.includes(p.id));
   if (unclaimed.length === 0) return null;
 
+  const standardPacks = data.packs.filter((p) => !p.is_bundle).sort((a, b) => a.sort - b.sort);
+  const bundlePack = data.packs.find((p) => p.is_bundle);
+  const standardOpen = standardPacks.filter((p) => !data.purchased_today.includes(p.id));
+  const bundleOpen = bundlePack && !data.purchased_today.includes(bundlePack.id);
+  const hasBundleOpen = !!bundleOpen;
+
   const featured = unclaimed.find((p) => p.is_bundle)
     ?? unclaimed.find((p) => p.tier === "gold")
     ?? unclaimed[0];
-  const isBundle = !!featured.is_bundle;
 
   const h = Math.floor(resetIn / 3600);
   const m = Math.floor((resetIn % 3600) / 60);
   const s = resetIn % 60;
   const countdown = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
-  const standardPacks = data.packs.filter((p) => !p.is_bundle).sort((a, b) => a.sort - b.sort);
-  const bundlePack = data.packs.find((p) => p.is_bundle);
+  // Günstigster offener Standard-Deal als Preis-Teaser (ab X 💎)
+  const cheapestOpen = [...standardOpen].sort((a, b) => a.price_gems - b.price_gems)[0];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      <style>{`@keyframes daily-pulse { 0%,100% { box-shadow: 0 0 16px rgba(255,215,0,0.3); } 50% { box-shadow: 0 0 28px rgba(255,215,0,0.55); } }`}</style>
+      <style>{`
+        @keyframes daily-pulse-strong {
+          0%,100% { box-shadow: 0 0 14px rgba(255,215,0,0.35), 0 0 30px rgba(255,45,120,0.15); }
+          50%     { box-shadow: 0 0 28px rgba(255,215,0,0.65), 0 0 50px rgba(255,45,120,0.35); }
+        }
+        @keyframes daily-shimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(340%); } }
+      `}</style>
 
       {/* Banner */}
       <button
         onClick={() => setExpanded((v) => !v)}
         style={{
           position: "relative", overflow: "hidden",
-          padding: "12px 14px",
+          padding: "14px 14px",
           borderRadius: expanded ? "14px 14px 0 0" : 14,
-          background: isBundle
-            ? "linear-gradient(135deg, rgba(255,45,120,0.20), rgba(255,215,0,0.18), rgba(34,209,195,0.18))"
-            : "linear-gradient(135deg, rgba(255,107,74,0.18), rgba(255,215,0,0.12))",
-          border: `1px solid ${isBundle ? "rgba(255,215,0,0.55)" : "rgba(255,107,74,0.45)"}`,
-          borderBottom: expanded ? "1px solid rgba(255,215,0,0.3)" : `1px solid ${isBundle ? "rgba(255,215,0,0.55)" : "rgba(255,107,74,0.45)"}`,
-          boxShadow: !expanded && isBundle ? "0 0 18px rgba(255,215,0,0.3)" : "0 0 10px rgba(255,107,74,0.15)",
+          background: hasBundleOpen
+            ? "linear-gradient(135deg, rgba(255,45,120,0.28), rgba(255,215,0,0.22), rgba(34,209,195,0.22))"
+            : "linear-gradient(135deg, rgba(255,107,74,0.22), rgba(255,215,0,0.16))",
+          border: `1px solid ${hasBundleOpen ? "rgba(255,215,0,0.7)" : "rgba(255,107,74,0.55)"}`,
+          borderBottom: expanded ? "1px solid rgba(255,215,0,0.4)" : undefined,
           cursor: "pointer", textAlign: "left",
           display: "flex", alignItems: "center", gap: 12, color: "#FFF",
-          animation: !expanded && isBundle ? "daily-pulse 2.6s ease-in-out infinite" : undefined,
+          animation: !expanded ? "daily-pulse-strong 2.4s ease-in-out infinite" : undefined,
         }}
       >
+        {/* Shimmer-Overlay */}
+        {!expanded && (
+          <span style={{
+            position: "absolute", top: 0, left: 0, width: "35%", height: "100%",
+            background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)",
+            animation: "daily-shimmer 3.8s ease-in-out infinite",
+            pointerEvents: "none",
+          }} />
+        )}
         <div style={{
-          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-          background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.3)",
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+          width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+          background: "rgba(255,215,0,0.18)", border: "1px solid rgba(255,215,0,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+          boxShadow: "inset 0 0 10px rgba(255,215,0,0.2)",
         }}>{featured.icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FFD700" }}>
-            🔥 {isBundle ? "SUPER TAGESANGEBOT" : "TAGES-DEAL"}
+        <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FFD700" }}>
+              🔥 TAGES-DEALS
+            </span>
+            {hasBundleOpen && (
+              <span style={{
+                fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                padding: "1px 6px", borderRadius: 4,
+                background: "linear-gradient(135deg, #FF2D78, #FFD700)",
+                color: "#0F1115",
+              }}>SUPER-BUNDLE</span>
+            )}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
-            Tägliche Angebote{" "}
-            <span style={{ color: "#a8b4cf", fontWeight: 700 }}>({unclaimed.length} offen)</span>
+          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
+            {standardOpen.length} Deal{standardOpen.length === 1 ? "" : "s"} offen
+            {hasBundleOpen && <span style={{ color: "#FFD700" }}> + 🎁 Bundle</span>}
           </div>
-          <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 2 }}>
-            ⏱️ Reset in {countdown} · 1× pro Tag
+          {/* Mini-Tier-Chips */}
+          <div style={{ display: "flex", gap: 4, marginTop: 5, alignItems: "center", flexWrap: "wrap" }}>
+            {standardPacks.map((p) => {
+              const owned = data.purchased_today.includes(p.id);
+              const tm = TIER_META[p.tier];
+              return (
+                <span key={p.id} title={`${tm.label} · ${owned ? "gekauft" : formatPrice(p)}`} style={{
+                  fontSize: 9, fontWeight: 900, letterSpacing: 0.4,
+                  padding: "2px 6px", borderRadius: 4,
+                  background: owned ? "rgba(74,222,128,0.12)" : `${tm.color}22`,
+                  color: owned ? "#4ade80" : tm.color,
+                  border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : tm.color + "77"}`,
+                  opacity: owned ? 0.6 : 1,
+                  textDecoration: owned ? "line-through" : "none",
+                }}>{owned ? "✓" : ""}{p.icon} {tm.label}</span>
+              );
+            })}
+            <span style={{ color: "#8B8FA3", fontSize: 10, marginLeft: 4 }}>
+              ⏱️ {countdown}
+            </span>
           </div>
         </div>
-        <span style={{ color: "#FFD700", fontSize: 16, fontWeight: 900, flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>›</span>
+        {!expanded && cheapestOpen && (
+          <div style={{
+            padding: "6px 10px", borderRadius: 10, flexShrink: 0, textAlign: "center",
+            background: "linear-gradient(135deg, #FFD700, #FF6B4A)",
+            color: "#0F1115", fontWeight: 900,
+            boxShadow: "0 0 14px rgba(255,215,0,0.5)",
+          }}>
+            <div style={{ fontSize: 8, letterSpacing: 0.8, opacity: 0.75 }}>AB</div>
+            <div style={{ fontSize: 13 }}>💎 {cheapestOpen.price_gems}</div>
+          </div>
+        )}
+        <span style={{ color: "#FFD700", fontSize: 18, fontWeight: 900, flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>›</span>
       </button>
 
       {/* Aufgeklappter Bereich */}

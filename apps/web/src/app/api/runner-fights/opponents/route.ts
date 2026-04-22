@@ -141,11 +141,19 @@ export async function GET(req: NextRequest) {
       const { data: myLvlRow } = await sb.from("user_guardians").select("level").eq("user_id", user.id).eq("is_active", true).maybeSingle<{ level: number }>();
       const myLevel = myLvlRow?.level ?? 1;
       const { data: archetypes } = await sb.from("guardian_archetypes")
-        .select("id, name, emoji, rarity, guardian_type, role");
-      const shuffled = (archetypes ?? []).slice().sort(() => Math.random() - 0.5);
+        .select("id, name, emoji, rarity, guardian_type, role, image_url, video_url");
+      // Archetypes mit Artwork bevorzugen (Video > Bild > nichts)
+      const withArt = (archetypes ?? []).slice().sort((a, b) => {
+        const aa = a as { image_url: string | null; video_url: string | null };
+        const bb = b as { image_url: string | null; video_url: string | null };
+        const aScore = (aa.video_url ? 2 : 0) + (aa.image_url ? 1 : 0);
+        const bScore = (bb.video_url ? 2 : 0) + (bb.image_url ? 1 : 0);
+        if (aScore !== bScore) return bScore - aScore;
+        return Math.random() - 0.5;
+      });
       const botsNeeded = 4 - opponents.length;
-      for (let i = 0; i < botsNeeded && i < shuffled.length; i++) {
-        const a = shuffled[i] as { id: string; name: string; emoji: string; rarity: string; guardian_type: string; role: string };
+      for (let i = 0; i < botsNeeded && i < withArt.length; i++) {
+        const a = withArt[i] as { id: string; name: string; emoji: string; rarity: string; guardian_type: string; role: string; image_url: string | null; video_url: string | null };
         const levelOffset = Math.floor(Math.random() * 7) - 3;
         const level = Math.max(1, Math.min(60, myLevel + levelOffset));
         opponents.push({
@@ -162,10 +170,28 @@ export async function GET(req: NextRequest) {
           avatar_url: null,
           archetype_name: a.name,
           archetype_emoji: a.emoji,
+          archetype_image_url: a.image_url,
+          archetype_video_url: a.video_url,
           rarity: a.rarity,
           guardian_type: a.guardian_type,
           role: a.role,
           is_bot: true,
+        });
+      }
+    }
+
+    // Echte Opponents mit archetype-Artwork anreichern (RPC liefert's nicht mit)
+    if (opponents.some((o) => !("archetype_image_url" in o))) {
+      const archIds = Array.from(new Set(opponents.map((o) => (o as { archetype_id: string }).archetype_id).filter(Boolean)));
+      if (archIds.length > 0) {
+        const { data: archArt } = await sb.from("guardian_archetypes")
+          .select("id, image_url, video_url")
+          .in("id", archIds);
+        const artMap = new Map((archArt ?? []).map((a) => [(a as { id: string }).id, a as { image_url: string | null; video_url: string | null }]));
+        opponents = opponents.map((o) => {
+          if ("archetype_image_url" in o) return o;
+          const art = artMap.get((o as { archetype_id: string }).archetype_id);
+          return { ...o, archetype_image_url: art?.image_url ?? null, archetype_video_url: art?.video_url ?? null };
         });
       }
     }

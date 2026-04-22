@@ -82,6 +82,22 @@ export async function POST(req: Request) {
   const newSegments = inserted ?? [];
   const totalLength = newSegments.reduce((s, r) => s + (r.length_m ?? 0), 0);
 
+  // Reclaim-XP: Ways die vom User schon beansprucht waren, bekommen zeit-abhängigen Bonus.
+  const newWayIds = new Set(newSegments.map((s) => s.osm_way_id));
+  const reclaimWayIds = matched
+    .map((m) => m.osm_way_id)
+    .filter((id) => !newWayIds.has(id));
+  let reclaimSummary: { reclaim_count: number; reclaim_xp: number; segments_cooldown: number } | null = null;
+  if (reclaimWayIds.length > 0) {
+    const { data: reclaimRes } = await sb.rpc("process_segment_reclaims", {
+      p_user_id: userId,
+      p_osm_way_ids: reclaimWayIds,
+    });
+    if (Array.isArray(reclaimRes) && reclaimRes[0]) {
+      reclaimSummary = reclaimRes[0] as typeof reclaimSummary;
+    }
+  }
+
   // Phase 3: Strassenzug-Detection.
   // Fuer jede Strasse mit neu beanspruchten Segmenten pruefen ob alle Ways dieser Strasse
   // (die Overpass im Walk-BBox geliefert hat) vom User beansprucht sind.
@@ -192,7 +208,7 @@ export async function POST(req: Request) {
     .eq("status", "active")
     .returns<Array<{ id: string; polygon: LngLat[]; owner_user_id: string | null; owner_crew_id: string | null }>>();
 
-  const createdTerritories: Array<{ id: string; area_m2: number; stole_from: boolean }> = [];
+  const createdTerritories: Array<{ id: string; area_m2: number; stole_from: boolean; pending_crew: boolean }> = [];
 
   async function insertPolygon(polygon: LngLat[], segmentIds: string[]) {
     const area = polygonAreaM2(polygon);
@@ -228,8 +244,11 @@ export async function POST(req: Request) {
       perimeter += Math.hypot(x, y);
     }
 
+    // Crew-Pflicht: Solo-Runner bekommen das Polygon als "pending_crew" (sichtbar ohne XP).
+    // Beim Crew-Beitritt wird via RPC promote_pending_territories() auf 'active' upgegradet.
+    const isPending = !crewId;
     const { data: terr, error: terrErr } = await sb.from("territory_polygons").insert({
-      owner_user_id: userId,
+      owner_user_id: isPending ? null : userId,
       owner_crew_id: crewId,
       polygon,
       area_m2: Math.round(area),
@@ -237,8 +256,8 @@ export async function POST(req: Request) {
       segment_ids: segmentIds,
       walk_id: walk_id ?? null,
       claimed_by_user_id: userId,
-      xp_awarded: 500,
-      status: "active",
+      xp_awarded: isPending ? 0 : 500,
+      status: isPending ? "pending_crew" : "active",
       stolen_from_user_id: stoleFromUserId,
       stolen_from_crew_id: stoleFromCrewId,
       stolen_at: toMarkStolen.length > 0 ? new Date().toISOString() : null,
@@ -253,7 +272,7 @@ export async function POST(req: Request) {
         .in("id", toMarkStolen);
     }
 
-    createdTerritories.push({ id: terr.id, area_m2: terr.area_m2, stole_from: toMarkStolen.length > 0 });
+    createdTerritories.push({ id: terr.id, area_m2: terr.area_m2, stole_from: toMarkStolen.length > 0, pending_crew: isPending });
   }
 
   // V1 zuerst (nur wenn V2 nichts lieferte)
@@ -273,5 +292,6 @@ export async function POST(req: Request) {
     newly_claimed_streets: newlyClaimedStreets,
     new_territory: createdTerritories[0] ?? null, // Backcompat
     new_territories: createdTerritories,
+    reclaim: reclaimSummary,
   });
 }
