@@ -121,14 +121,15 @@ function WarPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
     } finally { setBusy(null); }
   }
 
-  if (wars === null) return <Loading />;
-  const active = wars.find((w) => w.status === "active");
-  const pending = wars.filter((w) => w.status === "pending");
-  const past = wars.filter((w) => ["finished","cancelled","declined"].includes(w.status));
+  const active = wars?.find((w) => w.status === "active");
+  const pending = wars?.filter((w) => w.status === "pending") ?? [];
+  const past = wars?.filter((w) => ["finished","cancelled","declined"].includes(w.status)) ?? [];
 
   return (
     <div>
-      {isAdmin && !active && (
+      <CrewTabInfo tab="war" />
+      {wars === null && <Loading />}
+      {isAdmin && wars !== null && !active && (
         <button onClick={() => setDeclaring(true)} style={{
           width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
           background: "rgba(255,45,120,0.15)", border: "1px dashed rgba(255,45,120,0.5)",
@@ -323,11 +324,12 @@ function SeasonPanel({ crew }: { crew: Crew }) {
     })();
   }, [crew.id]);
 
-  if (!data) return <Loading />;
+  if (!data) return <div><CrewTabInfo tab="season" /><Loading /></div>;
   const daysLeft = data.season ? Math.max(0, Math.ceil((new Date(data.season.ends_at).getTime() - Date.now()) / 86400000)) : 0;
 
   return (
     <div>
+      <CrewTabInfo tab="season" />
       <div style={{ padding: 14, borderRadius: 12, background: "linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,107,74,0.08))", border: "1px solid rgba(255,215,0,0.3)", marginBottom: 12 }}>
         <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>
           🏆 SAISON {data.season ? `${data.season.month}/${data.season.year}` : "?"} · noch {daysLeft} Tage
@@ -419,67 +421,75 @@ function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
     } finally { setBusy(null); }
   }
 
-  if (events === null) return <Loading />;
-  if (events.length === 0) return <Empty text="Keine aktiven Flaggen-Kämpfe. Neue werden regelmäßig freigeschaltet." />;
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {events.map((e) => {
-        const hoursLeft = Math.max(0, Math.ceil((new Date(e.ends_at).getTime() - Date.now()) / 3600000));
-        const myRank = e.leaderboard.findIndex((l) => l.crew_id === crew.id);
-        const myVisits = myRank >= 0 ? e.leaderboard[myRank].visits : 0;
-        const pctToTarget = Math.min(100, (myVisits / e.target_visits) * 100);
-        return (
-          <div key={e.id} style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.5)", border: "1px solid rgba(74,222,128,0.35)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>🚩 FLAGGEN-KAMPF</div>
-                <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{e.name}</div>
-                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                  {e.plz ? `PLZ ${e.plz} · ` : ""}Radius {e.radius_m}m · endet in {hoursLeft}h
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>+{e.prize_xp} XP</div>
-                <div style={{ color: "#8B8FA3", fontSize: 9 }}>an Winner-Crew</div>
-              </div>
-            </div>
-
-            {/* Progress meine Crew */}
-            <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${pctToTarget}%`, background: "linear-gradient(90deg,#4ade80,#22D1C3)" }} />
-            </div>
-            <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>
-              Deine Crew: {myVisits} / {e.target_visits} Visits
-            </div>
-
-            {/* Top Crews */}
-            {e.leaderboard.length > 0 && (
-              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
-                {e.leaderboard.slice(0, 3).map((l, i) => (
-                  <div key={l.crew_id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
-                    <span style={{ color: i === 0 ? "#FFD700" : "#8B8FA3", fontWeight: 900, width: 18 }}>#{i+1}</span>
-                    <span style={{ color: l.color ?? "#22D1C3", fontWeight: 800, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.name}</span>
-                    <span style={{ color: "#FFF", fontWeight: 800 }}>{l.visits}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button
-              onClick={() => claimVisit(e.id)}
-              disabled={busy === e.id}
-              style={{
-                width: "100%", marginTop: 10, padding: "10px 12px", borderRadius: 10, border: "none",
-                background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115",
-                fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy === e.id ? 0.6 : 1,
-              }}
-            >{busy === e.id ? "Prüfe GPS…" : "🚩 Ich bin vor Ort!"}</button>
-          </div>
-        );
-      })}
+    <div>
+      <CrewTabInfo tab="flags" />
+      {events === null ? <Loading /> : events.length === 0 ? (
+        <Empty text="Keine aktiven Flaggen-Kämpfe. Neue werden regelmäßig freigeschaltet." />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {renderFlagEvents(events, crew.id, busy, claimVisit)}
+        </div>
+      )}
     </div>
   );
+}
+
+function renderFlagEvents(
+  events: FlagEvent[],
+  crewId: string,
+  busy: string | null,
+  claimVisit: (eventId: string) => void,
+) {
+  return events.map((e) => {
+    const hoursLeft = Math.max(0, Math.ceil((new Date(e.ends_at).getTime() - Date.now()) / 3600000));
+    const myRank = e.leaderboard.findIndex((l) => l.crew_id === crewId);
+    const myVisits = myRank >= 0 ? e.leaderboard[myRank].visits : 0;
+    const pctToTarget = Math.min(100, (myVisits / e.target_visits) * 100);
+    return (
+      <div key={e.id} style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.5)", border: "1px solid rgba(74,222,128,0.35)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>🚩 FLAGGEN-KAMPF</div>
+            <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{e.name}</div>
+            <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+              {e.plz ? `PLZ ${e.plz} · ` : ""}Radius {e.radius_m}m · endet in {hoursLeft}h
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>+{e.prize_xp} XP</div>
+            <div style={{ color: "#8B8FA3", fontSize: 9 }}>an Winner-Crew</div>
+          </div>
+        </div>
+        <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${pctToTarget}%`, background: "linear-gradient(90deg,#4ade80,#22D1C3)" }} />
+        </div>
+        <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>
+          Deine Crew: {myVisits} / {e.target_visits} Visits
+        </div>
+        {e.leaderboard.length > 0 && (
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
+            {e.leaderboard.slice(0, 3).map((l, i) => (
+              <div key={l.crew_id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
+                <span style={{ color: i === 0 ? "#FFD700" : "#8B8FA3", fontWeight: 900, width: 18 }}>#{i+1}</span>
+                <span style={{ color: l.color ?? "#22D1C3", fontWeight: 800, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.name}</span>
+                <span style={{ color: "#FFF", fontWeight: 800 }}>{l.visits}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={() => claimVisit(e.id)}
+          disabled={busy === e.id}
+          style={{
+            width: "100%", marginTop: 10, padding: "10px 12px", borderRadius: 10, border: "none",
+            background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115",
+            fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy === e.id ? 0.6 : 1,
+          }}
+        >{busy === e.id ? "Prüfe GPS…" : "🚩 Ich bin vor Ort!"}</button>
+      </div>
+    );
+  });
 }
 
 // ═══ MEMBERS ═══
@@ -499,56 +509,63 @@ function MembersPanel({ crew }: { crew: Crew }) {
     })();
   }, [crew.id]);
 
-  if (members === null) return <Loading />;
-  if (members.length === 0) return <Empty text="Noch keine Mitglieder." />;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {members.map((m) => {
-        const online = m.last_seen_at && Date.now() - new Date(m.last_seen_at).getTime() < 5 * 60 * 1000;
-        return (
-          <div key={m.user_id} style={{
-            display: "flex", alignItems: "center", gap: 10,
-            padding: "8px 10px", borderRadius: 10,
-            background: "rgba(15,17,21,0.5)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
-              background: m.team_color ?? "#22D1C3",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#0F1115", fontWeight: 900, fontSize: 13,
-              position: "relative",
-            }}>
-              {(m.display_name ?? m.username ?? "?").charAt(0).toUpperCase()}
-              {online && (
-                <span style={{
-                  position: "absolute", bottom: -2, right: -2,
-                  width: 10, height: 10, borderRadius: "50%",
-                  background: "#4ade80", border: "2px solid #0F1115",
-                }} />
-              )}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ color: "#FFF", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {m.display_name ?? m.username ?? "?"}
-                </span>
-                {(m.role === "admin" || m.role === "owner") && (
-                  <span style={{ fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 4, background: "rgba(255,215,0,0.2)", color: "#FFD700" }}>
-                    {m.role === "owner" ? "👑 OWNER" : "ADMIN"}
-                  </span>
-                )}
-              </div>
-              <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 1 }}>
-                Lvl {m.level} · {m.xp.toLocaleString("de-DE")} XP
-                {m.streak_days > 0 && <> · 🔥 {m.streak_days}</>}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+    <div>
+      <CrewTabInfo tab="overview" />
+      {members === null ? <Loading /> : members.length === 0 ? <Empty text="Noch keine Mitglieder." /> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {renderMemberRows(members)}
+        </div>
+      )}
     </div>
   );
+}
+
+function renderMemberRows(members: Member[]) {
+  return members.map((m) => {
+    const online = m.last_seen_at && Date.now() - new Date(m.last_seen_at).getTime() < 5 * 60 * 1000;
+    return (
+      <div key={m.user_id} style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "8px 10px", borderRadius: 10,
+        background: "rgba(15,17,21,0.5)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        <div style={{
+          width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+          background: m.team_color ?? "#22D1C3",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#0F1115", fontWeight: 900, fontSize: 13,
+          position: "relative",
+        }}>
+          {(m.display_name ?? m.username ?? "?").charAt(0).toUpperCase()}
+          {online && (
+            <span style={{
+              position: "absolute", bottom: -2, right: -2,
+              width: 10, height: 10, borderRadius: "50%",
+              background: "#4ade80", border: "2px solid #0F1115",
+            }} />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: "#FFF", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {m.display_name ?? m.username ?? "?"}
+            </span>
+            {(m.role === "admin" || m.role === "owner") && (
+              <span style={{ fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 4, background: "rgba(255,215,0,0.2)", color: "#FFD700" }}>
+                {m.role === "owner" ? "👑 OWNER" : "ADMIN"}
+              </span>
+            )}
+          </div>
+          <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 1 }}>
+            Lvl {m.level} · {m.xp.toLocaleString("de-DE")} XP
+            {m.streak_days > 0 && <> · 🔥 {m.streak_days}</>}
+          </div>
+        </div>
+      </div>
+    );
+  });
 }
 
 // ═══ DUEL ═══
@@ -579,12 +596,13 @@ function DuelPanel({ crew }: { crew: Crew }) {
     } finally { setBusy(false); }
   }
 
-  if (duels === null) return <Loading />;
+  if (duels === null) return <div><CrewTabInfo tab="duel" /><Loading /></div>;
   const active = duels.find((d) => d.status === "active");
   const past = duels.filter((d) => d.status !== "active");
 
   return (
     <div>
+      <CrewTabInfo tab="duel" />
       {active ? <DuelCard duel={active} /> : (
         <div style={{ padding: 16, textAlign: "center", borderRadius: 12, background: "rgba(255,45,120,0.05)", border: "1px dashed rgba(255,45,120,0.3)" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>⚔️</div>
@@ -661,9 +679,10 @@ function ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
   }, [crew.id]);
   useEffect(() => { void load(); }, [load]);
 
-  if (items === null) return <Loading />;
+  if (items === null) return <div><CrewTabInfo tab="challenges" /><Loading /></div>;
   return (
     <div>
+      <CrewTabInfo tab="challenges" />
       {isAdmin && (
         <button onClick={() => setCreating(true)} style={{
           width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
@@ -794,9 +813,10 @@ function EventsPanel({ crew, userId }: { crew: Crew; userId: string }) {
     await load();
   }
 
-  if (events === null) return <Loading />;
+  if (events === null) return <div><CrewTabInfo tab="events" /><Loading /></div>;
   return (
     <div>
+      <CrewTabInfo tab="events" />
       <button onClick={() => setCreating(true)} style={{
         width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
         background: "rgba(74,222,128,0.12)", border: "1px dashed rgba(74,222,128,0.5)",
@@ -966,10 +986,11 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
     await load();
   }
 
-  if (messages === null) return <Loading />;
+  if (messages === null) return <div><CrewTabInfo tab="chat" /><Loading /></div>;
 
   return (
     <div>
+      <CrewTabInfo tab="chat" />
       <div ref={scrollRef} style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, padding: "4px 2px" }}>
         {messages.length === 0 && <Empty text="Noch keine Nachrichten. Schreib die erste!" />}
         {messages.map((m) => {
@@ -1052,40 +1073,49 @@ function FeedPanel({ crew }: { crew: Crew }) {
     })();
   }, [crew.id]);
 
-  if (items === null) return <Loading />;
-  if (items.length === 0) return <Empty text="Noch keine Crew-Aktivität. Sobald Mitglieder laufen, Territorien erobern oder Challenges schaffen, erscheint es hier." />;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {items.map((item) => {
-        const meta = FEED_META[item.kind] ?? { icon: "•", color: "#8B8FA3", label: () => item.kind };
-        const u = Array.isArray(item.user) ? item.user[0] : item.user;
-        const actor = u?.display_name ?? u?.username ?? "Jemand";
-        const d = item.data ?? {};
-        return (
-          <div key={item.id} style={{
-            display: "flex", alignItems: "center", gap: 10,
-            padding: "8px 10px", borderRadius: 10,
-            background: "rgba(15,17,21,0.45)",
-            border: `1px solid ${meta.color}33`,
-          }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: "50%",
-              background: `${meta.color}22`,
-              border: `1px solid ${meta.color}66`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 14, flexShrink: 0,
-            }}>{meta.icon}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "#FFF", fontSize: 12, fontWeight: 700 }}>{meta.label(d, actor)}</div>
-              <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 1 }}>
-                {new Date(item.created_at).toLocaleString("de-DE")}
-              </div>
-            </div>
-          </div>
-        );
-      })}
+    <div>
+      <CrewTabInfo tab="feed" />
+      {items === null ? <Loading /> : items.length === 0 ? (
+        <Empty text="Noch keine Crew-Aktivität. Sobald Mitglieder laufen, Territorien erobern oder Challenges schaffen, erscheint es hier." />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {renderFeedItems(items)}
+        </div>
+      )}
     </div>
   );
+}
+
+function renderFeedItems(items: FeedItem[]) {
+  return items.map((item) => {
+    const meta = FEED_META[item.kind] ?? { icon: "•", color: "#8B8FA3", label: () => item.kind };
+    const u = Array.isArray(item.user) ? item.user[0] : item.user;
+    const actor = u?.display_name ?? u?.username ?? "Jemand";
+    const d = item.data ?? {};
+    return (
+      <div key={item.id} style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "8px 10px", borderRadius: 10,
+        background: "rgba(15,17,21,0.45)",
+        border: `1px solid ${meta.color}33`,
+      }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: "50%",
+          background: `${meta.color}22`,
+          border: `1px solid ${meta.color}66`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 14, flexShrink: 0,
+        }}>{meta.icon}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "#FFF", fontSize: 12, fontWeight: 700 }}>{meta.label(d, actor)}</div>
+          <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 1 }}>
+            {new Date(item.created_at).toLocaleString("de-DE")}
+          </div>
+        </div>
+      </div>
+    );
+  });
 }
 
 // ═══ SHOP ═══
@@ -1122,9 +1152,10 @@ function ShopPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAd
     } finally { setBusy(null); }
   }
 
-  if (items === null) return <Loading />;
+  if (items === null) return <div><CrewTabInfo tab="shop" /><Loading /></div>;
   return (
     <div>
+      <CrewTabInfo tab="shop" />
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "8px 12px", borderRadius: 10, marginBottom: 10,
@@ -1206,6 +1237,155 @@ function Input({ label, value, onChange, placeholder, type = "text" }: {
         onChange={(e) => onChange(e.target.value)}
         style={{ ...selectStyle, width: "100%" }}
       />
+    </div>
+  );
+}
+
+// ═══ INFO-BOX PRO TAB ═══
+type InfoContent = {
+  icon: string;
+  color: string;
+  title: string;
+  how: string;
+  loot: string;
+  tips?: string;
+};
+
+const TAB_INFO: Record<Tab, InfoContent> = {
+  overview: {
+    icon: "👥", color: "#22D1C3",
+    title: "Mitglieder",
+    how: "Liste aller aktiven Crew-Mitglieder sortiert nach XP. Der grüne Punkt zeigt an, wer gerade online ist (zuletzt innerhalb von 5 Minuten aktiv). Admins und Owner haben Badges. Je aktiver eure Mitglieder, desto stärker die Crew in Duellen, Kriegen und Saison-Liga.",
+    loot: "Keine direkten Belohnungen — aber je mehr Mitglieder aktiv sind, desto mehr km, Territorien und Arena-Siege fließen in alle anderen Crew-Modi.",
+    tips: "Wenn Mitglieder länger als 14 Tage inaktiv sind: per Chat pushen oder über die Crew-Shouts motivieren.",
+  },
+  war: {
+    icon: "🔥", color: "#FF2D78",
+    title: "Crew-War (7-Tage-Fehde)",
+    how: "Admins können anderen Crews den Krieg erklären. Akzeptiert die Ziel-Crew, startet ein 7-Tage-Match. Während der Fehde zählt jede km = 1 Punkt, jedes eroberte Territorium = 10 Punkte. Nach Ablauf gewinnt die Crew mit mehr Punkten automatisch. Abgelehnte oder zurückgezogene Einladungen haben keine Folgen.",
+    loot: "Sieger-Crew: alle aktiven Mitglieder bekommen +5 000 XP. Zusätzlich wandert der Sieg ins Saison-Ranking und in den Crew-Feed (für Bragging-Rights).",
+    tips: "Gute Zeit für einen Krieg: kurz vor Monatsende, um die Saison-Liga zu pushen. Gegner gezielt aus eurer Liga wählen — Gleichstark ist spannender.",
+  },
+  season: {
+    icon: "🏆", color: "#FFD700",
+    title: "Saison-Liga (monatlich)",
+    how: "Jeden Monat startet automatisch eine neue Saison. Crews sammeln Punkte für Territorien (+5), Duell-Siege und Kriegs-Siege. Das Ranking bestimmt den Tier (Bronze → Silber → Gold → Diamond → Legend). Am Monatsende werden die Standings eingefroren.",
+    loot: "Top-Platzierungen am Monatsende bekommen Rang-Abzeichen auf dem Crew-Profil (kosmetisch + Bragging-Rights). Diamond- und Legend-Tier geben zusätzlich Bonus-XP-Multiplikator in der nächsten Saison (geplant).",
+    tips: "Territorien zählen am meisten. Konzentriert euch gegen Monatsende auf Polygon-Ringe, nicht auf einzelne Straßen.",
+  },
+  flags: {
+    icon: "🚩", color: "#4ade80",
+    title: "Capture-the-Flag (Flash-Events)",
+    how: "Spontane zeitlich limitierte Micro-Events. Eine Flagge erscheint an einer PLZ, hat ein Zeitfenster (z. B. 30 Min) und ein Visit-Ziel (z. B. 10). Crew-Mitglieder laufen in den Radius (GPS-Check) und tippen 'Ich bin vor Ort!'. Erste Crew, die das Visit-Ziel erreicht, gewinnt.",
+    loot: "Winner-Crew: Prize-XP (meist 3 000 XP) werden an alle Mitglieder verteilt. Sieg zählt zusätzlich in den Crew-Feed. Premium: Gewinner-Crew-Name bleibt 1 Stunde auf der Karte sichtbar (geplant).",
+    tips: "Reaktionszeit zählt. Per Crew-Chat in Sekunden alle mobilisieren. Je näher ihr dem Flag-Spot wohnt, desto größer euer Vorteil.",
+  },
+  duel: {
+    icon: "⚔️", color: "#FF6B4A",
+    title: "Wochen-Duell (Auto-Matchmaking)",
+    how: "Automatische wöchentliche 1:1-Matchups zwischen zwei Crews ähnlicher Stärke. Jede gelaufene km zählt in beide aktiven Duelle (eure und die Gegner-Crew). Montags resetten die Duelle, am Sonntag steht der Sieger fest.",
+    loot: "Winner: Prize-XP (meist 2 000 XP) + Punkte für Saison-Liga. Teilnahme allein zählt bereits fürs Wochenrating.",
+    tips: "Jeder km hilft — auch kleine Spaziergänge. Koordiniert euch im Chat, wer an welchen Tagen geht, um kein Wochenloch zu haben.",
+  },
+  challenges: {
+    icon: "🎯", color: "#FFD700",
+    title: "Crew-Challenges",
+    how: "Admins definieren gemeinsame Ziele (z. B. 'Crew läuft zusammen 100 km in 7 Tagen', '10 neue Territorien'). Der Fortschritt ist kollektiv — jedes Mitglied trägt bei. Wenn die Crew das Ziel erreicht, bekommen alle die Belohnung.",
+    loot: "Reward-XP wird an alle aktiven Crew-Mitglieder verteilt. Abgeschlossene Challenges landen im Crew-Feed und zählen fürs Saison-Ranking.",
+    tips: "Realistisch bleiben: bei 5 Mitgliedern reicht ein 50-km-Wochenziel, bei 20 Mitgliedern geht locker 200 km. Start mit einfachen Challenges, dann eskalieren.",
+  },
+  events: {
+    icon: "📅", color: "#4ade80",
+    title: "Gruppenläufe",
+    how: "Jedes Crew-Mitglied kann einen Gruppenlauf planen (Datum, Uhrzeit, Treffpunkt, Distanz, Ziel-Pace). Andere Mitglieder antworten mit 'Dabei / Vielleicht / Nein'. Der Ersteller wird automatisch als 'Dabei' gelistet.",
+    loot: "Keine direkten XP für das Event selbst — aber: gemeinsam läufst du länger, sammelst mehr km → Crew-Score in Duell, Krieg, Saison und Challenges steigt alle gleichzeitig.",
+    tips: "Offene Treffpunkte funktionieren besser (z. B. 'Südkreuz Haupteingang'). Für regelmäßige Läufe: macht einen wiederkehrenden Wochenslot.",
+  },
+  chat: {
+    icon: "💬", color: "#5ddaf0",
+    title: "Crew-Chat",
+    how: "Echtzeit-Chat nur für eure Crew. Nachrichten erscheinen sofort bei allen Mitgliedern (Supabase Realtime). Max. 600 Zeichen pro Nachricht. Du kannst deine eigenen Nachrichten löschen.",
+    loot: "Der Chat selbst gibt kein XP. Aber: gute Kommunikation = mehr Gruppenläufe = mehr Crew-Siege.",
+    tips: "Nutz ihn für Event-Mobilisierung, Challenge-Push, Flaggen-Alerts und Motivation. Kein Spam — Admin kann bei Missbrauch Rechte entziehen.",
+  },
+  feed: {
+    icon: "📜", color: "#a855f7",
+    title: "Crew-Feed",
+    how: "Automatisch generierter Aktivitäts-Stream: wer ist beigetreten, welche Territorien wurden erobert, welche Challenges abgeschlossen, welche Duelle/Kriege gewonnen, Arena-Siege der Mitglieder. Kein manuelles Posten — alles passiert durch echte Crew-Aktionen.",
+    loot: "Kein direktes XP. Feed dient der Transparenz und Motivation: ihr seht, was eure Crew gerade leistet.",
+    tips: "Wenn der Feed leer bleibt: Mitglieder sind inaktiv. Das ist der beste Indikator für Crew-Gesundheit.",
+  },
+  shop: {
+    icon: "💎", color: "#FF6B4A",
+    title: "Crew-Cosmetic-Shop",
+    how: "Exklusive Crew-Kosmetik, zahlbar mit Diamanten (💎). Nur Admins können kaufen — die Items werden für die ganze Crew aktiviert. Manche Items sind dauerhaft (Flagge, Territorium-Farbe), andere zeitlich begrenzt (30 Tage: Name-Glow, Banner-Animation).",
+    loot: "Keine XP — rein kosmetisch für Bragging-Rights und Crew-Identität. Einige Items verbessern die Sichtbarkeit auf der Karte (z. B. eigene Territory-Farbe).",
+    tips: "Lohnt sich erst ab ~10 aktiven Mitgliedern. Startet mit Custom-Flagge (500 💎) für Wiedererkennung.",
+  },
+};
+
+function CrewTabInfo({ tab }: { tab: Tab }) {
+  const info = TAB_INFO[tab];
+  const storageKey = `ma365:crewInfoDismissed:${tab}`;
+  const [collapsed, setCollapsed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") { setCollapsed(true); return; }
+      setCollapsed(window.localStorage.getItem(storageKey) === "1");
+    } catch { setCollapsed(true); }
+  }, [storageKey]);
+
+  function toggle() {
+    setCollapsed((v) => {
+      const next = !v;
+      try { window.localStorage.setItem(storageKey, next ? "1" : "0"); } catch { /* noop */ }
+      return next;
+    });
+  }
+
+  if (collapsed === null) return null;
+
+  return (
+    <div style={{
+      marginBottom: 12, borderRadius: 12,
+      background: `${info.color}0d`,
+      border: `1px solid ${info.color}44`,
+      overflow: "hidden",
+    }}>
+      <button
+        onClick={toggle}
+        style={{
+          width: "100%", padding: "8px 12px",
+          display: "flex", alignItems: "center", gap: 8,
+          background: "transparent", border: "none", cursor: "pointer",
+          color: info.color, fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+        }}
+      >
+        <span style={{ fontSize: 14 }}>{info.icon}</span>
+        <span style={{ flex: 1, textAlign: "left" }}>
+          {collapsed ? `Wie funktioniert "${info.title}"?` : info.title.toUpperCase()}
+        </span>
+        <span style={{ fontSize: 13, transform: collapsed ? "none" : "rotate(180deg)", transition: "transform 0.2s" }}>▾</span>
+      </button>
+      {!collapsed && (
+        <div style={{ padding: "4px 14px 14px", color: "#D0D0D5", fontSize: 12, lineHeight: 1.55 }}>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 9, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>📘 WIE ES FUNKTIONIERT</div>
+            <div>{info.how}</div>
+          </div>
+          <div style={{ marginBottom: info.tips ? 10 : 0 }}>
+            <div style={{ fontSize: 9, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>🎁 DEIN LOOT</div>
+            <div>{info.loot}</div>
+          </div>
+          {info.tips && (
+            <div>
+              <div style={{ fontSize: 9, color: "#4ade80", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>💡 TIPP</div>
+              <div>{info.tips}</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
