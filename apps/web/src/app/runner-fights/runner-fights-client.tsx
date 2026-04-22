@@ -246,11 +246,12 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
       />
 
       {/* Demo + Info-Zeile */}
-      <div style={{ padding: "0 18px 10px", display: "flex", gap: 8, justifyContent: "center" }}>
+      <div style={{ padding: "0 18px 10px", display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
         <button onClick={() => setDemoSeason(true)} style={{
           padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
           background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.4)", color: "#c084fc",
-        }}>🎬 Demo: 2-Wächter-Flow</button>
+        }}>🎬 Wächter-Wahl</button>
+        <PrestigeDemoButton />
         <GuardianExplainerButton />
       </div>
 
@@ -1525,6 +1526,206 @@ function GuardianExplainer() {
         💡 <b>Wichtig:</b> Items bleiben IMMER bei dir. Der Saison-Reset betrifft nur Level, Talente
         und Ausrüstungs-Slots deines Saison-Wächters — nie dein Inventar.
       </div>
+    </div>
+  );
+}
+
+/* ═══ Prestige-Demo: XP → Level → Saisonende → Prestige ═══ */
+
+function PrestigeDemoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
+          background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.4)", color: "#FFD700",
+        }}
+      >📈 Level & Prestige</button>
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 560, width: "100%", maxHeight: "92vh", overflowY: "auto",
+              background: "linear-gradient(180deg, #13161e 0%, #0a0a0f 100%)",
+              border: "1px solid rgba(255,215,0,0.4)", borderRadius: 16, padding: 20,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>📈 Level &amp; Prestige</div>
+              <button onClick={() => setOpen(false)} style={{
+                background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
+                width: 30, height: 30, borderRadius: 999, cursor: "pointer", fontSize: 16,
+              }}>✕</button>
+            </div>
+            <PrestigeDemo />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// Stark vereinfachte Kurve für die Demo — in Realität siehe guardian.ts
+const DEMO_XP_CURVE = [0, 100, 250, 500, 900, 1500, 2300, 3300, 4500, 6000, 8000];
+const DEMO_LEVEL_CAP = 10;
+
+function PrestigeDemo() {
+  const [xp, setXp] = useState(0);
+  const [wins, setWins] = useState(0);
+  const [endedSeasons, setEndedSeasons] = useState(0);
+  const [prestige, setPrestige] = useState(0);
+  const [title, setTitle] = useState<string | null>(null);
+
+  // Level aus XP ableiten
+  let level = 1;
+  for (let i = 1; i < DEMO_XP_CURVE.length; i++) {
+    if (xp >= DEMO_XP_CURVE[i]) level = i + 1;
+  }
+  const nextThreshold = DEMO_XP_CURVE[Math.min(level, DEMO_XP_CURVE.length - 1)];
+  const prevThreshold = DEMO_XP_CURVE[level - 1] ?? 0;
+  const progressPct = level >= DEMO_LEVEL_CAP
+    ? 100
+    : Math.round(((xp - prevThreshold) / (nextThreshold - prevThreshold)) * 100);
+
+  function doFight(win: boolean) {
+    const xpGain = win ? 80 : 20;
+    setXp((v) => v + xpGain);
+    if (win) setWins((w) => w + 1);
+  }
+
+  function endSeason() {
+    // Mini-Prestige-Formel für die Demo: Level*10 + Wins*3
+    const earned = level * 10 + wins * 3;
+    const newTotal = prestige + earned;
+    setPrestige(newTotal);
+    setEndedSeasons((n) => n + 1);
+    // Titel-Zuteilung
+    let newTitle: string | null = null;
+    if (wins >= 10 && level >= 8) newTitle = "Kriegsmeister";
+    else if (wins >= 5 || level >= 6) newTitle = "Gladiator";
+    else if (wins >= 1) newTitle = "Veteran";
+    setTitle(newTitle);
+    // Saison-Wächter reset
+    setXp(0);
+    setWins(0);
+  }
+
+  function reset() {
+    setXp(0); setWins(0); setPrestige(0); setEndedSeasons(0); setTitle(null);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ fontSize: 12, color: "#a8b4cf", lineHeight: 1.55 }}>
+        Spiel die Saison-Mechanik durch: simuliere Kämpfe, sieh wie XP dein Level treiben,
+        und beende die Saison um <b style={{ color: "#FFD700" }}>Prestige-Punkte</b> zu erhalten —
+        ein saisonübergreifender Account-Wert, der Titel und Dauer-Boni freischaltet.
+      </div>
+
+      {/* Saison-Wächter Panel */}
+      <div style={{
+        padding: 14, borderRadius: 12,
+        background: "rgba(34,209,195,0.05)", border: "1px solid rgba(34,209,195,0.3)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#22D1C3" }}>
+            ⚔️ SAISON-WÄCHTER &middot; SAISON {endedSeasons + 1}
+          </div>
+          <div style={{ fontSize: 11, color: "#a8b4cf" }}>Siege: <b style={{ color: "#FFF" }}>{wins}</b></div>
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF" }}>Lvl {level}</div>
+          <div style={{ fontSize: 12, color: "#a8b4cf" }}>
+            {xp.toLocaleString()} XP
+            {level < DEMO_LEVEL_CAP && <> / {nextThreshold.toLocaleString()}</>}
+            {level >= DEMO_LEVEL_CAP && <span style={{ color: "#FFD700" }}> &middot; MAX</span>}
+          </div>
+        </div>
+        <div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: `${Math.min(100, Math.max(0, progressPct))}%`,
+            background: "linear-gradient(90deg, #22D1C3, #FFD700)",
+            transition: "width 300ms ease",
+          }} />
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button onClick={() => doFight(true)} style={{
+            flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 900, cursor: "pointer",
+            background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.5)", color: "#4ade80",
+          }}>⚔️ Sieg (+80 XP)</button>
+          <button onClick={() => doFight(false)} style={{
+            flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 900, cursor: "pointer",
+            background: "rgba(255,45,120,0.1)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78",
+          }}>💀 Niederlage (+20 XP)</button>
+        </div>
+      </div>
+
+      {/* Account-Prestige Panel */}
+      <div style={{
+        padding: 14, borderRadius: 12,
+        background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.3)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>👑 ACCOUNT-PRESTIGE</div>
+            <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 2 }}>bleibt für immer</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: "#FFD700", lineHeight: 1 }}>{prestige}</div>
+            <div style={{ fontSize: 10, color: "#a8b4cf" }}>{endedSeasons} Saison{endedSeasons === 1 ? "" : "s"} gespielt</div>
+          </div>
+        </div>
+        {title && (
+          <div style={{
+            marginTop: 4, padding: "6px 10px", borderRadius: 8,
+            background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.4)",
+            color: "#c084fc", fontSize: 11, fontWeight: 800, textAlign: "center",
+          }}>🏆 Titel: {title}</div>
+        )}
+        <button
+          onClick={endSeason}
+          disabled={xp === 0 && wins === 0}
+          style={{
+            width: "100%", marginTop: 10, padding: "9px 12px", borderRadius: 10,
+            fontSize: 12, fontWeight: 900, letterSpacing: 1, cursor: xp === 0 && wins === 0 ? "default" : "pointer",
+            background: xp === 0 && wins === 0
+              ? "rgba(255,255,255,0.04)"
+              : "linear-gradient(135deg, #FFD700 0%, #FF6B4A 100%)",
+            color: xp === 0 && wins === 0 ? "#6c7590" : "#0F1115",
+            border: "none",
+            opacity: xp === 0 && wins === 0 ? 0.5 : 1,
+          }}
+        >🏁 Saison beenden (+{level * 10 + wins * 3} Prestige)</button>
+        <div style={{ fontSize: 10, color: "#6c7590", marginTop: 6, textAlign: "center" }}>
+          Prestige = Level × 10 + Siege × 3
+        </div>
+      </div>
+
+      <div style={{
+        padding: 12, borderRadius: 10,
+        background: "rgba(168,85,247,0.05)", border: "1px solid rgba(168,85,247,0.2)",
+        fontSize: 11, color: "#c8bbe6", lineHeight: 1.5,
+      }}>
+        💡 <b>Nach dem Saison-Ende</b>: Dein Saison-Wächter wandert ins Archiv. Items bleiben bei
+        dir, der Ewige Wächter bekommt daraus einen permanenten Buff. Du startest die nächste
+        Saison bei Level 1 — aber mit mehr Prestige, Titel und einer wachsenden Sammlung.
+      </div>
+
+      <button onClick={reset} style={{
+        padding: "7px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer",
+        background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#a8b4cf",
+      }}>↺ Demo zurücksetzen</button>
     </div>
   );
 }
