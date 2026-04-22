@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -40,9 +40,11 @@ type CosmeticArt = {
   light:     Record<string, Art>;
   pin_theme: Record<string, Art>;
   siegel:    Record<string, Art>;
+  potion:    Record<string, Art>;
+  rank:      Record<string, Art>;
 };
 
-type TabId = "archetype" | "item" | "marker" | "light" | "pin_theme" | "siegel";
+type TabId = "archetype" | "item" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank";
 
 type Item = {
   id: string; name: string; emoji: string; slot: string; rarity: string;
@@ -52,7 +54,7 @@ type Item = {
 export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {} });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
 
@@ -78,11 +80,15 @@ export function ArtworkAdminClient() {
   const doneLight  = Object.values(cosmetic.light).filter(a => a.image_url || a.video_url).length;
   const doneTheme  = Object.values(cosmetic.pin_theme).filter(a => a.image_url || a.video_url).length;
   const doneSiegel = Object.values(cosmetic.siegel ?? {}).filter(a => a.image_url || a.video_url).length;
+  const donePotion = Object.values(cosmetic.potion ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneRank   = Object.values(cosmetic.rank ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
     { id: "item",      label: "⚔️ Ausrüstung",     done: doneItems,  total: items.length },
     { id: "siegel",    label: "🏅 Siegel",          done: doneSiegel, total: SIEGEL_TYPES.length },
+    { id: "potion",    label: "🧪 Tränke",          done: donePotion, total: POTION_CATALOG_ART.length },
+    { id: "rank",      label: "🎖️ Ränge",           done: doneRank,   total: RANK_TIERS_ART.length },
     { id: "marker",    label: "📍 Map-Icons",       done: doneMark,   total: UNLOCKABLE_MARKERS.length },
     { id: "light",     label: "✨ Runner-Lights",   done: doneLight,  total: RUNNER_LIGHTS.length },
     { id: "pin_theme", label: "🎨 Pin-Themes",      done: doneTheme,  total: ALL_PIN_THEMES.length },
@@ -119,6 +125,8 @@ export function ArtworkAdminClient() {
         tab === "archetype"  ? <ArchetypesTab archetypes={archetypes} onChange={reload} />
         : tab === "item"      ? <ItemsTab     items={items}              onChange={reload} />
         : tab === "siegel"    ? <SiegelTab    artMap={cosmetic.siegel ?? {}} onChange={reload} />
+        : tab === "potion"    ? <PotionTab    artMap={cosmetic.potion ?? {}} onChange={reload} />
+        : tab === "rank"      ? <RankTab      artMap={cosmetic.rank   ?? {}} onChange={reload} />
         : tab === "marker"    ? <MarkerTab    artMap={cosmetic.marker}    onChange={reload} />
         : tab === "light"     ? <LightTab     artMap={cosmetic.light}     onChange={reload} />
         : <PinThemeTab artMap={cosmetic.pin_theme} onChange={reload} />
@@ -747,6 +755,120 @@ function SiegelTab({ artMap, onChange }: {
                 hasImage={!!art?.image_url}
                 hasVideo={!!art?.video_url}
                 buildPrompt={(mode) => buildSiegelPrompt({ id: s.id, name: s.name, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Tränke (16 Potions)                                   */
+/* ═════════════════════════════════════════════════════════ */
+function PotionTab({ artMap, onChange }: {
+  artMap: Record<string, { image_url: string | null; video_url: string | null }>;
+  onChange: () => void;
+}) {
+  const done = POTION_CATALOG_ART.filter((p) => artMap[p.id]?.image_url || artMap[p.id]?.video_url).length;
+  const rarityGroups: Array<{ key: string; label: string; color: string }> = [
+    { key: "common", label: "Gewöhnlich", color: "#8B8FA3" },
+    { key: "rare",   label: "Selten",     color: "#5ddaf0" },
+    { key: "epic",   label: "Episch",     color: "#a855f7" },
+  ];
+  return (
+    <div>
+      <div className="mb-3 text-xs text-[#a8b4cf]">
+        <strong className="text-white">{POTION_CATALOG_ART.length} Tränke</strong> · {done}/{POTION_CATALOG_ART.length} mit Artwork
+      </div>
+      {rarityGroups.map((g) => {
+        const list = POTION_CATALOG_ART.filter((p) => p.rarity === g.key);
+        return (
+          <div key={g.key} className="mb-5">
+            <div className="text-[11px] font-black tracking-widest mb-2" style={{ color: g.color }}>
+              {g.label.toUpperCase()} ({list.length})
+            </div>
+            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+              {list.map((p) => {
+                const art = artMap[p.id];
+                const hasArt = !!(art?.image_url || art?.video_url);
+                return (
+                  <div key={p.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-14 h-14 flex items-center justify-center rounded-lg bg-[#0F1115]" style={{ border: `1px solid ${g.color}55` }}>
+                        {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-contain" />
+                          : art?.image_url ? <img src={art.image_url} alt={p.name} className="w-14 h-14 object-contain" />
+                          : <span className="text-2xl">{p.emoji}</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-bold tracking-wider" style={{ color: g.color }}>TRANK</div>
+                        <div className="text-sm font-black text-white truncate">{p.name}</div>
+                        <div className="text-[9px] text-[#6c7590] truncate">{p.hint}</div>
+                      </div>
+                      {!hasArt && <span className="text-[9px] font-bold text-[#FF2D78]">LEER</span>}
+                    </div>
+                    <AdminArtworkControls
+                      targetType="potion"
+                      targetId={p.id}
+                      hasImage={!!art?.image_url}
+                      hasVideo={!!art?.video_url}
+                      buildPrompt={(mode) => buildPotionPrompt({ id: p.id, name: p.name, rarity: p.rarity, hint: p.hint, mode })}
+                      onUploaded={onChange}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Ränge (10 Runner-Ranks)                               */
+/* ═════════════════════════════════════════════════════════ */
+function RankTab({ artMap, onChange }: {
+  artMap: Record<string, { image_url: string | null; video_url: string | null }>;
+  onChange: () => void;
+}) {
+  const done = RANK_TIERS_ART.filter((r) => artMap[r.id]?.image_url || artMap[r.id]?.video_url).length;
+  return (
+    <div>
+      <div className="mb-3 text-xs text-[#a8b4cf]">
+        <strong className="text-white">{RANK_TIERS_ART.length} Ränge</strong> · {done}/{RANK_TIERS_ART.length} mit Artwork
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {RANK_TIERS_ART.map((r, idx) => {
+          const art = artMap[r.id];
+          const hasArt = !!(art?.image_url || art?.video_url);
+          return (
+            <div key={r.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div
+                  className="w-16 h-16 flex items-center justify-center rounded-full overflow-hidden relative"
+                  style={{ background: `radial-gradient(circle at center, ${r.color}33 0%, transparent 70%), #0F1115`, border: `1.5px solid ${r.color}aa`, boxShadow: `0 0 16px ${r.color}44` }}
+                >
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
+                    : art?.image_url ? <img src={art.image_url} alt={r.name} className="w-16 h-16 object-contain" />
+                    : <span className="text-xl font-black" style={{ color: r.color }}>#{idx + 1}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: r.color }}>RANG · {r.tier.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white truncate">{r.name}</div>
+                  <div className="text-[9px] text-[#6c7590] truncate">{r.hint}</div>
+                </div>
+                {!hasArt && <span className="text-[9px] font-bold text-[#FF2D78]">LEER</span>}
+              </div>
+              <AdminArtworkControls
+                targetType="rank"
+                targetId={r.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildRankPrompt({ id: r.id, name: r.name, tier: r.tier, color: r.color, hint: r.hint, mode })}
                 onUploaded={onChange}
               />
             </div>

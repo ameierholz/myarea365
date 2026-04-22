@@ -410,3 +410,90 @@ export function buildSiegelPrompt(input: { id: SiegelId; name: string; mode: 'im
   return base;
 }
 
+// ─── Tränke (Potions) ──────────────────────────────────────────────
+export const POTION_CATALOG_ART = [
+  { id: "potion_hp_s",          name: "Kleiner HP-Trank",          rarity: "common", emoji: "🧪", hint: "small red healing vial, fresh blood-red liquid, bubbles" },
+  { id: "potion_atk_s",         name: "Kleiner Angriffstrank",     rarity: "common", emoji: "⚔️", hint: "small orange attack elixir, amber liquid, sword etched on bottle" },
+  { id: "potion_def_s",         name: "Kleiner Verteidigungstrank",rarity: "common", emoji: "🛡️", hint: "small blue defense potion, steel-blue liquid, shield rune" },
+  { id: "potion_speed_s",       name: "Kleiner Geschwindigkeitstrank", rarity: "common", emoji: "💨", hint: "small sky-blue speed elixir, swirling vapors, feather motif" },
+  { id: "potion_regen_s",       name: "Kleiner Heiltrank",         rarity: "common", emoji: "💚", hint: "small emerald regeneration flask, soft glow, leaf motif" },
+  { id: "potion_hp_m",          name: "HP-Trank",                  rarity: "rare",   emoji: "🧪", hint: "medium blood-red vial with gold cap, thick liquid" },
+  { id: "potion_atk_m",         name: "Angriffstrank",             rarity: "rare",   emoji: "⚔️", hint: "medium orange bottle, crossed swords emblem" },
+  { id: "potion_def_m",         name: "Verteidigungstrank",        rarity: "rare",   emoji: "🛡️", hint: "medium sapphire bottle, tower shield emblem" },
+  { id: "potion_crit_m",        name: "Krit-Trank",                rarity: "rare",   emoji: "💥", hint: "sharp magenta vial, lightning rune, sparks" },
+  { id: "potion_lifesteal_m",   name: "Bluttrank",                 rarity: "rare",   emoji: "🩸", hint: "dark crimson bottle, skull carved in glass, vampiric" },
+  { id: "potion_mana_m",        name: "Manatrank",                 rarity: "rare",   emoji: "⚡", hint: "electric blue flask, arcing bolts inside" },
+  { id: "potion_hp_l",          name: "Großer HP-Trank",           rarity: "epic",   emoji: "🧪", hint: "large ornate ruby flask, gold trim, runes on bottle" },
+  { id: "potion_atk_l",         name: "Großer Angriffstrank",      rarity: "epic",   emoji: "⚔️", hint: "large fiery-orange flask, jagged spikes on bottle" },
+  { id: "potion_thorns_l",      name: "Dornentrank",               rarity: "epic",   emoji: "🌵", hint: "dark green vial wrapped in thorny vines, spikes" },
+  { id: "potion_penetration_l", name: "Durchdringungstrank",       rarity: "epic",   emoji: "🎯", hint: "black arrow-shaped flask, target reticle" },
+  { id: "potion_regen_l",       name: "Großer Heiltrank",          rarity: "epic",   emoji: "💚", hint: "large glowing emerald flask, swirling life-energy" },
+] as const;
+
+export function buildPotionPrompt(input: { id: string; name: string; rarity: string; hint: string; mode: "image" | "video" }): string {
+  const rarityColors: Record<string, string> = {
+    common: "matte glass, steel cap",
+    rare:   "polished glass with copper accents",
+    epic:   "ornate crystal glass with runed gold filigree",
+  };
+  const rarityGlow: Record<string, string> = {
+    common: "soft inner glow",
+    rare:   "bright inner glow with faint aura",
+    epic:   "intense inner glow with visible arcane runes radiating outward",
+  };
+  const base = [
+    `A fantasy-game potion bottle icon for "${input.name}", centered composition, 1024x1024, fully transparent background (PNG with alpha).`,
+    `Bottle specifics: ${input.hint}. Material: ${rarityColors[input.rarity] ?? rarityColors.common}. Lighting: ${rarityGlow[input.rarity] ?? rarityGlow.common}.`,
+    `Style: high-detail painterly game icon, Diablo/Divinity/Final-Fantasy quality, dramatic rim-light, readable at 64px.`,
+    `Composition: bottle slightly tilted, centered, subtle shadow beneath.`,
+    `No text, no labels, no characters, no watermark, no background — pure PNG with alpha.`,
+  ].join(" ");
+  if (input.mode === "video") {
+    return [
+      base,
+      "Animation: gentle 4-second loop. Liquid inside sloshes slowly, bubbles rise, inner glow pulses once per cycle, aura flickers subtly.",
+      "First and last frame match exactly for seamless loop. No audio.",
+    ].join(" ");
+  }
+  return base;
+}
+
+// ─── Ränge (Runner-Ranks) ──────────────────────────────────────────
+export const RANK_TIERS_ART = [
+  { id: "rank_1",  name: "Straßen-Scout",       tier: "bronze",   color: "#888888", hint: "simple cobblestone compass, street-corner vibe" },
+  { id: "rank_2",  name: "Kiez-Wanderer",       tier: "bronze",   color: "#b0b8c8", hint: "walking stick + lantern, neighborhood explorer" },
+  { id: "rank_3",  name: "Block-Kundschafter",  tier: "silver",   color: "#5ddaf0", hint: "binoculars + city-block map fragment" },
+  { id: "rank_4",  name: "Stadt-Pionier",       tier: "silver",   color: "#22D1C3", hint: "explorer flag planted on skyline silhouette" },
+  { id: "rank_5",  name: "Bezirks-Entdecker",   tier: "gold",     color: "#3b82f6", hint: "laurel wreath framing a district compass" },
+  { id: "rank_6",  name: "Viertel-Boss",        tier: "gold",     color: "#FF6B4A", hint: "crown resting on concrete plinth, urban throne" },
+  { id: "rank_7",  name: "Kiez-König",          tier: "platinum", color: "#FF2D78", hint: "royal crown with city skyline silhouette, neon pink" },
+  { id: "rank_8",  name: "Metropolen-Legende",  tier: "platinum", color: "#FFD700", hint: "golden laurel wreath around glowing metropolis emblem" },
+  { id: "rank_9",  name: "Urbaner Mythos",      tier: "mythic",   color: "#e0e7ff", hint: "ethereal halo, mystical runes, city constellation" },
+  { id: "rank_10", name: "Straßen-Gott",        tier: "mythic",   color: "#FFFFFF", hint: "divine radiant emblem, cosmic streets spiraling outward" },
+] as const;
+
+export function buildRankPrompt(input: { id: string; name: string; tier: string; color: string; hint: string; mode: "image" | "video" }): string {
+  const tierTreatment: Record<string, string> = {
+    bronze:   "weathered bronze medal, aged patina, simple rim",
+    silver:   "polished silver medal, clean rim, subtle etching",
+    gold:     "gleaming gold medal, ornate rim, laurel trim",
+    platinum: "brilliant platinum medal, jeweled inlay, intricate filigree",
+    mythic:   "otherworldly prismatic medal, floating arcane runes, divine radiance",
+  };
+  const base = [
+    `A rank insignia badge for runner rank "${input.name}", centered circular medallion composition, 1024x1024, fully transparent background (PNG with alpha).`,
+    `Treatment: ${tierTreatment[input.tier] ?? tierTreatment.bronze}. Dominant accent color: ${input.color}.`,
+    `Iconography inside medallion: ${input.hint}.`,
+    `Style: hero-worthy game UI badge, heraldic + urban-fantasy fusion, readable at 80px, sharp focal motif, subtle rim-light.`,
+    `No text, no letters, no characters, no watermark, no background outside the medallion.`,
+  ].join(" ");
+  if (input.mode === "video") {
+    return [
+      base,
+      `Animation: 4-second loop. The medallion slowly rotates a few degrees back and forth, inner motif pulses with ${input.color} glow, subtle sparkle sweeps across the surface once per cycle.`,
+      "First and last frame match exactly for seamless loop. No audio.",
+    ].join(" ");
+  }
+  return base;
+}
+
