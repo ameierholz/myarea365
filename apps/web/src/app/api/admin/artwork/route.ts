@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminSb, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+let _adminSb: SupabaseClient | null = null;
+function adminSb(): SupabaseClient {
+  if (_adminSb) return _adminSb;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase admin creds missing");
+  _adminSb = createAdminSb(url, key, { auth: { persistSession: false } });
+  return _adminSb;
+}
 
 /**
  * GET /api/admin/artwork
@@ -56,7 +67,7 @@ export async function POST(req: Request) {
       const variant = body.target_type === "marker"
         ? (body.variant && ["neutral","male","female"].includes(body.variant) ? body.variant : "neutral")
         : "neutral";
-      const { error: dbErr } = await sb.from("cosmetic_artwork").upsert({
+      const { error: dbErr } = await adminSb().from("cosmetic_artwork").upsert({
         kind: body.target_type, slot_id: body.target_id, variant, [col]: publicUrl, updated_at: new Date().toISOString(),
       }, { onConflict: "kind,slot_id,variant" });
       if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
@@ -67,8 +78,8 @@ export async function POST(req: Request) {
     const updatePayload = (body.is_video && body.target_type === "archetype")
       ? { video_url: publicUrl }
       : { image_url: publicUrl };
-    // .select() gibt die tatsächlich geschriebene Zeile zurück — wir validieren gegen die Spalte
-    const { data: updatedRows, error: dbErr } = await sb.from(table).update(updatePayload).eq("id", body.target_id).select();
+    // Service-Role — guardian_archetypes/item_catalog haben keine UPDATE-RLS-Policy
+    const { data: updatedRows, error: dbErr } = await adminSb().from(table).update(updatePayload).eq("id", body.target_id).select();
     if (dbErr) return NextResponse.json({ error: dbErr.message, hint: dbErr.message?.includes("column") ? "Migration 00036_artwork_columns.sql im Supabase SQL Editor ausführen." : undefined }, { status: 500 });
     if (!updatedRows || updatedRows.length === 0) {
       return NextResponse.json({ error: `kein Eintrag mit id="${body.target_id}" in ${table}` }, { status: 404 });
@@ -119,7 +130,7 @@ export async function POST(req: Request) {
   const updatePayload = (isVideo && targetType === "archetype")
     ? { video_url: publicUrl }
     : { image_url: publicUrl };
-  const { error: dbErr } = await sb.from(table).update(updatePayload).eq("id", targetId);
+  const { error: dbErr } = await adminSb().from(table).update(updatePayload).eq("id", targetId);
   if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
 
   return NextResponse.json({ ok: true, image_url: isVideo ? null : publicUrl, video_url: isVideo ? publicUrl : null, is_video: isVideo });
@@ -148,6 +159,6 @@ export async function DELETE(req: Request) {
     if (m) await sb.storage.from("artwork").remove([m[1]]);
   }
   const clearPayload = targetType === "archetype" ? { image_url: null, video_url: null } : { image_url: null };
-  await sb.from(table).update(clearPayload).eq("id", targetId);
+  await adminSb().from(table).update(clearPayload).eq("id", targetId);
   return NextResponse.json({ ok: true });
 }
