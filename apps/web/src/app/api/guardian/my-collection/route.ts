@@ -47,11 +47,28 @@ export async function POST(req: Request) {
 
   const body = await req.json() as { action: "activate"; guardian_id: string };
   if (body.action === "activate") {
-    // Alle deaktivieren, dann gewählten aktivieren (24h-Cooldown optional)
-    await sb.from("user_guardians").update({ is_active: false }).eq("user_id", auth.user.id);
-    const { error } = await sb.from("user_guardians").update({ is_active: true }).eq("id", body.guardian_id).eq("user_id", auth.user.id);
+    // Reihenfolge wichtig wegen idx_user_guardian_active (unique where is_active):
+    // 1) Alle aktiven deaktivieren — MIT select() damit wir sehen ob RLS greift
+    const { data: deactRows, error: deactErr } = await sb.from("user_guardians")
+      .update({ is_active: false })
+      .eq("user_id", auth.user.id)
+      .eq("is_active", true)
+      .select("id");
+    if (deactErr) return NextResponse.json({ error: `deactivate: ${deactErr.message}` }, { status: 500 });
+
+    // 2) Gewählten aktivieren
+    const { data: actRows, error } = await sb.from("user_guardians")
+      .update({ is_active: true })
+      .eq("id", body.guardian_id)
+      .eq("user_id", auth.user.id)
+      .select("id");
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true });
+    if (!actRows || actRows.length === 0) {
+      return NextResponse.json({
+        error: `Wächter nicht gefunden oder keine Update-Berechtigung (deaktiviert: ${deactRows?.length ?? 0})`,
+      }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, deactivated: deactRows?.length ?? 0 });
   }
   return NextResponse.json({ error: "bad_action" }, { status: 400 });
 }

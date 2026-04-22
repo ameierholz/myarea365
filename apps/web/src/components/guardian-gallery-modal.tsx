@@ -179,57 +179,73 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
 
   return (
     <div style={{
-      padding: 8, borderRadius: 12,
-      background: owned
-        ? `linear-gradient(135deg, ${r.glow}, rgba(15,17,21,0.7))`
-        : "rgba(70,82,122,0.12)",
-      border: `1px solid ${owned ? r.color : "rgba(255,255,255,0.08)"}`,
-      opacity: owned ? 1 : 0.75,
       position: "relative",
+      // Kein Hintergrund-Rechteck mehr — nur dezenter Rahmen + Boden-Glow
+      padding: 6,
+      borderRadius: 12,
+      background: "transparent",
+      border: isActive
+        ? `1.5px solid ${r.color}`
+        : owned ? `1px solid ${r.color}33` : "1px solid rgba(255,255,255,0.06)",
+      boxShadow: isActive ? `0 0 18px ${r.color}66, inset 0 0 18px ${r.color}22` : "none",
+      opacity: owned ? 1 : 0.55,
+      display: "flex", flexDirection: "column",
     }}>
       {owned && (
         <div style={{
-          position: "absolute", top: 6, right: 6,
+          position: "absolute", top: 4, right: 4,
           padding: "2px 7px", borderRadius: 999,
-          background: isActive ? r.color : "#4ade80",
-          color: "#0F1115",
+          background: isActive ? r.color : "rgba(74,222,128,0.2)",
+          color: isActive ? "#0F1115" : "#4ade80",
+          border: isActive ? "none" : "1px solid rgba(74,222,128,0.5)",
           fontSize: 8, fontWeight: 900, letterSpacing: 0.5, zIndex: 2,
         }}>{isActive ? "AKTIV" : `Lvl ${ownedLevel ?? 1}`}</div>
       )}
-      {!hasArt && (
-        <div style={{
-          position: "absolute", top: 6, left: 6,
-          padding: "2px 6px", borderRadius: 999,
-          background: "rgba(255,45,120,0.3)", color: "#FF2D78",
-          fontSize: 8, fontWeight: 900, letterSpacing: 0.5, zIndex: 2,
-        }}>KEIN BILD</div>
-      )}
 
+      {/* Wächter-Portrait — groß, transparenter Hintergrund, nur Boden-Glow */}
       <div style={{
-        width: "100%", aspectRatio: "1 / 1",
-        display: "flex", justifyContent: "center",
-        filter: owned ? "none" : "grayscale(0.5) brightness(0.85)",
+        position: "relative",
+        width: "100%", minHeight: 180,
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+        filter: owned ? "none" : "grayscale(0.7) brightness(0.7)",
         marginBottom: 4,
       }}>
-        <GuardianAvatar archetype={a} size={110} animation="idle" />
+        {/* Boden-Glow für den Charakter (statt Box-Background) */}
+        <div style={{
+          position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)",
+          width: "70%", height: 24, borderRadius: "50%",
+          background: `radial-gradient(ellipse, ${r.glow} 0%, transparent 70%)`,
+          opacity: owned ? 0.8 : 0.3,
+          pointerEvents: "none",
+        }} />
+        <GuardianAvatar archetype={a} size={160} animation="idle" />
+        {!hasArt && owned && (
+          <div style={{
+            position: "absolute", top: 2, left: 2,
+            padding: "2px 6px", borderRadius: 999,
+            background: "rgba(255,45,120,0.2)", color: "#FF2D78",
+            fontSize: 8, fontWeight: 900, letterSpacing: 0.5,
+          }}>KEIN BILD</div>
+        )}
       </div>
 
-      <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.6 }}>
+      <div style={{ color: r.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.6, paddingLeft: 2 }}>
         {r.label.toUpperCase()}{typ ? ` · ${typ.icon}` : ""}
       </div>
-      <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</div>
+      <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900, marginTop: 1, paddingLeft: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</div>
       {a.ability_name && (
-        <div style={{ color: "#FFD700", fontSize: 9, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ color: "#FFD700", fontSize: 9, marginTop: 1, paddingLeft: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           ⚡ {a.ability_name}
         </div>
       )}
 
-      {/* Activate-Button fuer owned + not active */}
+      {/* Activate-Button für owned + not active */}
       {owned && !isActive && onActivate && (
         <button onClick={() => onActivate(a.id)} style={{
-          width: "100%", marginTop: 6, padding: "5px 6px", borderRadius: 6,
-          background: `${r.color}33`, border: `1px solid ${r.color}`,
-          color: r.color, fontSize: 9, fontWeight: 900, cursor: "pointer",
+          width: "100%", marginTop: 6, padding: "6px 6px", borderRadius: 8,
+          background: `${r.color}22`, border: `1px solid ${r.color}88`,
+          color: r.color, fontSize: 10, fontWeight: 900, cursor: "pointer",
+          letterSpacing: 0.5,
         }}>Aktivieren</button>
       )}
 

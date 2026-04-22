@@ -88,10 +88,15 @@ export function LoadoutTrio({
   async function activateGuardian(guardianId: string) {
     setBusy(true);
     try {
-      await fetch("/api/guardian/my-collection", {
+      const res = await fetch("/api/guardian/my-collection", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "activate", guardian_id: guardianId }),
       });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(`Aktivierung fehlgeschlagen: ${j.error ?? res.status}`);
+        return;
+      }
       await load();
     } finally { setBusy(false); }
   }
