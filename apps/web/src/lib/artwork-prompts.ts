@@ -159,8 +159,101 @@ const ROLE_MOD: Record<string, string> = {
   balanced: "versatile mid-action pose, tools of both offense and defense visible",
 };
 
+/** Heuristik: Geschlecht aus dem deutschen Titel ableiten. */
+export function detectGenderFromName(name: string): "male" | "female" {
+  const n = name.toLowerCase();
+  // Deutsch: -in, -erin, -frau, -hexe, -priesterin, -königin, -gräfin, -herrin, -dame ... → weiblich
+  if (/(frau|hexe|herrin|dame|königin|gräfin|prinzessin|amazone|walküre|nonne|priesterin)\b/.test(n)) return "female";
+  if (/(in|erin|ärztin|meisterin|jägerin|schützin|tänzerin|mischerin|klingerin|läuferin|kriegerin|zauberin|magierin|heilerin)$/.test(n)) return "female";
+  return "male";
+}
+
+/** Deterministischer Hash (0..n-1) für stabile Variations-Wahl aus dem Namen. */
+function nameHashPick<T>(name: string, list: readonly T[]): T {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return list[h % list.length];
+}
+
+// Pool 1: Haar-Varianten (damit nicht alle gleich aussehen)
+const HAIR_VARIANTS_MALE = [
+  "short cropped hair with an undercut fade, tattoos on temple",
+  "long black braided dreads tied back, silver rings in hair",
+  "shaved head with glowing ritual scars on the skull",
+  "shoulder-length wavy dark hair, one side pinned with an engraved clasp",
+  "buzz-cut with a single braided warrior tail falling over the shoulder",
+  "silver-gray tousled hair swept back, sharp widow's peak",
+  "tightly coiled natural afro with a faint arcane glow threading through it",
+  "long asymmetric undercut, one side shaved with glowing etched patterns",
+];
+const HAIR_VARIANTS_FEMALE = [
+  "tight warrior braid with metal beads woven in, side of head partially shaved",
+  "short pixie cut with glowing circuit tattoos at the nape",
+  "long wavy dark hair held back with a bone clasp",
+  "twin braids wrapped around the head like a crown",
+  "high tight ponytail with silver-threaded wrap",
+  "long silver-blue ombre hair fluttering in a low wind",
+  "cropped asymmetric bob with rune sidecuts glowing faintly",
+  "locs partially gathered up, some strands loose across one shoulder",
+];
+
+// Pool 2: Rüstungs-Material (sichtbare Variation)
+const ARMOR_MATERIALS = [
+  "matte obsidian ceramic plating with inlaid cyan circuit veins",
+  "blackened forged steel scale mail with leather straps",
+  "boiled leather armor stitched with silvered runes, worn beneath a heavy cloak",
+  "polished brass plate with etched filigree, cloth wraps on forearms",
+  "tattered monk-robes over hidden chain, exposed tattooed forearms",
+  "rugged tactical gear fused with bone-carved pauldrons",
+  "dark moss-green cloak over mail, wolfskin mantle across shoulders",
+  "lacquered red samurai-inspired plates with black trim",
+  "tech-woven fabric with rigid armor panels at shoulders and chest",
+  "frost-cracked steel plate riming with ice crystals",
+  "volcanic-stone plate still faintly glowing with heat at the seams",
+  "light ranger-leather with hand-painted clan markings",
+];
+
+// Pool 3: Signatur-Farbe der Aura (jeder Wächter anders)
+const AURA_COLOR_POOL = [
+  { name: "cyan plasma",         primary: "electric cyan", secondary: "deep teal" },
+  { name: "magenta neon",        primary: "hot magenta",   secondary: "deep violet" },
+  { name: "emerald wildfire",    primary: "emerald green", secondary: "pine-black" },
+  { name: "crimson embers",      primary: "blood red",     secondary: "ember orange" },
+  { name: "amber lightning",     primary: "amber gold",    secondary: "burnt orange" },
+  { name: "frost aurora",        primary: "pale blue-white", secondary: "cold steel gray" },
+  { name: "sulfur toxic green",  primary: "acid yellow-green", secondary: "bile black" },
+  { name: "arcane purple storm", primary: "royal violet",  secondary: "midnight black" },
+  { name: "solar gold",          primary: "warm sun-gold", secondary: "bronze" },
+  { name: "void indigo",         primary: "indigo",        secondary: "pitch black" },
+];
+
+// Pool 4: Begleit-FX (Dämpfe, Partikel etc.)
+const EFFECT_MOTIFS = [
+  "curling smoke that rises slowly around the feet",
+  "floating embers drifting upward around the silhouette",
+  "thin streams of liquid light spiraling around the arms",
+  "faint shards of crystalline energy orbiting the torso",
+  "glowing runes slowly circling mid-air around the character",
+  "fine rain evaporating on a hidden heat shield around the body",
+  "tiny flickering motes of light tracing the character's outline",
+  "shimmering heat-haze distortion radiating from the core",
+  "slow orbiting fragments of cracked stone reassembling and drifting",
+  "wisps of aurora-like light flowing from the shoulders",
+];
+
+// Pool 5: Pose-Haltung (für Standbild mehr Abwechslung)
+const POSES = [
+  "grounded heroic stance, feet shoulder-width, one fist clenched",
+  "half-turned 3/4 view, weapon resting across the shoulders",
+  "one knee bent, leaning forward over a planted weapon",
+  "arms crossed, chin slightly raised, calm confident stare",
+  "mid-stride forward, cloak catching the air behind",
+  "single hand raised as if channeling, other hand loose at the side",
+  "back-turned three-quarter view with head looking over shoulder",
+  "duelist stance, blade held low along the thigh",
+];
+
 export function buildArchetypePrompt(input: ArchetypePromptInput | string, legacyRarity?: "common" | "rare" | "epic" | "legend"): string {
-  // Legacy-Signatur: buildArchetypePrompt(name, rarity)
   const in_: ArchetypePromptInput = typeof input === "string"
     ? { name: input, rarity: legacyRarity ?? "epic" }
     : input;
@@ -169,61 +262,65 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const typeMod   = in_.guardianType ? TYPE_MOD[in_.guardianType] : "";
   const roleMod   = in_.role         ? ROLE_MOD[in_.role]         : "";
   const animMod   = in_.guardianType ? TYPE_ANIM[in_.guardianType] : "";
-  const ability   = in_.abilityName ? `signature ability: '${in_.abilityName}'` : "";
-  const loreLine  = in_.lore ? `lore hint: ${in_.lore}` : "";
+  const abilityTheme = in_.abilityName ? in_.abilityName.replace(/['"]/g, "") : "";
 
-  // Charakter-Archetyp in generischer Beschreibung (ohne Eigennamen-Referenzen)
+  // Deterministische Variation je Wächter-Name
+  const gender = detectGenderFromName(in_.name);
+  const hair   = nameHashPick(in_.name + ":hair",   gender === "female" ? HAIR_VARIANTS_FEMALE : HAIR_VARIANTS_MALE);
+  const armor  = nameHashPick(in_.name + ":armor",  ARMOR_MATERIALS);
+  const aura   = nameHashPick(in_.name + ":aura",   AURA_COLOR_POOL);
+  const effect = nameHashPick(in_.name + ":effect", EFFECT_MOTIFS);
+  const pose   = nameHashPick(in_.name + ":pose",   POSES);
+
+  const subjectBase = gender === "female"
+    ? "a single original female humanoid warrior character, clearly a woman with feminine silhouette"
+    : "a single original male humanoid warrior character, clearly a man with masculine silhouette";
+
   const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
 
+  // ══════ VIDEO-PROMPT ══════
   if (in_.mode === "video") {
-    // Veo 2 / Gemini Pro / Runway Gen-3 / Kling-tauglich.
-    // Struktur: Shot → Subject → Style-Hooks → Motion mit Rhythmus → Kamera → Licht → Umgebung → Negatives.
     return [
-      // 1) Shot-Spec
-      `Shot: a 5-second seamlessly looping cinematic idle clip, vertical 9:16 portrait composition, 1080x1920, 24 frames per second.`,
+      // 1) Shot-Spec — quadratisch und transparent, perfekt loopbar
+      `Shot: a 4-second perfectly seamless looping idle clip, square 1:1 composition, 1024x1024, 24 fps, fully TRANSPARENT BACKGROUND with alpha channel (NO BACKGROUND, the character floats on pure transparency).`,
       // 2) Subject
-      `Subject: a single original humanoid warrior character, full body visible, standing centered on a dark rooftop at night. The character is clearly a fully invented, fictional character design (not based on any existing franchise or person).`,
-      `The character wears a stylized mix of modern street-wear and light armor, with subtle engraved detailing.`,
-      archetypeHint && `Character traits: ${archetypeHint}.`,
+      `Subject: ${subjectBase}, full body visible, ${pose}, fully invented fictional character (not based on any existing franchise or celebrity).`,
+      `Hair and head: ${hair}.`,
+      `Armor and outfit: ${armor} — unique to this specific character, distinct from other warriors.`,
+      archetypeHint && `Character archetype traits: ${archetypeHint}.`,
       `Rarity and material feel: ${rarityMod}.`,
-      ability ? `Signature aura effect softly wrapping the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}. The aura pulses with the breathing rhythm.` : "",
-      loreLine,
-      // 3) Motion mit Rhythmus (Veo 2 mag Tempo-Hinweise)
-      `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), clothing and hair reacting to a gentle wind, weight planted"}.`,
-      `Movement is smooth, continuous, and gentle — no sudden actions, no camera cuts.`,
-      // 4) Kamera
-      `Camera: locked static medium-wide shot, no pan, no tilt, no zoom, no dolly. The character stays perfectly centered for the entire clip.`,
-      // 5) Licht (Veo reagiert gut auf Richtungs-Angaben)
-      `Lighting: teal cyan rim light from the character's left side, magenta-pink rim light from the right side, faint cool moonlight from above. Legendary characters also get warm gold rim highlights. Ambient particles (dust, sparks, mist) rise slowly around the character's feet.`,
-      // 6) Umgebung
-      `Background: deeply out-of-focus night cityscape, only soft blurred hints of distant neon and street lights in the far distance, heavy shadow. The background has very subtle parallax but never steals attention from the character.`,
-      // 7) Loop-Qualität — strikte Anweisung fuer saubere Loops
-      `The final frame must exactly match the first frame. Static poses at both start and end, identical character position and pose. The first and last frame must match so the clip loops seamlessly.`,
-      // 8) Negatives
+      // 3) Aura / Signature-FX — pro Wächter eigene Farbe
+      `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. The aura pulses gently in sync with breathing.`,
+      abilityTheme && `The aura also visually references the character's signature ability "${abilityTheme}".`,
+      `Additional effect: ${effect}.`,
+      // 4) Motion
+      `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), cloth, hair, and aura reacting to a steady gentle wind, weight planted"}. Smooth, continuous, no sudden actions.`,
+      // 5) Camera
+      `Camera: locked static medium-wide shot, no pan, no tilt, no zoom, no dolly, character perfectly centered the entire clip.`,
+      // 6) Seamless-Loop — ganz vorne + ganz hinten identisch
+      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets to frame 1 at the end. No frozen hold, no fade, no black — just a pure mathematical loop where frame_last = frame_first so the clip plays forever without a visible seam or stutter.`,
+      // 7) Negatives
+      `NO BACKGROUND. NO rooftop, NO city, NO sky, NO moon, NO ground. Character is rendered against pure transparent alpha channel only.`,
       `No audio, no sound, no music, no voice. Silent video only.`,
-      `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness. Fully original invented character.`,
+      `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
     ].filter(Boolean).join(" ");
   }
 
-  // Standbild-Prompt (Gemini / Midjourney / Canva Dream Lab / Imagen)
+  // ══════ IMAGE-PROMPT ══════
   return [
-    // 1) Shot-Spec
-    `Cinematic character key art portrait, square 1:1, 1024x1024, single subject, centered composition.`,
-    // 2) Subject
-    `Subject: a single original humanoid warrior character, full body visible, 3/4 view, heroic standing pose, confident gaze.`,
-    `The character wears a stylized mix of modern street-wear and light armor, with subtle engraved detailing. Fully invented, fictional character design (not based on any existing franchise or person).`,
-    archetypeHint && `Character traits: ${archetypeHint}.`,
+    `Cinematic character key art, square 1:1, 1024x1024, single subject, TRANSPARENT BACKGROUND (PNG with alpha channel, NO BACKGROUND — character floats on pure transparency).`,
+    `Subject: ${subjectBase}, full body visible, ${pose}, confident heroic expression. Fully invented fictional character (not based on any existing franchise or celebrity).`,
+    `Hair and head: ${hair}.`,
+    `Armor and outfit: ${armor} — unique and distinct, so this character does not look like any other warrior in the set.`,
+    archetypeHint && `Character archetype traits: ${archetypeHint}.`,
     `Rarity and material feel: ${rarityMod}.`,
-    ability ? `Signature aura effect softly wrapping the character, themed as: ${ability.replace("signature ability: '", "").replace(/'/g, "")}.` : "",
-    loreLine,
-    // 3) Umgebung
-    `Setting: dark rooftop at night, deeply out-of-focus city lights far in the background, heavy atmospheric shadow.`,
-    // 4) Licht
-    `Lighting: teal cyan rim light from the left, magenta-pink rim light from the right, faint cool moonlight from above. Warm gold rim highlights only for legendary characters. Slow-rising ambient particles (dust, sparks, mist) around the character.`,
-    // 5) Qualität
-    `High detail on face and hands, sharp focus on character, shallow depth of field.`,
-    // 6) Negatives
-    `No text, no captions, no logos, no watermark, no UI, no brand names, no celebrity likeness. Fully original invented character.`,
+    `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth.`,
+    abilityTheme && `Aura also visually references the character's signature ability "${abilityTheme}".`,
+    `Additional effect around the character: ${effect}.`,
+    `Lighting: ${aura.primary} rim light from the left, ${aura.secondary} rim light from the right, subtle top-light from above.`,
+    `High detail on face and hands, sharp focus on character, tight silhouette.`,
+    `NO BACKGROUND. NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor. Pure alpha transparency outside the character silhouette.`,
+    `No text, no captions, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
   ].filter(Boolean).join(" ");
 }
 
