@@ -22,6 +22,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/crews",       label: "👥 Crews" },
       { href: "/admin/territories", label: "🗺️ Territorien" },
       { href: "/admin/moderation",  label: "⚖️ Moderation" },
+      { href: "/admin/shop-reports", label: "⚠️ Shop-Reports" },
       { href: "/admin/support",     label: "🎫 Support-Tickets" },
       { href: "/admin/user-media",  label: "📸 User-Media" },
     ],

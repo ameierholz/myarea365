@@ -2032,6 +2032,9 @@ function ProfilTab({
           </div>
         )}
 
+        {/* ═══ SHOP-FAVORITEN ═══ */}
+        {p && <ShopFavoritesSection userId={p.id} />}
+
         {/* ═══ CREW — einheitlicher Block für Admin & Mitglied ═══ */}
         {(() => {
           const isAdmin = !!(myCrew && p && myCrew.owner_id === p.id);
@@ -3487,6 +3490,18 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   const [reviewBusy, setReviewBusy] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [ratingAgg, setRatingAgg] = useState<{ avg_rating: number; review_count: number } | null>(null);
+
+  // Rating-Aggregat laden
+  useEffect(() => {
+    (async () => {
+      const { data } = await sb.from("shop_reviews_agg")
+        .select("avg_rating, review_count")
+        .eq("business_id", shop.id)
+        .maybeSingle<{ avg_rating: number; review_count: number }>();
+      if (data) setRatingAgg(data);
+    })();
+  }, [shop.id, sb]);
 
   useEffect(() => {
     fetch(`/api/arena/status?business_id=${shop.id}`)
@@ -3521,6 +3536,12 @@ function ShopDetailModal({ shop, userXp, onClose }: {
       if (error) { await appAlert(`Fehler: ${error.message}`); return; }
       await appAlert("⭐ Danke für deine Bewertung!");
       setShowReview(false); setRating(0); setReviewText("");
+      // Aggregat neu laden, damit die Sterne-Anzeige sich sofort aktualisiert
+      const { data: agg } = await sb.from("shop_reviews_agg")
+        .select("avg_rating, review_count")
+        .eq("business_id", shop.id)
+        .maybeSingle<{ avg_rating: number; review_count: number }>();
+      if (agg) setRatingAgg(agg);
     } finally { setReviewBusy(false); }
   }
 
@@ -3597,8 +3618,16 @@ function ShopDetailModal({ shop, userXp, onClose }: {
         <div style={{ padding: "40px 20px 20px" }}>
           <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{shop.name}</div>
           <div style={{ color: MUTED, fontSize: 12, marginTop: 3, display: "flex", alignItems: "center", gap: 6 }}>
-            <span>⭐ 4.7</span>
-            <span style={{ color: MUTED, opacity: 0.7 }}>(83 Bewertungen)</span>
+            {ratingAgg && ratingAgg.review_count > 0 ? (
+              <>
+                <span>⭐ {Number(ratingAgg.avg_rating).toFixed(1)}</span>
+                <span style={{ color: MUTED, opacity: 0.7 }}>
+                  ({ratingAgg.review_count} {ratingAgg.review_count === 1 ? "Bewertung" : "Bewertungen"})
+                </span>
+              </>
+            ) : (
+              <span style={{ color: MUTED, opacity: 0.7 }}>Noch keine Bewertungen</span>
+            )}
           </div>
           {shop.address && (
             <div style={{
@@ -4265,6 +4294,111 @@ function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; c
         </div>
       )}
     </div>
+  );
+}
+
+type FavoriteShop = {
+  business_id: string;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  icon: string | null;
+  color: string | null;
+};
+
+function ShopFavoritesSection({ userId }: { userId: string }) {
+  const [favorites, setFavorites] = useState<FavoriteShop[] | null>(null);
+  const sb = createClient();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await sb.from("shop_favorites")
+        .select("business_id, business:business_id(id, name, address, lat, lng, icon, color)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      type Row = { business_id: string; business: { id: string; name: string; address: string | null; lat: number; lng: number; icon: string | null; color: string | null } | { id: string; name: string; address: string | null; lat: number; lng: number; icon: string | null; color: string | null }[] | null };
+      const rows = (data ?? []) as Row[];
+      setFavorites(rows.map((r) => {
+        const b = Array.isArray(r.business) ? r.business[0] : r.business;
+        if (!b) return null;
+        return {
+          business_id: r.business_id,
+          name: b.name,
+          address: b.address,
+          lat: b.lat,
+          lng: b.lng,
+          icon: b.icon,
+          color: b.color,
+        };
+      }).filter((x): x is FavoriteShop => x !== null));
+    })();
+    return () => { cancelled = true; };
+  }, [userId, sb]);
+
+  async function remove(bid: string) {
+    await sb.from("shop_favorites").delete().eq("user_id", userId).eq("business_id", bid);
+    setFavorites((prev) => prev?.filter((f) => f.business_id !== bid) ?? null);
+  }
+
+  if (!favorites || favorites.length === 0) return null;
+
+  return (
+    <>
+      <SectionHeader title="SHOP-FAVORITEN" action={
+        <span style={{ color: MUTED, fontSize: 11, fontWeight: 700 }}>{favorites.length} gespeichert</span>
+      } />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {favorites.map((f) => (
+          <div key={f.business_id} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "10px 12px", borderRadius: 12,
+            background: "rgba(70, 82, 122, 0.35)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+              background: `${f.color ?? PRIMARY}22`,
+              border: `1px solid ${f.color ?? PRIMARY}66`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 22,
+            }}>{f.icon ?? "🏪"}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.name}</div>
+              {f.address && (
+                <div style={{ color: MUTED, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.address}</div>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+                const url = isApple
+                  ? `http://maps.apple.com/?daddr=${f.lat},${f.lng}&q=${encodeURIComponent(f.name)}`
+                  : `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+              aria-label="Route anzeigen"
+              style={{
+                padding: "6px 10px", borderRadius: 8,
+                background: "rgba(34,209,195,0.15)", border: "1px solid rgba(34,209,195,0.4)",
+                color: "#22D1C3", fontSize: 12, fontWeight: 800, cursor: "pointer", flexShrink: 0,
+              }}
+            >🧭</button>
+            <button
+              onClick={() => remove(f.business_id)}
+              aria-label="Favorit entfernen"
+              style={{
+                padding: "6px 10px", borderRadius: 8,
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                color: MUTED, fontSize: 14, fontWeight: 800, cursor: "pointer", flexShrink: 0,
+              }}
+            >✕</button>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
