@@ -566,7 +566,12 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const upload = async (file: File) => {
     setBusy(true); setErr(null);
     try {
-      console.log("[artwork-upload]", { archetype: a.id, name: file.name, type: file.type, size: file.size });
+      const sizeMb = file.size / (1024 * 1024);
+      console.log("[artwork-upload]", { archetype: a.id, name: file.name, type: file.type, sizeMb: sizeMb.toFixed(2) });
+      if (sizeMb > 50) {
+        const msg = `Datei ist ${sizeMb.toFixed(1)} MB — über dem 50-MB-Limit. Komprimier das Video (z.B. mit HandBrake) auf unter 50 MB.`;
+        setErr(msg); alert(msg); return;
+      }
       const result = await uploadArtworkDirect(file, "archetype", a.id);
       if (!result.ok) {
         console.error("[artwork-upload] failed", result.error);
@@ -574,6 +579,7 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
         alert(`Upload-Fehler für "${a.name}":\n\n${result.error}`);
       } else {
         console.log("[artwork-upload] ok", result);
+        setCacheBust(Date.now());
         onChange();
       }
     } catch (e) {
@@ -602,6 +608,10 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const hasImage = !!a.image_url;
   const hasVideo = !!a.video_url;
   const done = hasImage || hasVideo;
+  // Cache-Buster — gleicher Pfad beim Re-Upload, sonst zeigt Browser die alte Version
+  const [cacheBust, setCacheBust] = useState(() => Date.now());
+  const imgSrc = hasImage ? `${a.image_url}?v=${cacheBust}` : undefined;
+  const vidSrc = hasVideo ? `${a.video_url}?v=${cacheBust}` : undefined;
 
   return (
     <div className={`rounded-xl overflow-hidden transition ${done ? "border-[#4ade80]/50" : "border-white/10"}`}
@@ -609,12 +619,12 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
       {/* Preview: Video > Image > Fallback */}
       <div className="aspect-square bg-[#0F1115] flex items-center justify-center relative overflow-hidden">
         {hasVideo ? (
-          <video src={a.video_url!} poster={a.image_url ?? undefined}
+          <video src={vidSrc} poster={imgSrc}
             autoPlay loop muted playsInline
             className="w-full h-full object-cover" />
         ) : hasImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={a.image_url!} alt={a.name} className="w-full h-full object-cover" />
+          <img src={imgSrc} alt={a.name} className="w-full h-full object-cover" />
         ) : (
           <>
             <div className="text-7xl opacity-20">{a.emoji}</div>
