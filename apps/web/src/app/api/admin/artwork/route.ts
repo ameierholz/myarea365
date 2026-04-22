@@ -87,7 +87,7 @@ export async function POST(req: Request) {
   const safeId = targetId.replace(/[^a-z0-9_-]/gi, "_");
   const isVideo = (file.type || "").startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
   const folder = targetType === "archetype"
-    ? (isVideo ? "archetypes/video" : "archetypes")
+    ? "archetypes"
     : "items";
   const path = `${folder}/${safeId}.${ext}`;
 

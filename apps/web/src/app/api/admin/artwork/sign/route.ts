@@ -44,15 +44,17 @@ export async function POST(req: Request) {
   const variant = body.variant && ["neutral","male","female"].includes(body.variant) ? body.variant : "neutral";
   const isVideo = (body.content_type || "").startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
 
+  // Bild + Video liegen im selben Folder — unterscheiden sich über die Endung.
+  // Die alte Subfolder-Trennung (/video/) hatte Bucket-Policy-Probleme bei neuen Pfaden.
   const folderMap: Record<string, string> = {
-    archetype: isVideo ? "archetypes/video" : "archetypes",
+    archetype: "archetypes",
     item:      "items",
-    marker:    isVideo ? "markers/video" : "markers",
-    light:     isVideo ? "lights/video" : "lights",
-    pin_theme: isVideo ? "pin-themes/video" : "pin-themes",
-    siegel:    isVideo ? "siegel/video" : "siegel",
-    potion:    isVideo ? "potions/video" : "potions",
-    rank:      isVideo ? "ranks/video" : "ranks",
+    marker:    "markers",
+    light:     "lights",
+    pin_theme: "pin-themes",
+    siegel:    "siegel",
+    potion:    "potions",
+    rank:      "ranks",
   };
   const folder = folderMap[body.target_type] ?? "items";
   const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;
