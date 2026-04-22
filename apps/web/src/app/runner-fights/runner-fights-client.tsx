@@ -577,7 +577,7 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 6,
           }}>
-            {SLOT_ORDER.map((s) => {
+            {SLOT_ORDER.map((s, idx) => {
               const eq = equippedMap.get(s.key);
               const tier = eq?.upgrade_tier ?? 0;
               const tierColor = TIER_COLORS[Math.max(0, Math.min(3, tier))];
@@ -585,6 +585,8 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
               const bonusSummary = eq ? summarizeBonus(eq, tier) : null;
               const isOpen = openSlot === s.key;
               const available = myGuardian.inventory_by_slot[s.key] ?? [];
+              // Popover nach links öffnen für die rechten ~40% der Slots (verhindert Clipping am Modal-Rand)
+              const anchorRight = idx >= Math.floor(SLOT_ORDER.length * 0.6);
 
               return (
                 <div key={s.key} style={{ position: "relative" }}>
@@ -636,6 +638,7 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
                       slotLabel={s.label}
                       available={available}
                       equippedId={eq?.user_item_id ?? null}
+                      anchorRight={anchorRight}
                       onPick={equip}
                       onUnequip={eq ? () => unequip(s.key) : null}
                       onClose={() => setOpenSlot(null)}
@@ -664,10 +667,11 @@ function summarizeBonus(it: EquippedItem, tier: number): string | null {
   return parts.length ? parts.join(" · ") : null;
 }
 
-function SlotPicker({ slotLabel, available, equippedId, onPick, onUnequip, onClose }: {
+function SlotPicker({ slotLabel, available, equippedId, anchorRight, onPick, onUnequip, onClose }: {
   slotLabel: string;
   available: EquippedItem[];
   equippedId: string | null;
+  anchorRight?: boolean;
   onPick: (id: string) => void;
   onUnequip: (() => void) | null;
   onClose: () => void;
@@ -676,8 +680,10 @@ function SlotPicker({ slotLabel, available, equippedId, onPick, onUnequip, onClo
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
       <div style={{
-        position: "absolute", zIndex: 51, top: "100%", left: 0, right: 0, marginTop: 4,
-        minWidth: 220,
+        position: "absolute", zIndex: 51, top: "100%",
+        ...(anchorRight ? { right: 0 } : { left: 0 }),
+        marginTop: 4,
+        width: 240, maxWidth: "min(240px, calc(100vw - 40px))",
         background: "linear-gradient(180deg, #1a1d23 0%, #0f1115 100%)",
         border: "1px solid rgba(255,215,0,0.4)",
         borderRadius: 10,
