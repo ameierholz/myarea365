@@ -637,7 +637,8 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
         {hasVideo ? (
           <video src={vidSrc} poster={imgSrc}
             autoPlay loop muted playsInline
-            className="w-full h-full object-cover" />
+            className="w-full h-full object-cover"
+            style={{ filter: "url(#ma365-chroma-black)" }} />
         ) : hasImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imgSrc} alt={a.name} className="w-full h-full object-cover" />

@@ -13,6 +13,7 @@ import { AppDialogProvider } from "@/components/app-dialog";
 import { PinThemeStyles } from "@/components/pin-theme-styles";
 import { LegalFooter } from "@/components/legal-footer";
 import { LegalModal } from "@/components/legal-modal";
+import { GlobalSvgFilters } from "@/components/global-svg-filters";
 
 export const metadata: Metadata = {
   title: {
@@ -50,6 +51,7 @@ export default async function RootLayout({
         <ReferralCapture />
         <AppDialogProvider />
         <PinThemeStyles />
+        <GlobalSvgFilters />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
           <LegalFooter />
