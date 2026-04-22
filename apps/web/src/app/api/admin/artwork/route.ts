@@ -67,8 +67,22 @@ export async function POST(req: Request) {
     const updatePayload = (body.is_video && body.target_type === "archetype")
       ? { video_url: publicUrl }
       : { image_url: publicUrl };
-    const { error: dbErr } = await sb.from(table).update(updatePayload).eq("id", body.target_id);
-    if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+    // .select() gibt die tatsächlich geschriebene Zeile zurück — wir validieren gegen die Spalte
+    const { data: updatedRows, error: dbErr } = await sb.from(table).update(updatePayload).eq("id", body.target_id).select();
+    if (dbErr) return NextResponse.json({ error: dbErr.message, hint: dbErr.message?.includes("column") ? "Migration 00036_artwork_columns.sql im Supabase SQL Editor ausführen." : undefined }, { status: 500 });
+    if (!updatedRows || updatedRows.length === 0) {
+      return NextResponse.json({ error: `kein Eintrag mit id="${body.target_id}" in ${table}` }, { status: 404 });
+    }
+    // Sicherheitscheck: wurde die Spalte wirklich persistiert?
+    const row = updatedRows[0] as Record<string, unknown>;
+    const expectedCol = body.is_video && body.target_type === "archetype" ? "video_url" : "image_url";
+    if (row[expectedCol] !== publicUrl) {
+      return NextResponse.json({
+        error: `DB-Update lief durch, aber ${expectedCol} wurde nicht gesetzt (Spalte existiert vermutlich nicht). Migration 00036_artwork_columns.sql im Supabase SQL Editor ausführen.`,
+        got: row[expectedCol],
+        expected: publicUrl,
+      }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true, image_url: body.is_video ? null : publicUrl, video_url: body.is_video ? publicUrl : null, is_video: body.is_video });
   }
