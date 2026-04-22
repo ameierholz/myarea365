@@ -247,10 +247,12 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
 
       {/* Demo + Info-Zeile */}
       <div style={{ padding: "0 18px 10px", display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
-        <button onClick={() => setDemoSeason(true)} style={{
-          padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
-          background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.4)", color: "#c084fc",
-        }}>🎬 Wächter-Wahl</button>
+        {!data.my_guardian && (
+          <button onClick={() => setDemoSeason(true)} style={{
+            padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
+            background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.4)", color: "#c084fc",
+          }}>🎬 Wächter-Wahl</button>
+        )}
         <PrestigeDemoButton />
         <GuardianExplainerButton />
       </div>
