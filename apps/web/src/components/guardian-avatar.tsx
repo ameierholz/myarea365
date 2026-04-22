@@ -51,24 +51,57 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoRef2 = useRef<HTMLVideoElement>(null);
 
-  // Crossfade-Loop: 2 Videos leicht versetzt, eins faded raus, das andere rein.
-  // Verdeckt Nahtstelle bei nicht-perfekten Loops (z.B. Gemini/Runway-Output).
-  // Überlappung = 0.6s am Ende.
-  const CROSSFADE_SECONDS = 0.6;
-  const [useFadeLoop, setUseFadeLoop] = useState(false);
-  const [topOnA, setTopOnA] = useState(true); // welches Video oben liegt
+  // Crossfade-Loop: 2 Videos versetzt um Duration/2 mit sanfter Opacity-Überblendung.
+  // Veo/Gemini liefern Loops nicht immer frame-genau — der Crossfade maskiert jeden Sprung.
+  const FADE_SECONDS = 0.4;
+  const useFadeLoop = !!archetype.video_url && variant === "idle";
 
   useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.currentTime = 0;
-    v.loop = variant === "idle"; // einfacher nativer Loop — Prompt verlangt nahtlos
-    void v.play().catch(() => {});
+    const a = videoRef.current;
+    if (!a) return;
+    a.currentTime = 0;
+    a.loop = variant === "idle";
+    void a.play().catch(() => {});
   }, [variant, animation]);
 
-  // Crossfade deaktiviert — Prompt garantiert bereits seamless Loop.
-  useEffect(() => { setUseFadeLoop(false); }, [archetype.video_url, variant]);
-  void setTopOnA; // stabilisiert, ignorier
+  // Crossfade: zweites Video läuft um duration/2 versetzt, Opacity wird per RAF animiert
+  useEffect(() => {
+    if (!useFadeLoop) return;
+    const a = videoRef.current;
+    const b = videoRef2.current;
+    if (!a || !b) return;
+    a.loop = true; b.loop = true;
+    b.muted = true;
+
+    let raf = 0;
+    let metaReady = false;
+    const onMetaA = () => {
+      metaReady = true;
+      const d = a.duration;
+      if (d && isFinite(d)) {
+        b.currentTime = d / 2;
+        void b.play().catch(() => {});
+      }
+    };
+    if (a.readyState >= 1) onMetaA(); else a.addEventListener("loadedmetadata", onMetaA);
+
+    const tick = () => {
+      if (metaReady) {
+        const d = a.duration || 4;
+        const fade = FADE_SECONDS;
+        const edge = (t: number) => (t < fade ? t / fade : t > d - fade ? Math.max(0, (d - t) / fade) : 1);
+        a.style.opacity = String(edge(a.currentTime));
+        b.style.opacity = String(edge(b.currentTime));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      a.removeEventListener("loadedmetadata", onMetaA);
+    };
+  }, [useFadeLoop, archetype.video_url]);
 
   if (useVideo && !videoFailed) {
     return (
@@ -82,7 +115,9 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
         }}
       >
         {/* SVG-Chroma-Key: macht schwarze Video-Pixel echt transparent.
-            Alpha = (R+G+B) - Threshold. Schwarz → alpha 0, Charakter → voll sichtbar. */}
+            Schritt 1: alpha = R+G+B
+            Schritt 2: harte Kurve mit feComponentTransfer → nur WIRKLICH schwarze Pixel
+            werden transparent, dunkle Farben bleiben voll opak. */}
         <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
           <defs>
             <filter id="ma365-chroma-black" colorInterpolationFilters="sRGB">
@@ -90,8 +125,11 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
                 1 0 0 0 0
                 0 1 0 0 0
                 0 0 1 0 0
-                1 1 1 0 -0.12
+                1 1 1 0 0
               " />
+              <feComponentTransfer>
+                <feFuncA type="linear" slope="40" intercept="-0.6" />
+              </feComponentTransfer>
             </filter>
           </defs>
         </svg>
@@ -125,27 +163,30 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
               archetype.video_url ? "url(#ma365-chroma-black)" : "",
               animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "",
             ].filter(Boolean).join(" ") || "none",
-            opacity: useFadeLoop && !topOnA ? 0 : 1,
-            transition: `opacity ${CROSSFADE_SECONDS}s linear`,
-            zIndex: topOnA ? 2 : 1,
+            // Opacity wird live per RAF gesetzt (siehe useEffect), initial sichtbar
+            opacity: 1,
+            zIndex: 1,
           }}
         />
-        {/* Zweites Video fuer Crossfade-Loop (nur aktiv bei externen MP4s) */}
+        {/* Zweites Video für Crossfade-Loop — läuft um Duration/2 versetzt */}
         {useFadeLoop && (
           <video
             ref={videoRef2}
             src={videoSrc}
             muted
             playsInline
-            loop={false}
+            loop={true}
             style={{
               position: "absolute", inset: 0,
               width: "100%", height: "100%",
               objectFit: fillMode,
               transform: flip,
-              opacity: topOnA ? 0 : 1,
-              transition: `opacity ${CROSSFADE_SECONDS}s linear`,
-              zIndex: topOnA ? 1 : 2,
+              filter: [
+                archetype.video_url ? "url(#ma365-chroma-black)" : "",
+                animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "",
+              ].filter(Boolean).join(" ") || "none",
+              opacity: 0,
+              zIndex: 1,
             }}
           />
         )}
