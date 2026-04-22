@@ -87,6 +87,24 @@ type SeasonInfo = {
   needs_pick: boolean;
 };
 
+const DEMO_SEASON: SeasonInfo = {
+  ok: true,
+  season: {
+    id: "demo-season",
+    number: 1,
+    name: "Saison der Klingen (DEMO)",
+    starts_at: new Date(Date.now() - 12 * 86400_000).toISOString(),
+    ends_at:   new Date(Date.now() + 78 * 86400_000).toISOString(),
+    status: "active",
+  },
+  seasonal_guardian: null,
+  eternal_guardian: {
+    id: "demo-eternal",
+    guardian_archetypes: { name: "Aegon der Standhafte", emoji: "🛡️" },
+  },
+  needs_pick: true,
+};
+
 export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boolean; onClose?: () => void } = {}) {
   const [data, setData] = useState<OpponentsResponse | null>(null);
   const [season, setSeason] = useState<SeasonInfo | null>(null);
@@ -94,6 +112,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
   const [fighting, setFighting] = useState<Opponent | null>(null);
   const [result, setResult] = useState<AttackResult | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [demoSeason, setDemoSeason] = useState(false);
 
   async function reload(refresh = false) {
     setLoading(true);
@@ -150,6 +169,20 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
     return <W><div className="p-10 text-center text-[#8B8FA3]">Lade Gegner …</div></W>;
   }
 
+  if (demoSeason) {
+    return (
+      <W>
+        <SeasonPicker
+          season={DEMO_SEASON.season!}
+          eternal={DEMO_SEASON.eternal_guardian}
+          demoMode
+          onPicked={() => { setDemoSeason(false); void reload(); }}
+          onClose={() => setDemoSeason(false)}
+        />
+      </W>
+    );
+  }
+
   if (season?.season && season.needs_pick) {
     return (
       <W>
@@ -203,6 +236,15 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
         nextCost={nextCost}
         onChanged={() => reload()}
       />
+
+      {/* Demo + Info-Zeile */}
+      <div style={{ padding: "0 18px 10px", display: "flex", gap: 8, justifyContent: "center" }}>
+        <button onClick={() => setDemoSeason(true)} style={{
+          padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
+          background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.4)", color: "#c084fc",
+        }}>🎬 Demo: 2-Wächter-Flow</button>
+        <GuardianExplainerButton />
+      </div>
 
       {nextCost === -1 && (
         <div className="mb-3 p-3 rounded-xl bg-[#FF2D78]/10 border border-[#FF2D78]/30 text-sm text-[#FF2D78] font-bold">
@@ -1188,22 +1230,40 @@ function RewardTile({ icon, label, value, color }: { icon: string; label: string
 /* ═══ Season Picker (Saison-Wächter wählen) ═══ */
 type Archetype = { id: string; name: string; emoji: string; rarity: string; guardian_type: string | null; role: string | null; ability_name: string; ability_desc: string };
 
-function SeasonPicker({ season, eternal, onPicked, onClose }: {
+const DEMO_ARCHETYPES: Archetype[] = [
+  { id: "d1", name: "Nyx die Schattenklinge", emoji: "🗡️", rarity: "legendary", guardian_type: "cavalry",  role: "Assassin",  ability_name: "Schattenstoß",  ability_desc: "Erster Angriff trifft doppelt." },
+  { id: "d2", name: "Titan der Unbezwingbare", emoji: "🛡️", rarity: "epic",      guardian_type: "infantry", role: "Tank",      ability_name: "Mauer",          ability_desc: "Halbiert erlittenen Schaden in Runde 1." },
+  { id: "d3", name: "Zephyr der Schütze",     emoji: "🏹", rarity: "epic",      guardian_type: "marksman", role: "Sniper",    ability_name: "Durchschuss",    ability_desc: "Ignoriert 30% der gegnerischen Verteidigung." },
+  { id: "d4", name: "Ember die Flamme",       emoji: "🔥", rarity: "legendary", guardian_type: "mage",     role: "Burst",     ability_name: "Feuersbrunst",   ability_desc: "Brennt den Gegner über 3 Runden." },
+  { id: "d5", name: "Kael der Wachhund",      emoji: "🐺", rarity: "elite",     guardian_type: "infantry", role: "Bruiser",   ability_name: "Bissfest",       ability_desc: "Heilt pro Treffer 8% HP." },
+  { id: "d6", name: "Shade die Listige",      emoji: "🌙", rarity: "elite",     guardian_type: "cavalry",  role: "Duelist",   ability_name: "Ausweichen",     ability_desc: "25% Chance Angriff zu kontern." },
+];
+
+function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
   season: { id: string; number: number; name: string; ends_at: string };
   eternal: { id: string; guardian_archetypes: { name: string; emoji: string } } | null;
   onPicked: () => void;
   onClose?: () => void;
+  demoMode?: boolean;
 }) {
   const [archetypes, setArchetypes] = useState<Archetype[] | null>(null);
   const [pickingId, setPickingId] = useState<string | null>(null);
+  const [showExplainer, setShowExplainer] = useState(false);
 
   useEffect(() => {
+    if (demoMode) { setArchetypes(DEMO_ARCHETYPES); return; }
     void fetch("/api/arena/season/pick", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => setArchetypes(j.archetypes ?? []));
-  }, []);
+  }, [demoMode]);
 
   async function pick(archetypeId: string) {
+    if (demoMode) {
+      const a = DEMO_ARCHETYPES.find((x) => x.id === archetypeId);
+      alert(`🎬 Demo: „${a?.name}" wäre jetzt dein Saison-Wächter (Level 1).\nDein Ewiger Wächter bleibt unberührt, erbt aber alle Items die du diese Saison looten würdest.`);
+      onPicked();
+      return;
+    }
     if (!confirm("Diesen Wächter für die gesamte Saison einsetzen? Er startet bei Level 1.")) return;
     setPickingId(archetypeId);
     const res = await fetch("/api/arena/season/pick", {
@@ -1233,6 +1293,13 @@ function SeasonPicker({ season, eternal, onPicked, onClose }: {
       )}
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
+        {demoMode && (
+          <div style={{
+            display: "inline-block", padding: "3px 10px", borderRadius: 999,
+            background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.5)",
+            color: "#c084fc", fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 8,
+          }}>🎬 DEMO-MODUS</div>
+        )}
         <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3 }}>
           SAISON {season.number} · {season.name.toUpperCase()}
         </div>
@@ -1240,11 +1307,21 @@ function SeasonPicker({ season, eternal, onPicked, onClose }: {
           ⚔️ Wähle deinen Saison-Wächter
         </div>
         <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 6, maxWidth: 540, margin: "6px auto 0" }}>
-          Dein <b style={{ color: "#22D1C3" }}>Saison-Wächter</b> startet bei Level 1 und kämpft in der Arena dieser Saison.
-          Dein <b style={{ color: "#FFD700" }}>Ewiger Wächter</b> bleibt unberührt — alle Items die du hier loots wandern automatisch in sein Inventar.
+          Dein <b style={{ color: "#22D1C3" }}>Saison-Wächter</b> kämpft in dieser Saison und startet bei Level 1.
+          Dein <b style={{ color: "#FFD700" }}>Ewiger Wächter</b> bleibt unberührt und erbt die Items.
           Noch <b>{daysLeft} Tage</b>.
         </div>
+        <button
+          onClick={() => setShowExplainer((v) => !v)}
+          style={{
+            marginTop: 10, padding: "5px 12px", borderRadius: 999,
+            background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.35)",
+            color: "#22D1C3", fontSize: 11, fontWeight: 800, cursor: "pointer",
+          }}
+        >{showExplainer ? "Weniger anzeigen" : "❓ Wie funktioniert das genau?"}</button>
       </div>
+
+      {showExplainer && <GuardianExplainer />}
 
       {eternal && (
         <div style={{
@@ -1304,6 +1381,151 @@ function SeasonPicker({ season, eternal, onPicked, onClose }: {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ═══ Erklär-Komponenten: „Warum 2 Wächter?" ═══ */
+
+function GuardianExplainerButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
+          background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.35)", color: "#22D1C3",
+        }}
+      >❓ Warum 2 Wächter?</button>
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 560, width: "100%", maxHeight: "90vh", overflowY: "auto",
+              background: "linear-gradient(180deg, #1a0e14 0%, #0a0a0f 100%)",
+              border: "1px solid rgba(255,215,0,0.4)", borderRadius: 16, padding: 20,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>🛡️⚔️ Die zwei Wächter</div>
+              <button onClick={() => setOpen(false)} style={{
+                background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
+                width: 30, height: 30, borderRadius: 999, cursor: "pointer", fontSize: 16,
+              }}>✕</button>
+            </div>
+            <GuardianExplainer />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function GuardianExplainer() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, margin: "0 auto 18px", maxWidth: 540 }}>
+      <div style={{
+        padding: 14, borderRadius: 12,
+        background: "rgba(34,209,195,0.06)", border: "1px solid rgba(34,209,195,0.25)",
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 6 }}>WARUM ÜBERHAUPT ZWEI?</div>
+        <div style={{ fontSize: 13, color: "#dde3f5", lineHeight: 1.55 }}>
+          In jeder <b>Arena-Saison</b> (ca. 90 Tage) starten alle Runner mit einem frischen
+          Saison-Wächter auf Level 1. Das sorgt für faire Kämpfe — niemand wird von Level-200-Veteranen
+          überrannt. Gleichzeitig <b>bleibt deine Sammlung erhalten</b>: dein Ewiger Wächter und alle
+          deine Items gehen nie verloren.
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{
+          padding: 12, borderRadius: 12,
+          background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.3)",
+        }}>
+          <div style={{ fontSize: 22, marginBottom: 4 }}>🛡️</div>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>EWIGER WÄCHTER</div>
+          <div style={{ fontSize: 12, color: "#dde3f5", marginTop: 4, lineHeight: 1.5 }}>
+            Dein <b>Haupt-Wächter</b>. Bleibt saisonübergreifend. Sammelt automatisch
+            <b style={{ color: "#FFD700" }}> alle Items</b>, die du während der Saison loots.
+            Wird <b>stärker</b> mit jeder Saison.
+          </div>
+        </div>
+
+        <div style={{
+          padding: 12, borderRadius: 12,
+          background: "rgba(34,209,195,0.06)", border: "1px solid rgba(34,209,195,0.3)",
+        }}>
+          <div style={{ fontSize: 22, marginBottom: 4 }}>⚔️</div>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3" }}>SAISON-WÄCHTER</div>
+          <div style={{ fontSize: 12, color: "#dde3f5", marginTop: 4, lineHeight: 1.5 }}>
+            Dein <b>Kampf-Wächter</b> für diese Saison. Startet bei <b>Level 1</b>.
+            Alle seine Siege bringen dir <b>Saison-Prestige</b>. Wird am Saisonende
+            <b> archiviert</b> — nicht gelöscht.
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        padding: 14, borderRadius: 12,
+        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#FFD700", marginBottom: 8 }}>SO FUNKTIONIERT&apos;S</div>
+        <Step num="1" title="Saison startet">
+          Du wählst aus deiner Wächter-Sammlung einen für diese Saison. Er startet bei Level 1.
+        </Step>
+        <Step num="2" title="Du kämpfst & lootest">
+          Jeder Sieg gibt deinem Saison-Wächter XP. Alle Items, Siegel und Drops wandern
+          automatisch in das Inventar deines <b style={{ color: "#FFD700" }}>Ewigen Wächters</b>.
+        </Step>
+        <Step num="3" title="Saison endet">
+          Dein Saison-Wächter wird ins Archiv gelegt (du kannst ihn später ansehen).
+          Dein Ewiger Wächter bekommt Prestige-Punkte — dauerhafte Bonus-Stats.
+        </Step>
+        <Step num="4" title="Neue Saison, gleiches Ritual" last>
+          Du wählst erneut. Aus deiner Sammlung — vielleicht diesmal ein anderer Typ,
+          um das Meta zu kontern.
+        </Step>
+      </div>
+
+      <div style={{
+        padding: 10, borderRadius: 10,
+        background: "rgba(168,85,247,0.06)", border: "1px solid rgba(168,85,247,0.25)",
+        color: "#c084fc", fontSize: 11, lineHeight: 1.5,
+      }}>
+        💡 <b>Wichtig:</b> Items bleiben IMMER bei dir. Der Saison-Reset betrifft nur Level, Talente
+        und Ausrüstungs-Slots deines Saison-Wächters — nie dein Inventar.
+      </div>
+    </div>
+  );
+}
+
+function Step({ num, title, children, last }: { num: string; title: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <div style={{
+      display: "flex", gap: 10, paddingBottom: last ? 0 : 10,
+      borderBottom: last ? "none" : "1px solid rgba(255,255,255,0.05)",
+      marginBottom: last ? 0 : 10,
+    }}>
+      <div style={{
+        flexShrink: 0, width: 24, height: 24, borderRadius: 999,
+        background: "linear-gradient(135deg, #22D1C3, #FFD700)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 12, fontWeight: 900, color: "#0F1115",
+      }}>{num}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginBottom: 2 }}>{title}</div>
+        <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5 }}>{children}</div>
+      </div>
     </div>
   );
 }
