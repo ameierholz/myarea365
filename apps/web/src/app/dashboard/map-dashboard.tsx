@@ -3476,6 +3476,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   onClose: () => void;
 }) {
   const color = shop.color || "#FFD700";
+  const sb = createClient();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [redeemOpen, setRedeemOpen] = useState(false);
@@ -3483,6 +3484,9 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   const [arenaStatus, setArenaStatus] = useState<{ arena: { id: string } | null; i_eligible: boolean; i_redeemed_myself: boolean; crew_eligible: boolean } | null>(null);
   const [reviewText, setReviewText] = useState("");
   const [showReview, setShowReview] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     fetch(`/api/arena/status?business_id=${shop.id}`)
@@ -3490,6 +3494,56 @@ function ShopDetailModal({ shop, userXp, onClose }: {
       .then((d) => { if (d) setArenaStatus(d); })
       .catch(() => {});
   }, [shop.id]);
+
+  // Favorit-Status laden
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { data } = await sb.from("shop_favorites")
+        .select("business_id").eq("user_id", user.id).eq("business_id", shop.id).maybeSingle();
+      setIsFavorite(!!data);
+    })();
+  }, [shop.id, sb]);
+
+  async function submitReview() {
+    if (rating === 0) return;
+    setReviewBusy(true);
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { await appAlert("Bitte einloggen, um zu bewerten."); return; }
+      const { error } = await sb.from("shop_reviews").upsert({
+        business_id: shop.id,
+        user_id: user.id,
+        rating,
+        comment: reviewText.trim() || null,
+      }, { onConflict: "business_id,user_id" });
+      if (error) { await appAlert(`Fehler: ${error.message}`); return; }
+      await appAlert("⭐ Danke für deine Bewertung!");
+      setShowReview(false); setRating(0); setReviewText("");
+    } finally { setReviewBusy(false); }
+  }
+
+  async function toggleFavorite() {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { await appAlert("Bitte einloggen, um zu favorisieren."); return; }
+    if (isFavorite) {
+      await sb.from("shop_favorites").delete().eq("user_id", user.id).eq("business_id", shop.id);
+      setIsFavorite(false);
+    } else {
+      await sb.from("shop_favorites").upsert({ user_id: user.id, business_id: shop.id });
+      setIsFavorite(true);
+    }
+  }
+
+  function openRoute() {
+    // Cross-Platform: öffnet native Maps-App (iOS→Apple Maps, sonst Google Maps)
+    const isApple = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+    const url = isApple
+      ? `http://maps.apple.com/?daddr=${shop.lat},${shop.lng}&q=${encodeURIComponent(shop.name)}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}&destination_place_id=${encodeURIComponent(shop.name)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
   return (
     <div
       onClick={onClose}
@@ -3719,11 +3773,8 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                     Abbrechen
                   </button>
                   <button
-                    disabled={rating === 0}
-                    onClick={() => {
-                      appAlert(`Bewertung abgegeben: ${rating}★${reviewText ? `\n"${reviewText}"` : ""}\n(wird mit DB verknüpft)`);
-                      setShowReview(false); setRating(0); setReviewText("");
-                    }}
+                    disabled={rating === 0 || reviewBusy}
+                    onClick={submitReview}
                     style={{
                       flex: 2, padding: "8px 12px", borderRadius: 10,
                       background: rating > 0 ? color : "rgba(255,255,255,0.08)",
@@ -3731,9 +3782,10 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                       border: "none",
                       fontSize: 12, fontWeight: 900,
                       cursor: rating > 0 ? "pointer" : "not-allowed",
+                      opacity: reviewBusy ? 0.6 : 1,
                     }}
                   >
-                    ⭐ Bewertung abgeben
+                    {reviewBusy ? "…" : "⭐ Bewertung abgeben"}
                   </button>
                 </div>
               </>
@@ -3753,20 +3805,34 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           {/* Aktionen */}
           <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <button
-              onClick={() => appAlert("Route zum Shop auf Karte (folgt)")}
+              onClick={openRoute}
               style={{ ...actionBtnStyle(), flex: 1 }}
             >🧭 Route anzeigen</button>
             <button
-              onClick={() => appAlert("Als Favorit markieren (folgt)")}
-              style={actionBtnStyle()}
-            >⭐</button>
+              onClick={toggleFavorite}
+              aria-label={isFavorite ? "Favorit entfernen" : "Als Favorit markieren"}
+              style={{
+                ...actionBtnStyle(),
+                background: isFavorite ? `${color}33` : undefined,
+                border: isFavorite ? `1px solid ${color}` : undefined,
+                color: isFavorite ? color : undefined,
+              }}
+            >{isFavorite ? "★" : "⭐"}</button>
             <button
-              onClick={() => appAlert("Shop melden / Feedback (folgt)")}
+              onClick={() => setReportOpen(true)}
+              aria-label="Shop melden"
               style={actionBtnStyle()}
             >⚠️</button>
           </div>
         </div>
       </div>
+
+      {reportOpen && (
+        <ReportShopModal
+          shop={shop}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
 
       {redeemOpen && (
         <RedeemFlow
@@ -3785,6 +3851,123 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           onClose={() => setArenaOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+const REPORT_REASONS: Array<{ id: "wrong_info" | "closed" | "spam" | "inappropriate" | "unfriendly" | "not_honored" | "other"; label: string; icon: string }> = [
+  { id: "wrong_info",    label: "Info stimmt nicht",       icon: "📝" },
+  { id: "closed",        label: "Shop ist geschlossen",     icon: "🚫" },
+  { id: "not_honored",   label: "Deal wurde nicht eingelöst", icon: "❌" },
+  { id: "unfriendly",    label: "Unhöflicher Umgang",        icon: "😠" },
+  { id: "inappropriate", label: "Unangemessener Inhalt",     icon: "⚠️" },
+  { id: "spam",          label: "Spam / Fake-Shop",          icon: "🗑️" },
+  { id: "other",         label: "Anderer Grund",             icon: "💬" },
+];
+
+function ReportShopModal({ shop, onClose }: {
+  shop: { id: string; name: string };
+  onClose: () => void;
+}) {
+  const sb = createClient();
+  const [reason, setReason] = useState<typeof REPORT_REASONS[number]["id"] | null>(null);
+  const [comment, setComment] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!reason) return;
+    setBusy(true);
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { await appAlert("Bitte einloggen."); return; }
+      const { error } = await sb.from("shop_reports").insert({
+        business_id: shop.id,
+        user_id: user.id,
+        reason,
+        comment: comment.trim() || null,
+      });
+      if (error) { await appAlert(`Fehler: ${error.message}`); return; }
+      await appAlert("Danke! Wir schauen uns den Shop an.");
+      onClose();
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 1100,
+      background: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 440, maxHeight: "90vh", overflow: "auto",
+        background: "#1A1D23", borderRadius: 20, border: "1px solid rgba(255,45,120,0.4)",
+        padding: 22, color: "#FFF",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <div style={{ fontSize: 9, letterSpacing: 2, color: "#FF2D78", fontWeight: 900 }}>⚠️ SHOP MELDEN</div>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: "50%",
+            background: "rgba(255,255,255,0.06)", border: "none",
+            color: "#8B8FA3", fontSize: 15, fontWeight: 900, cursor: "pointer",
+          }}>✕</button>
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 900, marginBottom: 16 }}>{shop.name}</div>
+
+        <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 10 }}>Was stimmt nicht?</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+          {REPORT_REASONS.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setReason(r.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                background: reason === r.id ? "rgba(255,45,120,0.18)" : "rgba(255,255,255,0.04)",
+                border: reason === r.id ? "1px solid #FF2D78" : "1px solid rgba(255,255,255,0.08)",
+                color: reason === r.id ? "#FF2D78" : "#FFF",
+                fontSize: 13, fontWeight: 700, textAlign: "left",
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{r.icon}</span>
+              <span>{r.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value.slice(0, 500))}
+          placeholder="Details (optional, max. 500 Zeichen)"
+          rows={3}
+          style={{
+            width: "100%", resize: "vertical",
+            background: "rgba(0,0,0,0.3)", color: "#FFF",
+            padding: "10px 12px", borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.1)",
+            fontSize: 13, fontFamily: "inherit",
+          }}
+        />
+        <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>{comment.length} / 500</div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: "10px 14px", borderRadius: 10,
+            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+            color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer",
+          }}>Abbrechen</button>
+          <button
+            onClick={submit}
+            disabled={!reason || busy}
+            style={{
+              flex: 2, padding: "10px 14px", borderRadius: 10, border: "none",
+              background: reason ? "linear-gradient(135deg, #FF2D78, #FF6B4A)" : "rgba(255,255,255,0.08)",
+              color: reason ? "#FFF" : "#8B8FA3",
+              fontSize: 13, fontWeight: 900, cursor: reason ? "pointer" : "not-allowed",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >{busy ? "Sende…" : "Melden"}</button>
+        </div>
+      </div>
     </div>
   );
 }
