@@ -31,7 +31,7 @@ export function LegalFooter() {
           <span className="opacity-40">|</span>
           <LinkBtn onClick={() => openLegalModal("agb")}>AGB</LinkBtn>
           <span className="opacity-40">|</span>
-          <a href="mailto:support@myarea365.de" className="hover:text-text transition-colors">Support</a>
+          <a href="/support" className="hover:text-text transition-colors">Support</a>
         </div>
         <div>Made with ❤️ in Berlin</div>
       </div>

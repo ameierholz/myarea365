@@ -2253,7 +2253,11 @@ function ProfilTab({
             <span style={{ opacity: 0.4 }}>|</span>
             <FooterLink onClick={() => openLegalModal("agb")}>AGB</FooterLink>
             <span style={{ opacity: 0.4 }}>|</span>
-            <a href="mailto:support@myarea365.de" style={{ color: MUTED, textDecoration: "none" }}>Support</a>
+            <a href="/support" style={{ color: MUTED, textDecoration: "none" }}>Support</a>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <a href="/inbox" style={{ color: MUTED, textDecoration: "none" }}>📬 Inbox</a>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <a href="/walk" style={{ color: MUTED, textDecoration: "none" }}>🏃 Walk</a>
           </div>
           <div>Made with ❤️ in Berlin</div>
         </div>
