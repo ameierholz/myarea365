@@ -199,8 +199,8 @@ export function LoadoutTrio({
 
               {/* Top-Row: Grosses Avatar + Name + Rarity */}
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 120, height: 150, flexShrink: 0 }}>
-                  <GuardianAvatar archetype={active.archetype} size={120} animation="idle" />
+                <div style={{ width: 140, height: 175, flexShrink: 0, overflow: "hidden", borderRadius: 12 }}>
+                  <GuardianAvatar archetype={active.archetype} size={140} animation="idle" fillMode="cover" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: r.color, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>

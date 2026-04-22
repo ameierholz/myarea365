@@ -381,8 +381,8 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                       ⚡ AKTIVER WÄCHTER
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <div style={{ width: 92, height: 115, flexShrink: 0 }}>
-                        <GuardianAvatar archetype={g.archetype} size={92} animation="idle" />
+                      <div style={{ width: 120, height: 150, flexShrink: 0, overflow: "hidden", borderRadius: 12 }}>
+                        <GuardianAvatar archetype={g.archetype} size={120} animation="idle" fillMode="cover" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: r.color, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>
