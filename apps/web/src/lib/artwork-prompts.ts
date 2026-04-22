@@ -227,18 +227,18 @@ const AURA_COLOR_POOL = [
   { name: "void indigo",         primary: "indigo",        secondary: "pitch black" },
 ];
 
-// Pool 4: Begleit-FX (Dämpfe, Partikel etc.)
+// Pool 4: Begleit-FX (reine Charakter-Effekte, keine Umweltelemente wie Regen/Schnee)
 const EFFECT_MOTIFS = [
-  "curling smoke that rises slowly around the feet",
+  "curling wisps of energy rising slowly from the shoulders",
   "floating embers drifting upward around the silhouette",
   "thin streams of liquid light spiraling around the arms",
   "faint shards of crystalline energy orbiting the torso",
   "glowing runes slowly circling mid-air around the character",
-  "fine rain evaporating on a hidden heat shield around the body",
   "tiny flickering motes of light tracing the character's outline",
   "shimmering heat-haze distortion radiating from the core",
   "slow orbiting fragments of cracked stone reassembling and drifting",
   "wisps of aurora-like light flowing from the shoulders",
+  "softly pulsing arcane sigils hovering near the hands",
 ];
 
 // Pool 5: Pose-Haltung (für Standbild mehr Abwechslung)
@@ -305,7 +305,7 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
       // 7) Seamless-Loop
       `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first so the clip plays forever without any visible seam.`,
       // 8) Negatives
-      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. Only the pure black background + character + aura.`,
+      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog. Only the pure black background + character + aura + the specified additional effect.`,
       `No audio, no sound, no music, no voice. Silent video only.`,
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
     ].filter(Boolean).join(" ");

@@ -27,8 +27,8 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
           cursor: onClick ? "pointer" : "default",
         }}
       >
-        <div style={{ width: 52, height: 65, flexShrink: 0 }}>
-          <GuardianAvatar archetype={guardian.archetype} size={52} animation="idle" />
+        <div style={{ width: 90, height: 112, flexShrink: 0, overflow: "hidden", borderRadius: 10 }}>
+          <GuardianAvatar archetype={guardian.archetype} size={90} animation="idle" fillMode="cover" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>

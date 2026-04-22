@@ -81,6 +81,20 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           filter: `drop-shadow(0 6px 14px ${rarity.glow})`,
         }}
       >
+        {/* SVG-Chroma-Key: macht schwarze Video-Pixel echt transparent.
+            Alpha = (R+G+B) - Threshold. Schwarz → alpha 0, Charakter → voll sichtbar. */}
+        <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+          <defs>
+            <filter id="ma365-chroma-black" colorInterpolationFilters="sRGB">
+              <feColorMatrix type="matrix" values="
+                1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                1 1 1 0 -0.12
+              " />
+            </filter>
+          </defs>
+        </svg>
         <div style={{
           position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
           width: size * 0.55, height: 8, borderRadius: "50%",
@@ -105,10 +119,12 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
             width: "100%", height: "100%",
             objectFit: fillMode,
             transform: flip,
-            filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
-            // Externe Videos haben schwarzen BG (Veo kann kein Alpha) — blend-mode "lighten"
-            // macht die schwarzen Pixel effektiv transparent. Der Charakter bleibt voll sichtbar.
-            mixBlendMode: archetype.video_url ? "lighten" : "normal",
+            // Externe Videos haben schwarzen BG (Veo kann kein Alpha) — SVG-Chroma-Key
+            // macht den schwarzen Hintergrund echt transparent, egal welche Fläche drunter liegt.
+            filter: [
+              archetype.video_url ? "url(#ma365-chroma-black)" : "",
+              animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "",
+            ].filter(Boolean).join(" ") || "none",
             opacity: useFadeLoop && !topOnA ? 0 : 1,
             transition: `opacity ${CROSSFADE_SECONDS}s linear`,
             zIndex: topOnA ? 2 : 1,
