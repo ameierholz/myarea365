@@ -138,9 +138,9 @@ const RARITY_MOD: Record<string, string> = {
 };
 
 const TYPE_MOD: Record<string, string> = {
-  infantry: "heavy armor plating, shield and blunt/edged weapon, grounded stance, defender posture",
-  cavalry:  "lightweight armor with flowing cloth, momentum-lines, dynamic mid-stride pose, aggressive forward lean",
-  marksman: "lean form with ranged weapon (bow, crossbow, throwing blades), focused aim, high ground posture",
+  infantry: "heavy protective armor plating, sturdy shield and ceremonial implement, grounded stance, guardian posture",
+  cavalry:  "lightweight armor with flowing cloth, momentum-lines, dynamic mid-stride pose, confident forward lean",
+  marksman: "lean form with a stylized ranged implement, focused gaze, high-ground posture",
   mage:     "robes with arcane sigils, floating orb or staff, glowing eyes, levitating accessories, ethereal aura",
 };
 
@@ -153,7 +153,7 @@ const TYPE_ANIM: Record<string, string> = {
 };
 
 const ROLE_MOD: Record<string, string> = {
-  dps:      "aggressive offensive pose, weapon prominent, predatory silhouette",
+  dps:      "dynamic action pose, sleek silhouette, implement held with confidence",
   tank:     "solid defensive stance, shield or barrier, imposing bulky outline",
   support:  "caring protective pose, one hand extended in support gesture, warm secondary light",
   balanced: "versatile mid-action pose, tools of both offense and defense visible",
@@ -243,14 +243,14 @@ const EFFECT_MOTIFS = [
 
 // Pool 5: Pose-Haltung (für Standbild mehr Abwechslung)
 const POSES = [
-  "grounded heroic stance, feet shoulder-width, one fist clenched",
-  "half-turned 3/4 view, weapon resting across the shoulders",
-  "one knee bent, leaning forward over a planted weapon",
+  "grounded heroic stance, feet shoulder-width, one hand on hip",
+  "half-turned 3/4 view, ceremonial implement resting across the shoulders",
+  "one knee bent, leaning forward over a grounded staff",
   "arms crossed, chin slightly raised, calm confident stare",
   "mid-stride forward, cloak catching the air behind",
   "single hand raised as if channeling, other hand loose at the side",
   "back-turned three-quarter view with head looking over shoulder",
-  "duelist stance, blade held low along the thigh",
+  "elegant ready-stance, implement held low along the side",
 ];
 
 export function buildArchetypePrompt(input: ArchetypePromptInput | string, legacyRarity?: "common" | "rare" | "epic" | "legend"): string {
@@ -273,8 +273,8 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const pose   = nameHashPick(in_.name + ":pose",   POSES);
 
   const subjectBase = gender === "female"
-    ? "a single original female humanoid warrior character, clearly a woman with feminine silhouette"
-    : "a single original male humanoid warrior character, clearly a man with masculine silhouette";
+    ? "a stylized heroic female guardian character with a clearly feminine silhouette, fictional game character"
+    : "a stylized heroic male guardian character with a clearly masculine silhouette, fictional game character";
 
   const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
 
@@ -286,7 +286,7 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
       // 2) Subject
       `Subject: ${subjectBase}, full body visible, ${pose}, fully invented fictional character (not based on any existing franchise or celebrity).`,
       `Hair and head: ${hair}.`,
-      `Armor and outfit: ${armor} — unique to this specific character, distinct from other warriors.`,
+      `Armor and outfit: ${armor} — unique to this specific character, distinct from other characters in the set.`,
       archetypeHint && `Character archetype traits: ${archetypeHint}.`,
       `Rarity and material feel: ${rarityMod}.`,
       // 3) Aura / Signature-FX — pro Wächter eigene Farbe
@@ -311,7 +311,7 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
     `Cinematic character key art, square 1:1, 1024x1024, single subject, TRANSPARENT BACKGROUND (PNG with alpha channel, NO BACKGROUND — character floats on pure transparency).`,
     `Subject: ${subjectBase}, full body visible, ${pose}, confident heroic expression. Fully invented fictional character (not based on any existing franchise or celebrity).`,
     `Hair and head: ${hair}.`,
-    `Armor and outfit: ${armor} — unique and distinct, so this character does not look like any other warrior in the set.`,
+    `Armor and outfit: ${armor} — unique and distinct, so this character does not look like any other character in the set.`,
     archetypeHint && `Character archetype traits: ${archetypeHint}.`,
     `Rarity and material feel: ${rarityMod}.`,
     `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth.`,
@@ -509,18 +509,18 @@ export function buildSiegelPrompt(input: { id: SiegelId; name: string; mode: 'im
 
 // ─── Tränke (Potions) ──────────────────────────────────────────────
 export const POTION_CATALOG_ART = [
-  { id: "potion_hp_s",          name: "Kleiner HP-Trank",          rarity: "common", emoji: "🧪", hint: "small red healing vial, fresh blood-red liquid, bubbles" },
+  { id: "potion_hp_s",          name: "Kleiner HP-Trank",          rarity: "common", emoji: "🧪", hint: "small crimson healing vial, ruby-red liquid, bubbles" },
   { id: "potion_atk_s",         name: "Kleiner Angriffstrank",     rarity: "common", emoji: "⚔️", hint: "small orange attack elixir, amber liquid, sword etched on bottle" },
   { id: "potion_def_s",         name: "Kleiner Verteidigungstrank",rarity: "common", emoji: "🛡️", hint: "small blue defense potion, steel-blue liquid, shield rune" },
   { id: "potion_speed_s",       name: "Kleiner Geschwindigkeitstrank", rarity: "common", emoji: "💨", hint: "small sky-blue speed elixir, swirling vapors, feather motif" },
   { id: "potion_regen_s",       name: "Kleiner Heiltrank",         rarity: "common", emoji: "💚", hint: "small emerald regeneration flask, soft glow, leaf motif" },
-  { id: "potion_hp_m",          name: "HP-Trank",                  rarity: "rare",   emoji: "🧪", hint: "medium blood-red vial with gold cap, thick liquid" },
+  { id: "potion_hp_m",          name: "HP-Trank",                  rarity: "rare",   emoji: "🧪", hint: "medium deep-crimson vial with gold cap, thick glowing liquid" },
   { id: "potion_atk_m",         name: "Angriffstrank",             rarity: "rare",   emoji: "⚔️", hint: "medium orange bottle, crossed swords emblem" },
   { id: "potion_def_m",         name: "Verteidigungstrank",        rarity: "rare",   emoji: "🛡️", hint: "medium sapphire bottle, tower shield emblem" },
   { id: "potion_crit_m",        name: "Krit-Trank",                rarity: "rare",   emoji: "💥", hint: "sharp magenta vial, lightning rune, sparks" },
-  { id: "potion_lifesteal_m",   name: "Bluttrank",                 rarity: "rare",   emoji: "🩸", hint: "dark crimson bottle, skull carved in glass, vampiric" },
+  { id: "potion_lifesteal_m",   name: "Bluttrank",                 rarity: "rare",   emoji: "🩸", hint: "dark crimson bottle with gothic filigree engravings, deep ruby liquid, ornate stopper" },
   { id: "potion_mana_m",        name: "Manatrank",                 rarity: "rare",   emoji: "⚡", hint: "electric blue flask, arcing bolts inside" },
-  { id: "potion_hp_l",          name: "Großer HP-Trank",           rarity: "epic",   emoji: "🧪", hint: "large ornate ruby flask, gold trim, runes on bottle" },
+  { id: "potion_hp_l",          name: "Großer HP-Trank",           rarity: "epic",   emoji: "🧪", hint: "large ornate ruby-red flask, gold trim, glowing runes on bottle" },
   { id: "potion_atk_l",         name: "Großer Angriffstrank",      rarity: "epic",   emoji: "⚔️", hint: "large fiery-orange flask, jagged spikes on bottle" },
   { id: "potion_thorns_l",      name: "Dornentrank",               rarity: "epic",   emoji: "🌵", hint: "dark green vial wrapped in thorny vines, spikes" },
   { id: "potion_penetration_l", name: "Durchdringungstrank",       rarity: "epic",   emoji: "🎯", hint: "black arrow-shaped flask, target reticle" },
