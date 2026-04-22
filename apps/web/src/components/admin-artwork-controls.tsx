@@ -29,6 +29,11 @@ export function AdminArtworkControls({
   async function upload(file: File) {
     setBusy(true); setErr(null);
     try {
+      const sizeMb = file.size / (1024 * 1024);
+      if (sizeMb > 50) {
+        const msg = `Datei ist ${sizeMb.toFixed(1)} MB — über 50 MB. Bitte komprimieren.`;
+        setErr(msg); return;
+      }
       const result = await uploadArtworkDirect(file, targetType, targetId, variant);
       if (!result.ok) setErr(result.error); else onUploaded?.();
     } finally { setBusy(false); }

@@ -64,12 +64,30 @@ export function ArtworkAdminClient() {
       fetch("/api/admin/artwork", { cache: "no-store" }),
       fetch("/api/cosmetic-artwork", { cache: "no-store" }),
     ]);
+    // Cache-Buster — gleicher Storage-Pfad beim Re-Upload, sonst zeigt Browser cached asset
+    const v = Date.now();
+    const bust = (u: string | null) => (u ? `${u}?v=${v}` : null);
     if (aw.ok) {
       const j = await aw.json();
-      setArchetypes(j.archetypes);
-      setItems(j.items ?? []);
+      type RawArch = { image_url: string | null; video_url: string | null; [k: string]: unknown };
+      type RawItem = { image_url: string | null; [k: string]: unknown };
+      setArchetypes((j.archetypes as RawArch[]).map((a) => ({ ...a, image_url: bust(a.image_url), video_url: bust(a.video_url) })) as Archetype[]);
+      setItems(((j.items ?? []) as RawItem[]).map((i) => ({ ...i, image_url: bust(i.image_url) })) as Item[]);
     }
-    if (co.ok) setCosmetic(await co.json());
+    if (co.ok) {
+      const raw = await co.json() as CosmeticArt;
+      type RawArt = { image_url: string | null; video_url: string | null };
+      const bustMap = (obj: Record<string, RawArt>) => Object.fromEntries(Object.entries(obj).map(([k, a]) => [k, { image_url: bust(a.image_url), video_url: bust(a.video_url) }]));
+      const bustMarker = (obj: Record<string, Record<string, RawArt>>) => Object.fromEntries(Object.entries(obj).map(([k, variants]) => [k, bustMap(variants)]));
+      setCosmetic({
+        marker:    bustMarker(raw.marker    ?? {}),
+        light:     bustMap(raw.light     ?? {}),
+        pin_theme: bustMap(raw.pin_theme ?? {}),
+        siegel:    bustMap(raw.siegel    ?? {}),
+        potion:    bustMap(raw.potion    ?? {}),
+        rank:      bustMap(raw.rank      ?? {}),
+      });
+    }
     setLoading(false);
   };
   useEffect(() => { reload(); }, []);
@@ -579,7 +597,6 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
         alert(`Upload-Fehler für "${a.name}":\n\n${result.error}`);
       } else {
         console.log("[artwork-upload] ok", result);
-        setCacheBust(Date.now());
         onChange();
       }
     } catch (e) {
@@ -608,10 +625,9 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const hasImage = !!a.image_url;
   const hasVideo = !!a.video_url;
   const done = hasImage || hasVideo;
-  // Cache-Buster — gleicher Pfad beim Re-Upload, sonst zeigt Browser die alte Version
-  const [cacheBust, setCacheBust] = useState(() => Date.now());
-  const imgSrc = hasImage ? `${a.image_url}?v=${cacheBust}` : undefined;
-  const vidSrc = hasVideo ? `${a.video_url}?v=${cacheBust}` : undefined;
+  // Cache-Buster wird jetzt zentral in reload() angehängt — URLs hier einfach weiterreichen
+  const imgSrc = a.image_url ?? undefined;
+  const vidSrc = a.video_url ?? undefined;
 
   return (
     <div className={`rounded-xl overflow-hidden transition ${done ? "border-[#4ade80]/50" : "border-white/10"}`}
