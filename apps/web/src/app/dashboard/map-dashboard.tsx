@@ -2502,7 +2502,7 @@ function ProfilTab({
       )}
 
       {openModal === "arena" && (
-        <Modal title="Kampfarena" subtitle="Runner vs Runner · Siegel & Loot" icon="⚔️" accent="#FF2D78" onClose={() => setOpenModal(null)}>
+        <Modal title="Kampfarena" subtitle="Runner vs Runner · Siegel & Loot" icon="⚔️" accent="#FF2D78" maxWidth={920} onClose={() => setOpenModal(null)}>
           <RunnerFightsClient inModal onClose={() => setOpenModal(null)} />
         </Modal>
       )}
@@ -5495,13 +5495,14 @@ function XpGuideRow({ icon, label, xp, last }: { icon: string; label: string; xp
   );
 }
 
-function Modal({ title, icon, subtitle, accent, children, onClose }: {
+function Modal({ title, icon, subtitle, accent, children, onClose, maxWidth = 540 }: {
   title: string;
   icon?: string;
   subtitle?: string;
   accent?: string;
   children: React.ReactNode;
   onClose: () => void;
+  maxWidth?: number;
 }) {
   const accentColor = accent || PRIMARY;
 
@@ -5528,7 +5529,7 @@ function Modal({ title, icon, subtitle, accent, children, onClose }: {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 540,
+          width: "100%", maxWidth,
           maxHeight: "90dvh",
           position: "relative",
           background: `
