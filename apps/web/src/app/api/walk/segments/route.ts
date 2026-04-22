@@ -306,11 +306,21 @@ export async function POST(req: Request) {
     { metric: "streak_maintained",     amount: walkKm >= 0.5 ? 1 : 0 },
   ]);
 
-  // Crew-Fortschritt: Duel-km + Challenges + Feed-Events
+  // Crew-Fortschritt: Duel-km + War-Score + Season-Points + Challenges + Feed-Events
   if (crewId) {
     try {
       // Duell-km
       if (walkKm > 0) await sb.rpc("bump_crew_duel_km", { p_crew_id: crewId, p_km: walkKm });
+      // Crew-War-Score (1 km = 1 Pt, 1 Territorium = 10 Pt)
+      if (walkKm > 0 || activeTerritoryCount > 0) {
+        await sb.rpc("bump_crew_war_score", {
+          p_crew_id: crewId, p_km: walkKm, p_territories: activeTerritoryCount,
+        });
+      }
+      // Season-Points (1 Territorium = 5 Pt + Counter)
+      for (let i = 0; i < activeTerritoryCount; i++) {
+        await sb.rpc("bump_crew_season_points", { p_crew_id: crewId, p_points: 5, p_reason: "territory" });
+      }
       // Crew-Challenges
       if (walkKm > 0) await sb.rpc("bump_crew_challenge_progress", { p_crew_id: crewId, p_metric: "weekly_km", p_amount: walkKm });
       if (newlyClaimedStreets.length > 0) await sb.rpc("bump_crew_challenge_progress", { p_crew_id: crewId, p_metric: "new_streets", p_amount: newlyClaimedStreets.length });

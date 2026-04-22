@@ -12,11 +12,14 @@ type Crew = {
   invite_code: string | null;
 };
 
-type Tab = "overview" | "duel" | "challenges" | "events" | "chat" | "feed" | "shop";
+type Tab = "overview" | "war" | "season" | "flags" | "duel" | "challenges" | "events" | "chat" | "feed" | "shop";
 
 const TABS: Array<{ id: Tab; label: string; icon: string; color: string }> = [
   { id: "overview",  label: "Mitglieder",  icon: "👥", color: "#22D1C3" },
-  { id: "duel",      label: "Duell",       icon: "⚔️", color: "#FF2D78" },
+  { id: "war",       label: "Krieg",       icon: "🔥", color: "#FF2D78" },
+  { id: "season",    label: "Saison",      icon: "🏆", color: "#FFD700" },
+  { id: "flags",     label: "Flaggen",     icon: "🚩", color: "#4ade80" },
+  { id: "duel",      label: "Duell",       icon: "⚔️", color: "#FF6B4A" },
   { id: "challenges",label: "Challenges",  icon: "🎯", color: "#FFD700" },
   { id: "events",    label: "Events",      icon: "📅", color: "#4ade80" },
   { id: "chat",      label: "Chat",        icon: "💬", color: "#5ddaf0" },
@@ -71,12 +74,410 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
       </div>
 
       {tab === "overview"   && <MembersPanel crew={crew} />}
+      {tab === "war"        && <WarPanel     crew={crew} isAdmin={isAdmin} />}
+      {tab === "season"     && <SeasonPanel  crew={crew} />}
+      {tab === "flags"      && <FlagsPanel   crew={crew} userId={userId} />}
       {tab === "duel"       && <DuelPanel    crew={crew} />}
       {tab === "challenges" && <ChallengesPanel crew={crew} isAdmin={isAdmin} />}
       {tab === "events"     && <EventsPanel  crew={crew} userId={userId} />}
       {tab === "chat"       && <ChatPanel    crew={crew} userId={userId} />}
       {tab === "feed"       && <FeedPanel    crew={crew} />}
       {tab === "shop"       && <ShopPanel    crew={crew} userId={userId} isAdmin={isAdmin} />}
+    </div>
+  );
+}
+
+// ═══ WAR (Crew vs Crew 7-Tage-Fehde) ═══
+type War = {
+  id: string; status: string; starts_at: string | null; ends_at: string | null;
+  crew_a_id: string; crew_b_id: string;
+  crew_a_score: number; crew_b_score: number;
+  crew_a_km: number; crew_b_km: number;
+  crew_a_territories: number; crew_b_territories: number;
+  winner_crew_id: string | null; prize_xp: number; declared_by: string;
+  crew_a: { id: string; name: string; color: string | null } | { id: string; name: string; color: string | null }[] | null;
+  crew_b: { id: string; name: string; color: string | null } | { id: string; name: string; color: string | null }[] | null;
+};
+function WarPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
+  const [wars, setWars] = useState<War[] | null>(null);
+  const [declaring, setDeclaring] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/crew/wars?crew_id=${crew.id}`);
+    const j = await r.json();
+    setWars(j.wars ?? []);
+  }, [crew.id]);
+  useEffect(() => { void load(); }, [load]);
+
+  async function act(id: string, action: "accept" | "decline" | "cancel") {
+    setBusy(id);
+    try {
+      await fetch("/api/crew/wars", {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      await load();
+    } finally { setBusy(null); }
+  }
+
+  if (wars === null) return <Loading />;
+  const active = wars.find((w) => w.status === "active");
+  const pending = wars.filter((w) => w.status === "pending");
+  const past = wars.filter((w) => ["finished","cancelled","declined"].includes(w.status));
+
+  return (
+    <div>
+      {isAdmin && !active && (
+        <button onClick={() => setDeclaring(true)} style={{
+          width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
+          background: "rgba(255,45,120,0.15)", border: "1px dashed rgba(255,45,120,0.5)",
+          color: "#FF2D78", fontWeight: 900, fontSize: 12, cursor: "pointer",
+        }}>🔥 Krieg erklären</button>
+      )}
+
+      {active && <WarCard war={active} myCrewId={crew.id} />}
+
+      {pending.length > 0 && (
+        <>
+          <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginTop: 12, marginBottom: 6 }}>AUSSTEHENDE EINLADUNGEN</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {pending.map((w) => {
+              const a = Array.isArray(w.crew_a) ? w.crew_a[0] : w.crew_a;
+              const b = Array.isArray(w.crew_b) ? w.crew_b[0] : w.crew_b;
+              const iAmTarget = w.crew_b_id === crew.id;
+              const iAmDeclarer = w.crew_a_id === crew.id;
+              return (
+                <div key={w.id} style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.55)", border: "1px solid rgba(255,215,0,0.35)" }}>
+                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
+                    {a?.name} <span style={{ color: "#FF2D78" }}>vs</span> {b?.name}
+                  </div>
+                  <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
+                    {iAmTarget ? "Eine andere Crew will gegen euch in den Krieg ziehen." : "Warte auf Antwort der gegnerischen Crew."}
+                  </div>
+                  {isAdmin && (
+                    <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                      {iAmTarget && (
+                        <>
+                          <button onClick={() => act(w.id, "accept")} disabled={busy === w.id} style={{ ...btnPrimary, background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115" }}>✓ Annehmen</button>
+                          <button onClick={() => act(w.id, "decline")} disabled={busy === w.id} style={btnSecondary}>✗ Ablehnen</button>
+                        </>
+                      )}
+                      {iAmDeclarer && (
+                        <button onClick={() => act(w.id, "cancel")} disabled={busy === w.id} style={btnSecondary}>Zurückziehen</button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {past.length > 0 && (
+        <>
+          <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginTop: 14, marginBottom: 6 }}>VERGANGENE KRIEGE</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {past.slice(0, 5).map((w) => <WarCard key={w.id} war={w} myCrewId={crew.id} compact />)}
+          </div>
+        </>
+      )}
+
+      {!active && pending.length === 0 && past.length === 0 && (
+        <Empty text="Noch kein Krieg geführt. Admins können Feinde herausfordern." />
+      )}
+
+      {declaring && <DeclareWarModal onClose={() => { setDeclaring(false); void load(); }} />}
+    </div>
+  );
+}
+function WarCard({ war, myCrewId, compact }: { war: War; myCrewId: string; compact?: boolean }) {
+  const a = Array.isArray(war.crew_a) ? war.crew_a[0] : war.crew_a;
+  const b = Array.isArray(war.crew_b) ? war.crew_b[0] : war.crew_b;
+  const total = war.crew_a_score + war.crew_b_score;
+  const aPct = total > 0 ? (war.crew_a_score / total) * 100 : 50;
+  const iAmA = war.crew_a_id === myCrewId;
+  const mine = iAmA ? war.crew_a_score : war.crew_b_score;
+  const opp = iAmA ? war.crew_b_score : war.crew_a_score;
+  const iWon = war.winner_crew_id === myCrewId;
+  const isActive = war.status === "active";
+  const hoursLeft = war.ends_at ? Math.max(0, Math.ceil((new Date(war.ends_at).getTime() - Date.now()) / 3600000)) : 0;
+
+  return (
+    <div style={{
+      padding: compact ? 10 : 14, borderRadius: 12,
+      background: isActive ? "linear-gradient(135deg,rgba(255,45,120,0.12),rgba(255,107,74,0.08))" : "rgba(15,17,21,0.5)",
+      border: `1px solid ${isActive ? "#FF2D78" : "rgba(255,255,255,0.08)"}`,
+      boxShadow: isActive ? "0 0 16px rgba(255,45,120,0.25)" : undefined,
+    }}>
+      {isActive && (
+        <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: "#FF2D78", marginBottom: 6 }}>
+          🔥 KRIEG AKTIV {hoursLeft < 48 ? `· noch ${hoursLeft}h` : `· noch ${Math.ceil(hoursLeft/24)} Tage`} · Preis {war.prize_xp} XP
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
+        <span style={{ color: a?.color ?? "#22D1C3", fontWeight: 900 }}>{a?.name ?? "?"}</span>
+        <span style={{ color: b?.color ?? "#FF2D78", fontWeight: 900 }}>{b?.name ?? "?"}</span>
+      </div>
+      <div style={{ display: "flex", height: 10, borderRadius: 5, overflow: "hidden", background: "rgba(255,255,255,0.05)" }}>
+        <div style={{ width: `${aPct}%`, background: a?.color ?? "#22D1C3" }} />
+        <div style={{ flex: 1, background: b?.color ?? "#FF2D78" }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginTop: 4, color: "#a8b4cf" }}>
+        <span>{Math.round(war.crew_a_score)} Pt · {Number(war.crew_a_km).toFixed(1)} km · {war.crew_a_territories} Terr</span>
+        <span>{Math.round(war.crew_b_score)} Pt · {Number(war.crew_b_km).toFixed(1)} km · {war.crew_b_territories} Terr</span>
+      </div>
+      {!isActive && war.winner_crew_id && (
+        <div style={{ fontSize: 10, marginTop: 6, color: iWon ? "#4ade80" : "#FF2D78", fontWeight: 900, textAlign: "center" }}>
+          {iWon ? `✓ Du gewinnst · +${war.prize_xp} XP` : `✗ Verloren`}
+        </div>
+      )}
+      {isActive && (
+        <div style={{ fontSize: 10, marginTop: 6, color: "#FFF", fontWeight: 700, textAlign: "center" }}>
+          {mine > opp ? `Du führst um ${Math.round(mine - opp)} Pt` : mine < opp ? `Rückstand ${Math.round(opp - mine)} Pt` : "Gleichstand"}
+        </div>
+      )}
+    </div>
+  );
+}
+function DeclareWarModal({ onClose }: { onClose: () => void }) {
+  const sb = useMemo(() => createClient(), []);
+  const [search, setSearch] = useState("");
+  const [candidates, setCandidates] = useState<Array<{ id: string; name: string; color: string | null; zip: string | null; member_count: number | null }> | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: me } = await sb.auth.getUser();
+      if (!me.user) return;
+      const { data: prof } = await sb.from("users").select("current_crew_id").eq("id", me.user.id).maybeSingle<{ current_crew_id: string | null }>();
+      let q = sb.from("crews").select("id, name, color, zip, member_count").limit(50);
+      if (prof?.current_crew_id) q = q.neq("id", prof.current_crew_id);
+      if (search.trim()) q = q.ilike("name", `%${search.trim()}%`);
+      const { data } = await q;
+      setCandidates(data as Array<{ id: string; name: string; color: string | null; zip: string | null; member_count: number | null }> ?? []);
+    })();
+  }, [sb, search]);
+
+  async function declare(targetId: string) {
+    setBusy(targetId);
+    try {
+      const r = await fetch("/api/crew/wars", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ target_crew_id: targetId }),
+      });
+      const j = await r.json();
+      if (!r.ok) { await appAlert(`Fehler: ${j.error ?? r.status}`); return; }
+      await appAlert("⚔️ Kriegserklärung versendet! Sobald die Gegner-Crew annimmt, beginnen die 7 Tage.");
+      onClose();
+    } finally { setBusy(null); }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, maxHeight: "90vh", overflow: "auto", background: "#1A1D23", borderRadius: 16, border: "1px solid rgba(255,45,120,0.4)", padding: 20, color: "#FFF" }}>
+        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 4 }}>🔥 Krieg erklären</div>
+        <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 12 }}>
+          Wähle eine Feind-Crew. Nimmt deren Admin an, startet ein 7-Tage-Krieg (km + Territorien zählen).
+        </div>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Crew-Name suchen…"
+          style={{ ...selectStyle, width: "100%", marginBottom: 10 }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
+          {candidates === null ? <Loading /> : candidates.length === 0 ? <Empty text="Keine Crews gefunden." /> : candidates.map((c) => (
+            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: "rgba(15,17,21,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: c.color ?? "#22D1C3", display: "flex", alignItems: "center", justifyContent: "center", color: "#0F1115", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
+                {c.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{c.name}</div>
+                <div style={{ color: "#8B8FA3", fontSize: 10 }}>PLZ {c.zip ?? "?"} · {c.member_count ?? 0} Mitglieder</div>
+              </div>
+              <button onClick={() => declare(c.id)} disabled={busy === c.id} style={{
+                padding: "6px 10px", borderRadius: 8, border: "none",
+                background: "linear-gradient(135deg,#FF2D78,#FF6B4A)", color: "#FFF",
+                fontSize: 11, fontWeight: 900, cursor: "pointer", opacity: busy === c.id ? 0.6 : 1,
+              }}>⚔️ Krieg</button>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} style={{ ...btnSecondary, width: "100%", marginTop: 12 }}>Abbrechen</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══ SEASON (Monats-Liga) ═══
+type SeasonStanding = {
+  crew_id: string; tier: string; points: number; duel_wins: number; war_wins: number; territories_claimed: number;
+  crew: { id: string; name: string; color: string | null } | { id: string; name: string; color: string | null }[] | null;
+};
+function SeasonPanel({ crew }: { crew: Crew }) {
+  const [data, setData] = useState<{ standings: SeasonStanding[]; my_rank: number | null; my_entry: { tier: string; points: number } | null; season: { year: number; month: number; ends_at: string } | null } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const r = await fetch(`/api/crew/season?crew_id=${crew.id}`);
+      const j = await r.json();
+      setData(j);
+    })();
+  }, [crew.id]);
+
+  if (!data) return <Loading />;
+  const daysLeft = data.season ? Math.max(0, Math.ceil((new Date(data.season.ends_at).getTime() - Date.now()) / 86400000)) : 0;
+
+  return (
+    <div>
+      <div style={{ padding: 14, borderRadius: 12, background: "linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,107,74,0.08))", border: "1px solid rgba(255,215,0,0.3)", marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>
+          🏆 SAISON {data.season ? `${data.season.month}/${data.season.year}` : "?"} · noch {daysLeft} Tage
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>
+              {data.my_rank ? `#${data.my_rank}` : "Ungerankt"}
+            </div>
+            <div style={{ color: "#a8b4cf", fontSize: 11 }}>
+              {data.my_entry ? `${data.my_entry.tier.toUpperCase()} · ${Math.round(data.my_entry.points)} Pt` : "Lauf die ersten km, um dich zu ranken."}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>TOP 20 CREWS</div>
+      {data.standings.length === 0 ? <Empty text="Noch keine Saison-Standings." /> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {data.standings.slice(0, 20).map((s, i) => {
+            const c = Array.isArray(s.crew) ? s.crew[0] : s.crew;
+            const isMe = s.crew_id === crew.id;
+            return (
+              <div key={s.crew_id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "6px 10px", borderRadius: 8,
+                background: isMe ? "rgba(34,209,195,0.12)" : "rgba(15,17,21,0.4)",
+                border: `1px solid ${isMe ? "rgba(34,209,195,0.4)" : "rgba(255,255,255,0.05)"}`,
+              }}>
+                <div style={{ width: 24, textAlign: "center", fontSize: 11, fontWeight: 900, color: i < 3 ? "#FFD700" : "#8B8FA3" }}>
+                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i+1}`}
+                </div>
+                <div style={{ width: 24, height: 24, borderRadius: 6, background: c?.color ?? "#22D1C3", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#0F1115", fontSize: 11, fontWeight: 900 }}>
+                  {c?.name.charAt(0).toUpperCase() ?? "?"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c?.name ?? "?"}</div>
+                  <div style={{ color: "#8B8FA3", fontSize: 9 }}>
+                    {s.tier} · {s.duel_wins}D {s.war_wins}W {s.territories_claimed}T
+                  </div>
+                </div>
+                <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>{Math.round(s.points)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══ FLAGS (Capture-the-Flag Flash-Events) ═══
+type FlagEvent = {
+  id: string; name: string; lat: number; lng: number; radius_m: number; plz: string | null;
+  ends_at: string; target_visits: number; prize_xp: number; status: string;
+  leaderboard: Array<{ crew_id: string; name: string; color: string | null; visits: number }>;
+};
+function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
+  const [events, setEvents] = useState<FlagEvent[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/crew/flags`);
+    const j = await r.json();
+    setEvents(j.events ?? []);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  async function claimVisit(eventId: string) {
+    if (!navigator.geolocation) { await appAlert("GPS nicht verfügbar."); return; }
+    setBusy(eventId);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 }));
+      const r = await fetch("/api/crew/flags", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ event_id: eventId, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        await appAlert(j.error === "out_of_range" ? `Zu weit weg (${j.distance}m). Komm näher.` : `Fehler: ${j.error}`);
+        return;
+      }
+      if (j.won) await appAlert(`🏆 Crew gewinnt die Flagge! +${j.xp} XP für alle Mitglieder.`);
+      else await appAlert(`🚩 Visit registriert! Crew hat ${j.crew_visits} Visits.`);
+      await load();
+    } catch (e) {
+      await appAlert(`GPS-Fehler: ${e instanceof Error ? e.message : "?"}`);
+    } finally { setBusy(null); }
+  }
+
+  if (events === null) return <Loading />;
+  if (events.length === 0) return <Empty text="Keine aktiven Flaggen-Kämpfe. Neue werden regelmäßig freigeschaltet." />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {events.map((e) => {
+        const hoursLeft = Math.max(0, Math.ceil((new Date(e.ends_at).getTime() - Date.now()) / 3600000));
+        const myRank = e.leaderboard.findIndex((l) => l.crew_id === crew.id);
+        const myVisits = myRank >= 0 ? e.leaderboard[myRank].visits : 0;
+        const pctToTarget = Math.min(100, (myVisits / e.target_visits) * 100);
+        return (
+          <div key={e.id} style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.5)", border: "1px solid rgba(74,222,128,0.35)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>🚩 FLAGGEN-KAMPF</div>
+                <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{e.name}</div>
+                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+                  {e.plz ? `PLZ ${e.plz} · ` : ""}Radius {e.radius_m}m · endet in {hoursLeft}h
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>+{e.prize_xp} XP</div>
+                <div style={{ color: "#8B8FA3", fontSize: 9 }}>an Winner-Crew</div>
+              </div>
+            </div>
+
+            {/* Progress meine Crew */}
+            <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pctToTarget}%`, background: "linear-gradient(90deg,#4ade80,#22D1C3)" }} />
+            </div>
+            <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>
+              Deine Crew: {myVisits} / {e.target_visits} Visits
+            </div>
+
+            {/* Top Crews */}
+            {e.leaderboard.length > 0 && (
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
+                {e.leaderboard.slice(0, 3).map((l, i) => (
+                  <div key={l.crew_id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
+                    <span style={{ color: i === 0 ? "#FFD700" : "#8B8FA3", fontWeight: 900, width: 18 }}>#{i+1}</span>
+                    <span style={{ color: l.color ?? "#22D1C3", fontWeight: 800, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.name}</span>
+                    <span style={{ color: "#FFF", fontWeight: 800 }}>{l.visits}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => claimVisit(e.id)}
+              disabled={busy === e.id}
+              style={{
+                width: "100%", marginTop: 10, padding: "10px 12px", borderRadius: 10, border: "none",
+                background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115",
+                fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy === e.id ? 0.6 : 1,
+              }}
+            >{busy === e.id ? "Prüfe GPS…" : "🚩 Ich bin vor Ort!"}</button>
+          </div>
+        );
+      })}
     </div>
   );
 }
