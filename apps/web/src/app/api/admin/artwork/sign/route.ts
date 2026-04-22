@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const sb = adminSb();
 
   const body = await req.json() as {
-    target_type: "archetype" | "item" | "marker" | "light" | "pin_theme";
+    target_type: "archetype" | "item" | "marker" | "light" | "pin_theme" | "siegel";
     target_id: string;
     file_name: string;
     content_type: string;
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   if (!body.target_id || !body.file_name) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
-  if (!["archetype", "item", "marker", "light", "pin_theme"].includes(body.target_type)) {
+  if (!["archetype", "item", "marker", "light", "pin_theme", "siegel"].includes(body.target_type)) {
     return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
   }
 
@@ -52,7 +52,9 @@ export async function POST(req: Request) {
         ? (isVideo ? "lights/video" : "lights")
         : body.target_type === "pin_theme"
           ? (isVideo ? "pin-themes/video" : "pin-themes")
-          : "items";
+          : body.target_type === "siegel"
+            ? (isVideo ? "siegel/video" : "siegel")
+            : "items";
   const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;
   const path = `${folder}/${filename}`;
 

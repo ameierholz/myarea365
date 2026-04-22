@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -39,9 +39,10 @@ type CosmeticArt = {
   marker:    Record<string, Record<string, Art>>; // marker[id][variant]
   light:     Record<string, Art>;
   pin_theme: Record<string, Art>;
+  siegel:    Record<string, Art>;
 };
 
-type TabId = "archetype" | "item" | "marker" | "light" | "pin_theme";
+type TabId = "archetype" | "item" | "marker" | "light" | "pin_theme" | "siegel";
 
 type Item = {
   id: string; name: string; emoji: string; slot: string; rarity: string;
@@ -51,7 +52,7 @@ type Item = {
 export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {} });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
 
@@ -76,13 +77,15 @@ export function ArtworkAdminClient() {
   const doneMark   = Object.values(cosmetic.marker).reduce((acc, variants) => acc + Object.values(variants).filter(a => a.image_url || a.video_url).length, 0);
   const doneLight  = Object.values(cosmetic.light).filter(a => a.image_url || a.video_url).length;
   const doneTheme  = Object.values(cosmetic.pin_theme).filter(a => a.image_url || a.video_url).length;
+  const doneSiegel = Object.values(cosmetic.siegel ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
-    { id: "archetype", label: "🛡️ Wächter",        done: doneArch,  total: archetypes.length },
-    { id: "item",      label: "⚔️ Ausrüstung",     done: doneItems, total: items.length },
-    { id: "marker",    label: "📍 Map-Icons",       done: doneMark,  total: UNLOCKABLE_MARKERS.length },
-    { id: "light",     label: "✨ Runner-Lights",   done: doneLight, total: RUNNER_LIGHTS.length },
-    { id: "pin_theme", label: "🎨 Pin-Themes",      done: doneTheme, total: ALL_PIN_THEMES.length },
+    { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
+    { id: "item",      label: "⚔️ Ausrüstung",     done: doneItems,  total: items.length },
+    { id: "siegel",    label: "🏅 Siegel",          done: doneSiegel, total: SIEGEL_TYPES.length },
+    { id: "marker",    label: "📍 Map-Icons",       done: doneMark,   total: UNLOCKABLE_MARKERS.length },
+    { id: "light",     label: "✨ Runner-Lights",   done: doneLight,  total: RUNNER_LIGHTS.length },
+    { id: "pin_theme", label: "🎨 Pin-Themes",      done: doneTheme,  total: ALL_PIN_THEMES.length },
   ];
 
   return (
@@ -115,6 +118,7 @@ export function ArtworkAdminClient() {
       {loading ? <LoadingBox /> : (
         tab === "archetype"  ? <ArchetypesTab archetypes={archetypes} onChange={reload} />
         : tab === "item"      ? <ItemsTab     items={items}              onChange={reload} />
+        : tab === "siegel"    ? <SiegelTab    artMap={cosmetic.siegel ?? {}} onChange={reload} />
         : tab === "marker"    ? <MarkerTab    artMap={cosmetic.marker}    onChange={reload} />
         : tab === "light"     ? <LightTab     artMap={cosmetic.light}     onChange={reload} />
         : <PinThemeTab artMap={cosmetic.pin_theme} onChange={reload} />
@@ -693,6 +697,61 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
             <strong className="block mb-0.5">Fehler:</strong>{err}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Siegel (5 Typen)                                      */
+/* ═════════════════════════════════════════════════════════ */
+function SiegelTab({ artMap, onChange }: {
+  artMap: Record<string, { image_url: string | null; video_url: string | null }>;
+  onChange: () => void;
+}) {
+  const done = SIEGEL_TYPES.filter((s) => artMap[s.id]?.image_url || artMap[s.id]?.video_url).length;
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-3 text-xs text-[#a8b4cf]">
+        <strong className="text-white">{SIEGEL_TYPES.length} Siegel-Typen</strong>
+        <span>·</span>
+        <span>{done}/{SIEGEL_TYPES.length} mit Artwork</span>
+        {done === SIEGEL_TYPES.length && <span className="text-[#4ade80] font-bold">🎉 komplett</span>}
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+        {SIEGEL_TYPES.map((s) => {
+          const art = artMap[s.id];
+          const hasArt = !!(art?.image_url || art?.video_url);
+          return (
+            <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div
+                  className="w-16 h-16 flex items-center justify-center rounded-lg overflow-hidden"
+                  style={{ background: `radial-gradient(circle at center, ${s.color}33 0%, transparent 70%), #0F1115`, border: `1px solid ${s.color}55` }}
+                >
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
+                    : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-16 h-16 object-contain" />
+                    : <span className="text-3xl" style={{ filter: `drop-shadow(0 0 6px ${s.color}88)` }}>🏅</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: s.color }}>SIEGEL</div>
+                  <div className="text-sm font-black text-white truncate">{s.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] truncate">{s.hint}</div>
+                </div>
+                {!hasArt && <span className="text-[9px] font-bold text-[#FF2D78]">LEER</span>}
+              </div>
+              <AdminArtworkControls
+                targetType="siegel"
+                targetId={s.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildSiegelPrompt({ id: s.id, name: s.name, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

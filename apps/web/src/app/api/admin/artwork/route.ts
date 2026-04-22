@@ -39,19 +39,19 @@ export async function POST(req: Request) {
   // Body: { target_type, target_id, path, is_video }
   if (contentType.includes("application/json")) {
     const body = await req.json() as {
-      target_type: "archetype" | "item" | "marker" | "light" | "pin_theme";
+      target_type: "archetype" | "item" | "marker" | "light" | "pin_theme" | "siegel";
       target_id: string;
       path: string;
       is_video: boolean;
       variant?: "neutral" | "male" | "female";
     };
     if (!body.target_id || !body.path) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-    if (!["archetype", "item", "marker", "light", "pin_theme"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+    if (!["archetype", "item", "marker", "light", "pin_theme", "siegel"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
 
     const { data: pub } = sb.storage.from("artwork").getPublicUrl(body.path);
     const publicUrl = pub.publicUrl;
 
-    if (body.target_type === "marker" || body.target_type === "light" || body.target_type === "pin_theme") {
+    if (body.target_type === "marker" || body.target_type === "light" || body.target_type === "pin_theme" || body.target_type === "siegel") {
       const col = body.is_video ? "video_url" : "image_url";
       const variant = body.target_type === "marker"
         ? (body.variant && ["neutral","male","female"].includes(body.variant) ? body.variant : "neutral")

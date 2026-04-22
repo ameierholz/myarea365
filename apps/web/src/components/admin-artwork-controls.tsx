@@ -6,7 +6,7 @@ import { uploadArtworkDirect } from "@/lib/artwork-upload";
 export function AdminArtworkControls({
   targetType, targetId, variant, buildPrompt, hasImage, hasVideo, onUploaded,
 }: {
-  targetType: "marker" | "light" | "pin_theme";
+  targetType: "marker" | "light" | "pin_theme" | "siegel";
   targetId: string;
   variant?: "neutral" | "male" | "female";
   buildPrompt: (mode: "image" | "video") => string;

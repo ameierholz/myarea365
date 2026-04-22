@@ -16,6 +16,7 @@ export async function GET() {
   const marker: MarkerArt = {};
   const light:     Record<string, Art> = {};
   const pin_theme: Record<string, Art> = {};
+  const siegel:    Record<string, Art> = {};
   for (const r of (data ?? []) as Array<{ kind: string; slot_id: string; variant: string; image_url: string | null; video_url: string | null }>) {
     const art: Art = { image_url: r.image_url, video_url: r.video_url };
     if (r.kind === "marker") {
@@ -25,7 +26,9 @@ export async function GET() {
       light[r.slot_id] = art;
     } else if (r.kind === "pin_theme") {
       pin_theme[r.slot_id] = art;
+    } else if (r.kind === "siegel") {
+      siegel[r.slot_id] = art;
     }
   }
-  return NextResponse.json({ marker, light, pin_theme });
+  return NextResponse.json({ marker, light, pin_theme, siegel });
 }

@@ -379,3 +379,34 @@ export function buildLightPrompt(input: { name: string; colors: string[]; mode: 
     `No text, no characters, no watermark, no background.`,
   ].filter(Boolean).join(" ");
 }
+
+export const SIEGEL_TYPES = [
+  { id: 'infantry', name: 'Infanterie-Siegel', hint: 'crossed swords, shield', color: '#60a5fa', accent: 'steel blue', theme: 'heavy armor, plate mail, stalwart defender' },
+  { id: 'cavalry',  name: 'Kavallerie-Siegel', hint: 'rearing horse, lance', color: '#FF6B4A', accent: 'amber orange', theme: 'charging cavalry, mounted warrior, speed' },
+  { id: 'marksman', name: 'Schützen-Siegel',   hint: 'crossed arrows, bow', color: '#4ade80', accent: 'forest green', theme: 'archer precision, longbow, falcon feathers' },
+  { id: 'mage',     name: 'Magier-Siegel',     hint: 'arcane rune, wand',   color: '#a855f7', accent: 'arcane purple', theme: 'spellcraft, glowing runes, sorcery' },
+  { id: 'universal',name: 'Universal-Siegel',  hint: 'diamond, all-seal',   color: '#FFD700', accent: 'royal gold',    theme: 'legendary wildcard seal, ouroboros, cosmic emblem' },
+] as const;
+export type SiegelId = (typeof SIEGEL_TYPES)[number]['id'];
+
+export function buildSiegelPrompt(input: { id: SiegelId; name: string; mode: 'image' | 'video' }): string {
+  const s = SIEGEL_TYPES.find((x) => x.id === input.id);
+  if (!s) return '';
+  const base = [
+    `A heraldic ${s.name.toLowerCase()} emblem / wax seal, centered composition on a circular medallion, 1024x1024, fully transparent background (PNG with alpha).`,
+    `Iconography: ${s.hint}. Theme: ${s.theme}.`,
+    `Color palette: dominant ${s.accent} (${s.color}) with dark bronze/black metallic rim, subtle gold filigree, faint rune etching on border.`,
+    `Style: high-detail fantasy coat-of-arms, embossed metal, wax-seal texture, weathered edges, dramatic rim-light, game-icon quality.`,
+    `Square/circular composition — icon must read clearly at 40px size.`,
+    `No text, no characters, no watermark, no background outside the medallion.`,
+  ].join(' ');
+  if (input.mode === 'video') {
+    return [
+      base,
+      'Animation: gentle 4-second loop. The emblem pulses with soft inner glow, faint arcane runes cycle around the rim, metallic sheen sweeps across the surface once per cycle.',
+      'First and last frame must match exactly for a seamless loop. No audio.',
+    ].join(' ');
+  }
+  return base;
+}
+
