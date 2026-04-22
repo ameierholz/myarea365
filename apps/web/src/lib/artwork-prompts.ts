@@ -205,26 +205,26 @@ const ARMOR_MATERIALS = [
   "polished brass plate with etched filigree, cloth wraps on forearms",
   "tattered monk-robes over hidden chain, exposed tattooed forearms",
   "rugged tactical gear fused with bone-carved pauldrons",
-  "dark moss-green cloak over mail, wolfskin mantle across shoulders",
+  "dark indigo cloak over mail, wolfskin mantle across shoulders",
   "lacquered red samurai-inspired plates with black trim",
   "tech-woven fabric with rigid armor panels at shoulders and chest",
-  "frost-cracked steel plate riming with ice crystals",
+  "frost-cracked steel plate riming with pale ice crystals",
   "volcanic-stone plate still faintly glowing with heat at the seams",
-  "light ranger-leather with hand-painted clan markings",
+  "light ranger-leather with hand-painted clan markings in red and orange",
 ];
 
-// Pool 3: Signatur-Farbe der Aura (jeder Wächter anders)
+// Pool 3: Signatur-Farbe der Aura (KEINE grünen Töne — wird gegen Green-Screen keyed)
 const AURA_COLOR_POOL = [
-  { name: "cyan plasma",         primary: "electric cyan", secondary: "deep teal" },
-  { name: "magenta neon",        primary: "hot magenta",   secondary: "deep violet" },
-  { name: "emerald wildfire",    primary: "emerald green", secondary: "pine-black" },
-  { name: "crimson embers",      primary: "blood red",     secondary: "ember orange" },
-  { name: "amber lightning",     primary: "amber gold",    secondary: "burnt orange" },
+  { name: "cyan plasma",         primary: "electric cyan",   secondary: "deep teal" },
+  { name: "magenta neon",        primary: "hot magenta",     secondary: "deep violet" },
+  { name: "crimson embers",      primary: "blood red",       secondary: "ember orange" },
+  { name: "amber lightning",     primary: "amber gold",      secondary: "burnt orange" },
   { name: "frost aurora",        primary: "pale blue-white", secondary: "cold steel gray" },
-  { name: "sulfur toxic green",  primary: "acid yellow-green", secondary: "bile black" },
-  { name: "arcane purple storm", primary: "royal violet",  secondary: "midnight black" },
-  { name: "solar gold",          primary: "warm sun-gold", secondary: "bronze" },
-  { name: "void indigo",         primary: "indigo",        secondary: "pitch black" },
+  { name: "arcane purple storm", primary: "royal violet",    secondary: "midnight purple" },
+  { name: "solar gold",          primary: "warm sun-gold",   secondary: "bronze" },
+  { name: "void indigo",         primary: "deep indigo",     secondary: "pitch black" },
+  { name: "ruby plasma",         primary: "ruby pink",       secondary: "dark carmine" },
+  { name: "pearl radiance",      primary: "pearl white",     secondary: "silver chrome" },
 ];
 
 // Pool 4: Begleit-FX (reine Charakter-Effekte, keine Umweltelemente wie Regen/Schnee)
@@ -279,22 +279,22 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
 
   // ══════ VIDEO-PROMPT ══════
-  // Hinweis: Veo/Gemini/Runway produzieren NICHT verlässlich transparente Videos,
-  // deshalb verlangen wir stattdessen einen extrem dunklen, klar abgrenzbaren Hintergrund
-  // der später in der UI visuell verschmilzt (unser App-BG ist #0F1115).
+  // Strategie: Green-Screen-Background (#00FF00). Wird clientseitig per SVG-Chroma-Key
+  // zu 100% transparent geschlüsselt — gleiche Technik wie Film/VFX. Viel zuverlässiger
+  // als schwarzer Hintergrund, weil Grün im Charakter-Design nie vorkommt.
   if (in_.mode === "video") {
     return [
       // 1) Shot-Spec
       `Shot: a 4-second perfectly seamless looping idle clip, square 1:1 composition, 1024x1024, 24 fps.`,
-      // 2) Background — solid dark to blend with app UI (kein Checkerboard, kein transparenter Alpha)
-      `Background: SOLID pure black (#000000) flat color, completely empty, no texture, no patterns, no environment, no scene, no checkerboard — just pure uniform black void behind the character so it blends perfectly with a dark game UI.`,
+      // 2) Background — GREEN SCREEN (chroma-key)
+      `Background: SOLID PURE NEON GREEN (#00FF00, also known as chroma-key green / green screen). Completely flat uniform color, no gradients, no patterns, no texture, no shadows on the background, no environment, no scene. The character must be clearly separated from this green background with a clean edge for chroma-key compositing.`,
       // 3) Subject
       `Subject: ${subjectBase}, full body visible, ${pose}, fully invented fictional character (not based on any existing franchise or celebrity).`,
       `Hair and head: ${hair}.`,
       `Armor and outfit: ${armor} — unique to this specific character, distinct from other characters in the set.`,
       archetypeHint && `Character archetype traits: ${archetypeHint}.`,
       `Rarity and material feel: ${rarityMod}.`,
-      // 4) Aura / Signature-FX — pro Wächter eigene Farbe
+      // 4) Aura / Signature-FX
       `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. The aura pulses gently in sync with breathing.`,
       abilityTheme && `The aura also visually references the character's signature ability "${abilityTheme}".`,
       `Additional effect: ${effect}.`,
@@ -303,9 +303,11 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
       // 6) Camera
       `Camera: locked static medium-wide shot, no pan, no tilt, no zoom, no dolly, character perfectly centered the entire clip.`,
       // 7) Seamless-Loop
-      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first so the clip plays forever without any visible seam.`,
-      // 8) Negatives
-      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog. Only the pure black background + character + aura + the specified additional effect.`,
+      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first.`,
+      // 8) Anti-Green-Bleed (wichtig für Chroma-Key)
+      `CRITICAL: NO green tones ANYWHERE on the character, armor, hair, skin, aura or effects. NO green eyes, NO green accents, NO green glow. The ONLY green in the entire video is the pure #00FF00 background. This is a green-screen shoot — green in the character would be keyed out as transparent.`,
+      // 9) Other negatives
+      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog. Only the green screen + character + aura.`,
       `No audio, no sound, no music, no voice. Silent video only.`,
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
     ].filter(Boolean).join(" ");

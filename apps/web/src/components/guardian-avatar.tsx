@@ -114,10 +114,9 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           filter: `drop-shadow(0 6px 14px ${rarity.glow})`,
         }}
       >
-        {/* SVG-Chroma-Key: macht schwarze Video-Pixel echt transparent.
-            Schritt 1: alpha = R+G+B
-            Schritt 2: harte Kurve mit feComponentTransfer → nur WIRKLICH schwarze Pixel
-            werden transparent, dunkle Farben bleiben voll opak. */}
+        {/* SVG-Chroma-Key (Green-Screen): entfernt reines Grün aus dem Video.
+            alpha = R + B - G + 0.3  →  Grün (0,1,0) = -0.7 → 0 (transparent)
+            Danach steile Schwelle, damit der Edge hart bleibt. */}
         <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
           <defs>
             <filter id="ma365-chroma-black" colorInterpolationFilters="sRGB">
@@ -125,10 +124,10 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
                 1 0 0 0 0
                 0 1 0 0 0
                 0 0 1 0 0
-                1 1 1 0 0
+                1 -1 1 0 0.3
               " />
               <feComponentTransfer>
-                <feFuncA type="linear" slope="40" intercept="-0.6" />
+                <feFuncA type="linear" slope="8" intercept="-0.1" />
               </feComponentTransfer>
             </filter>
           </defs>
