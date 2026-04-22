@@ -11169,8 +11169,12 @@ type ArenaHonorRow = {
   level: number;
   faction: string | null;
   country?: string | null;
+  guardian_archetype_id?: string | null;
   guardian_type?: string | null;
+  guardian_name?: string | null;
   guardian_emoji?: string | null;
+  guardian_image_url?: string | null;
+  guardian_video_url?: string | null;
   crew_name: string | null;
   crew_color: string | null;
   wins: number;
@@ -11322,7 +11326,7 @@ function ArenaLeaderboardView() {
       }}>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "50px 28px 1fr 110px 90px 70px 90px",
+          gridTemplateColumns: "50px 28px 52px 1fr 110px 90px 70px 90px",
           gap: 8,
           padding: "12px 14px",
           background: "rgba(255,215,0,0.12)",
@@ -11330,6 +11334,7 @@ function ArenaLeaderboardView() {
           fontSize: 11, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700",
         }}>
           <div>RANG</div>
+          <div></div>
           <div></div>
           <div>KÄMPFER</div>
           <div style={{ textAlign: "center" }}>SIEGE/NIEDERL.</div>
@@ -11345,7 +11350,7 @@ function ArenaLeaderboardView() {
           return (
             <div key={r.user_id} style={{
               display: "grid",
-              gridTemplateColumns: "50px 28px 1fr 110px 90px 70px 90px",
+              gridTemplateColumns: "50px 28px 52px 1fr 110px 90px 70px 90px",
               gap: 8,
               padding: "12px 14px", alignItems: "center", fontSize: 14,
               borderBottom: "1px solid rgba(255,255,255,0.04)",
@@ -11357,14 +11362,25 @@ function ArenaLeaderboardView() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {r.country ? <CountryFlag country={r.country} size={24} /> : <span style={{ fontSize: 16 }}>🏳️</span>}
               </div>
-              <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
-                {typeMeta && (
-                  <div title={typeMeta.label} style={{
-                    width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                    background: `${typeMeta.color}22`, border: `1px solid ${typeMeta.color}77`,
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-                  }}>{typeMeta.icon}</div>
+              {/* Wächter-Avatar: Video > Bild > Emoji */}
+              <div style={{
+                width: 48, height: 52, borderRadius: 8, overflow: "hidden",
+                background: typeMeta ? `${typeMeta.color}11` : "rgba(255,255,255,0.03)",
+                border: typeMeta ? `1px solid ${typeMeta.color}55` : "1px solid rgba(255,255,255,0.08)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {r.guardian_video_url ? (
+                  <video src={r.guardian_video_url} autoPlay loop muted playsInline
+                    style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+                ) : r.guardian_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.guardian_image_url} alt={r.guardian_name ?? ""}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontSize: 22 }}>{r.guardian_emoji ?? typeMeta?.icon ?? "🛡️"}</span>
                 )}
+              </div>
+              <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ color: factionColor, fontWeight: 900, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {r.display_name ?? r.username}

@@ -16,6 +16,12 @@ type Row = {
   wins: number;
   losses: number;
   honor: number;
+  guardian_archetype_id: string | null;
+  guardian_name: string | null;
+  guardian_emoji: string | null;
+  guardian_type: string | null;
+  guardian_image_url: string | null;
+  guardian_video_url: string | null;
 };
 
 /**
@@ -60,11 +66,26 @@ export async function GET() {
     : { data: [] as Array<{ id: string; name: string | null; color: string | null }> };
   const crewMap = new Map((crews ?? []).map((c) => [(c as { id: string }).id, c]));
 
+  // Aktive Wächter pro User → für Avatar + Typ in der Rangliste
+  type GuardianJoin = {
+    user_id: string; archetype_id: string;
+    guardian_archetypes: { name: string; emoji: string; guardian_type: string | null; image_url: string | null; video_url: string | null };
+  };
+  const { data: guardians } = await sb.from("user_guardians")
+    .select("user_id, archetype_id, guardian_archetypes!inner(name, emoji, guardian_type, image_url, video_url)")
+    .in("user_id", Array.from(userIds))
+    .eq("is_active", true)
+    .returns<GuardianJoin[]>();
+  const guardianMap = new Map<string, GuardianJoin["guardian_archetypes"] & { archetype_id: string }>(
+    (guardians ?? []).map((g) => [g.user_id, { ...g.guardian_archetypes, archetype_id: g.archetype_id }]),
+  );
+
   const rows: Row[] = (users ?? []).map((u) => {
     const uu = u as { id: string; username: string | null; display_name: string | null; level: number; faction: string | null; current_crew_id: string | null };
     const wins = winsByUser.get(uu.id) ?? 0;
     const losses = lossesByUser.get(uu.id) ?? 0;
     const crew = uu.current_crew_id ? crewMap.get(uu.current_crew_id) as { name: string | null; color: string | null } | undefined : null;
+    const g = guardianMap.get(uu.id);
     return {
       user_id: uu.id,
       username: uu.username,
@@ -77,6 +98,12 @@ export async function GET() {
       wins,
       losses,
       honor: wins * (Math.max(1, uu.level)) * 10,
+      guardian_archetype_id: g?.archetype_id ?? null,
+      guardian_name: g?.name ?? null,
+      guardian_emoji: g?.emoji ?? null,
+      guardian_type: g?.guardian_type ?? null,
+      guardian_image_url: g?.image_url ?? null,
+      guardian_video_url: g?.video_url ?? null,
     };
   });
 

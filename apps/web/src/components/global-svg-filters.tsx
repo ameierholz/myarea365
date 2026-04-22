@@ -11,22 +11,41 @@ export function GlobalSvgFilters() {
       aria-hidden
     >
       <defs>
-        {/* Chroma-Key Green-Screen: macht pures #00FF00 transparent.
-            alpha = R + B - G + 0.3 → Grün (0,1,0) ergibt -0.7 → 0.
-            feComponentTransfer mit harter Schwelle für sauberen Kantenschnitt. */}
+        {/* Chroma-Key Green-Screen mit DE-SPILL (schwarze Kante weg).
+            Schritt 1: Alpha aus Original berechnen (R + B − G + 0.3)
+            Schritt 2: Alpha hart schwellen
+            Schritt 3: Separater Pfad: Farben „entgrünen" (G → Mittel aus R und B)
+            Schritt 4: Composite → Charakter-Kanten haben cleane Farben statt grünem Rand */}
         <filter id="ma365-chroma-black" colorInterpolationFilters="sRGB">
+          {/* Pfad A: nur Alpha, rgb=0 */}
           <feColorMatrix
+            in="SourceGraphic"
+            result="keyAlphaRaw"
             type="matrix"
             values="
-              1  0 0 0 0
-              0  1 0 0 0
-              0  0 1 0 0
+              0  0 0 0 0
+              0  0 0 0 0
+              0  0 0 0 0
               1 -1 1 0 0.3
             "
           />
-          <feComponentTransfer>
+          <feComponentTransfer in="keyAlphaRaw" result="keyAlpha">
             <feFuncA type="linear" slope={8} intercept={-0.1} />
           </feComponentTransfer>
+          {/* Pfad B: despilled RGB — Grün durch Mittel aus Rot und Blau ersetzt */}
+          <feColorMatrix
+            in="SourceGraphic"
+            result="despilled"
+            type="matrix"
+            values="
+              1   0   0   0 0
+              0.5 0   0.5 0 0
+              0   0   1   0 0
+              0   0   0   1 0
+            "
+          />
+          {/* Composite: despilled Farben × keyAlpha.alpha */}
+          <feComposite in="despilled" in2="keyAlpha" operator="in" />
         </filter>
       </defs>
     </svg>
