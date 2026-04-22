@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { CinematicBattleArena } from "@/components/battle-arena";
+import { PotionInventoryModal } from "@/components/potion-inventory-modal";
 import type { RoundEvent } from "@/lib/battle-engine";
 import { TYPE_META, typeCounter, type GuardianType } from "@/lib/guardian";
 
@@ -385,12 +386,15 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
             <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>Arena</div>
           </div>
         </div>
-        {onClose && (
-          <button onClick={onClose} style={{
-            background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
-            width: 34, height: 34, borderRadius: 999, cursor: "pointer", fontSize: 18,
-          }}>✕</button>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <PotionButton />
+          {onClose && (
+            <button onClick={onClose} style={{
+              background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
+              width: 34, height: 34, borderRadius: 999, cursor: "pointer", fontSize: 18,
+            }}>✕</button>
+          )}
+        </div>
       </div>
 
       {/* Body: Hero-Panel mit Portrait + Stats + Gear */}
@@ -1535,6 +1539,25 @@ function GuardianExplainer() {
         und Ausrüstungs-Slots deines Saison-Wächters — nie dein Inventar.
       </div>
     </div>
+  );
+}
+
+/* ═══ Potion-Button im ArenaHeader ═══ */
+function PotionButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        title="Tränke"
+        style={{
+          background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.4)",
+          color: "#a855f7", width: 34, height: 34, borderRadius: 999,
+          cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >🧪</button>
+      {open && <PotionInventoryModal onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
