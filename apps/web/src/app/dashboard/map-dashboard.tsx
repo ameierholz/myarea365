@@ -2071,6 +2071,8 @@ function ProfilTab({
             </div>
           )}
 
+          <ModalTriggerButton icon="📬" label="Posteingang" onClick={() => { window.location.href = "/inbox"; }} />
+          <ModalTriggerButton icon="🎫" label="Support & Kontakt" onClick={() => { window.location.href = "/support"; }} />
           <ModalTriggerButton icon="⭐" label="Wofür gibt es XP?" onClick={() => setOpenModal("xpguide")} />
           <ModalTriggerButton icon="⚙️" label="Einstellungen" onClick={() => setOpenModal("settings")} />
           <ModalTriggerButton icon="👤" label="Account" onClick={() => setOpenModal("account")} />
@@ -2254,10 +2256,6 @@ function ProfilTab({
             <FooterLink onClick={() => openLegalModal("agb")}>AGB</FooterLink>
             <span style={{ opacity: 0.4 }}>|</span>
             <a href="/support" style={{ color: MUTED, textDecoration: "none" }}>Support</a>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <a href="/inbox" style={{ color: MUTED, textDecoration: "none" }}>📬 Inbox</a>
-            <span style={{ opacity: 0.4 }}>|</span>
-            <a href="/walk" style={{ color: MUTED, textDecoration: "none" }}>🏃 Walk</a>
           </div>
           <div>Made with ❤️ in Berlin</div>
         </div>
