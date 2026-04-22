@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { appAlert, appConfirm } from "@/components/app-dialog";
 import { CinematicBattleArena } from "@/components/battle-arena";
 import type { RoundEvent } from "@/lib/battle-engine";
 import { TYPE_META, typeCounter, type GuardianType } from "@/lib/guardian";
@@ -129,11 +130,18 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
   async function attack(op: Opponent) {
     const nextCost = data?.next_gem_cost ?? 0;
     if (nextCost === -1) {
-      alert("Tageslimit (15) erreicht.");
+      await appAlert({ title: "Tageslimit erreicht", message: "Du hast heute bereits 15 Kämpfe bestritten. Komm morgen wieder!", icon: "⏱️" });
       return;
     }
     if (nextCost > 0) {
-      if (!confirm(`Dieser Fight kostet ${nextCost} 💎. Fortfahren?`)) return;
+      const ok = await appConfirm({
+        title: "Kampf kostet Diamanten",
+        message: `Dieser Fight kostet ${nextCost} 💎. Fortfahren?`,
+        confirmLabel: `Für ${nextCost} 💎 kämpfen`,
+        cancelLabel: "Abbrechen",
+        icon: "💎",
+      });
+      if (!ok) return;
     }
     setBusyId(op.guardian_id);
     setResult(null);
@@ -144,7 +152,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
       });
       const j = (await res.json()) as AttackResult;
       if (!j.ok) {
-        alert(j.message ?? j.error ?? "Fight fehlgeschlagen");
+        await appAlert({ title: "Kampf fehlgeschlagen", message: j.message ?? j.error ?? "Unbekannter Fehler", icon: "⚠️" });
         setBusyId(null);
         return;
       }
@@ -1260,18 +1268,30 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
   async function pick(archetypeId: string) {
     if (demoMode) {
       const a = DEMO_ARCHETYPES.find((x) => x.id === archetypeId);
-      alert(`🎬 Demo: „${a?.name}" wäre jetzt dein Saison-Wächter (Level 1).\nDein Ewiger Wächter bleibt unberührt, erbt aber alle Items die du diese Saison looten würdest.`);
+      await appAlert({
+        title: "🎬 Demo-Modus",
+        message: `„${a?.name}" wäre jetzt dein Saison-Wächter (Level 1). Dein Ewiger Wächter bleibt unberührt — alle Items aus dieser Saison landen dort.`,
+        icon: a?.emoji ?? "⚔️",
+      });
       onPicked();
       return;
     }
-    if (!confirm("Diesen Wächter für die gesamte Saison einsetzen? Er startet bei Level 1.")) return;
+    const a = archetypes?.find((x) => x.id === archetypeId);
+    const ok = await appConfirm({
+      title: "Saison-Wächter festlegen",
+      message: `„${a?.name ?? "Dieser Wächter"}" kämpft die gesamte Saison für dich und startet bei Level 1. Die Wahl ist bis zum Saisonende bindend.`,
+      confirmLabel: "Wählen",
+      cancelLabel: "Noch überlegen",
+      icon: a?.emoji ?? "⚔️",
+    });
+    if (!ok) return;
     setPickingId(archetypeId);
     const res = await fetch("/api/arena/season/pick", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ archetype_id: archetypeId }),
     });
     const j = await res.json() as { ok: boolean; error?: string };
-    if (!j.ok) { alert(j.error ?? "Fehler"); setPickingId(null); return; }
+    if (!j.ok) { await appAlert({ title: "Fehler", message: j.error ?? "Unbekannter Fehler", icon: "⚠️" }); setPickingId(null); return; }
     onPicked();
   }
 
