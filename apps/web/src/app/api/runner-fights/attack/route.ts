@@ -190,6 +190,23 @@ export async function POST(req: NextRequest) {
       { metric: "arena_wins",        amount: 1 },
       { metric: "weekly_arena_wins", amount: 1 },
     ]);
+    // Crew-Feed + Crew-Challenge bump
+    try {
+      const { data: prof } = await sb.from("users").select("current_crew_id").eq("id", user.id).maybeSingle<{ current_crew_id: string | null }>();
+      if (prof?.current_crew_id) {
+        await sb.rpc("add_crew_feed", {
+          p_crew_id: prof.current_crew_id,
+          p_user_id: user.id,
+          p_kind: "arena_victory",
+          p_data: {},
+        });
+        await sb.rpc("bump_crew_challenge_progress", {
+          p_crew_id: prof.current_crew_id,
+          p_metric: "arena_wins",
+          p_amount: 1,
+        });
+      }
+    } catch { /* stumm */ }
   }
 
   return NextResponse.json({

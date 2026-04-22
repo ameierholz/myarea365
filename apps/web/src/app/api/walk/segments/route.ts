@@ -306,6 +306,27 @@ export async function POST(req: Request) {
     { metric: "streak_maintained",     amount: walkKm >= 0.5 ? 1 : 0 },
   ]);
 
+  // Crew-Fortschritt: Duel-km + Challenges + Feed-Events
+  if (crewId) {
+    try {
+      // Duell-km
+      if (walkKm > 0) await sb.rpc("bump_crew_duel_km", { p_crew_id: crewId, p_km: walkKm });
+      // Crew-Challenges
+      if (walkKm > 0) await sb.rpc("bump_crew_challenge_progress", { p_crew_id: crewId, p_metric: "weekly_km", p_amount: walkKm });
+      if (newlyClaimedStreets.length > 0) await sb.rpc("bump_crew_challenge_progress", { p_crew_id: crewId, p_metric: "new_streets", p_amount: newlyClaimedStreets.length });
+      if (activeTerritoryCount > 0) await sb.rpc("bump_crew_challenge_progress", { p_crew_id: crewId, p_metric: "territories", p_amount: activeTerritoryCount });
+      // Feed: Territorium erobert
+      for (const t of createdTerritories.filter((c) => !c.pending_crew)) {
+        await sb.rpc("add_crew_feed", {
+          p_crew_id: crewId,
+          p_user_id: userId,
+          p_kind: "territory_claimed",
+          p_data: { area_m2: t.area_m2, stole_from: t.stole_from },
+        });
+      }
+    } catch { /* stumm */ }
+  }
+
   return NextResponse.json({
     new_segments: newSegments,
     total_new: newSegments.length,

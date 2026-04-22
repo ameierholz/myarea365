@@ -24,6 +24,7 @@ import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
 import { MapHelpButton } from "@/components/map-help-button";
+import { CrewLiveHub } from "@/components/crew-live-hub";
 import { OnboardingModal, markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
 import { FaqModal } from "@/components/faq-modal";
 import { PotionInventoryModal } from "@/components/potion-inventory-modal";
@@ -6175,7 +6176,22 @@ function CrewTab({
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button onClick={() => setMode("idle")} style={outlineBtnStyle()}>Abbrechen</button>
               <button
-                onClick={() => appAlert("Crew-Suche per Code — wird mit Supabase-Backend verknüpft.")}
+                onClick={async () => {
+                  const code = joinCode.trim();
+                  if (!code) return;
+                  const r = await fetch("/api/crew/join", {
+                    method: "POST", headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ code }),
+                  });
+                  const j = await r.json();
+                  if (!r.ok) { await appAlert(j.error === "crew_not_found" ? "Crew mit diesem Code nicht gefunden." : `Fehler: ${j.error ?? r.status}`); return; }
+                  const msg = j.promoted_territories > 0
+                    ? `✅ Beigetreten bei "${j.crew.name}"!\n🏆 ${j.promoted_territories} Solo-Territorien aktiviert · +${j.promoted_xp} XP`
+                    : `✅ Beigetreten bei "${j.crew.name}"!`;
+                  await appAlert(msg);
+                  setMyCrew(j.crew);
+                  setMode("idle");
+                }}
                 style={primaryBtnStyle(PRIMARY)}
               >
                 Beitreten
@@ -8151,6 +8167,15 @@ function MyCrewView({
 
       {/* Content */}
       <div style={{ padding: "18px 20px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
+        {/* Live-Zentrale: echte Daten aus DB (Members, Duelle, Challenges, Events, Chat, Feed, Shop) */}
+        {profile?.id && (
+          <CrewLiveHub
+            crew={{ id: crew.id, name: crew.name, color: crew.color, owner_id: crew.owner_id, invite_code: crew.invite_code ?? null }}
+            userId={profile.id}
+            isAdmin={isAdmin}
+          />
+        )}
+
         {subTab === "overview"   && <CrewOverview crew={crew} isAdmin={isAdmin} onLeave={onLeave} />}
         {subTab === "feed"       && <CrewFeed color={crew.color} />}
         {subTab === "members"    && <CrewMembers color={crew.color} isAdmin={isAdmin} />}
