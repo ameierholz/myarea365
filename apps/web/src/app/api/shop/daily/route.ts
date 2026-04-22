@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpMissionProgress } from "@/lib/missions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,5 +52,12 @@ export async function POST(req: Request) {
 
   const { data, error } = await sb.rpc("purchase_daily_deal", { p_pack_id: body.pack_id });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Missions-Progress: täglicher Pack-Kauf
+  const ok = (data as { ok?: boolean } | null)?.ok;
+  if (ok) {
+    await bumpMissionProgress(sb, auth.user.id, "daily_pack_bought", 1);
+  }
+
   return NextResponse.json(data);
 }

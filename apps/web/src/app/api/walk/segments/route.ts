@@ -5,6 +5,7 @@ import { matchWaysToTrace, type LngLat } from "@/lib/geo-matching";
 import { detectPolygonFromWalk, centroidOf, pointInPolygon } from "@/lib/polygon-detect";
 import { findNewCycles } from "@/lib/polygon-graph";
 import { polygonAreaM2 } from "@/lib/polygon-detect";
+import { bumpMissionProgressBatch } from "@/lib/missions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -87,14 +88,15 @@ export async function POST(req: Request) {
   const reclaimWayIds = matched
     .map((m) => m.osm_way_id)
     .filter((id) => !newWayIds.has(id));
-  let reclaimSummary: { reclaim_count: number; reclaim_xp: number; segments_cooldown: number } | null = null;
+  type ReclaimSummary = { reclaim_count: number; reclaim_xp: number; segments_cooldown: number };
+  let reclaimSummary: ReclaimSummary | null = null;
   if (reclaimWayIds.length > 0) {
     const { data: reclaimRes } = await sb.rpc("process_segment_reclaims", {
       p_user_id: userId,
       p_osm_way_ids: reclaimWayIds,
     });
     if (Array.isArray(reclaimRes) && reclaimRes[0]) {
-      reclaimSummary = reclaimRes[0] as typeof reclaimSummary;
+      reclaimSummary = reclaimRes[0] as ReclaimSummary;
     }
   }
 
@@ -283,6 +285,26 @@ export async function POST(req: Request) {
   for (const c of v2Cycles) {
     await insertPolygon(c.polygon, c.segment_ids);
   }
+
+  // Missions-Progress für diesen Walk. Non-blocking (Fehler bleiben intern).
+  const activeTerritoryCount = createdTerritories.filter((t) => !t.pending_crew).length;
+  const walkKm = totalLength / 1000;
+  const hour = new Date().getHours();
+  const morningKm = hour < 10 ? walkKm : 0;
+  const nightKm = hour >= 20 ? walkKm : 0;
+  await bumpMissionProgressBatch(sb, userId, [
+    { metric: "new_segments",          amount: newSegments.length },
+    { metric: "new_streets",           amount: newlyClaimedStreets.length },
+    { metric: "reclaim_segments",      amount: reclaimSummary?.reclaim_count ?? 0 },
+    { metric: "total_km_today",        amount: walkKm },
+    { metric: "weekly_km",             amount: walkKm },
+    { metric: "territories_closed",    amount: activeTerritoryCount },
+    { metric: "weekly_territories",    amount: activeTerritoryCount },
+    { metric: "weekly_new_streets",    amount: newlyClaimedStreets.length },
+    { metric: "morning_km",            amount: morningKm },
+    { metric: "night_km",              amount: nightKm },
+    { metric: "streak_maintained",     amount: walkKm >= 0.5 ? 1 : 0 },
+  ]);
 
   return NextResponse.json({
     new_segments: newSegments,

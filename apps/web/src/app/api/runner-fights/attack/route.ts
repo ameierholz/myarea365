@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { runBattle, type BattleInput } from "@/lib/battle-engine";
 import { loadGuardianBattleContext } from "@/lib/guardian-battle-context";
+import { bumpMissionProgressBatch } from "@/lib/missions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -181,6 +182,14 @@ export async function POST(req: NextRequest) {
     if (rarity !== "none") {
       await sb.rpc("roll_material_drop", { p_user_id: user.id, p_context_rarity: rarity });
     }
+  }
+
+  // Missions-Progress: Arena-Sieg trackt Dailies + Weeklies
+  if (winnerUserId === user.id) {
+    await bumpMissionProgressBatch(sb, user.id, [
+      { metric: "arena_wins",        amount: 1 },
+      { metric: "weekly_arena_wins", amount: 1 },
+    ]);
   }
 
   return NextResponse.json({

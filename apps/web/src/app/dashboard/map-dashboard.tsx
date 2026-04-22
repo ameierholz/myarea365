@@ -80,7 +80,6 @@ import {
   DEMO_NEARBY_CREWS_MAP,
   DEMO_RUNNERS,
   generateDemoMapData,
-  DEMO_BOOSTS,
   generateDemoRecentRuns,
   getCurrentHappyHour,
   CREW_TYPES,
@@ -108,7 +107,6 @@ import {
 import type {
   DemoRunnerProfile,
   ClaimedArea,
-  Boost,
   CrewTypeId,
   CrewPrivacy,
   NearbyCrew,
@@ -236,7 +234,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [territoryCount, setTerritoryCount] = useState(0);
   const [viewingRunner, setViewingRunner] = useState<string | null>(null);
   const [viewingArea, setViewingArea] = useState<string | null>(null);
-  const [boostShopOpen, setBoostShopOpen] = useState(false);
   const [overviewMode, setOverviewMode] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [controlsExpanded, setControlsExpanded] = useState(false);
@@ -1031,7 +1028,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
-                  <MapIconButton icon="⚡" label="Boost-Shop" onClick={() => setBoostShopOpen(true)} accent="#FFD700" />
                   <MapIconButton
                     icon="🌫️"
                     label="Fog-of-War"
@@ -1376,14 +1372,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           shop={demoShops.find((s) => s.id === viewingShop)!}
           userXp={p?.xp || 0}
           onClose={() => setViewingShop(null)}
-        />
-      )}
-
-      {/* Boost-Shop-Modal */}
-      {boostShopOpen && (
-        <BoostShopModal
-          currentXp={profile?.xp || 0}
-          onClose={() => setBoostShopOpen(false)}
         />
       )}
 
@@ -3933,68 +3921,6 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
   );
 }
 
-function BoostShopModal({ currentXp, onClose }: { currentXp: number; onClose: () => void }) {
-  return (
-    <Modal
-      title="Boost-Shop"
-      subtitle={`Dein Guthaben: ${currentXp.toLocaleString()} XP`}
-      icon="⚡"
-      accent="#FFD700"
-      onClose={onClose}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {DEMO_BOOSTS.map((b) => (
-          <BoostRow key={b.id} boost={b} affordable={currentXp >= b.cost_xp} onBuy={() => {
-            if (currentXp >= b.cost_xp) appAlert(`✓ ${b.name} gekauft! (${b.duration_label} aktiv) – Wird serverseitig scharfgeschaltet sobald Backend steht.`);
-            else appAlert(`Nicht genug XP. Du brauchst noch ${(b.cost_xp - currentXp).toLocaleString()} XP.`);
-          }} />
-        ))}
-      </div>
-    </Modal>
-  );
-}
-
-function BoostRow({ boost: b, affordable, onBuy }: { boost: Boost; affordable: boolean; onBuy: () => void }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 12,
-      padding: "12px 14px", borderRadius: 14,
-      background: affordable
-        ? `linear-gradient(135deg, ${b.accent}18, rgba(70, 82, 122, 0.5))`
-        : "rgba(70, 82, 122, 0.35)",
-      border: affordable ? `1px solid ${b.accent}66` : "1px solid rgba(255,255,255,0.08)",
-      opacity: affordable ? 1 : 0.7,
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 14,
-        background: `${b.accent}25`,
-        border: `1px solid ${b.accent}`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 24, flexShrink: 0,
-        boxShadow: affordable ? `0 0 10px ${b.accent}55` : "none",
-      }}>{b.icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800 }}>{b.name}</div>
-        <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>{b.description}</div>
-        <div style={{ color: b.accent, fontSize: 10, fontWeight: 700, marginTop: 3 }}>Dauer: {b.duration_label}</div>
-      </div>
-      <button
-        onClick={onBuy}
-        disabled={!affordable}
-        style={{
-          padding: "8px 12px", borderRadius: 10, flexShrink: 0,
-          background: affordable ? b.accent : "rgba(255,255,255,0.06)",
-          border: "none", cursor: affordable ? "pointer" : "not-allowed",
-          color: affordable ? BG_DEEP : MUTED,
-          fontSize: 12, fontWeight: 900,
-          boxShadow: affordable ? `0 2px 10px ${b.accent}55` : "none",
-        }}
-      >
-        {b.cost_xp.toLocaleString()} XP
-      </button>
-    </div>
-  );
-}
 
 type LiveMission = {
   assignment_id: string;
