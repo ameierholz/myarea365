@@ -106,6 +106,9 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
             objectFit: fillMode,
             transform: flip,
             filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
+            // Externe Videos haben schwarzen BG (Veo kann kein Alpha) — blend-mode "lighten"
+            // macht die schwarzen Pixel effektiv transparent. Der Charakter bleibt voll sichtbar.
+            mixBlendMode: archetype.video_url ? "lighten" : "normal",
             opacity: useFadeLoop && !topOnA ? 0 : 1,
             transition: `opacity ${CROSSFADE_SECONDS}s linear`,
             zIndex: topOnA ? 2 : 1,
