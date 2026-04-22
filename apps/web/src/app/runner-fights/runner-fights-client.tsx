@@ -582,21 +582,22 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
             aria-expanded={gearOpen}
             style={{
               width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: "transparent", border: "none", padding: "4px 2px",
+              background: gearOpen ? "transparent" : "rgba(255,215,0,0.05)",
+              border: gearOpen ? "none" : "1px dashed rgba(255,215,0,0.25)",
+              borderRadius: 8, padding: gearOpen ? "4px 2px" : "8px 10px",
               color: "#8B8FA3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
               cursor: "pointer", marginBottom: gearOpen ? 6 : 0,
+              textAlign: "left",
             }}
           >
             <span>
               ⚒️ AUSRÜSTUNG · <span style={{ color: equippedCount > 0 ? "#FFD700" : "#8B8FA3" }}>{equippedCount}/{SLOT_ORDER.length}</span> SLOTS
-              {gearOpen && (
-                <span style={{ color: "#6c7590", fontSize: 10, fontWeight: 700, marginLeft: 8, letterSpacing: 0 }}>
-                  (Slot klicken zum Wechseln)
-                </span>
-              )}
+              <span style={{ color: "#6c7590", fontSize: 10, fontWeight: 700, marginLeft: 8, letterSpacing: 0 }}>
+                {gearOpen ? "(Slot klicken zum Wechseln · hier klicken zum Einklappen)" : "(tippen zum Ausklappen)"}
+              </span>
             </span>
             <span style={{
-              fontSize: 12, color: "#8B8FA3",
+              fontSize: 12, color: gearOpen ? "#8B8FA3" : "#FFD700",
               transform: gearOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 200ms ease",
             }}>▾</span>
@@ -1165,10 +1166,17 @@ function ResultView({ onClose, opponent, rounds, settle, winner }: {
         </div>
       )}
 
-      <div style={{ position: "relative", padding: "0 20px 20px" }}>
+      <div style={{ position: "relative", padding: "0 20px 20px", display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 10 }}>
         <button onClick={onClose} style={{
-          display: "block", width: "100%", padding: "14px 16px",
-          borderRadius: 10,
+          padding: "14px 12px", borderRadius: 10,
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+          color: "#a8b4cf", fontSize: 13, fontWeight: 800, letterSpacing: 1,
+          cursor: "pointer",
+        }}>
+          ← Zurück zur Arena
+        </button>
+        <button onClick={onClose} style={{
+          padding: "14px 16px", borderRadius: 10,
           background: "linear-gradient(180deg, #22D1C3 0%, #0f8178 100%)",
           color: "#0F1115", fontSize: 14, fontWeight: 900, letterSpacing: 1.5,
           border: "none", cursor: "pointer",

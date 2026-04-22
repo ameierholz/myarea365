@@ -178,7 +178,8 @@ export async function GET(req: NextRequest) {
       refresh_used_today: state?.refresh_used_today ?? 0,
       next_gem_cost: nextCost,
       gems_available: gems?.gems ?? 0,
-      refresh_cost: (state?.refresh_used_today ?? 0) < 1 ? 0 : 30,
+      // 3 gratis Refreshes/Tag, danach 30 💎
+      refresh_cost: (state?.refresh_used_today ?? 0) < 3 ? 0 : 30,
     });
   } catch (e) {
     console.error("[runner-fights/opponents] unexpected", e);
