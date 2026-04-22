@@ -205,10 +205,10 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
       {/* Wächter-Portrait — groß, transparenter Hintergrund, nur Boden-Glow */}
       <div style={{
         position: "relative",
-        width: "100%", minHeight: 180,
+        width: "100%", minHeight: 220,
         display: "flex", alignItems: "flex-end", justifyContent: "center",
         filter: owned ? "none" : "grayscale(0.7) brightness(0.7)",
-        marginBottom: 4,
+        marginBottom: 4, overflow: "hidden",
       }}>
         {/* Boden-Glow für den Charakter (statt Box-Background) */}
         <div style={{
@@ -218,7 +218,7 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
           opacity: owned ? 0.8 : 0.3,
           pointerEvents: "none",
         }} />
-        <GuardianAvatar archetype={a} size={160} animation="idle" />
+        <GuardianAvatar archetype={a} size={190} animation="idle" fillMode="cover" />
         {!hasArt && owned && (
           <div style={{
             position: "absolute", top: 2, left: 2,

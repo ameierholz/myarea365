@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminSb, type SupabaseClient } from "@supabase/supabase-js";
+
+let _adminSb: SupabaseClient | null = null;
+function adminSb(): SupabaseClient {
+  if (_adminSb) return _adminSb;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase admin creds missing");
+  _adminSb = createAdminSb(url, key, { auth: { persistSession: false } });
+  return _adminSb;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,17 +58,21 @@ export async function POST(req: Request) {
 
   const body = await req.json() as { action: "activate"; guardian_id: string };
   if (body.action === "activate") {
+    // Service-Role umgeht RLS (user_guardians hat nur SELECT-Policy für Owner).
+    // Sicherheit: user_id-Check passiert explizit über auth.user.id.
+    const db = adminSb();
+
     // Reihenfolge wichtig wegen idx_user_guardian_active (unique where is_active):
-    // 1) Alle aktiven deaktivieren — MIT select() damit wir sehen ob RLS greift
-    const { data: deactRows, error: deactErr } = await sb.from("user_guardians")
+    // 1) Alle aktiven deaktivieren
+    const { data: deactRows, error: deactErr } = await db.from("user_guardians")
       .update({ is_active: false })
       .eq("user_id", auth.user.id)
       .eq("is_active", true)
       .select("id");
     if (deactErr) return NextResponse.json({ error: `deactivate: ${deactErr.message}` }, { status: 500 });
 
-    // 2) Gewählten aktivieren
-    const { data: actRows, error } = await sb.from("user_guardians")
+    // 2) Gewählten aktivieren (user_id-Scope wichtig damit niemand fremde Wächter aktiviert)
+    const { data: actRows, error } = await db.from("user_guardians")
       .update({ is_active: true })
       .eq("id", body.guardian_id)
       .eq("user_id", auth.user.id)

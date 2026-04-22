@@ -22,11 +22,12 @@ export type AvatarAnimation = "idle" | "attack" | "hit" | "crit" | "evade" | "sp
  * Kombination aus Kopfteil, Rumpf, Waffe und Effekt-Aura.
  * Rarity bestimmt Farbpalette und Glow-Intensitaet.
  */
-export function GuardianAvatar({ archetype, size = 140, animation = "idle", facing = "right" }: {
+export function GuardianAvatar({ archetype, size = 140, animation = "idle", facing = "right", fillMode = "contain" }: {
   archetype: Pick<GuardianArchetype, "id" | "emoji" | "rarity"> & { image_url?: string | null; video_url?: string | null };
   size?: number;
   animation?: AvatarAnimation;
   facing?: "left" | "right";
+  fillMode?: "contain" | "cover";
 }) {
   const rarity = rarityMeta(archetype.rarity);
   const palette = paletteFor(archetype.rarity);
@@ -137,7 +138,7 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           style={{
             position: "absolute", inset: 0,
             width: "100%", height: "100%",
-            objectFit: "contain",
+            objectFit: fillMode,
             transform: flip,
             filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
             opacity: useFadeLoop && !topOnA ? 0 : 1,
@@ -156,7 +157,7 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
             style={{
               position: "absolute", inset: 0,
               width: "100%", height: "100%",
-              objectFit: "contain",
+              objectFit: fillMode,
               transform: flip,
               opacity: topOnA ? 0 : 1,
               transition: `opacity ${CROSSFADE_SECONDS}s linear`,
@@ -209,7 +210,7 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           style={{
             position: "relative",
             width: "100%", height: "100%",
-            objectFit: "contain",
+            objectFit: fillMode,
             transform: flip,
             filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
           }}
