@@ -5,6 +5,7 @@ import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
 import { InboxContent } from "./inbox-content";
 import { SupportContent } from "./support-content";
+import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -1578,7 +1579,7 @@ function ProfilTab({
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
-  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support">(null);
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support" | "arena">(null);
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [showGemShop, setShowGemShop] = useState(false);
@@ -2147,6 +2148,42 @@ function ProfilTab({
               )}
               <span style={{ color: "#22D1C3", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
             </button>
+
+            {/* Arena — 1v1 Kampfarena */}
+            <button
+              onClick={() => setOpenModal("arena")}
+              style={{
+                position: "relative", overflow: "hidden",
+                padding: "14px 16px", borderRadius: 16,
+                border: "1px solid rgba(255,45,120,0.4)",
+                background: "linear-gradient(135deg, rgba(255,45,120,0.16) 0%, rgba(255,107,74,0.10) 50%, rgba(255,215,0,0.10) 100%)",
+                cursor: "pointer", textAlign: "left",
+                display: "flex", alignItems: "center", gap: 12,
+                boxShadow: "0 2px 14px rgba(255,45,120,0.15)",
+              }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22, boxShadow: "0 0 16px rgba(255,45,120,0.5)",
+              }}>⚔️</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Kampfarena</span>
+                  <span style={{
+                    fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                    padding: "2px 6px", borderRadius: 4,
+                    background: "rgba(255,215,0,0.18)", color: "#FFD700",
+                    border: "1px solid rgba(255,215,0,0.45)",
+                  }}>5 FREI / TAG</span>
+                </div>
+                <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
+                  Runner vs Runner · Siegel &amp; Ausrüstung looten
+                </div>
+              </div>
+              <span style={{ color: "#FF6B4A", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
+            </button>
           </div>
         )}
 
@@ -2461,6 +2498,12 @@ function ProfilTab({
           <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 14, fontStyle: "italic" }}>
             XP sammelst du durch Läufe, Territorien, Streaks & Achievements.
           </div>
+        </Modal>
+      )}
+
+      {openModal === "arena" && (
+        <Modal title="Kampfarena" subtitle="Runner vs Runner · Siegel & Loot" icon="⚔️" accent="#FF2D78" onClose={() => setOpenModal(null)}>
+          <RunnerFightsClient inModal onClose={() => setOpenModal(null)} />
         </Modal>
       )}
 
