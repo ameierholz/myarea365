@@ -36,121 +36,129 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
         {/* Haupt-Poster (druckbar) */}
         <div className="print-poster" style={{
           position: "relative",
-          padding: 32,
+          padding: "28px 28px 24px",
           borderRadius: 20,
-          background: "linear-gradient(145deg, #111826 0%, #0F1115 60%, #141b2e 100%)",
+          background: "linear-gradient(160deg, #0c1424 0%, #0a0e1a 45%, #12172c 100%)",
           border: "1px solid rgba(34,209,195,0.25)",
           boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(34,209,195,0.08)",
           overflow: "hidden",
         }}>
-          {/* Brand-Akzente: Eck-Glows */}
-          <div style={{
-            position: "absolute", top: -60, right: -60, width: 260, height: 260,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(34,209,195,0.22), transparent 70%)",
+          {/* Dezentes Punktmuster im Hintergrund */}
+          <div aria-hidden style={{
+            position: "absolute", inset: 0,
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "14px 14px",
             pointerEvents: "none",
           }} />
-          <div style={{
-            position: "absolute", bottom: -80, left: -60, width: 260, height: 260,
+          {/* Brand-Akzente: kräftigere Eck-Glows */}
+          <div aria-hidden style={{
+            position: "absolute", top: -80, right: -80, width: 320, height: 320,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,45,120,0.18), transparent 70%)",
+            background: "radial-gradient(circle, rgba(34,209,195,0.32), transparent 65%)",
+            pointerEvents: "none",
+          }} />
+          <div aria-hidden style={{
+            position: "absolute", bottom: -100, left: -80, width: 320, height: 320,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(255,45,120,0.28), transparent 65%)",
             pointerEvents: "none",
           }} />
 
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: 14, position: "relative" }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: "#FFF", letterSpacing: -0.5 }}>
+              <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1, color: "#FFF", letterSpacing: -0.5 }}>
                 SCANNE &<br />
-                <span style={{ color: "#FFD700" }}>KASSIERE!</span>
+                <span style={{ color: "#FFD700", fontSize: 38 }}>KASSIEREN!</span>
               </div>
-              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 8, lineHeight: 1.4, maxWidth: 240 }}>
-                Scanne den Code für<br />deine exklusive Belohnung.
+              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 10, lineHeight: 1.45, maxWidth: 260 }}>
+                Scanne den Code für deine<br />exklusive Belohnung.
               </div>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="MyArea365"
-              style={{ width: 64, height: 64, borderRadius: 16, flexShrink: 0, boxShadow: "0 4px 20px rgba(34,209,195,0.3)" }} />
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              {/* Logo-Glow */}
+              <div aria-hidden style={{
+                position: "absolute", inset: -8, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(34,209,195,0.35), transparent 70%)",
+              }} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="MyArea365"
+                style={{
+                  position: "relative",
+                  width: 72, height: 72, borderRadius: "50%",
+                  border: "2px solid rgba(34,209,195,0.5)",
+                  boxShadow: "0 4px 24px rgba(34,209,195,0.35)",
+                }} />
+            </div>
           </div>
           <div style={{
             fontSize: 10, fontWeight: 900, letterSpacing: 3,
-            color: "#22D1C3", marginTop: 14, display: "flex", gap: 10, alignItems: "center",
+            color: "#22D1C3", marginTop: 16, display: "flex", gap: 10, alignItems: "center", position: "relative",
           }}>
-            <span style={{ display: "inline-block", width: 28, height: 1, background: "#22D1C3" }} />
+            <span style={{ display: "inline-block", width: 24, height: 1, background: "#22D1C3" }} />
             MYAREA365
-            <span style={{ display: "inline-block", flex: 1, height: 1, background: "rgba(34,209,195,0.3)" }} />
+            <span style={{ display: "inline-block", flex: 1, height: 1, background: "linear-gradient(90deg, rgba(34,209,195,0.4), transparent)" }} />
           </div>
 
           {/* QR-Code mit Logo-Overlay */}
           <div style={{
             position: "relative",
-            margin: "18px auto 0",
+            margin: "22px auto 22px",
             width: 260, height: 260,
-            borderRadius: 18,
+            borderRadius: 20,
             background: "#FFF",
             padding: 14,
             boxSizing: "border-box",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)",
           }}>
             {qrUrl && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={qrUrl}
-                alt="QR-Code"
-                width={232}
-                height={232}
-                style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }}
-              />
+              <img src={qrUrl} alt="QR-Code" width={232} height={232}
+                style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
             )}
-            {/* Logo-Overlay in der Mitte (Error-Correction H verzeiht bis zu ~25 %) */}
             <div style={{
               position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-              width: 48, height: 48, borderRadius: 10,
-              background: "#FFF", padding: 5,
+              width: 48, height: 48, borderRadius: "50%",
+              background: "#FFF", padding: 4,
               boxSizing: "border-box",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+              <img src="/logo.png" alt=""
+                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
             </div>
           </div>
 
-          {/* Benefits */}
-          <div style={{ marginTop: 22, display: "flex", flexDirection: "column", gap: 8 }}>
-            <Benefit icon="🏆" color="#FFD700"
-              title="Wegemünzen + Rabatt" body="Runner zahlt 🪙, du gibst Rabatt an der Kasse" />
-            <Benefit icon="🗂️" color="#22D1C3"
+          {/* Benefits — poster-style ohne Card-Rahmen */}
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+            <BenefitRow icon="🏆" color="#FFD700"
+              title="Wegemünzen + Rabatt"
+              body="Runner zahlt 🪙, du gibst Rabatt an der Kasse" />
+            <BenefitRow icon="🔥" color="#22D1C3"
               title="Crew-Stempel" body="Stammkunden-Bindung für Nachbarschafts-Crews" />
-            <Benefit icon="🎁" color="#FF2D78"
+            <BenefitRow icon="🎁" color="#FF2D78"
               title="Bonus-Loot" body="Kassenbon fotografieren = extra Belohnung" />
           </div>
 
-          {/* Steps */}
-          <div style={{
-            marginTop: 20, padding: 14, borderRadius: 12,
-            background: "rgba(15,17,21,0.55)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#8B8FA3", marginBottom: 8 }}>
-              SO FUNKTIONIERT&apos;S
-            </div>
-            <ol style={{ margin: 0, paddingLeft: 20, color: "#D0D0D5", fontSize: 12, lineHeight: 1.7 }}>
-              <li>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</li>
-              <li>Shop auf der Karte antippen</li>
-              <li>Code scannen &middot; GPS bestätigt automatisch</li>
-              <li>Rabatt an der Kasse abholen</li>
-            </ol>
+          {/* Steps mit Nummern-Kreisen + Icons */}
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+            <StepRow n={1} icon="📱" body={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
+            <StepRow n={2} icon="🗺️" body="Shop auf der Karte antippen" />
+            <StepRow n={3} icon="📸" body={<>Code scannen · GPS bestätigt automatisch</>} />
+            <StepRow n={4} icon="💸" body="Rabatt an der Kasse abholen" />
           </div>
 
           {/* Footer */}
           <div style={{
-            marginTop: 18, textAlign: "center",
+            position: "relative",
+            paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)",
+            textAlign: "center",
             fontSize: 11, color: "#8B8FA3", lineHeight: 1.5,
           }}>
-            <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 13 }}>
-              myarea365.de · Jetzt downloaden
+            <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 14 }}>
+              myarea365.de
             </div>
-            <div style={{ marginTop: 2 }}>Unterstützt von deinem Kiez.</div>
+            <div style={{ marginTop: 2 }}>Jetzt downloaden — unterstützt von deinem Kiez.</div>
           </div>
         </div>
 
@@ -378,24 +386,30 @@ const INPUT_DARK: React.CSSProperties = {
   color: "#FFF", fontSize: 13, fontFamily: "inherit",
 };
 
-function Benefit({ icon, color, title, body }: { icon: string; color: string; title: string; body: string }) {
+function BenefitRow({ icon, color, title, body }: { icon: string; color: string; title: string; body: string }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: 10, borderRadius: 10,
-      background: "rgba(255,255,255,0.03)",
-      border: `1px solid ${color}33`,
-    }}>
-      <div style={{
-        width: 36, height: 36, borderRadius: 10,
-        background: `${color}22`, border: `1px solid ${color}55`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 18, flexShrink: 0,
-      }}>{icon}</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ fontSize: 26, flexShrink: 0, filter: `drop-shadow(0 2px 8px ${color}66)`, width: 32, textAlign: "center" }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 900, color }}>{title}</div>
-        <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 1 }}>{body}</div>
+        <div style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: 0.2 }}>{title}</div>
+        <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 1, lineHeight: 1.4 }}>{body}</div>
       </div>
+    </div>
+  );
+}
+
+function StepRow({ n, icon, body }: { n: number; icon: string; body: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: "50%",
+        background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
+        color: "#0F1115", fontSize: 12, fontWeight: 900,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0, boxShadow: "0 2px 8px rgba(34,209,195,0.35)",
+      }}>{n}</div>
+      <div style={{ fontSize: 20, flexShrink: 0, width: 24, textAlign: "center" }}>{icon}</div>
+      <div style={{ fontSize: 13, color: "#D0D0D5", lineHeight: 1.45 }}>{body}</div>
     </div>
   );
 }
