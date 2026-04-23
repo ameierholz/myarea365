@@ -15,6 +15,7 @@ import { ShopTerritoryBonusPanel } from "@/components/shop-territory-bonus-panel
 import { ShopOnboardingBanner } from "@/components/shop-onboarding-banner";
 import { ShopUpsellBanner } from "@/components/shop-upsell-banner";
 import { ShopHowItWorksModal } from "@/components/shop-how-it-works-modal";
+import { ShopBillingModal } from "@/components/shop-billing-modal";
 import { ShopCrewStampsPanel } from "@/components/shop-crew-stamps-panel";
 import { createClient } from "@/lib/supabase/client";
 
@@ -164,6 +165,7 @@ export default function ShopDashboardPage() {
   const [tab, setTab] = useState<SubTab>("overview");
   const [shop, reloadShop] = useShop(DEMO_SHOP.id);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+  const [billingOpen, setBillingOpen] = useState(false);
 
   const monthlyRedemptions = DEMO_STATS.checkinsMonth ?? 0;
   const flashCredits = shop.flash_push_credits ?? 0;
@@ -195,9 +197,12 @@ export default function ShopDashboardPage() {
             🔲 QR-Code drucken
           </Link>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
-          <Link href="/shop/billing" style={{ color: MUTED, textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+          <button onClick={() => setBillingOpen(true)} style={{
+            background: "transparent", border: "none", color: MUTED,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0,
+          }}>
             💳 Abrechnung & Paket
-          </Link>
+          </button>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <button onClick={() => setHowItWorksOpen(true)} style={{
             background: "transparent", border: "none", color: MUTED,
@@ -208,6 +213,7 @@ export default function ShopDashboardPage() {
           </button>
         </div>
         {howItWorksOpen && <ShopHowItWorksModal onClose={() => setHowItWorksOpen(false)} />}
+        {billingOpen && <ShopBillingModal defaultShopId={shop.id} onClose={() => setBillingOpen(false)} />}
 
         <div style={{
           background: `linear-gradient(135deg, ${DEMO_SHOP.planColor}22 0%, rgba(20, 26, 44, 0.85) 100%)`,
