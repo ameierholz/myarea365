@@ -93,21 +93,22 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
             <div style={{ position: "relative", flexShrink: 0, textAlign: "center" }}>
               <div aria-hidden style={{
-                position: "absolute", inset: -8, borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(34,209,195,0.28), transparent 70%)",
+                position: "absolute", top: -12, left: -12, width: 140, height: 140, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(34,209,195,0.32), transparent 65%)",
               }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.png" alt=""
                 style={{
                   position: "relative",
-                  width: 70, height: 70, borderRadius: "50%",
-                  border: "2px solid rgba(34,209,195,0.45)",
+                  width: 116, height: 116, borderRadius: "50%",
+                  border: "2.5px solid rgba(34,209,195,0.5)",
+                  boxShadow: "0 6px 24px rgba(34,209,195,0.3)",
                   objectFit: "cover",
                 }} />
               <div style={{
                 position: "relative",
-                fontSize: 13, fontWeight: 900, color: "#FFF",
-                letterSpacing: -0.2, marginTop: 6,
+                fontSize: 16, fontWeight: 900, color: "#FFF",
+                letterSpacing: -0.3, marginTop: 8,
               }}>
                 My<span style={{ color: "#22D1C3" }}>Area</span>365
               </div>
