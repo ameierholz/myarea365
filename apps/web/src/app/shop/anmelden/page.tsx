@@ -37,6 +37,8 @@ export default function ShopRegisterPage() {
       street:        String(fd.get("street") ?? "").trim(),
       zip:           String(fd.get("zip") ?? "").trim(),
       city:          String(fd.get("city") ?? "").trim(),
+      state:         String(fd.get("state") ?? "").trim(),
+      country:       String(fd.get("country") ?? "DE").trim(),
       contact_email: String(fd.get("contact_email") ?? "").trim(),
       contact_phone: String(fd.get("contact_phone") ?? "").trim(),
       description:   String(fd.get("description") ?? "").trim(),
@@ -125,6 +127,10 @@ export default function ShopRegisterPage() {
             <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12 }}>
               <Field name="zip" label="PLZ *" placeholder="10965" required maxLength={5} />
               <Field name="city" label="Stadt *" placeholder="Berlin" required />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 12 }}>
+              <Field name="state" label="Bundesland / Kanton (optional)" placeholder="Berlin, Bayern, Wien …" />
+              <Field name="country" label="Land *" asSelect required options={["DE","AT","CH"]} />
             </div>
           </div>
 
