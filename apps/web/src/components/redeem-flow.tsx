@@ -16,6 +16,16 @@ type Props = {
   onRedeemed?: (xpLeft: number) => void;
 };
 
+type CrewStamp = {
+  ok: boolean;
+  no_crew?: boolean;
+  crew_id?: string;
+  crew_name?: string;
+  stamp_count?: number;
+  tier_unlocked?: number;
+  new_unlocks?: Array<{ tier: number; label: string; threshold: number; kind: string; value_int: number | null; value_text: string | null }>;
+};
+
 type RedeemResult = {
   ok: boolean;
   error?: string;
@@ -24,6 +34,7 @@ type RedeemResult = {
   expires_at?: string;
   have?: number;
   need?: number;
+  crew_stamp?: CrewStamp | null;
 };
 
 export function RedeemFlow(props: Props) {
@@ -34,6 +45,7 @@ export function RedeemFlow(props: Props) {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [autoVerified, setAutoVerified] = useState(false);
   const [minOrderCents, setMinOrderCents] = useState<number | null>(null);
+  const [crewStamp, setCrewStamp] = useState<CrewStamp | null>(null);
   const [now, setNow] = useState(Date.now());
   const [scanError, setScanError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -177,6 +189,7 @@ export function RedeemFlow(props: Props) {
       setExpiresAt(json.expires_at!);
       setAutoVerified(!!json.auto_verified);
       setMinOrderCents(json.min_order_cents ?? deal.min_order_amount_cents ?? null);
+      setCrewStamp(json.crew_stamp ?? null);
       // Bei Auto-Verify ist die Einlösung direkt abgeschlossen → active
       // (der Live-Poll erkennt status='verified' und schaltet auf 'done' sobald Loot da ist)
       setStep("active");
@@ -380,6 +393,11 @@ export function RedeemFlow(props: Props) {
                   muss an der Kasse erreicht werden
                 </div>
               </div>
+            )}
+
+            {/* Crew-Stempel */}
+            {crewStamp && !crewStamp.no_crew && crewStamp.stamp_count != null && (
+              <CrewStampWidget stamp={crewStamp} />
             )}
 
             {/* Countdown-Warnung (60 s hart) */}
@@ -850,3 +868,45 @@ const btnSecondary: React.CSSProperties = {
   border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer",
   fontSize: 13, fontWeight: 700,
 };
+
+function CrewStampWidget({ stamp }: { stamp: CrewStamp }) {
+  const hasUnlocks = (stamp.new_unlocks?.length ?? 0) > 0;
+  return (
+    <div style={{
+      padding: 12, borderRadius: 12, marginBottom: 10,
+      background: hasUnlocks
+        ? "linear-gradient(135deg, rgba(255,215,0,0.2), rgba(34,209,195,0.12))"
+        : "rgba(34,209,195,0.1)",
+      border: `1px solid ${hasUnlocks ? "#FFD700" : "rgba(34,209,195,0.4)"}`,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ fontSize: 24 }}>{hasUnlocks ? "🏆" : "🗂️"}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: hasUnlocks ? "#FFD700" : "#22D1C3" }}>
+            CREW-STEMPEL · {stamp.crew_name?.toUpperCase()}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 1 }}>
+            +1 Stempel · <span style={{ color: "#FFD700" }}>{stamp.stamp_count} gesammelt</span>
+          </div>
+        </div>
+      </div>
+      {hasUnlocks && (
+        <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.4)" }}>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700", marginBottom: 4 }}>
+            🎉 FREIGESCHALTET!
+          </div>
+          {stamp.new_unlocks!.map((u, i) => (
+            <div key={i} style={{ fontSize: 12, color: "#FFF", fontWeight: 700, marginTop: 2 }}>
+              • <b>{u.label}</b>
+              {u.kind === "discount_percent" && u.value_int ? ` — ${u.value_int} % Rabatt für alle Crew-Mitglieder` : ""}
+              {u.kind === "free_item" && u.value_text ? ` — ${u.value_text}` : ""}
+              {u.kind === "wegemuenzen_unlock" && u.value_int ? ` — +${u.value_int} 🪙 für jedes Mitglied` : ""}
+              {u.kind === "gebietsruf_unlock" && u.value_int ? ` — +${u.value_int} 🏴 für jedes Mitglied` : ""}
+              {u.kind === "crew_emblem" ? " — Crew-Emblem erscheint am Shop-Pin auf der Karte" : ""}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

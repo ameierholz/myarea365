@@ -15,6 +15,7 @@ import { ShopTerritoryBonusPanel } from "@/components/shop-territory-bonus-panel
 import { ShopOnboardingBanner } from "@/components/shop-onboarding-banner";
 import { ShopUpsellBanner } from "@/components/shop-upsell-banner";
 import { ShopHowItWorksModal } from "@/components/shop-how-it-works-modal";
+import { ShopCrewStampsPanel } from "@/components/shop-crew-stamps-panel";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -110,7 +111,7 @@ const DEMO_TOP_RUNNERS = [
 
 /* ═══════════════════════════════════════════════════════ */
 
-type SubTab = "overview" | "deals" | "quests" | "flash" | "spotlight" | "customers" | "performance" | "settings";
+type SubTab = "overview" | "deals" | "quests" | "stamps" | "flash" | "spotlight" | "customers" | "performance" | "settings";
 
 type ShopRow = {
   id: string; name: string;
@@ -260,6 +261,7 @@ export default function ShopDashboardPage() {
             { id: "overview",    label: "Übersicht",    icon: "🏠" },
             { id: "deals",       label: "Deals",        icon: "🎁" },
             { id: "quests",      label: "Quests",       icon: "🎯" },
+            { id: "stamps",      label: "Stempelkarte", icon: "🗂️" },
             { id: "flash",       label: "Flash-Deals",  icon: "⚡" },
             { id: "spotlight",   label: "Spotlight",    icon: "🏆" },
             { id: "customers",   label: "Stammkunden",  icon: "🧑‍🤝‍🧑" },
@@ -293,6 +295,7 @@ export default function ShopDashboardPage() {
         {tab === "overview"    && <OverviewTab />}
         {tab === "deals"       && <DealsTab shopId={shop.id} />}
         {tab === "quests"      && <ShopQuestsManager businessId={shop.id} />}
+        {tab === "stamps"      && <ShopCrewStampsPanel shopId={shop.id} />}
         {tab === "flash"       && <FlashTab shop={shop} reloadShop={reloadShop} />}
         {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} />}
         {tab === "customers"   && <CustomersTab />}
