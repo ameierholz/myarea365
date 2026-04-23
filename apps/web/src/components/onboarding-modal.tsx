@@ -79,8 +79,8 @@ const SLIDES: Slide[] = [
     title: "1. Straßenabschnitt",
     color: "#22D1C3",
     gradient: "radial-gradient(at 50% 0%, rgba(34,209,195,0.25), transparent 60%)",
-    xp: "+50 XP",
-    body: "Der kleinste Baustein: ein einzelnes Straßenstück zwischen zwei Kreuzungen. Jeder Abschnitt den du als Erster abläufst, gehört dir — und bringt 50 XP.",
+    xp: "+50 🪙",
+    body: "Der kleinste Baustein: ein einzelnes Straßenstück zwischen zwei Kreuzungen. Jeder Abschnitt den du als Erster abläufst, gehört dir — und bringt 50 Wegemünzen.",
     visual: <SegmentVisual />,
   },
   {
@@ -88,8 +88,8 @@ const SLIDES: Slide[] = [
     title: "2. Straßenzug",
     color: "#FFD700",
     gradient: "radial-gradient(at 50% 0%, rgba(255,215,0,0.28), transparent 60%)",
-    xp: "+250 XP Bonus",
-    body: "Hast du ALLE Abschnitte einer Straße gesammelt, wird sie als kompletter Straßenzug für dich freigeschaltet — plus einem satten 250-XP-Bonus obendrauf.",
+    xp: "+250 🪙 Bonus",
+    body: "Hast du ALLE Abschnitte einer Straße gesammelt, wird sie als kompletter Straßenzug für dich freigeschaltet — plus einem satten 250-Wegemünzen-Bonus obendrauf.",
     visual: <StreetVisual />,
   },
   {
@@ -97,8 +97,8 @@ const SLIDES: Slide[] = [
     title: "3. Territorium (Crew-Sache)",
     color: "#FF2D78",
     gradient: "radial-gradient(at 50% 0%, rgba(255,45,120,0.28), transparent 60%)",
-    xp: "+500 XP",
-    body: "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Territorium. Wichtig: Territorien sind Crew-Gebiet. Bist du Mitglied, kassiert deine Crew 500 XP. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst.",
+    xp: "+500 🪙",
+    body: "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Territorium. Wichtig: Territorien sind Crew-Gebiet. Bist du Mitglied, kassierst du 500 Wegemünzen. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst.",
     visual: <TerritoryVisual />,
   },
 ];

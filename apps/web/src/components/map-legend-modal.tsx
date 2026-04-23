@@ -10,7 +10,7 @@ const SECTIONS: Section[] = [
       { icon: "🟡", color: "#FFD700", label: "Dein Territorium", desc: "Geschlossenes Polygon in deiner Runner-Farbe." },
       { icon: "🟦", color: "#22D1C3", label: "Crew-Territorium", desc: "Eroberung deiner Crew — zählt für den Crew-Rang." },
       { icon: "🔴", color: "#FF2D78", label: "Feind-Territorium", desc: "Gehört einer anderen Crew. Überlaufen = Steal-Bonus." },
-      { icon: "⚪", color: "#FFD700", label: "Pending (gestrichelt)", desc: "Ring geschlossen, aber noch ohne Crew — tritt einer bei und du kassierst 500 XP rückwirkend." },
+      { icon: "⚪", color: "#FFD700", label: "Pending (gestrichelt)", desc: "Ring geschlossen, aber noch ohne Crew — tritt einer bei und du kassierst 500 🪙 Wegemünzen rückwirkend." },
     ],
   },
   {
@@ -22,7 +22,7 @@ const SECTIONS: Section[] = [
       { icon: "🐉", color: "#FF2D78", label: "Boss-Raid", desc: "Gemeinsam mit Crew den Boss klopfen → Top-Loot." },
       { icon: "🏛️", color: "#22D1C3", label: "Sanktum", desc: "Täglicher Wächter-XP-Boost beim Vorbeilaufen." },
       { icon: "⚡", color: "#a855f7", label: "Power-Zone", desc: "Zone mit passivem Buff für deinen Wächter." },
-      { icon: "💥", color: "#FF6B4A", label: "Flash-Push", desc: "Kurzzeitiger Crew-Challenge-Spot — Doppel-XP für erste 15 min." },
+      { icon: "💥", color: "#FF6B4A", label: "Flash-Push", desc: "Kurzzeitiger Crew-Challenge-Spot — Doppel-Belohnung für erste 15 min." },
     ],
   },
   {

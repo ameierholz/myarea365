@@ -38,14 +38,17 @@ update public.users
   where wegemuenzen = 0 and coalesce(xp, 0) > 0;
 
 -- ═══════════════════════════════════════════════════════
--- 3) View v_public_profiles aktualisieren — beide Felder exponieren
+-- 3) View v_public_profiles neu aufbauen — neue Currency-Spalten ergänzen.
+--    DROP + CREATE weil CREATE OR REPLACE die Spaltenreihenfolge nicht
+--    ändern kann und das alte View mit (…, level, created_at) endete.
 -- ═══════════════════════════════════════════════════════
-create or replace view public.v_public_profiles as
+drop view if exists public.v_public_profiles;
+create view public.v_public_profiles as
   select id, username, display_name, faction,
          total_distance_m, total_walks,
          xp as total_xp, -- deprecated, bleibt für Alt-Clients
-         wegemuenzen, gebietsruf, sessionehre,
          level,
+         wegemuenzen, gebietsruf, sessionehre,
          created_at
     from public.users
    where coalesce(privacy_leaderboard, true) = true
@@ -107,8 +110,10 @@ begin
 end $$;
 
 -- 4b) promote_pending_territories (00038): Territory-Promote → Wegemünzen
-create or replace function public.promote_pending_territories(p_user_id uuid)
-returns table(promoted_count int, awarded_xp int)
+-- DROP nötig: PostgreSQL verbietet das Ändern von OUT-Parameter-Namen via CREATE OR REPLACE.
+drop function if exists public.promote_pending_territories(uuid);
+create function public.promote_pending_territories(p_user_id uuid)
+returns table(promoted_count int, xp_granted int)
 language plpgsql
 security definer
 as $$
@@ -144,6 +149,8 @@ begin
 
   return query select v_count, v_xp;
 end $$;
+
+grant execute on function public.promote_pending_territories(uuid) to authenticated, service_role;
 
 -- 4c) finalize_expired_crew_wars (00044): Crew-War-Sieg → Gebietsruf
 create or replace function public.finalize_expired_crew_wars()
