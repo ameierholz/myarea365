@@ -47,14 +47,21 @@ const defaultHours: DayHours[] = DAYS.map((d) => ({
 
 export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; onBillingClick: () => void }) {
   const [shop, setShop] = useState<Shop | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedHint, setSavedHint] = useState<string | null>(null);
 
   async function load() {
-    const res = await fetch(`/api/shop/my`, { cache: "no-store" });
-    const j = await res.json() as { shops: Shop[] };
-    const s = j.shops?.find((x) => x.id === shopId) ?? null;
-    setShop(s);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/shop/my`, { cache: "no-store" });
+      const j = await res.json() as { shops: Shop[] };
+      // Match auf übergebene shopId — fallback: erster Owner-Shop
+      const match = j.shops?.find((x) => x.id === shopId);
+      setShop(match ?? j.shops?.[0] ?? null);
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { void load(); }, [shopId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -75,7 +82,32 @@ export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; 
     }
   }
 
-  if (!shop) return <div style={{ padding: 20, color: "#a8b4cf" }}>Lade Einstellungen…</div>;
+  if (loading) {
+    return <div style={{ padding: 20, color: "#a8b4cf" }}>Lade Einstellungen…</div>;
+  }
+  if (!shop) {
+    return (
+      <div style={{
+        padding: 30, textAlign: "center",
+        background: "rgba(41, 51, 73, 0.35)", borderRadius: 14,
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>🏪</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF", marginBottom: 6 }}>
+          Du hast noch keinen Shop
+        </div>
+        <div style={{ fontSize: 13, color: "#a8b4cf", marginBottom: 16, lineHeight: 1.5 }}>
+          Trag dein Geschäft kostenlos ein — in max. 48 h ist dein Shop live auf der Karte.
+        </div>
+        <Link href="/shop/anmelden" style={{
+          display: "inline-block",
+          padding: "10px 18px", borderRadius: 10,
+          background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
+          color: "#0F1115", fontSize: 13, fontWeight: 900, textDecoration: "none",
+        }}>Shop jetzt eintragen →</Link>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
