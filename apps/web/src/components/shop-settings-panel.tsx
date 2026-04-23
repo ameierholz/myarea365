@@ -174,12 +174,20 @@ function ProfileBlock({ shop, onSave, saving }: {
           <input type="url" placeholder="https://…" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} style={INP} />
         </Field>
 
-        <Field label="Logo-URL (z. B. von Instagram oder Dropbox-Direktlink)">
-          <input type="url" value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} style={INP} />
-        </Field>
-        <Field label="Cover-Bild-URL (1200×400, optional)">
-          <input type="url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} style={INP} />
-        </Field>
+        <ImageUpload
+          label="Shop-Logo (quadratisch, min. 256px)"
+          shopId={shop.id}
+          kind="logo"
+          currentUrl={form.logo_url}
+          onUploaded={(url) => setForm({ ...form, logo_url: url })}
+        />
+        <ImageUpload
+          label="Cover-Bild (1200×400 empfohlen, optional)"
+          shopId={shop.id}
+          kind="cover"
+          currentUrl={form.cover_url}
+          onUploaded={(url) => setForm({ ...form, cover_url: url })}
+        />
 
         <button type="submit" disabled={saving} style={BTN_PRIMARY}>
           {saving ? "Speichert…" : "Profil speichern"}
@@ -567,6 +575,83 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span style={{ fontSize: 10, color: "#a8b4cf", fontWeight: 700, letterSpacing: 0.5 }}>{label.toUpperCase()}</span>
       {children}
     </label>
+  );
+}
+
+function ImageUpload({ label, shopId, kind, currentUrl, onUploaded }: {
+  label: string;
+  shopId: string;
+  kind: "logo" | "cover";
+  currentUrl: string;
+  onUploaded: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFile(file: File) {
+    setUploading(true); setError(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("shop_id", shopId);
+    fd.append("kind", kind);
+    try {
+      const res = await fetch("/api/shop/upload", { method: "POST", body: fd });
+      const j = await res.json();
+      if (!j.ok) {
+        setError(j.error === "file_too_large" ? "Datei zu groß (max. 5 MB)" :
+                 j.error === "invalid_mime" ? "Nur JPG / PNG / WEBP / GIF erlaubt" :
+                 j.error ?? "Upload fehlgeschlagen");
+        return;
+      }
+      onUploaded(j.url as string);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Netzwerkfehler");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span style={{ fontSize: 10, color: "#a8b4cf", fontWeight: 700, letterSpacing: 0.5 }}>{label.toUpperCase()}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {currentUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={currentUrl} alt=""
+            style={{
+              width: kind === "cover" ? 120 : 64,
+              height: 64, borderRadius: 10,
+              objectFit: "cover",
+              border: "1px solid rgba(255,255,255,0.1)",
+              flexShrink: 0,
+            }} />
+        ) : (
+          <div style={{
+            width: kind === "cover" ? 120 : 64, height: 64, borderRadius: 10, flexShrink: 0,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px dashed rgba(255,255,255,0.15)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#8B8FA3", fontSize: 10,
+          }}>kein Bild</div>
+        )}
+        <div style={{ flex: 1 }}>
+          <label style={{ ...BTN_SECONDARY, display: "inline-block", cursor: uploading ? "wait" : "pointer" }}>
+            {uploading ? "⏳ Lade hoch…" : currentUrl ? "🔁 Ersetzen" : "📤 Hochladen"}
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
+              style={{ display: "none" }} />
+          </label>
+          {currentUrl && (
+            <button type="button" onClick={() => onUploaded("")} style={{
+              marginLeft: 8, padding: "8px 12px", borderRadius: 8,
+              background: "transparent", border: "1px solid rgba(255,45,120,0.3)",
+              color: "#FF2D78", fontSize: 11, fontWeight: 700, cursor: "pointer",
+            }}>Entfernen</button>
+          )}
+          {error && <div style={{ fontSize: 11, color: "#FF2D78", marginTop: 6 }}>⚠️ {error}</div>}
+        </div>
+      </div>
+    </div>
   );
 }
 

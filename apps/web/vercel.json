@@ -1,8 +1,7 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/arena-session",
-      "schedule": "5 0 * * *"
-    }
+    { "path": "/api/cron/arena-session",       "schedule": "5 0 * * *" },
+    { "path": "/api/cron/shop-daily-report",   "schedule": "0 7 * * *" },
+    { "path": "/api/cron/shop-weekly-summary", "schedule": "0 7 * * 1" }
   ]
 }
