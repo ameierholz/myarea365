@@ -578,6 +578,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         polygons_claimed: territoryCountNew,
       }).eq("id", walkRow.id);
 
+      if (error) {
+        console.error("[walk-save] territories.update failed", error);
+      }
       if (!error) {
         const newXp = (profile.wegemuenzen ?? profile.xp ?? 0) + totalXpGained;
         const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
@@ -585,13 +588,28 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         const newCal = (profile.total_calories || 0) + Math.round(finalDistance * 0.06);
         const newLongest = Math.max(profile.longest_run_m || 0, Math.round(finalDistance));
 
-        await supabase.from("users").update({
+        // Dual-Write: wegemuenzen ist die neue Currency (Migration 00046),
+        // xp bleibt als Legacy-Spalte bestehen. Falls die Migration noch nicht
+        // gelaufen ist, versuchen wir es auf xp alleine.
+        const { error: updErr } = await supabase.from("users").update({
           wegemuenzen: newXp,
+          xp: newXp,
           total_distance_m: newDistance,
           total_walks: newWalks,
           total_calories: newCal,
           longest_run_m: newLongest,
         }).eq("id", profile.id);
+
+        if (updErr) {
+          console.error("[walk-save] users.update failed, fallback to xp-only", updErr);
+          await supabase.from("users").update({
+            xp: newXp,
+            total_distance_m: newDistance,
+            total_walks: newWalks,
+            total_calories: newCal,
+            longest_run_m: newLongest,
+          }).eq("id", profile.id);
+        }
 
         setProfile({
           ...profile,

@@ -121,8 +121,14 @@ export async function POST(req: Request) {
   if (updErr) return NextResponse.json({ error: "update_failed" }, { status: 500 });
 
   if (rewardXp > 0) {
-    const { data: userRow } = await sb.from("users").select("wegemuenzen").eq("id", user.id).single<{ wegemuenzen: number | null }>();
-    await sb.from("users").update({ wegemuenzen: (userRow?.wegemuenzen ?? 0) + rewardXp }).eq("id", user.id);
+    const { data: userRow } = await sb.from("users").select("wegemuenzen, xp").eq("id", user.id).single<{ wegemuenzen: number | null; xp: number | null }>();
+    const base = userRow?.wegemuenzen ?? userRow?.xp ?? 0;
+    // Dual-Write: solange Migration 00046 evtl. noch nicht auf jedem Env gelaufen ist,
+    // halten wir xp und wegemuenzen synchron; Failover auf xp bei Column-Fehler.
+    const { error: updErr } = await sb.from("users").update({ wegemuenzen: base + rewardXp, xp: base + rewardXp }).eq("id", user.id);
+    if (updErr) {
+      await sb.from("users").update({ xp: base + rewardXp }).eq("id", user.id);
+    }
   }
 
   return NextResponse.json({ ok: true, reward_wegemuenzen: rewardXp });

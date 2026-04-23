@@ -47,12 +47,11 @@ export async function POST(req: Request) {
   }
   const walk_id = typeof raw.walk_id === "string" ? raw.walk_id : undefined;
 
-  // GPS-Plausibility: Teleport-Detection.
-  // Aufeinanderfolgende Punkte dürfen max. 500 m voneinander entfernt sein.
-  // Das erlaubt schnelle Läufer (≤ 20 m/s = 72 km/h) auch bei sparsamen Traces
-  // mit 25 s Δt, blockiert aber offensichtliche Teleports. Bei 5 s-Ticks sind
-  // nur ~100 m realistisch — größere Sprünge lassen wir durch, kappen aber
-  // Gesamt-Strecke später.
+  // GPS-Plausibility: nur offensichtliche Teleports ablehnen.
+  // Echte GPS-Traces haben bei schwachem Signal, Tunnel oder Startpunkt regelmäßig
+  // Sprünge von 1–3 km — strenge Prüfungen erzeugen zu viele False-Positives.
+  // Wir blocken nur Sprünge > 10 km (unmöglich für einen Läufer in Sekunden)
+  // und kappen die Gesamt-Strecke pro Submit auf 50 km.
   let totalGapKm = 0;
   for (let i = 1; i < trace.length; i++) {
     const a = trace[i - 1];
@@ -60,13 +59,12 @@ export async function POST(req: Request) {
     const dLat = (b.lat - a.lat) * 111;
     const dLng = (b.lng - a.lng) * 111 * Math.cos((a.lat * Math.PI) / 180);
     const km = Math.sqrt(dLat * dLat + dLng * dLng);
-    if (km > 0.5) {
+    if (km > 10) {
       return NextResponse.json({ error: "teleport_detected", gap_km: Number(km.toFixed(2)) }, { status: 400 });
     }
     totalGapKm += km;
   }
-  // Sanity-Cap: ein einzelner Submit sollte nie > 25 km enthalten.
-  if (totalGapKm > 25) {
+  if (totalGapKm > 50) {
     return NextResponse.json({ error: "trace_too_long", km: Number(totalGapKm.toFixed(1)) }, { status: 400 });
   }
 
