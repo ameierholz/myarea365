@@ -14,6 +14,7 @@ import { ShopQuestsManager } from "@/components/shop-quests-manager";
 import { ShopTerritoryBonusPanel } from "@/components/shop-territory-bonus-panel";
 import { ShopOnboardingBanner } from "@/components/shop-onboarding-banner";
 import { ShopUpsellBanner } from "@/components/shop-upsell-banner";
+import { ShopHowItWorksModal } from "@/components/shop-how-it-works-modal";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -161,6 +162,7 @@ function useShop(fallbackId: string): [ShopRow, () => void] {
 export default function ShopDashboardPage() {
   const [tab, setTab] = useState<SubTab>("overview");
   const [shop, reloadShop] = useShop(DEMO_SHOP.id);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const monthlyRedemptions = DEMO_STATS.checkinsMonth ?? 0;
   const flashCredits = shop.flash_push_credits ?? 0;
@@ -195,7 +197,16 @@ export default function ShopDashboardPage() {
           <Link href="/shop/billing" style={{ color: MUTED, textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
             💳 Abrechnung & Paket
           </Link>
+          <span style={{ color: BORDER, fontSize: 12 }}>·</span>
+          <button onClick={() => setHowItWorksOpen(true)} style={{
+            background: "transparent", border: "none", color: MUTED,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0,
+            textDecoration: "underline", textUnderlineOffset: 3,
+          }}>
+            🤝 So funktioniert&apos;s
+          </button>
         </div>
+        {howItWorksOpen && <ShopHowItWorksModal onClose={() => setHowItWorksOpen(false)} />}
 
         <div style={{
           background: `linear-gradient(135deg, ${DEMO_SHOP.planColor}22 0%, rgba(20, 26, 44, 0.85) 100%)`,
@@ -582,6 +593,7 @@ type LiveDeal = {
   xp_cost: number; frequency: string; active: boolean;
   redemption_count: number | null; max_redemptions: number | null;
   active_until: string | null; created_at: string;
+  min_order_amount_cents: number | null;
 };
 
 function DealsTab({ shopId }: { shopId: string }) {
@@ -718,11 +730,13 @@ function DealEditor({ shopId, initial, onCancel, onSaved }: {
     e.preventDefault();
     setBusy(true); setError(null);
     const fd = new FormData(e.currentTarget);
+    const minOrderEur = Number(fd.get("min_order_eur") ?? 0);
     const body = {
       title:       String(fd.get("title") ?? "").trim(),
       description: String(fd.get("description") ?? "").trim() || null,
       xp_cost:     Number(fd.get("xp_cost") ?? 0),
       frequency:   String(fd.get("frequency") ?? "weekly"),
+      min_order_amount_cents: minOrderEur > 0 ? Math.round(minOrderEur * 100) : null,
     };
 
     const url = "/api/shop/deals";
@@ -776,6 +790,13 @@ function DealEditor({ shopId, initial, onCancel, onSaved }: {
           </select>
         </label>
       </div>
+      <label style={LBL}>
+        <span>Mindestumsatz in € (optional) — wird dem Runner groß angezeigt</span>
+        <input name="min_order_eur" type="number" step="0.50" min={0}
+          defaultValue={initial?.min_order_amount_cents ? (initial.min_order_amount_cents / 100).toFixed(2) : ""}
+          placeholder="z.B. 5,00 (leer lassen = kein Mindestumsatz)"
+          style={INP} />
+      </label>
 
       {error && <div style={{ marginTop: 10, color: ACCENT, fontSize: 12 }}>⚠️ {error}</div>}
 

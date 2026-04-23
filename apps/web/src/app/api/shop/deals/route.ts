@@ -47,6 +47,10 @@ export async function POST(req: NextRequest) {
   }
   const freq = FREQ.includes(body.frequency as typeof FREQ[number]) ? body.frequency : "weekly";
 
+  const minOrder = typeof (body as unknown as { min_order_amount_cents?: number }).min_order_amount_cents === "number"
+    ? (body as unknown as { min_order_amount_cents: number }).min_order_amount_cents
+    : null;
+
   const { data, error } = await sb.from("shop_deals").insert({
     shop_id: body.shop_id,
     title: body.title.trim(),
@@ -55,6 +59,7 @@ export async function POST(req: NextRequest) {
     frequency: freq,
     max_redemptions: body.max_redemptions ?? null,
     active_until: body.active_until ?? null,
+    min_order_amount_cents: minOrder,
     active: true,
   }).select("*").single();
 
@@ -83,6 +88,9 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.frequency === "string" && FREQ.includes(body.frequency as typeof FREQ[number]))
     patch.frequency = body.frequency;
   if (typeof body.max_redemptions === "number") patch.max_redemptions = body.max_redemptions;
+  if (body.min_order_amount_cents === null || typeof body.min_order_amount_cents === "number") {
+    patch.min_order_amount_cents = body.min_order_amount_cents;
+  }
 
   const { data, error } = await sb.from("shop_deals").update(patch).eq("id", body.id).select("*").single();
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });

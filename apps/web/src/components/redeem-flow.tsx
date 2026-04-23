@@ -32,6 +32,8 @@ export function RedeemFlow(props: Props) {
   const [code, setCode] = useState("");
   const [redemptionId, setRedemptionId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [autoVerified, setAutoVerified] = useState(false);
+  const [minOrderCents, setMinOrderCents] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [scanError, setScanError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -137,26 +139,34 @@ export function RedeemFlow(props: Props) {
   async function doRedeem() {
     setStep("redeeming");
     try {
-      // Deal-ID holen (erster aktiver Deal dieses Shops, der passt)
-      const { data: deal } = await sb.from("deals")
+      // Deal-ID holen (erster aktiver Deal dieses Shops)
+      const { data: deal } = await sb.from("shop_deals")
         .select("id, title, xp_cost, min_order_amount_cents")
-        .eq("business_id", businessId)
+        .eq("shop_id", businessId)
         .eq("active", true)
         .limit(1)
         .maybeSingle<{ id: string; title: string; xp_cost: number; min_order_amount_cents: number | null }>();
       if (!deal) throw new Error("Kein aktiver Deal für diesen Shop");
-      if (deal.min_order_amount_cents && deal.min_order_amount_cents > 0) {
-        const euro = (deal.min_order_amount_cents / 100).toFixed(2).replace(".", ",");
-        const ok = typeof window !== "undefined" ? window.confirm(`Dieser Deal gilt ab einem Bestellwert von ${euro} €. Fortfahren?`) : true;
-        if (!ok) { setStep("confirm"); return; }
-      }
+
+      setMinOrderCents(deal.min_order_amount_cents ?? null);
+
+      // GPS-Position holen (best-effort, 3 s Timeout) — erlaubt Auto-Verify
+      const coords = await getCoordsBestEffort(3000);
 
       const res = await fetch("/api/deals/redeem", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ business_id: businessId, deal_id: deal.id }),
+        body: JSON.stringify({
+          business_id: businessId,
+          deal_id: deal.id,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
+        }),
       });
-      const json = (await res.json()) as RedeemResult;
+      const json = (await res.json()) as RedeemResult & {
+        auto_verified?: boolean; distance_m?: number | null;
+        shop_name?: string; deal_title?: string; min_order_cents?: number | null;
+      };
       if (!json.ok) {
         appAlert(json.error ?? "Fehler beim Einlösen");
         setStep("confirm");
@@ -165,12 +175,28 @@ export function RedeemFlow(props: Props) {
       setRedemptionId(json.id!);
       setCode(json.code!);
       setExpiresAt(json.expires_at!);
+      setAutoVerified(!!json.auto_verified);
+      setMinOrderCents(json.min_order_cents ?? deal.min_order_amount_cents ?? null);
+      // Bei Auto-Verify ist die Einlösung direkt abgeschlossen → active
+      // (der Live-Poll erkennt status='verified' und schaltet auf 'done' sobald Loot da ist)
       setStep("active");
       onRedeemed?.(userXp - xpCost);
     } catch (e) {
       appAlert(e instanceof Error ? e.message : String(e));
       setStep("confirm");
     }
+  }
+
+  async function getCoordsBestEffort(timeoutMs: number): Promise<{ lat: number; lng: number } | null> {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return null;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), timeoutMs);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { clearTimeout(timer); resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+        () => { clearTimeout(timer); resolve(null); },
+        { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 10000 },
+      );
+    });
   }
 
   async function doManualCode() {
@@ -295,10 +321,100 @@ export function RedeemFlow(props: Props) {
           </div>
         )}
 
-        {step === "active" && (
+        {step === "active" && autoVerified && (
           <div style={{ padding: 18 }}>
             <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>⏳ ZEIGE DIESEN SCREEN AN DER KASSE</div>
+              <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>
+                ✓ AN DER KASSE VORZEIGEN
+              </div>
+            </div>
+
+            {/* Grünes Freigegeben-Panel — Personal muss nichts tun */}
+            <div style={{
+              position: "relative",
+              background: "linear-gradient(135deg, #4ade80, #22D1C3)",
+              borderRadius: 18, padding: 22, textAlign: "center",
+              color: "#0F1115", marginBottom: 12, overflow: "hidden",
+            }}>
+              {/* Live-Sekundenring: rotiert in Echtzeit, lässt sich nicht screenshotten */}
+              <div style={{
+                position: "absolute", inset: -40,
+                background: "conic-gradient(from 0deg, rgba(255,255,255,0.55), transparent 25%, transparent 75%, rgba(255,255,255,0.55))",
+                animation: "redeemSpin 2s linear infinite",
+                pointerEvents: "none",
+              }} />
+              <div style={{ position: "relative" }}>
+                <div style={{ fontSize: 48 }}>✓</div>
+                <div style={{ fontSize: 22, fontWeight: 900, marginTop: 4, textShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+                  {businessName}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, marginTop: 4, opacity: 0.85 }}>
+                  {dealTitle}
+                </div>
+                <div style={{
+                  fontSize: 10, fontWeight: 900, letterSpacing: 1,
+                  marginTop: 10, padding: "4px 10px", borderRadius: 999,
+                  display: "inline-block",
+                  background: "rgba(15,17,21,0.85)", color: "#4ade80",
+                }}>
+                  VOR ORT BESTÄTIGT · {new Date(now).toLocaleTimeString("de-DE")}
+                </div>
+              </div>
+            </div>
+
+            {/* Mindest-Einkauf groß */}
+            {minOrderCents !== null && minOrderCents > 0 && (
+              <div style={{
+                padding: 14, borderRadius: 12,
+                background: "rgba(255,215,0,0.14)",
+                border: "1px solid rgba(255,215,0,0.45)",
+                textAlign: "center", marginBottom: 10,
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>
+                  MINDESTUMSATZ
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 900, color: "#FFD700", marginTop: 2, lineHeight: 1 }}>
+                  {(minOrderCents / 100).toFixed(2).replace(".", ",")} €
+                </div>
+                <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 4 }}>
+                  muss an der Kasse erreicht werden
+                </div>
+              </div>
+            )}
+
+            {/* Countdown-Warnung (60 s hart) */}
+            <div style={{
+              padding: 10, borderRadius: 10,
+              background: "rgba(255,45,120,0.1)",
+              border: "1px solid rgba(255,45,120,0.3)",
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+            }}>
+              <span style={{ fontSize: 20 }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#FF2D78", fontSize: 12, fontWeight: 900 }}>
+                  Gültig noch {mm}:{ss.toString().padStart(2, "0")}
+                </div>
+                <div style={{ color: "#a8b4cf", fontSize: 10 }}>
+                  Der Live-Ring rotiert — Screenshot erkennt man an stehendem Ring.
+                </div>
+              </div>
+              <PulseDot />
+            </div>
+
+            <div style={{ color: "#a8b4cf", fontSize: 11, textAlign: "center", lineHeight: 1.5 }}>
+              Personal schaut nur auf diesen Screen: ✓ grün + rotierender Ring + Shop-Name = echt.
+            </div>
+            <style>{`@keyframes redeemSpin { to { transform: rotate(360deg) } }`}</style>
+          </div>
+        )}
+
+        {step === "active" && !autoVerified && (
+          <div style={{ padding: 18 }}>
+            <div style={{ textAlign: "center", marginBottom: 8 }}>
+              <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>⏳ CODE AN DER KASSE ZEIGEN</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
+                (GPS nicht bestätigt — Personal muss bestätigen)
+              </div>
             </div>
 
             <div style={{
@@ -308,7 +424,6 @@ export function RedeemFlow(props: Props) {
               color: "#0F1115", marginBottom: 14,
               overflow: "hidden",
             }}>
-              {/* Rotating glow */}
               <div style={{
                 position: "absolute", inset: -40,
                 background: "conic-gradient(from 0deg, rgba(255,255,255,0.4), transparent 30%, transparent 70%, rgba(255,255,255,0.4))",
@@ -324,12 +439,25 @@ export function RedeemFlow(props: Props) {
                 }}>{code}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, marginTop: 6 }}>{dealTitle}</div>
                 <div style={{ fontSize: 11, marginTop: 4, opacity: 0.75 }}>
-                  ✓ {xpCost.toLocaleString("de-DE")} XP abgezogen
+                  ✓ {xpCost.toLocaleString("de-DE")} 🪙 abgezogen
                 </div>
               </div>
             </div>
 
-            {/* Countdown */}
+            {minOrderCents !== null && minOrderCents > 0 && (
+              <div style={{
+                padding: 10, borderRadius: 10,
+                background: "rgba(255,215,0,0.12)",
+                border: "1px solid rgba(255,215,0,0.35)",
+                textAlign: "center", marginBottom: 10,
+              }}>
+                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>MINDESTUMSATZ</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#FFD700", marginTop: 1 }}>
+                  {(minOrderCents / 100).toFixed(2).replace(".", ",")} €
+                </div>
+              </div>
+            )}
+
             <div style={{
               padding: 12, borderRadius: 12,
               background: secondsLeft < 60 ? "rgba(255,45,120,0.15)" : "rgba(34,209,195,0.12)",
@@ -346,11 +474,6 @@ export function RedeemFlow(props: Props) {
                 </div>
               </div>
               <PulseDot />
-            </div>
-
-            <div style={{ color: "#a8b4cf", fontSize: 11, textAlign: "center", lineHeight: 1.4 }}>
-              Kassierer gibt den 6-stelligen Code in seinem Dashboard ein. <br />
-              Bei Bestätigung → grüner ✓-Screen erscheint automatisch.
             </div>
             <style>{`@keyframes redeemSpin { to { transform: rotate(360deg) } }`}</style>
           </div>
