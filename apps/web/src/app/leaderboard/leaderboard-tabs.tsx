@@ -267,7 +267,7 @@ function FactionsTab() {
               </div>
               <div className="text-right">
                 <div className="text-lg font-black" style={{ color: f.color }}>{share}%</div>
-                <div className="text-[10px] text-[#8B8FA3]">XP-Anteil</div>
+                <div className="text-[10px] text-[#8B8FA3]">🪙-Anteil</div>
               </div>
             </div>
             <div className="h-2 bg-[#0F1115] rounded overflow-hidden mb-3">
@@ -275,7 +275,7 @@ function FactionsTab() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <div className="text-xs text-[#8B8FA3]">Gesamt-XP</div>
+                <div className="text-xs text-[#8B8FA3]">Gesamt 🪙</div>
                 <div className="text-sm font-bold text-white">{f.total_xp.toLocaleString("de-DE")}</div>
               </div>
               <div>
@@ -323,7 +323,7 @@ function CrewsTab() {
             <div className="text-xs text-[#8B8FA3]">👥 {c.member_count ?? 0} · 🗺️ {c.territory_count ?? 0} Gebiete</div>
           </div>
           <div className="text-right">
-            <div className="text-sm font-black" style={{ color: c.color ?? "#22D1C3" }}>{(c.total_xp ?? 0).toLocaleString("de-DE")} XP</div>
+            <div className="text-sm font-black" style={{ color: c.color ?? "#22D1C3" }}>{(c.total_xp ?? 0).toLocaleString("de-DE")} 🪙</div>
           </div>
         </div>
       ))}

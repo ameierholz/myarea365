@@ -212,14 +212,8 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
                   border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : tm.color}`,
                   position: "relative",
                 }}>
-                  {p.bonus_gem_badge > 0 && !owned && (
-                    <div style={{
-                      position: "absolute", top: -7, right: -4,
-                      padding: "1px 6px", borderRadius: 999,
-                      background: "linear-gradient(135deg, #4ade80, #22D1C3)",
-                      color: "#0F1115", fontSize: 8, fontWeight: 900,
-                    }}>+{p.bonus_gem_badge}💎</div>
-                  )}
+                  {/* Badge entfernt: wurde als Zusatz-Bonus missverstanden — die 💎
+                      stehen bereits im Pack-Inhalt und müssen nicht doppelt beworben werden. */}
                   <div style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 22 }}>{p.icon}</div>
                     <div style={{ color: tm.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.8, marginTop: 1 }}>{tm.label}</div>

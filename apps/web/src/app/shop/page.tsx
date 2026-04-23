@@ -29,7 +29,7 @@ type CategoryKey = "arena_pass" | "booster" | "cosmetic" | "convenience" | "crew
 
 const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = {
   arena_pass:  { label: "Area-Liga-Pass",    icon: "🎫", accent: "#FFD700" },
-  booster:     { label: "XP-Booster",        icon: "⚡", accent: "#22D1C3" },
+  booster:     { label: "Wegemünzen-Booster", icon: "⚡", accent: "#22D1C3" },
   cosmetic:    { label: "Skins & Designs",   icon: "✨", accent: "#a855f7" },
   convenience: { label: "Komfort",           icon: "🎯", accent: "#5ddaf0" },
   crew_emblem: { label: "Crew-Anpassung",    icon: "🏳️", accent: "#FF6B4A" },

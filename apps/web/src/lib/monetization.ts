@@ -76,17 +76,20 @@ export const PLANS = {
 };
 
 export const BOOST_PACKS = {
-  boost_24h:      { sku: "boost_24h",      name: "24 Stunden Doppel-XP", price: 199, multiplier: 2, hours: 24,  icon: "⚡" },
-  boost_48h:      { sku: "boost_48h",      name: "48 Stunden Doppel-XP", price: 299, multiplier: 2, hours: 48,  icon: "⚡" },
-  boost_weekend:  { sku: "boost_weekend",  name: "Weekend Doppel-XP",    price: 249, multiplier: 2, hours: 48,  icon: "🎉", desc: "2× XP für 2 Tage" },
-  boost_week_2x:  { sku: "boost_week_2x",  name: "1 Woche Doppel-XP",    price: 499, multiplier: 2, hours: 168, icon: "⚡" },
-  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",       price: 499, multiplier: 2, hours: 24,  icon: "👥", desc: "2× XP für alle deine Crew-Mitglieder" },
+  boost_24h:      { sku: "boost_24h",      name: "24 Stunden 2× Wegemünzen", price: 199, multiplier: 2, hours: 24,  icon: "⚡" },
+  boost_48h:      { sku: "boost_48h",      name: "48 Stunden 2× Wegemünzen", price: 299, multiplier: 2, hours: 48,  icon: "⚡" },
+  boost_weekend:  { sku: "boost_weekend",  name: "Weekend 2× Wegemünzen",    price: 249, multiplier: 2, hours: 48,  icon: "🎉", desc: "2× 🪙 für 2 Tage" },
+  boost_week_2x:  { sku: "boost_week_2x",  name: "1 Woche 2× Wegemünzen",    price: 499, multiplier: 2, hours: 168, icon: "⚡" },
+  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",           price: 499, multiplier: 2, hours: 24,  icon: "👥", desc: "2× 🪙 für alle deine Crew-Mitglieder" },
 };
 
+// Wegemünzen-Packs: bewusst klein gehalten, damit Echtgeld Progression
+// beschleunigt, aber nicht ersetzt. 1 km ≈ 500 🪙 durch Straßen-Claims —
+// 500 🪙 = ~1 km Ersparnis, 2.500 🪙 = ~5 km, 6.000 🪙 = ~12 km.
 export const XP_PACKS = {
-  xp_1k:   { sku: "xp_1k",   name: "1.000 XP Instant",  price: 199, xp: 1000,  icon: "✨" },
-  xp_5k:   { sku: "xp_5k",   name: "5.000 XP Instant",  price: 799, xp: 5000,  icon: "💫" },
-  xp_15k:  { sku: "xp_15k",  name: "15.000 XP Instant", price: 1999, xp: 15000, icon: "⭐" },
+  xp_1k:   { sku: "xp_1k",   name: "500 Wegemünzen",   price: 199,  xp: 500,   icon: "✨" },
+  xp_5k:   { sku: "xp_5k",   name: "2.500 Wegemünzen", price: 799,  xp: 2500,  icon: "💫" },
+  xp_15k:  { sku: "xp_15k",  name: "6.000 Wegemünzen", price: 1999, xp: 6000,  icon: "⭐" },
 };
 
 export const GAMEPLAY_ITEMS = {

@@ -234,9 +234,9 @@ on conflict do nothing;
 -- ═══════════════════════════════════════════════════════════════════
 
 insert into public.gem_shop_items (id, category, name, description, icon, price_gems, duration_hours, payload, sort) values
-  ('xp_boost_1h',       'booster',     'XP-Boost 1h',        '2× XP auf alle gelaufenen km für 1 Stunde', '⚡',  50,    1, '{"xp_multiplier":2}'::jsonb,           10),
-  ('xp_boost_4h',       'booster',     'XP-Boost 4h',        '2× XP auf alle gelaufenen km für 4 Stunden','⚡', 150,    4, '{"xp_multiplier":2}'::jsonb,           11),
-  ('xp_boost_24h',      'booster',     'XP-Boost 24h',       '2× XP für einen ganzen Lauftag',            '🌟', 500,   24, '{"xp_multiplier":2}'::jsonb,           12),
+  ('xp_boost_1h',       'booster',     'Wegemünzen-Boost 1h',  '2× 🪙 auf alle gelaufenen km für 1 Stunde', '⚡',  50,    1, '{"xp_multiplier":2}'::jsonb,           10),
+  ('xp_boost_4h',       'booster',     'Wegemünzen-Boost 4h',  '2× 🪙 auf alle gelaufenen km für 4 Stunden','⚡', 150,    4, '{"xp_multiplier":2}'::jsonb,           11),
+  ('xp_boost_24h',      'booster',     'Wegemünzen-Boost 24h', '2× 🪙 für einen ganzen Lauftag',            '🌟', 500,   24, '{"xp_multiplier":2}'::jsonb,           12),
   ('respec_token',      'convenience', 'Respec-Token',       'Talentbaum einmalig kostenlos neu vergeben','🔄', 200, null, '{"respec_guardians":1}'::jsonb,         20),
   ('extra_loadout',     'convenience', 'Extra Build-Slot',   '+1 Loadout-Speicher pro Wächter',           '💾', 300, null, '{"extra_loadouts":1}'::jsonb,           21),
   ('arena_pass_month',  'arena_pass',  'Arena-Pass (30 Tage)','Täglich 20 Edelsteine · 1,5× XP · exklusive Skins','🎫', 999,  720, '{"xp_multiplier":1.5,"daily_gems":20}'::jsonb, 1),
