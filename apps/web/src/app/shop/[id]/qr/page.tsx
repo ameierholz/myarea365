@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { Trophy, Flame, Gift, Smartphone, Map, QrCode, CreditCard } from "lucide-react";
 
 const STAND_VARIANTS = [
   { id: "a5_table",  label: "A5 Tischaufsteller",   price: 1290, desc: "Perfekt für Theke / Tisch. Acryl-Halter mit gedrucktem QR-Einleger." },
@@ -64,101 +65,121 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             pointerEvents: "none",
           }} />
 
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, position: "relative" }}>
+          {/* Header — 2-spaltig, Markenwort-Bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 34, fontWeight: 900, lineHeight: 1, color: "#FFF", letterSpacing: -0.5 }}>
+              <div style={{
+                display: "inline-block",
+                fontSize: 9, fontWeight: 900, letterSpacing: 3, color: "#22D1C3",
+                padding: "3px 8px", borderRadius: 4,
+                background: "rgba(34,209,195,0.12)", border: "1px solid rgba(34,209,195,0.4)",
+                marginBottom: 10,
+              }}>MYAREA365</div>
+              <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1, color: "#FFF", letterSpacing: -0.5 }}>
                 SCANNE &<br />
-                <span style={{ color: "#FFD700", fontSize: 38 }}>KASSIEREN!</span>
+                <span style={{ color: "#FFD700", fontSize: 34 }}>KASSIEREN!</span>
               </div>
-              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 10, lineHeight: 1.45, maxWidth: 260 }}>
+              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 8, lineHeight: 1.4, maxWidth: 240 }}>
                 Scanne den Code für deine<br />exklusive Belohnung.
               </div>
             </div>
             <div style={{ position: "relative", flexShrink: 0 }}>
-              {/* Logo-Glow */}
               <div aria-hidden style={{
-                position: "absolute", inset: -8, borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(34,209,195,0.35), transparent 70%)",
+                position: "absolute", inset: -10, borderRadius: 20,
+                background: "radial-gradient(circle, rgba(34,209,195,0.3), transparent 70%)",
               }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.png" alt="MyArea365"
                 style={{
                   position: "relative",
-                  width: 72, height: 72, borderRadius: "50%",
-                  border: "2px solid rgba(34,209,195,0.5)",
-                  boxShadow: "0 4px 24px rgba(34,209,195,0.35)",
+                  width: 68, height: 68, borderRadius: 16,
+                  border: "1.5px solid rgba(34,209,195,0.4)",
+                  boxShadow: "0 4px 20px rgba(34,209,195,0.3)",
+                  objectFit: "cover",
                 }} />
             </div>
-          </div>
-          <div style={{
-            fontSize: 10, fontWeight: 900, letterSpacing: 3,
-            color: "#22D1C3", marginTop: 16, display: "flex", gap: 10, alignItems: "center", position: "relative",
-          }}>
-            <span style={{ display: "inline-block", width: 24, height: 1, background: "#22D1C3" }} />
-            MYAREA365
-            <span style={{ display: "inline-block", flex: 1, height: 1, background: "linear-gradient(90deg, rgba(34,209,195,0.4), transparent)" }} />
           </div>
 
           {/* QR-Code mit Logo-Overlay */}
           <div style={{
             position: "relative",
-            margin: "22px auto 22px",
-            width: 260, height: 260,
+            margin: "24px auto 20px",
+            width: 280, height: 280,
             borderRadius: 20,
             background: "#FFF",
-            padding: 14,
+            padding: 16,
             boxSizing: "border-box",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(34,209,195,0.25)",
           }}>
             {qrUrl && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={qrUrl} alt="QR-Code" width={232} height={232}
+              <img src={qrUrl} alt="QR-Code" width={248} height={248}
                 style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
             )}
             <div style={{
               position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-              width: 48, height: 48, borderRadius: "50%",
+              width: 50, height: 50, borderRadius: 10,
               background: "#FFF", padding: 4,
               boxSizing: "border-box",
               boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.png" alt=""
-                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
             </div>
           </div>
 
-          {/* Benefits — poster-style ohne Card-Rahmen */}
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-            <BenefitRow icon="🏆" color="#FFD700"
+          {/* Benefits — in container mit leichtem Frame */}
+          <div style={{
+            position: "relative",
+            padding: "14px 16px", borderRadius: 14,
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            marginBottom: 14,
+            display: "flex", flexDirection: "column", gap: 12,
+          }}>
+            <BenefitRow Icon={Trophy} color="#FFD700"
               title="Wegemünzen + Rabatt"
-              body="Runner zahlt 🪙, du gibst Rabatt an der Kasse" />
-            <BenefitRow icon="🔥" color="#22D1C3"
-              title="Crew-Stempel" body="Stammkunden-Bindung für Nachbarschafts-Crews" />
-            <BenefitRow icon="🎁" color="#FF2D78"
-              title="Bonus-Loot" body="Kassenbon fotografieren = extra Belohnung" />
+              body="Runner zahlt 🪙 — du gibst Rabatt an der Kasse" />
+            <BenefitRow Icon={Flame} color="#22D1C3"
+              title="Crew-Stempel"
+              body="Stammkunden-Bindung für Nachbarschafts-Crews" />
+            <BenefitRow Icon={Gift} color="#FF2D78"
+              title="Bonus-Loot"
+              body="Kassenbon fotografieren = extra Belohnung" />
           </div>
 
-          {/* Steps mit Nummern-Kreisen + Icons */}
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-            <StepRow n={1} icon="📱" body={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
-            <StepRow n={2} icon="🗺️" body="Shop auf der Karte antippen" />
-            <StepRow n={3} icon="📸" body={<>Code scannen · GPS bestätigt automatisch</>} />
-            <StepRow n={4} icon="💸" body="Rabatt an der Kasse abholen" />
+          {/* Steps — in container */}
+          <div style={{
+            position: "relative",
+            padding: "14px 16px", borderRadius: 14,
+            background: "rgba(15,17,21,0.55)",
+            border: "1px solid rgba(34,209,195,0.15)",
+            marginBottom: 14,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
+              IN 4 SCHRITTEN EINLÖSEN
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              <StepRow n={1} Icon={Smartphone} body={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
+              <StepRow n={2} Icon={Map} body="Shop auf der Karte antippen" />
+              <StepRow n={3} Icon={QrCode} body="Code scannen · GPS bestätigt automatisch" />
+              <StepRow n={4} Icon={CreditCard} body="Rabatt an der Kasse abholen" />
+            </div>
           </div>
 
           {/* Footer */}
           <div style={{
             position: "relative",
-            paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)",
+            paddingTop: 12,
             textAlign: "center",
-            fontSize: 11, color: "#8B8FA3", lineHeight: 1.5,
           }}>
-            <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 14 }}>
+            <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 15, letterSpacing: 0.3 }}>
               myarea365.de
             </div>
-            <div style={{ marginTop: 2 }}>Jetzt downloaden — unterstützt von deinem Kiez.</div>
+            <div style={{ fontSize: 11, color: "#8B8FA3", marginTop: 3 }}>
+              Jetzt downloaden — unterstützt von deinem Kiez.
+            </div>
           </div>
         </div>
 
@@ -386,30 +407,42 @@ const INPUT_DARK: React.CSSProperties = {
   color: "#FFF", fontSize: 13, fontFamily: "inherit",
 };
 
-function BenefitRow({ icon, color, title, body }: { icon: string; color: string; title: string; body: string }) {
+type IconComp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+
+function BenefitRow({ Icon, color, title, body }: { Icon: IconComp; color: string; title: string; body: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{ fontSize: 26, flexShrink: 0, filter: `drop-shadow(0 2px 8px ${color}66)`, width: 32, textAlign: "center" }}>{icon}</div>
+      <div style={{
+        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+        background: `${color}1a`,
+        border: `1px solid ${color}55`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: `0 0 16px ${color}33`,
+      }}>
+        <Icon size={20} color={color} strokeWidth={2.25} />
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 900, color, letterSpacing: 0.2 }}>{title}</div>
-        <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 1, lineHeight: 1.4 }}>{body}</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color, letterSpacing: 0.2 }}>{title}</div>
+        <div style={{ fontSize: 11.5, color: "#a8b4cf", marginTop: 1, lineHeight: 1.4 }}>{body}</div>
       </div>
     </div>
   );
 }
 
-function StepRow({ n, icon, body }: { n: number; icon: string; body: React.ReactNode }) {
+function StepRow({ n, Icon, body }: { n: number; Icon: IconComp; body: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <div style={{
-        width: 26, height: 26, borderRadius: "50%",
+        width: 24, height: 24, borderRadius: "50%",
         background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
-        color: "#0F1115", fontSize: 12, fontWeight: 900,
+        color: "#0F1115", fontSize: 11, fontWeight: 900,
         display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0, boxShadow: "0 2px 8px rgba(34,209,195,0.35)",
+        flexShrink: 0,
       }}>{n}</div>
-      <div style={{ fontSize: 20, flexShrink: 0, width: 24, textAlign: "center" }}>{icon}</div>
-      <div style={{ fontSize: 13, color: "#D0D0D5", lineHeight: 1.45 }}>{body}</div>
+      <div style={{ width: 22, display: "flex", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={16} color="#a8b4cf" strokeWidth={2} />
+      </div>
+      <div style={{ fontSize: 12.5, color: "#D0D0D5", lineHeight: 1.4 }}>{body}</div>
     </div>
   );
 }
