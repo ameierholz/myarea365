@@ -119,42 +119,66 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* QR-Code mit Logo-Overlay */}
+          {/* QR links · Schritte rechts */}
           <div style={{
             position: "relative",
-            margin: "20px auto 20px",
-            width: 240, height: 240,
-            borderRadius: 16,
-            background: "#FFF",
-            padding: 12,
-            boxSizing: "border-box",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+            display: "flex", gap: 14, alignItems: "stretch",
+            margin: "20px 0 14px",
           }}>
-            {qrUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={qrUrl} alt="QR-Code" width={216} height={216}
-                style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
-            )}
+            {/* QR-Code mit Logo-Overlay */}
             <div style={{
-              position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-              width: 40, height: 40, borderRadius: 8,
-              background: "#0F1115", padding: 3,
+              position: "relative",
+              width: 220, height: 220, flexShrink: 0,
+              borderRadius: 16,
+              background: "#FFF",
+              padding: 12,
               boxSizing: "border-box",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
             }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt=""
-                style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+              {qrUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={qrUrl} alt="QR-Code" width={196} height={196}
+                  style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
+              )}
+              <div style={{
+                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                width: 38, height: 38, borderRadius: 8,
+                background: "#0F1115", padding: 3,
+                boxSizing: "border-box",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt=""
+                  style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+              </div>
+            </div>
+
+            {/* SO GEHT'S rechts daneben */}
+            <div style={{
+              flex: 1, minWidth: 0,
+              padding: "12px 14px", borderRadius: 12,
+              background: "rgba(15,17,21,0.55)",
+              border: "1px solid rgba(34,209,195,0.15)",
+              display: "flex", flexDirection: "column", justifyContent: "center",
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1, color: "#22D1C3", marginBottom: 10 }}>
+                📱 SO GEHT&apos;S
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                <InlineStep n={1} Icon={Smartphone} text={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
+                <InlineStep n={2} Icon={MapIcon} text="Running-Point tippen" />
+                <InlineStep n={3} Icon={QrIcon} text={<>Code scannen &amp;<br />Belohnung sichern!</>} />
+              </div>
             </div>
           </div>
 
-          {/* BELOHNUNGEN */}
+          {/* BELOHNUNGEN — volle Breite */}
           <div style={{
             position: "relative",
             padding: "14px 16px", borderRadius: 12,
             background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.08)",
-            marginBottom: 12,
+            marginBottom: 14,
           }}>
             <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3", marginBottom: 12 }}>
               🎁 DEINE BELOHNUNGEN
@@ -166,55 +190,41 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* SO GEHT'S */}
+          {/* NEU HIER? — großer Überzeugungs-Block für Nicht-User */}
           <div style={{
             position: "relative",
-            padding: "14px 16px", borderRadius: 12,
-            background: "rgba(15,17,21,0.55)",
-            border: "1px solid rgba(34,209,195,0.15)",
-            marginBottom: 16,
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3", marginBottom: 12 }}>
-              📱 SO GEHT&apos;S — IN 3 SCHRITTEN
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <InlineStep n={1} Icon={Smartphone} text={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
-              <InlineStep n={2} Icon={MapIcon} text="Auf der Karte den Running-Point tippen" />
-              <InlineStep n={3} Icon={QrIcon} text="Code scannen & Belohnung sichern!" />
-            </div>
-          </div>
-
-          {/* NEU HIER? — gezielt für Nicht-User */}
-          <div style={{
-            position: "relative",
-            padding: "12px 14px", borderRadius: 12,
-            background: "linear-gradient(135deg, rgba(255,215,0,0.14), rgba(255,45,120,0.1))",
-            border: "1px solid rgba(255,215,0,0.4)",
+            padding: "18px 18px", borderRadius: 14,
+            background: "linear-gradient(135deg, rgba(255,215,0,0.16), rgba(255,45,120,0.12))",
+            border: "1.5px solid rgba(255,215,0,0.45)",
             marginBottom: 12,
             textAlign: "center",
           }}>
-            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>
-              ✨ NOCH KEINE APP?
+            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 2, color: "#FFD700", marginBottom: 6 }}>
+              ✨ NOCH NICHT DABEI?
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#FFF", marginTop: 3, lineHeight: 1.35 }}>
-              Kostenlos. Kein Abo. Kein Tracking-Wahn.<br />
-              <span style={{ color: "#FFD700" }}>Jede Bewegung zählt — dein Kiez dankt&apos;s dir.</span>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF", lineHeight: 1.3 }}>
+              Spaziergang mit Kaffee zum <span style={{ color: "#FFD700" }}>halben Preis</span>.
             </div>
-          </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#D0D0D5", marginTop: 6, lineHeight: 1.45 }}>
+              Die App ist <b style={{ color: "#4ade80" }}>kostenlos</b> · <b style={{ color: "#4ade80" }}>kein Abo</b> · <b style={{ color: "#4ade80" }}>kein Tracking-Wahn</b><br />
+              Dein Kiez, deine Rabatte. Lokal statt Amazon.
+            </div>
 
-          {/* App-Store-Badges */}
-          <div style={{ position: "relative", display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
-            <AppStoreBadge kind="ios" />
-            <AppStoreBadge kind="android" />
+            {/* App-Store-Badges integriert in den Block */}
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
+              <AppStoreBadge kind="ios" />
+              <AppStoreBadge kind="android" />
+            </div>
+
+            <div style={{ color: "#FFF", fontWeight: 900, fontSize: 13, marginTop: 10 }}>
+              Jetzt downloaden &middot; <span style={{ color: "#22D1C3" }}>myarea365.de</span>
+            </div>
           </div>
 
           {/* Footer */}
           <div style={{ position: "relative", textAlign: "center" }}>
-            <div style={{ color: "#FFF", fontWeight: 900, fontSize: 13 }}>
-              Jetzt downloaden!
-            </div>
-            <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 2 }}>
-              myarea365.de · Unterstützt von deinem Kiez.
+            <div style={{ fontSize: 10, color: "#8B8FA3" }}>
+              Unterstützt von deinem Kiez.
             </div>
           </div>
         </div>
