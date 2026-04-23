@@ -393,12 +393,28 @@ async function handleChallenge(req: Request) {
     }
   }
 
+  // Sessionehre — Arena-spezifische Währung, entkoppelt von Wegemünzen/Gebietsruf.
+  // Win: +50 % des battle-xp. Loss: −20 %. Floor bei 0 via RPC.
+  let sessionehreWinnerDelta = 0;
+  let sessionehreLoserDelta = 0;
+  if (winnerUserId && result.winner !== "draw") {
+    const loserUserId = winnerUserId === attacker_user_id ? defender_user_id : attacker_user_id;
+    sessionehreWinnerDelta = Math.max(10, Math.round(result.xp_awarded * 0.5));
+    sessionehreLoserDelta  = -Math.max(5, Math.round(result.xp_awarded * 0.2));
+    await Promise.all([
+      sb.rpc("bump_sessionehre", { p_user_id: winnerUserId, p_delta: sessionehreWinnerDelta }),
+      sb.rpc("bump_sessionehre", { p_user_id: loserUserId,  p_delta: sessionehreLoserDelta  }),
+    ]);
+  }
+
   return NextResponse.json({
     battle_id: battleRow.id,
     winner: result.winner,
     winner_user_id: winnerUserId,
     rounds: result.rounds,
     xp_awarded: result.xp_awarded,
+    sessionehre_winner_delta: sessionehreWinnerDelta,
+    sessionehre_loser_delta: sessionehreLoserDelta,
     final_hp_a: result.final_hp_a,
     final_hp_b: result.final_hp_b,
     fusion: fusionResult,

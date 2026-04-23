@@ -216,7 +216,7 @@ function WarCard({ war, myCrewId, compact }: { war: War; myCrewId: string; compa
     }}>
       {isActive && (
         <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: "#FF2D78", marginBottom: 6 }}>
-          🔥 KRIEG AKTIV {hoursLeft < 48 ? `· noch ${hoursLeft}h` : `· noch ${Math.ceil(hoursLeft/24)} Tage`} · Preis {war.prize_xp} XP
+          🔥 KRIEG AKTIV {hoursLeft < 48 ? `· noch ${hoursLeft}h` : `· noch ${Math.ceil(hoursLeft/24)} Tage`} · Preis {war.prize_xp} 🏴 Gebietsruf
         </div>
       )}
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
@@ -233,7 +233,7 @@ function WarCard({ war, myCrewId, compact }: { war: War; myCrewId: string; compa
       </div>
       {!isActive && war.winner_crew_id && (
         <div style={{ fontSize: 10, marginTop: 6, color: iWon ? "#4ade80" : "#FF2D78", fontWeight: 900, textAlign: "center" }}>
-          {iWon ? `✓ Du gewinnst · +${war.prize_xp} XP` : `✗ Verloren`}
+          {iWon ? `✓ Du gewinnst · +${war.prize_xp} 🏴 Gebietsruf` : `✗ Verloren`}
         </div>
       )}
       {isActive && (
@@ -415,7 +415,7 @@ function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
         await appAlert(j.error === "out_of_range" ? `Zu weit weg (${j.distance}m). Komm näher.` : `Fehler: ${j.error}`);
         return;
       }
-      if (j.won) await appAlert(`🏆 Crew gewinnt die Flagge! +${j.xp} XP für alle Mitglieder.`);
+      if (j.won) await appAlert(`🏆 Crew gewinnt die Flagge! +${j.gebietsruf ?? j.xp ?? 0} 🏴 Gebietsruf für alle Mitglieder.`);
       else await appAlert(`🚩 Visit registriert! Crew hat ${j.crew_visits} Visits.`);
       await load();
     } catch (e) {
@@ -459,7 +459,7 @@ function renderFlagEvents(
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>+{e.prize_xp} XP</div>
+            <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>+{e.prize_xp} 🏴</div>
             <div style={{ color: "#8B8FA3", fontSize: 9 }}>an Winner-Crew</div>
           </div>
         </div>
@@ -498,7 +498,9 @@ function renderFlagEvents(
 type Member = {
   user_id: string; role: string; joined_at: string | null;
   username: string | null; display_name: string | null; avatar_url: string | null;
-  level: number; xp: number; team_color: string | null;
+  level: number; xp: number;
+  wegemuenzen: number; gebietsruf: number; sessionehre: number;
+  team_color: string | null;
   last_seen_at: string | null; streak_days: number;
 };
 function MembersPanel({ crew }: { crew: Crew }) {
@@ -561,7 +563,7 @@ function renderMemberRows(members: Member[]) {
             )}
           </div>
           <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 1 }}>
-            Lvl {m.level} · {m.xp.toLocaleString("de-DE")} XP
+            Lvl {m.level} · {(m.gebietsruf ?? 0).toLocaleString("de-DE")} 🏴
             {m.streak_days > 0 && <> · 🔥 {m.streak_days}</>}
           </div>
         </div>
@@ -658,7 +660,7 @@ function DuelCard({ duel, compact }: { duel: Duel; compact?: boolean }) {
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginTop: 4, color: "#a8b4cf" }}>
         <span>{Number(duel.crew_a_km).toFixed(1)} km</span>
-        <span>{duel.status === "finished" ? (iWon ? "✓ Du gewinnst" : "✗ Niederlage") : `Preis: +${duel.prize_xp} XP`}</span>
+        <span>{duel.status === "finished" ? (iWon ? "✓ Du gewinnst" : "✗ Niederlage") : `Preis: +${duel.prize_xp} 🏴 Gebietsruf`}</span>
         <span>{Number(duel.crew_b_km).toFixed(1)} km</span>
       </div>
     </div>
@@ -711,7 +713,7 @@ function ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
                     {c.description && <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>{c.description}</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900 }}>+{c.reward_xp} XP</div>
+                    <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900 }}>+{c.reward_xp} 🏴</div>
                     <div style={{ color: "#8B8FA3", fontSize: 9 }}>{daysLeft}d</div>
                   </div>
                 </div>
@@ -774,7 +776,7 @@ function ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => v
             </select>
           </div>
           <Input label="Ziel" type="number" value={String(target)} onChange={(v) => setTarget(Number(v))} />
-          <Input label="Reward XP" type="number" value={String(reward)} onChange={(v) => setReward(Number(v))} />
+          <Input label="Gebietsruf" type="number" value={String(reward)} onChange={(v) => setReward(Number(v))} />
           <Input label="Dauer (Tage)" type="number" value={String(days)} onChange={(v) => setDays(Number(v))} />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
@@ -1257,7 +1259,7 @@ const TAB_INFO: Record<Tab, InfoContent> = {
   overview: {
     icon: "👥", color: "#22D1C3",
     title: "Mitglieder",
-    how: "Liste aller aktiven Crew-Mitglieder sortiert nach XP. Der grüne Punkt zeigt an, wer gerade online ist (zuletzt innerhalb von 5 Minuten aktiv). Admins und Owner haben Badges. Je aktiver eure Mitglieder, desto stärker die Crew in Duellen, Kriegen und Saison-Liga.",
+    how: "Liste aller aktiven Crew-Mitglieder sortiert nach 🏴 Gebietsruf. Der grüne Punkt zeigt an, wer gerade online ist (zuletzt innerhalb von 5 Minuten aktiv). Admins und Owner haben Badges. Je aktiver eure Mitglieder, desto stärker die Crew in Duellen, Kriegen und Saison-Liga.",
     loot: "Keine direkten Belohnungen — aber je mehr Mitglieder aktiv sind, desto mehr km, Territorien und Arena-Siege fließen in alle anderen Crew-Modi.",
     tips: "Wenn Mitglieder länger als 14 Tage inaktiv sind: per Chat pushen oder über die Crew-Shouts motivieren.",
   },
@@ -1265,42 +1267,42 @@ const TAB_INFO: Record<Tab, InfoContent> = {
     icon: "🔥", color: "#FF2D78",
     title: "Crew-War (7-Tage-Fehde)",
     how: "Admins können anderen Crews den Krieg erklären. Akzeptiert die Ziel-Crew, startet ein 7-Tage-Match. Während der Fehde zählt jede km = 1 Punkt, jedes eroberte Territorium = 10 Punkte. Nach Ablauf gewinnt die Crew mit mehr Punkten automatisch. Abgelehnte oder zurückgezogene Einladungen haben keine Folgen.",
-    loot: "Sieger-Crew: alle aktiven Mitglieder bekommen +5 000 XP. Zusätzlich wandert der Sieg ins Saison-Ranking und in den Crew-Feed (für Bragging-Rights).",
+    loot: "Sieger-Crew: alle aktiven Mitglieder bekommen +5 000 🏴 Gebietsruf. Zusätzlich wandert der Sieg ins Saison-Ranking und in den Crew-Feed (für Bragging-Rights).",
     tips: "Gute Zeit für einen Krieg: kurz vor Monatsende, um die Saison-Liga zu pushen. Gegner gezielt aus eurer Liga wählen — Gleichstark ist spannender.",
   },
   season: {
     icon: "🏆", color: "#FFD700",
     title: "Saison-Liga (monatlich)",
     how: "Jeden Monat startet automatisch eine neue Saison. Crews sammeln Punkte für Territorien (+5), Duell-Siege und Kriegs-Siege. Das Ranking bestimmt den Tier (Bronze → Silber → Gold → Diamond → Legend). Am Monatsende werden die Standings eingefroren.",
-    loot: "Top-Platzierungen am Monatsende bekommen Rang-Abzeichen auf dem Crew-Profil (kosmetisch + Bragging-Rights). Diamond- und Legend-Tier geben zusätzlich Bonus-XP-Multiplikator in der nächsten Saison (geplant).",
+    loot: "Top-Platzierungen am Monatsende bekommen Rang-Abzeichen auf dem Crew-Profil (kosmetisch + Bragging-Rights). Diamond- und Legend-Tier geben zusätzlich Bonus-Gebietsruf-Multiplikator in der nächsten Saison (geplant).",
     tips: "Territorien zählen am meisten. Konzentriert euch gegen Monatsende auf Polygon-Ringe, nicht auf einzelne Straßen.",
   },
   flags: {
     icon: "🚩", color: "#4ade80",
     title: "Capture-the-Flag (Flash-Events)",
     how: "Spontane zeitlich limitierte Micro-Events. Eine Flagge erscheint an einer PLZ, hat ein Zeitfenster (z. B. 30 Min) und ein Visit-Ziel (z. B. 10). Crew-Mitglieder laufen in den Radius (GPS-Check) und tippen 'Ich bin vor Ort!'. Erste Crew, die das Visit-Ziel erreicht, gewinnt.",
-    loot: "Winner-Crew: Prize-XP (meist 3 000 XP) werden an alle Mitglieder verteilt. Sieg zählt zusätzlich in den Crew-Feed. Premium: Gewinner-Crew-Name bleibt 1 Stunde auf der Karte sichtbar (geplant).",
+    loot: "Winner-Crew: Prize-Gebietsruf (meist 3 000 🏴) wird an alle Mitglieder verteilt. Sieg zählt zusätzlich in den Crew-Feed. Premium: Gewinner-Crew-Name bleibt 1 Stunde auf der Karte sichtbar (geplant).",
     tips: "Reaktionszeit zählt. Per Crew-Chat in Sekunden alle mobilisieren. Je näher ihr dem Flag-Spot wohnt, desto größer euer Vorteil.",
   },
   duel: {
     icon: "⚔️", color: "#FF6B4A",
     title: "Wochen-Duell (Auto-Matchmaking)",
     how: "Automatische wöchentliche 1:1-Matchups zwischen zwei Crews ähnlicher Stärke. Jede gelaufene km zählt in beide aktiven Duelle (eure und die Gegner-Crew). Montags resetten die Duelle, am Sonntag steht der Sieger fest.",
-    loot: "Winner: Prize-XP (meist 2 000 XP) + Punkte für Saison-Liga. Teilnahme allein zählt bereits fürs Wochenrating.",
+    loot: "Winner: Prize-Gebietsruf (meist 2 000 🏴) + Punkte für Saison-Liga. Teilnahme allein zählt bereits fürs Wochenrating.",
     tips: "Jeder km hilft — auch kleine Spaziergänge. Koordiniert euch im Chat, wer an welchen Tagen geht, um kein Wochenloch zu haben.",
   },
   challenges: {
     icon: "🎯", color: "#FFD700",
     title: "Crew-Challenges",
     how: "Admins definieren gemeinsame Ziele (z. B. 'Crew läuft zusammen 100 km in 7 Tagen', '10 neue Territorien'). Der Fortschritt ist kollektiv — jedes Mitglied trägt bei. Wenn die Crew das Ziel erreicht, bekommen alle die Belohnung.",
-    loot: "Reward-XP wird an alle aktiven Crew-Mitglieder verteilt. Abgeschlossene Challenges landen im Crew-Feed und zählen fürs Saison-Ranking.",
+    loot: "Reward-Gebietsruf wird an alle aktiven Crew-Mitglieder verteilt. Abgeschlossene Challenges landen im Crew-Feed und zählen fürs Saison-Ranking.",
     tips: "Realistisch bleiben: bei 5 Mitgliedern reicht ein 50-km-Wochenziel, bei 20 Mitgliedern geht locker 200 km. Start mit einfachen Challenges, dann eskalieren.",
   },
   events: {
     icon: "📅", color: "#4ade80",
     title: "Gruppenläufe",
     how: "Jedes Crew-Mitglied kann einen Gruppenlauf planen (Datum, Uhrzeit, Treffpunkt, Distanz, Ziel-Pace). Andere Mitglieder antworten mit 'Dabei / Vielleicht / Nein'. Der Ersteller wird automatisch als 'Dabei' gelistet.",
-    loot: "Keine direkten XP für das Event selbst — aber: gemeinsam läufst du länger, sammelst mehr km → Crew-Score in Duell, Krieg, Saison und Challenges steigt alle gleichzeitig.",
+    loot: "Keine direkten Wegemünzen für das Event selbst — aber: gemeinsam läufst du länger, sammelst mehr km → Crew-Score in Duell, Krieg, Saison und Challenges steigt alle gleichzeitig.",
     tips: "Offene Treffpunkte funktionieren besser (z. B. 'Südkreuz Haupteingang'). Für regelmäßige Läufe: macht einen wiederkehrenden Wochenslot.",
   },
   chat: {

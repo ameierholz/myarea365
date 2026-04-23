@@ -115,9 +115,9 @@ export async function POST(req: Request) {
   if (updErr) return NextResponse.json({ error: "update_failed" }, { status: 500 });
 
   if (rewardXp > 0) {
-    const { data: userRow } = await sb.from("users").select("xp").eq("id", user.id).single<{ xp: number | null }>();
-    await sb.from("users").update({ xp: (userRow?.xp ?? 0) + rewardXp }).eq("id", user.id);
+    const { data: userRow } = await sb.from("users").select("wegemuenzen").eq("id", user.id).single<{ wegemuenzen: number | null }>();
+    await sb.from("users").update({ wegemuenzen: (userRow?.wegemuenzen ?? 0) + rewardXp }).eq("id", user.id);
   }
 
-  return NextResponse.json({ ok: true, reward_xp: rewardXp });
+  return NextResponse.json({ ok: true, reward_wegemuenzen: rewardXp });
 }

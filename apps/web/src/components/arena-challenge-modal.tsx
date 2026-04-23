@@ -22,6 +22,8 @@ type BattleResponse = {
   winner_user_id: string | null;
   rounds: RoundEvent[];
   xp_awarded: number;
+  sessionehre_winner_delta?: number;
+  sessionehre_loser_delta?: number;
   final_hp_a: number;
   final_hp_b: number;
   fusion: { kind: "fusion" | "trophy"; description: string } | null;
@@ -246,6 +248,16 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
               <div style={{ color: "#FFD700", fontSize: 14, fontWeight: 800, marginTop: 4 }}>
                 +{battle.xp_awarded} Wächter-XP
               </div>
+              {typeof battle.sessionehre_winner_delta === "number" && battle.winner !== "draw" && (() => {
+                const isAttackerWin = battle.winner === "A";
+                const delta = isAttackerWin ? battle.sessionehre_winner_delta : (battle.sessionehre_loser_delta ?? 0);
+                const positive = delta > 0;
+                return (
+                  <div style={{ color: positive ? "#FFD700" : "#FF2D78", fontSize: 13, fontWeight: 800, marginTop: 2 }}>
+                    {positive ? "+" : ""}{delta} ⚔️ Sessionehre
+                  </div>
+                );
+              })()}
               {battle.fusion && (
                 <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.5)", color: "#FFD700", fontSize: 12, fontWeight: 800 }}>
                   {battle.fusion.kind === "fusion" ? "⚡ " : "🏆 "}{battle.fusion.description}

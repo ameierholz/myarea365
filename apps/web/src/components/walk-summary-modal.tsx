@@ -166,10 +166,10 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
               border: "1px solid rgba(255,215,0,0.4)",
               padding: 14, borderRadius: 14, marginBottom: 16,
             }}>
-              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>XP BELOHNUNG</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>🪙 WEGEMÜNZEN</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 4 }}>
                 <span style={{ color: "#FFD700", fontSize: 28, fontWeight: 900 }}>
-                  +{(summary.xp_earned + bonusXp).toLocaleString("de-DE")} XP
+                  +{(summary.xp_earned + bonusXp).toLocaleString("de-DE")} 🪙
                 </span>
                 {bonusXp > 0 && (
                   <span style={{ color: "#22D1C3", fontSize: 11, fontWeight: 800 }}>
@@ -209,7 +209,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
                 }}>
                   {summary.reclaim.reclaim_xp > 0 && (
-                    <span>♻️ Reclaim-Bonus: +{summary.reclaim.reclaim_xp} XP ({summary.reclaim.reclaim_count} bekannte Abschnitte)</span>
+                    <span>♻️ Reclaim-Bonus: +{summary.reclaim.reclaim_xp} Wegemünzen ({summary.reclaim.reclaim_count} bekannte Abschnitte)</span>
                   )}
                   {summary.reclaim.segments_cooldown > 0 && (
                     <span style={{ color: "#8B8FA3", fontWeight: 700 }}>
@@ -230,7 +230,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   🏆 {summary.pending_territory_count}× Territorium geschlossen — aber noch <b>ohne Crew</b>.
                   <br />
                   <span style={{ color: "#a8b4cf", fontWeight: 700 }}>
-                    Tritt einer Crew bei, um je +500 XP rückwirkend zu kassieren.
+                    Tritt einer Crew bei, um je +500 Wegemünzen rückwirkend zu kassieren.
                   </span>
                 </div>
               ) : null}

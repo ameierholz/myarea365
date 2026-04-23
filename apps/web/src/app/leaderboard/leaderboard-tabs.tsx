@@ -50,11 +50,16 @@ type Runner = {
   total_distance_m: number | null;
   total_walks: number | null;
   total_xp: number | null;
+  wegemuenzen: number | null;
+  gebietsruf: number | null;
+  sessionehre: number | null;
   level: number | null;
 };
 
+type RunnerMetric = "wegemuenzen" | "gebietsruf" | "sessionehre" | "km" | "walks" | "level";
+
 function RunnersTab() {
-  const [metric, setMetric] = useState<"xp"|"km"|"walks"|"level">("xp");
+  const [metric, setMetric] = useState<RunnerMetric>("wegemuenzen");
   const [faction, setFaction] = useState<"all"|"syndicate"|"vanguard">("all");
   const [runners, setRunners] = useState<Runner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +78,9 @@ function RunnersTab() {
     <div>
       <div className="flex flex-wrap gap-2 mb-3 justify-between items-center">
         <div className="flex flex-wrap gap-1.5">
-          <Chip active={metric==="xp"}    onClick={() => setMetric("xp")}>⚡ XP</Chip>
+          <Chip active={metric==="wegemuenzen"} onClick={() => setMetric("wegemuenzen")}>🪙 Wegemünzen</Chip>
+          <Chip active={metric==="gebietsruf"}  onClick={() => setMetric("gebietsruf")}>🏴 Gebietsruf</Chip>
+          <Chip active={metric==="sessionehre"} onClick={() => setMetric("sessionehre")}>⚔️ Sessionehre</Chip>
           <Chip active={metric==="km"}    onClick={() => setMetric("km")}>🥾 Kilometer</Chip>
           <Chip active={metric==="walks"} onClick={() => setMetric("walks")}>📍 Gebiete</Chip>
           <Chip active={metric==="level"} onClick={() => setMetric("level")}>🎖️ Level</Chip>
@@ -93,7 +100,9 @@ function RunnersTab() {
             const primary = metric === "km" ? `${km} km`
                           : metric === "walks" ? `${(r.total_walks ?? 0).toLocaleString("de-DE")} Walks`
                           : metric === "level" ? `Lvl ${r.level ?? 1}`
-                          : `${(r.total_xp ?? 0).toLocaleString("de-DE")} XP`;
+                          : metric === "gebietsruf"  ? `${(r.gebietsruf ?? 0).toLocaleString("de-DE")} 🏴`
+                          : metric === "sessionehre" ? `${(r.sessionehre ?? 0).toLocaleString("de-DE")} ⚔️`
+                          : `${(r.wegemuenzen ?? 0).toLocaleString("de-DE")} 🪙`;
             return (
               <Link key={r.username ?? i} href={`/u/${r.username}`}
                 className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition">

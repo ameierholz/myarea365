@@ -164,10 +164,11 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
   }
 
   if (sku.startsWith("xp_")) {
+    // Legacy-SKU „xp_*" — ab 00046 werden Käufe als Wegemünzen gutgeschrieben.
     const pack = (XP_PACKS as Record<string, { xp: number }>)[sku];
     if (pack) {
-      const { data: u } = await sb.from("users").select("xp").eq("id", userId).single();
-      await sb.from("users").update({ xp: (u?.xp ?? 0) + pack.xp }).eq("id", userId);
+      const { data: u } = await sb.from("users").select("wegemuenzen").eq("id", userId).single();
+      await sb.from("users").update({ wegemuenzen: (u?.wegemuenzen ?? 0) + pack.xp }).eq("id", userId);
     }
     return;
   }

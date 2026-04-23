@@ -63,10 +63,15 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           {factionLabel && <div className="mt-2 text-sm font-bold" style={{ color }}>{factionLabel}</div>}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-3">
           <Stat label="km" value={km} color={color} />
           <Stat label="Läufe" value={String(user.total_walks ?? 0)} color="#FFD700" />
           <Stat label="Level" value={String(user.level ?? 1)} color="#FF2D78" />
+        </div>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <Stat label="🪙 Wegemünzen"  value={(user.wegemuenzen ?? 0).toLocaleString("de-DE")}  color="#22D1C3" />
+          <Stat label="🏴 Gebietsruf"  value={(user.gebietsruf ?? 0).toLocaleString("de-DE")}  color="#FF2D78" />
+          <Stat label="⚔️ Sessionehre" value={(user.sessionehre ?? 0).toLocaleString("de-DE")} color="#FFD700" />
         </div>
 
         {/* Prestige-Historie */}
