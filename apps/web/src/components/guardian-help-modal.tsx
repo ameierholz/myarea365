@@ -181,7 +181,7 @@ function OverviewTab() {
       </Hero>
 
       <StepLoop steps={[
-        { icon: "🏃", title: "1. Laufen",        text: "Erobere Straßen → XP für dich + Wächter-XP" },
+        { icon: "🏃", title: "1. Laufen",        text: "Erobere Straßen → 🪙 Wegemünzen für dich + Wächter-XP" },
         { icon: "📈", title: "2. Level-Up",      text: "Jedes Level (max 60) = +1 Talentpunkt zum Vergeben" },
         { icon: "⚔️", title: "3. Kämpfen",       text: "Arena-Shops (vor Ort) oder Area-Boss mit der Crew" },
         { icon: "⚡", title: "4. Upgraden",      text: "Siegel aus Kämpfen → Fähigkeiten auf Stufe 5 maxen" },
@@ -194,7 +194,7 @@ function OverviewTab() {
           <li><b>Talentbaum</b> pro Wächter — 3 Äste × 5 Tiers = individueller Build</li>
           <li><b>5 Fähigkeiten</b> pro Wächter (Aktiv/Passiv/Kampf/Rolle/Expertise) × 5 Stufen</li>
           <li><b>Rage-Kampfsystem</b> — bei voll (1000) feuert der Aktiv-Skill automatisch</li>
-          <li><b>Kein Pay-to-Win</b> — Siegel & XP nur durch Laufen + Kämpfen</li>
+          <li><b>Kein Pay-to-Win</b> — Siegel, Wegemünzen & Wächter-XP nur durch Laufen + Kämpfen</li>
         </ul>
       </Card>
     </div>
@@ -398,11 +398,11 @@ function ArenaTab() {
       <Card title="Belohnungen" color="#4ade80">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
           <li><b>Sieg</b>: +500 Wächter-XP</li>
-          <li><b>Niederlage</b>: +125 XP (Trostpreis)</li>
-          <li><b>Glückstreffer</b>: +100 XP bonus, wenn Verlierer unter 20% HP war</li>
-          <li><b>Underdog-Bonus</b>: +200 XP, wenn der niedriger-levelierte Wächter gewinnt</li>
+          <li><b>Niederlage</b>: +125 Wächter-XP (Trostpreis) · ⚔️ Sessionehre-Abzug</li>
+          <li><b>Glückstreffer</b>: +100 Wächter-XP bonus, wenn Verlierer unter 20% HP war</li>
+          <li><b>Underdog-Bonus</b>: +200 Wächter-XP, wenn der niedriger-levelierte Wächter gewinnt</li>
           <li><b>3-Sieg-Streak</b>: Trophäe oder Fusion (wenn gleicher Archetyp)</li>
-          <li><b>Double-Down</b> (optional): Sieg +50% XP, Niederlage = 48h Verwundung</li>
+          <li><b>Double-Down</b> (optional): Sieg +50% Wächter-XP, Niederlage = 48h Verwundung</li>
           <li><b>Verwundung</b>: Verlierer-Wächter ist bis zu 24 h pausiert</li>
         </ul>
       </Card>
@@ -595,7 +595,7 @@ function FairTab() {
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
           <li>Alle kaufbaren Items sind als <b>cosmetic_only</b> markiert — keine Kampf-Stats</li>
           <li>Mystery-Box & Skins geben Style, <b>keine Vorteile</b> im Kampf</li>
-          <li>XP + Ausrüstung mit Kampf-Stats kommen ausschließlich aus <b>Laufen / Einlösen / Kämpfen</b></li>
+          <li>Wächter-XP + Ausrüstung mit Kampf-Stats kommen ausschließlich aus <b>Laufen / Einlösen / Kämpfen</b></li>
         </ul>
       </Card>
 

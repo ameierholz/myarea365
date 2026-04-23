@@ -81,7 +81,7 @@ function LootTable({
               </td>
               <td style={{ padding: "10px", color: "#DDD" }}>
                 {typeof (r as Record<string, unknown>).xp_reward === "number"
-                  ? `+${(r as Record<string, unknown>).xp_reward} XP`
+                  ? `+${(r as Record<string, unknown>).xp_reward} 🪙`
                   : (typeof (r as Record<string, unknown>).reward === "string" ? String((r as Record<string, unknown>).reward) : "—")}
                 {typeof (r as Record<string, unknown>).note === "string" && (
                   <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 2 }}>{String((r as Record<string, unknown>).note)}</div>

@@ -16,7 +16,7 @@ type Activity = {
 };
 
 const ACTIVITIES: Activity[] = [
-  { id: "walk",         icon: "🥾", title: "Gehen & Laufen",     hook: "Die Basis — wandle Schritte in XP.",     gradient: ["#22D1C3", "#5ddaf0"], accent: "#22D1C3" },
+  { id: "walk",         icon: "🥾", title: "Gehen & Laufen",     hook: "Die Basis — wandle Schritte in 🪙 Wegemünzen.", gradient: ["#22D1C3", "#5ddaf0"], accent: "#22D1C3" },
   { id: "shop",         icon: "🏪", title: "Shop-Einlösungen",   hook: "Rabatte + Bonus-Loot per Kassenbon.",    gradient: ["#FFD700", "#FF6B4A"], accent: "#FFD700" },
   { id: "runner_fight", icon: "⚔️", title: "Arena",              hook: "10/Tag PvP mit Matchmaking.",            gradient: ["#FF2D78", "#a855f7"], accent: "#FF2D78" },
   { id: "arena",        icon: "🏛️", title: "Area-Liga",          hook: "30-Tage-Meta mit Titeln & Belohnung.",   gradient: ["#a855f7", "#5ddaf0"], accent: "#a855f7" },
@@ -120,31 +120,31 @@ const CONTENT: Record<ActivityId, ModalContent> = {
     how: [
       { step: 1, text: "Tippe in der Karte auf \"Walk starten\" — GPS wird aktiviert." },
       { step: 2, text: "Gehe oder laufe echte Straßen ab. Jedes neue Gebiet gehört dir." },
-      { step: 3, text: "Am Ende: XP für Distanz + Gebiete + Streak-Bonus." },
+      { step: 3, text: "Am Ende: 🪙 Wegemünzen für Distanz + Gebiete + Streak-Bonus." },
     ],
     tips: [
-      "Fahrrad, Roller und Auto werden erkannt und geben kein XP (Anti-Cheat).",
+      "Fahrrad, Roller und Auto werden erkannt und geben keine Wegemünzen (Anti-Cheat).",
       "Jeden Tag laufen → Streak-Bonus wächst.",
       "Gebiete im Radius deines Lieblings-Shops? Gebietsfürst-Bonus!",
     ],
-    reward: "Basis-XP · Level-Ups · Wächter-XP · Siegel über Zeit",
+    reward: "🪙 Wegemünzen · Level-Ups · Wächter-XP · Siegel über Zeit",
   },
   shop: {
     icon: "🏪", title: "Shop-Einlösungen",
-    subtitle: "XP gegen echte Rabatte — plus Bonus-Loot.",
+    subtitle: "🪙 Wegemünzen gegen echte Rabatte — plus Bonus-Loot.",
     accent: "#FFD700",
     how: [
       { step: 1, text: "Shop auf der Karte ansteuern → Deal auswählen → QR scannen." },
-      { step: 2, text: "6-stelligen Code an der Kasse zeigen. Rabatt eingelöst, XP abgezogen." },
+      { step: 2, text: "6-stelligen Code an der Kasse zeigen. Rabatt eingelöst, Wegemünzen abgezogen." },
       { step: 3, text: "\"Bonus-Loot freischalten\" antippen → Kaufbetrag eingeben + Kassenbon fotografieren." },
       { step: 4, text: "KI prüft den Bon → Siegel, Ausrüstung, ggf. Quest-Rewards." },
     ],
     tips: [
       "Je höher der Einkauf, desto besser der Bonus-Loot.",
-      "Shops mit aktiven Quests (🎯) geben Extra-XP bei bestimmten Artikeln.",
-      "Gebietsfürst eines Shops? +XP und Extra-Siegel bei jeder Einlösung.",
+      "Shops mit aktiven Quests (🎯) geben Extra-🪙 bei bestimmten Artikeln.",
+      "Gebietsfürst eines Shops? +🪙 und Extra-Siegel bei jeder Einlösung.",
     ],
-    reward: "Rabatt · Bonus-Loot (Siegel + Items) · Quest-XP · Gebietsfürst-Bonus",
+    reward: "Rabatt · Bonus-Loot (Siegel + Items) · Quest-🪙 · Gebietsfürst-Bonus",
   },
   runner_fight: {
     icon: "⚔️", title: "Arena",
@@ -154,14 +154,14 @@ const CONTENT: Record<ActivityId, ModalContent> = {
       { step: 1, text: "10 Gratis-Fights pro Tag. Eskalation danach: 50→100→200→400 💎 je 5 Stufen." },
       { step: 2, text: "Gegner werden gematcht: Level-Differenz max ±3, nur aktive Runner." },
       { step: 3, text: "Wähle einen Gegner → dein aktiver Wächter kämpft mit Talenten, Skills & Items." },
-      { step: 4, text: "Sieg: XP + Siegel (rarity-skaliert) + 15% Item-Drop. Niederlage: Trostpreis." },
+      { step: 4, text: "Sieg: ⚔️ Sessionehre + Wächter-XP + Siegel (rarity-skaliert) + 15% Item-Drop. Niederlage: Sessionehre-Abzug (Floor 0) + Trostpreis." },
     ],
     tips: [
-      "Gegen stärkere Gegner kämpfen gibt 50% mehr XP.",
+      "Gegen stärkere Gegner kämpfen gibt 50% mehr Wächter-XP.",
       "Max 2× gleicher Gegner pro Tag (Anti-Farming).",
       "Matchmaker mischen: 1× gratis pro Tag, danach 30 💎.",
     ],
-    reward: "XP auf Wächter · Siegel (Common → Epic) · Ausrüstung",
+    reward: "⚔️ Sessionehre · Wächter-XP · Siegel (Common → Epic) · Ausrüstung",
     cta: { label: "Zur Arena →", href: "/runner-fights" },
   },
   arena: {
@@ -176,8 +176,8 @@ const CONTENT: Record<ActivityId, ModalContent> = {
     ],
     tips: [
       "Level-Spread max ±5. Revenge-Sperre 6h, Weekly-Cap 1× pro Gegner.",
-      "Glückstreffer-Bonus: Gegner knapp besiegt → +100 XP.",
-      "Underdog-Bonus: gegen höher-leveligen Gegner → +200 XP.",
+      "Glückstreffer-Bonus: Gegner knapp besiegt → +100 Wächter-XP.",
+      "Underdog-Bonus: gegen höher-leveligen Gegner → +200 Wächter-XP.",
     ],
     reward: "Session-Punkte · Titel · Crew-Pakete (80/50/25 Universal-Siegel)",
   },

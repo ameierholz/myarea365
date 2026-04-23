@@ -39,7 +39,7 @@ export function ReferralWidget({ userId, referralCode, displayName }: {
         <span style={{ fontSize: 22 }}>🎁</span>
         <div style={{ flex: 1 }}>
           <div style={{ color: "#FFF", fontWeight: 900, fontSize: 14 }}>Freunde einladen</div>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>Pro Freund: du +500 XP, Freund +500 XP</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>Pro Freund: du +500 🪙, Freund +500 🪙</div>
         </div>
       </div>
 

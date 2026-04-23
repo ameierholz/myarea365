@@ -85,7 +85,7 @@ export function LivePaceHud({
       </div>
       <div className={`ma365-pace-stat xp ${pulseXp ? "pulse" : ""}`}>
         <div className="ma365-pace-label">
-          XP {xpBoost && xpBoost > 1 ? <span className="boost">{xpBoost}×</span> : null}
+          🪙 {xpBoost && xpBoost > 1 ? <span className="boost">{xpBoost}×</span> : null}
         </div>
         <div className="ma365-pace-value gold">+{xpGained}</div>
       </div>

@@ -270,7 +270,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                 {data.level != null && <Dot /> }
                 {data.level != null && <span>Lvl {data.level}</span>}
                 {data.xp > 0 && <Dot />}
-                {data.xp > 0 && <span style={{ color: GOLD, fontWeight: 800 }}>{data.xp.toLocaleString("de-DE")} XP</span>}
+                {data.xp > 0 && <span style={{ color: GOLD, fontWeight: 800 }}>{data.xp.toLocaleString("de-DE")} 🪙</span>}
               </div>
 
               {/* ══ CREW-CARD (mit Banner + Stats) ══ */}

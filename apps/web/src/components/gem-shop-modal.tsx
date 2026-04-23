@@ -43,7 +43,7 @@ const TIER_META: Record<DailyPack["tier"], { color: string; glow: string; label:
 
 const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = {
   monthly_pass:{ label: "Monatspacks",      icon: "🎫", accent: "#FFD700" },
-  booster:     { label: "XP-Booster",       icon: "⚡", accent: "#22D1C3" },
+  booster:     { label: "Wegemünzen-Booster", icon: "⚡", accent: "#22D1C3" },
   cosmetic:    { label: "Skins & Designs",  icon: "✨", accent: "#a855f7" },
   convenience: { label: "Komfort",          icon: "🎯", accent: "#5ddaf0" },
   crew_emblem: { label: "Crew-Anpassung",   icon: "🏳️", accent: "#FF6B4A" },
@@ -337,7 +337,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                         <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{p.name}</div>
                         <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
                           {daily > 0 && `💎 ${daily}/Tag`}
-                          {xpMult && ` · ⚡ ${xpMult}× XP`}
+                          {xpMult && ` · ⚡ ${xpMult}× 🪙`}
                           {expiresDate && ` · bis ${expiresDate}`}
                         </div>
                       </div>

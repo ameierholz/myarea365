@@ -67,7 +67,7 @@ export default async function CrewInvitePage({ params }: { params: Promise<{ cod
         <div className="mt-6 p-4 rounded-2xl bg-bg-card border border-border">
           <div className="text-sm font-bold text-white mb-2">Was ist MyArea365?</div>
           <p className="text-xs text-text-muted leading-relaxed">
-            Gamifizierte Lauf-Community: Geh Straßen ab, sammle XP, erobere Territorien und löse Rabatte bei lokalen Shops ein.
+            Gamifizierte Lauf-Community: Geh Straßen ab, sammle 🪙 Wegemünzen, erobere Territorien und löse Rabatte bei lokalen Shops ein.
             Allein oder als Crew.
           </p>
           <Link href="/" className="block text-xs text-primary mt-3 hover:underline">Mehr erfahren →</Link>

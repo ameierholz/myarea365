@@ -121,7 +121,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
             <div style={{ fontSize: 48, marginBottom: 8 }}>📺</div>
             <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Kurze Werbung läuft…</div>
             <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
-              {adDurationSec} Sek — danach siehst du deine Lauf-Zusammenfassung + <b style={{ color: "#FFD700" }}>+{XP_REWARDED_AD} XP Bonus</b>
+              {adDurationSec} Sek — danach siehst du deine Lauf-Zusammenfassung + <b style={{ color: "#FFD700" }}>+{XP_REWARDED_AD} 🪙 Bonus</b>
             </div>
             <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
               <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #22D1C3, #FFD700)", transition: "width 0.1s linear" }} />
@@ -248,16 +248,16 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11 }}>
                   {summary.bonuses.streakBonus > 0 && (
-                    <div style={{ color: "#FF6B4A" }}>🔥 Streak-Bonus: <b>+{summary.bonuses.streakBonus} XP</b></div>
+                    <div style={{ color: "#FF6B4A" }}>🔥 Streak-Bonus: <b>+{summary.bonuses.streakBonus} 🪙</b></div>
                   )}
                   {summary.bonuses.happyHourMult > 1 && (
-                    <div style={{ color: "#FFD700" }}>⏰ Happy Hour: <b>{summary.bonuses.happyHourMult}× XP</b></div>
+                    <div style={{ color: "#FFD700" }}>⏰ Happy Hour: <b>{summary.bonuses.happyHourMult}× 🪙</b></div>
                   )}
                   {summary.bonuses.boostMult > 1 && (
-                    <div style={{ color: "#FFD700" }}>⚡ XP-Boost: <b>{summary.bonuses.boostMult}× XP</b></div>
+                    <div style={{ color: "#FFD700" }}>⚡ Münzen-Boost: <b>{summary.bonuses.boostMult}× 🪙</b></div>
                   )}
                   {summary.bonuses.crewBoostMult > 1 && (
-                    <div style={{ color: "#22D1C3" }}>👥 Crew-Boost: <b>{summary.bonuses.crewBoostMult}× XP</b></div>
+                    <div style={{ color: "#22D1C3" }}>👥 Crew-Boost: <b>{summary.bonuses.crewBoostMult}× 🪙</b></div>
                   )}
                 </div>
               </div>
@@ -278,7 +278,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                     <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
                       <span style={{ fontSize: 18 }}>{a.icon}</span>
                       <span style={{ color: "#FFF", flex: 1, fontWeight: 700 }}>{a.name}</span>
-                      <span style={{ color: "#FFD700", fontWeight: 900 }}>+{a.xp.toLocaleString("de-DE")} XP</span>
+                      <span style={{ color: "#FFD700", fontWeight: 900 }}>+{a.xp.toLocaleString("de-DE")} 🪙</span>
                     </div>
                   ))}
                 </div>

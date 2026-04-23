@@ -143,9 +143,9 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         ];
         const r = rolls[Math.floor(Math.random() * rolls.length)];
         if (r.kind === "xp") {
-          const { data: u } = await sb.from("users").select("xp").eq("id", userId).single();
-          await sb.from("users").update({ xp: (u?.xp ?? 0) + r.xp }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: +${r.xp.toLocaleString("de-DE")} XP!`);
+          const { data: u } = await sb.from("users").select("wegemuenzen").eq("id", userId).single();
+          await sb.from("users").update({ wegemuenzen: (u?.wegemuenzen ?? 0) + r.xp }).eq("id", userId);
+          appAlert(`🎁 Mystery Box: +${r.xp.toLocaleString("de-DE")} 🪙 Wegemünzen!`);
         } else if (r.kind === "boost") {
           const { data: u } = await sb.from("users").select("xp_boost_until, xp_boost_multiplier").eq("id", userId).single();
           const stacked = stackBoostUntil(u?.xp_boost_until, u?.xp_boost_multiplier, r.boost_hours, r.mult);
@@ -153,7 +153,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
             xp_boost_until: stacked.until,
             xp_boost_multiplier: stacked.mult,
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: ${r.mult}× XP für ${r.boost_hours}h!${stacked.capped ? " (auf 14d gecappt)" : ""}`);
+          appAlert(`🎁 Mystery Box: ${r.mult}× 🪙 für ${r.boost_hours}h!${stacked.capped ? " (auf 14d gecappt)" : ""}`);
         } else if (r.kind === "streak") {
           const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
           await sb.from("users").update({
@@ -222,7 +222,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         </div>
         <div style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto" }}>
           <TabBtn active={tab === "boosts"} onClick={() => setTab("boosts")}>⚡ Boosts</TabBtn>
-          <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>✨ XP</TabBtn>
+          <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>🪙 Wegemünzen</TabBtn>
           <TabBtn active={tab === "gameplay"} onClick={() => setTab("gameplay")}>🎮 Gameplay</TabBtn>
           <TabBtn active={tab === "cosmetics"} onClick={() => setTab("cosmetics")}>🎨 Skins</TabBtn>
           <TabBtn active={tab === "extras"} onClick={() => setTab("extras")}>🎁 Extras</TabBtn>
@@ -238,9 +238,9 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
           ).map((p) => {
             const pp = p as { hours?: number; multiplier?: number; desc?: string; xp?: number };
             const desc = pp.hours !== undefined && pp.multiplier !== undefined
-              ? `${pp.multiplier}× XP · ${pp.hours >= 168 ? `${pp.hours / 168} Woche` : `${pp.hours} h`}`
+              ? `${pp.multiplier}× 🪙 · ${pp.hours >= 168 ? `${pp.hours / 168} Woche` : `${pp.hours} h`}`
               : typeof pp.desc === "string" ? pp.desc
-              : typeof pp.xp === "number" ? `+${pp.xp.toLocaleString("de-DE")} XP direkt aufs Konto`
+              : typeof pp.xp === "number" ? `+${pp.xp.toLocaleString("de-DE")} 🪙 direkt aufs Konto`
               : "";
             const isBadge = p.sku.startsWith("badge_");
             const icon = "icon" in p && typeof p.icon === "string" ? p.icon : "🎁";
@@ -318,7 +318,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
             <span style={{ fontSize: 24 }}>⚡</span>
             <div>
               <div style={{ fontSize: 18, fontWeight: 900 }}>Power-Shop</div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>XP-Boosts & Extras</div>
+              <div style={{ fontSize: 11, color: "#a8b4cf" }}>Wegemünzen-Boosts & Extras</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>

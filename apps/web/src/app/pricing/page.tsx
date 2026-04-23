@@ -4,7 +4,7 @@ import { PLANS, PLUS_FEATURES, CREW_PRO_FEATURES, BOOST_PACKS, EXTRAS, formatPri
 
 export const metadata = {
   title: "Preise · MyArea365",
-  description: "MyArea+ und Crew-Pro Abos, XP-Boost-Packs und einmalige Extras.",
+  description: "MyArea+ und Crew-Pro Abos, Wegemünzen-Boost-Packs und einmalige Extras.",
 };
 
 export default function PricingPage() {
@@ -78,14 +78,14 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* XP-Boost-Packs */}
-        <h2 className="text-2xl font-black text-white mb-3">⚡ XP-Boost-Packs</h2>
+        {/* Wegemünzen-Boost-Packs */}
+        <h2 className="text-2xl font-black text-white mb-3">⚡ Wegemünzen-Boost-Packs</h2>
         <p className="text-text-muted text-sm mb-5">Einmalige Käufe ohne Abo. Ideal für Events oder intensive Trainings-Wochen.</p>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3 mb-12">
           {Object.values(BOOST_PACKS).map((p) => (
             <div key={p.sku} className="bg-bg-card border border-border rounded-xl p-4 text-center">
               <div className="text-3xl mb-2">⚡</div>
-              <div className="text-xs text-text-muted mb-1">{p.multiplier}× XP · {p.hours} h</div>
+              <div className="text-xs text-text-muted mb-1">{p.multiplier}× 🪙 · {p.hours} h</div>
               <div className="text-base font-bold text-white mb-2">{p.name}</div>
               <div className="text-2xl font-black text-xp mb-3">{formatPrice(p.price)}</div>
               <Link href={`/dashboard/?buy=${p.sku}`} className="block py-2 rounded-lg bg-xp/20 text-xp hover:bg-xp/30 text-xs font-bold">

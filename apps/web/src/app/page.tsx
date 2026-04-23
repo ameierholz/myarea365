@@ -57,7 +57,7 @@ export default function LandingPage() {
         <div id="start" className="relative z-10 text-center px-4 max-w-xl mx-auto pb-4">
           <p className="text-sm sm:text-base text-text-muted mb-5">
             Geh Straßen ab, jogge durch dein Viertel, erschließe ganze Straßenzüge.
-            Sammle XP — löse sie bei lokalen Shops gegen echte Rabatte ein.
+            Sammle 🪙 Wegemünzen — löse sie bei lokalen Shops gegen echte Rabatte ein.
             Allein oder mit deiner Crew.
           </p>
 
@@ -114,7 +114,7 @@ export default function LandingPage() {
               </h2>
               <p className="text-text-muted leading-relaxed mb-6">
                 Jede Straße die du abgehst wird auf der Karte in deiner Farbe eingefärbt.
-                Sammle XP für jeden Kilometer, jede Straße, jeden Kiez-Check-in. Level up,
+                Sammle 🪙 Wegemünzen für jeden Kilometer, jede Straße, jeden Kiez-Check-in. Level up,
                 Rangliste, Streaks — spielerisch in Bewegung bleiben.
               </p>
               <div className="grid grid-cols-3 gap-3">
@@ -124,13 +124,13 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="p-6 rounded-3xl bg-linear-to-br from-primary/10 via-bg-card to-accent/10 border border-primary/20">
-              <div className="text-xs font-bold text-primary tracking-widest mb-4">XP VERDIENEN</div>
+              <div className="text-xs font-bold text-primary tracking-widest mb-4">🪙 WEGEMÜNZEN VERDIENEN</div>
               <div className="space-y-3">
                 {[
-                  { icon: "📏", label: "Pro km", xp: "+50 XP" },
-                  { icon: "🏃", label: "Pro Lauf", xp: "+100 XP" },
-                  { icon: "🗺️", label: "Neues Territorium", xp: "+500 XP" },
-                  { icon: "🔥", label: "Streak-Tag", xp: "bis +1.000 XP" },
+                  { icon: "📏", label: "Pro km", xp: "+50 🪙" },
+                  { icon: "🏃", label: "Pro Lauf", xp: "+100 🪙" },
+                  { icon: "🗺️", label: "Neues Territorium", xp: "+500 🪙" },
+                  { icon: "🔥", label: "Streak-Tag", xp: "bis +1.000 🪙" },
                 ].map((x) => (
                   <div key={x.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-black/20">
                     <div className="text-xl">{x.icon}</div>
@@ -193,7 +193,7 @@ export default function LandingPage() {
             {[
               { icon: "🗺️", title: "Revier dominieren",  desc: "Straßenzüge eurer Crew gehören — eure Farbe färbt den Kiez.", accent: "#22D1C3" },
               { icon: "🏆", title: "Liga aufsteigen",    desc: "Bronze → Silber → Gold → Diamant → Legende. Monatlich neu.", accent: "#FFD700" },
-              { icon: "⚔️", title: "Rivalen schlagen",    desc: "1:1 Wochen-Duelle gegen Nachbar-Crews. Sieger kriegt XP-Boost.", accent: "#FF2D78" },
+              { icon: "⚔️", title: "Rivalen schlagen",    desc: "1:1 Wochen-Duelle gegen Nachbar-Crews. Sieger kriegt 🏴 Gebietsruf-Boost.", accent: "#FF2D78" },
               { icon: "🔥", title: "Challenges",           desc: "Wöchentliche Team-Ziele: 150 km, 20 Gebiete, Früh-Vögel.", accent: "#FF6B4A" },
               { icon: "📅", title: "Events planen",        desc: "Treffpunkte, Gruppenläufe, gemeinsame Runden.", accent: "#a855f7" },
               { icon: "💬", title: "Chat & Feed",          desc: "Reaktionen, Voice-Notes, Meilensteine feiern.", accent: "#4ade80" },
@@ -225,20 +225,20 @@ export default function LandingPage() {
           <div className="text-center mb-14">
             <div className="text-xs font-bold tracking-widest text-xp mb-3">SHOPS</div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-              XP gegen <span className="text-xp">echte Rabatte</span>.
+              🪙 Wegemünzen gegen <span className="text-xp">echte Rabatte</span>.
             </h2>
             <p className="text-text-muted max-w-xl mx-auto">
-              Nicht noch eine App-Währung. Deine XP werden zu Geld — in Cafés, Bäckereien,
+              Nicht noch eine App-Währung. Deine Wegemünzen werden zu Geld — in Cafés, Bäckereien,
               Sportläden, Fitness-Studios, Apotheken, Gastro. Immer vor Ort, nie online.
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-3">
               {[
-                { icon: "☕", shop: "Café Liebling",     deal: "Gratis Cappuccino ab 3 km",  xp: "300 XP" },
-                { icon: "🛍️", shop: "Runners Point",     deal: "15% auf den Einkauf",       xp: "800 XP" },
-                { icon: "🥗", shop: "Bio-Bowl",          deal: "Gratis Smoothie zur Bowl",  xp: "400 XP" },
-                { icon: "🏋️", shop: "MyCityFit",         deal: "Kostenlose Probewoche",     xp: "1.500 XP" },
+                { icon: "☕", shop: "Café Liebling",     deal: "Gratis Cappuccino ab 3 km",  xp: "300 🪙" },
+                { icon: "🛍️", shop: "Runners Point",     deal: "15% auf den Einkauf",       xp: "800 🪙" },
+                { icon: "🥗", shop: "Bio-Bowl",          deal: "Gratis Smoothie zur Bowl",  xp: "400 🪙" },
+                { icon: "🏋️", shop: "MyCityFit",         deal: "Kostenlose Probewoche",     xp: "1.500 🪙" },
               ].map((d) => (
                 <div key={d.shop} className="flex items-center gap-3 p-3 rounded-xl bg-bg-card border border-border">
                   <div className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center text-xl">{d.icon}</div>
@@ -258,7 +258,7 @@ export default function LandingPage() {
                 { icon: <Target className="w-5 h-5 text-primary" />, title: "Nur vor Ort einlösbar", desc: "GPS + rotierender QR. Kein Online-Missbrauch, nur im Laden — unterstützt wirklich lokale Shops." },
                 { icon: <Sparkles className="w-5 h-5 text-xp" />, title: "Faire Regeln", desc: "Jeder Deal zeigt offen: 1× / Woche, Monat oder unbegrenzt. Keine versteckten Klauseln." },
                 { icon: <Shield className="w-5 h-5 text-energy" />, title: "Deine Daten bleiben bei dir", desc: "Shops sehen nur anonymen Check-in + km. Kein Profil-Tracking, keine Werbe-IDs." },
-                { icon: <Award className="w-5 h-5 text-accent" />, title: "Keine App-Währung", desc: "Deine XP bleiben XP. Kein Ablaufdatum. Einlösen wann du willst." },
+                { icon: <Award className="w-5 h-5 text-accent" />, title: "Keine App-Währung", desc: "Deine Wegemünzen bleiben Wegemünzen. Kein Ablaufdatum. Einlösen wann du willst." },
               ].map((f) => (
                 <div key={f.title} className="flex gap-3 p-4 rounded-xl bg-bg-card border border-border">
                   <div>{f.icon}</div>

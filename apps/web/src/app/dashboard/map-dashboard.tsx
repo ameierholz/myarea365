@@ -118,6 +118,9 @@ interface Profile {
   username: string;
   display_name: string | null;
   xp: number;
+  wegemuenzen?: number;
+  gebietsruf?: number;
+  sessionehre?: number;
   level: number;
   total_distance_m: number;
   total_walks: number;
@@ -576,14 +579,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }).eq("id", walkRow.id);
 
       if (!error) {
-        const newXp = (profile.xp || 0) + totalXpGained;
+        const newXp = (profile.wegemuenzen ?? profile.xp ?? 0) + totalXpGained;
         const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
         const newWalks = (profile.total_walks || 0) + 1;
         const newCal = (profile.total_calories || 0) + Math.round(finalDistance * 0.06);
         const newLongest = Math.max(profile.longest_run_m || 0, Math.round(finalDistance));
 
         await supabase.from("users").update({
-          xp: newXp,
+          wegemuenzen: newXp,
           total_distance_m: newDistance,
           total_walks: newWalks,
           total_calories: newCal,
@@ -592,6 +595,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
         setProfile({
           ...profile,
+          wegemuenzen: newXp,
           xp: newXp,
           total_distance_m: newDistance,
           total_walks: newWalks,
@@ -839,7 +843,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   }
 
   const p = profile;
-  const currentRank = getCurrentRank(p?.xp || 0);
+  const currentRank = getCurrentRank(p?.wegemuenzen ?? p?.xp ?? 0);
   const teamColor = myCrew?.color || p?.team_color || PRIMARY;
 
   return (
@@ -932,12 +936,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   if (r.ok) {
                     const j = await r.json() as { ok?: boolean; potion?: null; name?: string; icon?: string; rarity?: string };
                     if (j.ok && j.name) {
-                      appAlert(`🎁 Loot + ${j.icon ?? "🧪"} ${j.name}! +25 XP`);
+                      appAlert(`🎁 Loot + ${j.icon ?? "🧪"} ${j.name}! +25 🪙`);
                       return;
                     }
                   }
                 } catch { /* stumm */ }
-                appAlert("🎁 Loot aufgesammelt! +25 XP · Drop-Raten transparent unter /loot-drops");
+                appAlert("🎁 Loot aufgesammelt! +25 🪙 · Drop-Raten transparent unter /loot-drops");
               }}
             />
             <LivePaceHud
@@ -1127,7 +1131,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 }}>
                   <span style={{ fontSize: 18 }}>🚫</span>
                   <span style={{ color: "#FFF", fontWeight: 800, fontSize: 12, lineHeight: 1.3 }}>
-                    Zu schnell! Nur Gehen/Joggen zählt — keine XP für Fahrzeuge.
+                    Zu schnell! Nur Gehen/Joggen zählt — keine Wegemünzen für Fahrzeuge.
                   </span>
                 </div>
               )}
@@ -1483,7 +1487,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           isPremium={isPremium(profile as never)}
           onClose={(bonusXp) => {
             if (bonusXp > 0) {
-              setProfile({ ...profile, xp: (profile.xp || 0) + bonusXp });
+              const next = (profile.wegemuenzen ?? profile.xp ?? 0) + bonusXp;
+              setProfile({ ...profile, wegemuenzen: next, xp: next });
             }
             setWalkSummary(null);
           }}
@@ -1582,7 +1587,7 @@ function ProfilTab({
     ? DEMO_STATS.territory_count
     : territoryCount;
 
-  const userXp = p?.xp || 0;
+  const userXp = p?.wegemuenzen ?? p?.xp ?? 0;
   const teamColor = myCrew?.color || p?.team_color || PRIMARY;
   const nextRank = getNextRank(userXp);
   const xpToNext = nextRank ? nextRank.minXp - userXp : 0;
@@ -1670,8 +1675,8 @@ function ProfilTab({
   }, [p?.id]);
 
   const handleRewardedAd = async () => {
-    if (await appConfirm("📺 Schau dir ein kurzes Video an, um sofort +250 XP zu erhalten!")) {
-      appAlert("Danke! Du hast 250 XP erhalten! (Simulation)");
+    if (await appConfirm("📺 Schau dir ein kurzes Video an, um sofort +250 🪙 zu erhalten!")) {
+      appAlert("Danke! Du hast 250 Wegemünzen erhalten! (Simulation)");
     }
   };
 
@@ -1834,7 +1839,7 @@ function ProfilTab({
               aria-label="Alle Ränge anzeigen"
             >
               <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
-                {currentRankLive.name} · {userXp.toLocaleString()} XP
+                {currentRankLive.name} · {userXp.toLocaleString()} 🪙
               </span>
               <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 1, color: BG_DEEP, fontSize: 14, fontWeight: 900 }}>›</span>
               <span style={{
@@ -1869,10 +1874,10 @@ function ProfilTab({
                 marginBottom: 5, fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
               }}>
                 <span style={{ color: currentRankLive.color }}>
-                  {userXp.toLocaleString()} XP
+                  {userXp.toLocaleString()} 🪙
                 </span>
                 <span style={{ color: nextRank.color }}>
-                  {nextRank.minXp.toLocaleString()} XP
+                  {nextRank.minXp.toLocaleString()} 🪙
                 </span>
               </div>
 
@@ -1911,7 +1916,7 @@ function ProfilTab({
                   → {nextRank.name}
                 </span>
                 <span style={{ color: MUTED }}>
-                  noch <span style={{ color: "#FFF", fontWeight: 800 }}>{xpToNext.toLocaleString()}</span> XP
+                  noch <span style={{ color: "#FFF", fontWeight: 800 }}>{xpToNext.toLocaleString()}</span> 🪙
                 </span>
               </div>
             </div>
@@ -2208,7 +2213,7 @@ function ProfilTab({
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>Du möchtest uns unterstützen?</div>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.45 }}>
-                Mit einem kurzen Werbevideo hilfst du uns, MyArea365 unabhängig weiterzuentwickeln — und kassierst selbst <b style={{ color: "#FFD700" }}>+100 XP Lauf-Bonus</b>. Danke! 🙏
+                Mit einem kurzen Werbevideo hilfst du uns, MyArea365 unabhängig weiterzuentwickeln — und kassierst selbst <b style={{ color: "#FFD700" }}>+100 🪙 Lauf-Bonus</b>. Danke! 🙏
               </div>
               <RewardedAdButton placement="post_walk" userId={p.id} />
             </div>
@@ -2218,14 +2223,14 @@ function ProfilTab({
             {[
               { icon: "❓", label: "Hilfe & FAQ",  onClick: () => setOpenModal("faq") },
               { icon: "📤", label: "Profil teilen", onClick: async () => {
-                const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} XP\n${effectiveTerritoryCount} Territorien · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
+                const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Territorien · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
                 const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
                 try {
                   if (navigator.share) await navigator.share(shareData);
                   else { await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`); appAlert("Profil-Text in Zwischenablage kopiert!"); }
                 } catch { /* cancel */ }
               } },
-              { icon: "⭐", label: "XP-Guide",     onClick: () => setOpenModal("xpguide") },
+              { icon: "🪙", label: "Währungen-Guide", onClick: () => setOpenModal("xpguide") },
               { icon: "🎫", label: "Support",      onClick: () => setOpenModal("support") },
               { icon: "⚙️", label: "Einstellungen", onClick: () => setOpenModal("settings") },
               { icon: "👤", label: "Account",      onClick: () => setOpenModal("account") },
@@ -2558,7 +2563,7 @@ function ProfilTab({
                       {current && <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: r.color, color: BG_DEEP, fontWeight: 900 }}>AKTUELL</span>}
                     </div>
                     <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-                      {r.minXp.toLocaleString("de-DE")} XP {next && `— ${(next.minXp - 1).toLocaleString("de-DE")} XP`}
+                      {r.minXp.toLocaleString("de-DE")} 🪙 {next && `— ${(next.minXp - 1).toLocaleString("de-DE")} 🪙`}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -2567,7 +2572,7 @@ function ProfilTab({
                     ) : (
                       <div style={{ color: MUTED, fontSize: 10 }}>
                         <div>noch</div>
-                        <div style={{ color: r.color, fontWeight: 800, fontSize: 12 }}>{xpToRank.toLocaleString("de-DE")} XP</div>
+                        <div style={{ color: r.color, fontWeight: 800, fontSize: 12 }}>{xpToRank.toLocaleString("de-DE")} 🪙</div>
                       </div>
                     )}
                   </div>
@@ -2576,7 +2581,7 @@ function ProfilTab({
             })}
           </div>
           <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 14, fontStyle: "italic" }}>
-            XP sammelst du durch Läufe, Territorien, Streaks & Achievements.
+            🪙 Wegemünzen sammelst du durch Läufe, Territorien, Streaks & Achievements.
           </div>
         </Modal>
       )}
@@ -2604,17 +2609,17 @@ function ProfilTab({
 
       {openModal === "xpguide" && (
         <Modal
-          title="Wofür gibt es XP?"
-          subtitle="Alle Quellen für Erfahrungspunkte"
-          icon="⭐"
+          title="Wofür gibt es 🪙 Wegemünzen?"
+          subtitle="Alle Quellen für Runner-Progression"
+          icon="🪙"
           accent="#FFD700"
           onClose={() => setOpenModal(null)}
         >
           <div style={{ color: TEXT_SOFT, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-            Je mehr du dich bewegst, desto mehr XP sammelst du. Tippe auf eine Kategorie für Details.
+            Wegemünzen (🪙) sind deine Runner-Währung: je mehr du dich bewegst, desto mehr sammelst du. Für Crews gibt es 🏴 Gebietsruf, für Arena ⚔️ Sessionehre — getrennte Ströme, damit nichts untereinander verrechnet wird. Tippe auf eine Kategorie für Details.
           </div>
 
-          <XpGuideSection title="🏃 Pro Aktivität" subtitle="Basis-XP beim Laufen" defaultOpen>
+          <XpGuideSection title="🏃 Pro Aktivität" subtitle="Basis-Wegemünzen beim Laufen" defaultOpen>
             <XpGuideRow icon="📍" label="Straßenzug / Territorium erobert" xp={`+${XP_PER_TERRITORY}`} />
             <XpGuideRow icon="📏" label="Pro gelaufener km" xp={`+${XP_PER_KM}`} />
             <XpGuideRow icon="✅" label="Walk abgeschlossen (Basis)" xp={`+${XP_PER_WALK}`} last />
@@ -2627,16 +2632,16 @@ function ProfilTab({
             <XpGuideRow icon="🔟" label="Ab Tag 10" xp="+200 / Tag" last />
           </XpGuideSection>
 
-          <XpGuideSection title="⚡ XP-Multiplikatoren" subtitle="Stapeln sich mit Basis-XP">
-            <XpGuideRow icon="⚡" label="24h Doppel-XP (Shop € 0,99)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="48h Doppel-XP (Shop € 1,99)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="1 Woche Doppel-XP (Shop)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="1 Woche Triple-XP (Shop)" xp="3× auf alles" />
-            <XpGuideRow icon="📺" label="24h Doppel-XP via Werbung" xp="2× für 24h" />
-            <XpGuideRow icon="📺" label="15 min Doppel-XP via Werbung" xp="2× für 15 min" last />
+          <XpGuideSection title="⚡ Wegemünzen-Multiplikatoren" subtitle="Stapeln sich mit den Basis-Werten">
+            <XpGuideRow icon="⚡" label="24h Doppel-Boost (Shop € 0,99)" xp="2× auf alles" />
+            <XpGuideRow icon="⚡" label="48h Doppel-Boost (Shop € 1,99)" xp="2× auf alles" />
+            <XpGuideRow icon="⚡" label="1 Woche Doppel-Boost (Shop)" xp="2× auf alles" />
+            <XpGuideRow icon="⚡" label="1 Woche Triple-Boost (Shop)" xp="3× auf alles" />
+            <XpGuideRow icon="📺" label="24h Doppel-Boost via Werbung" xp="2× für 24h" />
+            <XpGuideRow icon="📺" label="15 min Doppel-Boost via Werbung" xp="2× für 15 min" last />
           </XpGuideSection>
 
-          <XpGuideSection title="📺 Werbe-Belohnungen" subtitle="Videos schauen für Bonus-XP">
+          <XpGuideSection title="📺 Werbe-Belohnungen" subtitle="Videos schauen für Bonus-Wegemünzen">
             <XpGuideRow icon="🏁" label="Lauf-Bonus nach jedem Lauf (alle 12h)" xp="+100" />
             <XpGuideRow icon="🎯" label="Pre-Walk-Bonus vor dem Start" xp={`+${XP_REWARDED_AD}`} />
             <XpGuideRow icon="🎁" label="Supply-Drop freischalten" xp={`+${XP_REWARDED_AD}`} />
@@ -2662,7 +2667,7 @@ function ProfilTab({
             ))}
           </XpGuideSection>
 
-          <XpGuideSection title="💎 Premium-Perks" subtitle="MyArea+ Vorteile (keine direkten XP)">
+          <XpGuideSection title="💎 Premium-Perks" subtitle="MyArea+ Vorteile (keine direkten Wegemünzen)">
             <XpGuideRow icon="❄️" label="Streak-Freeze (schützt Tages-Streak)" xp="3× monatlich" />
             <XpGuideRow icon="🚫" label="Werbefrei im Profil & Menüs" xp="—" />
             <XpGuideRow icon="🎨" label="Exklusive Marker & Themes" xp="—" />
@@ -2676,7 +2681,7 @@ function ProfilTab({
           </XpGuideSection>
 
           <div style={{ color: MUTED, fontSize: 12, marginTop: 16, textAlign: "center", fontStyle: "italic" }}>
-            XP schaltet neue Ränge, Map-Icons und Runner Lights frei. Boost-Multiplikatoren wirken auf ALLE XP-Quellen gleichzeitig.
+            🪙 Wegemünzen schalten neue Ränge, Map-Icons und Runner Lights frei. Boost-Multiplikatoren wirken auf ALLE Wegemünzen-Quellen gleichzeitig — Gebietsruf und Sessionehre bleiben davon unberührt.
           </div>
         </Modal>
       )}
@@ -3122,7 +3127,7 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
             {runner.rank_name}
           </div>
           <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-            {runner.xp.toLocaleString()} XP
+            {runner.xp.toLocaleString()} 🪙
           </div>
         </div>
       </div>
@@ -3268,7 +3273,7 @@ function HappyHourBanner() {
     >
       <span style={{ fontSize: 12 }}>⚡</span>
       <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 0.5 }}>
-        {hh.multiplier}× XP
+        {hh.multiplier}× 🪙
       </span>
       <span style={{ color: "#FFF", fontSize: 10, fontWeight: 700, opacity: 0.85 }}>
         {remaining}
@@ -3656,7 +3661,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center",
               fontSize: 12, color: MUTED,
             }}>
-              <span>🔑 Kosten: <b style={{ color: "#FFD700" }}>300 XP</b></span>
+              <span>🔑 Kosten: <b style={{ color: "#FFD700" }}>300 🪙 Wegemünzen</b></span>
               <span>🔁 1× / Woche einlösbar</span>
             </div>
             <button
@@ -3671,7 +3676,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                 cursor: userXp >= 300 ? "pointer" : "not-allowed",
               }}
             >
-              {userXp >= 300 ? "✨ Jetzt einlösen" : `Noch ${300 - userXp} XP sammeln`}
+              {userXp >= 300 ? "✨ Jetzt einlösen" : `Noch ${300 - userXp} 🪙 sammeln`}
             </button>
           </div>
 
@@ -3689,7 +3694,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
                 {arenaStatus.i_redeemed_myself ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 3 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir XP für deinen Wächter.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 3 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir ⚔️ Sessionehre + Wächter-XP.
                   </>
                 ) : arenaStatus.crew_eligible ? (
                   <>
@@ -4014,7 +4019,7 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
     enemy_solo: "Feindlicher Solo-Läufer",
   };
   const buffLabel: Record<string, string> = {
-    xp_multiplier: `${area.buff_value}× XP in diesem Gebiet`,
+    xp_multiplier: `${area.buff_value}× 🪙 in diesem Gebiet`,
     shield:        `${area.buff_value}h Schild-Schutz`,
     radar:         `${area.buff_value}% Radar-Reichweite`,
     speed:         `${area.buff_value}× Bewegungs-Boost`,
@@ -4118,7 +4123,7 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
 
       {isOwn && area.level < 3 && (
         <button
-          onClick={() => appAlert(`Upgrade auf Level ${area.level + 1} für ${(area.level * 2000).toLocaleString()} XP – kommt bald`)}
+          onClick={() => appAlert(`Upgrade auf Level ${area.level + 1} für ${(area.level * 2000).toLocaleString()} 🪙 Wegemünzen – kommt bald`)}
           style={{
             width: "100%", marginTop: 16, padding: "12px 18px", borderRadius: 12,
             background: `linear-gradient(135deg, ${area.owner_color}, ${PRIMARY})`,
@@ -4127,7 +4132,7 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
             boxShadow: `0 4px 16px ${area.owner_color}66`,
           }}
         >
-          ⬆ UPGRADE AUF LEVEL {area.level + 1} ({(area.level * 2000).toLocaleString()} XP)
+          ⬆ UPGRADE AUF LEVEL {area.level + 1} ({(area.level * 2000).toLocaleString()} 🪙)
         </button>
       )}
     </Modal>
@@ -4177,7 +4182,8 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
       });
       if (r.ok) {
         const j = await r.json();
-        await appAlert(`🎉 +${j.reward_xp} XP kassiert!`);
+        const amt = j.reward_wegemuenzen ?? j.reward_xp ?? 0;
+        await appAlert(`🎉 +${amt} 🪙 Wegemünzen kassiert!`);
         await load();
       } else {
         const j = await r.json().catch(() => ({}));
@@ -4281,7 +4287,7 @@ function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; c
             opacity: claiming ? 0.5 : 1,
           }}
         >
-          {claiming ? "…" : `💰 +${m.reward_xp} XP`}
+          {claiming ? "…" : `💰 +${m.reward_xp} 🪙`}
         </button>
       ) : (
         <div style={{
@@ -4290,7 +4296,7 @@ function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; c
           border: `1px solid ${m.claimed_at ? "#4ade80" : accent}`,
         }}>
           <span style={{ color: m.claimed_at ? "#4ade80" : accent, fontSize: 10, fontWeight: 900 }}>
-            {m.claimed_at ? "✓ Geholt" : `+${m.reward_xp} XP`}
+            {m.claimed_at ? "✓ Geholt" : `+${m.reward_xp} 🪙`}
           </span>
         </div>
       )}
@@ -4732,7 +4738,7 @@ function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, 
           color: unlocked ? accent : MUTED,
           fontSize: 10, fontWeight: 800,
         }}>
-          {unlocked ? "✓ " : ""}+{xp.toLocaleString()} XP
+          {unlocked ? "✓ " : ""}+{xp.toLocaleString()} 🪙
         </span>
       </div>
     </div>
@@ -5724,7 +5730,7 @@ function HealthDashboard({ profile: p, runs, territoryCount, teamColor, achievem
                     }} />
                   </div>
                 </div>
-                <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>+{m.xp.toLocaleString()} XP</span>
+                <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>+{m.xp.toLocaleString()} 🪙</span>
               </div>
             ))}
           </div>
@@ -6097,7 +6103,7 @@ function CrewTab({
     setProfile({ ...p, current_crew_id: data.id, team_color: newColor });
     setMode("idle");
     if (promoted && promoted.promoted_count > 0) {
-      appAlert(`✅ "${newName}" gegründet! 🏆 ${promoted.promoted_count} Solo-Territorien aktiviert · +${promoted.xp_granted} XP`);
+      appAlert(`✅ "${newName}" gegründet! 🏆 ${promoted.promoted_count} Solo-Territorien aktiviert · +${promoted.xp_granted} 🪙 Wegemünzen`);
     } else {
       appAlert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
     }
@@ -6186,7 +6192,7 @@ function CrewTab({
                   const j = await r.json();
                   if (!r.ok) { await appAlert(j.error === "crew_not_found" ? "Crew mit diesem Code nicht gefunden." : `Fehler: ${j.error ?? r.status}`); return; }
                   const msg = j.promoted_territories > 0
-                    ? `✅ Beigetreten bei "${j.crew.name}"!\n🏆 ${j.promoted_territories} Solo-Territorien aktiviert · +${j.promoted_xp} XP`
+                    ? `✅ Beigetreten bei "${j.crew.name}"!\n🏆 ${j.promoted_territories} Solo-Territorien aktiviert · +${j.promoted_xp} 🪙 Wegemünzen`
                     : `✅ Beigetreten bei "${j.crew.name}"!`;
                   await appAlert(msg);
                   setMyCrew(j.crew);
@@ -6363,7 +6369,7 @@ function CrewOnboarding({
           {[
             { icon: "🗺️", title: "Revier dominieren", desc: "Straßenzüge einnehmen — eure Farbe färbt den Kiez.", accent: "#22D1C3" },
             { icon: "🏆", title: "Liga aufsteigen", desc: "Bronze → Silber → Gold → Diamant → Legende.", accent: "#FFD700" },
-            { icon: "⚔️", title: "Rivalen schlagen", desc: "1:1 Wochen-Duelle gegen Nachbar-Crews. Sieger bekommt XP-Boost.", accent: "#FF2D78" },
+            { icon: "⚔️", title: "Rivalen schlagen", desc: "1:1 Wochen-Duelle gegen Nachbar-Crews. Sieger bekommt 🏴 Gebietsruf-Boost.", accent: "#FF2D78" },
             { icon: "🔥", title: "Challenges meistern", desc: "Wöchentliche Team-Ziele — 150 km, 20 Gebiete, Früh-Vögel.", accent: "#FF6B4A" },
             { icon: "📅", title: "Events planen", desc: "Treffpunkte koordinieren, Läufe mit der Crew.", accent: "#a855f7" },
             { icon: "💬", title: "Chat & Feed", desc: "Reaktionen, Voice-Notes, Meilensteine feiern.", accent: "#4ade80" },
@@ -7300,10 +7306,10 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
             </div>
           </div>
 
-          {/* XP-Aufschlüsselung */}
+          {/* Wegemünzen-Aufschlüsselung */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
-              XP-AUFSCHLÜSSELUNG
+              🪙 WEGEMÜNZEN-AUFSCHLÜSSELUNG
             </div>
             <div style={{
               background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px",
@@ -7313,7 +7319,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
               {xpBreakdown.map((x, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                   <span style={{ color: MUTED }}>{x.label}</span>
-                  <span style={{ color: "#FFF", fontWeight: 700 }}>+{x.value} XP</span>
+                  <span style={{ color: "#FFF", fontWeight: 700 }}>+{x.value} 🪙</span>
                 </div>
               ))}
               <div style={{
@@ -7322,7 +7328,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
                 fontSize: 13,
               }}>
                 <span style={{ color: "#FFF", fontWeight: 800 }}>Gesamt</span>
-                <span style={{ color: PRIMARY, fontWeight: 900 }}>+{run.xp_earned} XP</span>
+                <span style={{ color: PRIMARY, fontWeight: 900 }}>+{run.xp_earned} 🪙</span>
               </div>
             </div>
           </div>
@@ -7807,7 +7813,7 @@ function CreateCrewForm({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
               {([
-                { id: "pfadfinder",    icon: "🏃", name: "Pfadfinder",    color: "#4ade80", buff: "+10 % Lauf-XP",        hint: "Mehr XP pro Walk" },
+                { id: "pfadfinder",    icon: "🏃", name: "Pfadfinder",    color: "#4ade80", buff: "+10 % 🪙 beim Laufen", hint: "Mehr Wegemünzen pro Walk" },
                 { id: "waechterorden", icon: "⚔️", name: "Wächter-Orden", color: "#FF6B4A", buff: "+5 % HP & ATK",         hint: "Stärkere Wächter" },
                 { id: "stadtlaeufer",  icon: "🏙️", name: "Stadtläufer",   color: "#22D1C3", buff: "+15 % Siegel",         hint: "Mehr Loot" },
                 { id: "mystiker",      icon: "🔮", name: "Mystiker",       color: "#a855f7", buff: "+10 % Wächter-XP",     hint: "Schnelleres Leveln" },

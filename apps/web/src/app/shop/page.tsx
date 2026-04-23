@@ -138,7 +138,7 @@ export default function ShopPage() {
       {/* Principles */}
       <div style={{ margin: "0 14px 14px", padding: 10, borderRadius: 10, background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.3)", fontSize: 11, color: "#a8b4cf", lineHeight: 1.5 }}>
         <b style={{ color: "#22D1C3" }}>Fair-Play-Versprechen:</b> Edelsteine kaufen <b>nur</b> Skins, Booster und Komfort.
-        Siegel, Wächter und XP bekommst du <b>ausschließlich durchs Gehen und Kämpfen</b>.
+        Siegel, Wächter und alle Währungen (🪙 Wegemünzen, 🏴 Gebietsruf, ⚔️ Sessionehre) bekommst du <b>ausschließlich durchs Gehen und Kämpfen</b>.
       </div>
 
       {/* Kategorien */}
