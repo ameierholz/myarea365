@@ -1168,7 +1168,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               >
                 <span className="ma365-walk-btn-inner">
                   <span className="ma365-walk-btn-icon">{walking ? "🏁" : "🚀"}</span>
-                  <span>{walking ? "Eroberung abschließen" : "Eroberung starten"}</span>
+                  <span>{walking ? "Angekommen" : "Losgehen"}</span>
                 </span>
                 <style>{`
                   @keyframes ma365WalkBtnShine {
