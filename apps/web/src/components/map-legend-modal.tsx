@@ -7,9 +7,9 @@ const SECTIONS: Section[] = [
   {
     title: "Dein Fortschritt",
     entries: [
-      { icon: "🟡", color: "#FFD700", label: "Dein Territorium", desc: "Geschlossenes Polygon in deiner Runner-Farbe." },
-      { icon: "🟦", color: "#22D1C3", label: "Crew-Territorium", desc: "Eroberung deiner Crew — zählt für den Crew-Rang." },
-      { icon: "🔴", color: "#FF2D78", label: "Feind-Territorium", desc: "Gehört einer anderen Crew. Überlaufen = Steal-Bonus." },
+      { icon: "🟡", color: "#FFD700", label: "Dein Gebiet", desc: "Geschlossenes Polygon in deiner Runner-Farbe." },
+      { icon: "🟦", color: "#22D1C3", label: "Crew-Gebiet", desc: "Eroberung deiner Crew — zählt für den Crew-Rang." },
+      { icon: "🔴", color: "#FF2D78", label: "Feind-Gebiet", desc: "Gehört einer anderen Crew. Überlaufen = Steal-Bonus." },
       { icon: "⚪", color: "#FFD700", label: "Pending (gestrichelt)", desc: "Ring geschlossen, aber noch ohne Crew — tritt einer bei und du kassierst 500 🪙 Wegemünzen rückwirkend." },
     ],
   },

@@ -135,7 +135,7 @@ export default function LandingPage() {
                 {[
                   { icon: "📏", label: "Pro km", xp: "+50 🪙" },
                   { icon: "🏃", label: "Pro Lauf", xp: "+100 🪙" },
-                  { icon: "🗺️", label: "Neues Territorium", xp: "+500 🪙" },
+                  { icon: "🗺️", label: "Neues Gebiet", xp: "+500 🪙" },
                   { icon: "🔥", label: "Streak-Tag", xp: "bis +1.000 🪙" },
                 ].map((x) => (
                   <div key={x.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-black/20">

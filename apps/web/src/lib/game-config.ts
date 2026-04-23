@@ -251,7 +251,7 @@ export const DEMO_CREW_CHALLENGES: CrewChallenge[] = [
   {
     id: "c2",
     title: "Revier-Sperre",
-    description: "20 Territorien im Crew-Revier sichern, bevor jemand angreift.",
+    description: "20 Gebiete im Crew-Revier sichern, bevor jemand angreift.",
     icon: "🛡️",
     target: 20, current: 13, unit: "Gebiete",
     reward_xp: 1800,
@@ -321,7 +321,7 @@ export const DEMO_CREW_CHAT: CrewChatMessage[] = [
   { id: "x1", username: "NeonFuchs",   display_name: "Lena",  avatar_emoji: "🦊", text: "Jemand Bock auf Morgenrunde?",                       ts_iso: new Date(Date.now() - 60 * 55 * 1000).toISOString() },
   { id: "x2", username: "Pacer99",     display_name: "Jonas", avatar_emoji: "🚀", text: "Ich bin dabei, 7 Uhr am Wasserturm?",                ts_iso: new Date(Date.now() - 40 * 60 * 1000).toISOString() },
   { id: "x3", username: "StadtPuma",   display_name: "Ines",  avatar_emoji: "🐆", text: "Zu früh 😭 aber heute Abend gern!",                  ts_iso: new Date(Date.now() - 22 * 60 * 1000).toISOString() },
-  { id: "x4", username: "NeonFuchs",   display_name: "Lena",  avatar_emoji: "🦊", text: "Ok dann 19 Uhr gleiche Stelle — wir brauchen noch 2 Territorien für die Wochen-Challenge!", ts_iso: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
+  { id: "x4", username: "NeonFuchs",   display_name: "Lena",  avatar_emoji: "🦊", text: "Ok dann 19 Uhr gleiche Stelle — wir brauchen noch 2 Gebiete für die Wochen-Challenge!", ts_iso: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
 ];
 
 export type NearbyCrew = {
@@ -609,7 +609,7 @@ export const DEMO_RIVAL_DUEL: RivalDuel = {
   rival_weekly_km: 76.4,
   our_weekly_km: 88.5,
   ends_at: new Date(Date.now() + 3 * 24 * 3600000).toISOString(),
-  prize: "+1200 XP + Territorium-Bonus",
+  prize: "+1200 XP + Gebiet-Bonus",
 };
 
 export function groupCrewsByLevel(
@@ -638,7 +638,7 @@ export const DEMO_CREW_STATS = {
 };
 
 // XP rewards — zentrale Quelle für alle XP-Vergaben
-// 3-Ebenen-Modell: Abschnitt (50) → Zug (250, alle Abschnitte einer Straße) → Territorium (500, geschlossenes Polygon)
+// 3-Ebenen-Modell: Abschnitt (50) → Zug (250, alle Abschnitte einer Straße) → Gebiet (500, geschlossenes Polygon)
 export const XP_PER_SEGMENT = 50;          // ein Straßenabschnitt (OSM-Way-Segment)
 export const XP_PER_STREET_CLAIMED = 250;  // alle Segmente einer Straße einmal gelaufen
 export const XP_PER_TERRITORY = 500;       // geschlossenes Polygon aus Straßenzügen
@@ -679,7 +679,7 @@ export const ACHIEVEMENT_CATEGORIES: { id: AchievementCategory; name: string; ic
   { id: "endurance",   name: "Welt-Bummler",      icon: "🌍",  color: "#4ade80", description: "Gesamt-Kilometer" },
   { id: "pathfinder",  name: "Weg-Erkunder",      icon: "🛤️",  color: "#22D1C3", description: "Straßenabschnitte" },
   { id: "streetboss",  name: "Straßen-Komplettist", icon: "🛣️", color: "#FF6B4A", description: "Komplett gelaufene Straßen" },
-  { id: "explorer",    name: "Territorium-Herr",  icon: "🗺️",  color: "#a855f7", description: "Geschlossene Gebiete" },
+  { id: "explorer",    name: "Gebiet-Herr",  icon: "🗺️",  color: "#a855f7", description: "Geschlossene Gebiete" },
   { id: "streak",      name: "Durchhalter",       icon: "🔥",  color: "#FF6B4A", description: "Tägliche Serien" },
   { id: "consistency", name: "Stammgast",         icon: "📅",  color: "#FFD700", description: "Anzahl Läufe insgesamt" },
   { id: "speed",       name: "Tempo-Jäger",       icon: "⚡",  color: "#5ddaf0", description: "Marathon-Distanzen" },
@@ -745,22 +745,22 @@ export const ACHIEVEMENTS: Array<{
   { id: "end_13",  name: "3.500 km Globetrotter", xp: 11000,  icon: "🗺️", stat: "lifetime_km", target: 3500,  unit: "km", category: "endurance", tier: "epic" },
   { id: "end_8",   name: "5.000 km Wanderer",     xp: 15000,  icon: "🏔️", stat: "lifetime_km", target: 5000,  unit: "km", category: "endurance", tier: "legend" },
 
-  // 🗺️ Territorium-Herr
-  { id: "exp_1",   name: "Erstes Territorium",    xp: 40,    icon: "📌", stat: "territories", target: 1,    unit: "", category: "explorer", tier: "easy" },
-  { id: "exp_2",   name: "5 Territorien",         xp: 150,   icon: "📍", stat: "territories", target: 5,    unit: "", category: "explorer", tier: "easy" },
-  { id: "exp_3",   name: "10 Territorien",        xp: 280,   icon: "🗂️", stat: "territories", target: 10,   unit: "", category: "explorer", tier: "easy" },
-  { id: "exp_10",  name: "15 Territorien",        xp: 420,   icon: "📍", stat: "territories", target: 15,   unit: "", category: "explorer", tier: "easy" },
-  { id: "exp_4",   name: "25 Territorien",        xp: 650,   icon: "🏘️", stat: "territories", target: 25,   unit: "", category: "explorer", tier: "medium" },
-  { id: "exp_11",  name: "35 Territorien",        xp: 900,   icon: "🏘️", stat: "territories", target: 35,   unit: "", category: "explorer", tier: "medium" },
-  { id: "exp_5",   name: "50 Territorien",        xp: 1300,  icon: "🗺️", stat: "territories", target: 50,   unit: "", category: "explorer", tier: "medium" },
-  { id: "exp_12",  name: "75 Territorien",        xp: 1900,  icon: "🗺️", stat: "territories", target: 75,   unit: "", category: "explorer", tier: "medium" },
-  { id: "exp_6",   name: "100 Territorien",       xp: 2500,  icon: "🏙️", stat: "territories", target: 100,  unit: "", category: "explorer", tier: "hard" },
-  { id: "exp_13",  name: "150 Territorien",       xp: 3800,  icon: "🏙️", stat: "territories", target: 150,  unit: "", category: "explorer", tier: "hard" },
-  { id: "exp_7",   name: "250 Territorien",       xp: 6000,  icon: "👑", stat: "territories", target: 250,  unit: "", category: "explorer", tier: "hard" },
-  { id: "exp_14",  name: "400 Territorien",       xp: 9000,  icon: "👑", stat: "territories", target: 400,  unit: "", category: "explorer", tier: "epic" },
-  { id: "exp_8",   name: "500 Territorien",       xp: 12000, icon: "🏆", stat: "territories", target: 500,  unit: "", category: "explorer", tier: "epic" },
-  { id: "exp_15",  name: "750 Territorien",       xp: 17000, icon: "🏆", stat: "territories", target: 750,  unit: "", category: "explorer", tier: "epic" },
-  { id: "exp_9",   name: "1.000 Territorien",     xp: 25000, icon: "💎", stat: "territories", target: 1000, unit: "", category: "explorer", tier: "legend" },
+  // 🗺️ Gebiet-Herr
+  { id: "exp_1",   name: "Erstes Gebiet",    xp: 40,    icon: "📌", stat: "territories", target: 1,    unit: "", category: "explorer", tier: "easy" },
+  { id: "exp_2",   name: "5 Gebiete",         xp: 150,   icon: "📍", stat: "territories", target: 5,    unit: "", category: "explorer", tier: "easy" },
+  { id: "exp_3",   name: "10 Gebiete",        xp: 280,   icon: "🗂️", stat: "territories", target: 10,   unit: "", category: "explorer", tier: "easy" },
+  { id: "exp_10",  name: "15 Gebiete",        xp: 420,   icon: "📍", stat: "territories", target: 15,   unit: "", category: "explorer", tier: "easy" },
+  { id: "exp_4",   name: "25 Gebiete",        xp: 650,   icon: "🏘️", stat: "territories", target: 25,   unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_11",  name: "35 Gebiete",        xp: 900,   icon: "🏘️", stat: "territories", target: 35,   unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_5",   name: "50 Gebiete",        xp: 1300,  icon: "🗺️", stat: "territories", target: 50,   unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_12",  name: "75 Gebiete",        xp: 1900,  icon: "🗺️", stat: "territories", target: 75,   unit: "", category: "explorer", tier: "medium" },
+  { id: "exp_6",   name: "100 Gebiete",       xp: 2500,  icon: "🏙️", stat: "territories", target: 100,  unit: "", category: "explorer", tier: "hard" },
+  { id: "exp_13",  name: "150 Gebiete",       xp: 3800,  icon: "🏙️", stat: "territories", target: 150,  unit: "", category: "explorer", tier: "hard" },
+  { id: "exp_7",   name: "250 Gebiete",       xp: 6000,  icon: "👑", stat: "territories", target: 250,  unit: "", category: "explorer", tier: "hard" },
+  { id: "exp_14",  name: "400 Gebiete",       xp: 9000,  icon: "👑", stat: "territories", target: 400,  unit: "", category: "explorer", tier: "epic" },
+  { id: "exp_8",   name: "500 Gebiete",       xp: 12000, icon: "🏆", stat: "territories", target: 500,  unit: "", category: "explorer", tier: "epic" },
+  { id: "exp_15",  name: "750 Gebiete",       xp: 17000, icon: "🏆", stat: "territories", target: 750,  unit: "", category: "explorer", tier: "epic" },
+  { id: "exp_9",   name: "1.000 Gebiete",     xp: 25000, icon: "💎", stat: "territories", target: 1000, unit: "", category: "explorer", tier: "legend" },
 
   // 🛤️ Weg-Erkunder (segments) — Straßenabschnitte
   { id: "seg_1",   name: "Erster Abschnitt",       xp: 20,    icon: "🛤️", stat: "segments",    target: 1,    unit: "", category: "pathfinder", tier: "easy" },
@@ -975,7 +975,7 @@ export const DEMO_RUNNERS: Record<string, DemoRunnerProfile> = {
 // Zentrum für Demo — Berlin Prenzlauer Berg
 const DEMO_CENTER = { lat: 52.5400, lng: 13.4100 };
 
-// Geschlossene Territorien (Polygon-Gebiete wo Straßenzüge einen Ring bilden)
+// Geschlossene Gebiete (Polygon-Gebiete wo Straßenzüge einen Ring bilden)
 export type ClaimedArea = {
   id: string;
   name: string;
@@ -1036,7 +1036,7 @@ export const DEMO_CLAIMED_AREAS_LEGACY: ClaimedArea[] = [
   },
   {
     id: "area-3",
-    name: "Schönhauser-Territorium",
+    name: "Schönhauser-Gebiet",
     polygon: [
       { lat: 52.5370, lng: 13.4070 },
       { lat: 52.5380, lng: 13.4065 },
@@ -1156,8 +1156,8 @@ export type Boost = {
 };
 
 export const DEMO_BOOSTS: Boost[] = [
-  { id: "b1", name: "2× XP Boost",        description: "30 Minuten doppelte XP bei allen Territorien",     icon: "⚡", cost_xp: 500,   duration_label: "30 min",   accent: "#FFD700" },
-  { id: "b2", name: "Territoriums-Schild", description: "48 Stunden Schutz vor Angriffen auf dein Gebiet", icon: "🛡️", cost_xp: 1200,  duration_label: "48 std",   accent: "#5ddaf0" },
+  { id: "b1", name: "2× XP Boost",        description: "30 Minuten doppelte XP bei allen Gebiete",     icon: "⚡", cost_xp: 500,   duration_label: "30 min",   accent: "#FFD700" },
+  { id: "b2", name: "Gebiets-Schild", description: "48 Stunden Schutz vor Angriffen auf dein Gebiet", icon: "🛡️", cost_xp: 1200,  duration_label: "48 std",   accent: "#5ddaf0" },
   { id: "b3", name: "Nebelgranate",       description: "2 Stunden unsichtbar auf der Karte",               icon: "💨", cost_xp: 800,   duration_label: "2 std",    accent: "#a855f7" },
   { id: "b4", name: "Drohnen-Scan",       description: "Deckt 10 Minuten lang Glitch-Zonen auf",           icon: "📡", cost_xp: 600,   duration_label: "10 min",   accent: "#22D1C3" },
   { id: "b5", name: "Sprint-Modus",       description: "1 Stunde 1.3× XP für jeden gelaufenen km",         icon: "💨", cost_xp: 400,   duration_label: "1 std",    accent: "#FF6B4A" },
@@ -1196,7 +1196,7 @@ export function getCurrentHappyHour(): HappyHour {
 }
 
 // Demo-Daten um User-Position herum generieren (kleine lat/lng-Deltas)
-// Erzeugt 3 Polygon-Territorien, 3 Supply Drops, 1 Glitch-Zone und 8 Runner
+// Erzeugt 3 Polygon-Gebiete, 3 Supply Drops, 1 Glitch-Zone und 8 Runner
 export function generateDemoMapData(center: { lat: number; lng: number }) {
   const d = 0.0020; // ~200m Offset
   const { lat: cLat, lng: cLng } = center;
@@ -1500,7 +1500,7 @@ export const DEMO_MAP_LIVE = {
     attacker_color: "#a855f7",
     by_own_crew:  false,
   },
-  // Angriff auf bereits eroberten Straßenzug (Territorium)
+  // Angriff auf bereits eroberten Straßenzug (Gebiet)
   territory_attack: {
     active:       true,
     street_name:  "Schönhauser Allee 42",

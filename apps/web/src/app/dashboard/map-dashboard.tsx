@@ -541,14 +541,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         if (res.ok) segResp = await res.json() as SegmentsResp;
       } catch {}
 
-      // 3) Base-XP aus 3-Ebenen-Modell (V2: ggf. mehrere Territorien in einem Walk)
+      // 3) Base-XP aus 3-Ebenen-Modell (V2: ggf. mehrere Gebiete in einem Walk)
       const territoryCountNew = (segResp.new_territories?.length ?? (segResp.new_territory ? 1 : 0));
       const segmentsXp = segResp.total_new * XP_PER_SEGMENT;
       const streetsXp = segResp.newly_claimed_streets.length * XP_PER_STREET_CLAIMED;
       const territoryXp = territoryCountNew * XP_PER_TERRITORY;
       let baseXp = segmentsXp + streetsXp + territoryXp + kmXp + XP_PER_WALK;
 
-      // Doppel-Claim-Charge verdoppelt das Territorium-XP (V1)
+      // Doppel-Claim-Charge verdoppelt das Gebiet-XP (V1)
       const doubleClaimCharges = (profile as unknown as { double_claim_charges?: number }).double_claim_charges ?? 0;
       if (doubleClaimCharges > 0 && territoryXp > 0) {
         baseXp += territoryXp;
@@ -642,7 +642,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         }
       } catch { /* non-blocking */ }
 
-      // Victory-Dance triggern (nur bei echtem Territorium)
+      // Victory-Dance triggern (nur bei echtem Gebiet)
       if (territoryCountNew > 0 && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
         setVictoryTrigger((v) => v + 1);
       }
@@ -689,7 +689,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const onLocationUpdate = useCallback(
     (lng: number, lat: number) => {
       // Demo-Daten nur EINMAL beim allerersten GPS-Fix um die User-Position verankern.
-      // Danach bleiben Runner, Drops und Territorien an den gesetzten lat/lng fest,
+      // Danach bleiben Runner, Drops und Gebiete an den gesetzten lat/lng fest,
       // damit sie beim Zoom/Walk nicht mit wandern.
       setUserCenter((prev) => prev ?? { lat, lng });
 
@@ -2246,7 +2246,7 @@ function ProfilTab({
             {[
               { icon: "❓", label: "Hilfe & FAQ",  onClick: () => setOpenModal("faq") },
               { icon: "📤", label: "Profil teilen", onClick: async () => {
-                const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Territorien · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
+                const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Gebiete · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
                 const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
                 try {
                   if (navigator.share) await navigator.share(shareData);
@@ -2318,7 +2318,7 @@ function ProfilTab({
                 </div>
                 <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
                   {demoOverride
-                    ? "Profil zeigt XP, Läufe, Territorien, Gesundheit als Demo"
+                    ? "Profil zeigt XP, Läufe, Gebiete, Gesundheit als Demo"
                     : "Aktivieren um LETZTE LÄUFE, GESUNDHEITSDATEN, XP etc. gefüllt zu sehen"}
                 </div>
               </div>
@@ -2604,7 +2604,7 @@ function ProfilTab({
             })}
           </div>
           <div style={{ textAlign: "center", color: MUTED, fontSize: 11, marginTop: 14, fontStyle: "italic" }}>
-            🪙 Wegemünzen sammelst du durch Läufe, Territorien, Streaks & Achievements.
+            🪙 Wegemünzen sammelst du durch Läufe, Gebiete, Streaks & Achievements.
           </div>
         </Modal>
       )}
@@ -2643,7 +2643,9 @@ function ProfilTab({
           </div>
 
           <XpGuideSection title="🏃 Pro Aktivität" subtitle="Basis-Wegemünzen beim Laufen" defaultOpen>
-            <XpGuideRow icon="📍" label="Straßenzug / Territorium erobert" xp={`+${XP_PER_TERRITORY}`} />
+            <XpGuideRow icon="🛤️" label="Neuer Straßenabschnitt" xp={`+${XP_PER_SEGMENT}`} />
+            <XpGuideRow icon="🛣️" label="Kompletter Straßenzug" xp={`+${XP_PER_STREET_CLAIMED} Bonus`} />
+            <XpGuideRow icon="🏆" label="Geschlossenes Gebiet (nur mit Crew)" xp={`+${XP_PER_TERRITORY}`} />
             <XpGuideRow icon="📏" label="Pro gelaufener km" xp={`+${XP_PER_KM}`} />
             <XpGuideRow icon="✅" label="Walk abgeschlossen (Basis)" xp={`+${XP_PER_WALK}`} last />
           </XpGuideSection>
@@ -3017,7 +3019,7 @@ function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRu
       <AttackIndicator
         active={ta.active}
         icon="🛡️"
-        labelActive="TERRITORIUM!"
+        labelActive="GEBIET!"
         labelInactive="Gebiete sicher"
         street={ta.street_name}
         attacker={ta.attacker_username}
@@ -3157,7 +3159,7 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
 
       {/* Stats-Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        <RunnerStat emoji="🏆" value={runner.territories.toString()} label="Territorien" color={runner.team_color} />
+        <RunnerStat emoji="🏆" value={runner.territories.toString()} label="Gebiete" color={runner.team_color} />
         <RunnerStat emoji="🌍" value={runner.total_km.toFixed(1)} label="KM gesamt" unit="km" color="#5ddaf0" />
         <RunnerStat emoji="🔥" value={runner.streak_days.toString()} label="Akt. Serie" unit="Tage" color="#FFD700" />
         <RunnerStat emoji="⭐" value={runner.streak_best.toString()} label="Beste Serie" unit="Tage" color="#FF6B4A" />
@@ -4036,9 +4038,9 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
   onViewRunner: (username: string) => void;
 }) {
   const ownerLabel: Record<string, string> = {
-    me: "Dein Territorium",
-    crew: "Crew-Territorium",
-    enemy_crew: "Feindliches Crew-Territorium",
+    me: "Dein Gebiet",
+    crew: "Crew-Gebiet",
+    enemy_crew: "Feindliches Crew-Gebiet",
     enemy_solo: "Feindlicher Solo-Läufer",
   };
   const buffLabel: Record<string, string> = {
@@ -5202,7 +5204,7 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
         <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
         <SettingRow label="🏆 Auf Leaderboard erscheinen" checked={leaderboardVisible} onChange={setLeaderboardVisible} />
         <SettingRow label="📍 Live-Position in Crew teilen" checked={liveLocationCrew} onChange={setLiveLocationCrew} />
-        <SettingRow label="🗺️ Territorien öffentlich" checked={publicTerritories} onChange={setPublicTerritories} />
+        <SettingRow label="🗺️ Gebiete öffentlich" checked={publicTerritories} onChange={setPublicTerritories} />
         <SettingRow label="🏃 Lauf-Routen öffentlich" checked={publicRoutes} onChange={setPublicRoutes} />
         <SettingRow label="🔎 Per Runner-Name findbar" checked={searchable} onChange={setSearchable} />
         <SettingRow label="👥 Crew-Einladungen zulassen" checked={allowCrewInvites} onChange={setAllowCrewInvites} />
@@ -5727,7 +5729,7 @@ function HealthDashboard({ profile: p, runs, territoryCount, teamColor, achievem
       {/* ═══ Geografie & Umwelt ═══ */}
       <HealthSection title="GEOGRAFIE & UMWELT" emoji="🌍">
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <MiniStat label="Territorien" value={territoryCount.toString()} unit="" big />
+          <MiniStat label="Gebiete" value={territoryCount.toString()} unit="" big />
           <MiniStat label="Einzigartige Straßen" value={new Set(runs.map((r) => r.street_name).filter(Boolean)).size.toString()} unit="" big />
           <MiniStat label="Geschätzte Schritte" value={estimatedSteps.toLocaleString()} unit="" big />
           <MiniStat label="CO₂-Ersparnis" value={savedCo2Kg.toFixed(1)} unit="kg" big />
@@ -6134,7 +6136,7 @@ function CrewTab({
     await supabase.from("crew_members").insert({ crew_id: data.id, user_id: p.id, role: "admin" });
     await supabase.from("users").update({ current_crew_id: data.id, team_color: newColor }).eq("id", p.id);
 
-    // Pending-Territorien vom Solo-Zeit upgraden + XP gutschreiben
+    // Pending-Gebiete vom Solo-Zeit upgraden + XP gutschreiben
     const { data: promote } = await supabase.rpc("promote_pending_territories", { p_user_id: p.id });
     const promoted = Array.isArray(promote) && promote[0] ? promote[0] as { promoted_count: number; xp_granted: number } : null;
 
@@ -6142,7 +6144,7 @@ function CrewTab({
     setProfile({ ...p, current_crew_id: data.id, team_color: newColor });
     setMode("idle");
     if (promoted && promoted.promoted_count > 0) {
-      appAlert(`✅ "${newName}" gegründet! 🏆 ${promoted.promoted_count} Solo-Territorien aktiviert · +${promoted.xp_granted} 🪙 Wegemünzen`);
+      appAlert(`✅ "${newName}" gegründet! 🏆 ${promoted.promoted_count} Solo-Gebiete aktiviert · +${promoted.xp_granted} 🪙 Wegemünzen`);
     } else {
       appAlert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
     }
@@ -6231,7 +6233,7 @@ function CrewTab({
                   const j = await r.json();
                   if (!r.ok) { await appAlert(j.error === "crew_not_found" ? "Crew mit diesem Code nicht gefunden." : `Fehler: ${j.error ?? r.status}`); return; }
                   const msg = j.promoted_territories > 0
-                    ? `✅ Beigetreten bei "${j.crew.name}"!\n🏆 ${j.promoted_territories} Solo-Territorien aktiviert · +${j.promoted_xp} 🪙 Wegemünzen`
+                    ? `✅ Beigetreten bei "${j.crew.name}"!\n🏆 ${j.promoted_territories} Solo-Gebiete aktiviert · +${j.promoted_xp} 🪙 Wegemünzen`
                     : `✅ Beigetreten bei "${j.crew.name}"!`;
                   await appAlert(msg);
                   setMyCrew(j.crew);
@@ -7269,7 +7271,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
     { label: `${km.toFixed(2)} km × ${XP_PER_KM} XP`, value: Math.round(km * XP_PER_KM) },
     segN > 0 ? { label: `${segN}× Straßenabschnitt`, value: segN * XP_PER_SEGMENT } : null,
     strN > 0 ? { label: `${strN}× Straßenzug`, value: strN * XP_PER_STREET_CLAIMED } : null,
-    polyN > 0 ? { label: `${polyN}× Territorium`, value: polyN * XP_PER_TERRITORY } : null,
+    polyN > 0 ? { label: `${polyN}× Gebiet`, value: polyN * XP_PER_TERRITORY } : null,
   ].filter((x): x is { label: string; value: number } => x !== null && x.value > 0);
   const breakdownSum = baseBreakdown.reduce((s, r) => s + r.value, 0);
   const bonusDelta = run.xp_earned - breakdownSum;
@@ -8167,7 +8169,7 @@ function MyCrewView({
 
         <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           <CrewStat label="Woche km" value={`${DEMO_CREW_STATS.weekly_km}`} accent={crew.color} />
-          <CrewStat label="Territorien" value={`${DEMO_CREW_STATS.total_territories}`} accent="#FFD700" />
+          <CrewStat label="Gebiete" value={`${DEMO_CREW_STATS.total_territories}`} accent="#FFD700" />
           <CrewStat label="Rang Stadt" value={`#${DEMO_CREW_STATS.weekly_rank_city}`} accent={PRIMARY} />
         </div>
        </div>
@@ -9791,7 +9793,7 @@ function ShopsRunnerView() {
             {[
               { label: "Pro km",              value: "+50 XP",    icon: "📏" },
               { label: "Pro Lauf",            value: "+100 XP",   icon: "🏃" },
-              { label: "Neues Territorium",   value: "+500 XP",   icon: "🗺️" },
+              { label: "Neues Gebiet",   value: "+500 XP",   icon: "🗺️" },
               { label: "Kiez-Check-in",       value: "+500 XP",   icon: "📍" },
               { label: "Streak-Tag",          value: "+bis 1.000", icon: "🔥" },
               { label: "Crew-Win",            value: "+2.500 XP", icon: "🏆" },

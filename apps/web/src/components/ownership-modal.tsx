@@ -30,10 +30,10 @@ type OwnershipData = {
 
 function ownerLabel(o: Owner | null | undefined): { label: string; sub: string | null; color: string } {
   if (!o) return { label: "Unbeansprucht", sub: null, color: "#8B8FA3" };
-  if (o.crew) return { label: `👥 ${o.crew.name}`, sub: "Crew-Territorium", color: "#22D1C3" };
+  if (o.crew) return { label: `👥 ${o.crew.name}`, sub: "Crew-Gebiet", color: "#22D1C3" };
   if (o.user) {
     const name = o.user.display_name ?? o.user.username ?? "Unbekannt";
-    return { label: `🏃 ${name}`, sub: "Runner-Territorium", color: "#FFD700" };
+    return { label: `🏃 ${name}`, sub: "Runner-Gebiet", color: "#FFD700" };
   }
   return { label: "Unbeansprucht", sub: null, color: "#8B8FA3" };
 }
@@ -67,7 +67,7 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
     return () => { cancelled = true; };
   }, [query.type, query.id]);
 
-  const title = query.type === "segment" ? "Straßenabschnitt" : query.type === "street" ? "Straßenzug" : "Territorium";
+  const title = query.type === "segment" ? "Straßenabschnitt" : query.type === "street" ? "Straßenzug" : "Gebiet";
   const icon = query.type === "segment" ? "🛤️" : query.type === "street" ? "🛣️" : "🏆";
   const owner = data ? ownerLabel(data.owner) : ownerLabel(null);
 
@@ -159,7 +159,7 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
                 background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.4)",
                 fontSize: 11, color: "#a8b4cf",
               }}>
-                💡 Lauf eine neue Runde durch dieses Gebiet um es zurückzuerobern. Crew-Territorien sind nur als Crew schützbar.
+                💡 Lauf eine neue Runde durch dieses Gebiet um es zurückzuerobern. Crew-Gebiete sind nur als Crew schützbar.
               </div>
             )}
           </>

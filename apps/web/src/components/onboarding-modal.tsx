@@ -54,7 +54,7 @@ function StreetVisual() {
 }
 
 /**
- * Territorium: geschlossenes Polygon aus 4 Straßenzügen.
+ * Gebiet: geschlossenes Polygon aus 4 Straßenzügen.
  */
 function TerritoryVisual() {
   return (
@@ -68,7 +68,7 @@ function TerritoryVisual() {
       {[[40, 30], [160, 30], [160, 90], [40, 90]].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="4" fill="#FFD700" />
       ))}
-      <text x="100" y="112" fill="#FF2D78" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">GESCHLOSSENES TERRITORIUM</text>
+      <text x="100" y="112" fill="#FF2D78" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">GESCHLOSSENES GEBIET</text>
     </svg>
   );
 }
@@ -94,11 +94,11 @@ const SLIDES: Slide[] = [
   },
   {
     emoji: "🏆",
-    title: "3. Territorium (Crew-Sache)",
+    title: "3. Gebiet (Crew-Sache)",
     color: "#FF2D78",
     gradient: "radial-gradient(at 50% 0%, rgba(255,45,120,0.28), transparent 60%)",
     xp: "+500 🪙",
-    body: "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Territorium. Wichtig: Territorien sind Crew-Gebiet. Bist du Mitglied, kassierst du 500 Wegemünzen. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst.",
+    body: "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Gebiet. Wichtig: Gebiete sind Crew-Gebiet. Bist du Mitglied, kassierst du 500 Wegemünzen. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst.",
     visual: <TerritoryVisual />,
   },
 ];

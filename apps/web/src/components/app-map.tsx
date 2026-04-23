@@ -458,7 +458,7 @@ interface AppMapProps {
   crewColor?: string | null;
   crewName?: string | null;
   displayName?: string | null;
-  // 3-Ebenen-Modell (Abschnitt/Zug/Territorium) aus DB
+  // 3-Ebenen-Modell (Abschnitt/Zug/Gebiet) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
   ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>;
@@ -1652,7 +1652,7 @@ export function AppMap({
     }
   }, [mapReady, claimedStreets, onOwnershipClick]);
 
-  // ═══ 3-Ebenen-Modell: Territorien (gefüllte Polygone) ═══
+  // ═══ 3-Ebenen-Modell: Gebiete (gefüllte Polygone) ═══
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
@@ -1686,7 +1686,7 @@ export function AppMap({
           "fill-opacity": ["case", ["==", ["get", "status"], "pending_crew"], 0.08, 0.22],
         },
       });
-      // Aktive Territorien: solide Linie
+      // Aktive Gebiete: solide Linie
       map.addLayer({
         id: strokeId, type: "line", source: sourceId,
         filter: ["!=", ["get", "status"], "pending_crew"],
@@ -1696,7 +1696,7 @@ export function AppMap({
           "line-width": zoomWidth(2.5),
         },
       });
-      // Pending-Crew Territorien: gestrichelte Linie als "Anwartschaft"
+      // Pending-Crew Gebiete: gestrichelte Linie als "Anwartschaft"
       map.addLayer({
         id: strokeId + "-pending", type: "line", source: sourceId,
         filter: ["==", ["get", "status"], "pending_crew"],

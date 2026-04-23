@@ -452,7 +452,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
 
               {/* ══ FOOTER ══ */}
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <FooterStat icon="🗺️" label="TERRITORIEN" value={data.territory_count} color={PRIMARY} />
+                <FooterStat icon="🗺️" label="GEBIETE" value={data.territory_count} color={PRIMARY} />
                 <FooterStat icon="🛡️" label="WÄCHTER-SAMMLUNG" value={`${data.collection_size}/${data.collection_total}`} color="#a855f7" />
               </div>
             </div>

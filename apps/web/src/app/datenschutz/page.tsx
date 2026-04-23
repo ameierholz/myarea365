@@ -122,7 +122,7 @@ export default function DatenschutzPage() {
               "Berechnete Geschwindigkeit und Distanz zwischen Punkten",
               "Zuordnung der Punkte zu Straßen-Segmenten (Snap-to-road)",
               "Zurückgelegter Track als Geometrie-Objekt (PostGIS)",
-              "Eroberte Territorien als Polygon-Geometrie",
+              "Eroberte Gebiete als Polygon-Geometrie",
               "Zeitstempel der Gebiets-Eroberung und vergebene XP",
             ]} />
             <p className="text-xs mt-2">
@@ -763,7 +763,7 @@ export default function DatenschutzPage() {
           <ul className="list-disc list-inside space-y-1 text-sm mt-2">
             <li>Self-Service-Export in deinen Kontoeinstellungen (JSON)</li>
             <li>Auf Anfrage zusätzlich als CSV je Datenkategorie</li>
-            <li>Enthaltene Daten: Profil, Läufe, Territorien, XP, Achievements, Einlösungen, Wächter, Items, Prestige, Fights</li>
+            <li>Enthaltene Daten: Profil, Läufe, Gebiete, XP, Achievements, Einlösungen, Wächter, Items, Prestige, Fights</li>
           </ul>
           <p className="text-sm mt-2">
             Der Export steht dir einmal pro Monat kostenfrei zur Verfügung. Bei offensichtlich unbegründeten oder exzessiven

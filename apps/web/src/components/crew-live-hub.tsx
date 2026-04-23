@@ -282,7 +282,7 @@ function DeclareWarModal({ onClose }: { onClose: () => void }) {
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, maxHeight: "90vh", overflow: "auto", background: "#1A1D23", borderRadius: 16, border: "1px solid rgba(255,45,120,0.4)", padding: 20, color: "#FFF" }}>
         <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 4 }}>🔥 Krieg erklären</div>
         <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 12 }}>
-          Wähle eine Feind-Crew. Nimmt deren Admin an, startet ein 7-Tage-Krieg (km + Territorien zählen).
+          Wähle eine Feind-Crew. Nimmt deren Admin an, startet ein 7-Tage-Krieg (km + Gebiete zählen).
         </div>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Crew-Name suchen…"
           style={{ ...selectStyle, width: "100%", marginBottom: 10 }} />
@@ -770,7 +770,7 @@ function ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => v
             <select value={metric} onChange={(e) => setMetric(e.target.value as Challenge["target_metric"])} style={selectStyle}>
               <option value="weekly_km">Gesamt-km</option>
               <option value="new_streets">Neue Straßen</option>
-              <option value="territories">Territorien</option>
+              <option value="territories">Gebiete</option>
               <option value="arena_wins">Arena-Siege</option>
               <option value="members_active">Aktive Mitglieder</option>
             </select>
@@ -1059,7 +1059,7 @@ type FeedItem = {
 const FEED_META: Record<string, { icon: string; color: string; label: (data: Record<string, unknown>, actor: string) => string }> = {
   member_joined:        { icon: "🎉", color: "#4ade80",  label: (_, a) => `${a} ist der Crew beigetreten` },
   member_left:          { icon: "👋", color: "#8B8FA3",  label: (_, a) => `${a} hat die Crew verlassen` },
-  territory_claimed:    { icon: "🏴", color: "#FFD700",  label: (d, a) => `${a} hat ein Territorium erobert${d.area_m2 ? ` (${Math.round(Number(d.area_m2))} m²)` : ""}` },
+  territory_claimed:    { icon: "🏴", color: "#FFD700",  label: (d, a) => `${a} hat ein Gebiet erobert${d.area_m2 ? ` (${Math.round(Number(d.area_m2))} m²)` : ""}` },
   challenge_completed:  { icon: "🏆", color: "#FFD700",  label: (d) => `Challenge abgeschlossen: ${d.name ?? ""}` },
   duel_won:             { icon: "⚔️", color: "#4ade80",  label: (d) => `Duell gewonnen gegen ${d.opponent ?? "?"}` },
   duel_lost:            { icon: "⚔️", color: "#FF2D78",  label: (d) => `Duell verloren gegen ${d.opponent ?? "?"}` },
@@ -1081,7 +1081,7 @@ function FeedPanel({ crew }: { crew: Crew }) {
     <div>
       <CrewTabInfo tab="feed" />
       {items === null ? <Loading /> : items.length === 0 ? (
-        <Empty text="Noch keine Crew-Aktivität. Sobald Mitglieder laufen, Territorien erobern oder Challenges schaffen, erscheint es hier." />
+        <Empty text="Noch keine Crew-Aktivität. Sobald Mitglieder laufen, Gebiete erobern oder Challenges schaffen, erscheint es hier." />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {renderFeedItems(items)}
@@ -1260,22 +1260,22 @@ const TAB_INFO: Record<Tab, InfoContent> = {
     icon: "👥", color: "#22D1C3",
     title: "Mitglieder",
     how: "Liste aller aktiven Crew-Mitglieder sortiert nach 🏴 Gebietsruf. Der grüne Punkt zeigt an, wer gerade online ist (zuletzt innerhalb von 5 Minuten aktiv). Admins und Owner haben Badges. Je aktiver eure Mitglieder, desto stärker die Crew in Duellen, Kriegen und Saison-Liga.",
-    loot: "Keine direkten Belohnungen — aber je mehr Mitglieder aktiv sind, desto mehr km, Territorien und Arena-Siege fließen in alle anderen Crew-Modi.",
+    loot: "Keine direkten Belohnungen — aber je mehr Mitglieder aktiv sind, desto mehr km, Gebiete und Arena-Siege fließen in alle anderen Crew-Modi.",
     tips: "Wenn Mitglieder länger als 14 Tage inaktiv sind: per Chat pushen oder über die Crew-Shouts motivieren.",
   },
   war: {
     icon: "🔥", color: "#FF2D78",
     title: "Crew-War (7-Tage-Fehde)",
-    how: "Admins können anderen Crews den Krieg erklären. Akzeptiert die Ziel-Crew, startet ein 7-Tage-Match. Während der Fehde zählt jede km = 1 Punkt, jedes eroberte Territorium = 10 Punkte. Nach Ablauf gewinnt die Crew mit mehr Punkten automatisch. Abgelehnte oder zurückgezogene Einladungen haben keine Folgen.",
+    how: "Admins können anderen Crews den Krieg erklären. Akzeptiert die Ziel-Crew, startet ein 7-Tage-Match. Während der Fehde zählt jede km = 1 Punkt, jedes eroberte Gebiet = 10 Punkte. Nach Ablauf gewinnt die Crew mit mehr Punkten automatisch. Abgelehnte oder zurückgezogene Einladungen haben keine Folgen.",
     loot: "Sieger-Crew: alle aktiven Mitglieder bekommen +5 000 🏴 Gebietsruf. Zusätzlich wandert der Sieg ins Saison-Ranking und in den Crew-Feed (für Bragging-Rights).",
     tips: "Gute Zeit für einen Krieg: kurz vor Monatsende, um die Saison-Liga zu pushen. Gegner gezielt aus eurer Liga wählen — Gleichstark ist spannender.",
   },
   season: {
     icon: "🏆", color: "#FFD700",
     title: "Saison-Liga (monatlich)",
-    how: "Jeden Monat startet automatisch eine neue Saison. Crews sammeln Punkte für Territorien (+5), Duell-Siege und Kriegs-Siege. Das Ranking bestimmt den Tier (Bronze → Silber → Gold → Diamond → Legend). Am Monatsende werden die Standings eingefroren.",
+    how: "Jeden Monat startet automatisch eine neue Saison. Crews sammeln Punkte für Gebiete (+5), Duell-Siege und Kriegs-Siege. Das Ranking bestimmt den Tier (Bronze → Silber → Gold → Diamond → Legend). Am Monatsende werden die Standings eingefroren.",
     loot: "Top-Platzierungen am Monatsende bekommen Rang-Abzeichen auf dem Crew-Profil (kosmetisch + Bragging-Rights). Diamond- und Legend-Tier geben zusätzlich Bonus-Gebietsruf-Multiplikator in der nächsten Saison (geplant).",
-    tips: "Territorien zählen am meisten. Konzentriert euch gegen Monatsende auf Polygon-Ringe, nicht auf einzelne Straßen.",
+    tips: "Gebiete zählen am meisten. Konzentriert euch gegen Monatsende auf Polygon-Ringe, nicht auf einzelne Straßen.",
   },
   flags: {
     icon: "🚩", color: "#4ade80",
@@ -1294,7 +1294,7 @@ const TAB_INFO: Record<Tab, InfoContent> = {
   challenges: {
     icon: "🎯", color: "#FFD700",
     title: "Crew-Challenges",
-    how: "Admins definieren gemeinsame Ziele (z. B. 'Crew läuft zusammen 100 km in 7 Tagen', '10 neue Territorien'). Der Fortschritt ist kollektiv — jedes Mitglied trägt bei. Wenn die Crew das Ziel erreicht, bekommen alle die Belohnung.",
+    how: "Admins definieren gemeinsame Ziele (z. B. 'Crew läuft zusammen 100 km in 7 Tagen', '10 neue Gebiete'). Der Fortschritt ist kollektiv — jedes Mitglied trägt bei. Wenn die Crew das Ziel erreicht, bekommen alle die Belohnung.",
     loot: "Reward-Gebietsruf wird an alle aktiven Crew-Mitglieder verteilt. Abgeschlossene Challenges landen im Crew-Feed und zählen fürs Saison-Ranking.",
     tips: "Realistisch bleiben: bei 5 Mitgliedern reicht ein 50-km-Wochenziel, bei 20 Mitgliedern geht locker 200 km. Start mit einfachen Challenges, dann eskalieren.",
   },
@@ -1315,14 +1315,14 @@ const TAB_INFO: Record<Tab, InfoContent> = {
   feed: {
     icon: "📜", color: "#a855f7",
     title: "Crew-Feed",
-    how: "Automatisch generierter Aktivitäts-Stream: wer ist beigetreten, welche Territorien wurden erobert, welche Challenges abgeschlossen, welche Duelle/Kriege gewonnen, Arena-Siege der Mitglieder. Kein manuelles Posten — alles passiert durch echte Crew-Aktionen.",
+    how: "Automatisch generierter Aktivitäts-Stream: wer ist beigetreten, welche Gebiete wurden erobert, welche Challenges abgeschlossen, welche Duelle/Kriege gewonnen, Arena-Siege der Mitglieder. Kein manuelles Posten — alles passiert durch echte Crew-Aktionen.",
     loot: "Kein direktes XP. Feed dient der Transparenz und Motivation: ihr seht, was eure Crew gerade leistet.",
     tips: "Wenn der Feed leer bleibt: Mitglieder sind inaktiv. Das ist der beste Indikator für Crew-Gesundheit.",
   },
   shop: {
     icon: "💎", color: "#FF6B4A",
     title: "Crew-Cosmetic-Shop",
-    how: "Exklusive Crew-Kosmetik, zahlbar mit Diamanten (💎). Nur Admins können kaufen — die Items werden für die ganze Crew aktiviert. Manche Items sind dauerhaft (Flagge, Territorium-Farbe), andere zeitlich begrenzt (30 Tage: Name-Glow, Banner-Animation).",
+    how: "Exklusive Crew-Kosmetik, zahlbar mit Diamanten (💎). Nur Admins können kaufen — die Items werden für die ganze Crew aktiviert. Manche Items sind dauerhaft (Flagge, Gebiet-Farbe), andere zeitlich begrenzt (30 Tage: Name-Glow, Banner-Animation).",
     loot: "Keine XP — rein kosmetisch für Bragging-Rights und Crew-Identität. Einige Items verbessern die Sichtbarkeit auf der Karte (z. B. eigene Territory-Farbe).",
     tips: "Lohnt sich erst ab ~10 aktiven Mitgliedern. Startet mit Custom-Flagge (500 💎) für Wiedererkennung.",
   },
@@ -1330,7 +1330,7 @@ const TAB_INFO: Record<Tab, InfoContent> = {
     icon: "⚡", color: "#FFD700",
     title: "Crew-Power (Pay-to-Progress)",
     how: "Gemeinsame Crew-Kasse mit Diamanten. Mitglieder zahlen 💎 aus ihrem Konto in den Pool, Admins aktivieren damit 7 Power-Items (Score-Boosts, Shield, Flaggen-Spawn, Reroll, Duel-Pick). Boosts pushen NUR Crew-Rankings (Duell/War/Saison), nicht die persönliche XP — damit Runner-Ränge wertvoll bleiben.",
-    loot: "Kein direktes XP. Aber: +50 % Crew-Score-Multiplier in Duell/War/Saison/Challenges, Schutz vor Territorium-Diebstahl, strategische Vorteile. Limit: max 1 Boost aktiv gleichzeitig, max 72 h Boost-Zeit pro Woche.",
+    loot: "Kein direktes XP. Aber: +50 % Crew-Score-Multiplier in Duell/War/Saison/Challenges, Schutz vor Gebiet-Diebstahl, strategische Vorteile. Limit: max 1 Boost aktiv gleichzeitig, max 72 h Boost-Zeit pro Woche.",
     tips: "Score-Boosts lohnen vor allem kurz vor Ende eines Duells/Krieges. Territory-Shield bei laufenden Feindangriffen. Member-Slot-Packs (€) wenn Crew voll wird (Start: 10 Slots, max. 100).",
   },
 };

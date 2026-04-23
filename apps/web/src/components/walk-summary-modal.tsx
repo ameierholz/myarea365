@@ -24,7 +24,7 @@ export type WalkSummary = {
   achievementXp?: number;
   /** Zeit-abhängiger Bonus für erneut begangene Abschnitte. */
   reclaim?: { reclaim_count: number; reclaim_xp: number; segments_cooldown: number } | null;
-  /** Solo-Läufer: Territorien sind pending_crew — zeigen Aufforderung zum Crew-Join. */
+  /** Solo-Läufer: Gebiete sind pending_crew — zeigen Aufforderung zum Crew-Join. */
   pending_territory_count?: number;
 };
 
@@ -188,7 +188,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   <span style={{ color: "#FF6B4A" }}>🛣️ {summary.street_count}× Straßenzug</span>
                 )}
                 {summary.territory_count > 0 && (
-                  <span style={{ color: "#FFD700", fontWeight: 800 }}>🏆 {summary.territory_count}× Territorium</span>
+                  <span style={{ color: "#FFD700", fontWeight: 800 }}>🏆 {summary.territory_count}× Gebiet</span>
                 )}
                 {summary.segment_count === 0 && summary.street_count === 0 && summary.territory_count === 0 && (
                   <span style={{ color: "#a8b4cf" }}>Keine neuen Abschnitte</span>
@@ -196,7 +196,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
               </div>
               {summary.stolen_count && summary.stolen_count > 0 ? (
                 <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78", fontSize: 11, fontWeight: 800 }}>
-                  ⚔️ {summary.stolen_count}× Territorium erobert (zurueckgeholt!)
+                  ⚔️ {summary.stolen_count}× Gebiet erobert (zurueckgeholt!)
                 </div>
               ) : null}
 
@@ -219,7 +219,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 </div>
               )}
 
-              {/* Pending-Territorien (Solo ohne Crew) */}
+              {/* Pending-Gebiete (Solo ohne Crew) */}
               {summary.pending_territory_count && summary.pending_territory_count > 0 ? (
                 <div style={{
                   marginTop: 8, padding: 10, borderRadius: 8,
@@ -227,7 +227,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   color: "#FFD700", fontSize: 11, fontWeight: 800,
                   lineHeight: 1.45,
                 }}>
-                  🏆 {summary.pending_territory_count}× Territorium geschlossen — aber noch <b>ohne Crew</b>.
+                  🏆 {summary.pending_territory_count}× Gebiet geschlossen — aber noch <b>ohne Crew</b>.
                   <br />
                   <span style={{ color: "#a8b4cf", fontWeight: 700 }}>
                     Tritt einer Crew bei, um je +500 Wegemünzen rückwirkend zu kassieren.

@@ -37,7 +37,7 @@ export default async function SettingsPage() {
           <h2 className="text-lg font-bold text-white mb-2">📥 Meine Daten</h2>
           <p className="text-sm text-text-muted mb-4">
             DSGVO Art. 20 — lade alle gespeicherten Daten als JSON herunter.
-            Enthalten: Profil, Läufe, Territorien, Transaktionen, Wächter, Kämpfe, Crew-Mitgliedschaft.
+            Enthalten: Profil, Läufe, Gebiete, Transaktionen, Wächter, Kämpfe, Crew-Mitgliedschaft.
           </p>
           <a href="/api/account/export" download
              className="inline-block px-5 py-2.5 rounded-lg bg-primary/20 text-primary border border-primary/40 font-bold text-sm hover:bg-primary/30">

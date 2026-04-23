@@ -141,7 +141,7 @@ export function ChallengesPanel({ shop, onUsed }: { shop: Shop; onUsed: () => vo
     setSaving(true);
     try {
       const title = target === "first_5k" ? "Erster 5-km-Lauf im Kiez"
-        : target === "ten_territories" ? "10 Territorien in einer Woche"
+        : target === "ten_territories" ? "10 Gebiete in einer Woche"
         : target === "weekly_km" ? "50 km diese Woche"
         : "7-Tage-Streak";
       await sb.from("shop_challenges").insert({
@@ -158,7 +158,7 @@ export function ChallengesPanel({ shop, onUsed }: { shop: Shop; onUsed: () => vo
     <Card title="🏆 Challenge-Sponsor" badge={`${credits} verfügbar`}>
       <Select label="Challenge-Typ" value={target} onChange={(v) => setTarget(v as typeof target)} options={[
         ["first_5k", "Erster 5 km"],
-        ["ten_territories", "10 Territorien/Woche"],
+        ["ten_territories", "10 Gebiete/Woche"],
         ["weekly_km", "50 km/Woche"],
         ["streak_7d", "7-Tage-Streak"],
       ]} />

@@ -25,19 +25,19 @@ const SECTIONS: FaqSection[] = [
         a: <>Geh oder jogge durch deine Stadt. Jeder Straßenabschnitt den du abläufst wird auf der Karte markiert und gehört dir. Je mehr du läufst, desto mehr 🪙 <B color="#22D1C3">Wegemünzen</B> kassierst du und desto höher steigst du im Rang.</>,
       },
       {
-        q: "Was ist der Unterschied zwischen Abschnitt, Straßenzug und Territorium?",
+        q: "Was ist der Unterschied zwischen Abschnitt, Straßenzug und Gebiet?",
         a: <>
           <B color="#22D1C3">Straßenabschnitt</B> = kleinstes Stück Straße zwischen zwei Kreuzungen (50 🪙 Wegemünzen).<br />
           <B color="#FFD700">Straßenzug</B> = eine komplette Straße, wenn du alle ihre Abschnitte hast (+250 🪙 Bonus).<br />
-          <B color="#FF2D78">Territorium</B> = das Innere eines geschlossenen Rings aus mehreren Straßenzügen (+500 🪙, nur mit Crew).
+          <B color="#FF2D78">Gebiet</B> = das Innere eines geschlossenen Rings aus mehreren Straßenzügen (+500 🪙, nur mit Crew).
         </>,
       },
       {
-        q: "Wie entsteht ein Territorium?",
-        a: <>Wenn sich mehrere Straßenzüge zu einem geschlossenen Polygon (Block, Viereck, Kreis) treffen, markiert MyArea365 das Innere automatisch als Territorium. Alle Straßen rundherum müssen als komplette Straßenzüge dir oder deiner Crew gehören.</>,
+        q: "Wie entsteht ein Gebiet?",
+        a: <>Wenn sich mehrere Straßenzüge zu einem geschlossenen Polygon (Block, Viereck, Kreis) treffen, markiert MyArea365 das Innere automatisch als Gebiet. Alle Straßen rundherum müssen als komplette Straßenzüge dir oder deiner Crew gehören.</>,
       },
       {
-        q: "Brauche ich eine Crew für Territorien?",
+        q: "Brauche ich eine Crew für Gebiete?",
         a: <>Ja. Solo-Runner sehen den geschlossenen Ring zwar grau gestrichelt auf der Karte (Anwartschaft), kassieren den 500-Wegemünzen-Bonus aber erst, sobald sie einer Crew beitreten oder eine gründen. Das macht Crews wertvoll.</>,
       },
     ],
@@ -61,7 +61,7 @@ const SECTIONS: FaqSection[] = [
         a: <>
           • <B>Neuer Straßenabschnitt</B>: 50 🪙<br />
           • <B>Kompletter Straßenzug</B>: +250 🪙 Bonus<br />
-          • <B>Geschlossenes Territorium</B> (Crew): +500 🪙<br />
+          • <B>Geschlossenes Gebiet</B> (Crew): +500 🪙<br />
           • <B>Tages-/Wochen-Missionen</B>: 200–500 🪙<br />
           • <B>Meilensteine</B> (erste 10 km, 30 Tage Streak etc.): extra Bonus
         </>,
@@ -93,20 +93,20 @@ const SECTIONS: FaqSection[] = [
   {
     id: "crew-territorien",
     icon: "👥",
-    title: "Crew & Territorien",
+    title: "Crew & Gebiete",
     color: "#FF2D78",
     items: [
       {
         q: "Wie gründe ich eine Crew?",
-        a: <>Tab „Crew" → „Crew gründen". Du brauchst einen Namen, eine Farbe und eine PLZ als Revier. Crew-Mitglieder können dann gemeinsam Territorien erobern und verteidigen.</>,
+        a: <>Tab „Crew" → „Crew gründen". Du brauchst einen Namen, eine Farbe und eine PLZ als Revier. Crew-Mitglieder können dann gemeinsam Gebiete erobern und verteidigen.</>,
       },
       {
-        q: "Kann ein Territorium gestohlen werden?",
-        a: <>Ja. Wenn eine feindliche Crew den Ring nachläuft und dabei mehr als 50 % der Segmente neu claimt, wechselt das Territorium die Farbe. Die alte Crew bekommt eine Benachrichtigung — Revanche ist möglich. Steal-Bonus: 1.5× Wegemünzen für den Räuber.</>,
+        q: "Kann ein Gebiet gestohlen werden?",
+        a: <>Ja. Wenn eine feindliche Crew den Ring nachläuft und dabei mehr als 50 % der Segmente neu claimt, wechselt das Gebiet die Farbe. Die alte Crew bekommt eine Benachrichtigung — Revanche ist möglich. Steal-Bonus: 1.5× Wegemünzen für den Räuber.</>,
       },
       {
         q: "Was passiert wenn meine Crew inaktiv ist?",
-        a: <>Territorien verfallen nach 30 Tagen ohne Aktivität auf „unbeansprucht" und können von anderen Crews zurückerobert werden. Ein einzelner Crew-Lauf pro Woche reicht, um das Revier zu halten.</>,
+        a: <>Gebiete verfallen nach 30 Tagen ohne Aktivität auf „unbeansprucht" und können von anderen Crews zurückerobert werden. Ein einzelner Crew-Lauf pro Woche reicht, um das Revier zu halten.</>,
       },
     ],
   },
@@ -122,7 +122,7 @@ const SECTIONS: FaqSection[] = [
       },
       {
         q: "Wie bekomme ich neue Wächter?",
-        a: <>Über Beschwörungssteine (alle 10 km gelaufen +1 Stein), Arena-Siege, Shop, oder durch Loot im Territorium. Sammle sie alle — es gibt 30+ Archetypen in 4 Raritäten.</>,
+        a: <>Über Beschwörungssteine (alle 10 km gelaufen +1 Stein), Arena-Siege, Shop, oder durch Loot im Gebiet. Sammle sie alle — es gibt 30+ Archetypen in 4 Raritäten.</>,
       },
       {
         q: "Kampfarena — wie funktioniert das?",
@@ -138,7 +138,7 @@ const SECTIONS: FaqSection[] = [
     items: [
       {
         q: "Brauche ich zu bezahlen, um gut zu sein?",
-        a: <>Nein. Alle Gameplay-relevanten Inhalte (Wächter, Territorien, Ränge) sind komplett spielbar ohne Echtgeld. Der Shop bietet nur Komfort (Streak-Freezes), Kosmetik (Map-Icons, Runner-Lights) und Zeit-Boosts.</>,
+        a: <>Nein. Alle Gameplay-relevanten Inhalte (Wächter, Gebiete, Ränge) sind komplett spielbar ohne Echtgeld. Der Shop bietet nur Komfort (Streak-Freezes), Kosmetik (Map-Icons, Runner-Lights) und Zeit-Boosts.</>,
       },
       {
         q: "Was sind die Tagesangebote?",

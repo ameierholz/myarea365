@@ -58,7 +58,7 @@ export default function AgbPage() {
           </p>
           <ul className="list-disc list-inside space-y-1 text-sm mt-2">
             <li>Aufzeichnung von Lauf-Sessions via GPS</li>
-            <li>Eroberung virtueller Territorien auf Basis gelaufener Strecken</li>
+            <li>Eroberung virtueller Gebiete auf Basis gelaufener Strecken</li>
             <li>Vergabe von Erfahrungspunkten (XP), Level und Achievements</li>
             <li>Sammeln und Aufwerten von &bdquo;Wächtern&ldquo; und virtueller Ausrüstung</li>
             <li>Teilnahme an Arena-Kämpfen (Spieler gegen Spieler) und Saison-Ranglisten</li>
@@ -101,7 +101,7 @@ export default function AgbPage() {
 
         <Section num="6" title="Kostenloses Grundangebot">
           <p className="text-sm">
-            Die Grundfunktionen (Lauf-Tracking, Territorien, XP, Crews, Rabatt-Einlösung bei Partner-Shops) stehen dir
+            Die Grundfunktionen (Lauf-Tracking, Gebiete, XP, Crews, Rabatt-Einlösung bei Partner-Shops) stehen dir
             dauerhaft und kostenfrei zur Verfügung. Für die Nutzung benötigst du lediglich ein internetfähiges Endgerät
             und ggf. mobile Datenübertragung. Hieraus entstehende Verbindungskosten trägst du selbst.
           </p>
