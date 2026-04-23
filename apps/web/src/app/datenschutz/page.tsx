@@ -34,8 +34,8 @@ export default function DatenschutzPage() {
           </p>
           <p className="mt-2">
             Andre Meierholz<br />
-            [Straße Hausnummer]<br />
-            [PLZ Ort]<br />
+            Kolonnenstr. 8<br />
+            10827 Berlin<br />
             Deutschland<br />
             E-Mail:{" "}
             <a href="mailto:support@myarea365.de" className="text-primary hover:underline">

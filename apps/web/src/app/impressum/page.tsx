@@ -13,8 +13,8 @@ export default function ImpressumPage() {
           <h2 className="text-lg font-bold text-text mb-2">Angaben gemäß § 5 TMG</h2>
           <p>
             Andre Meierholz<br />
-            [Straße Hausnummer]<br />
-            [PLZ Ort]<br />
+            Kolonnenstr. 8<br />
+            10827 Berlin<br />
             Deutschland
           </p>
         </section>
