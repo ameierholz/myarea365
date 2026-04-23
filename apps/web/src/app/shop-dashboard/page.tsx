@@ -17,6 +17,7 @@ import { ShopUpsellBanner } from "@/components/shop-upsell-banner";
 import { ShopHowItWorksModal } from "@/components/shop-how-it-works-modal";
 import { ShopBillingModal } from "@/components/shop-billing-modal";
 import { ShopCrewStampsPanel } from "@/components/shop-crew-stamps-panel";
+import { ShopSettingsPanel } from "@/components/shop-settings-panel";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -306,7 +307,7 @@ export default function ShopDashboardPage() {
         {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} />}
         {tab === "customers"   && <CustomersTab />}
         {tab === "performance" && <PerformanceTab shop={shop} />}
-        {tab === "settings"    && <SettingsTab shop={shop} reloadShop={reloadShop} />}
+        {tab === "settings"    && <ShopSettingsPanel shopId={shop.id} onBillingClick={() => setBillingOpen(true)} />}
       </main>
     </div>
   );
@@ -1184,96 +1185,7 @@ function PerformanceTab({ shop }: { shop: ShopRow }) {
   );
 }
 
-/* ═══ Settings ═══ */
-function SettingsTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <SettingsBlock title="🏪 Shop-Profil">
-        <AccountRow label="Name, Adresse, Kategorie bearbeiten" />
-        <AccountRow label="Öffnungszeiten" />
-        <AccountRow label="Cover-Bild & Logo hochladen" />
-      </SettingsBlock>
-
-      <SettingsBlock title="💳 Abrechnung">
-        <AccountRow label="Aktuelles Paket: Pro (2 €/Check-in)" />
-        <AccountRow label="Rechnungen / Monats-Abrechnungen" />
-        <AccountRow label="Zahlungsmethode: SEPA-Lastschrift" />
-        <AccountRow label="Paket wechseln" />
-      </SettingsBlock>
-
-      <SettingsBlock title="🤖 Automatisierung">
-        <ToggleRow label="🔁 Stammkunden-Bonus ab 3. Besuch" defaultOn />
-        <ToggleRow label="📩 Vorbei-Läufer Retargeting-Push" defaultOn />
-        <ToggleRow label="🎂 Geburtstags-Special" defaultOn />
-        <ToggleRow label="📰 Im monatlichen Kiez-Newsletter erscheinen" defaultOn />
-      </SettingsBlock>
-
-      <SettingsBlock title="🔔 Benachrichtigungen">
-        <ToggleRow label="E-Mail bei neuem Check-in" />
-        <ToggleRow label="Täglicher Performance-Report per Mail" defaultOn />
-        <ToggleRow label="Wöchentliches Summary per Mail" defaultOn />
-      </SettingsBlock>
-
-      <SettingsBlock title="⚠️ Account">
-        <AccountRow label="Passwort ändern" />
-        <AccountRow label="Team-Zugang (Filial-Manager hinzufügen)" />
-        <AccountRow label="Shop pausieren" />
-        <AccountRow label="Shop löschen" danger />
-      </SettingsBlock>
-
-      <SocialPanel shop={shop} />
-      <EmailPanel shop={shop} onUsed={reloadShop} />
-    </div>
-  );
-}
-
-function SettingsBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>
-        {title.toUpperCase()}
-      </div>
-      <div style={{
-        background: CARD, borderRadius: 14, overflow: "hidden",
-        border: `1px solid ${BORDER}`,
-      }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function AccountRow({ label, danger }: { label: string; danger?: boolean }) {
-  return (
-    <button
-      onClick={() => appAlert(`${label} — Stub`)}
-      style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        width: "100%", padding: "14px 16px",
-        background: "transparent", border: "none",
-        borderBottom: `1px solid ${BORDER}`,
-        color: danger ? ACCENT : "#FFF",
-        fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left",
-      }}
-    >
-      <span>{label}</span>
-      <span style={{ color: MUTED }}>›</span>
-    </button>
-  );
-}
-
-function ToggleRow({ label, defaultOn }: { label: string; defaultOn?: boolean }) {
-  const [on, setOn] = useState(!!defaultOn);
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "12px 16px", borderBottom: `1px solid ${BORDER}`,
-    }}>
-      <span style={{ color: "#FFF", fontSize: 13 }}>{label}</span>
-      <Toggle value={on} onChange={() => setOn(!on)} />
-    </div>
-  );
-}
+/* Settings-Tab: siehe ShopSettingsPanel in components/shop-settings-panel.tsx */
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
