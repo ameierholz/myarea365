@@ -119,52 +119,67 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* QR links · Schritte rechts */}
+          {/* QR links · Schritte rechts — harmonisch, gleiche Höhe & Rahmen */}
           <div style={{
             position: "relative",
-            display: "flex", gap: 14, alignItems: "stretch",
+            display: "flex", gap: 12, alignItems: "stretch",
             margin: "20px 0 14px",
           }}>
-            {/* QR-Code mit Logo-Overlay */}
+            {/* QR-Panel mit Teal-Border + Scan-Hint oben */}
             <div style={{
               position: "relative",
-              width: 220, height: 220, flexShrink: 0,
-              borderRadius: 16,
-              background: "#FFF",
-              padding: 12,
+              width: 220, flexShrink: 0,
+              padding: 12, borderRadius: 12,
+              background: "rgba(15,17,21,0.55)",
+              border: "1px solid rgba(34,209,195,0.15)",
+              display: "flex", flexDirection: "column", gap: 10,
               boxSizing: "border-box",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
             }}>
-              {qrUrl && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={qrUrl} alt="QR-Code" width={196} height={196}
-                  style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
-              )}
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1, color: "#22D1C3", textAlign: "center" }}>
+                📷 SCAN MICH
+              </div>
               <div style={{
-                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-                width: 38, height: 38, borderRadius: 8,
-                background: "#0F1115", padding: 3,
+                position: "relative",
+                flex: 1,
+                borderRadius: 10,
+                background: "#FFF",
+                padding: 10,
                 boxSizing: "border-box",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
+                display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt=""
-                  style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+                {qrUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={qrUrl} alt="QR-Code"
+                    style={{ width: "100%", height: "auto", display: "block" }} />
+                )}
+                <div style={{
+                  position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                  width: 34, height: 34, borderRadius: 8,
+                  background: "#0F1115", padding: 3,
+                  boxSizing: "border-box",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logo.png" alt=""
+                    style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+                </div>
               </div>
             </div>
 
-            {/* SO GEHT'S rechts daneben */}
+            {/* SO GEHT'S rechts daneben — gleicher Panel-Style */}
             <div style={{
               flex: 1, minWidth: 0,
-              padding: "12px 14px", borderRadius: 12,
+              padding: 12, borderRadius: 12,
               background: "rgba(15,17,21,0.55)",
               border: "1px solid rgba(34,209,195,0.15)",
-              display: "flex", flexDirection: "column", justifyContent: "center",
+              display: "flex", flexDirection: "column", gap: 10,
+              boxSizing: "border-box",
             }}>
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1, color: "#22D1C3", marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1, color: "#22D1C3", textAlign: "center" }}>
                 📱 SO GEHT&apos;S
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 11, flex: 1, justifyContent: "center" }}>
                 <InlineStep n={1} Icon={Smartphone} text={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
                 <InlineStep n={2} Icon={MapIcon} text="Running-Point tippen" />
                 <InlineStep n={3} Icon={QrIcon} text={<>Code scannen &amp;<br />Belohnung sichern!</>} />
@@ -207,7 +222,7 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#D0D0D5", marginTop: 6, lineHeight: 1.45 }}>
               Die App ist <b style={{ color: "#4ade80" }}>kostenlos</b> · <b style={{ color: "#4ade80" }}>kein Abo</b> · <b style={{ color: "#4ade80" }}>kein Tracking-Wahn</b><br />
-              Dein Kiez, deine Rabatte. Lokal statt Amazon.
+              Unterstütze deine lokalen Geschäfte — nicht den nächsten Konzern.
             </div>
 
             {/* App-Store-Badges integriert in den Block */}
