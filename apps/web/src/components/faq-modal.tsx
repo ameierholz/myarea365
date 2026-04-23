@@ -15,6 +15,38 @@ const B = ({ children, color = "#FFF" }: { children: React.ReactNode; color?: st
 
 const SECTIONS: FaqSection[] = [
   {
+    id: "erste-schritte",
+    icon: "🚀",
+    title: "Erste Schritte",
+    color: "#5ddaf0",
+    items: [
+      {
+        q: "Was mache ich direkt nach der Anmeldung?",
+        a: <>1) Wächter auswählen · 2) Dashboard öffnen · 3) <B color="#22D1C3">Lauf starten</B> (GPS erlauben) · 4) ein paar Straßen abgehen · 5) erste 🪙 Wegemünzen kassieren. Danach: <B>Crew beitreten</B> für Gebiets-Boni.</>,
+      },
+      {
+        q: "Wie starte ich einen Lauf?",
+        a: <>Dashboard → „Lauf starten"-Button. GPS-Berechtigung erlauben, dann einfach losgehen oder joggen. Jeder neue Straßenabschnitt = 50 🪙, kompletter Straßenzug = +250 🪙 Bonus.</>,
+      },
+      {
+        q: "Welche Features sind komplett kostenlos?",
+        a: <>Alles Gameplay-Relevante: Laufen, Ränge, Wächter, Crews, Arena (5 Gratis-Kämpfe/Tag), Missionen, Achievements. Der Shop ist rein optional — Komfort, Kosmetik, Streak-Freezes. <B color="#22D1C3">Kein Pay-to-Win.</B></>,
+      },
+      {
+        q: "Wann lohnt sich eine Crew?",
+        a: <>Solo: max. 250 🪙 pro Straßenzug. Mit Crew: zusätzlich +500 🪙 pro geschlossenem Gebiet + 🏴 Gebietsruf aus Crew-Wars (5 000 🏴 pro Sieg). Crew-Gründung ist kostenlos.</>,
+      },
+      {
+        q: "Was ist der Unterschied zwischen Arena und Crew-War?",
+        a: <><B color="#FF2D78">Arena</B> = 1v1 Wächter-Kampf, persönlich, gibt ⚔️ Sessionehre + Loot. <B color="#FFD700">Crew-War</B> = dein ganzes Team gegen eine andere Crew, gibt 🏴 Gebietsruf. Beides läuft getrennt und frisst sich nicht gegenseitig.</>,
+      },
+      {
+        q: "Muss ich Geld ausgeben, um gut zu sein?",
+        a: <>Nein. Die Top-Plätze in Leaderboards werden durch reale Bewegung erreicht. Echtgeld kauft nur <B>Zeit</B> (Streak-Freeze bei Krankheit), <B>Komfort</B> (Werbefrei via MyArea+) und <B>Style</B> (Runner-Lights, Themes). Wegemünzen-Boosts sind begrenzt und verkürzen, aber ersetzen keine Bewegung.</>,
+      },
+    ],
+  },
+  {
     id: "grundlagen",
     icon: "🏃",
     title: "Grundlagen",
@@ -173,8 +205,8 @@ const SECTIONS: FaqSection[] = [
 ];
 
 export function FaqModal({ onClose }: { onClose: () => void }) {
-  const [openSection, setOpenSection] = useState<string>("grundlagen");
-  const [openItem, setOpenItem] = useState<string | null>("grundlagen:0");
+  const [openSection, setOpenSection] = useState<string>("erste-schritte");
+  const [openItem, setOpenItem] = useState<string | null>("erste-schritte:0");
 
   return (
     <div onClick={onClose} style={{

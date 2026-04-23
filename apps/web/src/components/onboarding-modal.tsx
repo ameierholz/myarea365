@@ -73,6 +73,32 @@ function TerritoryVisual() {
   );
 }
 
+/**
+ * Erste-Woche-Visual: 4 Icons mit Aktivitäten.
+ */
+function FirstWeekVisual() {
+  const items: { icon: string; label: string; color: string }[] = [
+    { icon: "🏃", label: "Lauf",  color: "#22D1C3" },
+    { icon: "👥", label: "Crew",  color: "#FFD700" },
+    { icon: "⚔️", label: "Arena", color: "#FF2D78" },
+    { icon: "💎", label: "Shop",  color: "#5ddaf0" },
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, padding: "8px 4px" }}>
+      {items.map((it) => (
+        <div key={it.label} style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+          padding: "10px 4px", borderRadius: 10,
+          background: `${it.color}14`, border: `1px solid ${it.color}44`,
+        }}>
+          <div style={{ fontSize: 26 }}>{it.icon}</div>
+          <div style={{ fontSize: 10, fontWeight: 900, color: it.color, letterSpacing: 0.5 }}>{it.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const SLIDES: Slide[] = [
   {
     emoji: "🛤️",
@@ -100,6 +126,15 @@ const SLIDES: Slide[] = [
     xp: "+500 🪙",
     body: "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Gebiet. Wichtig: Gebiete sind Crew-Gebiet. Bist du Mitglied, kassierst du 500 Wegemünzen. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst.",
     visual: <TerritoryVisual />,
+  },
+  {
+    emoji: "🚀",
+    title: "4. Deine erste Woche",
+    color: "#5ddaf0",
+    gradient: "radial-gradient(at 50% 0%, rgba(93,218,240,0.28), transparent 60%)",
+    xp: "Alles kostenlos spielbar",
+    body: "🏃 Lauf starten: GPS tracken, Straßen claimen, 🪙 Wegemünzen kassieren. 👥 Crew gründen/beitreten: +500 🪙 pro Gebiet & 🏴 Gebietsruf durch Crew-Wars. ⚔️ Arena: 5 Gratis-Kämpfe/Tag, Sieg bringt ⚔️ Sessionehre + Loot. 💎 Shop: mit Wegemünzen oder optional mit Echtgeld (Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win).",
+    visual: <FirstWeekVisual />,
   },
 ];
 

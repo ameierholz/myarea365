@@ -58,6 +58,21 @@ export function ShopHubModal({ userId, onClose }: { userId: string; onClose: () 
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
+          <div style={{
+            padding: "10px 12px", borderRadius: 12, marginBottom: 14,
+            background: "linear-gradient(135deg, rgba(34,209,195,0.10), rgba(93,218,240,0.08))",
+            border: "1px solid rgba(34,209,195,0.25)",
+          }}>
+            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2, marginBottom: 4 }}>
+              💎 SHOP-GUIDE · KEIN PAY-TO-WIN
+            </div>
+            <div style={{ fontSize: 11, color: "#a8b4cf", lineHeight: 1.55 }}>
+              • <b style={{ color: "#22D1C3" }}>MyArea+</b> — Premium-Abo: werbefrei, Streak-Freeze-Vorrat, Map-Themes.<br />
+              • <b style={{ color: "#FFD700" }}>Power</b> — 🪙-Boosts & Komfort (Zeit sparen, keine Macht).<br />
+              • <b style={{ color: "#5ddaf0" }}>Diamanten</b> — Premium-Währung für Kosmetik & Wächter-Skins.<br />
+              <span style={{ color: "#8B8FA3" }}>Alle Ränge, Gebiete, Crews &amp; Arena sind ohne Euro spielbar.</span>
+            </div>
+          </div>
           {tab === "plus"  && <UpgradeBody mode="plus" userId={userId} onDone={onClose} />}
           {tab === "power" && <BoostShopBody userId={userId} onDone={onClose} />}
           {tab === "gems"  && <GemShopBody />}

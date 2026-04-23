@@ -1852,6 +1852,7 @@ function ProfilTab({
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 14, flexWrap: "wrap", justifyContent: "center" }}>
             <button
               onClick={() => setOpenModal("ranks")}
+              title="🪙 Wegemünzen: deine Runner-Währung. Laufe Straßen (50), Straßenzüge (+250) oder Gebiete mit Crew (+500) und steige im Rang auf. Tippen für alle Ränge."
               style={{
                 paddingLeft: 18, paddingRight: 28, paddingTop: 8, paddingBottom: 8,
                 borderRadius: 22, border: "none",
@@ -1969,12 +1970,12 @@ function ProfilTab({
           gap: 8, marginTop: 14,
         }}>
           {[
-            { key: "arena", icon: "⚔️", label: "Arena",  color: "#FF2D78", onClick: () => setOpenModal("arena") },
-            { key: "shop",  icon: "💎", label: "Shop",   color: "#22D1C3", onClick: () => setShowShopHub(true) },
-            { key: "crew",  icon: "👥", label: "Crew",   color: "#FFD700", onClick: () => setActiveTab("crew") },
-            { key: "inbox", icon: "📬", label: "Inbox",  color: "#a855f7", onClick: () => setOpenModal("inbox") },
+            { key: "arena", icon: "⚔️", label: "Arena",  color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
+            { key: "shop",  icon: "💎", label: "Shop",   color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
+            { key: "crew",  icon: "👥", label: "Crew",   color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
+            { key: "inbox", icon: "📬", label: "Inbox",  color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
           ].map((a) => (
-            <button key={a.key} onClick={a.onClick} style={{
+            <button key={a.key} onClick={a.onClick} title={a.title} style={{
               padding: "12px 6px", borderRadius: 14,
               background: `linear-gradient(135deg, ${a.color}22 0%, rgba(15,17,21,0.7) 100%)`,
               border: `1px solid ${a.color}55`,
