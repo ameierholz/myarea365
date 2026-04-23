@@ -581,68 +581,73 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       if (error) {
         console.error("[walk-save] territories.update failed", error);
       }
-      if (!error) {
-        const newXp = (profile.wegemuenzen ?? profile.xp ?? 0) + totalXpGained;
-        const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
-        const newWalks = (profile.total_walks || 0) + 1;
-        const newCal = (profile.total_calories || 0) + Math.round(finalDistance * 0.06);
-        const newLongest = Math.max(profile.longest_run_m || 0, Math.round(finalDistance));
 
-        // Dual-Write: wegemuenzen ist die neue Currency (Migration 00046),
-        // xp bleibt als Legacy-Spalte bestehen. Falls die Migration noch nicht
-        // gelaufen ist, versuchen wir es auf xp alleine.
-        const { error: updErr } = await supabase.from("users").update({
-          wegemuenzen: newXp,
+      // Lokale State-Updates + Summary sollen IMMER laufen — ein fehlschlagender
+      // DB-Update (z. B. RLS-Policy-Problem) darf dem User nicht die Zusammenfassung
+      // und den Milestone-Check klauen. Server-Daten werden beim nächsten Reload
+      // korrekt geladen.
+      const newXp = (profile.wegemuenzen ?? profile.xp ?? 0) + totalXpGained;
+      const newDistance = (profile.total_distance_m || 0) + Math.round(finalDistance);
+      const newWalks = (profile.total_walks || 0) + 1;
+      const newCal = (profile.total_calories || 0) + Math.round(finalDistance * 0.06);
+      const newLongest = Math.max(profile.longest_run_m || 0, Math.round(finalDistance));
+
+      // Dual-Write: wegemuenzen ist die neue Currency (Migration 00046),
+      // xp bleibt als Legacy-Spalte bestehen. Falls die Migration noch nicht
+      // gelaufen ist, versuchen wir es auf xp alleine.
+      const { error: updErr } = await supabase.from("users").update({
+        wegemuenzen: newXp,
+        xp: newXp,
+        total_distance_m: newDistance,
+        total_walks: newWalks,
+        total_calories: newCal,
+        longest_run_m: newLongest,
+      }).eq("id", profile.id);
+
+      if (updErr) {
+        console.error("[walk-save] users.update failed, fallback to xp-only", updErr);
+        await supabase.from("users").update({
           xp: newXp,
           total_distance_m: newDistance,
           total_walks: newWalks,
           total_calories: newCal,
           longest_run_m: newLongest,
         }).eq("id", profile.id);
+      }
 
-        if (updErr) {
-          console.error("[walk-save] users.update failed, fallback to xp-only", updErr);
-          await supabase.from("users").update({
-            xp: newXp,
-            total_distance_m: newDistance,
-            total_walks: newWalks,
-            total_calories: newCal,
-            longest_run_m: newLongest,
-          }).eq("id", profile.id);
-        }
+      setProfile({
+        ...profile,
+        wegemuenzen: newXp,
+        xp: newXp,
+        total_distance_m: newDistance,
+        total_walks: newWalks,
+        total_calories: newCal,
+        longest_run_m: newLongest,
+      });
+      setSavedTerritories((prev) => [...prev, finalRoute]);
+      if (territoryCountNew > 0) setTerritoryCount((c) => c + territoryCountNew);
 
-        setProfile({
-          ...profile,
-          wegemuenzen: newXp,
-          xp: newXp,
-          total_distance_m: newDistance,
-          total_walks: newWalks,
-          total_calories: newCal,
-          longest_run_m: newLongest,
+      // Km-Meilenstein-Check (10/50/100 km gesamt) -> gibt Beschwoerungssteine
+      try {
+        const ms = await fetch("/api/guardian/collection", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "check_milestones", total_km: newDistance / 1000 }),
         });
-        setSavedTerritories((prev) => [...prev, finalRoute]);
-        if (territoryCountNew > 0) setTerritoryCount((c) => c + territoryCountNew);
-
-        // Km-Meilenstein-Check (10/50/100 km gesamt) -> gibt Beschwoerungssteine
-        try {
-          const ms = await fetch("/api/guardian/collection", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "check_milestones", total_km: newDistance / 1000 }),
-          });
-          if (ms.ok) {
-            const data = await ms.json();
-            if (data.new_stones > 0) {
-              const unlocks = (data.new_unlocks as number[]).join(", ");
-              appAlert(`🎉 Meilenstein erreicht (${unlocks} km)! +${data.new_stones} Beschwörungsstein für einen neuen Wächter.`);
-            }
+        if (ms.ok) {
+          const data = await ms.json();
+          if (data.new_stones > 0) {
+            const unlocks = (data.new_unlocks as number[]).join(", ");
+            appAlert(`🎉 Meilenstein erreicht (${unlocks} km)! +${data.new_stones} Beschwörungsstein für einen neuen Wächter.`);
           }
-        } catch { /* non-blocking */ }
-
-        // Victory-Dance triggern (nur bei echtem Territorium)
-        if (territoryCountNew > 0 && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
-          setVictoryTrigger((v) => v + 1);
         }
+      } catch { /* non-blocking */ }
 
+      // Victory-Dance triggern (nur bei echtem Territorium)
+      if (territoryCountNew > 0 && (profile as unknown as { victory_dance_enabled?: boolean }).victory_dance_enabled) {
+        setVictoryTrigger((v) => v + 1);
+      }
+
+      {
         const stoleCount = (segResp.new_territories ?? []).filter((t) => t.stole_from).length;
         const pendingCount = (segResp.new_territories ?? []).filter((t) => t.pending_crew).length;
 
