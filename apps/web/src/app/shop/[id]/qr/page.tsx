@@ -483,12 +483,24 @@ function BenefitLine({ Icon, iconColor, text }: { Icon: IconComp; iconColor: str
 
 function InlineStep({ n, Icon, text }: { n: number; Icon: IconComp; text: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 12, fontWeight: 900, color: "#8B8FA3", width: 18, flexShrink: 0 }}>{n}.</span>
-      <div style={{ width: 18, display: "flex", justifyContent: "center", flexShrink: 0 }}>
-        <Icon size={13} color="#a8b4cf" strokeWidth={2} />
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "8px 10px", borderRadius: 10,
+      background: "rgba(34,209,195,0.05)",
+      border: "1px solid rgba(34,209,195,0.12)",
+    }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: "50%",
+        background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
+        color: "#0F1115", fontSize: 13, fontWeight: 900,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+        boxShadow: "0 2px 8px rgba(34,209,195,0.4)",
+      }}>{n}</div>
+      <div style={{ width: 20, display: "flex", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={17} color="#22D1C3" strokeWidth={2.25} />
       </div>
-      <div style={{ fontSize: 12, color: "#D0D0D5", lineHeight: 1.4 }}>{text}</div>
+      <div style={{ fontSize: 13, color: "#FFF", lineHeight: 1.3, fontWeight: 600 }}>{text}</div>
     </div>
   );
 }
