@@ -44,6 +44,16 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+
+    // Acryl-Aufsteller-Bestellung (eigener Flow, kein SKU aus monetization.ts)
+    if (session.metadata?.type === "stand_order") {
+      await admin().from("shop_stand_orders").update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+      }).eq("stripe_session_id", session.id);
+      return NextResponse.json({ received: true, stand_order: true });
+    }
+
     const sku = session.metadata?.sku;
     const userId = session.metadata?.user_id;
     const crewId = session.metadata?.crew_id || null;

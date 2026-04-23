@@ -12,6 +12,8 @@ import { ShopRedemptionsLive } from "@/components/shop-redemptions-live";
 import { ShopArenaPanel } from "@/components/shop-arena-panel";
 import { ShopQuestsManager } from "@/components/shop-quests-manager";
 import { ShopTerritoryBonusPanel } from "@/components/shop-territory-bonus-panel";
+import { ShopOnboardingBanner } from "@/components/shop-onboarding-banner";
+import { ShopUpsellBanner } from "@/components/shop-upsell-banner";
 import { createClient } from "@/lib/supabase/client";
 
 /* Farb-Tokens (1:1 aus map-dashboard) */
@@ -112,6 +114,7 @@ type SubTab = "overview" | "deals" | "quests" | "flash" | "spotlight" | "custome
 type ShopRow = {
   id: string; name: string;
   plan?: string | null;
+  status?: string | null;
   spotlight_until?: string | null;
   radius_boost_until?: string | null;
   top_listing_until?: string | null;
@@ -126,11 +129,11 @@ type ShopRow = {
   qr_print_ordered_at?: string | null;
 };
 
-function useShop(id: string): [ShopRow, () => void] {
+function useShop(fallbackId: string): [ShopRow, () => void] {
   const sb = createClient();
   const [reloadTick, setReloadTick] = useState(0);
   const fallback: ShopRow = {
-    id, name: DEMO_SHOP.name,
+    id: fallbackId, name: DEMO_SHOP.name,
     plan: "pro",
     flash_push_credits: 3, event_host_credits: 2, challenge_sponsor_credits: 2, email_campaign_credits: 1,
     social_pro_until: new Date(Date.now() + 25 * 86400000).toISOString(),
@@ -140,9 +143,18 @@ function useShop(id: string): [ShopRow, () => void] {
   };
   const [shop, setShop] = useState<ShopRow>(fallback);
   useEffect(() => {
-    sb.from("local_businesses").select("*").eq("id", id).maybeSingle()
-      .then(({ data }) => { if (data) setShop(data as ShopRow); });
-  }, [id, reloadTick, sb]);
+    // 1) Prüfe zuerst, ob der eingeloggte User einen eigenen approved Shop hat
+    fetch("/api/shop/my").then((r) => r.json()).then((d: { shops?: ShopRow[] }) => {
+      const owned = (d.shops ?? []).find((s) => s.status === "approved");
+      if (owned) {
+        setShop(owned);
+        return;
+      }
+      // 2) Fallback: Demo-Shop aus der DB (für Preview-Zwecke)
+      sb.from("local_businesses").select("*").eq("id", fallbackId).maybeSingle()
+        .then(({ data }) => { if (data) setShop(data as ShopRow); });
+    }).catch(() => { /* fallback bleibt */ });
+  }, [fallbackId, reloadTick, sb]);
   return [shop, () => setReloadTick((t) => t + 1)];
 }
 
@@ -150,19 +162,39 @@ export default function ShopDashboardPage() {
   const [tab, setTab] = useState<SubTab>("overview");
   const [shop, reloadShop] = useShop(DEMO_SHOP.id);
 
+  const monthlyRedemptions = DEMO_STATS.checkinsMonth ?? 0;
+  const flashCredits = shop.flash_push_credits ?? 0;
+
   return (
     <div style={{
       minHeight: "100vh", paddingBottom: 40,
       background: "radial-gradient(circle at 20% 10%, #1a2340 0%, #0F1115 60%)",
     }}>
+      {/* Status-Banner (kein Shop / pending / rejected / Onboarding-Checkliste) */}
+      <div style={{ paddingTop: 16 }}>
+        <ShopOnboardingBanner />
+        <ShopUpsellBanner
+          plan={shop.plan as "free"|"basis"|"pro"|"ultra"|undefined}
+          monthlyRedemptions={monthlyRedemptions}
+          flashCredits={flashCredits}
+        />
+      </div>
       {/* Header */}
       <header style={{
         padding: "24px 20px 0", maxWidth: 1200, margin: "0 auto",
       }}>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
           <Link href="/dashboard/" style={{
             color: PRIMARY, textDecoration: "none", fontSize: 13, fontWeight: 700,
           }}>← zurück zur Runner-App</Link>
+          <span style={{ color: BORDER, fontSize: 12 }}>·</span>
+          <Link href={`/shop/${shop.id}/qr`} style={{ color: MUTED, textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+            🔲 QR-Code drucken
+          </Link>
+          <span style={{ color: BORDER, fontSize: 12 }}>·</span>
+          <Link href="/shop/billing" style={{ color: MUTED, textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
+            💳 Abrechnung & Paket
+          </Link>
         </div>
 
         <div style={{
@@ -248,7 +280,7 @@ export default function ShopDashboardPage() {
 
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "20px" }}>
         {tab === "overview"    && <OverviewTab />}
-        {tab === "deals"       && <DealsTab />}
+        {tab === "deals"       && <DealsTab shopId={shop.id} />}
         {tab === "quests"      && <ShopQuestsManager businessId={shop.id} />}
         {tab === "flash"       && <FlashTab shop={shop} reloadShop={reloadShop} />}
         {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} />}
@@ -545,11 +577,50 @@ function QuickAction({ icon, title, desc, accent, onClick }: {
 }
 
 /* ═══ Deals ═══ */
-function DealsTab() {
-  const [deals, setDeals] = useState(DEMO_DEALS);
-  const toggleActive = (id: string) => {
-    setDeals((ds) => ds.map((d) => d.id === id ? { ...d, active: !d.active } : d));
-  };
+type LiveDeal = {
+  id: string; shop_id: string; title: string; description: string | null;
+  xp_cost: number; frequency: string; active: boolean;
+  redemption_count: number | null; max_redemptions: number | null;
+  active_until: string | null; created_at: string;
+};
+
+function DealsTab({ shopId }: { shopId: string }) {
+  const [deals, setDeals] = useState<LiveDeal[] | null>(null);
+  const [editing, setEditing] = useState<LiveDeal | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    const res = await fetch(`/api/shop/deals?shop_id=${encodeURIComponent(shopId)}`, { cache: "no-store" });
+    const j = await res.json();
+    setDeals(j.deals ?? []);
+  }
+  useEffect(() => { void load(); }, [shopId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function toggleActive(d: LiveDeal) {
+    setError(null);
+    const res = await fetch("/api/shop/deals", {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: d.id, active: !d.active }),
+    });
+    const j = await res.json();
+    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    void load();
+  }
+
+  async function remove(d: LiveDeal) {
+    const ok = await appConfirm(`Deal "${d.title}" wirklich löschen?`);
+    if (!ok) return;
+    const res = await fetch(`/api/shop/deals?id=${d.id}`, { method: "DELETE" });
+    const j = await res.json();
+    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    void load();
+  }
+
+  if (deals === null) {
+    return <div style={{ color: MUTED, fontSize: 13, padding: 20 }}>Lade Deals…</div>;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -558,7 +629,7 @@ function DealsTab() {
           <div style={{ color: MUTED, fontSize: 12 }}>{deals.filter((d) => d.active).length} aktiv · {deals.length} insgesamt</div>
         </div>
         <button
-          onClick={() => appAlert("Neuen Deal anlegen")}
+          onClick={() => setCreating(true)}
           style={{
             padding: "10px 16px", borderRadius: 12,
             background: PRIMARY, color: BG_DEEP,
@@ -568,6 +639,21 @@ function DealsTab() {
           ➕ Neuer Deal
         </button>
       </div>
+
+      {error && (
+        <div style={{ padding: 10, borderRadius: 8, background: "rgba(255,45,120,0.12)", color: "#FF2D78", fontSize: 12 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {deals.length === 0 && !creating && (
+        <div style={{ padding: 30, textAlign: "center", background: CARD, borderRadius: 14, border: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>🏷️</div>
+          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Noch kein Deal angelegt</div>
+          <div style={{ color: MUTED, fontSize: 12 }}>Leg deinen ersten Deal an — Runner bekommen ihn direkt im Shop-POI auf der Karte angezeigt.</div>
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {deals.map((d) => (
           <div key={d.id} style={{
@@ -577,27 +663,144 @@ function DealsTab() {
           }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{d.title}</div>
+              {d.description && <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>{d.description}</div>}
               <div style={{ color: MUTED, fontSize: 11, marginTop: 3, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <span>💎 {d.xp} XP</span>
-                <span>🔁 {FREQ_LABEL[d.freq]}</span>
-                <span>📈 {d.redemptions_month} Einlösungen / Monat</span>
+                <span>🪙 {d.xp_cost}</span>
+                <span>🔁 {FREQ_LABEL_LIVE[d.frequency] ?? d.frequency}</span>
+                <span>📈 {d.redemption_count ?? 0} eingelöst</span>
               </div>
             </div>
-            <Toggle value={d.active} onChange={() => toggleActive(d.id)} />
-            <button
-              onClick={() => appAlert(`Deal "${d.title}" bearbeiten`)}
-              style={{
-                background: "transparent", border: `1px solid ${BORDER}`,
-                padding: "6px 10px", borderRadius: 8, color: "#FFF",
-                fontSize: 11, fontWeight: 700, cursor: "pointer",
-              }}
-            >✏️ Bearbeiten</button>
+            <Toggle value={d.active} onChange={() => toggleActive(d)} />
+            <button onClick={() => setEditing(d)} style={{
+              background: "transparent", border: `1px solid ${BORDER}`,
+              padding: "6px 10px", borderRadius: 8, color: "#FFF",
+              fontSize: 11, fontWeight: 700, cursor: "pointer",
+            }}>✏️ Bearbeiten</button>
+            <button onClick={() => remove(d)} style={{
+              background: "transparent", border: `1px solid ${ACCENT}44`,
+              padding: "6px 10px", borderRadius: 8, color: ACCENT,
+              fontSize: 11, fontWeight: 700, cursor: "pointer",
+            }}>🗑️</button>
           </div>
         ))}
       </div>
+
+      {(creating || editing) && (
+        <DealEditor
+          shopId={shopId}
+          initial={editing}
+          onCancel={() => { setCreating(false); setEditing(null); }}
+          onSaved={() => { setCreating(false); setEditing(null); void load(); }}
+        />
+      )}
     </div>
   );
 }
+
+const FREQ_LABEL_LIVE: Record<string, string> = {
+  daily:      "1× / Tag",
+  weekly:     "1× / Woche",
+  monthly:    "1× / Monat",
+  quarterly:  "1× / Quartal",
+  unlimited:  "Unbegrenzt",
+};
+
+function DealEditor({ shopId, initial, onCancel, onSaved }: {
+  shopId: string;
+  initial: LiveDeal | null;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true); setError(null);
+    const fd = new FormData(e.currentTarget);
+    const body = {
+      title:       String(fd.get("title") ?? "").trim(),
+      description: String(fd.get("description") ?? "").trim() || null,
+      xp_cost:     Number(fd.get("xp_cost") ?? 0),
+      frequency:   String(fd.get("frequency") ?? "weekly"),
+    };
+
+    const url = "/api/shop/deals";
+    const method = initial ? "PATCH" : "POST";
+    const payload = initial
+      ? { id: initial.id, ...body }
+      : { shop_id: shopId, ...body };
+
+    const res = await fetch(url, {
+      method, headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setBusy(false);
+    const j = await res.json();
+    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    onSaved();
+  }
+
+  return (
+    <form onSubmit={submit} style={{
+      marginTop: 4, padding: 16, borderRadius: 14,
+      background: "#1A1D23", border: `1px solid ${PRIMARY}55`,
+    }}>
+      <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 2, marginBottom: 10 }}>
+        {initial ? "DEAL BEARBEITEN" : "NEUER DEAL"}
+      </div>
+      <label style={LBL}>
+        <span>Titel *</span>
+        <input name="title" required defaultValue={initial?.title ?? ""} placeholder="Gratis Cappuccino ab 3 km Lauf"
+          style={INP} />
+      </label>
+      <label style={LBL}>
+        <span>Beschreibung (optional)</span>
+        <textarea name="description" rows={2} defaultValue={initial?.description ?? ""}
+          style={INP} />
+      </label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <label style={LBL}>
+          <span>Wegemünzen-Kosten 🪙</span>
+          <input name="xp_cost" type="number" min={0} defaultValue={initial?.xp_cost ?? 300}
+            style={INP} />
+        </label>
+        <label style={LBL}>
+          <span>Häufigkeit</span>
+          <select name="frequency" defaultValue={initial?.frequency ?? "weekly"} style={INP}>
+            <option value="daily">Täglich</option>
+            <option value="weekly">1× pro Woche</option>
+            <option value="monthly">1× pro Monat</option>
+            <option value="quarterly">1× pro Quartal</option>
+            <option value="unlimited">Unbegrenzt</option>
+          </select>
+        </label>
+      </div>
+
+      {error && <div style={{ marginTop: 10, color: ACCENT, fontSize: 12 }}>⚠️ {error}</div>}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <button type="button" onClick={onCancel} style={{
+          flex: 1, padding: "10px", borderRadius: 10,
+          background: "rgba(255,255,255,0.05)", border: `1px solid ${BORDER}`,
+          color: "#FFF", fontSize: 12, fontWeight: 700, cursor: "pointer",
+        }}>Abbrechen</button>
+        <button type="submit" disabled={busy} style={{
+          flex: 2, padding: "10px", borderRadius: 10, border: "none",
+          background: PRIMARY, color: BG_DEEP,
+          fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy ? 0.6 : 1,
+        }}>{busy ? "Speichert…" : (initial ? "Änderungen speichern" : "Deal anlegen")}</button>
+      </div>
+    </form>
+  );
+}
+
+const LBL: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "#a8b4cf", fontWeight: 700, marginBottom: 10 };
+const INP: React.CSSProperties = {
+  padding: "9px 11px", borderRadius: 8,
+  background: "#0F1115", border: "1px solid rgba(255,255,255,0.12)",
+  color: "#F0F0F0", fontSize: 13, fontFamily: "inherit",
+};
 
 function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
   return (
