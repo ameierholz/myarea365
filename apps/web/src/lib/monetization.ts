@@ -132,6 +132,42 @@ export const CREW_SLOT_PACKS = {
   crew_slots_plus10: { sku: "crew_slots_plus10", name: "+10 Mitglieder-Slots", slots: 10, price: 499, icon: "👥" },
 };
 
+// ═══════════════════════════════════════════════════════
+// Server-seitige Preisauflösung — Single Source of Truth.
+// Wird von /api/stripe/checkout genutzt, damit der Client NICHT
+// seinen eigenen Preis diktieren kann (Audit #2).
+// ═══════════════════════════════════════════════════════
+// gem-bundles werden lazy geladen, damit keine Circular-Imports entstehen.
+type PriceEntry = { price: number; name: string };
+
+export function resolveSkuPrice(sku: string): PriceEntry | null {
+  const pools: Array<Record<string, { price?: number; price_cents?: number; name?: string }>> = [
+    PLANS, BOOST_PACKS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, EXTRAS,
+    CREW_GEM_PACKS, CREW_SLOT_PACKS,
+  ];
+  for (const pool of pools) {
+    const hit = pool[sku];
+    if (hit) {
+      const price = typeof hit.price === "number" ? hit.price : hit.price_cents;
+      if (typeof price === "number" && price > 0) {
+        return { price, name: hit.name ?? sku };
+      }
+    }
+  }
+  // Gem-Bundles liegen in separatem Modul — dynamischer Import würde hier Promises
+  // einführen; da GEM_BUNDLES konstant sind und keine Circular-Imports entstehen,
+  // importieren wir es inline per require.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GEM_BUNDLES } = require("./gem-bundles") as { GEM_BUNDLES: Array<{ sku: string; price_cents: number }> };
+    const bundle = GEM_BUNDLES.find((b) => b.sku === sku);
+    if (bundle && bundle.price_cents > 0) {
+      return { price: bundle.price_cents, name: `Edelsteine ${sku}` };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function formatPrice(cents: number): string {
   return `€ ${(cents / 100).toFixed(2).replace(".", ",")}`;
 }

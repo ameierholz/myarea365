@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,6 +89,11 @@ export async function POST(req: Request) {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Rate-Limit: 30 Claims/Minute reichen auch für Power-User.
+  const rl = rateLimit(`mission_claim:${user.id}`, 30, 60_000);
+  const blocked = rateLimitResponse(rl);
+  if (blocked) return blocked;
 
   let body: { assignment_id?: string; action?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "bad_json" }, { status: 400 }); }

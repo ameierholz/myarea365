@@ -1,11 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   MapPin, Trophy, Users, Store, Shield, Footprints, Zap,
   Heart, Flame, Brain, Moon, Map, Sparkles, Target, Award,
 } from "lucide-react";
-import { HeroMap } from "@/components/hero-map";
 import { InlineAuth } from "@/components/inline-auth";
+
+// Lazy: maplibre-gl ist ~180 KB gz, blockiert sonst LCP der Landing-Page.
+const HeroMap = dynamic(() => import("@/components/hero-map").then((m) => ({ default: m.HeroMap })), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 bg-bg-deep" />,
+});
 
 export default function LandingPage() {
   return (
@@ -38,7 +44,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 text-center px-4 max-w-3xl mx-auto pt-4 sm:pt-6">
           <div className="flex items-center justify-center gap-4 mb-4">
-            <Image src="/logo.png" alt="MyArea365 Logo" width={72} height={72} className="drop-shadow-[0_0_20px_rgba(34,209,195,0.3)]" />
+            <Image src="/logo.png" alt="MyArea365 Logo" width={72} height={72} priority className="drop-shadow-[0_0_20px_rgba(34,209,195,0.3)]" />
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold">
               <Footprints className="w-4 h-4" />
               Bewegung · Spaß · Echte Rabatte

@@ -1,21 +1,42 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, buildLineItem, skuMode } from "@/lib/stripe";
+import { resolveSkuPrice } from "@/lib/monetization";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const { sku, name, amount_cents, crew_id, business_id, ui_mode } = await req.json() as {
-    sku: string; name: string; amount_cents: number; crew_id?: string; business_id?: string; ui_mode?: "hosted" | "embedded";
-  };
-  if (!sku || !name || typeof amount_cents !== "number") {
+  const body = await req.json().catch(() => null) as {
+    sku?: unknown; crew_id?: unknown; business_id?: unknown; ui_mode?: unknown;
+  } | null;
+  const sku = typeof body?.sku === "string" ? body.sku : null;
+  const crew_id = typeof body?.crew_id === "string" ? body.crew_id : undefined;
+  const business_id = typeof body?.business_id === "string" ? body.business_id : undefined;
+  const ui_mode = body?.ui_mode === "embedded" ? "embedded" as const : "hosted" as const;
+
+  if (!sku) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
+
+  // SECURITY: Preis + Name werden ausschließlich serverseitig aus dem Katalog
+  // aufgelöst. Ein Client kann damit keine 1-Cent-Preise erzwingen.
+  const resolved = resolveSkuPrice(sku);
+  if (!resolved) {
+    return NextResponse.json({ error: "Unknown SKU" }, { status: 400 });
+  }
+  const amount_cents = resolved.price;
+  const name = resolved.name;
 
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  // Rate-Limit: 10 Checkout-Inits pro Minute pro User — normaler Kaufflow braucht 1-2.
+  const rl = rateLimit(`checkout:${user.id}`, 10, 60_000);
+  const blocked = rateLimitResponse(rl);
+  if (blocked) return blocked;
 
   const mode = skuMode(sku);
   const lineItem = buildLineItem(sku, name, amount_cents, mode);

@@ -5,6 +5,7 @@ import { runBattle, type BattleInput } from "@/lib/battle-engine";
 import { GUARDIAN_LEVEL_CAP } from "@/lib/guardian";
 import { loadGuardianBattleContext } from "@/lib/guardian-battle-context";
 import { getPowerZoneBuffs } from "@/lib/power-zone-buffs";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +51,12 @@ async function handleChallenge(req: Request) {
 
   const attacker_user_id = auth.user.id;
   if (attacker_user_id === defender_user_id) return NextResponse.json({ error: "same_user" }, { status: 400 });
+
+  // Rate-Limit: 20 Arena-Kämpfe pro Minute pro Angreifer (10 gratis/Tag + 💎-Puffer,
+  // danach greifen sowieso die semantischen Limits in runner_fight_settle).
+  const rl = rateLimit(`arena:${attacker_user_id}`, 20, 60_000);
+  const blocked = rateLimitResponse(rl);
+  if (blocked) return blocked;
 
   // Proximity-Check: Attacker muss innerhalb 2km vom Shop sein
   // (Ein Crew-Mitglied in der Naehe reicht - der Angreifer vertritt die Crew)

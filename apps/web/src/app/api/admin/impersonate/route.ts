@@ -43,21 +43,60 @@ export async function POST(req: NextRequest) {
   });
   if (linkErr) return NextResponse.json({ ok: false, error: linkErr.message }, { status: 500 });
 
+  const actionLink = link.properties.action_link;
+
+  // SECURITY: Magic-Link NICHT im Response-Body zurückgeben — XSS im Admin-Panel
+  // wäre sonst ein Full-Account-Takeover-Vehikel für jeden User. Link wird per
+  // Email an die verifizierte Admin-Adresse gesendet.
+  let linkDelivered = false;
+  try {
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey && email) {
+      const targetName = (target as { username: string }).username;
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${resendKey}` },
+        body: JSON.stringify({
+          from: "MyArea365 Admin <no-reply@myarea365.de>",
+          to: email,
+          subject: `[Impersonate] Magic-Link für ${targetName}`,
+          text: [
+            `Du hast gerade einen Impersonate-Link für @${targetName} (${authUser.user.email}) angefordert.`,
+            "",
+            "Link gültig ca. 60 Minuten. In einem Private-/Inkognito-Window öffnen, sonst wird deine Admin-Session ersetzt.",
+            "",
+            actionLink,
+            "",
+            "Wenn du diese Anfrage nicht gestellt hast: Admin-Audit-Log prüfen und Passwort ändern.",
+          ].join("\n"),
+        }),
+      });
+      linkDelivered = res.ok;
+    }
+  } catch {
+    linkDelivered = false;
+  }
+
   await logAudit({
     action: "impersonate_generate_link",
     targetType: "user",
     targetId: body.user_id,
-    details: { target_email: authUser.user.email, target_username: (target as { username: string }).username },
+    details: {
+      target_email: authUser.user.email,
+      target_username: (target as { username: string }).username,
+      link_delivered_via: linkDelivered ? "email" : "pending_email",
+    },
   });
 
-  // Zusätzlicher Hinweis: Admin muss Link in Private-Window öffnen,
-  // sonst überschreibt er seine eigene Session.
   return NextResponse.json({
     ok: true,
-    action_link: link.properties.action_link,
+    link_sent_to_admin_email: linkDelivered,
+    admin_email: linkDelivered ? email : null,
     expires_in_minutes: 60,
     target: { id: body.user_id, username: (target as { username: string }).username, email: authUser.user.email, display_name: (target as { display_name: string | null }).display_name },
-    warning: "Öffne diesen Link in einem Private-/Inkognito-Window, sonst wird deine Admin-Session ersetzt.",
+    notice: linkDelivered
+      ? "Magic-Link wurde an deine Admin-Email gesendet. In einem Private-Window öffnen."
+      : "Email-Versand fehlgeschlagen (RESEND_API_KEY fehlt oder Admin hat keine Email). Kontaktiere Ops.",
     admin: { id: adminId, role, email },
   });
 }

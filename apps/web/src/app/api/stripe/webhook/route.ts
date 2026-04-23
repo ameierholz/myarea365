@@ -30,6 +30,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${e instanceof Error ? e.message : String(e)}` }, { status: 400 });
   }
 
+  // IDEMPOTENZ: Stripe retried Events bis zu 3×. Ein Insert in stripe_processed_events
+  // mit Primary-Key-Konflikt zeigt an, dass wir dieses Event schon verarbeitet haben.
+  const { data: claim } = await admin()
+    .from("stripe_processed_events")
+    .insert({ event_id: event.id, event_type: event.type })
+    .select("event_id")
+    .maybeSingle();
+  if (!claim) {
+    // Bereits verarbeitet — 200 zurückgeben, damit Stripe nicht weiter retried.
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const sku = session.metadata?.sku;

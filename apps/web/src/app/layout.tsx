@@ -14,6 +14,7 @@ import { PinThemeStyles } from "@/components/pin-theme-styles";
 import { LegalFooter } from "@/components/legal-footer";
 import { LegalModal } from "@/components/legal-modal";
 import { GlobalSvgFilters } from "@/components/global-svg-filters";
+import { CookieConsent } from "@/components/cookie-consent";
 
 export const metadata: Metadata = {
   title: {
@@ -21,13 +22,37 @@ export const metadata: Metadata = {
     template: "%s | MyArea365",
   },
   description:
-    "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle XP und entdecke lokale Geschäfte.",
+    "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
   metadataBase: new URL("https://myarea365.de"),
+  alternates: { canonical: "/" },
+  applicationName: "MyArea365",
+  keywords: [
+    "Laufen", "Gehen", "Running", "Walking", "Gamification",
+    "Crew", "Kiez", "Straße erobern", "Community", "Fitness",
+    "lokale Shops", "Rabatte",
+  ],
+  authors: [{ name: "MyArea365" }],
   openGraph: {
     type: "website",
     locale: "de_DE",
     siteName: "MyArea365",
+    url: "https://myarea365.de",
+    title: "MyArea365 – Erobere deine Stadt",
+    description:
+      "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
+    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "MyArea365" }],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "MyArea365 – Erobere deine Stadt",
+    description: "Gamifizierte Geh- und Lauf-Community. Deine Schritte erobern deinen Kiez.",
+    images: ["/og-default.png"],
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/logo.png",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default async function RootLayout({
@@ -45,6 +70,39 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#1b2436" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://myarea365.de/#organization",
+                  name: "MyArea365",
+                  url: "https://myarea365.de",
+                  logo: "https://myarea365.de/logo.png",
+                  sameAs: [] as string[],
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://myarea365.de/#website",
+                  url: "https://myarea365.de",
+                  name: "MyArea365",
+                  description:
+                    "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
+                  inLanguage: "de-DE",
+                  publisher: { "@id": "https://myarea365.de/#organization" },
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: "https://myarea365.de/leaderboard?q={search_term_string}",
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
         <PrefsBoot />
@@ -56,6 +114,7 @@ export default async function RootLayout({
           {children}
           <LegalFooter />
           <LegalModal />
+          <CookieConsent />
         </NextIntlClientProvider>
         {/* <Analytics /> — Vercel Analytics im Dashboard aktivieren, dann entkommentieren */}
         {/* <SpeedInsights /> — Speed Insights im Dashboard aktivieren, dann entkommentieren */}

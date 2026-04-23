@@ -6,6 +6,7 @@ import { detectPolygonFromWalk, centroidOf, pointInPolygon } from "@/lib/polygon
 import { findNewCycles } from "@/lib/polygon-graph";
 import { polygonAreaM2 } from "@/lib/polygon-detect";
 import { bumpMissionProgressBatch } from "@/lib/missions";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,21 +20,65 @@ export const dynamic = "force-dynamic";
  * die neu beanspruchten Segmente + aggregierte Zaehler zurueck.
  */
 export async function POST(req: Request) {
-  let body: { trace: LngLat[]; walk_id?: string };
-  try {
-    body = await req.json();
-  } catch {
+  let body: unknown;
+  try { body = await req.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { trace, walk_id } = body;
-  if (!Array.isArray(trace) || trace.length < 2) {
-    return NextResponse.json({ error: "trace required (>=2 points)" }, { status: 400 });
+
+  // Runtime-Validation — Client-Daten sind unzuverlässig.
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+  const raw = body as { trace?: unknown; walk_id?: unknown };
+  if (!Array.isArray(raw.trace) || raw.trace.length < 2 || raw.trace.length > 5000) {
+    return NextResponse.json({ error: "trace required (2..5000 points)" }, { status: 400 });
+  }
+  const trace: LngLat[] = [];
+  for (const p of raw.trace) {
+    if (!p || typeof p !== "object") return NextResponse.json({ error: "bad_trace_point" }, { status: 400 });
+    const pp = p as { lat?: unknown; lng?: unknown };
+    if (typeof pp.lat !== "number" || typeof pp.lng !== "number") {
+      return NextResponse.json({ error: "bad_trace_point" }, { status: 400 });
+    }
+    if (pp.lat < -90 || pp.lat > 90 || pp.lng < -180 || pp.lng > 180) {
+      return NextResponse.json({ error: "trace_out_of_range" }, { status: 400 });
+    }
+    trace.push({ lat: pp.lat, lng: pp.lng });
+  }
+  const walk_id = typeof raw.walk_id === "string" ? raw.walk_id : undefined;
+
+  // GPS-Plausibility: Teleport-Detection.
+  // Aufeinanderfolgende Punkte dürfen max. 500 m voneinander entfernt sein.
+  // Das erlaubt schnelle Läufer (≤ 20 m/s = 72 km/h) auch bei sparsamen Traces
+  // mit 25 s Δt, blockiert aber offensichtliche Teleports. Bei 5 s-Ticks sind
+  // nur ~100 m realistisch — größere Sprünge lassen wir durch, kappen aber
+  // Gesamt-Strecke später.
+  let totalGapKm = 0;
+  for (let i = 1; i < trace.length; i++) {
+    const a = trace[i - 1];
+    const b = trace[i];
+    const dLat = (b.lat - a.lat) * 111;
+    const dLng = (b.lng - a.lng) * 111 * Math.cos((a.lat * Math.PI) / 180);
+    const km = Math.sqrt(dLat * dLat + dLng * dLng);
+    if (km > 0.5) {
+      return NextResponse.json({ error: "teleport_detected", gap_km: Number(km.toFixed(2)) }, { status: 400 });
+    }
+    totalGapKm += km;
+  }
+  // Sanity-Cap: ein einzelner Submit sollte nie > 25 km enthalten.
+  if (totalGapKm > 25) {
+    return NextResponse.json({ error: "trace_too_long", km: Number(totalGapKm.toFixed(1)) }, { status: 400 });
   }
 
   const sb = await createClient();
   const { data: auth } = await sb.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const userId = auth.user.id;
+
+  // Rate-Limit: 30 Trace-Submits pro Minute pro User reichen selbst für 5s-Ticks.
+  const rl = rateLimit(`walk:${userId}`, 30, 60_000);
+  const blocked = rateLimitResponse(rl);
+  if (blocked) return blocked;
 
   // Crew des Users fuer Territorium-Besitz
   const { data: profile } = await sb.from("users")

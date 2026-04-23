@@ -1,0 +1,89 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const STORAGE_KEY = "ma365_consent_v1";
+
+export type ConsentState = {
+  necessary: true; // immer
+  analytics: boolean;
+  ads: boolean;
+  decided_at: string;
+};
+
+/** Liest den aktuellen Consent-Zustand. Server/SSR: immer `null`. */
+export function getConsent(): ConsentState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ConsentState;
+    if (parsed.necessary === true && typeof parsed.decided_at === "string") return parsed;
+    return null;
+  } catch { return null; }
+}
+
+/** Globale Helfer, die Third-Party-Scripts vor dem Laden abfragen sollten. */
+export const Consent = {
+  adsAllowed(): boolean { return getConsent()?.ads === true; },
+  analyticsAllowed(): boolean { return getConsent()?.analytics === true; },
+};
+
+export function CookieConsent() {
+  const [state, setState] = useState<ConsentState | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setState(getConsent());
+    setReady(true);
+  }, []);
+
+  function save(next: ConsentState) {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+    setState(next);
+    // Reload einmalig, damit Third-Party-Scripts ggf. laden können.
+    if (next.ads || next.analytics) window.location.reload();
+  }
+
+  function acceptAll() {
+    save({ necessary: true, analytics: true, ads: true, decided_at: new Date().toISOString() });
+  }
+  function rejectOptional() {
+    save({ necessary: true, analytics: false, ads: false, decided_at: new Date().toISOString() });
+  }
+
+  if (!ready || state) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-live="polite"
+      aria-label="Cookie-Einstellungen"
+      className="fixed bottom-0 left-0 right-0 z-[2000] p-4 bg-bg-card/95 backdrop-blur-md border-t border-border"
+      style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+    >
+      <div className="max-w-3xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex-1 text-xs sm:text-sm text-text-muted leading-relaxed">
+          <b className="text-white">🍪 Datenschutz.</b>{" "}
+          Wir setzen nur notwendige Cookies für Login und Sicherheit. Für Reichweiten-Messung
+          und Werbung holen wir deine Zustimmung ein. Details in der{" "}
+          <a href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</a>.
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={rejectOptional}
+            className="px-4 py-2 rounded-lg border border-border text-text-muted hover:text-white text-xs font-bold"
+          >
+            Nur notwendige
+          </button>
+          <button
+            onClick={acceptAll}
+            className="px-4 py-2 rounded-lg bg-primary text-bg-deep text-xs font-bold hover:bg-primary-dim"
+          >
+            Alle akzeptieren
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

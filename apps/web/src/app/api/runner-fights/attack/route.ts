@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { runBattle, type BattleInput } from "@/lib/battle-engine";
 import { loadGuardianBattleContext } from "@/lib/guardian-battle-context";
 import { bumpMissionProgressBatch } from "@/lib/missions";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,11 @@ export async function POST(req: NextRequest) {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
+
+  // Rate-Limit: 30 Fights/Minute (hart), Tageslimit via RPC.
+  const rl = rateLimit(`fight:${user.id}`, 30, 60_000);
+  const blocked = rateLimitResponse(rl);
+  if (blocked) return blocked;
 
   const { defender_guardian_id } = await req.json() as Body;
   if (!defender_guardian_id) return NextResponse.json({ ok: false, error: "missing_defender" }, { status: 400 });

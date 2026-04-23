@@ -262,14 +262,12 @@ export default function DatenschutzPage() {
           </SubSection>
 
           <SubSection title="4.12 A/B-Tests und Experimente">
-            <DataList items={[
-              "Zuordnung deiner Benutzer-ID zu einer Variante pro laufendem Experiment",
-              "Ereignisse: Klick, Konversion, sonstige definierte Events",
-              "Varianten-Key, Wert und Metadaten",
-            ]} />
-            <p className="text-xs mt-2">
-              Experimente dienen der Produktverbesserung und erfolgen pseudonymisiert.
-              Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Widerspruchsrecht nach Art. 21 DSGVO.
+            <p className="text-xs">
+              A/B-Tests sind <b>derzeit nicht aktiv</b>. Die App-Infrastruktur (Tabelle
+              <code>experiment_assignments</code>) ist für den späteren Einsatz vorbereitet.
+              Sobald Experimente aktiviert werden, erfolgt eine Aktualisierung dieser
+              Datenschutzerklärung. Zuweisungen wären dann pseudonymisiert auf Basis der
+              Benutzer-ID.
             </p>
           </SubSection>
 
@@ -331,10 +329,10 @@ export default function DatenschutzPage() {
             <DataList items={[
               "Teilnahme-Status an Beta-Features",
               "Feedback-Formular-Einträge inkl. Text, Bewertung, Kontext (URL, User-Agent)",
-              "Crash-Reports und Fehler-Stacktraces (ohne Klartextdaten Dritter)",
             ]} />
             <p className="text-xs mt-2">
-              Feedback wird 24 Monate aufbewahrt. Crash-Reports 90 Tage. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.
+              Feedback wird 24 Monate aufbewahrt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.
+              Automatisiertes Crash-Reporting ist <b>derzeit nicht aktiv</b>; sobald eingeführt, wird diese Erklärung aktualisiert.
             </p>
           </SubSection>
 
@@ -350,14 +348,12 @@ export default function DatenschutzPage() {
           </SubSection>
 
           <SubSection title="4.19 Telemetrie und Performance-Monitoring">
-            <DataList items={[
-              "Web-Vitals (LCP, INP, CLS) zur Optimierung der Ladezeit",
-              "API-Antwortzeiten und Fehlerraten (ohne Nutzer-Payload)",
-              "Render-Fehler und Fehlermeldungen (pseudonymisiert mit Session-ID, nicht Nutzer-ID)",
-              "Gerätetyp, Bildschirmauflösung, Connection-Qualität (nur aggregiert)",
-            ]} />
-            <p className="text-xs mt-2">
-              Diese Daten dienen ausschließlich der technischen Qualitätssicherung. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO.
+            <p className="text-sm">
+              Aktuell ist <b>keine aktive Telemetrie</b> (kein Sentry, kein Analytics-Dienst) integriert.
+              Vercel Speed Insights und Vercel Analytics sind technisch vorbereitet, aber im Dashboard
+              nicht aktiviert. Vor einer Aktivierung erfolgt eine Aktualisierung dieser Erklärung und
+              — sofern personenbezogene Daten verarbeitet werden — eine Einwilligung über das
+              Consent-Banner.
             </p>
           </SubSection>
 
@@ -436,7 +432,7 @@ export default function DatenschutzPage() {
                 <Row d="Vercel Inc." z="Hosting, CDN, Edge-Functions" l="EU (fra1, Frankfurt)" />
                 <Row d="Mapbox Inc." z="Kartendarstellung, Geocoding, Snap-to-Road" l="USA &ndash; SCCs + DPF" />
                 <Row d="Resend Inc." z="Transaktions- und Newsletter-E-Mails" l="USA &ndash; SCCs + DPF" />
-                <Row d="Anthropic PBC" z="KI-Moderation und Beleg-Erkennung" l="USA &ndash; SCCs (Zero-Retention-DPA)" />
+                <Row d="Anthropic PBC" z="KI-Moderation und Beleg-Erkennung" l="USA &ndash; SCCs; Zero-Retention gem. Anbieter-Richtlinie, DPA in Abschluss" />
                 <Row d="Stripe Payments Europe Ltd." z="Zahlungsabwicklung" l="EU (Irland) &ndash; US-Sublieferanten mit SCCs" />
                 <Row d="Apple Push Notification Service" z="Push-Nachrichten (iOS)" l="USA &ndash; SCCs" />
                 <Row d="Google Firebase Cloud Messaging" z="Push-Nachrichten (Android, Web)" l="USA &ndash; SCCs + DPF" />
@@ -459,7 +455,7 @@ export default function DatenschutzPage() {
             <li>EU-Standardvertragsklauseln (SCCs) in aktueller Fassung von Juni 2021</li>
             <li>Transfer-Folgenabschätzung (TIA) für jeden US-Dienstleister</li>
             <li>Zusätzliche technische Maßnahmen (Verschlüsselung in Transit und at Rest, Pseudonymisierung)</li>
-            <li>Vertragliche Beschränkungen (Zero-Retention, No-Training-on-User-Data bei Anthropic)</li>
+            <li>Vertragliche Beschränkungen, soweit mit dem jeweiligen Anbieter abgeschlossen (z.&nbsp;B. Zero-Retention, No-Training-on-User-Data bei Anthropic — DPA in Abschluss)</li>
           </ul>
           <p className="text-xs mt-2 italic">
             Kopien der SCCs und weitere Garantien stellen wir auf Anfrage zur Verfügung.

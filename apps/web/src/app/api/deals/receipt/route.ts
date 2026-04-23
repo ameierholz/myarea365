@@ -91,8 +91,10 @@ export async function POST(req: NextRequest) {
   });
   if (lootErr) return NextResponse.json({ ok: false, error: lootErr.message }, { status: 500 });
 
-  // Receipt-URL in Redemption speichern (signed URL für Admin-Review)
-  const { data: signed } = await admin.storage.from("receipts").createSignedUrl(path, 60 * 60 * 24 * 30);
+  // Receipt-URL in Redemption speichern (signed URL für Admin-Review).
+  // DSGVO: 7 Tage TTL — konsistent mit Zusage in Datenschutzerklärung. Storage-
+  // Lifecycle-Rule im Supabase-Dashboard löscht das Objekt anschließend ebenfalls.
+  const { data: signed } = await admin.storage.from("receipts").createSignedUrl(path, 60 * 60 * 24 * 7);
   await sb.from("deal_redemptions").update({
     receipt_url: signed?.signedUrl ?? null,
     receipt_ocr_amount_cents: ocr.amount_cents ?? null,

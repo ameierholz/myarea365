@@ -74,7 +74,7 @@ export async function extractReceiptAmount(imageBase64: string, contentType: str
           ? (parsed.confidence as "high" | "medium" | "low" | "failed")
           : "low",
         merchant_hint: parsed.merchant_hint,
-        items: Array.isArray(parsed.items) ? parsed.items.filter((x): x is string => typeof x === "string").slice(0, 20) : [],
+        items: Array.isArray(parsed.items) ? parsed.items.filter((x): x is string => typeof x === "string").map(sanitizeReceiptItem).filter((x) => x.length > 0).slice(0, 20) : [],
         raw_text: raw,
       };
     } catch {
@@ -83,6 +83,20 @@ export async function extractReceiptAmount(imageBase64: string, contentType: str
   } catch (e) {
     return { amount_cents: null, currency: null, confidence: "failed", reason: e instanceof Error ? e.message : "Unbekannter Fehler" };
   }
+}
+
+/**
+ * Säubert OCR-Items vor DB-/RPC-Nutzung.
+ * - Entfernt alle Zeichen außer Buchstaben, Zahlen, Leerzeichen, `-`, `&`, `.`, `/`.
+ * - Trimmt auf max. 64 Zeichen (Schutz vor LIKE-Pattern-Abuse + DB-Bloat).
+ * - Normalisiert Whitespace.
+ */
+export function sanitizeReceiptItem(raw: string): string {
+  return raw
+    .replace(/[^\p{L}\p{N}\s\-&./]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 64);
 }
 
 /**

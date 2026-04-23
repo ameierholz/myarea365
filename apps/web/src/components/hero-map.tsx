@@ -66,17 +66,10 @@ export function HeroMap() {
       setTimeout(() => setShowRadar(true), 3200);
     }
 
-    map.once("load", () => {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => zoomIn([pos.coords.longitude, pos.coords.latitude]),
-          () => zoomIn(FALLBACK_CENTER),
-          { enableHighAccuracy: true, timeout: 4000 }
-        );
-      } else {
-        zoomIn(FALLBACK_CENTER);
-      }
-    });
+    // DSGVO: Auf der Landing-Page NIEMALS unaufgefordert GPS abfragen.
+    // Wir zoomen auf den Fallback-Center (Berlin); der User kann per Button auf
+    // seinen Standort zoomen (siehe zoomToMe unten).
+    map.once("load", () => zoomIn(FALLBACK_CENTER));
 
     return () => {
       map.remove();

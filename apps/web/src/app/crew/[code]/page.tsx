@@ -8,9 +8,29 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
+  const sb = await createClient();
+  const { data: crew } = await sb
+    .from("crews")
+    .select("name, member_count")
+    .eq("invite_code", code.toUpperCase())
+    .maybeSingle<{ name: string; member_count: number | null }>();
+
+  const title = crew
+    ? `Crew „${crew.name}" beitreten · MyArea365`
+    : `Einladung zur Crew ${code.toUpperCase()} · MyArea365`;
+  const desc = crew
+    ? `Tritt der Crew „${crew.name}" bei (${crew.member_count ?? 0} Mitglieder) und erobert gemeinsam euren Kiez.`
+    : "Tritt der Crew bei und erobert zusammen die Stadt.";
+
   return {
-    title: `Einladung zur Crew ${code.toUpperCase()} · MyArea365`,
-    description: "Tritt der Crew bei und erobere zusammen die Stadt.",
+    title,
+    description: desc,
+    alternates: { canonical: `/crew/${code.toUpperCase()}` },
+    openGraph: {
+      title,
+      description: desc,
+      images: ["/og-default.png"],
+    },
   };
 }
 
