@@ -727,8 +727,8 @@ export const ACHIEVEMENTS: Array<{
   { id: "speed_3", name: "50 km Ultra",           xp: 8500,   icon: "🚀", stat: "longest_km",  target: 50,   unit: "km", category: "speed", tier: "epic" },
   { id: "speed_6", name: "60 km Grenzgänger",     xp: 11000,  icon: "🏃‍♂️", stat: "longest_km", target: 60,   unit: "km", category: "speed", tier: "epic" },
   { id: "speed_4", name: "75 km Iron-Runner",     xp: 15000,  icon: "⚡", stat: "longest_km",  target: 75,   unit: "km", category: "speed", tier: "legend" },
-  { id: "speed_5", name: "100 km Legende",        xp: 22000,  icon: "🌟", stat: "longest_km",  target: 100,  unit: "km", category: "speed", tier: "legend" },
-  { id: "speed_7", name: "150 km Wahnsinn",       xp: 35000,  icon: "🌠", stat: "longest_km",  target: 150,  unit: "km", category: "speed", tier: "legend" },
+  { id: "speed_5", name: "100 km Legende",        xp: 20000,  icon: "🌟", stat: "longest_km",  target: 100,  unit: "km", category: "speed", tier: "legend" },
+  { id: "speed_7", name: "150 km Wahnsinn",       xp: 20000,  icon: "🌠", stat: "longest_km",  target: 150,  unit: "km", category: "speed", tier: "legend" },
 
   // 🌍 Welt-Bummler (lifetime_km)
   { id: "end_1",   name: "10 km Gesamt",          xp: 50,     icon: "🌱", stat: "lifetime_km", target: 10,    unit: "km", category: "endurance", tier: "easy" },
@@ -760,7 +760,7 @@ export const ACHIEVEMENTS: Array<{
   { id: "exp_14",  name: "400 Gebiete",       xp: 9000,  icon: "👑", stat: "territories", target: 400,  unit: "", category: "explorer", tier: "epic" },
   { id: "exp_8",   name: "500 Gebiete",       xp: 12000, icon: "🏆", stat: "territories", target: 500,  unit: "", category: "explorer", tier: "epic" },
   { id: "exp_15",  name: "750 Gebiete",       xp: 17000, icon: "🏆", stat: "territories", target: 750,  unit: "", category: "explorer", tier: "epic" },
-  { id: "exp_9",   name: "1.000 Gebiete",     xp: 25000, icon: "💎", stat: "territories", target: 1000, unit: "", category: "explorer", tier: "legend" },
+  { id: "exp_9",   name: "1.000 Gebiete",     xp: 20000, icon: "💎", stat: "territories", target: 1000, unit: "", category: "explorer", tier: "legend" },
 
   // 🛤️ Weg-Erkunder (segments) — Straßenabschnitte
   { id: "seg_1",   name: "Erster Abschnitt",       xp: 20,    icon: "🛤️", stat: "segments",    target: 1,    unit: "", category: "pathfinder", tier: "easy" },
@@ -781,7 +781,7 @@ export const ACHIEVEMENTS: Array<{
   { id: "str1_5",  name: "50 Straßen komplett",    xp: 3200,  icon: "🛣️", stat: "streets",     target: 50,   unit: "", category: "streetboss", tier: "hard" },
   { id: "str1_6",  name: "100 Straßen komplett",   xp: 6500,  icon: "🛣️", stat: "streets",     target: 100,  unit: "", category: "streetboss", tier: "hard" },
   { id: "str1_7",  name: "250 Straßen komplett",   xp: 15000, icon: "🛣️", stat: "streets",     target: 250,  unit: "", category: "streetboss", tier: "epic" },
-  { id: "str1_8",  name: "500 Straßen komplett",   xp: 30000, icon: "🛣️", stat: "streets",     target: 500,  unit: "", category: "streetboss", tier: "legend" },
+  { id: "str1_8",  name: "500 Straßen komplett",   xp: 20000, icon: "🛣️", stat: "streets",     target: 500,  unit: "", category: "streetboss", tier: "legend" },
 
   // 🔥 Durchhalter (streak_best)
   { id: "str_1",   name: "2 Tage in Folge",       xp: 60,    icon: "🕯️", stat: "streak_best", target: 2,   unit: "Tage", category: "streak", tier: "easy" },
@@ -798,8 +798,8 @@ export const ACHIEVEMENTS: Array<{
   { id: "str_8",   name: "100 Tage Serie",        xp: 9500,  icon: "🔥", stat: "streak_best", target: 100, unit: "Tage", category: "streak", tier: "epic" },
   { id: "str_15",  name: "150 Tage Unaufhaltsam", xp: 14000, icon: "☄️", stat: "streak_best", target: 150, unit: "Tage", category: "streak", tier: "epic" },
   { id: "str_9",   name: "Halbes Jahr (180)",     xp: 17000, icon: "☄️", stat: "streak_best", target: 180, unit: "Tage", category: "streak", tier: "epic" },
-  { id: "str_16",  name: "250 Tage Eisern",       xp: 24000, icon: "💫", stat: "streak_best", target: 250, unit: "Tage", category: "streak", tier: "legend" },
-  { id: "str_10",  name: "1 Jahr durchgängig",    xp: 40000, icon: "🌠", stat: "streak_best", target: 365, unit: "Tage", category: "streak", tier: "legend" },
+  { id: "str_16",  name: "250 Tage Eisern",       xp: 20000, icon: "💫", stat: "streak_best", target: 250, unit: "Tage", category: "streak", tier: "legend" },
+  { id: "str_10",  name: "1 Jahr durchgängig",    xp: 20000, icon: "🌠", stat: "streak_best", target: 365, unit: "Tage", category: "streak", tier: "legend" },
 
   // 📅 Stammgast (total_walks)
   { id: "con_1",   name: "Erster Lauf",           xp: 50,    icon: "🎉", stat: "total_walks", target: 1,    unit: "", category: "consistency", tier: "easy" },
@@ -817,19 +817,19 @@ export const ACHIEVEMENTS: Array<{
   { id: "con_8",   name: "500 Läufe",             xp: 11000, icon: "👑", stat: "total_walks", target: 500,  unit: "", category: "consistency", tier: "epic" },
   { id: "con_16",  name: "750 Läufe Vielläufer",  xp: 15000, icon: "🏆", stat: "total_walks", target: 750,  unit: "", category: "consistency", tier: "epic" },
   { id: "con_9",   name: "1.000 Läufe Lifetime",  xp: 20000, icon: "💎", stat: "total_walks", target: 1000, unit: "", category: "consistency", tier: "legend" },
-  { id: "con_17",  name: "1.500 Läufe Rentner-Mode", xp: 28000, icon: "⭐", stat: "total_walks", target: 1500, unit: "", category: "consistency", tier: "legend" },
-  { id: "con_10",  name: "2.500 Läufe Legende",   xp: 40000, icon: "⭐", stat: "total_walks", target: 2500, unit: "", category: "consistency", tier: "legend" },
+  { id: "con_17",  name: "1.500 Läufe Rentner-Mode", xp: 20000, icon: "⭐", stat: "total_walks", target: 1500, unit: "", category: "consistency", tier: "legend" },
+  { id: "con_10",  name: "2.500 Läufe Legende",   xp: 20000, icon: "⭐", stat: "total_walks", target: 2500, unit: "", category: "consistency", tier: "legend" },
 
   // 👑 Legende (Hardcore Mixed-Stats)
   { id: "elite_1", name: "Marathon-Absolvent",    xp: 7000,   icon: "🏃‍♂️", stat: "longest_km",  target: 42.2,  unit: "km", category: "elite", tier: "hard" },
   { id: "elite_2", name: "1.000 km Club",         xp: 3800,   icon: "🏔️", stat: "lifetime_km", target: 1000,  unit: "km", category: "elite", tier: "hard" },
   { id: "elite_7", name: "1.500 km Club",         xp: 5500,   icon: "🏔️", stat: "lifetime_km", target: 1500,  unit: "km", category: "elite", tier: "hard" },
   { id: "elite_3", name: "5.000 km Club",         xp: 16000,  icon: "💎", stat: "lifetime_km", target: 5000,  unit: "km", category: "elite", tier: "epic" },
-  { id: "elite_8", name: "7.500 km Elite",        xp: 22000,  icon: "💎", stat: "lifetime_km", target: 7500,  unit: "km", category: "elite", tier: "epic" },
-  { id: "elite_4", name: "10.000 km Unsterblich", xp: 30000,  icon: "⚔️", stat: "lifetime_km", target: 10000, unit: "km", category: "elite", tier: "legend" },
-  { id: "elite_9", name: "15.000 km Titan",       xp: 45000,  icon: "⚔️", stat: "lifetime_km", target: 15000, unit: "km", category: "elite", tier: "legend" },
-  { id: "elite_5", name: "25.000 km Mythos",      xp: 70000,  icon: "🌌", stat: "lifetime_km", target: 25000, unit: "km", category: "elite", tier: "legend" },
-  { id: "elite_6", name: "50.000 km — Erdumfang", xp: 120000, icon: "🌐", stat: "lifetime_km", target: 50000, unit: "km", category: "elite", tier: "legend" },
+  { id: "elite_8", name: "7.500 km Elite",        xp: 20000,  icon: "💎", stat: "lifetime_km", target: 7500,  unit: "km", category: "elite", tier: "epic" },
+  { id: "elite_4", name: "10.000 km Unsterblich", xp: 20000,  icon: "⚔️", stat: "lifetime_km", target: 10000, unit: "km", category: "elite", tier: "legend" },
+  { id: "elite_9", name: "15.000 km Titan",       xp: 20000,  icon: "⚔️", stat: "lifetime_km", target: 15000, unit: "km", category: "elite", tier: "legend" },
+  { id: "elite_5", name: "25.000 km Mythos",      xp: 20000,  icon: "🌌", stat: "lifetime_km", target: 25000, unit: "km", category: "elite", tier: "legend" },
+  { id: "elite_6", name: "50.000 km — Erdumfang", xp: 20000, icon: "🌐", stat: "lifetime_km", target: 50000, unit: "km", category: "elite", tier: "legend" },
 ];
 
 // Settings options
@@ -915,7 +915,7 @@ export const DEMO_RUNNERS: Record<string, DemoRunnerProfile> = {
     team_color:    "#a855f7",
     rank_name:     "Kiez-König",
     rank_color:    "#FF2D78",
-    xp:            72500,
+    xp: 20000,
     territories:   31,
     total_km:      187.3,
     streak_days:   14,
@@ -1173,26 +1173,23 @@ export type HappyHour = {
 };
 
 export function getCurrentHappyHour(): HappyHour {
-  // Demo: Happy Hour zwischen 18-19 Uhr Deutsche Zeit
+  // Happy Hour: 7–8 Uhr und 18–19 Uhr Deutsche Zeit.
+  // Multiplikator bewusst bei 1.5× statt 2× — kombiniert mit einem 2×-Boost
+  // (Shop/Crew) ergeben sich max. 3× statt 4×. Das verhindert Farming-
+  // Incentives zur festen Stunde, gibt aber trotzdem einen spürbaren Bonus.
   const now = new Date();
   const h = now.getHours();
   if (h === 18) {
     const end = new Date(now);
     end.setHours(19, 0, 0, 0);
-    return { active: true, multiplier: 2, ends_at: end.toISOString(), label: "Abend-Rush" };
+    return { active: true, multiplier: 1.5, ends_at: end.toISOString(), label: "Abend-Rush" };
   }
   if (h === 7) {
     const end = new Date(now);
     end.setHours(8, 0, 0, 0);
-    return { active: true, multiplier: 2, ends_at: end.toISOString(), label: "Morgen-Boost" };
+    return { active: true, multiplier: 1.5, ends_at: end.toISOString(), label: "Morgen-Boost" };
   }
-  // Demo-Fallback: immer aktiv für Test-Zwecke
-  return {
-    active: true,
-    multiplier: 2,
-    ends_at: new Date(now.getTime() + 47 * 60 * 1000).toISOString(),
-    label: "Power Hour",
-  };
+  return { active: false, multiplier: 1, ends_at: "", label: "" };
 }
 
 // Demo-Daten um User-Position herum generieren (kleine lat/lng-Deltas)

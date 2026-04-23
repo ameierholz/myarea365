@@ -47,11 +47,8 @@ export async function POST(req: Request) {
   }
   const walk_id = typeof raw.walk_id === "string" ? raw.walk_id : undefined;
 
-  // GPS-Plausibility: nur offensichtliche Teleports ablehnen.
-  // Echte GPS-Traces haben bei schwachem Signal, Tunnel oder Startpunkt regelmäßig
-  // Sprünge von 1–3 km — strenge Prüfungen erzeugen zu viele False-Positives.
-  // Wir blocken nur Sprünge > 10 km (unmöglich für einen Läufer in Sekunden)
-  // und kappen die Gesamt-Strecke pro Submit auf 50 km.
+  // GPS-Plausibility: offensichtliche Teleports ablehnen.
+  // Sprünge > 10 km zwischen zwei Punkten = unmöglich, Total-Cap 50 km pro Submit.
   let totalGapKm = 0;
   for (let i = 1; i < trace.length; i++) {
     const a = trace[i - 1];
@@ -69,6 +66,29 @@ export async function POST(req: Request) {
   }
 
   const sb = await createClient();
+
+  // Zusätzliche Anti-Spoof-Prüfung: wenn walk_id bekannt ist, gegen die
+  // tatsächlich verstrichene Zeit seit Walk-Start gegenprüfen. Ein echter
+  // Läufer schafft max. ~16 km/h (ambitionierter Sprint). Wir nehmen 20 km/h
+  // als großzügige Obergrenze inkl. GPS-Drift.
+  if (walk_id) {
+    const { data: walkMeta } = await sb.from("territories")
+      .select("created_at, distance_m")
+      .eq("id", walk_id)
+      .maybeSingle<{ created_at: string; distance_m: number | null }>();
+    if (walkMeta) {
+      const elapsedSec = Math.max(1, (Date.now() - new Date(walkMeta.created_at).getTime()) / 1000);
+      const maxPlausibleKm = (elapsedSec / 3600) * 20; // 20 km/h Obergrenze
+      const alreadyKm = (walkMeta.distance_m ?? 0) / 1000;
+      // „total" = Strecke vom aktuellen Submit zusätzlich zum bereits gespeicherten.
+      if (totalGapKm + alreadyKm > maxPlausibleKm + 1) {
+        return NextResponse.json({
+          error: "speed_implausible",
+          detail: `Gesamt ${(totalGapKm + alreadyKm).toFixed(2)} km in ${Math.round(elapsedSec / 60)} min überschreitet 20 km/h.`,
+        }, { status: 400 });
+      }
+    }
+  }
   const { data: auth } = await sb.auth.getUser();
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const userId = auth.user.id;
