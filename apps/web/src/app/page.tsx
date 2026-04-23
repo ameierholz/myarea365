@@ -281,7 +281,7 @@ export default function LandingPage() {
             {[
               { step: "01", title: "Account in 30 Sek", desc: "Runner-Name, Fraktion wählen, los. Keine Kreditkarte, keine Vertragsbindung." },
               { step: "02", title: "Rausgehen & laufen", desc: "Karte öffnen, \"Eroberung starten\". Screen bleibt automatisch an — Handy kann in die Tasche." },
-              { step: "03", title: "XP & Rabatte kassieren", desc: "Straßen einnehmen, im Shop QR scannen, Deal abholen." },
+              { step: "03", title: "Wegemünzen & Rabatte kassieren", desc: "Straßen einnehmen, im Shop QR scannen, Deal abholen." },
             ].map((item) => (
               <div key={item.step} className="text-center">
                 <div className="text-5xl font-black text-primary/20 mb-4">{item.step}</div>

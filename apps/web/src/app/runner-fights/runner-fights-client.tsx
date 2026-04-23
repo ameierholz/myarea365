@@ -1740,11 +1740,11 @@ function PrestigeDemo() {
           <button onClick={() => doFight(true)} style={{
             flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 900, cursor: "pointer",
             background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.5)", color: "#4ade80",
-          }}>⚔️ Sieg (+80 XP)</button>
+          }}>⚔️ Sieg (+80 ⚔️)</button>
           <button onClick={() => doFight(false)} style={{
             flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 900, cursor: "pointer",
             background: "rgba(255,45,120,0.1)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78",
-          }}>💀 Niederlage (+20 XP)</button>
+          }}>💀 Niederlage (+20 ⚔️)</button>
         </div>
       </div>
 

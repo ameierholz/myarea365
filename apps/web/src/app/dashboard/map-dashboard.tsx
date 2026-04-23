@@ -9659,7 +9659,7 @@ function ShopsRunnerView() {
           WARUM LOKAL EINKAUFEN
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Deine XP fließen direkt in deinen Kiez — nicht zu Amazon.
+          Deine Wegemünzen fließen direkt in deinen Kiez — nicht zu Amazon.
         </div>
         <div style={{
           display: "grid",
@@ -9704,14 +9704,14 @@ function ShopsRunnerView() {
           gap: 10,
         }}>
           {[
-            { icon: "☕", shop: "Café Liebling",     deal: "Gratis Cappuccino ab 3 km Lauf", xp: "300 XP" },
-            { icon: "🥐", shop: "Bäckerei Müller",    deal: "2 Brötchen 1 € (statt 1,60 €)",   xp: "150 XP" },
-            { icon: "🛍️", shop: "Runners Point",     deal: "15 % auf den ganzen Einkauf",     xp: "800 XP" },
-            { icon: "🥗", shop: "Bio-Bowl",          deal: "Gratis Smoothie zur Bowl",        xp: "400 XP" },
-            { icon: "🏋️", shop: "MyCityFit",         deal: "Kostenlose Probe-Woche",          xp: "1.500 XP" },
-            { icon: "🍦", shop: "Eiskultur Berlin",  deal: "Gratis Kugel Eis bei 5 km",       xp: "250 XP" },
-            { icon: "💈", shop: "Barber Pankow",     deal: "10 % auf jeden Schnitt",          xp: "600 XP" },
-            { icon: "🥐", shop: "Bio-Markt Ecke",    deal: "Gratis Kombucha zur Bowl",        xp: "350 XP" },
+            { icon: "☕", shop: "Café Liebling",     deal: "Gratis Cappuccino ab 3 km Lauf", xp: "300 🪙" },
+            { icon: "🥐", shop: "Bäckerei Müller",    deal: "2 Brötchen 1 € (statt 1,60 €)",   xp: "150 🪙" },
+            { icon: "🛍️", shop: "Runners Point",     deal: "15 % auf den ganzen Einkauf",     xp: "800 🪙" },
+            { icon: "🥗", shop: "Bio-Bowl",          deal: "Gratis Smoothie zur Bowl",        xp: "400 🪙" },
+            { icon: "🏋️", shop: "MyCityFit",         deal: "Kostenlose Probe-Woche",          xp: "1.500 🪙" },
+            { icon: "🍦", shop: "Eiskultur Berlin",  deal: "Gratis Kugel Eis bei 5 km",       xp: "250 🪙" },
+            { icon: "💈", shop: "Barber Pankow",     deal: "10 % auf jeden Schnitt",          xp: "600 🪙" },
+            { icon: "🥐", shop: "Bio-Markt Ecke",    deal: "Gratis Kombucha zur Bowl",        xp: "350 🪙" },
           ].map((d, i) => (
             <div key={i} style={{
               background: "rgba(30, 38, 60, 0.55)", borderRadius: 14,
@@ -9760,7 +9760,7 @@ function ShopsRunnerView() {
           {[
             { num: "01", icon: "📍", title: "Lauf vorbei",        desc: "Komm in den 20m-Radius eines Partner-Shops — egal ob gezielt oder zufällig." },
             { num: "02", icon: "📷", title: "QR scannen",         desc: "Kurz an der Theke abscannen. Dauer: 2 Sekunden. Anwesenheit bewiesen." },
-            { num: "03", icon: "💸", title: "Rabatt kassieren",   desc: "Deal auf Handy zeigen, XP gehen auto ab, du sparst direkt an der Kasse." },
+            { num: "03", icon: "💸", title: "Rabatt kassieren",   desc: "Deal auf Handy zeigen, Wegemünzen gehen auto ab, du sparst direkt an der Kasse." },
           ].map((s) => (
             <div key={s.num} style={{
               background: "rgba(30, 38, 60, 0.55)", padding: 16, borderRadius: 14,
@@ -9775,10 +9775,10 @@ function ShopsRunnerView() {
         </div>
       </div>
 
-      {/* XP VERDIENEN */}
+      {/* WEGEMÜNZEN VERDIENEN */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          XP VERDIENEN = DEALS FREISCHALTEN
+          🪙 WEGEMÜNZEN VERDIENEN = DEALS FREISCHALTEN
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
           Je aktiver du läufst, desto mehr Deals kannst du einlösen.
@@ -9793,12 +9793,12 @@ function ShopsRunnerView() {
             gap: 10,
           }}>
             {[
-              { label: "Pro km",              value: "+50 XP",    icon: "📏" },
-              { label: "Pro Lauf",            value: "+100 XP",   icon: "🏃" },
-              { label: "Neues Gebiet",   value: "+500 XP",   icon: "🗺️" },
-              { label: "Kiez-Check-in",       value: "+500 XP",   icon: "📍" },
-              { label: "Streak-Tag",          value: "+bis 1.000", icon: "🔥" },
-              { label: "Crew-Win",            value: "+2.500 XP", icon: "🏆" },
+              { label: "Pro km",              value: "+50 🪙",      icon: "📏" },
+              { label: "Pro Lauf",            value: "+100 🪙",     icon: "🏃" },
+              { label: "Neuer Straßenzug",    value: "+250 🪙",     icon: "🛣️" },
+              { label: "Neues Gebiet",        value: "+500 🪙",     icon: "🗺️" },
+              { label: "Streak-Tag",          value: "+bis 1.000 🪙", icon: "🔥" },
+              { label: "Crew-Win",            value: "+2.500 🪙",   icon: "🏆" },
             ].map((x) => (
               <div key={x.label} style={{
                 background: "rgba(0,0,0,0.25)", padding: "10px 12px", borderRadius: 10,
@@ -9830,7 +9830,7 @@ function ShopsRunnerView() {
             { icon: "📡", title: "Nur vor Ort einlösbar",     desc: "GPS-Check + rotierender QR. Kein Online-Missbrauch — der Shop hat was davon, nicht irgendein Bot." },
             { icon: "🗓️", title: "Klare Einlöse-Regeln",     desc: "Jeder Deal zeigt offen: 1× / Woche, 1× / Monat oder unbegrenzt. Keine versteckten Klauseln." },
             { icon: "💾", title: "Deine Daten bleiben bei dir", desc: "Shops sehen nur: anonymer Check-in + gelaufene km. Kein Profil-Tracking, keine Werbe-IDs." },
-            { icon: "💸", title: "Keine App-Währung",        desc: "Deine XP bleiben XP. Du tauschst sie ein, wenn du willst — nicht weil eine Zahl bald abläuft." },
+            { icon: "💸", title: "Keine Ablauf-Währung",      desc: "Deine 🪙 Wegemünzen laufen nicht ab. Du tauschst sie ein, wenn du willst — nicht weil eine Zahl bald verfällt." },
           ].map((s, i) => (
             <div key={i} style={{
               background: "rgba(30, 38, 60, 0.55)", borderRadius: 14,
@@ -9870,7 +9870,7 @@ function ShopsRunnerView() {
             fontSize: 13, fontWeight: 900, border: "none", cursor: "pointer",
           }}
         >
-          💡 Shop empfehlen (+1.000 XP)
+          💡 Shop empfehlen (+1.000 🪙)
         </button>
       </div>
     </div>
@@ -10970,7 +10970,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
               <>
                 <FilterPill active={sortRunner === "weekly_xp"} onClick={() => setSortRunner("weekly_xp")}>Woche XP</FilterPill>
                 <FilterPill active={sortRunner === "weekly_km"} onClick={() => setSortRunner("weekly_km")}>Woche km</FilterPill>
-                <FilterPill active={sortRunner === "total_xp"}  onClick={() => setSortRunner("total_xp")}>Gesamt XP</FilterPill>
+                <FilterPill active={sortRunner === "total_xp"}  onClick={() => setSortRunner("total_xp")}>Gesamt 🪙</FilterPill>
               </>
             ) : (
               <>

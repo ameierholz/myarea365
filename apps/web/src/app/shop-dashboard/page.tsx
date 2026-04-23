@@ -79,7 +79,7 @@ const FREQ_LABEL: Record<DealFreq, string> = {
 const DEMO_DEALS: Deal[] = [
   { id: "d1", title: "Gratis Cappuccino ab 3 km Lauf", xp: 300, freq: "weekly",    active: true,  redemptions_month: 82, created: "2026-02-01" },
   { id: "d2", title: "2. Croissant gratis",            xp: 150, freq: "monthly",   active: true,  redemptions_month: 54, created: "2026-02-15" },
-  { id: "d3", title: "10 € Gutschein ab 500 XP",       xp: 500, freq: "quarterly", active: true,  redemptions_month: 18, created: "2026-03-01" },
+  { id: "d3", title: "10 € Gutschein ab 500 🪙",       xp: 500, freq: "quarterly", active: true,  redemptions_month: 18, created: "2026-03-01" },
   { id: "d4", title: "Geburtstags-Kuchen gratis",      xp: 200, freq: "yearly",    active: true,  redemptions_month: 4,  created: "2026-01-20" },
   { id: "d5", title: "Happy Hour Eistee 50%",          xp: 100, freq: "unlimited", active: false, redemptions_month: 0,  created: "2026-02-10" },
 ];
