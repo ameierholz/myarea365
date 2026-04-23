@@ -4567,12 +4567,17 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
               {weekTotal.toFixed(1)} km
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 56 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 72 }}>
             {weekKm.map((w, i) => {
-              const maxPx = 40; // reservierte Bar-Hoehe (Rest = Label)
+              const maxPx = 40; // reservierte Bar-Hoehe
               const h = w.km > 0 ? Math.max(6, (w.km / maxWeekKm) * maxPx) : 3;
               return (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, justifyContent: "flex-end" }}>
+                <div key={i} style={{
+                  flex: 1, minWidth: 0,
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", gap: 3,
+                  justifyContent: "flex-end",
+                }}>
                   <div style={{
                     width: "100%", height: `${h}px`,
                     background: w.km > 0
@@ -4582,10 +4587,21 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
                     boxShadow: w.km > 0 ? `0 0 6px ${teamColor}99` : "none",
                     border: w.isToday ? `1px solid ${w.km > 0 ? "#FFF" : teamColor}` : "none",
                   }} />
+                  {/* Fixe 2-Zeilen-Höhe: Tag + optionaler km-Wert. Verhindert
+                      uneinheitliche Spaltenhöhen, die den Bar nach oben schieben. */}
                   <span style={{
-                    fontSize: 9, color: w.isToday ? teamColor : MUTED,
+                    fontSize: 9, lineHeight: "11px",
+                    color: w.isToday ? teamColor : MUTED,
                     fontWeight: w.isToday ? 800 : 600,
-                  }}>{w.label}{w.km > 0 ? ` · ${w.km.toFixed(1)} km` : ""}</span>
+                    whiteSpace: "nowrap",
+                  }}>{w.label}</span>
+                  <span style={{
+                    fontSize: 8, lineHeight: "10px",
+                    color: w.isToday ? teamColor : MUTED,
+                    fontWeight: w.isToday ? 700 : 500,
+                    whiteSpace: "nowrap",
+                    minHeight: 10,
+                  }}>{w.km > 0 ? `${w.km.toFixed(1)} km` : ""}</span>
                 </div>
               );
             })}
