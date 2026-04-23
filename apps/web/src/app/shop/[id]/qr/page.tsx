@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
-import { Footprints, Coins, MapPin, Download, QrCode as QrIcon, Tag, Shield } from "lucide-react";
+import { Trophy, Flame, Gift, Smartphone, Map as MapIcon, QrCode as QrIcon, Apple, Play } from "lucide-react";
 
 const STAND_VARIANTS = [
   { id: "a5_table",  label: "A5 Tischaufsteller",   price: 1290, desc: "Perfekt für Theke / Tisch. Acryl-Halter mit gedrucktem QR-Einleger." },
@@ -37,179 +37,139 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
         {/* Haupt-Poster (druckbar) */}
         <div className="print-poster" style={{
           position: "relative",
-          padding: "28px 28px 24px",
-          borderRadius: 20,
-          background: "linear-gradient(160deg, #0c1424 0%, #0a0e1a 45%, #12172c 100%)",
-          border: "1px solid rgba(34,209,195,0.25)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(34,209,195,0.08)",
+          padding: "30px 28px 22px",
+          borderRadius: 18,
+          background: "#141a28",
+          border: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
           overflow: "hidden",
         }}>
-          {/* Dezentes Punktmuster im Hintergrund */}
+          {/* Dezentes Punktmuster */}
           <div aria-hidden style={{
             position: "absolute", inset: 0,
             backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
-            backgroundSize: "14px 14px",
-            pointerEvents: "none",
-          }} />
-          {/* Brand-Akzente: kräftigere Eck-Glows */}
-          <div aria-hidden style={{
-            position: "absolute", top: -80, right: -80, width: 320, height: 320,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(34,209,195,0.32), transparent 65%)",
-            pointerEvents: "none",
-          }} />
-          <div aria-hidden style={{
-            position: "absolute", bottom: -100, left: -80, width: 320, height: 320,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,45,120,0.28), transparent 65%)",
+            backgroundSize: "12px 12px",
             pointerEvents: "none",
           }} />
 
-          {/* Header — 2-spaltig, Markenwort-Bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, position: "relative" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                display: "inline-block",
-                fontSize: 9, fontWeight: 900, letterSpacing: 3, color: "#22D1C3",
-                padding: "3px 8px", borderRadius: 4,
-                background: "rgba(34,209,195,0.12)", border: "1px solid rgba(34,209,195,0.4)",
-                marginBottom: 10,
-              }}>MYAREA365</div>
-              <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, color: "#FFF", letterSpacing: -0.5 }}>
-                GEH · SAMMLE<br />
-                <span style={{ color: "#FFD700", fontSize: 32 }}>SPARE HIER!</span>
+          {/* Gebogene Neon-Streifen (wie in der Vorlage) */}
+          <svg aria-hidden style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+            viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="streakCyan" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#22D1C3" stopOpacity="0.0" />
+                <stop offset="40%" stopColor="#22D1C3" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#22D1C3" stopOpacity="0.0" />
+              </linearGradient>
+              <linearGradient id="streakMagenta" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FF2D78" stopOpacity="0.0" />
+                <stop offset="50%" stopColor="#FF2D78" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#FF2D78" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+            {/* Links cyan Bogen */}
+            <path d="M -40 100 Q 20 300 -40 500" stroke="url(#streakCyan)" strokeWidth="3" fill="none" />
+            <path d="M -30 80 Q 60 300 -30 520" stroke="#22D1C3" strokeOpacity="0.25" strokeWidth="1" fill="none" />
+            {/* Rechts magenta Bogen */}
+            <path d="M 440 100 Q 380 300 440 500" stroke="url(#streakMagenta)" strokeWidth="3" fill="none" />
+            <path d="M 430 80 Q 340 300 430 520" stroke="#FF2D78" strokeOpacity="0.25" strokeWidth="1" fill="none" />
+          </svg>
+
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 14, position: "relative" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.05, color: "#FFF", letterSpacing: -0.3 }}>
+                CHECK-IN
               </div>
-              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 8, lineHeight: 1.45, maxWidth: 240 }}>
-                Mit der App <b style={{ color: "#FFF" }}>MyArea365</b> wird Gehen<br />
-                zur Kiez-Währung — für echte Rabatte.
+              <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.05, color: "#22D1C3", letterSpacing: -0.3 }}>
+                &amp; BOOST
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1.05, color: "#FFD700", letterSpacing: -0.3, marginTop: 2 }}>
+                ABHOLEN!
+              </div>
+              <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 10, lineHeight: 1.45, maxWidth: 220 }}>
+                Scanne den Code für deine<br />exklusive Belohnung.
               </div>
             </div>
-            <div style={{ position: "relative", flexShrink: 0 }}>
+            <div style={{ position: "relative", flexShrink: 0, textAlign: "center" }}>
               <div aria-hidden style={{
-                position: "absolute", inset: -10, borderRadius: 20,
-                background: "radial-gradient(circle, rgba(34,209,195,0.3), transparent 70%)",
+                position: "absolute", inset: -8, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(34,209,195,0.28), transparent 70%)",
               }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="MyArea365"
+              <img src="/logo.png" alt=""
                 style={{
                   position: "relative",
-                  width: 68, height: 68, borderRadius: 16,
-                  border: "1.5px solid rgba(34,209,195,0.4)",
-                  boxShadow: "0 4px 20px rgba(34,209,195,0.3)",
+                  width: 70, height: 70, borderRadius: "50%",
+                  border: "2px solid rgba(34,209,195,0.45)",
                   objectFit: "cover",
                 }} />
-            </div>
-          </div>
-
-          {/* QR mit Call-to-Action drüber */}
-          <div style={{ position: "relative", marginTop: 22, textAlign: "center" }}>
-            <div style={{
-              fontSize: 11, fontWeight: 900, letterSpacing: 3, color: "#22D1C3",
-              marginBottom: 8,
-            }}>
-              ↓ MIT HANDY SCANNEN ↓
-            </div>
-            <div style={{
-              position: "relative",
-              margin: "0 auto",
-              width: 280, height: 280,
-              borderRadius: 20,
-              background: "#FFF",
-              padding: 16,
-              boxSizing: "border-box",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(34,209,195,0.25)",
-            }}>
-              {qrUrl && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={qrUrl} alt="QR-Code" width={248} height={248}
-                  style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
-              )}
               <div style={{
-                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-                width: 50, height: 50, borderRadius: 10,
-                background: "#FFF", padding: 4,
-                boxSizing: "border-box",
-                boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+                position: "relative",
+                fontSize: 13, fontWeight: 900, color: "#FFF",
+                letterSpacing: -0.2, marginTop: 6,
               }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt=""
-                  style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+                My<span style={{ color: "#22D1C3" }}>Area</span>365
               </div>
             </div>
-            <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 10, fontWeight: 700 }}>
-              Neu hier? → App lädt automatisch
+          </div>
+
+          {/* QR-Code mit Logo-Overlay */}
+          <div style={{
+            position: "relative",
+            margin: "20px auto 20px",
+            width: 240, height: 240,
+            borderRadius: 16,
+            background: "#FFF",
+            padding: 12,
+            boxSizing: "border-box",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+          }}>
+            {qrUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={qrUrl} alt="QR-Code" width={216} height={216}
+                style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
+            )}
+            <div style={{
+              position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+              width: 40, height: 40, borderRadius: 8,
+              background: "#0F1115", padding: 3,
+              boxSizing: "border-box",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt=""
+                style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
             </div>
           </div>
 
-          {/* Benefits — "DAS BEKOMMST DU" */}
-          <div style={{
-            position: "relative",
-            padding: "14px 16px", borderRadius: 14,
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            margin: "22px 0 14px",
-            display: "flex", flexDirection: "column", gap: 12,
-          }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: -2 }}>
-              DAS BEKOMMST DU
-            </div>
-            <BenefitRow Icon={Footprints} color="#FFD700"
-              title="Bewegung = Belohnung"
-              body="Jeder km Gehen oder Joggen bringt dir 🪙 Wegemünzen" />
-            <BenefitRow Icon={Coins} color="#22D1C3"
-              title="Echte Rabatte vor Ort"
-              body="Wegemünzen eintauschen — in diesem Shop & 100+ im Kiez" />
-            <BenefitRow Icon={MapPin} color="#FF2D78"
-              title="Dein Kiez, deine Karte"
-              body="Keine Werbung. Kein Tracking. Lokale Geschäfte statt Amazon." />
+          {/* Benefits — Einzeiler mit farbigen Key-Wörtern */}
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            <BenefitLine Icon={Trophy} iconColor="#FFD700" text={<>+<b style={{ color: "#FFD700" }}>1.000 Wegemünzen</b> für dich beim ersten Scan</>} />
+            <BenefitLine Icon={Flame}  iconColor="#FF6B4A" text={<><b style={{ color: "#FF6B4A" }}>2× MÜNZEN-BOOST</b> (1 Stunde nach Scan)</>} />
+            <BenefitLine Icon={Gift}   iconColor="#FF2D78" text={<><b style={{ color: "#FF2D78" }}>EXKLUSIVES MAP-ICON</b> — nur hier</>} />
           </div>
 
-          {/* Steps — "SO STARTEST DU" */}
-          <div style={{
-            position: "relative",
-            padding: "14px 16px", borderRadius: 14,
-            background: "rgba(15,17,21,0.55)",
-            border: "1px solid rgba(34,209,195,0.15)",
-            marginBottom: 14,
-          }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
-              SO STARTEST DU
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              <StepRow n={1} Icon={Download} body={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> kostenlos laden</>} />
-              <StepRow n={2} Icon={Footprints} body="Raus und ein paar Straßen ablaufen" />
-              <StepRow n={3} Icon={QrIcon} body="Hier an der Kasse diesen QR scannen" />
-              <StepRow n={4} Icon={Tag} body="Rabatt kassieren — zahlst weniger" />
-            </div>
+          {/* Steps — klein & inline */}
+          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
+            <InlineStep n={1} Icon={Smartphone} text={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
+            <InlineStep n={2} Icon={MapIcon} text="Auf der Karte den Running-Point tippen" />
+            <InlineStep n={3} Icon={QrIcon} text="Code scannen & Belohnung sichern!" />
           </div>
 
-          {/* Trust-Badge */}
-          <div style={{
-            position: "relative",
-            display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
-            padding: "8px 12px", borderRadius: 10,
-            background: "rgba(74,222,128,0.08)",
-            border: "1px solid rgba(74,222,128,0.25)",
-            color: "#4ade80",
-            marginBottom: 14,
-          }}>
-            <Shield size={14} color="#4ade80" strokeWidth={2.5} />
-            <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.5 }}>
-              KOSTENLOS · KEIN ABO · KEIN TRACKING-WAHN
-            </span>
+          {/* App-Store-Badges */}
+          <div style={{ position: "relative", display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 }}>
+            <AppStoreBadge kind="ios" />
+            <AppStoreBadge kind="android" />
           </div>
 
           {/* Footer */}
-          <div style={{
-            position: "relative",
-            paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)",
-            textAlign: "center",
-          }}>
-            <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 15, letterSpacing: 0.3 }}>
-              myarea365.de
+          <div style={{ position: "relative", textAlign: "center" }}>
+            <div style={{ color: "#FFF", fontWeight: 900, fontSize: 13 }}>
+              Jetzt downloaden!
             </div>
-            <div style={{ fontSize: 11, color: "#8B8FA3", marginTop: 3 }}>
-              Läuft im Browser. App im App Store & Google Play.
+            <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 2 }}>
+              Unterstützt von deinem Kiez.
             </div>
           </div>
         </div>
@@ -438,42 +398,52 @@ const INPUT_DARK: React.CSSProperties = {
   color: "#FFF", fontSize: 13, fontFamily: "inherit",
 };
 
-type IconComp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+type IconComp = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number; fill?: string }>;
 
-function BenefitRow({ Icon, color, title, body }: { Icon: IconComp; color: string; title: string; body: string }) {
+function BenefitLine({ Icon, iconColor, text }: { Icon: IconComp; iconColor: string; text: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <div style={{
-        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-        background: `${color}1a`,
-        border: `1px solid ${color}55`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: `0 0 16px ${color}33`,
-      }}>
-        <Icon size={20} color={color} strokeWidth={2.25} />
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 24, flexShrink: 0, display: "flex", justifyContent: "center" }}>
+        <Icon size={22} color={iconColor} strokeWidth={2.25} fill={iconColor} />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 900, color, letterSpacing: 0.2 }}>{title}</div>
-        <div style={{ fontSize: 11.5, color: "#a8b4cf", marginTop: 1, lineHeight: 1.4 }}>{body}</div>
-      </div>
+      <div style={{ fontSize: 13, color: "#FFF", fontWeight: 700, lineHeight: 1.35 }}>{text}</div>
     </div>
   );
 }
 
-function StepRow({ n, Icon, body }: { n: number; Icon: IconComp; body: React.ReactNode }) {
+function InlineStep({ n, Icon, text }: { n: number; Icon: IconComp; text: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{
-        width: 24, height: 24, borderRadius: "50%",
-        background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
-        color: "#0F1115", fontSize: 11, fontWeight: 900,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0,
-      }}>{n}</div>
-      <div style={{ width: 22, display: "flex", justifyContent: "center", flexShrink: 0 }}>
-        <Icon size={16} color="#a8b4cf" strokeWidth={2} />
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 12, fontWeight: 900, color: "#8B8FA3", width: 18, flexShrink: 0 }}>{n}.</span>
+      <div style={{ width: 18, display: "flex", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={13} color="#a8b4cf" strokeWidth={2} />
       </div>
-      <div style={{ fontSize: 12.5, color: "#D0D0D5", lineHeight: 1.4 }}>{body}</div>
+      <div style={{ fontSize: 12, color: "#D0D0D5", lineHeight: 1.4 }}>{text}</div>
+    </div>
+  );
+}
+
+function AppStoreBadge({ kind }: { kind: "ios" | "android" }) {
+  const isIos = kind === "ios";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 8,
+      padding: "7px 12px", borderRadius: 8,
+      background: "#0F1115",
+      border: "1px solid rgba(255,255,255,0.15)",
+      color: "#FFF", minWidth: 120,
+    }}>
+      {isIos
+        ? <Apple size={22} color="#FFF" fill="#FFF" strokeWidth={0} />
+        : <Play size={22} color="#FFF" fill="#FFF" strokeWidth={0} />}
+      <div style={{ lineHeight: 1, textAlign: "left" }}>
+        <div style={{ fontSize: 7, color: "#a8b4cf", fontWeight: 600, letterSpacing: 0.5 }}>
+          {isIos ? "Laden im" : "JETZT BEI"}
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 800, marginTop: 1 }}>
+          {isIos ? "App Store" : "Google Play"}
+        </div>
+      </div>
     </div>
   );
 }
