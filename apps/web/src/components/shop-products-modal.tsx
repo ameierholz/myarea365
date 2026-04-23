@@ -2,15 +2,26 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { SHOP_PLANS, SHOP_BOOSTS, SHOP_MARKETING, SHOP_ANALYTICS, formatPrice } from "@/lib/monetization";
+import { SHOP_PLANS, SHOP_BOOSTS, SHOP_FEATURES_BY_PLAN, formatPrice } from "@/lib/monetization";
 import { appAlert } from "@/components/app-dialog";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 
-type ShopTab = "plans" | "boosts" | "marketing" | "analytics";
+type ShopTab = "plans" | "boosts";
+// Legacy-Kompatibilität: die alten Tab-Namen leiten auf die neuen Tabs um
+const NORMALIZE_TAB: Record<string, ShopTab> = {
+  plans: "plans",
+  boosts: "boosts",
+  marketing: "boosts",
+  analytics: "plans",
+};
 
-export function ShopProductsModal({ businessId, initialTab = "plans", onClose }: { businessId: string; initialTab?: ShopTab; onClose: () => void }) {
+export function ShopProductsModal({ businessId, initialTab = "plans", onClose }: {
+  businessId: string;
+  initialTab?: string;
+  onClose: () => void;
+}) {
   const sb = createClient();
-  const [tab, setTab] = useState<ShopTab>(initialTab);
+  const [tab, setTab] = useState<ShopTab>(NORMALIZE_TAB[initialTab] ?? "plans");
   const [loading, setLoading] = useState<string | null>(null);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
@@ -28,7 +39,6 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
         if (json.url) { window.location.href = json.url; return; }
         throw new Error(json.error ?? "Checkout fehlgeschlagen");
       }
-      // Demo-Fallback
       const { data, error } = await sb.from("purchases").insert({
         product_sku: sku, product_name: name, amount_cents: price, status: "pending",
       }).select("id").single();
@@ -45,87 +55,39 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
     }
   }
 
-  const items = tab === "plans" ? Object.values(SHOP_PLANS)
-    : tab === "boosts" ? Object.values(SHOP_BOOSTS)
-    : tab === "marketing" ? Object.values(SHOP_MARKETING)
-    : Object.values(SHOP_ANALYTICS);
-
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center",
       background: "rgba(15,17,21,0.75)", backdropFilter: "blur(6px)",
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "90vh", overflowY: "auto",
+        width: "100%", maxWidth: 720, maxHeight: "92vh", overflowY: "auto",
         background: "#1A1D23", border: "1px solid rgba(255,215,0,0.4)", borderRadius: "20px 20px 0 0",
         padding: 24, color: "#F0F0F0",
       }}>
+        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>🏪</span>
+            <span style={{ fontSize: 28 }}>🎯</span>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 900 }}>Shop-Power-Up</div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>Pläne · Boosts · Marketing · Analytics</div>
+              <div style={{ fontSize: 19, fontWeight: 900 }}>Angebote buchen</div>
+              <div style={{ fontSize: 11, color: "#a8b4cf" }}>Abo wählen oder heute einen Push starten</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
         </div>
 
-        <div style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto" }}>
-          <Tab active={tab === "plans"} onClick={() => setTab("plans")}>💎 Pläne</Tab>
-          <Tab active={tab === "boosts"} onClick={() => setTab("boosts")}>⚡ Boosts</Tab>
-          <Tab active={tab === "marketing"} onClick={() => setTab("marketing")}>📣 Marketing</Tab>
-          <Tab active={tab === "analytics"} onClick={() => setTab("analytics")}>📊 Analytics</Tab>
+        {/* 2 Tabs statt 4 */}
+        <div style={{ display: "flex", gap: 6, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 16 }}>
+          <Tab active={tab === "plans"}  onClick={() => setTab("plans")}>💎 Abo wählen</Tab>
+          <Tab active={tab === "boosts"} onClick={() => setTab("boosts")}>🔥 Heute pushen</Tab>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {items.map((p) => {
-            const pp = p as { sku: string; name: string; price: number; icon?: string; desc?: string; duration_days?: number };
-            const durationBadge = pp.duration_days
-              ? `· ${pp.duration_days}d`
-              : "";
-            return (
-              <div key={pp.sku} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: 14, borderRadius: 12,
-                background: "rgba(70, 82, 122, 0.45)",
-                border: "1px solid rgba(255,255,255,0.1)",
-              }}>
-                <span style={{ fontSize: 24 }}>{pp.icon ?? "🎁"}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", gap: 6 }}>
-                    {pp.name}
-                    {tab === "plans" && (
-                      <span style={{
-                        fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
-                        padding: "2px 6px", borderRadius: 4,
-                        background: "rgba(34,209,195,0.2)", color: "#22D1C3",
-                        border: "1px solid rgba(34,209,195,0.4)",
-                      }}>ABO</span>
-                    )}
-                  </div>
-                  {pp.desc && <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{pp.desc}</div>}
-                  {tab === "plans" && <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>pro Monat {durationBadge} · jederzeit kündbar</div>}
-                </div>
-                <button
-                  onClick={() => buy(pp.sku, pp.name, pp.price)}
-                  disabled={loading === pp.sku}
-                  style={{
-                    background: "#FFD700", color: "#0F1115",
-                    padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer",
-                    fontSize: 12, fontWeight: 900, whiteSpace: "nowrap",
-                    opacity: loading === pp.sku ? 0.6 : 1,
-                  }}
-                >
-                  {loading === pp.sku ? "…" : formatPrice(pp.price)}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        {tab === "plans" && <PlansTab onBuy={buy} loading={loading} />}
+        {tab === "boosts" && <BoostsTab onBuy={buy} loading={loading} />}
 
-        <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 14 }}>
-          Sichere Zahlung via Stripe · Abos jederzeit kündbar
+        <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 18 }}>
+          Sichere Zahlung via Stripe · Abos jederzeit kündbar · MwSt.-Rechnung automatisch
         </div>
       </div>
       {checkoutSecret && (
@@ -135,13 +97,190 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
   );
 }
 
+/* ═══ Tab 1: Plans mit sich aufbauenden Features ═══ */
+function PlansTab({ onBuy, loading }: {
+  onBuy: (sku: string, name: string, price: number) => void;
+  loading: string | null;
+}) {
+  type PlanRow = { key: "free"|"basis"|"pro"|"ultra"; price: number; name: string; sku: string | null; color: string; featured?: boolean };
+  const plans: PlanRow[] = [
+    { key: "free",  price: 0,                    name: "Free",                     sku: null, color: "#8B8FA3" },
+    { key: "basis", price: SHOP_PLANS.shop_basis.price, name: SHOP_PLANS.shop_basis.name, sku: "shop_basis", color: "#22D1C3" },
+    { key: "pro",   price: SHOP_PLANS.shop_pro.price,   name: SHOP_PLANS.shop_pro.name,   sku: "shop_pro", color: "#FFD700", featured: true },
+    { key: "ultra", price: SHOP_PLANS.shop_ultra.price, name: SHOP_PLANS.shop_ultra.name, sku: "shop_ultra", color: "#FF2D78" },
+  ];
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+      {plans.map((p) => {
+        const features = SHOP_FEATURES_BY_PLAN[p.key as keyof typeof SHOP_FEATURES_BY_PLAN];
+        return (
+          <div key={p.key} style={{
+            position: "relative",
+            padding: 14, borderRadius: 14,
+            background: p.featured
+              ? `linear-gradient(135deg, ${p.color}28, rgba(15,17,21,0.6))`
+              : "rgba(70, 82, 122, 0.3)",
+            border: `1.5px solid ${p.featured ? p.color : "rgba(255,255,255,0.1)"}`,
+            display: "flex", flexDirection: "column", gap: 10,
+          }}>
+            {p.featured && (
+              <div style={{
+                position: "absolute", top: -10, right: 10,
+                padding: "3px 8px", borderRadius: 4,
+                background: p.color, color: "#0F1115",
+                fontSize: 9, fontWeight: 900, letterSpacing: 1,
+              }}>EMPFOHLEN</div>
+            )}
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: p.color }}>{p.name}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
+                {p.price === 0 ? "0 €" : `${(p.price / 100).toFixed(0)} €`}
+                <span style={{ fontSize: 11, color: "#a8b4cf", fontWeight: 600 }}> / Monat</span>
+              </div>
+            </div>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5, flex: 1 }}>
+              {features.map((f, i) => (
+                <li key={i} style={{ fontSize: 11, color: "#D0D0D5", lineHeight: 1.3 }}>{f}</li>
+              ))}
+            </ul>
+            {p.sku ? (
+              <button
+                onClick={() => onBuy(p.sku!, p.name, p.price)}
+                disabled={loading === p.sku}
+                style={{
+                  padding: "10px 12px", borderRadius: 8, border: "none",
+                  background: p.color, color: "#0F1115",
+                  fontSize: 12, fontWeight: 900, cursor: "pointer",
+                  opacity: loading === p.sku ? 0.6 : 1,
+                }}
+              >
+                {loading === p.sku ? "…" : `${p.name} wählen`}
+              </button>
+            ) : (
+              <div style={{
+                padding: "10px 12px", borderRadius: 8,
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+                color: "#8B8FA3", fontSize: 11, fontWeight: 700, textAlign: "center",
+              }}>Aktueller Default</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══ Tab 2: 3 Einzel-Boosts ═══ */
+function BoostsTab({ onBuy, loading }: {
+  onBuy: (sku: string, name: string, price: number) => void;
+  loading: string | null;
+}) {
+  type BoostRow = { sku: string; name: string; icon: string; price: number; tagline: string; desc: string; duration: string; color: string; featured?: boolean };
+  const boosts: BoostRow[] = [
+    {
+      sku: SHOP_BOOSTS.flash_push.sku,
+      name: SHOP_BOOSTS.flash_push.name,
+      icon: SHOP_BOOSTS.flash_push.icon,
+      price: SHOP_BOOSTS.flash_push.price,
+      tagline: "Für den Nachmittag, an dem wenig los ist",
+      desc: "Benachrichtige ~200 Runner in 1 km Umkreis. Sie bekommen Push auf's Handy, der Deal ist 30 min gültig.",
+      duration: "Einmalig · sofort gesendet",
+      color: "#FF6B4A",
+    },
+    {
+      sku: SHOP_BOOSTS.spotlight_3d.sku,
+      name: SHOP_BOOSTS.spotlight_3d.name,
+      icon: SHOP_BOOSTS.spotlight_3d.icon,
+      price: SHOP_BOOSTS.spotlight_3d.price,
+      tagline: "Für Wochenenden oder Aktions-Tage",
+      desc: "Dein Shop bekommt einen auffälligen Gold-Pin auf der Karte und ist im 5-km-Radius sichtbar (statt 500 m).",
+      duration: "72 Stunden aktiv",
+      color: "#FFD700",
+      featured: true,
+    },
+    {
+      sku: SHOP_BOOSTS.event_host.sku,
+      name: SHOP_BOOSTS.event_host.name,
+      icon: SHOP_BOOSTS.event_host.icon,
+      price: SHOP_BOOSTS.event_host.price,
+      tagline: "Für organisierte Lauftreffs bei dir",
+      desc: "Plane einen Lauf-Event. Runner können sich anmelden, du siehst die Teilnehmer-Liste, dein Shop ist Start/Ziel-Pin.",
+      duration: "Einmalig · bis zu 50 Teilnehmer",
+      color: "#FF2D78",
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{
+        padding: "10px 12px", borderRadius: 10, marginBottom: 4,
+        background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.2)",
+        color: "#a8b4cf", fontSize: 11, lineHeight: 1.5,
+      }}>
+        💡 In <b style={{ color: "#FFD700" }}>Pro</b> sind 3 Flash-Pushes und 1 Spotlight pro Monat schon drin.
+        Einzeln kaufen nur, wenn du gerade mehr brauchst.
+      </div>
+
+      {boosts.map((b) => (
+        <div key={b.sku} style={{
+          position: "relative",
+          padding: 14, borderRadius: 12,
+          background: b.featured
+            ? `linear-gradient(135deg, ${b.color}18, rgba(15,17,21,0.5))`
+            : "rgba(70, 82, 122, 0.3)",
+          border: `1.5px solid ${b.featured ? b.color : "rgba(255,255,255,0.1)"}`,
+        }}>
+          {b.featured && (
+            <div style={{
+              position: "absolute", top: -8, right: 12,
+              padding: "2px 8px", borderRadius: 4,
+              background: b.color, color: "#0F1115",
+              fontSize: 9, fontWeight: 900, letterSpacing: 1,
+            }}>BESTSELLER</div>
+          )}
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+              background: `${b.color}22`, border: `1px solid ${b.color}55`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 24,
+            }}>{b.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF" }}>{b.name}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: b.color }}>{formatPrice(b.price)}</div>
+              </div>
+              <div style={{ fontSize: 11, color: b.color, fontWeight: 700, marginTop: 1 }}>{b.tagline}</div>
+              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 6, lineHeight: 1.45 }}>{b.desc}</div>
+              <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4 }}>⏱ {b.duration}</div>
+              <button
+                onClick={() => onBuy(b.sku, b.name, b.price)}
+                disabled={loading === b.sku}
+                style={{
+                  marginTop: 10, padding: "9px 14px", borderRadius: 8, border: "none",
+                  background: b.color, color: "#0F1115",
+                  fontSize: 12, fontWeight: 900, cursor: "pointer",
+                  opacity: loading === b.sku ? 0.6 : 1,
+                }}
+              >
+                {loading === b.sku ? "…" : "Jetzt buchen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button onClick={onClick} style={{
-      flexShrink: 0, padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+      flex: 1, padding: "10px 14px", borderRadius: 8, border: "none", cursor: "pointer",
       background: active ? "#FFD700" : "transparent",
       color: active ? "#0F1115" : "#F0F0F0",
-      fontSize: 12, fontWeight: 800, whiteSpace: "nowrap",
+      fontSize: 13, fontWeight: 800,
     }}>{children}</button>
   );
 }
@@ -155,35 +294,11 @@ async function applyShopEffectDemo(sb: ReturnType<typeof createClient>, sku: str
     }).eq("id", businessId);
   } else if (sku === "spotlight_3d") {
     await sb.from("local_businesses").update({ spotlight_until: days(3) }).eq("id", businessId);
-  } else if (sku === "radius_boost_7d") {
-    await sb.from("local_businesses").update({ radius_boost_until: days(7) }).eq("id", businessId);
-  } else if (sku === "top_listing_7d") {
-    await sb.from("local_businesses").update({ top_listing_until: days(7) }).eq("id", businessId);
-  } else if (sku === "homepage_banner") {
-    await sb.from("local_businesses").update({ banner_until: days(7) }).eq("id", businessId);
   } else if (sku === "flash_push") {
     const { data: b } = await sb.from("local_businesses").select("flash_push_credits").eq("id", businessId).single();
     await sb.from("local_businesses").update({ flash_push_credits: (b?.flash_push_credits ?? 0) + 1 }).eq("id", businessId);
   } else if (sku === "event_host") {
     const { data: b } = await sb.from("local_businesses").select("event_host_credits").eq("id", businessId).single();
     await sb.from("local_businesses").update({ event_host_credits: (b?.event_host_credits ?? 0) + 1 }).eq("id", businessId);
-  } else if (sku === "challenge_sponsor") {
-    const { data: b } = await sb.from("local_businesses").select("challenge_sponsor_credits").eq("id", businessId).single();
-    await sb.from("local_businesses").update({ challenge_sponsor_credits: (b?.challenge_sponsor_credits ?? 0) + 1 }).eq("id", businessId);
-  } else if (sku === "email_campaign") {
-    const { data: b } = await sb.from("local_businesses").select("email_campaign_credits").eq("id", businessId).single();
-    await sb.from("local_businesses").update({ email_campaign_credits: (b?.email_campaign_credits ?? 0) + 1 }).eq("id", businessId);
-  } else if (sku === "social_pro_monthly") {
-    await sb.from("local_businesses").update({ social_pro_until: days(30) }).eq("id", businessId);
-  } else if (sku === "analytics_pro_monthly") {
-    await sb.from("local_businesses").update({ analytics_pro_until: days(30) }).eq("id", businessId);
-  } else if (sku === "competitor_monthly") {
-    await sb.from("local_businesses").update({ competitor_analysis_until: days(30) }).eq("id", businessId);
-  } else if (sku === "kiez_report") {
-    await sb.from("local_businesses").update({ kiez_report_last: new Date().toISOString() }).eq("id", businessId);
-  } else if (sku === "qr_print_service") {
-    await sb.from("local_businesses").update({ qr_print_ordered_at: new Date().toISOString() }).eq("id", businessId);
-  } else if (sku === "custom_pin") {
-    await sb.from("local_businesses").update({ custom_pin_url: "pending" }).eq("id", businessId);
   }
 }

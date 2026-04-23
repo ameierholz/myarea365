@@ -179,42 +179,78 @@ export function formatPrice(cents: number): string {
 // SHOP-OWNER MONETARISIERUNG (Café, Laden, Restaurant …)
 // ═══════════════════════════════════════════════════════
 
+// ═══ ABOS — 4 klare Stufen mit sich aufbauenden Features ═══
 export const SHOP_PLANS = {
-  shop_basis:   { sku: "shop_basis",   name: "Shop Basis",   price: 2900,  duration_days: 30,  desc: "1 Kategorie · Pin auf Karte · 1 Deal-Slot" },
-  shop_pro:     { sku: "shop_pro",     name: "Shop Pro",     price: 7900,  duration_days: 30,  desc: "3 Deal-Slots · Analytics · Flash-Deals · Verifiziert" },
-  shop_ultra:   { sku: "shop_ultra",   name: "Shop Ultra",   price: 19900, duration_days: 30,  desc: "Alles aus Pro + Dauer-Spotlight + Push-Broadcast + Stadt-Feature" },
+  shop_basis: { sku: "shop_basis", name: "Basis",  price: 2900,  duration_days: 30, desc: "Pin auf der Karte · 1 Deal · Scans-Statistik" },
+  shop_pro:   { sku: "shop_pro",   name: "Pro",    price: 7900,  duration_days: 30, desc: "Unbegrenzte Deals · Erweiterte Analytics · 3 Flash-Pushes/Mo inkl." },
+  shop_ultra: { sku: "shop_ultra", name: "Ultra",  price: 19900, duration_days: 30, desc: "Dauer-Spotlight · Push-Broadcast · Kiez-Report · Stadt-Feature" },
 };
 
+// ═══ EINZEL-BOOSTS — nur noch 3 Kern-Produkte (80/20) ═══
 export const SHOP_BOOSTS = {
-  spotlight_3d:    { sku: "spotlight_3d",    name: "Spotlight 3 Tage",       price: 1900,  icon: "⭐", desc: "Gold-Pin + Pulse-Animation auf Karte" },
-  flash_push:      { sku: "flash_push",      name: "Flash-Deal-Push",        price: 900,   icon: "⚡", desc: "30-Min Benachrichtigung an Runner im 1 km-Umkreis" },
-  radius_boost_7d: { sku: "radius_boost_7d", name: "Radius-Boost 7 Tage",    price: 4900,  icon: "📡", desc: "Shop sichtbar im 5 km statt 500 m Radius" },
-  homepage_banner: { sku: "homepage_banner", name: "Homepage-Banner 1 Woche",price: 9900,  icon: "🎯", desc: "Banner auf Stadt-Landing-Page" },
-  top_listing_7d:  { sku: "top_listing_7d",  name: "Top-Listing 7 Tage",     price: 2900,  icon: "🥇", desc: "Position 1 in Kiez-Kategorie" },
-  custom_pin:      { sku: "custom_pin",      name: "Custom-Pin-Design",      price: 14900, icon: "🎨", desc: "Eigenes Logo als Marker-Icon (einmalig)" },
-  event_host:      { sku: "event_host",      name: "Event-Host-Slot",        price: 5900,  icon: "🎪", desc: "Lauf-Event veranstalten mit Pin + Teilnehmer" },
-  challenge_sponsor: { sku: "challenge_sponsor", name: "Kiez-Challenge-Sponsor", price: 2900, icon: "🏆", desc: "Sponser eine Challenge im Kiez" },
-  arena_daily:       { sku: "arena_daily",       name: "Arena-Platz 1 Tag",      price: 900,  icon: "⚔️", desc: "24h Kampf-Arena — Crews die bei dir einlösen dürfen kämpfen" },
-  arena_monthly:     { sku: "arena_monthly",     name: "Arena-Abo (Monat)",      price: 4900, icon: "🏟️", desc: "30 Tage Dauer-Arena — Extra-Traffic durch Kampf-Events", duration_days: 30 },
+  flash_push:   { sku: "flash_push",   name: "Flash-Push",        price: 900,  icon: "🔔", desc: "Benachrichtige ~200 Runner in 1 km Umkreis, 30 min gültig" },
+  spotlight_3d: { sku: "spotlight_3d", name: "Spotlight 3 Tage",  price: 1900, icon: "⭐", desc: "Gold-Pin auf der Karte + erweiterter Sichtradius (5 km)" },
+  event_host:   { sku: "event_host",   name: "Event hosten",      price: 5900, icon: "🎉", desc: "Lauf-Event bei dir — Runner können sich anmelden, Pin + Teilnehmer-Liste" },
 };
 
-export const SHOP_MARKETING = {
-  social_pro_monthly: { sku: "social_pro_monthly", name: "Social-Post-Generator Pro", price: 990,  duration_days: 30,  icon: "📱", desc: "Unbegrenzte Instagram/TikTok-Grafiken + Templates" },
-  qr_print_service:   { sku: "qr_print_service",   name: "QR-Code-Druckservice",      price: 1900, icon: "🖨️", desc: "Tür-Aufkleber mit Check-in-QR per Post" },
-  email_campaign:     { sku: "email_campaign",     name: "E-Mail-Kampagne",           price: 4900, icon: "✉️", desc: "Push an eure Stammkunden senden" },
+// ═══ LEGACY — bleiben als SKUs für Bestandskäufe erhalten,
+// werden NICHT mehr im Shop angezeigt. Funktionen sind jetzt
+// in Pro/Ultra enthalten oder mit einem der 3 Kern-Boosts zusammengelegt. ═══
+export const SHOP_LEGACY = {
+  radius_boost_7d:       { sku: "radius_boost_7d",       name: "Radius-Boost 7 Tage",     price: 4900,  icon: "📡", desc: "[Legacy — jetzt Teil von Spotlight]" },
+  homepage_banner:       { sku: "homepage_banner",       name: "Homepage-Banner",         price: 9900,  icon: "🎯", desc: "[Legacy — jetzt in Ultra enthalten]" },
+  top_listing_7d:        { sku: "top_listing_7d",        name: "Top-Listing 7 Tage",      price: 2900,  icon: "🥇", desc: "[Legacy]" },
+  custom_pin:            { sku: "custom_pin",            name: "Custom-Pin-Design",       price: 14900, icon: "🎨", desc: "[Legacy — jetzt in Ultra enthalten]" },
+  challenge_sponsor:     { sku: "challenge_sponsor",     name: "Kiez-Challenge-Sponsor",  price: 2900,  icon: "🏆", desc: "[Legacy — jetzt Teil von Event hosten]" },
+  arena_daily:           { sku: "arena_daily",           name: "Arena-Platz 1 Tag",       price: 900,   icon: "⚔️", desc: "[Legacy]" },
+  arena_monthly:         { sku: "arena_monthly",         name: "Arena-Abo (Monat)",       price: 4900,  icon: "🏟️", desc: "[Legacy]", duration_days: 30 },
+  social_pro_monthly:    { sku: "social_pro_monthly",    name: "Social-Post-Generator",   price: 990,   icon: "📱", desc: "[Legacy — jetzt in Pro enthalten]", duration_days: 30 },
+  qr_print_service:      { sku: "qr_print_service",      name: "QR-Druckservice",         price: 1900,  icon: "🖨️", desc: "[Legacy — jetzt unter /shop/[id]/qr als Acryl-Aufsteller]" },
+  email_campaign:        { sku: "email_campaign",        name: "E-Mail-Kampagne",         price: 4900,  icon: "✉️", desc: "[Legacy — jetzt in Pro enthalten]" },
+  analytics_pro_monthly: { sku: "analytics_pro_monthly", name: "Analytics Pro",           price: 3900,  icon: "📊", desc: "[Legacy — jetzt in Pro enthalten]", duration_days: 30 },
+  kiez_report:           { sku: "kiez_report",           name: "Kiez-Report PDF",         price: 2900,  icon: "📄", desc: "[Legacy — jetzt in Ultra enthalten]" },
+  competitor_monthly:    { sku: "competitor_monthly",    name: "Konkurrenz-Analyse",      price: 1900,  icon: "🔍", desc: "[Legacy — jetzt in Pro enthalten]", duration_days: 30 },
 };
 
-export const SHOP_ANALYTICS = {
-  analytics_pro_monthly: { sku: "analytics_pro_monthly", name: "Analytics Pro",        price: 3900, duration_days: 30, icon: "📊", desc: "Altersgruppen, Heatmap, Demografie" },
-  kiez_report:           { sku: "kiez_report",           name: "Kiez-Report PDF",      price: 2900, icon: "📄", desc: "\"Wer läuft in meinem Kiez?\" — anonymisiert" },
-  competitor_monthly:    { sku: "competitor_monthly",    name: "Konkurrenz-Analyse",   price: 1900, duration_days: 30, icon: "🔍", desc: "Benchmark gegen andere Shops im Kiez" },
-};
+// Alte Exports für Rückwärtskompatibilität — zeigen nur noch ein leeres Objekt,
+// damit nichts crasht. Neue Shop-UIs nutzen SHOP_PLANS + SHOP_BOOSTS direkt.
+export const SHOP_MARKETING = {} as Record<string, { sku: string; name: string; price: number; icon?: string; desc?: string; duration_days?: number }>;
+export const SHOP_ANALYTICS = {} as Record<string, { sku: string; name: string; price: number; icon?: string; desc?: string; duration_days?: number }>;
 
+// ═══ FEATURES PRO PLAN — saubere aufsteigende Liste ═══
 export const SHOP_FEATURES_BY_PLAN: Record<"free"|"basis"|"pro"|"ultra", string[]> = {
-  free:  ["Pin auf Karte", "Profil-Seite"],
-  basis: ["Pin auf Karte", "Profil-Seite", "1 Deal-Slot", "Kategorie-Listing"],
-  pro:   ["3 Deal-Slots", "Flash-Deals", "Basic Analytics", "Verifiziert-Badge"],
-  ultra: ["Unbegrenzte Deal-Slots", "Dauer-Spotlight", "Pro-Analytics", "Push-Broadcast", "Stadt-Seite Feature", "Priority-Support"],
+  free: [
+    "📍 Pin auf der Karte",
+    "🏪 Shop-Profil mit Foto und Öffnungszeiten",
+    "🎁 1 Deal einstellbar",
+  ],
+  basis: [
+    "✓ Alles aus Free",
+    "📊 Scans- & Besuchs-Statistik",
+    "🗂️ Crew-Stempelkarte (Stammkunden-Bindung)",
+    "🔔 1× Flash-Push gratis zum Testen",
+    "✓ Verifiziert-Badge",
+  ],
+  pro: [
+    "✓ Alles aus Basis",
+    "♾️ Unbegrenzte Deals (statt 1)",
+    "⚡ 3 Flash-Pushes/Monat inklusive",
+    "⭐ Spotlight 3 Tage/Monat inklusive",
+    "📈 Erweiterte Analytics: Top-Zeiten, Wiederkehr-Rate, Kiez-Benchmark",
+    "🔍 Konkurrenz-Vergleich im Kiez",
+    "📱 Social-Media-Templates",
+    "✉️ 1 Email-Kampagne an Stammkunden/Monat",
+  ],
+  ultra: [
+    "✓ Alles aus Pro",
+    "💎 Dauer-Spotlight (permanent Gold-Pin)",
+    "📣 Push-Broadcast an ganze Stadt",
+    "🥇 Stadt-Feature (1× im Monat Shop-der-Woche)",
+    "🎯 Demografie-Targeting für Deals",
+    "📄 Kiez-Report PDF (monatlich)",
+    "🎨 Custom-Pin-Design",
+    "🏆 Priority-Support",
+  ],
 };
 
 export function currentShopPlan(business: { plan?: string | null; plan_expires_at?: string | null } | null | undefined): "free"|"basis"|"pro"|"ultra" {
