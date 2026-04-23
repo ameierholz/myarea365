@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
-import { Trophy, Flame, Gift, Smartphone, Map, QrCode, CreditCard } from "lucide-react";
+import { Footprints, Coins, MapPin, Download, QrCode as QrIcon, Tag, Shield } from "lucide-react";
 
 const STAND_VARIANTS = [
   { id: "a5_table",  label: "A5 Tischaufsteller",   price: 1290, desc: "Perfekt für Theke / Tisch. Acryl-Halter mit gedrucktem QR-Einleger." },
@@ -75,12 +75,13 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
                 background: "rgba(34,209,195,0.12)", border: "1px solid rgba(34,209,195,0.4)",
                 marginBottom: 10,
               }}>MYAREA365</div>
-              <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1, color: "#FFF", letterSpacing: -0.5 }}>
-                SCANNE &<br />
-                <span style={{ color: "#FFD700", fontSize: 34 }}>KASSIEREN!</span>
+              <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, color: "#FFF", letterSpacing: -0.5 }}>
+                GEH · SAMMLE<br />
+                <span style={{ color: "#FFD700", fontSize: 32 }}>SPARE HIER!</span>
               </div>
-              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 8, lineHeight: 1.4, maxWidth: 240 }}>
-                Scanne den Code für deine<br />exklusive Belohnung.
+              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 8, lineHeight: 1.45, maxWidth: 240 }}>
+                Mit der App <b style={{ color: "#FFF" }}>MyArea365</b> wird Gehen<br />
+                zur Kiez-Währung — für echte Rabatte.
               </div>
             </div>
             <div style={{ position: "relative", flexShrink: 0 }}>
@@ -100,56 +101,70 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* QR-Code mit Logo-Overlay */}
-          <div style={{
-            position: "relative",
-            margin: "24px auto 20px",
-            width: 280, height: 280,
-            borderRadius: 20,
-            background: "#FFF",
-            padding: 16,
-            boxSizing: "border-box",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(34,209,195,0.25)",
-          }}>
-            {qrUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={qrUrl} alt="QR-Code" width={248} height={248}
-                style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
-            )}
+          {/* QR mit Call-to-Action drüber */}
+          <div style={{ position: "relative", marginTop: 22, textAlign: "center" }}>
             <div style={{
-              position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-              width: 50, height: 50, borderRadius: 10,
-              background: "#FFF", padding: 4,
-              boxSizing: "border-box",
-              boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+              fontSize: 11, fontWeight: 900, letterSpacing: 3, color: "#22D1C3",
+              marginBottom: 8,
             }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt=""
-                style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+              ↓ MIT HANDY SCANNEN ↓
+            </div>
+            <div style={{
+              position: "relative",
+              margin: "0 auto",
+              width: 280, height: 280,
+              borderRadius: 20,
+              background: "#FFF",
+              padding: 16,
+              boxSizing: "border-box",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.55), 0 0 0 4px rgba(34,209,195,0.25)",
+            }}>
+              {qrUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={qrUrl} alt="QR-Code" width={248} height={248}
+                  style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
+              )}
+              <div style={{
+                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                width: 50, height: 50, borderRadius: 10,
+                background: "#FFF", padding: 4,
+                boxSizing: "border-box",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.25)",
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt=""
+                  style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 10, fontWeight: 700 }}>
+              Neu hier? → App lädt automatisch
             </div>
           </div>
 
-          {/* Benefits — in container mit leichtem Frame */}
+          {/* Benefits — "DAS BEKOMMST DU" */}
           <div style={{
             position: "relative",
             padding: "14px 16px", borderRadius: 14,
             background: "rgba(255,255,255,0.03)",
             border: "1px solid rgba(255,255,255,0.08)",
-            marginBottom: 14,
+            margin: "22px 0 14px",
             display: "flex", flexDirection: "column", gap: 12,
           }}>
-            <BenefitRow Icon={Trophy} color="#FFD700"
-              title="Wegemünzen + Rabatt"
-              body="Runner zahlt 🪙 — du gibst Rabatt an der Kasse" />
-            <BenefitRow Icon={Flame} color="#22D1C3"
-              title="Crew-Stempel"
-              body="Stammkunden-Bindung für Nachbarschafts-Crews" />
-            <BenefitRow Icon={Gift} color="#FF2D78"
-              title="Bonus-Loot"
-              body="Kassenbon fotografieren = extra Belohnung" />
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: -2 }}>
+              DAS BEKOMMST DU
+            </div>
+            <BenefitRow Icon={Footprints} color="#FFD700"
+              title="Bewegung = Belohnung"
+              body="Jeder km Gehen oder Joggen bringt dir 🪙 Wegemünzen" />
+            <BenefitRow Icon={Coins} color="#22D1C3"
+              title="Echte Rabatte vor Ort"
+              body="Wegemünzen eintauschen — in diesem Shop & 100+ im Kiez" />
+            <BenefitRow Icon={MapPin} color="#FF2D78"
+              title="Dein Kiez, deine Karte"
+              body="Keine Werbung. Kein Tracking. Lokale Geschäfte statt Amazon." />
           </div>
 
-          {/* Steps — in container */}
+          {/* Steps — "SO STARTEST DU" */}
           <div style={{
             position: "relative",
             padding: "14px 16px", borderRadius: 14,
@@ -158,27 +173,43 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             marginBottom: 14,
           }}>
             <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
-              IN 4 SCHRITTEN EINLÖSEN
+              SO STARTEST DU
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-              <StepRow n={1} Icon={Smartphone} body={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
-              <StepRow n={2} Icon={Map} body="Shop auf der Karte antippen" />
-              <StepRow n={3} Icon={QrCode} body="Code scannen · GPS bestätigt automatisch" />
-              <StepRow n={4} Icon={CreditCard} body="Rabatt an der Kasse abholen" />
+              <StepRow n={1} Icon={Download} body={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> kostenlos laden</>} />
+              <StepRow n={2} Icon={Footprints} body="Raus und ein paar Straßen ablaufen" />
+              <StepRow n={3} Icon={QrIcon} body="Hier an der Kasse diesen QR scannen" />
+              <StepRow n={4} Icon={Tag} body="Rabatt kassieren — zahlst weniger" />
             </div>
+          </div>
+
+          {/* Trust-Badge */}
+          <div style={{
+            position: "relative",
+            display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+            padding: "8px 12px", borderRadius: 10,
+            background: "rgba(74,222,128,0.08)",
+            border: "1px solid rgba(74,222,128,0.25)",
+            color: "#4ade80",
+            marginBottom: 14,
+          }}>
+            <Shield size={14} color="#4ade80" strokeWidth={2.5} />
+            <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.5 }}>
+              KOSTENLOS · KEIN ABO · KEIN TRACKING-WAHN
+            </span>
           </div>
 
           {/* Footer */}
           <div style={{
             position: "relative",
-            paddingTop: 12,
+            paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)",
             textAlign: "center",
           }}>
             <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 15, letterSpacing: 0.3 }}>
               myarea365.de
             </div>
             <div style={{ fontSize: 11, color: "#8B8FA3", marginTop: 3 }}>
-              Jetzt downloaden — unterstützt von deinem Kiez.
+              Läuft im Browser. App im App Store & Google Play.
             </div>
           </div>
         </div>
