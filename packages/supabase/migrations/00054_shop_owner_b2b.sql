@@ -32,8 +32,28 @@ update public.local_businesses set status = 'approved', approved_at = coalesce(a
   where status = 'approved' and approved_at is null;
 
 -- ═══════════════════════════════════════════════════════
--- 2) Deal-Frequency für Lifecycle
+-- 2) shop_deals-Tabelle (falls noch nicht da) + Frequency
+--    Der Admin-Code liest seit längerem aus shop_deals, aber
+--    es gab bisher keine Migration, die die Tabelle anlegt.
 -- ═══════════════════════════════════════════════════════
+create table if not exists public.shop_deals (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null references public.local_businesses(id) on delete cascade,
+  title text not null,
+  description text,
+  xp_cost int not null default 0,
+  max_redemptions int,
+  redemption_count int not null default 0,
+  active_until timestamptz,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_shop_deals_shop
+  on public.shop_deals(shop_id, created_at desc);
+create index if not exists idx_shop_deals_active
+  on public.shop_deals(active, active_until) where active = true;
+
 alter table public.shop_deals
   add column if not exists frequency text not null default 'weekly'
     check (frequency in ('daily','weekly','monthly','quarterly','unlimited')),
