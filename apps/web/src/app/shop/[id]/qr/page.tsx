@@ -78,16 +78,16 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-start", gap: 14, position: "relative" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.05, color: "#FFF", letterSpacing: -0.3 }}>
+              <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 0.98, color: "#FFF", letterSpacing: -0.8 }}>
                 CHECK-IN
               </div>
-              <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.05, color: "#22D1C3", letterSpacing: -0.3 }}>
+              <div style={{ fontSize: 36, fontWeight: 900, lineHeight: 0.98, color: "#22D1C3", letterSpacing: -0.8 }}>
                 &amp; BOOST
               </div>
-              <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1.05, color: "#FFD700", letterSpacing: -0.3, marginTop: 2 }}>
+              <div style={{ fontSize: 42, fontWeight: 900, lineHeight: 0.98, color: "#FFD700", letterSpacing: -0.8, marginTop: 4 }}>
                 ABHOLEN!
               </div>
-              <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 10, lineHeight: 1.45, maxWidth: 220 }}>
+              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 12, lineHeight: 1.45, maxWidth: 240 }}>
                 Scanne den Code für deine<br />exklusive Belohnung.
               </div>
             </div>
@@ -143,18 +143,40 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* Benefits — Einzeiler mit farbigen Key-Wörtern */}
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
-            <BenefitLine Icon={Trophy} iconColor="#FFD700" text={<>+<b style={{ color: "#FFD700" }}>1.000 Wegemünzen</b> für dich beim ersten Scan</>} />
-            <BenefitLine Icon={Flame}  iconColor="#FF6B4A" text={<><b style={{ color: "#FF6B4A" }}>2× MÜNZEN-BOOST</b> (1 Stunde nach Scan)</>} />
-            <BenefitLine Icon={Gift}   iconColor="#FF2D78" text={<><b style={{ color: "#FF2D78" }}>EXKLUSIVES MAP-ICON</b> — nur hier</>} />
+          {/* BELOHNUNGEN */}
+          <div style={{
+            position: "relative",
+            padding: "14px 16px", borderRadius: 12,
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            marginBottom: 12,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
+              🎁 DEINE BELOHNUNGEN
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <BenefitLine Icon={Trophy} iconColor="#FFD700" text={<>+<b style={{ color: "#FFD700" }}>1.000 Wegemünzen</b> für dich beim ersten Scan</>} />
+              <BenefitLine Icon={Flame}  iconColor="#FF6B4A" text={<><b style={{ color: "#FF6B4A" }}>2× MÜNZEN-BOOST</b> (1 Stunde nach Scan)</>} />
+              <BenefitLine Icon={Gift}   iconColor="#FF2D78" text={<><b style={{ color: "#FF2D78" }}>EXKLUSIVES MAP-ICON</b> — nur hier</>} />
+            </div>
           </div>
 
-          {/* Steps — klein & inline */}
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
-            <InlineStep n={1} Icon={Smartphone} text={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
-            <InlineStep n={2} Icon={MapIcon} text="Auf der Karte den Running-Point tippen" />
-            <InlineStep n={3} Icon={QrIcon} text="Code scannen & Belohnung sichern!" />
+          {/* SO GEHT'S */}
+          <div style={{
+            position: "relative",
+            padding: "14px 16px", borderRadius: 12,
+            background: "rgba(15,17,21,0.55)",
+            border: "1px solid rgba(34,209,195,0.15)",
+            marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
+              📱 SO GEHT&apos;S — IN 3 SCHRITTEN
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <InlineStep n={1} Icon={Smartphone} text={<>App <b style={{ color: "#22D1C3" }}>MyArea365</b> öffnen</>} />
+              <InlineStep n={2} Icon={MapIcon} text="Auf der Karte den Running-Point tippen" />
+              <InlineStep n={3} Icon={QrIcon} text="Code scannen & Belohnung sichern!" />
+            </div>
           </div>
 
           {/* App-Store-Badges */}
