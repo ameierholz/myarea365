@@ -22,7 +22,7 @@ export async function GET() {
     .maybeSingle<{ id: string }>();
 
   const { data: items } = await sb.from("user_items")
-    .select("id, item_id, acquired_at, source, upgrade_tier, item_catalog:item_id(id, name, emoji, slot, rarity, bonus_hp, bonus_atk, bonus_def, bonus_spd, lore, image_url)")
+    .select("id, item_id, acquired_at, source, upgrade_tier, crafting_target_tier, crafting_ends_at, item_catalog:item_id(id, name, emoji, slot, rarity, bonus_hp, bonus_atk, bonus_def, bonus_spd, lore, image_url)")
     .eq("user_id", auth.user.id)
     .order("acquired_at", { ascending: false });
 
@@ -34,7 +34,7 @@ export async function GET() {
   const equippedIds = new Set(equippedMap.values());
 
   type Catalog = { id: string; name: string; emoji: string; slot: string; rarity: string; bonus_hp: number; bonus_atk: number; bonus_def: number; bonus_spd: number; lore: string | null; image_url: string | null };
-  type Row = { id: string; item_id: string; acquired_at: string; source: string; upgrade_tier: number | null; item_catalog: Catalog | Catalog[] };
+  type Row = { id: string; item_id: string; acquired_at: string; source: string; upgrade_tier: number | null; crafting_target_tier: number | null; crafting_ends_at: string | null; item_catalog: Catalog | Catalog[] };
   const normalizedItems = (items ?? []).map((r: Row) => {
     const cat = Array.isArray(r.item_catalog) ? r.item_catalog[0] : r.item_catalog;
     return {
@@ -43,6 +43,8 @@ export async function GET() {
       acquired_at: r.acquired_at,
       source: r.source,
       upgrade_tier: r.upgrade_tier ?? 0,
+      crafting_target_tier: r.crafting_target_tier ?? null,
+      crafting_ends_at: r.crafting_ends_at ?? null,
       catalog: cat,
       equipped: equippedIds.has(r.id),
     };

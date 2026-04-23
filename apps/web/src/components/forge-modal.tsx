@@ -11,6 +11,8 @@ type Catalog = {
 
 type Item = {
   id: string; item_id: string; catalog: Catalog; upgrade_tier?: number; equipped?: boolean;
+  crafting_target_tier?: number | null;
+  crafting_ends_at?: string | null;
 };
 
 type Materials = {
@@ -37,6 +39,20 @@ const UPGRADE_COST: Array<Record<string, number>> = [
   { crystal: 3, essence: 5 },
 ];
 
+// Muss mit packages/supabase/migrations/00053 forge_duration_seconds() matchen.
+const FORGE_DURATION_HOURS: number[] = [0, 4, 12];
+
+function formatRemaining(ms: number): string {
+  if (ms <= 0) return "fertig";
+  const totalSec = Math.ceil(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${s.toString().padStart(2, "0")}s`;
+  return `${s}s`;
+}
+
 export function ForgeModal({ items, onClose, onUpgraded }: {
   items: Item[];
   onClose: () => void;
@@ -57,8 +73,8 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
   async function forge(itemId: string) {
     setForgingId(itemId);
     setError(null);
-    // Simulate smithing animation delay
-    await new Promise((r) => setTimeout(r, 1800));
+    // Kurze Animations-Verzögerung
+    await new Promise((r) => setTimeout(r, 1200));
     try {
       const res = await fetch("/api/guardian/upgrade", {
         method: "POST", headers: { "content-type": "application/json" },
@@ -66,17 +82,48 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
       });
       const j = await res.json();
       if (!j.ok) {
-        setError(j.error === "not_enough_materials" ? "Nicht genug Materialien." : j.error ?? "Fehler");
+        const errorMsg = j.error === "not_enough_materials" ? "Nicht genug Materialien."
+          : j.error === "already_crafting" ? "Schmiedet bereits — warte bis fertig."
+          : j.error ?? "Fehler";
+        setError(errorMsg);
         setForgingId(null);
         return;
       }
-      setSuccessId(itemId);
-      await loadMaterials();
-      await onUpgraded();
-      setTimeout(() => { setForgingId(null); setSuccessId(null); }, 1600);
+      // Instant (Tier 0→1): Success-Animation zeigen
+      if (j.instant) {
+        setSuccessId(itemId);
+        await loadMaterials();
+        await onUpgraded();
+        setTimeout(() => { setForgingId(null); setSuccessId(null); }, 1600);
+      } else {
+        // Zeit-Gate: Parent neu laden (zeigt Timer), keine Success-Animation
+        await loadMaterials();
+        await onUpgraded();
+        setForgingId(null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unbekannter Fehler");
       setForgingId(null);
+    }
+  }
+
+  async function finalize(itemId: string) {
+    setError(null);
+    try {
+      const res = await fetch("/api/guardian/finalize", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ user_item_id: itemId }),
+      });
+      const j = await res.json();
+      if (!j.ok) {
+        setError(j.error === "still_crafting" ? "Noch nicht fertig." : j.error ?? "Fehler");
+        return;
+      }
+      setSuccessId(itemId);
+      await onUpgraded();
+      setTimeout(() => { setSuccessId(null); }, 1600);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
     }
   }
 
@@ -158,6 +205,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
                   forging={forgingId === it.id}
                   success={successId === it.id}
                   onForge={() => forge(it.id)}
+                  onFinalize={() => finalize(it.id)}
                 />
               ))}
             </div>
@@ -206,12 +254,13 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
   );
 }
 
-function ForgeItemRow({ item, materials, forging, success, onForge }: {
+function ForgeItemRow({ item, materials, forging, success, onForge, onFinalize }: {
   item: Item;
   materials: Materials | null;
   forging: boolean;
   success: boolean;
   onForge: () => void;
+  onFinalize: () => void;
 }) {
   const tier = item.upgrade_tier ?? 0;
   const tierM = TIER_META[tier];
@@ -221,6 +270,17 @@ function ForgeItemRow({ item, materials, forging, success, onForge }: {
   const hasMaterials = !maxed && cost && materials && Object.entries(cost).every(
     ([k, v]) => (materials[k as keyof Materials] ?? 0) >= (v as number),
   );
+
+  const crafting = !!item.crafting_target_tier && !!item.crafting_ends_at;
+  const craftEndsAt = item.crafting_ends_at ? new Date(item.crafting_ends_at).getTime() : 0;
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!crafting) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [crafting]);
+  const craftRemainingMs = craftEndsAt - now;
+  const craftReady = crafting && craftRemainingMs <= 0;
 
   const tierMult = [1.0, 1.5, 2.25, 3.5][tier];
 
@@ -287,15 +347,58 @@ function ForgeItemRow({ item, materials, forging, success, onForge }: {
         </div>
       </div>
 
-      {/* Upgrade-Row */}
-      {!maxed && cost && (
+      {/* Crafting-Timer (aktives Upgrade in Arbeit) */}
+      {!maxed && crafting && (
+        <div style={{
+          marginTop: 10, padding: "10px 12px", borderRadius: 8,
+          background: craftReady
+            ? `linear-gradient(135deg, ${nextTier?.color}22, rgba(15,17,21,0.6))`
+            : "rgba(255,107,74,0.12)",
+          border: `1px solid ${craftReady ? nextTier?.color : "#FF6B4A"}55`,
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+        }}>
+          <div style={{ fontSize: 18 }}>{craftReady ? "✨" : "⏳"}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, color: craftReady ? nextTier?.color : "#FF6B4A", fontWeight: 900, letterSpacing: 1 }}>
+              {craftReady ? `BEREIT → ${nextTier?.name}` : `SCHMIEDET → ${nextTier?.name}`}
+            </div>
+            <div style={{ fontSize: 11, color: "#FFF", fontWeight: 700, marginTop: 1 }}>
+              {craftReady ? "Tippe Fertig zum Abholen." : `Noch ${formatRemaining(craftRemainingMs)}`}
+            </div>
+          </div>
+          <button
+            onClick={onFinalize}
+            disabled={!craftReady}
+            style={{
+              padding: "6px 14px", borderRadius: 8, border: "none",
+              background: craftReady
+                ? `linear-gradient(180deg, ${nextTier?.color}, ${nextTier?.color}88)`
+                : "rgba(255,255,255,0.05)",
+              color: craftReady ? "#0F1115" : "#6c7590",
+              fontSize: 11, fontWeight: 900, letterSpacing: 1,
+              cursor: craftReady ? "pointer" : "not-allowed",
+            }}
+          >
+            {craftReady ? "✓ FERTIG" : "⏳ WARTEN"}
+          </button>
+        </div>
+      )}
+
+      {/* Upgrade-Row (nur wenn nicht gerade geschmiedet wird) */}
+      {!maxed && !crafting && cost && (
         <div style={{
           marginTop: 10, padding: "8px 10px", borderRadius: 8,
           background: "rgba(0,0,0,0.3)",
           display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
         }}>
           <div style={{ fontSize: 10, color: "#a8b4cf", fontWeight: 700 }}>
-            → {nextTier?.name}:
+            → {nextTier?.name}
+            {FORGE_DURATION_HOURS[tier] > 0 && (
+              <span style={{ color: "#FF6B4A", marginLeft: 4 }}>
+                · {FORGE_DURATION_HOURS[tier]}h Schmiede-Zeit
+              </span>
+            )}
+            :
           </div>
           {Object.entries(cost).map(([k, v]) => {
             const m = MATERIAL_META.find((x) => x.id === k);
