@@ -152,7 +152,7 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             border: "1px solid rgba(255,255,255,0.08)",
             marginBottom: 12,
           }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3", marginBottom: 12 }}>
               🎁 DEINE BELOHNUNGEN
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -170,7 +170,7 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             border: "1px solid rgba(34,209,195,0.15)",
             marginBottom: 16,
           }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3", marginBottom: 12 }}>
               📱 SO GEHT&apos;S — IN 3 SCHRITTEN
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
