@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShopHubModal } from "@/components/shop-hub-modal";
 
 type DailyPack = {
   id: string; is_bundle?: boolean;
@@ -29,8 +28,14 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
   const [data, setData] = useState<DailyResponse | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [resetIn, setResetIn] = useState(0);
-  const [openShop, setOpenShop] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  function openDailyDeals() {
+    // Teaser lauscht auf dieses Event → expandiert sich + scrollt ins Bild
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("ma365:open-daily-deals"));
+    }
+  }
 
   // Mobile-Detection für kompakte Darstellung (reines Icon-Pill unter 480 px)
   useEffect(() => {
@@ -99,7 +104,7 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
       `}</style>
 
       <button
-        onClick={() => setOpenShop(true)}
+        onClick={openDailyDeals}
         aria-label="Tägliche Angebote öffnen"
         style={{
           position: "absolute",
@@ -164,9 +169,6 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
         >✕</span>
       </button>
 
-      {openShop && (
-        <ShopHubModal userId={userId} onClose={() => setOpenShop(false)} />
-      )}
     </>
   );
 }

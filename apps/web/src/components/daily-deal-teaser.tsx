@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type DailyContent = { type: string; amount?: number; min?: number; max?: number; label: string };
 type DailyPack = {
@@ -35,6 +35,7 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -52,6 +53,19 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
     const id = setInterval(() => setResetIn((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [resetIn]);
+
+  // Event-Listener: Map-Badge → expandieren + hinscrollen
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    function handler() {
+      setExpanded(true);
+      setTimeout(() => {
+        rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+    window.addEventListener("ma365:open-daily-deals", handler);
+    return () => window.removeEventListener("ma365:open-daily-deals", handler);
+  }, []);
 
   async function buy(packId: string) {
     setBusy(packId);
@@ -96,7 +110,7 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
   const cheapestOpen = [...standardOpen].sort((a, b) => a.price_gems - b.price_gems)[0];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+    <div ref={rootRef} style={{ display: "flex", flexDirection: "column", gap: 0, scrollMarginTop: 80 }}>
       <style>{`
         @keyframes daily-pulse-strong {
           0%,100% { box-shadow: 0 0 14px rgba(255,215,0,0.35), 0 0 30px rgba(255,45,120,0.15); }
