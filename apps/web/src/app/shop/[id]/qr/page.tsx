@@ -87,8 +87,12 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
               <div style={{ fontSize: 42, fontWeight: 900, lineHeight: 0.98, color: "#FFD700", letterSpacing: -0.8, marginTop: 4 }}>
                 ABHOLEN!
               </div>
-              <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 12, lineHeight: 1.45, maxWidth: 240 }}>
-                Scanne den Code für deine<br />exklusive Belohnung.
+              <div style={{ fontSize: 13, color: "#FFF", marginTop: 14, lineHeight: 1.4, maxWidth: 260, fontWeight: 700 }}>
+                Die App, bei der <span style={{ color: "#FFD700" }}>Gehen &amp; Laufen</span><br />
+                zu <span style={{ color: "#22D1C3" }}>echten Rabatten</span> werden.
+              </div>
+              <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 6, lineHeight: 1.4, maxWidth: 240 }}>
+                Scanne den Code für deine exklusive Belohnung.
               </div>
             </div>
             <div style={{ position: "relative", flexShrink: 0, textAlign: "center" }}>
@@ -180,8 +184,26 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
+          {/* NEU HIER? — gezielt für Nicht-User */}
+          <div style={{
+            position: "relative",
+            padding: "12px 14px", borderRadius: 12,
+            background: "linear-gradient(135deg, rgba(255,215,0,0.14), rgba(255,45,120,0.1))",
+            border: "1px solid rgba(255,215,0,0.4)",
+            marginBottom: 12,
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>
+              ✨ NOCH KEINE APP?
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#FFF", marginTop: 3, lineHeight: 1.35 }}>
+              Kostenlos. Kein Abo. Kein Tracking-Wahn.<br />
+              <span style={{ color: "#FFD700" }}>Jede Bewegung zählt — dein Kiez dankt&apos;s dir.</span>
+            </div>
+          </div>
+
           {/* App-Store-Badges */}
-          <div style={{ position: "relative", display: "flex", gap: 8, justifyContent: "center", marginBottom: 12 }}>
+          <div style={{ position: "relative", display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
             <AppStoreBadge kind="ios" />
             <AppStoreBadge kind="android" />
           </div>
@@ -192,7 +214,7 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
               Jetzt downloaden!
             </div>
             <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 2 }}>
-              Unterstützt von deinem Kiez.
+              myarea365.de · Unterstützt von deinem Kiez.
             </div>
           </div>
         </div>
