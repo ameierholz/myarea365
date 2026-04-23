@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
 
@@ -12,18 +12,16 @@ const STAND_VARIANTS = [
 
 export default function ShopQrPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const payload = `myarea:redeem:${id}`;
   const [standOpen, setStandOpen] = useState(false);
+  const [qrUrl, setQrUrl] = useState<string>("");
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-    // Brand-Gradient im QR — dark-teal Module auf weißem Tile
-    QRCode.toCanvas(canvasRef.current, payload, {
-      width: 560, margin: 2,
+    QRCode.toDataURL(payload, {
+      width: 600, margin: 2,
       errorCorrectionLevel: "H",  // hoch, damit Logo-Overlay in der Mitte möglich ist
       color: { dark: "#0F1115", light: "#FFFFFF" },
-    }).catch(() => {});
+    }).then(setQrUrl).catch(() => setQrUrl(""));
   }, [payload]);
 
   return (
@@ -85,25 +83,35 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
 
           {/* QR-Code mit Logo-Overlay */}
           <div style={{
+            position: "relative",
             margin: "18px auto 0",
             width: 260, height: 260,
             borderRadius: 18,
             background: "#FFF",
             padding: 14,
-            position: "relative",
+            boxSizing: "border-box",
             boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
           }}>
-            <canvas ref={canvasRef} width={560} height={560}
-              style={{ width: "100%", height: "100%", display: "block" }} />
+            {qrUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={qrUrl}
+                alt="QR-Code"
+                width={232}
+                height={232}
+                style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }}
+              />
+            )}
             {/* Logo-Overlay in der Mitte (Error-Correction H verzeiht bis zu ~25 %) */}
             <div style={{
               position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-              width: 52, height: 52, borderRadius: 12,
-              background: "#FFF", padding: 6,
-              boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+              width: 48, height: 48, borderRadius: 10,
+              background: "#FFF", padding: 5,
+              boxSizing: "border-box",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" style={{ width: "100%", height: "100%", borderRadius: 8 }} />
+              <img src="/logo.png" alt="" style={{ width: "100%", height: "100%", borderRadius: 6, objectFit: "cover" }} />
             </div>
           </div>
 
