@@ -1,17 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import {
   MapPin, Trophy, Users, Store, Shield, Footprints, Zap,
   Heart, Flame, Brain, Moon, Map, Sparkles, Target, Award,
 } from "lucide-react";
 import { InlineAuth } from "@/components/inline-auth";
-
-// Lazy: maplibre-gl ist ~180 KB gz, blockiert sonst LCP der Landing-Page.
-const HeroMap = dynamic(() => import("@/components/hero-map").then((m) => ({ default: m.HeroMap })), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0 bg-bg-deep" />,
-});
+import { HeroMap } from "@/components/hero-map-client";
 
 export default function LandingPage() {
   return (
