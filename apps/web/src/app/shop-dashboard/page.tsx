@@ -167,6 +167,8 @@ export default function ShopDashboardPage() {
   const [shop, reloadShop] = useShop(DEMO_SHOP.id);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [shopPreselect, setShopPreselect] = useState<"plans" | "boosts" | "marketing" | "analytics">("plans");
 
   const monthlyRedemptions = DEMO_STATS.checkinsMonth ?? 0;
   const flashCredits = shop.flash_push_credits ?? 0;
@@ -183,6 +185,7 @@ export default function ShopDashboardPage() {
           plan={shop.plan as "free"|"basis"|"pro"|"ultra"|undefined}
           monthlyRedemptions={monthlyRedemptions}
           flashCredits={flashCredits}
+          onOpenProducts={(tab) => { setShopPreselect(tab); setShowShop(true); }}
         />
       </div>
       {/* Header */}
@@ -194,6 +197,15 @@ export default function ShopDashboardPage() {
             color: PRIMARY, textDecoration: "none", fontSize: 13, fontWeight: 700,
           }}>← zurück zur Runner-App</Link>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
+          <button onClick={() => { setShopPreselect("plans"); setShowShop(true); }} style={{
+            padding: "6px 12px", borderRadius: 999, border: "none",
+            background: "linear-gradient(135deg, #FFD700, #FF6B4A)",
+            color: "#0F1115", fontSize: 12, fontWeight: 900, cursor: "pointer",
+            boxShadow: "0 2px 10px rgba(255,215,0,0.3)",
+          }}>
+            🎯 Angebote buchen
+          </button>
+          <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <Link href={`/shop/${shop.id}/qr`} style={{ color: MUTED, textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
             🔲 QR-Code drucken
           </Link>
@@ -202,19 +214,19 @@ export default function ShopDashboardPage() {
             background: "transparent", border: "none", color: MUTED,
             fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0,
           }}>
-            💳 Abrechnung & Paket
+            💳 Abrechnung
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <button onClick={() => setHowItWorksOpen(true)} style={{
             background: "transparent", border: "none", color: MUTED,
             fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0,
-            textDecoration: "underline", textUnderlineOffset: 3,
           }}>
             🤝 So funktioniert&apos;s
           </button>
         </div>
         {howItWorksOpen && <ShopHowItWorksModal onClose={() => setHowItWorksOpen(false)} />}
         {billingOpen && <ShopBillingModal defaultShopId={shop.id} onClose={() => setBillingOpen(false)} />}
+        {showShop && <ShopProductsModal businessId={shop.id} initialTab={shopPreselect} onClose={() => setShowShop(false)} />}
 
         <div style={{
           background: `linear-gradient(135deg, ${DEMO_SHOP.planColor}22 0%, rgba(20, 26, 44, 0.85) 100%)`,
