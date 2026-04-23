@@ -35,11 +35,7 @@ const DAYS: { key: string; label: string }[] = [
   { key: "sun", label: "Sonntag" },
 ];
 
-const CATEGORIES = [
-  "Café", "Restaurant", "Bäckerei", "Eisdiele",
-  "Sportgeschäft", "Fitness-Studio", "Friseur", "Apotheke",
-  "Buchhandlung", "Boutique", "Supermarkt", "Bar", "Physio", "Sonstiges",
-];
+import { SHOP_CATEGORY_GROUPS } from "@/lib/shop-categories";
 
 const defaultHours: DayHours[] = DAYS.map((d) => ({
   day: d.key, open: "09:00", close: "18:00", closed: d.key === "sun",
@@ -169,7 +165,11 @@ function ProfileBlock({ shop, onSave, saving }: {
         <Field label="Kategorie">
           <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} style={INP}>
             <option value="">Bitte wählen…</option>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {SHOP_CATEGORY_GROUPS.map((grp) => (
+              <optgroup key={grp.label} label={grp.label}>
+                {grp.items.map((it) => <option key={it} value={it}>{it}</option>)}
+              </optgroup>
+            ))}
           </select>
         </Field>
         <Field label="Kurz-Beschreibung (wird Runnern auf Shop-POI angezeigt)">

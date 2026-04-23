@@ -3,22 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const CATEGORIES = [
-  "Café",
-  "Restaurant",
-  "Bäckerei",
-  "Eisdiele",
-  "Sportgeschäft",
-  "Fitness-Studio",
-  "Friseur",
-  "Apotheke",
-  "Buchhandlung",
-  "Boutique",
-  "Supermarkt",
-  "Bar",
-  "Physio",
-  "Sonstiges",
-];
+import { SHOP_CATEGORY_GROUPS } from "@/lib/shop-categories";
 
 export default function ShopRegisterPage() {
   const router = useRouter();
@@ -120,7 +105,7 @@ export default function ShopRegisterPage() {
           <h2 style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>Shop-Daten</h2>
 
           <Field name="name" label="Name des Geschäfts *" placeholder="Café Müller" required />
-          <Field name="category" label="Kategorie *" asSelect required options={CATEGORIES} />
+          <Field name="category" label="Kategorie *" asCategorySelect required />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
             <Field name="street" label="Straße + Hausnummer *" placeholder="Kreuzbergstr. 12" required />
@@ -197,7 +182,7 @@ function BenefitCard({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-function Field({ name, label, placeholder, required, type = "text", maxLength, asTextarea, asSelect, options }: {
+function Field({ name, label, placeholder, required, type = "text", maxLength, asTextarea, asSelect, asCategorySelect, options }: {
   name: string;
   label: string;
   placeholder?: string;
@@ -206,6 +191,7 @@ function Field({ name, label, placeholder, required, type = "text", maxLength, a
   maxLength?: number;
   asTextarea?: boolean;
   asSelect?: boolean;
+  asCategorySelect?: boolean;
   options?: string[];
 }) {
   const inputStyle: React.CSSProperties = {
@@ -218,6 +204,15 @@ function Field({ name, label, placeholder, required, type = "text", maxLength, a
       <div style={{ fontSize: 11, color: "#a8b4cf", fontWeight: 700, marginBottom: 4 }}>{label}</div>
       {asTextarea ? (
         <textarea name={name} placeholder={placeholder} rows={3} style={inputStyle} maxLength={500} />
+      ) : asCategorySelect ? (
+        <select name={name} required={required} defaultValue="" style={inputStyle}>
+          <option value="" disabled>Bitte wählen…</option>
+          {SHOP_CATEGORY_GROUPS.map((grp) => (
+            <optgroup key={grp.label} label={grp.label}>
+              {grp.items.map((it) => <option key={it} value={it}>{it}</option>)}
+            </optgroup>
+          ))}
+        </select>
       ) : asSelect ? (
         <select name={name} required={required} defaultValue="" style={inputStyle}>
           <option value="" disabled>Bitte wählen…</option>

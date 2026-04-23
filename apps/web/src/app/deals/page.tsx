@@ -24,11 +24,9 @@ type DealRow = {
 
 type Pos = { lat: number; lng: number } | null;
 
-const CATEGORIES = [
-  "", "Café", "Restaurant", "Bäckerei", "Eisdiele",
-  "Sportgeschäft", "Fitness-Studio", "Friseur", "Apotheke",
-  "Buchhandlung", "Boutique", "Supermarkt", "Bar", "Physio",
-];
+import { SHOP_CATEGORIES } from "@/lib/shop-categories";
+
+const CATEGORIES: string[] = ["", ...SHOP_CATEGORIES];
 
 export default function DealsPage() {
   const [deals, setDeals] = useState<DealRow[]>([]);
