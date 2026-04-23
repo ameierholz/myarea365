@@ -949,17 +949,21 @@ export function AppMap({
     };
   }, [mapReady]);
 
-  // Overview-Mode: Zoom raus + Pitch zurück auf flach
+  // Overview-Mode: Zoom raus + Pitch zurück auf flach.
+  // Dep: NUR overviewMode (nicht pos), sonst fliegt die Karte bei jedem
+  // GPS-Update zurück auf den Runner-Pin — auf Mobile besonders nervig, weil
+  // watchPosition hier alle paar Sekunden neue Koordinaten liefert.
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
     if (overviewMode) {
       map.flyTo({ zoom: 13, pitch: 0, duration: 900 });
-    } else if (pos) {
-      map.flyTo({ center: [pos.lng, pos.lat], zoom: 17, pitch: 50, duration: 900 });
+    } else {
+      const p = posRef.current;
+      if (p) map.flyTo({ center: [p.lng, p.lat], zoom: 17, pitch: 50, duration: 900 });
     }
-  }, [overviewMode, mapReady, pos]);
+  }, [overviewMode, mapReady]);
 
   // Eigenes Marker — Instanz wiederverwenden, nur Position updaten
   useEffect(() => {
