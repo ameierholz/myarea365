@@ -201,7 +201,7 @@ export default function ShopQrPrintPage({ params }: { params: Promise<{ id: stri
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <BenefitLine Icon={Trophy} iconColor="#FFD700" text={<>+<b style={{ color: "#FFD700" }}>1.000 Wegemünzen</b> für dich beim ersten Scan</>} />
               <BenefitLine Icon={Flame}  iconColor="#FF6B4A" text={<><b style={{ color: "#FF6B4A" }}>2× MÜNZEN-BOOST</b> (1 Stunde nach Scan)</>} />
-              <BenefitLine Icon={Gift}   iconColor="#FF2D78" text={<><b style={{ color: "#FF2D78" }}>EXKLUSIVES MAP-ICON</b> — nur hier</>} />
+              <BenefitLine Icon={Gift}   iconColor="#FF2D78" text={<><b style={{ color: "#FF2D78" }}>EXKLUSIVE SHOP-BELOHNUNGEN</b> — nur hier</>} />
             </div>
           </div>
 
