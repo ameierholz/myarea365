@@ -16,11 +16,11 @@ export async function GET(req: Request) {
   if (!type || !id) return NextResponse.json({ error: "type+id required" }, { status: 400 });
   const sb = await createClient();
 
-  type Owner = { user: { id: string; display_name: string | null; username: string | null } | null; crew: { id: string; name: string } | null };
+  type Owner = { user: { id: string; display_name: string | null; username: string | null; heimat_plz: string | null } | null; crew: { id: string; name: string } | null };
   async function resolveOwner(userId: string | null, crewId: string | null): Promise<Owner> {
     const out: Owner = { user: null, crew: null };
     if (userId) {
-      const { data } = await sb.from("users").select("id, display_name, username").eq("id", userId).maybeSingle<{ id: string; display_name: string | null; username: string | null }>();
+      const { data } = await sb.from("users").select("id, display_name, username, heimat_plz").eq("id", userId).maybeSingle<{ id: string; display_name: string | null; username: string | null; heimat_plz: string | null }>();
       if (data) out.user = data;
     }
     if (crewId) {
@@ -41,16 +41,16 @@ export async function GET(req: Request) {
 
   if (type === "street") {
     const { data, error } = await sb.from("streets_claimed")
-      .select("id, user_id, crew_id, street_name, segments_count, total_length_m, created_at")
-      .eq("id", id).maybeSingle<{ id: string; user_id: string; crew_id: string | null; street_name: string; segments_count: number; total_length_m: number; created_at: string }>();
+      .select("id, user_id, crew_id, street_name, segments_count, total_length_m, created_at, last_painted_at")
+      .eq("id", id).maybeSingle<{ id: string; user_id: string; crew_id: string | null; street_name: string; segments_count: number; total_length_m: number; created_at: string; last_painted_at: string | null }>();
     if (error || !data) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const owner = await resolveOwner(data.user_id, data.crew_id);
-    return NextResponse.json({ kind: "street", id: data.id, street_name: data.street_name, segments_count: data.segments_count, total_length_m: data.total_length_m, claimed_at: data.created_at, owner });
+    return NextResponse.json({ kind: "street", id: data.id, street_name: data.street_name, segments_count: data.segments_count, total_length_m: data.total_length_m, claimed_at: data.created_at, last_painted_at: data.last_painted_at, owner });
   }
 
   if (type === "territory") {
     const { data, error } = await sb.from("territory_polygons")
-      .select("id, owner_user_id, owner_crew_id, status, area_m2, perimeter_m, polygon, created_at, stolen_from_user_id, stolen_from_crew_id, stolen_at")
+      .select("id, owner_user_id, owner_crew_id, status, area_m2, perimeter_m, polygon, created_at, last_painted_at, stolen_from_user_id, stolen_from_crew_id, stolen_at")
       .eq("id", id).maybeSingle();
     if (error || !data) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const owner = await resolveOwner(data.owner_user_id, data.owner_crew_id);
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       kind: "territory",
       id: data.id, status: data.status, area_m2: data.area_m2, perimeter_m: data.perimeter_m,
-      claimed_at: data.created_at, polygon: data.polygon, owner, stole_from: stoleFrom, stolen_at: data.stolen_at,
+      claimed_at: data.created_at, last_painted_at: data.last_painted_at, polygon: data.polygon, owner, stole_from: stoleFrom, stolen_at: data.stolen_at,
     });
   }
 
