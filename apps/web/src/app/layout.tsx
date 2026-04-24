@@ -75,6 +75,8 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#1b2436" />
+        {/* Google AdSense — bestaetigt Site-Ownership + aktiviert Ad-Serving. */}
+        <meta name="google-adsense-account" content="ca-pub-9799640580685030" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
