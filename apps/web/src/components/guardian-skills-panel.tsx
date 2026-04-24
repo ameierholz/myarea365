@@ -89,6 +89,38 @@ export function GuardianSkillsPanel(props: Props) {
               </div>
             </div>
             <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{s.description}</div>
+
+            {/* Live-Effekt-Anzeige: aktueller Wert + Vorschau naechste Stufe */}
+            {(() => {
+              const base = Number(s.base_value ?? 0);
+              const perLvl = Number(s.per_level_value ?? 0);
+              if (base === 0 && perLvl === 0) return null;
+              const currentEffect = level > 0 ? base + (level - 1) * perLvl : 0;
+              const nextEffect = !maxed ? base + level * perLvl : null;
+              const fmt = (n: number) => Number.isInteger(n) ? `${n}` : n.toFixed(1);
+              return (
+                <div style={{
+                  marginTop: 6, padding: "5px 8px", borderRadius: 6,
+                  background: "rgba(34,209,195,0.07)", border: "1px solid rgba(34,209,195,0.18)",
+                  display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap",
+                }}>
+                  <span style={{ color: "#8B8FA3", fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>AKTUELL</span>
+                  <span style={{ color: level > 0 ? "#22D1C3" : "#6c7590", fontSize: 13, fontWeight: 900 }}>
+                    {level > 0 ? fmt(currentEffect) : "—"}
+                  </span>
+                  {nextEffect !== null && (
+                    <>
+                      <span style={{ color: "#6c7590", fontSize: 11 }}>→</span>
+                      <span style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>STUFE {level + 1}</span>
+                      <span style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>
+                        {fmt(nextEffect)} <span style={{ color: "#4ade80", fontSize: 10 }}>(+{fmt(nextEffect - currentEffect)})</span>
+                      </span>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
             {s.rage_cost > 0 && (
               <div style={{ color: "#FF6B4A", fontSize: 10, marginTop: 4, fontWeight: 800 }}>
                 ⚡ Rage-Kosten: {s.rage_cost}

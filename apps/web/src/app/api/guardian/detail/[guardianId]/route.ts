@@ -15,7 +15,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ guardianId: st
   if (!auth?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { data: guardian } = await sb.from("user_guardians")
-    .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, talent_points_available, talent_points_spent, last_respec_at, archetype:archetype_id(id, name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd, ability_id, ability_name, ability_desc, lore)")
+    .select("id, user_id, crew_id, archetype_id, custom_name, level, xp, wins, losses, current_hp_pct, wounded_until, is_active, acquired_at, source, talent_points_available, talent_points_spent, last_respec_at, archetype:archetype_id(id, name, emoji, rarity, guardian_type, role, base_hp, base_atk, base_def, base_spd, ability_id, ability_name, ability_desc, lore, image_url, video_url)")
     .eq("id", guardianId).maybeSingle();
   if (!guardian) return NextResponse.json({ error: "not_found" }, { status: 404 });
 

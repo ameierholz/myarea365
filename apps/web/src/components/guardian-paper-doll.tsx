@@ -235,6 +235,37 @@ function SlotButton({ slot, item, onClick, disabled }: {
           boxShadow: `0 0 4px ${tier.glow}`,
         }} />
       )}
+
+      {/* Mini-Stats unter dem Slot-Icon */}
+      {item && (() => {
+        const tierMult = [1.0, 1.5, 2.25, 3.5][item.upgrade_tier ?? 0];
+        const chips: Array<{ v: number; c: string; lbl: string }> = [];
+        const hp = Math.round(item.catalog.bonus_hp * tierMult);
+        const atk = Math.round(item.catalog.bonus_atk * tierMult);
+        const def = Math.round(item.catalog.bonus_def * tierMult);
+        const spd = Math.round(item.catalog.bonus_spd * tierMult);
+        if (hp > 0)  chips.push({ v: hp,  c: "#4ade80", lbl: "HP" });
+        if (atk > 0) chips.push({ v: atk, c: "#FF6B4A", lbl: "ATK" });
+        if (def > 0) chips.push({ v: def, c: "#5ddaf0", lbl: "DEF" });
+        if (spd > 0) chips.push({ v: spd, c: "#FFD700", lbl: "SPD" });
+        if (chips.length === 0) return null;
+        return (
+          <div style={{
+            position: "absolute", left: 2, right: 2, bottom: 2,
+            display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 2,
+            pointerEvents: "none",
+          }}>
+            {chips.slice(0, 4).map((c, i) => (
+              <span key={i} style={{
+                fontSize: 8, fontWeight: 900, lineHeight: 1,
+                padding: "1px 3px", borderRadius: 3,
+                background: "rgba(15,17,21,0.85)",
+                color: c.c,
+              }}>+{c.v}</span>
+            ))}
+          </div>
+        );
+      })()}
       {!item && (
         <div style={{ position: "absolute", bottom: 3, fontSize: 7, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1 }}>
           {meta.label.toUpperCase()}
