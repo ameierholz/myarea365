@@ -1629,7 +1629,14 @@ export function AppMap({
     const dashId = "active-route-dash";
 
     if (!routeGeometry || routeGeometry.coordinates.length < 2) {
-      // Layer und Source entfernen wenn keine Route
+      // Robust aufraeumen: ALLE Layer entfernen die diese Source nutzen
+      // (auch Altbestand wie "active-route-main" aus alten HMR-Sessions).
+      const style = map.getStyle();
+      const layersToRemove = (style?.layers ?? [])
+        .filter((l) => "source" in l && (l as { source?: string }).source === sourceId)
+        .map((l) => l.id);
+      layersToRemove.forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
+      // Sicherheitsnetz: auch unsere bekannten IDs explizit
       [dashId, lineId, glowId].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
       if (map.getSource(sourceId)) map.removeSource(sourceId);
       return;
