@@ -47,8 +47,10 @@ export default function AgbPage() {
             <li><b className="text-text">Unternehmer:</b> Person, die zu gewerblichen Zwecken handelt (§ 14 BGB)</li>
             <li><b className="text-text">Partner-Shop:</b> Geschäft, das Deals auf der Plattform anbietet</li>
             <li><b className="text-text">Inhalt:</b> alle vom Nutzer hochgeladenen oder erstellten Daten (Texte, Bilder, Chat-Nachrichten)</li>
-            <li><b className="text-text">Virtuelle Güter:</b> Diamanten, Items, Wächter, XP, Siegel — siehe § 8</li>
-            <li><b className="text-text">Saison:</b> zeitlich begrenzter Spielabschnitt mit eigenen Ranglisten und Belohnungen</li>
+            <li><b className="text-text">Virtuelle Güter:</b> Wegemünzen, Edelsteine, Materialien, Items, Wächter, Siegel, Boost-Items, Cosmetics — siehe § 8</li>
+            <li><b className="text-text">Saison / Liga:</b> zeitlich begrenzter Spielabschnitt mit eigenen Ranglisten und Belohnungen</li>
+            <li><b className="text-text">Fraktion / Klasse / Rolle:</b> Gruppierungen innerhalb des Spiels mit eigenen mechanischen Boni</li>
+            <li><b className="text-text">Crew:</b> Gruppe von Runnern, die gemeinsam Gebiete erobern und an Wettbewerben teilnehmen</li>
           </ul>
         </Section>
 
@@ -58,18 +60,21 @@ export default function AgbPage() {
           </p>
           <ul className="list-disc list-inside space-y-1 text-sm mt-2">
             <li>Aufzeichnung von Lauf-Sessions via GPS</li>
-            <li>Eroberung virtueller Gebiete auf Basis gelaufener Strecken</li>
-            <li>Vergabe von Erfahrungspunkten (XP), Level und Achievements</li>
-            <li>Sammeln und Aufwerten von &bdquo;Wächtern&ldquo; und virtueller Ausrüstung</li>
-            <li>Teilnahme an Arena-Kämpfen (Spieler gegen Spieler) und Saison-Ranglisten</li>
-            <li>Gründen oder Beitreten von Crews inklusive Crew-Chat</li>
-            <li>Einlösung von Rabatt-Deals bei teilnehmenden Partner-Shops</li>
-            <li>Öffentliches Profil, Hall-of-Fame und Bestenlisten</li>
+            <li>Eroberung virtueller Straßenzüge und Gebiete auf Basis gelaufener Strecken</li>
+            <li>Vergabe von Wegemünzen, Level und Achievements</li>
+            <li>Sammeln und Aufwerten von &bdquo;Wächtern&ldquo; und virtueller Ausrüstung, Schmiede-System für Materialien</li>
+            <li>Teilnahme an Arena-Kämpfen (Runner vs Runner) und Saison-Ranglisten inkl. Elo/MMR-Ranked-Modus</li>
+            <li>Fraktions- und Klassen-System mit mechanischen Boni</li>
+            <li>Gründen oder Beitreten von Crews inklusive Crew-Chat und Crew-Territorien</li>
+            <li>Einlösung von Rabatt-Deals bei teilnehmenden Partner-Shops via QR-Code-Scan</li>
+            <li>Öffentliches Profil, Hall-of-Fame und Bestenlisten (global, stadt-, kiez-basiert)</li>
+            <li>Finanzierung teilweise über Werbung (z.&nbsp;B. Google AdSense, AdMob) sowie optionale zahlungspflichtige Extras</li>
           </ul>
           <p className="text-sm mt-2">
             Der konkrete Funktionsumfang entwickelt sich fortlaufend weiter. Wir behalten uns vor, einzelne Funktionen
-            hinzuzufügen, zu ändern oder einzustellen, sofern dies für den Nutzer zumutbar ist und wesentliche
-            Vertragspflichten nicht betroffen sind.
+            hinzuzufügen, zu ändern, zu ersetzen oder einzustellen, sofern dies für den Nutzer zumutbar ist und wesentliche
+            Vertragspflichten nicht betroffen sind. Insbesondere passen wir Spielmechaniken, Ranglisten-Formeln, Fraktions-
+            und Klassen-Balance aus Gründen der Spielbalance und Fairness fortlaufend an.
           </p>
         </Section>
 
@@ -82,7 +87,14 @@ export default function AgbPage() {
           </p>
           <p className="text-sm mt-2">
             Du versicherst, bei der Registrierung wahrheitsgemäße, vollständige und aktuelle Angaben zu machen. Änderungen
-            teilst du uns unverzüglich mit. Pro Person ist grundsätzlich nur ein Konto zulässig.
+            teilst du uns unverzüglich mit. <b className="text-text">Pro natürlicher Person ist nur ein Konto zulässig.</b>{" "}
+            Das Konto ist persönlich, nicht übertragbar und darf nicht mit Dritten geteilt werden. Eine geteilte Nutzung
+            (z.&nbsp;B. Account-Sharing, Multi-Accounting) stellt einen wichtigen Grund zur außerordentlichen Kündigung dar.
+          </p>
+          <p className="text-sm mt-2">
+            Für die Sicherheit deines Zugangs bist du selbst verantwortlich. Dies umfasst insbesondere die Geheimhaltung
+            deines Passworts, die Nutzung sicherer Authentifizierungsmittel und die unverzügliche Mitteilung eines
+            begründeten Verdachts auf unbefugte Nutzung.
           </p>
         </Section>
 
@@ -110,51 +122,91 @@ export default function AgbPage() {
         <Section num="7" title="Kostenpflichtige Zusatzleistungen und Abonnements">
           <SubSection title="7.1 Einmalige Käufe">
             <p className="text-sm">
-              Wir bieten kostenpflichtige Einmal-Käufe an, insbesondere Diamanten-Pakete, Skins und saisonale Boost-Items.
-              Preise werden brutto inklusive gesetzlicher Umsatzsteuer angezeigt (§ 1 PAngV).
+              Wir bieten kostenpflichtige Einmal-Käufe an, insbesondere Edelstein-Pakete, Materialien-Pakete,
+              Streak-Freeze-Items, Kiez-Shouts, Cosmetics (Skins, Pin-Themes, Marker) sowie zeitlich begrenzte Boost-Items.
+              Preise werden brutto inklusive gesetzlicher Umsatzsteuer angezeigt (§ 1 PAngV). Mit Klick auf &bdquo;Kaufen&ldquo;
+              gibst du ein verbindliches Angebot ab; der Vertrag kommt mit Bestätigung durch uns oder mit dem Beginn der
+              Leistungserbringung zustande.
             </p>
           </SubSection>
-          <SubSection title="7.2 Abonnements (z. B. Season Pass)">
+          <SubSection title="7.2 Abonnements (MyArea+, Supporter-Badges, Crew-Pro, Shop-Plans)">
             <p className="text-sm">
-              Bestimmte Angebote werden als zeitlich begrenzte oder wiederkehrende Abonnements geführt (z.&nbsp;B. Season Pass
-              über die Dauer einer Saison). Laufzeit, Preis, Verlängerungsbedingungen und Kündigungsfrist werden dir
-              vor Bestellung transparent angezeigt.
+              Abonnements verlängern sich automatisch zum Ende der jeweiligen Abrechnungsperiode (Monat bzw. Jahr)
+              um die gleiche Laufzeit, sofern du nicht <b className="text-text">vor Ablauf der Periode</b> kündigst.
+              Abonnements umfassen derzeit insbesondere:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-sm mt-2">
+              <li><b className="text-text">MyArea+ Plus</b> (Premium-Features, werbefrei)</li>
+              <li><b className="text-text">Supporter-Badges</b> Bronze / Silber / Gold (monatliche Abos, Badge + Boni)</li>
+              <li><b className="text-text">Crew-Pro</b> (erweiterte Crew-Features)</li>
+              <li><b className="text-text">Shop-Basis / Shop-Pro / Shop-Ultra</b> (B2B-Pakete für Partner-Shops)</li>
+              <li><b className="text-text">Arena-Pass</b> (z.&nbsp;B. über die Dauer einer Saison)</li>
+              <li><b className="text-text">Social-Pro / Analytics-Pro / Competitor-Insights</b> (Zusatz-Module für Partner-Shops)</li>
+            </ul>
+            <p className="text-sm mt-2">
+              Laufzeit, Preis, Verlängerungsbedingungen und Kündigungsfrist werden dir vor Bestellung transparent angezeigt.
+              Die <b className="text-text">Kündigungsfrist beträgt den jeweils laufenden Abrechnungszeitraum</b>
+              (d.&nbsp;h. die Kündigung wird zum Ende der bereits bezahlten Periode wirksam).
             </p>
           </SubSection>
           <SubSection title="7.3 Zahlungsmittel">
             <p className="text-sm">
-              Zahlungen erfolgen über unseren Zahlungsdienstleister (derzeit Stripe Payments Europe Ltd.). Akzeptierte
-              Zahlungsarten werden im Bestellvorgang angezeigt. Die Abrechnung erfolgt sofort mit Vertragsschluss.
+              Zahlungen erfolgen über unseren Zahlungsdienstleister <b className="text-text">Stripe Payments Europe Ltd.</b>{" "}
+              (1 Grand Canal Street Lower, Dublin, Irland). Akzeptierte Zahlungsarten (SEPA-Lastschrift, Kreditkarte,
+              Apple Pay, Google Pay, Klarna etc.) werden im Bestellvorgang angezeigt. Die Abrechnung erfolgt sofort mit
+              Vertragsschluss. Mit Auswahl einer Zahlungsart willigst du in die Datenübermittlung an Stripe zur
+              Vertragsabwicklung ein (Art. 6 Abs. 1 lit. b DSGVO).
             </p>
           </SubSection>
-          <SubSection title="7.4 Fälligkeit und Rechnung">
+          <SubSection title="7.4 Fälligkeit, Rechnung und Auto-Verlängerung">
             <p className="text-sm">
-              Der Kaufpreis wird sofort fällig. Bei wiederkehrenden Leistungen wird automatisch zum nächsten
-              Abrechnungstermin abgebucht, bis du kündigst. Eine Rechnung stellen wir dir elektronisch zur Verfügung.
+              Der Kaufpreis wird sofort fällig. Bei Abonnements wird automatisch zum nächsten Abrechnungstermin vom
+              hinterlegten Zahlungsmittel abgebucht. Scheitert die Abbuchung, können wir den Zugang zu kostenpflichtigen
+              Leistungen pausieren, bis die Zahlung erfolgt ist. Eine elektronische Rechnung stellen wir dir über dein
+              Konto bzw. per E-Mail zur Verfügung.
             </p>
           </SubSection>
-          <SubSection title="7.5 Eigentumsvorbehalt">
+          <SubSection title="7.5 Eigentumsvorbehalt und Leistungserbringung">
             <p className="text-sm">
               Virtuelle Güter bleiben bis zur vollständigen Bezahlung unser Eigentum bzw. unser Nutzungsvorbehalt.
+              Nach erfolgreicher Zahlung erhältst du das in § 8 beschriebene Nutzungsrecht.
+            </p>
+          </SubSection>
+          <SubSection title="7.6 Einfacher Kündigungsbutton (§ 312k BGB)">
+            <p className="text-sm">
+              In deinen Kontoeinstellungen findest du unter <i>Abonnements verwalten</i> einen jederzeit erreichbaren
+              Kündigungsbutton, mit dem du laufende Abos ohne Login-Hürde beenden kannst. Die Kündigung wird zum Ende
+              der laufenden Abrechnungsperiode wirksam.
             </p>
           </SubSection>
         </Section>
 
-        <Section num="8" title="Virtuelle Güter und virtuelle Währung">
+        <Section num="8" title="Virtuelle Güter und virtuelle Währungen">
           <p className="text-sm">
-            Diamanten, XP, Wächter, Items, Siegel und sonstige virtuelle Güter sind ausschließlich zur Nutzung innerhalb
-            des Dienstes bestimmt.
+            Wegemünzen, Edelsteine, Materialien (Schrott/Kristall/Essenz/Relikt-Splitter), Wächter, Items, Siegel, MMR,
+            Achievements, Cosmetics und sonstige virtuelle Güter sind ausschließlich zur Nutzung innerhalb des Dienstes
+            bestimmt.
           </p>
           <ul className="list-disc list-inside space-y-1 text-sm mt-2">
-            <li>Sie stellen <b className="text-text">keine gesetzlichen Zahlungsmittel</b> und keine E-Geld im Sinne des ZAG dar</li>
-            <li>Sie können <b className="text-text">nicht in echtes Geld zurückgetauscht</b> werden</li>
-            <li>Sie sind <b className="text-text">nicht übertragbar</b> zwischen Konten (sofern nicht ausdrücklich vorgesehen)</li>
+            <li>Sie stellen <b className="text-text">keine gesetzlichen Zahlungsmittel</b> und kein E-Geld im Sinne des ZAG dar</li>
+            <li>Sie können <b className="text-text">nicht in echtes Geld zurückgetauscht</b> oder ausgezahlt werden</li>
+            <li>Sie sind <b className="text-text">nicht zwischen Konten übertragbar</b> (sofern nicht ausdrücklich vorgesehen)</li>
             <li>Sie verfallen mit der Löschung deines Kontos ohne Anspruch auf Ausgleich</li>
-            <li>Du erhältst daran ein <b className="text-text">einfaches, nicht ausschließliches Nutzungsrecht</b></li>
+            <li>Du erhältst daran ein <b className="text-text">einfaches, nicht ausschließliches, zeitlich auf die Dauer des Vertrags begrenztes Nutzungsrecht</b></li>
+            <li>Ein Handel, Verkauf, Tausch oder die Weitergabe virtueller Güter außerhalb der offiziellen Spielmechaniken ist untersagt</li>
           </ul>
           <p className="text-sm mt-2">
-            Wir behalten uns vor, aus Gründen der Spielbalance einzelne virtuelle Güter anzupassen, zu entfernen oder durch
-            gleichwertige zu ersetzen, soweit dies unter Berücksichtigung deiner Interessen zumutbar ist.
+            <b className="text-text">Balance-Anpassungen:</b> Wir behalten uns vor, aus Gründen der Spielbalance einzelne
+            virtuelle Güter anzupassen, zu entfernen oder durch gleichwertige zu ersetzen, soweit dies unter Berücksichtigung
+            deiner Interessen zumutbar ist. Dies umfasst insbesondere Änderungen von Stat-Werten, Drop-Raten, Counter-Systemen,
+            Fraktions- und Klassen-Buffs.
+          </p>
+          <p className="text-sm mt-2">
+            <b className="text-text">Einstellung des Dienstes:</b> Sollten wir den Dienst dauerhaft einstellen, informieren
+            wir dich mindestens 3 Monate vorher. Innerhalb dieses Zeitraums behalten bezahlte Abonnements ihre Funktion bis
+            zum bezahlten Ende. Für bereits gekaufte Einmal-Käufe (z.&nbsp;B. Edelstein-Pakete), die nicht vollständig
+            verbraucht wurden, bieten wir eine anteilige Kulanz-Gutschrift oder Rückerstattung auf Basis der ursprünglichen
+            Verweildauer an, soweit dies wirtschaftlich zumutbar ist.
           </p>
         </Section>
 
@@ -170,7 +222,8 @@ export default function AgbPage() {
             </p>
             <p className="text-sm mt-2 pl-4 border-l-2 border-border">
               Andre Meierholz<br />
-              [Straße Hausnummer], [PLZ Ort]<br />
+              Ladungsfähige Anschrift siehe{" "}
+              <Link href="/impressum" className="text-primary hover:underline">Impressum</Link><br />
               E-Mail:{" "}
               <a href="mailto:support@myarea365.de" className="text-primary hover:underline">support@myarea365.de</a>
             </p>
@@ -211,7 +264,7 @@ export default function AgbPage() {
               Wenn du den Vertrag widerrufen willst, kannst du dieses Formular verwenden (nicht erforderlich, aber zulässig):
             </p>
             <div className="mt-2 p-3 bg-black/20 border border-border rounded text-xs">
-              An: Andre Meierholz, [Anschrift], support@myarea365.de<br />
+              An: Andre Meierholz, Anschrift siehe Impressum, support@myarea365.de<br />
               <br />
               Hiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag über den Kauf der folgenden Waren
               (*) / die Erbringung der folgenden Dienstleistung (*):<br />
@@ -261,7 +314,19 @@ export default function AgbPage() {
           </ul>
           <p className="text-sm mt-2">
             Du versicherst, die erforderlichen Rechte an den Inhalten zu besitzen und keine Rechte Dritter zu verletzen.
-            Bei Verstößen stellst du uns von Ansprüchen Dritter frei.
+            Bei Verstößen stellst du uns von Ansprüchen Dritter einschließlich angemessener Rechtsverteidigungskosten frei.
+          </p>
+          <p className="text-sm mt-2">
+            <b className="text-text">Moderation:</b> Hochgeladene Inhalte (insbesondere Avatar- und Banner-Bilder,
+            Crew-Beschreibungen, Nutzernamen, Chat-Nachrichten) können vor oder nach der Veröffentlichung moderiert werden.
+            Wir behalten uns vor, Inhalte zu prüfen, zu verbergen oder zu entfernen, die gegen diese AGB, geltendes Recht
+            oder unsere Community-Guidelines verstoßen. Moderationsentscheidungen kannst du nach Maßgabe von § 15 anfechten.
+          </p>
+          <p className="text-sm mt-2">
+            <b className="text-text">KI-generierte Inhalte:</b> Teile des von uns bereitgestellten Artworks (z.&nbsp;B.
+            Wächter-Bilder, Map-Icons, Pin-Themes) können mit Unterstützung von KI-Systemen erstellt sein. Du bestätigst,
+            dass du bei eigenen Uploads keine Inhalte hochlädst, die Rechte Dritter verletzen — auch nicht, wenn sie
+            KI-generiert sind (z.&nbsp;B. durch unzulässige Nachahmung geschützter Stile oder lebender Personen).
           </p>
         </Section>
 
@@ -356,6 +421,17 @@ export default function AgbPage() {
               deine Lauf- oder Geh-Aktivität entstehen, übernehmen wir keine Haftung, es sei denn, wir haben die Schäden
               schuldhaft verursacht.
             </p>
+            <p className="text-sm mt-2">
+              Du bist verpflichtet, die Straßenverkehrsordnung einzuhalten, auf Verkehr, Wetter, Beleuchtungsverhältnisse,
+              deinen Gesundheitszustand und deine körperliche Verfassung zu achten und bei Zweifeln vor Beginn sportlicher
+              Betätigung ärztlichen Rat einzuholen. Die App ist kein Ersatz für medizinische Beratung, kein
+              Trainingsprogramm und kein Sicherheits- oder Notruf-System.
+            </p>
+            <p className="text-sm mt-2">
+              <b className="text-text">Für Minderjährige</b> tragen die Erziehungsberechtigten die volle Verantwortung für
+              die sichere Nutzung im öffentlichen Raum. Lauf-Aktivitäten sollten geographisch und zeitlich so gewählt
+              werden, dass Sicherheitsrisiken minimiert sind.
+            </p>
           </SubSection>
           <SubSection title="16.4 Haftung für Netzverfügbarkeit und Richtigkeit der Daten">
             <p className="text-sm">
@@ -372,7 +448,24 @@ export default function AgbPage() {
           </SubSection>
         </Section>
 
-        <Section num="17" title="Partner-Shops und Rabatt-Einlösungen">
+        <Section num="17" title="Werbung und Drittanbieter-Integrationen">
+          <p className="text-sm">
+            Teile des kostenlosen Dienstes finanzieren wir durch Werbung. Wir arbeiten dabei insbesondere mit{" "}
+            <b className="text-text">Google AdSense</b> (Web) und <b className="text-text">Google AdMob</b> (Mobile-App) zusammen.
+            Näheres zur Datenverarbeitung durch Werbe-Drittanbieter sowie Opt-Out-Möglichkeiten findest du in der{" "}
+            <Link href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</Link>.
+          </p>
+          <p className="text-sm mt-2">
+            Nutzer mit aktivem <b className="text-text">MyArea+</b>- oder <b className="text-text">Supporter-Badge</b>-Abo
+            sehen keine personalisierte oder nur reduzierte Werbung innerhalb der App, soweit technisch umsetzbar.
+          </p>
+          <p className="text-sm mt-2">
+            Für Inhalte und Richtigkeit eingeblendeter Werbeanzeigen sind die jeweiligen Werbetreibenden verantwortlich.
+            Wir übernehmen keine Haftung für Angebote, Gewinnspiele oder Produkte, die über Werbeanzeigen beworben werden.
+          </p>
+        </Section>
+
+        <Section num="18" title="Partner-Shops und Rabatt-Einlösungen">
           <p className="text-sm">
             Rabatte werden direkt vom jeweiligen Partner-Shop gewährt. <b className="text-text">Wir sind nicht
             Vertragspartner des Kaufvertrags zwischen dir und dem Shop</b>. Streitigkeiten über Warenqualität, Lieferung
@@ -384,21 +477,27 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="18" title="Arena-Kämpfe und Saison-System">
+        <Section num="19" title="Arena-Kämpfe, Ranked-Modus und Saison-System">
           <p className="text-sm">
-            Arena-Kämpfe sind virtuelle Gefechte zwischen Wächtern. Pro Tag stehen dir eine begrenzte Anzahl Gratis-Kämpfe
-            sowie kostenpflichtige Zusatz-Kämpfe zur Verfügung. Die genauen Parameter (Anzahl, Kosten) können wir aus
-            Balance-Gründen anpassen.
+            Arena-Kämpfe sind virtuelle 1-vs-1-Gefechte zwischen Wächtern verschiedener Runner. Pro Tag stehen dir eine
+            begrenzte Anzahl Gratis-Kämpfe zur Verfügung, darüber hinausgehende Kämpfe können mit Edelsteinen freigeschaltet
+            werden. Die genauen Parameter (Anzahl, Kosten) können wir aus Balance-Gründen anpassen.
           </p>
           <p className="text-sm mt-2">
-            Saisons laufen typischerweise über 90 Tage. Am Saison-Ende wird der Saison-Wächter archiviert, dein
-            Ewiger Wächter bleibt erhalten. Items aus der Saison landen im Inventar. Prestige-Punkte und erspielte Titel
-            werden dauerhaft deinem Profil gutgeschrieben. Details siehe{" "}
-            <Link href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</Link> und In-App-Informationen.
+            Im <b className="text-text">Ranked-Modus</b> werden Spieler anhand eines Elo-basierten MMR-Systems eingeordnet.
+            Das Rating wird nach jedem gewerteten Kampf automatisch aktualisiert. Wir behalten uns vor, bei Anzeichen von
+            Manipulation (Match-Fixing, Win-Trading, Bot-Nutzung, Smurfing) das Rating zurückzusetzen und Konsequenzen nach
+            § 14 anzuwenden.
+          </p>
+          <p className="text-sm mt-2">
+            Saisons laufen typischerweise über 90 Tage. Am Saison-Ende werden Saison-Ranglisten und saisonale Belohnungen
+            vergeben. Dauerhafte Fortschritte (Wächter-Sammlung, Level, Achievements, Prestige-Punkte, erspielte Titel)
+            werden deinem Profil dauerhaft gutgeschrieben. Saisonale Items und Cosmetics bleiben nach Saison-Ende im
+            Inventar verfügbar, soweit nicht anders ausgewiesen. Details siehe In-App-Informationen.
           </p>
         </Section>
 
-        <Section num="19" title="Marken- und Urheberrechte">
+        <Section num="20" title="Marken- und Urheberrechte">
           <p className="text-sm">
             Der Name &bdquo;MyArea365&ldquo;, das Logo, die Gestaltung, Grafiken, Wächter-Designs und sonstige geschützte
             Elemente sind urheber-, marken- und wettbewerbsrechtlich geschützt. Jede nicht ausdrücklich gestattete Nutzung
@@ -406,7 +505,7 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="20" title="Vertragslaufzeit und Kündigung">
+        <Section num="21" title="Vertragslaufzeit und Kündigung">
           <SubSection title="20.1 Kostenloses Konto">
             <p className="text-sm">
               Der Vertrag über das kostenlose Konto läuft auf unbestimmte Zeit. Du kannst jederzeit ohne Angabe von
@@ -437,7 +536,7 @@ export default function AgbPage() {
           </SubSection>
         </Section>
 
-        <Section num="21" title="Änderungen der AGB">
+        <Section num="22" title="Änderungen der AGB">
           <p className="text-sm">
             Wir sind berechtigt, diese AGB anzupassen, wenn dies aufgrund technischer Weiterentwicklungen, veränderter
             Rechtslage, Rechtsprechung oder aus wirtschaftlichen Gründen erforderlich ist und deine Rechte dadurch nicht
@@ -447,11 +546,11 @@ export default function AgbPage() {
             Änderungen kündigen wir spätestens 6 Wochen vor Inkrafttreten per E-Mail oder In-App-Benachrichtigung an.
             Widersprichst du den Änderungen nicht innerhalb von 6 Wochen nach Zugang, gelten sie als genehmigt. Auf dieses
             Widerspruchsrecht weisen wir in der Mitteilung gesondert hin. Widersprichst du, bleibt es bei den bisherigen
-            Bedingungen; wir behalten uns jedoch eine ordentliche Kündigung nach § 20.1 vor.
+            Bedingungen; wir behalten uns jedoch eine ordentliche Kündigung nach § 21.1 vor.
           </p>
         </Section>
 
-        <Section num="22" title="Datenschutz">
+        <Section num="23" title="Datenschutz">
           <p className="text-sm">
             Informationen zur Verarbeitung personenbezogener Daten findest du in unserer{" "}
             <Link href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</Link>. Diese ist
@@ -459,7 +558,7 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="23" title="Ergänzende Bestimmungen für Partner-Shops (B2B)">
+        <Section num="24" title="Ergänzende Bestimmungen für Partner-Shops (B2B)">
           <p className="text-sm">
             Für Partner-Shops gelten neben diesen AGB die individuell vereinbarten Geschäftsbedingungen (Pay-per-Visit,
             Territory-Bonus, Shop-Quests). Gegenüber Unternehmern gilt bezüglich Gerichtsstand und Erfüllungsort
@@ -476,7 +575,7 @@ export default function AgbPage() {
           </ul>
         </Section>
 
-        <Section num="24" title="Höhere Gewalt">
+        <Section num="25" title="Höhere Gewalt">
           <p className="text-sm">
             Keine Partei ist für die Nichterfüllung vertraglicher Pflichten verantwortlich, wenn diese auf höherer Gewalt
             beruht (Krieg, Streik, Naturkatastrophen, Pandemien, behördliche Anordnungen, weiträumige Internet-Ausfälle).
@@ -484,7 +583,7 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="25" title="Abtretung und Vertragsübernahme">
+        <Section num="26" title="Abtretung und Vertragsübernahme">
           <p className="text-sm">
             Deine Rechte und Pflichten aus diesem Vertrag kannst du nur mit unserer schriftlichen Zustimmung auf Dritte
             übertragen. Wir sind berechtigt, den Vertrag auf ein verbundenes Unternehmen zu übertragen; dir steht in
@@ -492,7 +591,7 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="26" title="Barrierefreiheit">
+        <Section num="27" title="Barrierefreiheit">
           <p className="text-sm">
             Wir streben eine möglichst barrierefreie Gestaltung unseres Dienstes gemäß Barrierefreiheitsstärkungsgesetz
             (BFSG) und den WCAG 2.2-Kriterien an. Hinweise auf Barrieren nehmen wir gerne entgegen unter{" "}
@@ -500,7 +599,7 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="27" title="Online-Streitbeilegung und Verbraucherschlichtung">
+        <Section num="28" title="Online-Streitbeilegung und Verbraucherschlichtung">
           <p className="text-sm">
             Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit:{" "}
             <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
@@ -510,7 +609,7 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="28" title="Anwendbares Recht und Gerichtsstand">
+        <Section num="29" title="Anwendbares Recht und Gerichtsstand">
           <p className="text-sm">
             Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts. Die Rechtswahl gilt
             gegenüber Verbrauchern nur insoweit, als nicht zwingende Verbraucherschutz­vorschriften des Staates, in dem
@@ -522,14 +621,14 @@ export default function AgbPage() {
           </p>
         </Section>
 
-        <Section num="29" title="Sprache und maßgebliche Fassung">
+        <Section num="30" title="Sprache und maßgebliche Fassung">
           <p className="text-sm">
             Vertragssprache ist Deutsch. Sollten wir Übersetzungen dieser AGB anbieten, dient dies der Information; bei
             Abweichungen ist die deutsche Fassung maßgeblich.
           </p>
         </Section>
 
-        <Section num="30" title="Schlussbestimmungen">
+        <Section num="31" title="Schlussbestimmungen">
           <p className="text-sm">
             Mündliche Nebenabreden bestehen nicht. Änderungen und Ergänzungen dieser AGB bedürfen der Textform; dies gilt
             auch für den Verzicht auf das Textformerfordernis.
