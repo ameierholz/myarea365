@@ -2015,14 +2015,17 @@ function ProfilTab({
             }}
             aria-label="Zur Arena"
           >
-            {/* Portrait */}
-            <div style={{
-              width: 76, height: 84, borderRadius: 12, overflow: "hidden", flexShrink: 0,
-              background: "rgba(15,17,21,0.85)",
-              border: `1px solid ${ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78"}77`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: `0 0 14px ${ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78"}44`,
-            }}>
+            {/* Portrait — bunter Gradient damit chroma-keyed Wächter pop'pt */}
+            {(() => {
+              const typeColor = ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78";
+              return (
+                <div style={{
+                  width: 76, height: 84, borderRadius: 12, overflow: "hidden", flexShrink: 0,
+                  background: `radial-gradient(circle at 50% 30%, ${typeColor}55 0%, ${typeColor}22 45%, rgba(15,17,21,0.55) 100%)`,
+                  border: `1px solid ${typeColor}77`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 14px ${typeColor}44, inset 0 0 18px ${typeColor}22`,
+                }}>
               {activeGuardian.archetype.video_url ? (
                 <video src={activeGuardian.archetype.video_url} autoPlay loop muted playsInline
                   style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
@@ -2033,7 +2036,9 @@ function ProfilTab({
               ) : (
                 <span style={{ fontSize: 40 }}>{activeGuardian.archetype.emoji}</span>
               )}
-            </div>
+                </div>
+              );
+            })()}
 
             {/* Text */}
             <div style={{ flex: 1, minWidth: 0 }}>
