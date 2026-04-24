@@ -1528,6 +1528,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           canEditBanner={rootRunnerProfileUserId === initialProfile?.id}
         />
       )}
+
+      {/* Modal-only DailyDealTeaser am MapDashboard-Root: lauscht auf das
+          ma365:open-daily-deals-Event, das vom Map-Badge gefeuert wird.
+          Auf Profil-Tab gibt's eine zweite Instanz mit sichtbarem Banner —
+          beide listenen, modale rendern uebereinander (identisch), aber
+          Map-Badge funktioniert auf jedem Tab. */}
+      {initialProfile && activeTab !== "profil" && <DailyDealTeaser bannerHidden />}
     </div>
   );
 }
@@ -2312,7 +2319,7 @@ function ProfilTab({
 
         {p && (
           <div style={{ marginTop: 14 }}>
-            <DailyDealTeaser onOpen={() => setShowShopHub(true)} />
+            <DailyDealTeaser />
           </div>
         )}
 

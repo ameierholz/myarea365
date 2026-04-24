@@ -44,7 +44,7 @@ function formatPrice(p: DailyPack): string {
   return `💎 ${p.price_gems}`;
 }
 
-export function DailyDealTeaser(_props: { onOpen: () => void }) {
+export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void; bannerHidden?: boolean }) {
   const [data, setData] = useState<DailyResponse | null>(null);
   const [resetIn, setResetIn] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -150,7 +150,8 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
         @keyframes daily-shimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(340%); } }
       `}</style>
 
-      {/* Banner — pulst nur wenn Modal zu */}
+      {/* Banner — pulst nur wenn Modal zu. Wenn bannerHidden, nur Modal-Listener aktiv. */}
+      {!bannerHidden && (
       <button
         onClick={() => setExpanded(true)}
         style={{
@@ -234,6 +235,7 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
         )}
         <span style={{ color: "#FFD700", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
       </button>
+      )}
 
       {/* Modal-Overlay: Tagesangebote groß sichtbar mit Backdrop */}
       {expanded && (
