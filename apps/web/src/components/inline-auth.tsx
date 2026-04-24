@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, ArrowRight, Info } from "lucide-react";
 import { getStoredReferralCode, clearStoredReferralCode } from "@/lib/referral";
+import { isCapacitorNative, APP_AUTH_CALLBACK } from "@/lib/capacitor";
+import { openLegalModal } from "@/components/legal-modal";
 
 const FACTIONS = [
   { id: "syndicate", name: "Nachtpuls",   icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus" },
@@ -29,6 +31,7 @@ export function InlineAuth() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [heimatPlz, setHeimatPlz] = useState("");
   const [faction, setFaction] = useState<"syndicate" | "vanguard" | null>(null);
   const [newsletter, setNewsletter] = useState(false); // DSGVO: Opt-in, nicht vorausgewählt
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -39,6 +42,24 @@ export function InlineAuth() {
 
   async function handleGoogle() {
     const supabase = createClient();
+
+    // Capacitor-Android: Google blockt OAuth in WebViews (disallowed_useragent).
+    // Wir öffnen den Flow in Chrome Custom Tabs und lassen Supabase via
+    // Custom-Scheme zurück zur App redirecten (siehe AndroidManifest).
+    if (isCapacitorNative()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: APP_AUTH_CALLBACK, skipBrowserRedirect: true },
+      });
+      if (error || !data?.url) {
+        setError(error?.message ?? "Google-Login konnte nicht gestartet werden.");
+        return;
+      }
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: data.url, presentationStyle: "popover" });
+      return;
+    }
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -53,6 +74,9 @@ export function InlineAuth() {
     if (mode === "register") {
       if (!faction) return setError("Bitte wähle eine Fraktion.");
       if (!acceptTerms) return setError("Bitte akzeptiere AGB und Datenschutz.");
+      if (heimatPlz && !/^[0-9]{5}$/.test(heimatPlz)) {
+        return setError("PLZ muss 5-stellig sein (oder leer lassen).");
+      }
     }
 
     setLoading(true);
@@ -102,6 +126,7 @@ export function InlineAuth() {
         username: username.toLowerCase(),
         display_name: username,
         faction,
+        heimat_plz: heimatPlz || null,
         newsletter_opt_in: newsletter,
         referred_by: referredBy,
       });
@@ -201,6 +226,18 @@ export function InlineAuth() {
               </div>
             </div>
 
+            {/* Heimat-PLZ (optional) — für Kiez-Badge & Nachbarschafts-Features */}
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]{5}"
+              maxLength={5}
+              value={heimatPlz}
+              onChange={(e) => setHeimatPlz(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              placeholder="Heimat-PLZ (optional, z. B. 10827)"
+              className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
+            />
+
             {/* Newsletter — DSGVO: NICHT vorausgewählt */}
             <label className="flex items-start gap-2 cursor-pointer pt-1">
               <input
@@ -222,9 +259,9 @@ export function InlineAuth() {
               />
               <span className="text-[11px] text-text-muted leading-relaxed">
                 Ich akzeptiere die{" "}
-                <Link href="/agb" className="text-primary hover:underline">AGB</Link>
+                <button type="button" onClick={() => openLegalModal("agb")} className="text-primary hover:underline">AGB</button>
                 {" und die "}
-                <Link href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</Link>.
+                <button type="button" onClick={() => openLegalModal("datenschutz")} className="text-primary hover:underline">Datenschutzerklärung</button>.
               </span>
             </label>
           </>
@@ -252,13 +289,15 @@ export function InlineAuth() {
         )}
       </p>
 
-      {/* Legal-Links — immer sichtbar */}
+      {/* Legal-Links — immer sichtbar, öffnen Modal statt Navigation */}
       <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-text-muted">
-        <Link href="/agb" className="hover:text-primary transition-colors">AGB</Link>
+        <button type="button" onClick={() => openLegalModal("agb")} className="hover:text-primary transition-colors">AGB</button>
         <span>·</span>
-        <Link href="/datenschutz" className="hover:text-primary transition-colors">Datenschutz</Link>
+        <button type="button" onClick={() => openLegalModal("datenschutz")} className="hover:text-primary transition-colors">Datenschutz</button>
         <span>·</span>
-        <Link href="/impressum" className="hover:text-primary transition-colors">Impressum</Link>
+        <button type="button" onClick={() => openLegalModal("impressum")} className="hover:text-primary transition-colors">Impressum</button>
+        <span>·</span>
+        <Link href="/support" className="hover:text-primary transition-colors">Support</Link>
       </div>
     </div>
   );
