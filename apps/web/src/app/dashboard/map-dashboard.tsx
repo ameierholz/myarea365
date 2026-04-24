@@ -2029,7 +2029,7 @@ function ProfilTab({
               ) : activeGuardian.archetype.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={activeGuardian.archetype.image_url} alt={activeGuardian.archetype.name}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
               ) : (
                 <span style={{ fontSize: 40 }}>{activeGuardian.archetype.emoji}</span>
               )}

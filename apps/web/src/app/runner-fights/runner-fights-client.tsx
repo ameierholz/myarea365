@@ -308,6 +308,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
         <FightModal
           onClose={closeFight}
           opponent={fighting}
+          myGuardian={data.my_guardian ?? null}
           rounds={result.rounds}
           settle={result.settle}
           winner={result.winner ?? null}
@@ -900,7 +901,7 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
         ) : op.archetype_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={op.archetype_image_url} alt={op.archetype_name}
-            style={{ width: "100%", height: "100%", objectFit: "contain", filter: `drop-shadow(0 4px 8px ${rarityMeta.glow})` }} />
+            style={{ width: "100%", height: "100%", objectFit: "contain", filter: `url(#ma365-chroma-black) drop-shadow(0 4px 8px ${rarityMeta.glow})` }} />
         ) : (
           <div style={{ fontSize: 80, filter: `drop-shadow(0 4px 8px ${rarityMeta.glow})` }}>{op.archetype_emoji}</div>
         )}
@@ -1011,9 +1012,10 @@ function estimateStats(_emoji: string, level: number, rarity: string) {
   };
 }
 
-function FightModal({ onClose, opponent, rounds, settle, winner }: {
+function FightModal({ onClose, opponent, myGuardian, rounds, settle, winner }: {
   onClose: () => void;
   opponent: Opponent;
+  myGuardian: MyGuardian | null;
   rounds: RoundEvent[];
   settle?: { won: boolean; xp: number; rarity: string; siegel_type: string; item_id: string | null };
   winner: "A" | "B" | null;
@@ -1037,8 +1039,30 @@ function FightModal({ onClose, opponent, rounds, settle, winner }: {
         {phase === "fight" ? (
           <div style={{ padding: 16 }}>
             <CinematicBattleArena
-              sideA={{ name: "Du", archetype: { id: "-", emoji: "🛡️", rarity: "elite" }, level: 1, maxHp: 100 }}
-              sideB={{ name: opponent.display_name ?? opponent.username ?? "Gegner", archetype: { id: opponent.archetype_id, emoji: opponent.archetype_emoji, rarity: opponent.rarity as "elite"|"epic"|"legendary" }, level: opponent.level, maxHp: 100 }}
+              sideA={{
+                name: "Du",
+                archetype: {
+                  id: myGuardian?.archetype_id ?? "-",
+                  emoji: myGuardian?.archetype_emoji ?? "🛡️",
+                  rarity: (myGuardian?.rarity ?? "elite") as "elite"|"epic"|"legendary",
+                  image_url: myGuardian?.archetype_image_url ?? null,
+                  video_url: myGuardian?.archetype_video_url ?? null,
+                },
+                level: myGuardian?.level ?? 1,
+                maxHp: 100,
+              }}
+              sideB={{
+                name: opponent.display_name ?? opponent.username ?? "Gegner",
+                archetype: {
+                  id: opponent.archetype_id,
+                  emoji: opponent.archetype_emoji,
+                  rarity: opponent.rarity as "elite"|"epic"|"legendary",
+                  image_url: opponent.archetype_image_url ?? null,
+                  video_url: opponent.archetype_video_url ?? null,
+                },
+                level: opponent.level,
+                maxHp: 100,
+              }}
               rounds={rounds}
               onFinished={() => setPhase("result")}
             />
@@ -1052,16 +1076,17 @@ function FightModal({ onClose, opponent, rounds, settle, winner }: {
             </button>
           </div>
         ) : (
-          <ResultView onClose={onClose} opponent={opponent} rounds={rounds} settle={settle} winner={winner} />
+          <ResultView onClose={onClose} opponent={opponent} myGuardian={myGuardian} rounds={rounds} settle={settle} winner={winner} />
         )}
       </div>
     </div>
   );
 }
 
-function ResultView({ onClose, opponent, rounds, settle, winner }: {
+function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
   onClose: () => void;
   opponent: Opponent;
+  myGuardian: MyGuardian | null;
   rounds: RoundEvent[];
   settle?: { won: boolean; xp: number; rarity: string; siegel_type: string; item_id: string | null };
   winner: "A" | "B" | null;
@@ -1129,8 +1154,10 @@ function ResultView({ onClose, opponent, rounds, settle, winner }: {
         <FighterPanel
           side="left"
           name="Du"
-          emoji="🛡️"
-          level={1}
+          emoji={myGuardian?.archetype_emoji ?? "🛡️"}
+          imageUrl={myGuardian?.archetype_image_url ?? null}
+          videoUrl={myGuardian?.archetype_video_url ?? null}
+          level={myGuardian?.level ?? 1}
           hpPct={finalHpA}
           dmgDealt={dmgA}
           crits={critsA}
@@ -1149,6 +1176,8 @@ function ResultView({ onClose, opponent, rounds, settle, winner }: {
           side="right"
           name={opponent.display_name ?? opponent.username ?? "Gegner"}
           emoji={opponent.archetype_emoji}
+          imageUrl={opponent.archetype_image_url ?? null}
+          videoUrl={opponent.archetype_video_url ?? null}
           level={opponent.level}
           hpPct={finalHpB}
           dmgDealt={dmgB}
@@ -1211,10 +1240,12 @@ function ResultView({ onClose, opponent, rounds, settle, winner }: {
   );
 }
 
-function FighterPanel({ side, name, emoji, level, hpPct, dmgDealt, crits, winner }: {
+function FighterPanel({ side, name, emoji, imageUrl, videoUrl, level, hpPct, dmgDealt, crits, winner }: {
   side: "left" | "right";
   name: string;
   emoji: string;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
   level: number;
   hpPct: number;
   dmgDealt: number;
@@ -1237,7 +1268,16 @@ function FighterPanel({ side, name, emoji, level, hpPct, dmgDealt, crits, winner
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 36, flexShrink: 0,
           border: `1px solid ${color}66`,
-        }}>{emoji}</div>
+          overflow: "hidden",
+        }}>
+          {videoUrl ? (
+            <video src={videoUrl} autoPlay loop muted playsInline
+              style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+          ) : imageUrl ? (
+            <img src={imageUrl} alt={name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+          ) : emoji}
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, lineHeight: 1.1 }}>{name}</div>
           <div style={{ color: "#a8b4cf", fontSize: 10 }}>Stufe {level}</div>
@@ -1295,7 +1335,7 @@ function RewardTile({ icon, label, value, color }: { icon: string; label: string
 }
 
 /* ═══ Season Picker (Saison-Wächter wählen) ═══ */
-type Archetype = { id: string; name: string; emoji: string; rarity: string; guardian_type: string | null; role: string | null; ability_name: string; ability_desc: string };
+type Archetype = { id: string; name: string; emoji: string; image_url?: string | null; video_url?: string | null; rarity: string; guardian_type: string | null; role: string | null; ability_name: string; ability_desc: string };
 
 const DEMO_ARCHETYPES: Archetype[] = [
   { id: "d1", name: "Nyx die Schattenklinge", emoji: "🗡️", rarity: "legendary", guardian_type: "cavalry",  role: "Assassin",  ability_name: "Schattenstoß",  ability_desc: "Erster Angriff trifft doppelt." },
@@ -1436,8 +1476,21 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
                   border: `1.5px solid ${rarityColor}66`,
                   opacity: pickingId && !busy ? 0.4 : 1,
                 }}>
-                <div style={{ textAlign: "center", fontSize: 48, filter: `drop-shadow(0 4px 8px ${rarityColor}66)` }}>
-                  {a.emoji}
+                <div style={{
+                  width: 88, height: 88, margin: "0 auto",
+                  borderRadius: 12, overflow: "hidden",
+                  background: `radial-gradient(circle, ${rarityColor}22 0%, transparent 80%)`,
+                  border: `1px solid ${rarityColor}44`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 48, filter: `drop-shadow(0 4px 8px ${rarityColor}66)`,
+                }}>
+                  {a.video_url ? (
+                    <video src={a.video_url} autoPlay loop muted playsInline
+                      style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+                  ) : a.image_url ? (
+                    <img src={a.image_url} alt={a.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", filter: "url(#ma365-chroma-black)" }} />
+                  ) : a.emoji}
                 </div>
                 <div style={{ color: rarityColor, fontSize: 9, fontWeight: 900, letterSpacing: 1.5, marginTop: 4, textAlign: "center" }}>
                   {a.rarity === "legendary" ? "LEGENDÄR" : a.rarity === "epic" ? "EPISCH" : "ELITE"}
@@ -1598,10 +1651,11 @@ function PotionButton() {
         title="Tränke"
         style={{
           background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.4)",
-          color: "#a855f7", width: 34, height: 34, borderRadius: 999,
-          cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#a855f7", height: 34, borderRadius: 999, padding: "0 12px",
+          cursor: "pointer", fontSize: 13, fontWeight: 800,
+          display: "flex", alignItems: "center", gap: 6,
         }}
-      >🧪</button>
+      >🧪 <span>Tränke</span></button>
       {open && <PotionInventoryModal onClose={() => setOpen(false)} />}
     </>
   );
