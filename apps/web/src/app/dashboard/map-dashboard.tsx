@@ -1656,7 +1656,7 @@ function ProfilTab({
         .eq("user_id", p.id).eq("is_active", true).maybeSingle();
       if (cancelled || !g) { setActiveGuardian(null); return; }
       const { count: siegelCount } = await supabase.from("user_siegel")
-        .select("id", { count: "exact", head: true })
+        .select("user_id", { count: "exact", head: true })
         .eq("user_id", p.id);
       if (cancelled) return;
       const arch = Array.isArray((g as { archetype?: unknown }).archetype)

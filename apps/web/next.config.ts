@@ -28,11 +28,11 @@ const nextConfig: NextConfig = {
     const devConnect = isDev ? " ws: wss: http://localhost:* http://127.0.0.1:*" : "";
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://pagead2.googlesyndication.com https://*.googleadservices.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://pagead2.googlesyndication.com https://*.googleadservices.com https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "media-src 'self' blob: data:",
+      "media-src 'self' blob: data: https://*.supabase.co",
       `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://api.anthropic.com https://api.mapbox.com https://*.tiles.mapbox.com https://*.basemaps.cartocdn.com https://*.googleadservices.com https://overpass-api.de https://*.openstreetmap.org${devConnect}`,
       "worker-src 'self' blob:",
       "frame-src https://js.stripe.com https://*.stripe.com https://www.googletagmanager.com",

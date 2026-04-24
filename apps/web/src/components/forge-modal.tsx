@@ -92,7 +92,13 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
     if (res.ok) {
       const j = await res.json() as Materials & { catalog?: MaterialCatalogEntry[] };
       setMaterials({ scrap: j.scrap, crystal: j.crystal, essence: j.essence, relikt: j.relikt });
-      if (Array.isArray(j.catalog)) setCatalog(j.catalog);
+      if (Array.isArray(j.catalog)) {
+        // Cache-Buster: gleiche Storage-URL beim Re-Upload, sonst zeigt Browser
+        // das alte gecachte Bild. Beim ersten Mount bust einmal, danach reicht's.
+        const v = Date.now();
+        const bust = (u: string | null) => (u ? `${u}${u.includes("?") ? "&" : "?"}v=${v}` : null);
+        setCatalog(j.catalog.map((c) => ({ ...c, image_url: bust(c.image_url), video_url: bust(c.video_url) })));
+      }
     }
   }
   useEffect(() => { void loadMaterials(); }, []);
