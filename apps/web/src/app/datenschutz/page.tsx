@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Datenschutzerklärung",
-  description: "Datenschutzerklärung von MyArea365 – DSGVO, TTDSG, CCPA, UK-GDPR, FADP, LGPD.",
+  description: "Datenschutzerklärung von MyArea365 – DSGVO, TDDDG, CCPA, UK-GDPR, FADP, LGPD.",
 };
 
 export default function DatenschutzPage() {
@@ -82,8 +82,8 @@ export default function DatenschutzPage() {
               aggregierter Form &ndash; nur mit deiner Zustimmung)
             </li>
             <li>
-              <b className="text-text">§ 25 TTDSG</b> &ndash; Speichern von und Zugriff auf Informationen auf
-              Endeinrichtungen (Cookies, LocalStorage)
+              <b className="text-text">§ 25 TDDDG</b> (seit 14.&nbsp;Mai 2024 Nachfolger des TTDSG) &ndash; Speichern von
+              und Zugriff auf Informationen auf Endeinrichtungen (Cookies, LocalStorage)
             </li>
           </ul>
         </Section>
@@ -103,7 +103,9 @@ export default function DatenschutzPage() {
               "Passwort als Salted-Hash (niemals im Klartext; Argon2/bcrypt)",
               "Rollen-/Berechtigungs-Flag (user, support, marketing, sales, admin)",
               "Ban-Status und ggf. Sperrgrund",
-              "Fraktions-Zugehörigkeit (Sonnenwacht oder Nachtpuls)",
+              "Fraktions-Zugehörigkeit (Kronenwacht oder Gossenbund)",
+              "Klasse und Rolle des aktiven Wächters (Tank/Support/Fernkampf/Nahkampf + Sub-Archetyp)",
+              "Heimat-PLZ (optional, 5-stellig, für Kiez-Features)",
               "Aktuelle Crew-Zugehörigkeit (Fremdschlüssel auf Crew)",
               "Avatar-URL (selbst hochgeladen, nach Moderation öffentlich)",
               "Banner-URL (selbst hochgeladen, nach Moderation öffentlich)",
@@ -134,15 +136,15 @@ export default function DatenschutzPage() {
 
           <SubSection title="4.3 Gamification-, Wächter- und Spielstands-Daten">
             <DataList items={[
-              "Liste deiner Wächter-Archetypen, Level, XP, Siege, Niederlagen, Wunden-Status",
-              "Ewige und Saison-Wächter (Unterscheidung nach Saison-ID)",
+              "Liste deiner Wächter-Archetypen, Level, Wegemünzen, Siege, Niederlagen, Wunden-Status",
               "Talent-Punkte, Fähigkeits-Level, investierte Punkte je Knoten",
-              "Ausrüstungs-Inventar: Items, Slot, Rarität, Upgrade-Stufe, erhaltene Materialien",
+              "Ausrüstungs-Inventar: Items, Slot, Rarität, Upgrade-Stufe, erhaltene Materialien (Schrott, Kristall, Essenz, Relikt-Splitter)",
               "Teilnahme an Arena-Saisons und finaler Platzierung",
               "Prestige-Historie: Punkte, Titel, Rang pro abgeschlossener Saison",
-              "Erspielte Siegel (Arena-Kämpfe, Achievements)",
+              "Erspielte Siegel (Tank, Support, Fernkampf, Nahkampf, Universal)",
               "Streak-Zähler (aufeinanderfolgende Tage mit Aktivität)",
-              "Täglich-limitierte Aktionen wie Arena-Kampf-Counter, Sanctuary-Training",
+              "Täglich-limitierte Aktionen (Arena-Kampf-Counter, Daily Deals)",
+              "MMR / Elo-Rating (Ranked-Modus), Peak-MMR, W/L-Historie",
             ]} />
             <p className="text-xs mt-2">Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
           </SubSection>
@@ -150,10 +152,11 @@ export default function DatenschutzPage() {
           <SubSection title="4.4 Arena-Kämpfe (PvP-Gefechte)">
             <DataList items={[
               "Identifier Angreifer, Verteidiger, Gewinner",
-              "Gesetzte Diamanten (kostenpflichtige Kämpfe nach Tagesquote)",
+              "Gesetzte Edelsteine (kostenpflichtige Kämpfe nach Tagesquote)",
               "Runden-Protokoll mit Aktionen, Schadenswerten, Kritischen Treffern",
               "Seed für deterministische Kampf-Reproduktion",
               "Zeitstempel des Kampfes und zugeordnete Saison",
+              "MMR-Änderung (Delta) für Angreifer und Verteidiger",
             ]} />
             <p className="text-xs mt-2">Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
           </SubSection>
@@ -190,10 +193,11 @@ export default function DatenschutzPage() {
 
           <SubSection title="4.7 Zahlungsdaten">
             <DataList items={[
-              "Kaufhistorie: Zeitstempel, Produktnummer, Betrag, Währung",
-              "Diamanten-Saldo und -Transaktionen (Gutschrift, Verbrauch, Grund)",
-              "Zahlungs-Provider-Referenz (z.&nbsp;B. Stripe Payment Intent)",
-              "Abonnement-Status und Verlängerungs-Termine",
+              "Kaufhistorie: Zeitstempel, Produktnummer (SKU), Betrag, Währung",
+              "Wegemünzen- und Edelsteine-Salden sowie Transaktionen (Gutschrift, Verbrauch, Grund)",
+              "Zahlungs-Provider-Referenz (Stripe Payment Intent, Checkout-Session-ID)",
+              "Abonnement-Status und Verlängerungs-Termine (MyArea+, Supporter-Badges Bronze/Silber/Gold, Crew-Pro, Shop-Pakete, Arena-Pass)",
+              "Supporter-Tier (bronze / silver / gold) sofern ein entsprechendes Abo aktiv ist",
               "Rechnungs- und Belegdaten gemäß §§ 14, 14a UStG",
             ]} />
             <p className="text-xs mt-2">
@@ -380,16 +384,39 @@ export default function DatenschutzPage() {
             ]} />
             <p className="text-xs mt-2">
               Moderations-Protokolle werden 24 Monate aufbewahrt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Schutz der
-              Community und Einhaltung gesetzlicher Vorgaben, insb. NetzDG, DSA).
+              Community und Einhaltung gesetzlicher Vorgaben, insb. EU-Verordnung 2022/2065 &bdquo;Digital Services Act&ldquo;).
             </p>
           </SubSection>
 
-          <SubSection title="4.22 Was wir NICHT tracken">
+          <SubSection title="4.22 Werbung (Google AdSense / AdMob)">
+            <p className="text-sm">
+              Teile des kostenlosen Dienstes finanzieren wir durch Werbung von <b className="text-text">Google Ireland Ltd.</b>
+              {" "}(AdSense im Web, AdMob in der mobilen App). Eine Ausspielung personalisierter Werbung erfolgt{" "}
+              <b className="text-text">nur nach ausdrücklicher Einwilligung</b> über unser Consent-Management
+              (Google User Messaging Platform, UMP). Ohne Einwilligung werden ausschließlich nicht-personalisierte
+              Anzeigen ausgeliefert.
+            </p>
+            <p className="text-sm mt-2">
+              Google verarbeitet dabei ggf. IP-Adresse, Gerätekennung, ungefähren Standort und Interaktionsdaten.
+              Näheres: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">policies.google.com/privacy</a>.
+              Werbeeinstellungen ändern: <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">adssettings.google.com</a>.
+            </p>
+            <p className="text-sm mt-2">
+              Nutzer mit aktivem <b className="text-text">MyArea+</b>- oder <b className="text-text">Supporter-Badge</b>-Abo
+              sehen keine oder nur reduzierte Werbung, soweit technisch umsetzbar.
+            </p>
+            <p className="text-xs mt-2">
+              Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG (Einwilligung für Cookies/Device-ID) sowie
+              Art. 6 Abs. 1 lit. f DSGVO (Refinanzierung des Dienstes bei nicht-personalisierter Werbung).
+            </p>
+          </SubSection>
+
+          <SubSection title="4.23 Was wir NICHT tracken">
             <DataList items={[
-              "Keine geräteübergreifenden Werbe-Cookies oder -Pixel",
+              "Keine geräteübergreifenden Werbe-Cookies oder -Pixel ohne Einwilligung",
               "Keine Fingerprint-Analyse (Canvas, WebGL, Audio)",
               "Kein Weiterverkauf deiner Daten an Dritte",
-              "Keine Profile für Drittanbieter-Werbung",
+              "Keine Profile für Drittanbieter-Werbung ohne Einwilligung",
               "Keine Standortdaten außerhalb aktiver Lauf-Sessions",
               "Kein Zugriff auf Kontakte, Kalender, Fotos oder Dateien auf deinem Gerät",
               "Keine biometrischen Daten (Gesichtserkennung, Stimmanalyse)",
@@ -436,6 +463,9 @@ export default function DatenschutzPage() {
                 <Row d="Stripe Payments Europe Ltd." z="Zahlungsabwicklung" l="EU (Irland) &ndash; US-Sublieferanten mit SCCs" />
                 <Row d="Apple Push Notification Service" z="Push-Nachrichten (iOS)" l="USA &ndash; SCCs" />
                 <Row d="Google Firebase Cloud Messaging" z="Push-Nachrichten (Android, Web)" l="USA &ndash; SCCs + DPF" />
+                <Row d="Google AdSense" z="Werbeanzeigen im Web (nur bei Einwilligung)" l="USA &ndash; SCCs + DPF" />
+                <Row d="Google AdMob" z="Werbeanzeigen in der mobilen App (nur bei Einwilligung)" l="USA &ndash; SCCs + DPF" />
+                <Row d="Nominatim / OpenStreetMap" z="Reverse-Geocoding (PLZ-Ermittlung)" l="EU (Frankreich, Deutschland)" />
               </tbody>
             </table>
           </div>
@@ -499,7 +529,7 @@ export default function DatenschutzPage() {
         <Section num="9" title="Cookies, LocalStorage und ähnliche Technologien">
           <p>
             Der Dienst verwendet ausschließlich technisch notwendige Cookies bzw. LocalStorage-Einträge, die nach
-            § 25 Abs. 2 Nr. 2 TTDSG ohne Einwilligung zulässig sind:
+            § 25 Abs. 2 Nr. 2 TDDDG (vormals TTDSG) ohne Einwilligung zulässig sind:
           </p>
           <div className="overflow-x-auto mt-3">
             <table className="w-full text-xs border-collapse">
@@ -528,9 +558,10 @@ export default function DatenschutzPage() {
 
         <Section num="10" title="Kinder und Jugendliche">
           <p>
-            Der Dienst richtet sich an Personen ab 16 Jahren (EU), 13 Jahren (USA, COPPA-Referenz), bzw. dem jeweiligen
-            Mindestalter der nationalen Regelung. Personen unterhalb dieser Altersgrenze dürfen den Dienst nur mit
-            ausdrücklicher Einwilligung ihrer Erziehungsberechtigten nutzen (Art. 8 DSGVO, § 7a COPPA).
+            Der Dienst richtet sich an Personen ab 16 Jahren (EU), 13 Jahren (USA, nach COPPA — 15 U.S.C. § 6501 ff.),
+            bzw. dem jeweiligen Mindestalter der nationalen Regelung. Personen unterhalb dieser Altersgrenze dürfen den
+            Dienst nur mit ausdrücklicher Einwilligung ihrer Erziehungsberechtigten nutzen (Art. 8 DSGVO, COPPA Rule
+            16 CFR Part 312).
             Sollten wir Kenntnis erhalten, dass ohne die erforderliche Einwilligung Daten von Kindern verarbeitet werden,
             löschen wir diese umgehend.
           </p>
@@ -697,7 +728,7 @@ export default function DatenschutzPage() {
           <p>
             Wir geben deine Daten nur dann an staatliche Stellen weiter, wenn wir dazu rechtlich verpflichtet sind, etwa
             auf Grundlage einer richterlichen Anordnung, strafprozessualer Ermittlungsmaßnahmen (z.&nbsp;B. §§ 100a, 100g
-            StPO) oder einer Verpflichtung aus dem Netzwerkdurchsetzungsgesetz (NetzDG) bzw. dem Digital Services Act (DSA).
+            StPO) oder einer Anordnung nach der EU-Verordnung 2022/2065 (Digital Services Act, Art. 9/10).
           </p>
           <p className="text-sm mt-2">
             Jede Offenlegung wird dokumentiert. Wir prüfen die Rechtmäßigkeit jedes Auskunftsersuchens und legen nur die
