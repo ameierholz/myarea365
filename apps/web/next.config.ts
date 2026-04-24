@@ -26,17 +26,26 @@ const nextConfig: NextConfig = {
     // requests` würde HMR + API-Fetches brechen. Daher zwei Profile.
     const isDev = process.env.NODE_ENV === "development";
     const devConnect = isDev ? " ws: wss: http://localhost:* http://127.0.0.1:*" : "";
+    // Google Funding Choices / UMP und AdSense Domains.
+    // Funding Choices laedt weiteren Code dynamisch — braucht sowohl script-src
+    // als auch frame-src (Banner wird als Iframe eingeblendet).
+    const googleAds =
+      "https://pagead2.googlesyndication.com https://*.googlesyndication.com " +
+      "https://*.googleadservices.com https://*.googletagservices.com " +
+      "https://fundingchoicesmessages.google.com https://*.google.com " +
+      "https://adservice.google.com https://adservice.google.de";
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://pagead2.googlesyndication.com https://*.googleadservices.com https://va.vercel-scripts.com",
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com ${googleAds} https://va.vercel-scripts.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: data: https://*.supabase.co",
-      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://api.anthropic.com https://api.mapbox.com https://*.tiles.mapbox.com https://*.basemaps.cartocdn.com https://*.googleadservices.com https://overpass-api.de https://*.openstreetmap.org${devConnect}`,
+      `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://api.anthropic.com https://api.mapbox.com https://*.tiles.mapbox.com https://*.basemaps.cartocdn.com ${googleAds} https://overpass-api.de https://*.openstreetmap.org${devConnect}`,
       "worker-src 'self' blob:",
       // 'self' erlaubt Iframe-Einbettung eigener Seiten (Legal-Modal iframed /impressum, /datenschutz, /agb).
-      "frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.googletagmanager.com",
+      // Google-Domains fuer UMP-Consent-Iframe und AdSense-Anzeigen.
+      `frame-src 'self' https://js.stripe.com https://*.stripe.com ${googleAds} https://www.googletagmanager.com`,
       // 'self' statt 'none': erlaubt dass unsere eigenen Seiten von uns selbst geframed werden (Legal-Modal).
       "frame-ancestors 'self'",
       "form-action 'self' https://checkout.stripe.com",

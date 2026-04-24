@@ -13,6 +13,7 @@ import { LegalModal } from "@/components/legal-modal";
 import { GlobalSvgFilters } from "@/components/global-svg-filters";
 import { CookieConsent } from "@/components/cookie-consent";
 import { CapacitorAuthBridge } from "@/components/capacitor-auth-bridge";
+import { UmpConsent } from "@/components/ump-consent";
 
 export const metadata: Metadata = {
   title: {
@@ -121,6 +122,7 @@ export default async function RootLayout({
           <LegalModal />
           <CookieConsent />
         </NextIntlClientProvider>
+        <UmpConsent />
         <Analytics />
         <SpeedInsights />
       </body>

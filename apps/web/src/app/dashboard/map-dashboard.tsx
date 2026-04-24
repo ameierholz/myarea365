@@ -2597,7 +2597,7 @@ function ProfilTab({
             }} last />
           </div>
 
-          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>📦 DATEN</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>📦 DATEN & WERBUNG</div>
           <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
             <AccountRow label="📥 Meine Daten exportieren (DSGVO)" onClick={() => {
               const blob = new Blob([JSON.stringify({ profile: p, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
@@ -2605,6 +2605,10 @@ function ProfilTab({
               const a = document.createElement("a");
               a.href = url; a.download = `myarea365-daten-${Date.now()}.json`; a.click();
               URL.revokeObjectURL(url);
+            }} />
+            <AccountRow label="🛡️ Werbe-Einwilligung verwalten" onClick={async () => {
+              const { openPrivacyOptions } = await import("@/components/ump-consent");
+              openPrivacyOptions();
             }} last />
           </div>
 
