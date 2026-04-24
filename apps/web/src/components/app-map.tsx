@@ -1269,6 +1269,9 @@ export function AppMap({
       const arenaBadgeHeight = 22 * badgeScale;
       const countdownGap = 10;
       const countdownScale = Math.max(0.50, Math.min(1.0, pinHeight / 55));
+      // Beim Rauszoomen Countdown ausblenden — sonst schwebt der Chip
+      // bei fester Pixelhoehe ueber winzigen Pins und wirkt loseglassen.
+      const hideCountdown = zoom < 13;
       arenaCountdownMarkersRef.current.forEach(({ marker, hasSpotlight, hasArena }) => {
         let offY: number;
         if (hasArena && hasSpotlight) {
@@ -1280,8 +1283,11 @@ export function AppMap({
         }
         marker.setOffset([0, offY]);
         // Scale via CSS-Var (Animation liest var(--s) aus; kein Konflikt mit Float-Anim)
-        const wrap = marker.getElement().querySelector(".ma365-countdown-wrap") as HTMLElement | null;
+        const el = marker.getElement();
+        const wrap = el.querySelector(".ma365-countdown-wrap") as HTMLElement | null;
         if (wrap) wrap.style.setProperty("--s", countdownScale.toFixed(2));
+        el.style.opacity = hideCountdown ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
       });
       // Loot-Kisten skalieren mit Zoom (aggressiver schrumpfen beim Rauszoomen)
       // Basis 64px, Faktor 0.22 (far) bis 0.85 (close)
