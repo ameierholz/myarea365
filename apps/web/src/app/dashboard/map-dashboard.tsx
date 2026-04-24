@@ -1967,28 +1967,34 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
-        {/* ═══ QUICK ACTIONS — 4 große Kacheln: Arena · Shop · Crew · Inbox ═══ */}
+        {/* ═══ QUICK ACTIONS — 6 Kacheln: Arena · Deals · Crew · Shop · Shop-Deals · Inbox ═══ */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 8, marginTop: 14,
+          display: "grid", gridTemplateColumns: "repeat(6, 1fr)",
+          gap: 6, marginTop: 14,
         }}>
           {[
-            { key: "arena", icon: "⚔️", label: "Arena",  color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
-            { key: "deals", icon: "🔥", label: "Deals",  color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
-            { key: "crew",  icon: "👥", label: "Crew",   color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
-            { key: "shop",  icon: "💎", label: "Shop",   color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
-            { key: "inbox", icon: "📬", label: "Inbox",  color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
+            { key: "arena",      icon: "⚔️", label: "Arena",      color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
+            { key: "deals",      icon: "🔥", label: "Deals",      color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
+            { key: "crew",       icon: "👥", label: "Crew",       color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
+            { key: "shop",       icon: "💎", label: "Shop",       color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
+            { key: "shop-deals", icon: "🏪", label: "Shop-Deals", color: "#4ade80", title: "🏪 Lokale Angebote: alle Shop-Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => { window.location.href = "/deals"; } },
+            { key: "inbox",      icon: "📬", label: "Inbox",      color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
           ].map((a) => (
             <button key={a.key} onClick={a.onClick} title={a.title} style={{
-              padding: "12px 6px", borderRadius: 14,
+              padding: "10px 4px", borderRadius: 12,
               background: `linear-gradient(135deg, ${a.color}22 0%, rgba(15,17,21,0.7) 100%)`,
               border: `1px solid ${a.color}55`,
               color: "#FFF", cursor: "pointer",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
               boxShadow: `0 2px 10px ${a.color}22`,
+              minWidth: 0,
             }}>
-              <span style={{ fontSize: 24, filter: `drop-shadow(0 0 8px ${a.color}88)` }}>{a.icon}</span>
-              <span style={{ fontSize: 11, fontWeight: 900, color: a.color, letterSpacing: 0.5 }}>{a.label}</span>
+              <span style={{ fontSize: 22, filter: `drop-shadow(0 0 8px ${a.color}88)`, lineHeight: 1 }}>{a.icon}</span>
+              <span style={{
+                fontSize: 10, fontWeight: 900, color: a.color, letterSpacing: 0.3,
+                textAlign: "center", lineHeight: 1.1, maxWidth: "100%",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>{a.label}</span>
             </button>
           ))}
         </div>
