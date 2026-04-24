@@ -460,8 +460,8 @@ interface AppMapProps {
   displayName?: string | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Gebiet) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
-  claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>;
-  ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>;
+  claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean; intensity?: number }>;
+  ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string; intensity?: number }>;
   onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
   // ── Map-Features Wave ────────────────────────────────────
   powerZones?: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
@@ -1625,7 +1625,7 @@ export function AppMap({
           type: "MultiLineString" as const,
           coordinates: s.geoms.map((g) => g.map((p) => [p.lng, p.lat])),
         },
-        properties: { id: s.id, is_mine: s.is_mine, is_crew: s.is_crew },
+        properties: { id: s.id, is_mine: s.is_mine, is_crew: s.is_crew, intensity: s.intensity ?? 100 },
       })),
     };
     const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
@@ -1636,7 +1636,8 @@ export function AppMap({
         id: layerId, type: "line", source: sourceId,
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FF6B4A", "#8B8FA3"],
-          "line-opacity": 0.95,
+          // Farb-Zerfall: 100 % → volle 0.95 Opazität, 0 % → unsichtbar
+          "line-opacity": ["*", 0.95, ["/", ["to-number", ["get", "intensity"]], 100]],
           "line-width": zoomWidth(6),
         },
         layout: { "line-cap": "round", "line-join": "round" },
@@ -1670,7 +1671,7 @@ export function AppMap({
           type: "Feature" as const,
           id: t.id,
           geometry: { type: "Polygon" as const, coordinates: [ring] },
-          properties: { id: t.id, is_mine: t.is_mine, is_crew: t.is_crew, status: t.status },
+          properties: { id: t.id, is_mine: t.is_mine, is_crew: t.is_crew, status: t.status, intensity: t.intensity ?? 100 },
         };
       }),
     };
@@ -1682,8 +1683,13 @@ export function AppMap({
         id: fillId, type: "fill", source: sourceId,
         paint: {
           "fill-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
-          // pending_crew: stark reduzierte Deckkraft als Ghost-Layer
-          "fill-opacity": ["case", ["==", ["get", "status"], "pending_crew"], 0.08, 0.22],
+          // pending_crew: stark reduzierte Deckkraft als Ghost-Layer.
+          // Farb-Zerfall: Intensität skaliert die Basis-Opazität.
+          "fill-opacity": [
+            "*",
+            ["case", ["==", ["get", "status"], "pending_crew"], 0.08, 0.22],
+            ["/", ["to-number", ["get", "intensity"]], 100],
+          ],
         },
       });
       // Aktive Gebiete: solide Linie
@@ -1692,7 +1698,7 @@ export function AppMap({
         filter: ["!=", ["get", "status"], "pending_crew"],
         paint: {
           "line-color": ["case", ["get", "is_crew"], "#22D1C3", ["get", "is_mine"], "#FFD700", "#FF2D78"],
-          "line-opacity": 0.9,
+          "line-opacity": ["*", 0.9, ["/", ["to-number", ["get", "intensity"]], 100]],
           "line-width": zoomWidth(2.5),
         },
       });

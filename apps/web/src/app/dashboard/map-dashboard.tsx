@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
+import { claimIntensity } from "@/lib/claim-intensity";
 import { InboxContent } from "./inbox-content";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
@@ -267,8 +268,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   // 3-Ebenen-Modell: DB-geladene Layer fuer Karte
   const [walkedSegments, setWalkedSegments] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
-  const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean }>>([]);
-  const [ownedTerritories, setOwnedTerritories] = useState<Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string }>>([]);
+  const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean; intensity: number }>>([]);
+  const [ownedTerritories, setOwnedTerritories] = useState<Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string; intensity: number }>>([]);
   const [ownershipQuery, setOwnershipQuery] = useState<{ type: "segment" | "street" | "territory"; id: string } | null>(null);
 
   // Crew
@@ -315,8 +316,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     (async () => {
       const [segsRes, streetsRes, terrsRes] = await Promise.all([
         supabase.from("street_segments").select("id, user_id, crew_id, street_name, geom").limit(2000),
-        supabase.from("streets_claimed").select("id, user_id, crew_id, street_name"),
-        supabase.from("territory_polygons").select("id, owner_user_id, owner_crew_id, claimed_by_user_id, polygon, status").in("status", ["active", "pending_crew"]),
+        supabase.from("streets_claimed").select("id, user_id, crew_id, street_name, last_painted_at"),
+        supabase.from("territory_polygons").select("id, owner_user_id, owner_crew_id, claimed_by_user_id, polygon, status, last_painted_at").in("status", ["active", "pending_crew"]),
       ]);
       if (cancelled) return;
 
@@ -343,23 +344,25 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           byKey.set(k, arr);
         }
         setClaimedStreets(
-          (streetsRes.data as Array<{ id: string; user_id: string; crew_id: string | null; street_name: string }>).map((row) => ({
+          (streetsRes.data as Array<{ id: string; user_id: string; crew_id: string | null; street_name: string; last_painted_at: string | null }>).map((row) => ({
             id: row.id,
             geoms: byKey.get(`${row.user_id}|${row.street_name}`) ?? [],
             is_mine: row.user_id === profile.id,
             is_crew: !!(myCrewId && row.crew_id === myCrewId),
+            intensity: claimIntensity(row.last_painted_at),
           })),
         );
       }
       if (terrsRes.data) {
         setOwnedTerritories(
-          (terrsRes.data as Array<{ id: string; owner_user_id: string | null; owner_crew_id: string | null; claimed_by_user_id: string | null; polygon: Array<{ lat: number; lng: number }>; status: string }>).map((t) => ({
+          (terrsRes.data as Array<{ id: string; owner_user_id: string | null; owner_crew_id: string | null; claimed_by_user_id: string | null; polygon: Array<{ lat: number; lng: number }>; status: string; last_painted_at: string | null }>).map((t) => ({
             id: t.id,
             polygon: t.polygon,
             // pending_crew: claimed_by_user_id gehört dem User, owner_user_id ist null → trotzdem als "is_mine" markieren
             is_mine: t.owner_user_id === profile.id || (t.status === "pending_crew" && t.claimed_by_user_id === profile.id),
             is_crew: !!(myCrewId && t.owner_crew_id === myCrewId),
             status: t.status,
+            intensity: claimIntensity(t.last_painted_at),
           })),
         );
       }
@@ -8216,8 +8219,9 @@ function MyCrewView({
 
       {/* Content */}
       <div style={{ padding: "18px 20px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
-        {/* Live-Zentrale: echte Daten aus DB (Members, Duelle, Challenges, Events, Chat, Feed, Shop) */}
-        {profile?.id && (
+        {/* Live-Zentrale: echte Daten aus DB (Members, Duelle, Challenges, Events, Chat, Feed, Shop).
+            Nur auf der Übersicht — sonst dupliziert sich die Pill-Row mit den Haupt-Tabs. */}
+        {subTab === "overview" && profile?.id && (
           <CrewLiveHub
             crew={{ id: crew.id, name: crew.name, color: crew.color, owner_id: crew.owner_id, invite_code: crew.invite_code ?? null }}
             userId={profile.id}

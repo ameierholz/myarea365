@@ -400,6 +400,32 @@ export async function POST(req: Request) {
     } catch { /* stumm */ }
   }
 
+  // Farb-Zerfall-Repainting: wenn der User über eigene Straßen oder Territorien
+  // läuft, setzt last_painted_at zurück auf now() → Intensität springt auf 100 %.
+  // Fehler hier beeinflussen den Lauf nicht — stumm schlucken.
+  try {
+    const matchedStreetNames = Array.from(
+      new Set(matched.map((m) => m.street_name).filter((n): n is string => !!n))
+    );
+    const matchedWayIds = matched.map((m) => m.osm_way_id);
+    let segmentIds: string[] = [];
+    if (matchedWayIds.length > 0) {
+      const { data: ownSegments } = await sb
+        .from("street_segments")
+        .select("id")
+        .eq("user_id", userId)
+        .in("osm_way_id", matchedWayIds);
+      segmentIds = (ownSegments ?? []).map((s: { id: string }) => s.id);
+    }
+    if (matchedStreetNames.length > 0 || segmentIds.length > 0) {
+      await sb.rpc("repaint_user_claims", {
+        p_user_id: userId,
+        p_street_names: matchedStreetNames,
+        p_segment_ids: segmentIds,
+      });
+    }
+  } catch { /* stumm */ }
+
   return NextResponse.json({
     new_segments: newSegments,
     total_new: newSegments.length,
