@@ -478,10 +478,9 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
   const equippedCount = myGuardian.equipped.length;
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // Ausrüstung auf Mobil eingeklappt, Desktop aufgeklappt
-  const [gearOpen, setGearOpen] = useState<boolean>(() =>
-    typeof window !== "undefined" ? window.innerWidth >= 640 : true,
-  );
+  // Ausrüstung immer eingeklappt — Runner soll selbst aufklappen wenn er
+  // Slots wechseln will. Spart Platz fuer die Gegner-Liste darunter.
+  const [gearOpen, setGearOpen] = useState(false);
 
   async function equip(userItemId: string) {
     setBusy(true);
