@@ -33,7 +33,7 @@ export default async function RunnerDetailPage({ params }: { params: Promise<{ i
           <h2 className="font-bold mb-3">Stammdaten</h2>
           <dl className="text-sm space-y-2">
             <Row label="ID"><code className="text-[11px] text-[#8b8fa3]">{user.id}</code></Row>
-            <Row label="Fraktion">{user.faction === "syndicate" ? "🌙 Nachtpuls" : user.faction === "vanguard" ? "☀️ Sonnenwacht" : "—"}</Row>
+            <Row label="Fraktion">{(user.faction === "syndicate" || user.faction === "gossenbund") ? "🗝️ Gossenbund" : (user.faction === "vanguard" || user.faction === "kronenwacht") ? "👑 Kronenwacht" : "—"}</Row>
             <Row label="Rolle"><Badge tone={user.role === "user" ? "neutral" : "info"}>{user.role}</Badge></Row>
             <Row label="Status">
               {user.is_banned && <Badge tone="danger">Gesperrt</Badge>}

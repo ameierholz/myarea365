@@ -491,7 +491,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 22 }}>{cls.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: cls.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>KLASSEN-BUFF · {cls.label.toUpperCase()}</div>
+                        <div style={{ color: cls.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }} title="Wirkt automatisch in jedem Kampf. Gilt für alle Wächter dieser Klasse.">KLASSEN-BUFF · {cls.label.toUpperCase()} · passiv</div>
                         <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{cls.buff_name}</div>
                       </div>
                       <span
@@ -520,7 +520,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 22 }}>{f.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: f.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>FRAKTIONS-BUFF · {f.label.toUpperCase()}</div>
+                        <div style={{ color: f.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }} title="Passiv beim Laufen. Wirkt auf deine Straßen/Gebiete — nicht auf Kampf-Stats.">FRAKTIONS-BUFF · {f.label.toUpperCase()} · beim Laufen</div>
                         <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{f.buff_name}</div>
                       </div>
                       {data.user?.heimat_plz && (
@@ -540,7 +540,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
               {/* Materialien */}
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,215,0,0.25)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
                     🧱 MATERIALIEN
                   </div>
@@ -551,6 +551,9 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                       fontSize: 10, fontWeight: 900, cursor: "pointer", letterSpacing: 0.5,
                     }}>⚒️ Zur Schmiede</button>
                   )}
+                </div>
+                <div style={{ color: "#8B8FA3", fontSize: 10, lineHeight: 1.4, marginBottom: 10 }}>
+                  Drops nach jedem Kampf. In der Schmiede zu Items kombinieren oder Ausrüstung upgraden.
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
                   {MATERIAL_META.map((m) => {
@@ -583,8 +586,11 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
               {/* Siegel-Übersicht */}
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(168,85,247,0.3)" }}>
-                <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
+                <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
                   🏅 SIEGEL-BESTAND
+                </div>
+                <div style={{ color: "#8B8FA3", fontSize: 10, lineHeight: 1.4, marginBottom: 10 }}>
+                  Siegel = Levelup-Währung der Wächter. Drops aus Arena-Kämpfen. Eigener Typ hebt schneller, Universal-Siegel passen überall.
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4 }}>
                   {SIEGEL_META.map((s) => {
@@ -613,7 +619,9 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
               {/* Signatur-Fähigkeit */}
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: `1px solid ${rarity.color}44` }}>
-                <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>⚡ SIGNATUR-FÄHIGKEIT</div>
+                <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }} title="Passive Fähigkeit — wirkt automatisch in jedem Kampf, wenn dieser Wächter aktiv ist.">
+                  ⚡ SIGNATUR-FÄHIGKEIT <span style={{ color: "#8B8FA3", fontWeight: 700 }}>· passiv im Kampf</span>
+                </div>
                 <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{a.ability_name}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 2 }}>{a.ability_desc}</div>
                 {a.lore && (
@@ -703,14 +711,25 @@ function StatBox({ label, value, color }: { label: string; value: number | strin
   );
 }
 
+const STAT_TOOLTIPS: Record<string, string> = {
+  HP:  "Lebenspunkte — wie viel Schaden dein Wächter einstecken kann. Bei 0 ist er verwundet.",
+  ATK: "Angriff — Basis-Schaden pro Treffer. Skaliert mit Waffe, Talenten und Klassen-Buff.",
+  DEF: "Verteidigung — reduziert eingehenden Schaden. Rüstung + Tank-Buff erhöhen sie.",
+  SPD: "Tempo — bestimmt wer zuerst angreift. Höchste SPD schlägt zuerst zu.",
+};
+
 function Stat({ label, value, color, delta }: { label: string; value: number; color: string; delta?: number }) {
   return (
-    <div style={{
-      padding: "8px 10px", borderRadius: 10,
-      background: "rgba(15,17,21,0.65)",
-      border: `1px solid ${color}33`,
-      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
-    }}>
+    <div
+      title={STAT_TOOLTIPS[label] ?? undefined}
+      style={{
+        padding: "8px 10px", borderRadius: 10,
+        background: "rgba(15,17,21,0.65)",
+        border: `1px solid ${color}33`,
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
+        cursor: STAT_TOOLTIPS[label] ? "help" : "default",
+      }}
+    >
       <span style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{label}</span>
       <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
         <span style={{ color, fontSize: 16, fontWeight: 900, lineHeight: 1 }}>{value}</span>

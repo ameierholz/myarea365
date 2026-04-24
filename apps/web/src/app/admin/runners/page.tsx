@@ -28,8 +28,8 @@ export default async function RunnersPage({ searchParams }: { searchParams: Prom
         <Input name="q" defaultValue={sp.q} placeholder="Name oder Username suchen…" />
         <select name="faction" defaultValue={sp.faction ?? ""} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
           <option value="">Alle Fraktionen</option>
-          <option value="syndicate">🌙 Nachtpuls</option>
-          <option value="vanguard">☀️ Sonnenwacht</option>
+          <option value="gossenbund">🗝️ Gossenbund</option>
+          <option value="kronenwacht">👑 Kronenwacht</option>
         </select>
         <select name="role" defaultValue={sp.role ?? "all"} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
           <option value="all">Alle Rollen</option>

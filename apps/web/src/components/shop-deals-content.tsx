@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SHOP_CATEGORIES } from "@/lib/shop-categories";
+import { AdSenseSlot } from "@/components/adsense-slot";
 
 type DealRow = {
   deal_id: string;
@@ -109,6 +110,19 @@ export function ShopDealsContent() {
 
   return (
     <div>
+      <details style={{ marginBottom: 14 }}>
+        <summary style={{ cursor: "pointer", listStyle: "none", userSelect: "none", padding: "10px 12px", borderRadius: 10, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", color: "#22D1C3", fontSize: 12, fontWeight: 900 }}>
+          ▸ Wie funktionieren Deals?
+        </summary>
+        <div style={{ marginTop: 8, padding: 12, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: "1px solid rgba(34,209,195,0.2)", fontSize: 12, color: "#a8b4cf", lineHeight: 1.55 }}>
+          Lokale Shops belohnen Bewegung: lauf zum Laden, scan den QR-Code an der Theke, kassier deinen Rabatt oder das Gratis-Produkt.
+          <br/><br/>
+          <b style={{ color: "#FFF" }}>🪙 Kosten</b> in Wegemünzen · <b style={{ color: "#FFF" }}>Frequenz</b> pro Deal (1×/Tag, 1×/Woche …) · <b style={{ color: "#FFF" }}>Mindestbestellwert</b> optional.
+          <br/>
+          Du bist bei Einlösung automatisch vor Ort — wir prüfen per GPS, kein Code-Tippen.
+        </div>
+      </details>
+
       {/* Suchleiste + Filter */}
       <div style={{ marginBottom: 14 }}>
         <input
@@ -209,7 +223,12 @@ export function ShopDealsContent() {
             {pos && radiusKm > 0 && ` im Umkreis von ${radiusKm} km`}
           </div>
           <div style={{ display: "grid", gap: 10 }}>
-            {deals.map((d) => <DealCard key={d.deal_id} deal={d} />)}
+            {deals.map((d, i) => (
+              <div key={d.deal_id}>
+                <DealCard deal={d} />
+                {i === 2 && <AdSenseSlot placement="deals_list" />}
+              </div>
+            ))}
           </div>
         </>
       )}

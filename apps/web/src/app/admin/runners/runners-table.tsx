@@ -141,7 +141,7 @@ export function RunnersTable({ rows }: { rows: Row[] }) {
                   </Link>
                 </td>
                 <td className="p-2"><LastActive at={r.last_seen_at} /></td>
-                <td className="p-2 text-[#a8b4cf]">{r.faction === "syndicate" ? "🌙 Nachtpuls" : r.faction === "vanguard" ? "☀️ Sonnenwacht" : "—"}</td>
+                <td className="p-2 text-[#a8b4cf]">{(r.faction === "syndicate" || r.faction === "gossenbund") ? "🗝️ Gossenbund" : (r.faction === "vanguard" || r.faction === "kronenwacht") ? "👑 Kronenwacht" : "—"}</td>
                 <td className="p-2 text-right text-[#a8b4cf]">
                   {((r.total_distance_m ?? 0) / 1000).toFixed(1)} km
                   <div className="text-xs text-[#8B8FA3]">{r.total_walks ?? 0} Läufe</div>

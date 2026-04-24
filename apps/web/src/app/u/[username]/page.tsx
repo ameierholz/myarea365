@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { AdSenseSlot } from "@/components/adsense-slot";
 
 export const revalidate = 300;
 
@@ -37,8 +38,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   const totalPrestige = (prestigeRows ?? []).reduce((s, r: { prestige_points: number }) => s + r.prestige_points, 0);
 
   const km = ((user.total_distance_m ?? 0) / 1000).toFixed(1);
-  const color = user.faction === "syndicate" ? "#22D1C3" : user.faction === "vanguard" ? "#FF6B4A" : "#22D1C3";
-  const factionLabel = user.faction === "syndicate" ? "🌙 Nachtpuls" : user.faction === "vanguard" ? "☀️ Sonnenwacht" : null;
+  const fNorm = (user.faction === "vanguard" || user.faction === "kronenwacht") ? "kronenwacht"
+              : (user.faction === "syndicate" || user.faction === "gossenbund") ? "gossenbund"
+              : null;
+  const color = fNorm === "gossenbund" ? "#22D1C3" : fNorm === "kronenwacht" ? "#FFD700" : "#22D1C3";
+  const factionLabel = fNorm === "gossenbund" ? "🗝️ Gossenbund" : fNorm === "kronenwacht" ? "👑 Kronenwacht" : null;
 
   return (
     <main className="min-h-screen px-4 py-12">
@@ -73,6 +77,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           <Stat label="🏴 Gebietsruf"  value={(user.gebietsruf ?? 0).toLocaleString("de-DE")}  color="#FF2D78" />
           <Stat label="⚔️ Sessionehre" value={(user.sessionehre ?? 0).toLocaleString("de-DE")} color="#FFD700" />
         </div>
+
+        <AdSenseSlot placement="public_profile" />
 
         {/* Prestige-Historie */}
         {prestigeRows && prestigeRows.length > 0 && (

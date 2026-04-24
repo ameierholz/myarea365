@@ -120,7 +120,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         if (Date.now() - lastSwitch < 30 * 86400000) {
           throw new Error("Fraktions-Wechsel nur alle 30 Tage möglich!");
         }
-        const newFaction = u?.faction === "syndicate" ? "vanguard" : "syndicate";
+        const newFaction = (u?.faction === "syndicate" || u?.faction === "gossenbund") ? "kronenwacht" : "gossenbund";
         await sb.from("users").update({
           faction: newFaction,
           faction_switch_at: new Date().toISOString(),
@@ -220,7 +220,8 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
           <div>• Personal- &amp; Crew-Boost <b style={{ color: "#FFF" }}>kombinieren sich nicht</b> — es gilt der höhere Wert (2× + 2× = 2×, nicht 4×).</div>
           <div>• Boost zählt für <b style={{ color: "#FFF" }}>Level, Achievements, Deals &amp; Leaderboards</b>. Kein versteckter Haken.</div>
         </div>
-        <div style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto" }}>
+        <style>{`.ma365-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+        <div className="ma365-hide-scrollbar" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
           <TabBtn active={tab === "boosts"} onClick={() => setTab("boosts")}>⚡ Boosts</TabBtn>
           <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>🪙 Wegemünzen</TabBtn>
           <TabBtn active={tab === "gameplay"} onClick={() => setTab("gameplay")}>🎮 Gameplay</TabBtn>

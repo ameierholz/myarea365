@@ -19,20 +19,20 @@ export const RUNNER_RANKS = [
 export const FACTIONS = [
   {
     id: "syndicate",
-    name: "Nachtpuls",
-    short: "NP",
+    name: "Gossenbund",
+    short: "GB",
     color: "#22D1C3",
-    icon: "🌙",
-    motto: "Strategie. Rhythmus. Stille Siege.",
+    icon: "🗝️",
+    motto: "Grenzen verschieben. Fremdes Revier erobern. Nie stehenbleiben.",
     power: 12500,
   },
   {
     id: "vanguard",
-    name: "Sonnenwacht",
-    short: "SW",
-    color: "#FF6B4A",
-    icon: "☀️",
-    motto: "Mut. Tempo. Offene Wege.",
+    name: "Kronenwacht",
+    short: "KW",
+    color: "#FFD700",
+    icon: "👑",
+    motto: "Wurzeln schlagen. Gebiete halten. Das Viertel pflegen.",
     power: 14200,
   },
 ] as const;
@@ -431,6 +431,9 @@ const COUNTRY_ISO: Record<string, string> = {
   "Thailand": "th",
 };
 export function isoForCountry(country: string): string | null {
+  if (!country) return null;
+  // ISO-3166-1 Alpha-2 (z.B. "DE", "AT") direkt akzeptieren — flagcdn nutzt Kleinbuchstaben
+  if (/^[A-Za-z]{2}$/.test(country)) return country.toLowerCase();
   return COUNTRY_ISO[country] || null;
 }
 // Emoji für Kontinent (Welt-Globus)
@@ -587,7 +590,7 @@ export type CrewFeedItem = {
 export const DEMO_CREW_FEED: CrewFeedItem[] = [
   { id: "f1", type: "rank_up",         username: "NeonFuchs",   avatar_emoji: "🦊", text: "ist zu **Kiez-König** aufgestiegen", accent: "#FFD700", ts_iso: new Date(Date.now() - 14 * 60000).toISOString(), reactions: [{ emoji: "🔥", count: 5 }, { emoji: "👏", count: 3 }] },
   { id: "f2", type: "territory_taken", username: "Pacer99",     avatar_emoji: "🚀", text: "hat **Danziger Straße** erobert",    accent: "#22D1C3", ts_iso: new Date(Date.now() - 42 * 60000).toISOString(), reactions: [{ emoji: "🏆", count: 4 }] },
-  { id: "f3", type: "challenge_done",                                                text: "Crew-Challenge **Früh-Vögel** abgeschlossen — +900 XP 🎉", accent: "#FF6B4A", ts_iso: new Date(Date.now() - 3 * 3600000).toISOString(), reactions: [{ emoji: "🎉", count: 8 }, { emoji: "💪", count: 2 }] },
+  { id: "f3", type: "challenge_done",                                                text: "Crew-Challenge **Früh-Vögel** abgeschlossen — +900 🪙 🎉", accent: "#FF6B4A", ts_iso: new Date(Date.now() - 3 * 3600000).toISOString(), reactions: [{ emoji: "🎉", count: 8 }, { emoji: "💪", count: 2 }] },
   { id: "f4", type: "run_completed",   username: "StadtPuma",   avatar_emoji: "🐆", text: "hat **8.4 km in 42:30** gelaufen",   accent: "#22D1C3", ts_iso: new Date(Date.now() - 5 * 3600000).toISOString() },
   { id: "f5", type: "member_joined",   username: "WegFinder",   avatar_emoji: "🧭", text: "ist der Crew beigetreten",           accent: "#a855f7", ts_iso: new Date(Date.now() - 22 * 3600000).toISOString(), reactions: [{ emoji: "👋", count: 6 }] },
   { id: "f6", type: "milestone",                                                     text: "Crew hat **3000 km** insgesamt erreicht 🏅", accent: "#FFD700", ts_iso: new Date(Date.now() - 2 * 24 * 3600000).toISOString(), reactions: [{ emoji: "🔥", count: 12 }] },
@@ -609,7 +612,7 @@ export const DEMO_RIVAL_DUEL: RivalDuel = {
   rival_weekly_km: 76.4,
   our_weekly_km: 88.5,
   ends_at: new Date(Date.now() + 3 * 24 * 3600000).toISOString(),
-  prize: "+1200 XP + Gebiet-Bonus",
+  prize: "+1200 🪙 Wegemünzen + Gebiet-Bonus",
 };
 
 export function groupCrewsByLevel(

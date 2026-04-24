@@ -72,10 +72,10 @@ export const MAP_LOOT_CRATE_TABLE: Array<{
   reward: string;
   kinds: string[];
 }> = [
-  { rarity: "common", chance_pct: 42.9, reward: "+25 XP (Demo)", kinds: ["📦 XP-Pack"] },
-  { rarity: "rare",   chance_pct: 28.6, reward: "+25 XP (Demo)", kinds: ["🎁 Speed-Boost", "🎁 Mystery-Ticket"] },
-  { rarity: "epic",   chance_pct: 14.3, reward: "+25 XP (Demo)", kinds: ["💎 XP-Pack", "💎 Mystery-Ticket"] },
-  { rarity: "legend", chance_pct: 14.3, reward: "+25 XP (Demo)", kinds: ["👑 Mystery-Ticket"] },
+  { rarity: "common", chance_pct: 42.9, reward: "+25 🪙 (Demo)", kinds: ["📦 Wegemünzen-Pack"] },
+  { rarity: "rare",   chance_pct: 28.6, reward: "+25 🪙 (Demo)", kinds: ["🎁 Speed-Boost", "🎁 Mystery-Ticket"] },
+  { rarity: "epic",   chance_pct: 14.3, reward: "+25 🪙 (Demo)", kinds: ["💎 Wegemünzen-Pack", "💎 Mystery-Ticket"] },
+  { rarity: "legend", chance_pct: 14.3, reward: "+25 🪙 (Demo)", kinds: ["👑 Mystery-Ticket"] },
 ];
 
 /**

@@ -285,7 +285,7 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
   }
   if (sku === "faction_switch") {
     const { data: u } = await sb.from("users").select("faction").eq("id", userId).single();
-    const newFaction = u?.faction === "syndicate" ? "vanguard" : "syndicate";
+    const newFaction = (u?.faction === "syndicate" || u?.faction === "gossenbund") ? "kronenwacht" : "gossenbund";
     await sb.from("users").update({ faction: newFaction, faction_switch_at: new Date().toISOString() }).eq("id", userId);
     return;
   }

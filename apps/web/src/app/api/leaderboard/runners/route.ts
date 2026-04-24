@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     .order(orderCol, { ascending: false })
     .limit(100);
 
-  if (faction === "syndicate" || faction === "vanguard") q = q.eq("faction", faction);
+  if (faction === "syndicate" || faction === "vanguard" || faction === "kronenwacht" || faction === "gossenbund") q = q.eq("faction", faction);
 
   const { data } = await q;
   return NextResponse.json({ runners: data ?? [] });

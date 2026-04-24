@@ -17,8 +17,8 @@ export const CREW_FACTIONS: Record<CrewFactionId, CrewFactionMeta> = {
     icon: "🏃",
     color: "#4ade80",
     tagline: "Laufen ist unser Weg.",
-    buff: "+10 % Lauf-XP",
-    buffDetail: "Jeder Walk gibt 10 % mehr Erfahrung für alle Crew-Mitglieder.",
+    buff: "+10 % 🪙 Wegemünzen beim Laufen",
+    buffDetail: "Jeder Walk gibt 10 % mehr Wegemünzen für alle Crew-Mitglieder.",
   },
   waechterorden: {
     id: "waechterorden",

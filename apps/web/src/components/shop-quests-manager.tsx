@@ -175,7 +175,7 @@ export function ShopQuestsManager({ businessId }: { businessId: string }) {
           <div className="text-4xl mb-3">📋</div>
           <div className="text-sm font-bold text-white mb-1">Noch keine Quests angelegt</div>
           <div className="text-xs text-[#8B8FA3] max-w-sm mx-auto">
-            Motiviere Runner zu gezielten Käufen — z.B. „Kaufe einen Rucksack" → +500 XP.
+            Motiviere Runner zu gezielten Käufen — z.B. „Kaufe einen Rucksack" → +500 🪙 Wegemünzen.
             Die KI erkennt den Artikel automatisch auf dem hochgeladenen Bon.
           </div>
         </div>

@@ -8,8 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Loader2, ArrowRight, ArrowLeft, Info, Check } from "lucide-react";
 
 const FACTIONS = [
-  { id: "syndicate", name: "Nachtpuls",   icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus" },
-  { id: "vanguard",  name: "Sonnenwacht", icon: "☀️", color: "#FF6B4A", motto: "Mut · Tempo" },
+  { id: "gossenbund",  name: "Gossenbund",  icon: "🗝️", color: "#22D1C3", motto: "Raubzug · neue Straßen erobern" },
+  { id: "kronenwacht", name: "Kronenwacht", icon: "👑", color: "#FFD700", motto: "Beständig · Gebiete halten" },
 ] as const;
 
 type Race = {
@@ -30,7 +30,7 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [username, setUsername] = useState("");
-  const [faction, setFaction] = useState<"syndicate" | "vanguard" | null>(null);
+  const [faction, setFaction] = useState<"gossenbund" | "kronenwacht" | null>(null);
   const [newsletter, setNewsletter] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -56,7 +56,7 @@ export default function OnboardingPage() {
           .from("user_guardians").select("id, race_id").eq("user_id", user.id).eq("is_active", true).maybeSingle();
         if (guardian?.race_id) { router.push("/dashboard"); return; }
         setUsername(profile.username);
-        setFaction(profile.faction as "syndicate" | "vanguard");
+        setFaction(profile.faction as "gossenbund" | "kronenwacht");
         setStep(2);
       } else {
         if (profile?.username) setUsername(profile.username);
@@ -162,7 +162,7 @@ export default function OnboardingPage() {
               {showInfo && (
                 <div className="absolute right-0 -top-2 -translate-y-full z-40 w-72 p-3 rounded-lg bg-bg-elevated border border-primary/60 text-[11px] text-text-muted leading-relaxed shadow-2xl">
                   <b className="text-text">2 weltweite Teams</b>, die sich jede Saison duellieren. Deine km zählen für deine Fraktion — weltweit, pro Land, Stadt, PLZ. Trotzdem eigene Crew möglich.
-                  <span className="block mt-1 text-danger font-semibold">Nicht änderbar nach Registrierung.</span>
+                  <span className="block mt-1 text-text-muted">Wechsel später gegen Edelsteine, nur alle 30 Tage.</span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">

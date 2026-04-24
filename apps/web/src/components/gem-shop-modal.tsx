@@ -250,6 +250,16 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
           {/* 💎 EDELSTEINE KAUFEN */}
           {gemTab === "home" && (
           <section style={{ marginBottom: 16 }}>
+            <details style={{ marginBottom: 10 }}>
+              <summary style={{ cursor: "pointer", listStyle: "none", userSelect: "none", padding: "10px 12px", borderRadius: 10, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)", color: "#FFD700", fontSize: 11, fontWeight: 900 }}>
+                ▸ Was sind Edelsteine 💎? Warum nicht Wegemünzen 🪙?
+              </summary>
+              <div style={{ marginTop: 6, padding: 10, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: "1px solid rgba(255,215,0,0.2)", fontSize: 11, color: "#a8b4cf", lineHeight: 1.55 }}>
+                <b style={{ color: "#FFD700" }}>💎 Edelsteine = Premium-Währung</b> (Echtgeld). Laufen bringt nur Wegemünzen 🪙 — die sind für Ränge, Map-Icons, Runner-Lights. Edelsteine sind für optionale Extras: Monatspacks, Doppel-🪙-Booster, Skins, Crew-Emblems.
+                <br/><br/>
+                <b style={{ color: "#FFF" }}>Fair-Play:</b> Siegel, Wächter und alle Kampf-Werte bekommst du <i>nie</i> für Edelsteine — nur durchs Laufen und Kämpfen. Kein Pay-to-Win.
+              </div>
+            </details>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 18 }}>💎</span>
               <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>

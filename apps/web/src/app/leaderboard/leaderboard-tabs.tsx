@@ -62,7 +62,7 @@ type RunnerMetric = "wegemuenzen" | "gebietsruf" | "sessionehre" | "km" | "walks
 
 function RunnersTab() {
   const [metric, setMetric] = useState<RunnerMetric>("wegemuenzen");
-  const [faction, setFaction] = useState<"all"|"syndicate"|"vanguard">("all");
+  const [faction, setFaction] = useState<"all"|"gossenbund"|"kronenwacht">("all");
   const [runners, setRunners] = useState<Runner[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -89,8 +89,8 @@ function RunnersTab() {
         </div>
         <div className="flex gap-1.5">
           <Chip active={faction==="all"}       onClick={() => setFaction("all")}>🌍 Alle</Chip>
-          <Chip active={faction==="syndicate"} onClick={() => setFaction("syndicate")}>🌙 Nachtpuls</Chip>
-          <Chip active={faction==="vanguard"}  onClick={() => setFaction("vanguard")}>☀️ Sonnenwacht</Chip>
+          <Chip active={faction==="gossenbund"} onClick={() => setFaction("gossenbund")}>🗝️ Gossenbund</Chip>
+          <Chip active={faction==="kronenwacht"} onClick={() => setFaction("kronenwacht")}>👑 Kronenwacht</Chip>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ function RunnersTab() {
         <div className="bg-[#1A1D23] border border-white/10 rounded-2xl overflow-hidden">
           {runners.map((r, i) => {
             const km = ((r.total_distance_m ?? 0) / 1000).toFixed(1);
-            const color = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#22D1C3";
+            const color = (r.faction === "syndicate" || r.faction === "gossenbund") ? "#22D1C3" : (r.faction === "vanguard" || r.faction === "kronenwacht") ? "#FFD700" : "#22D1C3";
             const primary = metric === "km" ? `${km} km`
                           : metric === "walks" ? `${(r.total_walks ?? 0).toLocaleString("de-DE")} Walks`
                           : metric === "level" ? `Lvl ${r.level ?? 1}`
@@ -115,8 +115,8 @@ function RunnersTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-white font-bold truncate">{r.display_name ?? r.username}</span>
-                    {r.faction === "syndicate" && <FactionBadge icon="🌙" label="Nachtpuls" color="#22D1C3" />}
-                    {r.faction === "vanguard"  && <FactionBadge icon="☀️" label="Sonnenwacht" color="#FF6B4A" />}
+                    {(r.faction === "syndicate" || r.faction === "gossenbund") && <FactionBadge icon="🗝️" label="Gossenbund" color="#22D1C3" />}
+                    {(r.faction === "vanguard"  || r.faction === "kronenwacht") && <FactionBadge icon="👑" label="Kronenwacht" color="#FFD700" />}
                   </div>
                   <div className="text-xs text-[#8B8FA3]">@{r.username} · Lvl {r.level ?? 1} · {km} km</div>
                 </div>
@@ -596,7 +596,7 @@ function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
         const bgColor = i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)";
         const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3";
         const flagEmoji = i < 3 ? "👑" : "🇩🇪";
-        const factionColor = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#F0F0F0";
+        const factionColor = (r.faction === "syndicate" || r.faction === "gossenbund") ? "#22D1C3" : (r.faction === "vanguard" || r.faction === "kronenwacht") ? "#FFD700" : "#F0F0F0";
         return (
           <div key={r.user_id} style={{
             display: "grid",

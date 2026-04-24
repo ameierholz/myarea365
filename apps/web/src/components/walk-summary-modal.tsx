@@ -26,6 +26,16 @@ export type WalkSummary = {
   reclaim?: { reclaim_count: number; reclaim_xp: number; segments_cooldown: number } | null;
   /** Solo-Läufer: Gebiete sind pending_crew — zeigen Aufforderung zum Crew-Join. */
   pending_territory_count?: number;
+  /** Aufschluesselung der Basis-XP vor Multiplikatoren (transparente Anzeige im Modal). */
+  breakdown?: {
+    walkBase: number;          // XP_PER_WALK (flat)
+    kmXp: number;              // XP_PER_KM × km
+    segmentsXp: number;        // segments × XP_PER_SEGMENT
+    streetsXp: number;         // new streets × XP_PER_STREET_CLAIMED
+    territoryXp: number;       // new territories × XP_PER_TERRITORY
+    doubleClaimBonus: number;  // extra territory XP wenn Double-Claim-Charge genutzt
+    factionClaimBonus?: number; // Gossenbund-Raubzug-Bonus (25 % + 50/Feind)
+  };
 };
 
 export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
@@ -194,6 +204,59 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   <span style={{ color: "#a8b4cf" }}>Keine neuen Abschnitte</span>
                 )}
               </div>
+
+              {/* Aufschluesselung — klappbar */}
+              {summary.breakdown && (
+                <details style={{ marginTop: 10 }}>
+                  <summary style={{
+                    cursor: "pointer", listStyle: "none", userSelect: "none",
+                    color: "#8B8FA3", fontSize: 10, fontWeight: 800, letterSpacing: 1,
+                  }}>
+                    ▸ Aufschlüsselung anzeigen
+                  </summary>
+                  <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 3, fontSize: 11 }}>
+                    {summary.breakdown.walkBase > 0 && (
+                      <BreakdownRow icon="✅" label="Walk abgeschlossen (Basis)" value={summary.breakdown.walkBase} />
+                    )}
+                    {summary.breakdown.kmXp > 0 && (
+                      <BreakdownRow icon="📏" label={`Distanz (${((summary.distance_m) / 1000).toFixed(2)} km)`} value={summary.breakdown.kmXp} />
+                    )}
+                    {summary.breakdown.segmentsXp > 0 && (
+                      <BreakdownRow icon="🛤️" label={`${summary.segment_count}× neuer Abschnitt`} value={summary.breakdown.segmentsXp} />
+                    )}
+                    {summary.breakdown.streetsXp > 0 && (
+                      <BreakdownRow icon="🛣️" label={`${summary.street_count}× kompletter Straßenzug`} value={summary.breakdown.streetsXp} />
+                    )}
+                    {summary.breakdown.territoryXp > 0 && (
+                      <BreakdownRow icon="🏆" label={`${summary.territory_count}× Gebiet geschlossen`} value={summary.breakdown.territoryXp} />
+                    )}
+                    {summary.breakdown.doubleClaimBonus > 0 && (
+                      <BreakdownRow icon="🎯" label="Doppel-Claim-Charge (Gebiet ×2)" value={summary.breakdown.doubleClaimBonus} accent="#FFD700" />
+                    )}
+                    {summary.breakdown.factionClaimBonus && summary.breakdown.factionClaimBonus > 0 ? (
+                      <BreakdownRow icon="🗝️" label="Gossenbund-Raubzug (+25 % + 50/Feind)" value={summary.breakdown.factionClaimBonus} accent="#22D1C3" />
+                    ) : null}
+                    {summary.reclaim && summary.reclaim.reclaim_xp > 0 && (
+                      <BreakdownRow icon="♻️" label={`Reclaim (${summary.reclaim.reclaim_count} bekannte Abschnitte)`} value={summary.reclaim.reclaim_xp} accent="#22D1C3" />
+                    )}
+                    {summary.bonuses && summary.bonuses.streakBonus > 0 && (
+                      <BreakdownRow icon="🔥" label="Streak-Bonus" value={summary.bonuses.streakBonus} accent="#FF6B4A" />
+                    )}
+                    {summary.bonuses && (summary.bonuses.happyHourMult > 1 || summary.bonuses.boostMult > 1 || summary.bonuses.crewBoostMult > 1) && (
+                      <div style={{ padding: "4px 2px 0", borderTop: "1px dashed rgba(255,255,255,0.1)", marginTop: 3, color: "#FFD700", fontSize: 10 }}>
+                        × Multiplikatoren: {summary.bonuses.happyHourMult > 1 && `Happy-Hour ${summary.bonuses.happyHourMult}× `}{summary.bonuses.boostMult > 1 && `Boost ${summary.bonuses.boostMult}× `}{summary.bonuses.crewBoostMult > 1 && `Crew-Boost ${summary.bonuses.crewBoostMult}×`}
+                      </div>
+                    )}
+                    {summary.achievementXp && summary.achievementXp > 0 ? (
+                      <BreakdownRow icon="🏅" label="Achievements (siehe unten)" value={summary.achievementXp} accent="#FFD700" />
+                    ) : null}
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.12)", marginTop: 4, paddingTop: 4, display: "flex", justifyContent: "space-between", fontWeight: 900, color: "#FFF" }}>
+                      <span>Gesamt</span>
+                      <span style={{ color: "#FFD700" }}>+{(summary.xp_earned + (bonusXp || 0)).toLocaleString("de-DE")} 🪙</span>
+                    </div>
+                  </div>
+                </details>
+              )}
               {summary.stolen_count && summary.stolen_count > 0 ? (
                 <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78", fontSize: 11, fontWeight: 800 }}>
                   ⚔️ {summary.stolen_count}× Gebiet erobert (zurueckgeholt!)
@@ -319,6 +382,17 @@ function Stat({ icon, label, value, accent }: { icon: string; label: string; val
         <span>{icon}</span> <span>{label}</span>
       </div>
       <div style={{ color: accent, fontSize: 16, fontWeight: 900, marginTop: 4 }}>{value}</div>
+    </div>
+  );
+}
+
+function BreakdownRow({ icon, label, value, accent = "#a8b4cf" }: { icon: string; label: string; value: number; accent?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+      <span style={{ color: "#a8b4cf", display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <span>{icon}</span><span>{label}</span>
+      </span>
+      <span style={{ color: accent, fontWeight: 800, fontFamily: "monospace" }}>+{value.toLocaleString("de-DE")}</span>
     </div>
   );
 }

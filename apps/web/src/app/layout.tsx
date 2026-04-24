@@ -14,6 +14,7 @@ import { GlobalSvgFilters } from "@/components/global-svg-filters";
 import { CookieConsent } from "@/components/cookie-consent";
 import { CapacitorAuthBridge } from "@/components/capacitor-auth-bridge";
 import { UmpConsent } from "@/components/ump-consent";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: {
@@ -125,6 +126,15 @@ export default async function RootLayout({
           <CookieConsent />
         </NextIntlClientProvider>
         <UmpConsent />
+        {/* AdSense — nach Hydration laden, um SSR/Client-Mismatch zu vermeiden.
+            Manual Ad Units via <AdSenseSlot />; Auto-Ads in der Konsole ausgeschaltet. */}
+        <Script
+          id="adsense-script"
+          async
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
+          crossOrigin="anonymous"
+        />
         <Analytics />
         <SpeedInsights />
       </body>

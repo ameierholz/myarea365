@@ -21,8 +21,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ username: strin
   }
 
   const km = ((user.total_distance_m ?? 0) / 1000).toFixed(1);
-  const accent = user.faction === "syndicate" ? "#22D1C3" : user.faction === "vanguard" ? "#FF6B4A" : "#22D1C3";
-  const factionLabel = user.faction === "syndicate" ? "🌙 Nachtpuls" : user.faction === "vanguard" ? "☀️ Sonnenwacht" : "🏃";
+  const accent = (user.faction === "syndicate" || user.faction === "gossenbund") ? "#22D1C3" : (user.faction === "vanguard" || user.faction === "kronenwacht") ? "#FFD700" : "#22D1C3";
+  const factionLabel = (user.faction === "syndicate" || user.faction === "gossenbund") ? "🗝️ Gossenbund" : (user.faction === "vanguard" || user.faction === "kronenwacht") ? "👑 Kronenwacht" : "🏃";
   const url = new URL(req.url);
   const refCode = url.searchParams.get("ref");
   const cta = refCode ? `myarea365.de/?ref=${refCode}` : "myarea365.de";

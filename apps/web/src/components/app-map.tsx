@@ -473,8 +473,6 @@ interface AppMapProps {
   shopTrail?: Array<{ business_id: string; name: string; lat: number; lng: number }>;
   shadowRoute?: { id: string; runner_color: string; geom: Array<{ lat: number; lng: number }> } | null;
   shopReviews?: Array<{ business_id: string; avg_rating: number; review_count: number }>;
-  exploredCells?: Array<{ cell_x: number; cell_y: number }>;
-  fogOfWarEnabled?: boolean;
   lootDrops?: Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>;
   arenaCountdowns?: Array<{ business_id: string; business_lat: number; business_lng: number; starts_at: string }>;
   onBossClick?: (raidId: string) => void;
@@ -704,8 +702,6 @@ export function AppMap({
   shopTrail = [],
   shadowRoute = null,
   shopReviews = [],
-  exploredCells = [],
-  fogOfWarEnabled = false,
   lootDrops = [],
   arenaCountdowns = [],
   onBossClick,
@@ -1806,57 +1802,6 @@ export function AppMap({
   // WAVE: 11 neue Map-Features
   // ═══════════════════════════════════════════════════════
 
-  // ── Fog-of-War: dunkle Overlay, explored cells ausgestanzt ──
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
-    const map = mapRef.current;
-    const srcId = "fog-cells";
-    const layerId = "fog-cells-fill";
-    const fogLayerId = "fog-overlay";
-
-    if (!fogOfWarEnabled) {
-      try {
-        if (map.getLayer(fogLayerId)) map.removeLayer(fogLayerId);
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getSource(srcId)) map.removeSource(srcId);
-      } catch { /* noop */ }
-      return;
-    }
-
-    const features = exploredCells.map((c) => {
-      const x = c.cell_x / 1000, y = c.cell_y / 1000, s = 0.001;
-      return {
-        type: "Feature" as const,
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [[[x, y], [x + s, y], [x + s, y + s], [x, y + s], [x, y]]],
-        },
-        properties: {},
-      };
-    });
-    const data = { type: "FeatureCollection" as const, features };
-
-    const existing = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
-    if (existing) existing.setData(data);
-    else {
-      map.addSource(srcId, { type: "geojson", data });
-      // Dunkler Overlay über gesamten Viewport — verdunkelt unerforschte Gebiete
-      map.addLayer({
-        id: fogLayerId, type: "background",
-        paint: { "background-color": "#0F1115", "background-opacity": 0.55 },
-      });
-      // Explored Cells markieren sichtbar mit Cyan-Glow → zeigen erforschtes Gebiet
-      map.addLayer({
-        id: layerId, type: "fill", source: srcId,
-        paint: {
-          "fill-color": "#22D1C3",
-          "fill-opacity": 0.28,
-          "fill-outline-color": "#22D1C3",
-        },
-      });
-    }
-  }, [mapReady, exploredCells, fogOfWarEnabled]);
-
   // ── Power-Zones (Park/Water/City/Landmark mit Buff-Radius) ──
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -2368,3 +2313,4 @@ export function AppMap({
     </div>
   );
 }
+

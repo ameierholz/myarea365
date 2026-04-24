@@ -16,13 +16,13 @@ export async function GET() {
 
   const [topLevel, mostPlayed, winRate] = await Promise.all([
     sb.from("user_guardians")
-      .select("id, user_id, archetype_id, level, xp, wins, losses, guardian_archetypes(name, emoji, rarity, guardian_type, image_url, video_url), users:user_id(username, display_name, team_color)")
+      .select("id, user_id, archetype_id, level, xp, wins, losses, guardian_archetypes(name, emoji, rarity, guardian_type, image_url, video_url), users:user_id(username, display_name, team_color, country)")
       .eq("is_active", true)
       .order("level", { ascending: false })
       .order("xp", { ascending: false })
       .limit(60),
     sb.from("user_guardians")
-      .select("id, user_id, archetype_id, level, wins, losses, guardian_archetypes(name, emoji, rarity, guardian_type, image_url, video_url), users:user_id(username, display_name, team_color)")
+      .select("id, user_id, archetype_id, level, wins, losses, guardian_archetypes(name, emoji, rarity, guardian_type, image_url, video_url), users:user_id(username, display_name, team_color, country)")
       .eq("is_active", true)
       .order("wins", { ascending: false })
       .limit(60),

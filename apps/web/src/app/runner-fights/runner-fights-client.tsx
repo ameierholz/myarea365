@@ -286,8 +286,11 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
         <div className="p-10 text-center text-[#8B8FA3] text-sm">Keine passenden Gegner gerade online. Versuche es später nochmal.</div>
       ) : (
         <>
-          <div className="text-center text-xs font-black tracking-widest text-[#FFD700] mb-3">
+          <div className="text-center text-xs font-black tracking-widest text-[#FFD700] mb-1">
             ⚔️ WÄHLE EINEN GEGNER ⚔️
+          </div>
+          <div className="text-center text-[10px] text-[#8B8FA3] mb-3" style={{ maxWidth: 540, margin: "0 auto 12px" }}>
+            Sieg = Siegel + Ausrüstungs-Drop + MMR · Niederlage = MMR-Verlust (nur im Ranked-Modus) · Gegner kann nach Angriff 6 h nicht nochmal attackiert werden
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {data.opponents.map((op) => (
@@ -827,7 +830,7 @@ function ArenaStatTile({ label, value, sub, icon, color }: { label: string; valu
 }
 
 function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; myType: GuardianType | null; onAttack: () => void; busy: boolean; disabled: boolean }) {
-  const factionColor = op.faction === "syndicate" ? "#22D1C3" : op.faction === "vanguard" ? "#FF6B4A" : "#8B8FA3";
+  const factionColor = (op.faction === "syndicate" || op.faction === "gossenbund") ? "#22D1C3" : (op.faction === "vanguard" || op.faction === "kronenwacht") ? "#FFD700" : "#8B8FA3";
   const rarityMeta = op.rarity === "legendary"
     ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
     : op.rarity === "epic"

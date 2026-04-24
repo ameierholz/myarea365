@@ -65,7 +65,7 @@ export function ReferralWidget({ userId, referralCode, displayName }: {
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
         <Stat label="Eingeladen" value={stats.invited} />
         <Stat label="Beigetreten" value={stats.confirmed} />
-        <Stat label="XP erhalten" value={stats.xp} color="#FFD700" />
+        <Stat label="🪙 erhalten" value={stats.xp} color="#FFD700" />
       </div>
     </div>
   );

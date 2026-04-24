@@ -112,8 +112,8 @@ export function BroadcastsClient() {
           <Field label="Fraktion">
             <select value={faction} onChange={(e) => setFaction(e.target.value as typeof faction)} className="w-full bg-[#0F1115] border border-white/10 rounded px-2 py-1.5 text-xs">
               <option value="">Alle</option>
-              <option value="syndicate">🌙 Nachtpuls</option>
-              <option value="vanguard">☀️ Sonnenwacht</option>
+              <option value="gossenbund">🗝️ Gossenbund</option>
+              <option value="kronenwacht">👑 Kronenwacht</option>
             </select>
           </Field>
           <Field label="Land">

@@ -46,7 +46,7 @@ export default async function CrewInvitePage({ params }: { params: Promise<{ cod
   if (!crew) notFound();
 
   const accent = crew.color || "#22D1C3";
-  const factionLabel = crew.faction === "syndicate" ? "🌙 Nachtpuls" : crew.faction === "vanguard" ? "☀️ Sonnenwacht" : null;
+  const factionLabel = (crew.faction === "syndicate" || crew.faction === "gossenbund") ? "🗝️ Gossenbund" : (crew.faction === "vanguard" || crew.faction === "kronenwacht") ? "👑 Kronenwacht" : null;
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12">

@@ -10,7 +10,7 @@ import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { BoostShopModal as PowerShopModal } from "@/components/boost-shop";
+import { BoostShopModal as PowerShopModal, BoostShopBody } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
 import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
@@ -21,6 +21,9 @@ import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
 import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
+import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
+import { normalizeFaction } from "@/lib/factions";
+import { AdSenseSlot } from "@/components/adsense-slot";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
@@ -193,6 +196,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
+  const [preWalkModal, setPreWalkModal] = useState<null | "asking" | "playing">(null);
+  const [preWalkAdProgress, setPreWalkAdProgress] = useState(0);
+  const [supplyDropModal, setSupplyDropModal] = useState<null | { dropId: string; phase: "asking" | "playing" }>(null);
+  const [supplyDropAdProgress, setSupplyDropAdProgress] = useState(0);
+  const [streakSaveModal, setStreakSaveModal] = useState<null | "asking" | "playing">(null);
+  const [streakSaveAdProgress, setStreakSaveAdProgress] = useState(0);
   const [victoryTrigger, setVictoryTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>("profil");
   const [rankingInitialMode, setRankingInitialMode] = useState<RankingMode | undefined>(undefined);
@@ -320,7 +329,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     explored_cells: Array<{ cell_x: number; cell_y: number }>;
     shop_trail: Array<{ business_id: string; name: string; lat: number; lng: number; icon: string; color: string; visit_count: number }>;
   } | null>(null);
-  const [fogOfWar, setFogOfWar] = useState(false);
   const [lootDrops, setLootDrops] = useState<Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>>([]);
   const [viewingBoss, setViewingBoss] = useState<string | null>(null);
   const [viewingSanctuary, setViewingSanctuary] = useState<string | null>(null);
@@ -541,6 +549,189 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
   };
 
+  // Pre-Walk: optional Video-Bonus anbieten bevor startWalk() läuft.
+  const handleStartClick = async () => {
+    if (!profile) return startWalk();
+    // MyArea+ Supporter: kein Werbe-Prompt, direkt los
+    if ((profile as unknown as { supporter_tier?: string }).supporter_tier) return startWalk();
+    try {
+      const cutoff = new Date(Date.now() - 360 * 60 * 1000).toISOString(); // 6 h cooldown
+      const { data } = await supabase.from("ad_views")
+        .select("id")
+        .eq("user_id", profile.id)
+        .eq("placement", "pre_walk")
+        .eq("completed", true)
+        .gte("created_at", cutoff)
+        .limit(1);
+      if (data && data.length > 0) {
+        // Cooldown aktiv → direkt starten, kein Modal
+        return startWalk();
+      }
+    } catch { /* fail-open: bei Fehler direkt starten */ }
+    setPreWalkModal("asking");
+  };
+
+  const playPreWalkAd = () => {
+    setPreWalkModal("playing");
+    setPreWalkAdProgress(0);
+    const tick = 100;
+    const total = 30_000;
+    const int = setInterval(() => {
+      setPreWalkAdProgress((p) => {
+        const next = p + (tick / total) * 100;
+        if (next >= 100) {
+          clearInterval(int);
+          void finishPreWalkAd();
+          return 100;
+        }
+        return next;
+      });
+    }, tick);
+  };
+
+  const finishPreWalkAd = async () => {
+    if (!profile) return;
+    try {
+      const xp = 250; // AD_REWARDS.pre_walk.xp
+      await supabase.from("ad_views").insert({
+        user_id: profile.id, placement: "pre_walk", xp_awarded: xp, completed: true,
+      });
+      const { data: u } = await supabase.from("users").select("wegemuenzen, xp").eq("id", profile.id).single();
+      const cur = (u?.wegemuenzen ?? u?.xp ?? 0) as number;
+      await supabase.from("users").update({ wegemuenzen: cur + xp, xp: cur + xp }).eq("id", profile.id);
+      setProfile({ ...profile, wegemuenzen: cur + xp, xp: cur + xp });
+      appAlert("🎁 +250 🪙 Starter-Bonus kassiert! Los geht's.");
+    } catch { /* noop */ }
+    setPreWalkModal(null);
+    startWalk();
+  };
+
+  const skipPreWalkAd = () => {
+    setPreWalkModal(null);
+    startWalk();
+  };
+
+  // Supply-Drop — gemeinsame Collect-Logik für beide Pfade (mit / ohne Ad)
+  const collectSupplyDrop = async (dropId: string, withAdBonus: boolean) => {
+    setLootDrops((prev) => prev.filter((d) => d.id !== dropId));
+    const baseXp = 25;
+    const bonusXp = withAdBonus ? 75 : 0;
+    const totalXp = baseXp + bonusXp;
+    let potionText: string | null = null;
+    try {
+      const r = await fetch("/api/loot/potion-roll", { method: "POST" });
+      if (r.ok) {
+        const j = await r.json() as { ok?: boolean; name?: string; icon?: string };
+        if (j.ok && j.name) potionText = `+ ${j.icon ?? "🧪"} ${j.name}`;
+      }
+    } catch { /* stumm */ }
+    // XP gutschreiben
+    if (profile) {
+      try {
+        const { data: u } = await supabase.from("users").select("wegemuenzen, xp").eq("id", profile.id).single();
+        const cur = (u?.wegemuenzen ?? u?.xp ?? 0) as number;
+        await supabase.from("users").update({ wegemuenzen: cur + totalXp, xp: cur + totalXp }).eq("id", profile.id);
+        setProfile({ ...profile, wegemuenzen: cur + totalXp, xp: cur + totalXp });
+        if (withAdBonus) {
+          await supabase.from("ad_views").insert({ user_id: profile.id, placement: "supply_drop", xp_awarded: bonusXp, completed: true });
+        }
+      } catch { /* noop */ }
+    }
+    appAlert(`🎁 Loot! +${totalXp} 🪙${potionText ? ` ${potionText}` : ""}${withAdBonus ? " (dank Video-Bonus!)" : ""}`);
+  };
+
+  const playSupplyDropAd = () => {
+    if (!supplyDropModal) return;
+    const dropId = supplyDropModal.dropId;
+    setSupplyDropModal({ dropId, phase: "playing" });
+    setSupplyDropAdProgress(0);
+    const tick = 100;
+    const total = 30_000;
+    const int = setInterval(() => {
+      setSupplyDropAdProgress((p) => {
+        const next = p + (tick / total) * 100;
+        if (next >= 100) {
+          clearInterval(int);
+          setSupplyDropModal(null);
+          void collectSupplyDrop(dropId, true);
+          return 100;
+        }
+        return next;
+      });
+    }, tick);
+  };
+
+  const skipSupplyDropAd = () => {
+    if (!supplyDropModal) return;
+    const dropId = supplyDropModal.dropId;
+    setSupplyDropModal(null);
+    void collectSupplyDrop(dropId, false);
+  };
+
+  // Streak-Save: Beim Laden prüfen ob Streak gefährdet ist und Popup anbieten
+  useEffect(() => {
+    if (!profile?.id) return;
+    if ((profile.streak_days ?? 0) <= 0) return;
+    (async () => {
+      try {
+        const { data: u } = await supabase.from("users")
+          .select("last_walk_at, streak_freezes_remaining")
+          .eq("id", profile.id)
+          .single<{ last_walk_at: string | null; streak_freezes_remaining: number | null }>();
+        if (!u?.last_walk_at) return;
+        const hoursSinceWalk = (Date.now() - new Date(u.last_walk_at).getTime()) / 3600000;
+        // Fenster: 18-36 h — Streak läuft demnächst aus, aber noch nicht gebrochen
+        if (hoursSinceWalk < 18 || hoursSinceWalk > 36) return;
+        // Cooldown prüfen: letzter Streak-Save max 12 h her
+        const cutoff = new Date(Date.now() - 12 * 3600000).toISOString();
+        const { data: recent } = await supabase.from("ad_views")
+          .select("id")
+          .eq("user_id", profile.id)
+          .eq("placement", "streak_save")
+          .eq("completed", true)
+          .gte("created_at", cutoff)
+          .limit(1);
+        if (recent && recent.length > 0) return;
+        setStreakSaveModal("asking");
+      } catch { /* noop */ }
+    })();
+  }, [profile?.id, profile?.streak_days, supabase]);
+
+  const playStreakSaveAd = () => {
+    setStreakSaveModal("playing");
+    setStreakSaveAdProgress(0);
+    const tick = 100;
+    const total = 30_000;
+    const int = setInterval(() => {
+      setStreakSaveAdProgress((p) => {
+        const next = p + (tick / total) * 100;
+        if (next >= 100) {
+          clearInterval(int);
+          void finishStreakSaveAd();
+          return 100;
+        }
+        return next;
+      });
+    }, tick);
+  };
+
+  const finishStreakSaveAd = async () => {
+    if (!profile) return;
+    try {
+      // last_walk_at auf now() setzen → Streak-Fenster verlängert sich
+      await supabase.from("users").update({ last_walk_at: new Date().toISOString() }).eq("id", profile.id);
+      await supabase.from("ad_views").insert({
+        user_id: profile.id, placement: "streak_save", xp_awarded: 0, completed: true,
+      });
+      appAlert(`🔥 Streak gerettet! ${profile.streak_days}-Tage-Serie läuft weiter.`);
+    } catch { /* noop */ }
+    setStreakSaveModal(null);
+  };
+
+  const skipStreakSaveAd = () => {
+    setStreakSaveModal(null);
+  };
+
   const stopWalk = async () => {
     setWalking(false);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -613,11 +804,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const streetsXp = segResp.newly_claimed_streets.length * XP_PER_STREET_CLAIMED;
       const territoryXp = territoryCountNew * XP_PER_TERRITORY;
       let baseXp = segmentsXp + streetsXp + territoryXp + kmXp + XP_PER_WALK;
+      let doubleClaimBonus = 0;
 
       // Doppel-Claim-Charge verdoppelt das Gebiet-XP (V1)
       const doubleClaimCharges = (profile as unknown as { double_claim_charges?: number }).double_claim_charges ?? 0;
       if (doubleClaimCharges > 0 && territoryXp > 0) {
         baseXp += territoryXp;
+        doubleClaimBonus = territoryXp;
         await supabase.from("users").update({ double_claim_charges: doubleClaimCharges - 1 }).eq("id", profile.id);
       }
 
@@ -634,6 +827,31 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       let totalXpGained = bonuses.finalXp + bonuses.achievementXp;
       if (myCrew && (myCrew as { crew_faction?: string }).crew_faction === "pfadfinder") {
         totalXpGained = Math.round(totalXpGained * 1.10);
+      }
+
+      // Fraktions-Buff: Gossenbund bekommt +25 % auf neue Claims + 50 pro Feind-Übermalung.
+      // Kronenwacht-Buff wirkt passiv über claim_intensity_v2 / prune_expired_claims (keine XP hier).
+      let factionClaimBonus = 0;
+      try {
+        const baseClaimXp = segmentsXp + streetsXp + territoryXp;
+        if (baseClaimXp > 0) {
+          const repaintedStreetNames = segResp.newly_claimed_streets.map((s) => s.street_name);
+          const { data: enemyCount } = await supabase.rpc("count_enemy_repaints", {
+            p_user_id: profile.id,
+            p_street_names: repaintedStreetNames,
+          });
+          const { data: bonus } = await supabase.rpc("faction_claim_bonus", {
+            p_user_id: profile.id,
+            p_base_claim_xp: baseClaimXp,
+            p_enemy_repaints: Number(enemyCount ?? 0),
+          });
+          factionClaimBonus = Number(bonus ?? 0);
+          if (factionClaimBonus > 0) {
+            totalXpGained += factionClaimBonus;
+          }
+        }
+      } catch (e) {
+        console.warn("[walk-save] faction_claim_bonus failed", e);
       }
 
       // 4) Walk-Row aktualisieren mit echten Werten
@@ -740,6 +958,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           },
           newAchievements: bonuses.newAchievements,
           achievementXp: bonuses.achievementXp,
+          breakdown: {
+            walkBase: XP_PER_WALK,
+            kmXp,
+            segmentsXp,
+            streetsXp,
+            territoryXp,
+            doubleClaimBonus,
+            factionClaimBonus,
+          },
         });
       }
     }
@@ -1000,8 +1227,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               shopTrail={mapFeatures?.shop_trail ?? []}
               shadowRoute={shadowRoute}
               shopReviews={mapFeatures?.shop_reviews ?? []}
-              exploredCells={mapFeatures?.explored_cells ?? []}
-              fogOfWarEnabled={fogOfWar}
               lootDrops={lootDrops}
               arenaCountdowns={arenaCountdowns}
               onBossClick={setViewingBoss}
@@ -1023,19 +1248,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     return;
                   }
                 }
-                setLootDrops((prev) => prev.filter((d) => d.id !== id));
-                // Trank-Roll: 30% common, 10% rare, 3% epic
-                try {
-                  const r = await fetch("/api/loot/potion-roll", { method: "POST" });
-                  if (r.ok) {
-                    const j = await r.json() as { ok?: boolean; potion?: null; name?: string; icon?: string; rarity?: string };
-                    if (j.ok && j.name) {
-                      appAlert(`🎁 Loot + ${j.icon ?? "🧪"} ${j.name}! +25 🪙`);
-                      return;
-                    }
-                  }
-                } catch { /* stumm */ }
-                appAlert("🎁 Loot aufgesammelt! +25 🪙 · Drop-Raten transparent unter /loot-drops");
+                // Ad-Gate-Modal öffnen — User entscheidet: direkt oder Video für Extra-Loot
+                setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
             />
             <LivePaceHud
@@ -1127,20 +1341,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
-                  <MapIconButton
-                    icon="🌫️"
-                    label="Fog-of-War"
-                    onClick={() => setFogOfWar((v) => !v)}
-                    active={fogOfWar}
-                    accent="#22D1C3"
-                  />
-                  <MapIconButton
-                    icon="👻"
-                    label="Shadow-Challenge"
-                    onClick={() => setShadowEnabled((v) => !v)}
-                    active={shadowEnabled}
-                    accent="#a855f7"
-                  />
                   {!walking && process.env.NODE_ENV !== "production" && (
                     <button
                       onClick={clearMap}
@@ -1230,7 +1430,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 </div>
               )}
               <button
-                onClick={walking ? stopWalk : startWalk}
+                onClick={walking ? stopWalk : handleStartClick}
                 className={walking ? "ma365-walk-btn walking" : "ma365-walk-btn"}
                 style={{
                   ["--btn-color" as string]: walking ? ACCENT : teamColor,
@@ -1589,6 +1789,138 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           }}
         />
       )}
+
+      {preWalkModal && (
+        <div
+          onClick={preWalkModal === "asking" ? skipPreWalkAd : undefined}
+          style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 400, background: "#1A1D23", borderRadius: 20, padding: 24, border: "1px solid rgba(255,215,0,0.35)", color: "#F0F0F0" }}>
+            {preWalkModal === "asking" ? (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 6 }}>🎁</div>
+                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Starter-Bonus gefällig?</div>
+                <div style={{ color: "#a8b4cf", fontSize: 13, lineHeight: 1.55, marginBottom: 18 }}>
+                  Optional vor dem Start: ein kurzes Video (~30 Sek) bringt dir <b style={{ color: "#FFD700" }}>+250 🪙</b> on top.<br/>
+                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>Kein Interesse? Einfach <b>Abbrechen</b> — dein Lauf startet sofort ohne Video.</span>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={skipPreWalkAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+                    Abbrechen &amp; loslaufen
+                  </button>
+                  <button onClick={playPreWalkAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg,#FFD700,#FF6B4A)", border: "none", color: "#0F1115", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
+                    📺 Bonus holen
+                  </button>
+                </div>
+                <div style={{ color: "#6c7590", fontSize: 10, marginTop: 10 }}>
+                  Dieses Popup kommt max. alle 6 h — MyArea+ Supporter sehen es nie.
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 6 }}>📺</div>
+                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Werbung läuft…</div>
+                <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
+                  Danach gibt&apos;s <b style={{ color: "#FFD700" }}>+250 🪙 Starter-Bonus</b> und der Lauf startet automatisch.
+                </div>
+                <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
+                  <div style={{ width: `${preWalkAdProgress}%`, height: "100%", background: "linear-gradient(90deg,#22D1C3,#FFD700)", transition: "width 0.1s linear" }} />
+                </div>
+                <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 800, marginBottom: 14 }}>
+                  {Math.ceil((100 - preWalkAdProgress) * 0.3)} Sekunden verbleibend
+                </div>
+                <button onClick={skipPreWalkAd} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", color: "#a8b4cf", padding: "6px 14px", borderRadius: 8, fontSize: 11, cursor: "pointer" }}>
+                  Abbrechen (kein Bonus)
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {supplyDropModal && (
+        <div
+          onClick={supplyDropModal.phase === "asking" ? skipSupplyDropAd : undefined}
+          style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 400, background: "#1A1D23", borderRadius: 20, padding: 24, border: "1px solid rgba(168,85,247,0.4)", color: "#F0F0F0" }}>
+            {supplyDropModal.phase === "asking" ? (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 6 }}>🎁</div>
+                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Beute-Kiste!</div>
+                <div style={{ color: "#a8b4cf", fontSize: 13, lineHeight: 1.55, marginBottom: 18 }}>
+                  Direkt einsacken — oder optional ein 30-Sek-Video für den 4× Bonus.<br/>
+                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>Potion-Chance ist in beiden Fällen gleich.</span>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={skipSupplyDropAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+                    Einsacken <span style={{ color: "#FFD700" }}>+25 🪙</span>
+                  </button>
+                  <button onClick={playSupplyDropAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg,#a855f7,#FFD700)", border: "none", color: "#0F1115", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
+                    📺 Bonus <span>+100 🪙</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 6 }}>📺</div>
+                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Werbung läuft…</div>
+                <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
+                  Danach: <b style={{ color: "#FFD700" }}>+100 🪙 + Potion-Roll</b>
+                </div>
+                <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
+                  <div style={{ width: `${supplyDropAdProgress}%`, height: "100%", background: "linear-gradient(90deg,#a855f7,#FFD700)", transition: "width 0.1s linear" }} />
+                </div>
+                <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800 }}>
+                  {Math.ceil((100 - supplyDropAdProgress) * 0.3)} Sekunden verbleibend
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {streakSaveModal && profile && (
+        <div
+          onClick={streakSaveModal === "asking" ? skipStreakSaveAd : undefined}
+          style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 400, background: "#1A1D23", borderRadius: 20, padding: 24, border: "1px solid rgba(255,107,74,0.45)", color: "#F0F0F0" }}>
+            {streakSaveModal === "asking" ? (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 6 }}>🔥</div>
+                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Deine Streak läuft aus!</div>
+                <div style={{ color: "#a8b4cf", fontSize: 13, lineHeight: 1.5, marginBottom: 18 }}>
+                  <b style={{ color: "#FF6B4A" }}>{profile.streak_days}-Tage-Serie</b> ist gefährdet. Schau ein kurzes Video (~30 Sek) und sie läuft weiter — statt bei 0 neu anzufangen.<br/>
+                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>Alle 12 h einmal möglich.</span>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={skipStreakSaveAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#a8b4cf", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+                    Nein danke
+                  </button>
+                  <button onClick={playStreakSaveAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg,#FF6B4A,#FF2D78)", border: "none", color: "#FFF", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
+                    📺 Streak retten
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 48, marginBottom: 6 }}>📺</div>
+                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Werbung läuft…</div>
+                <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
+                  Danach bleibt deine <b style={{ color: "#FF6B4A" }}>{profile.streak_days}-Tage-Streak</b> erhalten.
+                </div>
+                <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
+                  <div style={{ width: `${streakSaveAdProgress}%`, height: "100%", background: "linear-gradient(90deg,#FF6B4A,#FF2D78)", transition: "width 0.1s linear" }} />
+                </div>
+                <div style={{ color: "#FF6B4A", fontSize: 11, fontWeight: 800 }}>
+                  {Math.ceil((100 - streakSaveAdProgress) * 0.3)} Sekunden verbleibend
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {rootRunnerProfileUserId && (
         <RunnerStatsModal
           userId={rootRunnerProfileUserId}
@@ -1727,6 +2059,7 @@ function ProfilTab({
   const [showShopHub, setShowShopHub] = useState(false);
   const [showShopDeals, setShowShopDeals] = useState(false);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
+  const [guideShopExpanded, setGuideShopExpanded] = useState(false);
 
   // Aktiver Wächter für den Profil-Teaser-Block
   type ActiveGuardian = {
@@ -2063,6 +2396,35 @@ function ProfilTab({
         </div>
       </div>
 
+      {/* ═══ 3-WÄHRUNGEN-TRIO — immer sichtbar, Tap öffnet Guide ═══ */}
+      <div style={{ padding: "0 20px", marginTop: 12 }}>
+        <div
+          onClick={() => setOpenModal("xpguide")}
+          role="button"
+          title="Tippen für die Erklärung aller Währungen"
+          style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
+            padding: 10, borderRadius: 12, cursor: "pointer",
+            background: "rgba(30, 38, 60, 0.45)",
+            border: `1px solid ${BORDER}`,
+          }}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: "#8B8FA3", fontWeight: 800, letterSpacing: 0.3 }}>🪙 WEGEMÜNZEN</div>
+            <div style={{ fontSize: 15, color: "#FFD700", fontWeight: 900, marginTop: 2 }}>{(p?.wegemuenzen ?? p?.xp ?? 0).toLocaleString("de-DE")}</div>
+          </div>
+          <div style={{ textAlign: "center", borderLeft: `1px solid ${BORDER}`, borderRight: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 11, color: "#8B8FA3", fontWeight: 800, letterSpacing: 0.3 }}>🏴 GEBIETSRUF</div>
+            <div style={{ fontSize: 15, color: "#FF2D78", fontWeight: 900, marginTop: 2 }}>{(p?.gebietsruf ?? 0).toLocaleString("de-DE")}</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: "#8B8FA3", fontWeight: 800, letterSpacing: 0.3 }}>⚔️ SESSIONEHRE</div>
+            <div style={{ fontSize: 15, color: "#22D1C3", fontWeight: 900, marginTop: 2 }}>{(p?.sessionehre ?? 0).toLocaleString("de-DE")}</div>
+          </div>
+        </div>
+        <div style={{ textAlign: "center", fontSize: 10, color: "#8B8FA3", marginTop: 4 }}>Tippen für Guide: wo kommt was her, wofür?</div>
+      </div>
+
       {/* ═══ WAS DU HIER TUN KANNST — Aktivitäten-Overview mit Info-Modals ═══ */}
       <RunnerActivityCards />
 
@@ -2195,7 +2557,7 @@ function ProfilTab({
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {effectiveRecentRuns.slice(0, 5).map((run) => (
+            {effectiveRecentRuns.slice(0, 3).map((run) => (
               <RunCard key={run.id} run={run} teamColor={teamColor} />
             ))}
           </div>
@@ -2252,7 +2614,7 @@ function ProfilTab({
                         padding: "2px 8px", borderRadius: 10,
                         background: `${myCrew.color}20`, border: `1px solid ${myCrew.color}40`,
                         color: myCrew.color, fontSize: 9, fontWeight: 900,
-                      }}>{p?.faction === "vanguard" ? "VANGUARD" : "SYNDICATE"}</span>
+                      }}>{normalizeFaction(p?.faction) === "kronenwacht" ? "👑 KRONENWACHT" : "🗝️ GOSSENBUND"}</span>
                     </div>
                     <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
                       PLZ {myCrew.zip} · {myCrew.member_count} Mitglieder
@@ -2778,15 +3140,42 @@ function ProfilTab({
 
       {openModal === "xpguide" && (
         <Modal
-          title="Wofür gibt es 🪙 Wegemünzen?"
-          subtitle="Alle Quellen für Runner-Progression"
+          title="Die 3 Währungen — Guide"
+          subtitle="🪙 Wegemünzen · 🏴 Gebietsruf · ⚔️ Sessionehre"
           icon="🪙"
           accent="#FFD700"
           onClose={() => setOpenModal(null)}
         >
           <div style={{ color: TEXT_SOFT, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-            Wegemünzen (🪙) sind deine Runner-Währung: je mehr du dich bewegst, desto mehr sammelst du. Für Crews gibt es 🏴 Gebietsruf, für Arena ⚔️ Sessionehre — getrennte Ströme, damit nichts untereinander verrechnet wird. Tippe auf eine Kategorie für Details.
+            MyArea365 hat <b style={{ color: "#FFF" }}>drei getrennte Währungen</b> — so kannst du nicht Gebiete gegen Arena-Rewards tauschen, jeder Bereich hat seinen eigenen Fortschritt.
           </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginBottom: 18 }}>
+            <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)" }}>
+              <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>🪙 Wegemünzen</div>
+              <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5 }}>
+                <b style={{ color: "#FFF" }}>Wofür?</b> Rabatte bei lokalen Shops einlösen (QR-Scan), Ränge aufsteigen, Map-Icons und Runner-Lights freischalten, Boosts & Skins im Shop.<br/>
+                <b style={{ color: "#FFF" }}>Woher?</b> Jeder Lauf — Straßen (+50), Straßenzüge (+250), Gebiete mit Crew (+500), km, Streak-Boni, Achievements, Werbe-Videos.
+              </div>
+            </div>
+            <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,45,120,0.08)", border: "1px solid rgba(255,45,120,0.3)" }}>
+              <div style={{ color: "#FF2D78", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>🏴 Gebietsruf</div>
+              <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5 }}>
+                <b style={{ color: "#FFF" }}>Wofür?</b> Crew-Liga hochstufen (mehr 🪙 Wegemünzen pro Gebiet für alle Mitglieder), Crew-Buffs aktivieren (Bonus-km, Streak-Schutz), Crew-Wars gegen Nachbar-Crews starten.<br/>
+                <b style={{ color: "#FFF" }}>Woher?</b> Nur als Crew-Mitglied — pro Gebiet das deine Crew erobert, für Crew-Siege in der Wochen-Liga, und für Gebiete die ihr länger als 7 Tage haltet.
+              </div>
+            </div>
+            <div style={{ padding: 12, borderRadius: 10, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)" }}>
+              <div style={{ color: "#22D1C3", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>⚔️ Sessionehre</div>
+              <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5 }}>
+                <b style={{ color: "#FFF" }}>Wofür?</b> Dein Arena-Rang (Holz → Legende), Top-100-Saison-Belohnungen (Legendäre Siegel, exklusive Wächter-Skins, Edelsteine).<br/>
+                <b style={{ color: "#FFF" }}>Woher?</b> Wächter-Kämpfe — Sieg bringt Ehre, Niederlage kostet Ehre, 3+ Siege in Folge geben Streak-Bonus.<br/>
+                <b style={{ color: "#FFF" }}>Achtung:</b> Reset alle 4 Wochen auf Saison-Start. Nur wer in der Saison kämpft, kommt ins Ranking.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ color: TEXT_SOFT, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>🪙 Wegemünzen im Detail</div>
 
           <XpGuideSection title="🏃 Pro Aktivität" subtitle="Basis-Wegemünzen beim Laufen" defaultOpen>
             <XpGuideRow icon="🛤️" label="Neuer Straßenabschnitt" xp={`+${XP_PER_SEGMENT}`} />
@@ -2804,19 +3193,84 @@ function ProfilTab({
           </XpGuideSection>
 
           <XpGuideSection title="⚡ Wegemünzen-Multiplikatoren" subtitle="Stapeln sich mit den Basis-Werten">
+            <div style={{ padding: "4px 2px 10px" }}>
+              <button
+                onClick={() => setGuideShopExpanded((v) => !v)}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px", borderRadius: 10, cursor: "pointer",
+                  background: guideShopExpanded ? "rgba(34,209,195,0.2)" : "linear-gradient(135deg,#22D1C3,#5ddaf0)",
+                  color: guideShopExpanded ? "#22D1C3" : "#0F1115",
+                  border: guideShopExpanded ? "1px solid rgba(34,209,195,0.4)" : "none",
+                  fontSize: 12, fontWeight: 900, letterSpacing: 0.3,
+                  display: "flex", justifyContent: "center", alignItems: "center", gap: 6,
+                }}
+              >
+                <span>🛒 Bezahlte Boosts {guideShopExpanded ? "ausblenden" : "hier kaufen"}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.7 }}>{guideShopExpanded ? "▴" : "ab € 0,99 ▾"}</span>
+              </button>
+              {guideShopExpanded && p && (
+                <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <BoostShopBody userId={p.id} onDone={() => setGuideShopExpanded(false)} />
+                </div>
+              )}
+            </div>
             <XpGuideRow icon="⚡" label="24h Doppel-Boost (Shop € 0,99)" xp="2× auf alles" />
             <XpGuideRow icon="⚡" label="48h Doppel-Boost (Shop € 1,99)" xp="2× auf alles" />
             <XpGuideRow icon="⚡" label="1 Woche Doppel-Boost (Shop)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="1 Woche Triple-Boost (Shop)" xp="3× auf alles" />
-            <XpGuideRow icon="📺" label="24h Doppel-Boost via Werbung" xp="2× für 24h" />
-            <XpGuideRow icon="📺" label="15 min Doppel-Boost via Werbung" xp="2× für 15 min" last />
+            <XpGuideRow icon="⚡" label="1 Woche Triple-Boost (Shop)" xp="3× auf alles" last />
+            <div style={{ padding: "12px 0 2px", color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>
+              GRATIS VIA WERBUNG — direkt hier starten:
+            </div>
+            <div style={{ padding: "0 2px 8px", color: "#8B8FA3", fontSize: 10, lineHeight: 1.45 }}>
+              Beides ist ein <b style={{ color: "#FFF" }}>30-Sekunden-Video</b>. Unterschied = Belohnung:
+              <b style={{ color: "#FFD700" }}> 24 h</b> wirkt den ganzen Tag (nur 1× täglich), <b style={{ color: "#c084fc" }}>15 min</b> ist für einen geplanten Lauf (bis zu 4× pro Tag). Clever: morgens <b style={{ color: "#FFD700" }}>24 h</b> holen und bei Bedarf später zusätzlich <b style={{ color: "#c084fc" }}>15 min</b> stapeln.
+            </div>
+            {p && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "2px 2px 4px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>📺</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>24 h Doppel-Boost</div>
+                    <div style={{ color: "#8B8FA3", fontSize: 10 }}>Für den ganzen Tag · nur 1× pro 24 h</div>
+                  </div>
+                  <RewardedAdButton placement="boost_24h" userId={p.id} variant="chip" />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>📺</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>15 min Doppel-Boost</div>
+                    <div style={{ color: "#8B8FA3", fontSize: 10 }}>Für einen gezielten Lauf · alle 6 h erneut</div>
+                  </div>
+                  <RewardedAdButton placement="double_xp" userId={p.id} variant="chip" />
+                </div>
+              </div>
+            )}
           </XpGuideSection>
 
           <XpGuideSection title="📺 Werbe-Belohnungen" subtitle="Videos schauen für Bonus-Wegemünzen">
-            <XpGuideRow icon="🏁" label="Lauf-Bonus nach jedem Lauf (alle 12h)" xp="+100" />
-            <XpGuideRow icon="🎯" label="Pre-Walk-Bonus vor dem Start" xp={`+${XP_REWARDED_AD}`} />
-            <XpGuideRow icon="🎁" label="Supply-Drop freischalten" xp={`+${XP_REWARDED_AD}`} />
-            <XpGuideRow icon="❄️" label="Streak retten (verpasster Tag)" xp="Streak bleibt" last />
+            {p && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 2px 10px" }}>
+                <span style={{ fontSize: 14 }}>🏁</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>Lauf-Bonus</div>
+                  <div style={{ color: "#8B8FA3", fontSize: 10 }}>+100 🪙 · 1× alle 12 h</div>
+                </div>
+                <RewardedAdButton placement="post_walk" userId={p.id} variant="chip" />
+              </div>
+            )}
+            <XpGuideRow icon="🎯" label="Pre-Walk-Bonus · beim Walk-Start" xp="+250" />
+            <div style={{ padding: "0 8px 6px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45 }}>
+              Wenn du „Losgehen" tippst, erscheint ein Popup: „Video für +250 🪙 Starter-Bonus?" — optional. Alle 6 h wieder verfügbar.
+            </div>
+            <XpGuideRow icon="🎁" label="Supply-Drop · auf der Karte" xp="+25 / +100" />
+            <div style={{ padding: "0 8px 6px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45 }}>
+              Beute-Kisten (📦🎁💎👑) erscheinen zufällig auf der Karte. Lauf ≤25 m ran, dann wählst du: direkt einsacken (+25 🪙) oder 30-Sek-Video (+100 🪙). Potion-Chance bleibt in beiden Fällen.
+            </div>
+            <XpGuideRow icon="❄️" label="Streak retten · wenn Serie gefährdet" xp="Streak bleibt" last />
+            <div style={{ padding: "0 8px 4px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45 }}>
+              Zwischen 18–36 h nach dem letzten Lauf erscheint ein Rescue-Popup. Ein Video rettet die Streak, statt bei 0 neu anzufangen. Alle 12 h einmal möglich.
+            </div>
           </XpGuideSection>
 
           <XpGuideSection title="🏪 Community & Social">
@@ -2999,8 +3453,8 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
         aria-label="Fraktion & Crews"
       >
         <span style={{ fontSize: 14 }}>⚔️</span>
-        <span style={{ color: leader === "nachtpuls" ? "#22D1C3" : "#FF6B4A", fontSize: 12, fontWeight: 900 }}>
-          {leader === "nachtpuls" ? "🌙" : "☀️"} führt · {f.city}
+        <span style={{ color: leader === "nachtpuls" ? "#22D1C3" : "#FFD700", fontSize: 12, fontWeight: 900 }}>
+          {leader === "nachtpuls" ? "🗝️" : "👑"} führt · {f.city}
         </span>
         <span style={{ color: "#a8b4cf", fontSize: 12, fontWeight: 900, marginLeft: 2 }}>›</span>
       </button>
@@ -3024,13 +3478,13 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, fontSize: 11 }}>
-        <span style={{ color: "#22D1C3", fontWeight: 800 }}>🌙 {f.nachtpuls.km_week.toFixed(0)} km</span>
+        <span style={{ color: "#22D1C3", fontWeight: 800 }}>🗝️ {f.nachtpuls.km_week.toFixed(0)} km</span>
         <span style={{ flex: 1 }} />
-        <span style={{ color: "#FF6B4A", fontWeight: 800 }}>{f.sonnenwacht.km_week.toFixed(0)} km ☀️</span>
+        <span style={{ color: "#FFD700", fontWeight: 800 }}>{f.sonnenwacht.km_week.toFixed(0)} km 👑</span>
       </div>
       <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
         <div style={{ width: `${pctN}%`, background: "linear-gradient(90deg, #22D1C3, #22D1C3aa)" }} />
-        <div style={{ flex: 1, background: "linear-gradient(90deg, #FF6B4A88, #FF6B4A)" }} />
+        <div style={{ flex: 1, background: "linear-gradient(90deg, #FFD70088, #FFD700)" }} />
       </div>
       <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 4, display: "flex", justifyContent: "space-between" }}>
         <span>{f.nachtpuls.runners} Runner</span>
@@ -3303,7 +3757,7 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
             {isEnemy ? "FEINDLICHE FRAKTION" : "VERBÜNDETE FRAKTION"}
           </div>
           <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 1 }}>
-            {runner.faction === "vanguard" ? "Vanguard" : "Syndicate"}
+            {normalizeFaction(runner.faction) === "kronenwacht" ? "👑 Kronenwacht" : "🗝️ Gossenbund"}
             {runner.crew_name && (
               <> · Crew: <span style={{ color: runner.crew_color || "#FFF", fontWeight: 700 }}>{runner.crew_name}</span></>
             )}
@@ -10866,9 +11320,9 @@ function FactionTile({ which, stats, leads, total }: {
   leads: boolean;
   total: number;
 }) {
-  const color = which === "n" ? "#22D1C3" : "#FF6B4A";
-  const icon = which === "n" ? "🌙" : "☀️";
-  const name = which === "n" ? "Nachtpuls" : "Sonnenwacht";
+  const color = which === "n" ? "#22D1C3" : "#FFD700";
+  const icon = which === "n" ? "🗝️" : "👑";
+  const name = which === "n" ? "Gossenbund" : "Kronenwacht";
   const pct = total > 0 ? (stats.km_week / total) * 100 : 50;
   return (
     <div style={{
@@ -10901,8 +11355,8 @@ function FactionTile({ which, stats, leads, total }: {
 
 function FactionLeaderRow({ label, icon, nKm, sKm }: { label: string; icon: React.ReactNode; nKm: number; sKm: number }) {
   const leader = nKm >= sKm ? "n" : "s";
-  const color = leader === "n" ? "#22D1C3" : "#FF6B4A";
-  const leaderName = leader === "n" ? "🌙 Nachtpuls" : "☀️ Sonnenwacht";
+  const color = leader === "n" ? "#22D1C3" : "#FFD700";
+  const leaderName = leader === "n" ? "🗝️ Gossenbund" : "👑 Kronenwacht";
   const diff = Math.abs(nKm - sKm);
   return (
     <div style={{
@@ -10934,11 +11388,11 @@ function AnimatedDuelBar({ nKm, sKm }: { nKm: number; sKm: number }) {
   return (
     <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(30, 38, 60, 0.55)", border: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12 }}>
-        <span style={{ color: "#22D1C3", fontWeight: 900 }}>🌙 {nKm.toFixed(0)} km</span>
-        <span style={{ flex: 1, textAlign: "center", color: leader === "n" ? "#22D1C3" : "#FF6B4A", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>
-          {leader === "n" ? "🌙 FÜHRT" : "☀️ FÜHRT"} · +{diff.toFixed(0)} km
+        <span style={{ color: "#22D1C3", fontWeight: 900 }}>🗝️ {nKm.toFixed(0)} km</span>
+        <span style={{ flex: 1, textAlign: "center", color: leader === "n" ? "#22D1C3" : "#FFD700", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>
+          {leader === "n" ? "🗝️ FÜHRT" : "👑 FÜHRT"} · +{diff.toFixed(0)} km
         </span>
-        <span style={{ color: "#FF6B4A", fontWeight: 900 }}>{sKm.toFixed(0)} km ☀️</span>
+        <span style={{ color: "#FFD700", fontWeight: 900 }}>{sKm.toFixed(0)} km 👑</span>
       </div>
       <div style={{ position: "relative", height: 18, borderRadius: 9, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
         <div style={{
@@ -10960,8 +11414,8 @@ function AnimatedDuelBar({ nKm, sKm }: { nKm: number; sKm: number }) {
           </div>
           <div style={{
             flex: 1,
-            background: "linear-gradient(90deg, #FF6B4Add, #FF6B4A)",
-            boxShadow: "inset 0 0 18px rgba(255,107,74,0.6)",
+            background: "linear-gradient(90deg, #FFD700dd, #FFD700)",
+            boxShadow: "inset 0 0 18px rgba(255,215,0,0.6)",
             position: "relative", overflow: "hidden",
           }}>
             <div style={{
@@ -11208,7 +11662,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
             <div style={{ fontSize: 11, color: MUTED }}>
               {myPositionRunner === 0 ? "🥇 Du führst!" :
                myPositionRunner <= 2 ? "🏅 Podium! Halte die Position." :
-               myPositionRunner <= 9 ? `Top 10 · Nur noch ${(filteredRunners[myPositionRunner - 1][sortRunner] - myRunnerRow[sortRunner]).toLocaleString("de-DE")} ${sortRunner === "weekly_km" ? "km" : "XP"} zum nächsten Rang` :
+               myPositionRunner <= 9 ? `Top 10 · Nur noch ${(filteredRunners[myPositionRunner - 1][sortRunner] - myRunnerRow[sortRunner]).toLocaleString("de-DE")} ${sortRunner === "weekly_km" ? "km" : "🪙"} zum nächsten Rang` :
                `${filteredRunners.length - myPositionRunner - 1} Runner hinter dir`}
             </div>
           </div>
@@ -11235,11 +11689,11 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: isWide && mode !== "arena" ? "260px 1fr" : "1fr",
+        gridTemplateColumns: isWide && mode !== "arena" && mode !== "mmr" && mode !== "guardians" ? "260px 1fr" : "1fr",
         gap: 20, alignItems: "start",
       }}>
         {/* ═══ SIDEBAR ═══ */}
-        {mode !== "arena" && (isWide || mobileFiltersOpen) && <aside style={{
+        {mode !== "arena" && mode !== "mmr" && mode !== "guardians" && (isWide || mobileFiltersOpen) && <aside style={{
           position: isWide ? "sticky" : "static",
           top: isWide ? 12 : undefined,
           background: isWide ? "rgba(30, 38, 60, 0.45)" : "rgba(30, 38, 60, 0.35)",
@@ -11253,30 +11707,63 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
             style={{ ...inputStyle(), marginBottom: 14 }}
           />
 
-          {mode !== "factions" && <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
+          {mode === "factions" && (
+            <details style={{ marginBottom: 14 }}>
+              <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                ▸ Wie funktioniert das Duell?
+              </summary>
+              <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, fontSize: 10, color: "#a8b4cf", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div><b style={{ color: "#FFD700" }}>👑 Kronenwacht</b> vs <b style={{ color: "#22D1C3" }}>🗝️ Gossenbund</b></div>
+                <div>Gewertet wird die <b style={{ color: "#FFF" }}>Summe der km beider Fraktionen</b> in den letzten 7 Tagen.</div>
+                <div>Jeder Lauf zählt für deine Fraktion. Fraktion wählst du bei der Registrierung, Wechsel ist kostenpflichtig.</div>
+                <div style={{ color: "#8B8FA3", marginTop: 2 }}>Unten siehst du in welcher Region welche Fraktion vorne liegt.</div>
+              </div>
+            </details>
+          )}
+
+          {(mode === "runners" || mode === "crews") && <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
             SORTIERUNG
           </div>}
-          {mode !== "factions" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-            {mode === "runners" ? (
-              <>
-                <FilterPill active={sortRunner === "weekly_xp"} onClick={() => setSortRunner("weekly_xp")}>Woche XP</FilterPill>
-                <FilterPill active={sortRunner === "weekly_km"} onClick={() => setSortRunner("weekly_km")}>Woche km</FilterPill>
-                <FilterPill active={sortRunner === "total_xp"}  onClick={() => setSortRunner("total_xp")}>Gesamt 🪙</FilterPill>
-              </>
-            ) : (
-              <>
-                <FilterPill active={sortCrew === "weekly_km"}    onClick={() => setSortCrew("weekly_km")}>Woche km</FilterPill>
-                <FilterPill active={sortCrew === "member_count"} onClick={() => setSortCrew("member_count")}>Mitglieder</FilterPill>
-              </>
-            )}
-          </div>}
+          {mode === "runners" && <>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <FilterPill active={sortRunner === "weekly_xp"} onClick={() => setSortRunner("weekly_xp")}>Woche 🪙</FilterPill>
+              <FilterPill active={sortRunner === "weekly_km"} onClick={() => setSortRunner("weekly_km")}>Woche km</FilterPill>
+              <FilterPill active={sortRunner === "total_xp"}  onClick={() => setSortRunner("total_xp")}>Gesamt 🪙</FilterPill>
+            </div>
+            <details style={{ marginBottom: 14 }}>
+              <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                ▸ Was bedeuten die Werte?
+              </summary>
+              <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, fontSize: 10, color: "#a8b4cf", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div><b style={{ color: "#FFF" }}>Woche 🪙</b> · Wegemünzen der letzten 7 Tage · Reset Mo 00:00 MEZ</div>
+                <div><b style={{ color: "#FFF" }}>Woche km</b> · Gelaufene Strecke der letzten 7 Tage</div>
+                <div><b style={{ color: "#FFF" }}>Gesamt 🪙</b> · Alle bisher gesammelten Wegemünzen (all-time)</div>
+                <div style={{ color: "#8B8FA3", marginTop: 2 }}>Wegemünzen bekommst du durch Läufe, eroberte Straßen/Gebiete, Streaks und Achievements.</div>
+              </div>
+            </details>
+          </>}
+          {mode === "crews" && <>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <FilterPill active={sortCrew === "weekly_km"}    onClick={() => setSortCrew("weekly_km")}>Woche km</FilterPill>
+              <FilterPill active={sortCrew === "member_count"} onClick={() => setSortCrew("member_count")}>Mitglieder</FilterPill>
+            </div>
+            <details style={{ marginBottom: 14 }}>
+              <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                ▸ Was bedeuten die Werte?
+              </summary>
+              <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, fontSize: 10, color: "#a8b4cf", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 4 }}>
+                <div><b style={{ color: "#FFF" }}>Woche km</b> · Summe der km aller Crew-Mitglieder der letzten 7 Tage</div>
+                <div><b style={{ color: "#FFF" }}>Mitglieder</b> · Aktuelle Crew-Größe</div>
+              </div>
+            </details>
+          </>}
 
           {mode === "crews" && (
             <>
               <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
                 LIGA
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 <FilterPill active={leagueFilter === null} onClick={() => setLeagueFilter(null)}>Alle</FilterPill>
                 {LEAGUE_TIERS.map((t) => (
                   <FilterPill key={t.id} active={leagueFilter === t.id} onClick={() => setLeagueFilter(leagueFilter === t.id ? null : t.id)}>
@@ -11284,6 +11771,27 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
                   </FilterPill>
                 ))}
               </div>
+              <details style={{ marginBottom: 14 }}>
+                <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                  ▸ Wie komme ich in eine Liga?
+                </summary>
+                <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {LEAGUE_TIERS.map((t, i) => {
+                    const next = LEAGUE_TIERS[i + 1];
+                    const range = next ? `${t.minWeeklyKm}–${next.minWeeklyKm - 1} km` : `${t.minWeeklyKm}+ km`;
+                    return (
+                      <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 6px", borderRadius: 6, background: `${t.color}11`, border: `1px solid ${t.color}33` }}>
+                        <span style={{ fontSize: 12 }}>{t.icon}</span>
+                        <span style={{ color: t.color, fontSize: 10, fontWeight: 900, flex: 1 }}>{t.name}</span>
+                        <span style={{ color: "#8B8FA3", fontSize: 9, fontFamily: "monospace" }}>{range}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{ marginTop: 4, fontSize: 9, color: "#8B8FA3", lineHeight: 1.5 }}>
+                    Liga = Summe der km aller Crew-Mitglieder in den letzten 7 Tagen. Wöchentlicher Reset Montag 00:00 MEZ.
+                  </div>
+                </div>
+              </details>
             </>
           )}
 
@@ -11340,8 +11848,8 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
 
         {/* ═══ MAIN ═══ */}
         <main>
-          {/* Breadcrumb */}
-          <div style={{
+          {/* Breadcrumb (Geo-Filter nicht relevant fuer Arena/MMR/Waechter) */}
+          {mode !== "arena" && mode !== "mmr" && mode !== "guardians" && <div style={{
             display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6,
             background: "rgba(0,0,0,0.2)", padding: "10px 12px", borderRadius: 12,
             marginBottom: 14, border: `1px solid ${BORDER}`,
@@ -11371,7 +11879,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
                 </button>
               </React.Fragment>
             ))}
-          </div>
+          </div>}
 
           {/* Podium (Top 3) */}
           {mode === "runners" && filteredRunners.length >= 3 && (
@@ -11382,13 +11890,13 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
           )}
 
           {/* Liste */}
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, margin: "10px 0 8px", letterSpacing: 0.5 }}>
+          {mode !== "arena" && mode !== "mmr" && mode !== "guardians" && <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, margin: "10px 0 8px", letterSpacing: 0.5 }}>
             {mode === "runners"
               ? `${filteredRunners.length} RUNNER · ${scopeLabel.toUpperCase()}`
               : mode === "crews"
                 ? `${filteredCrews.length} CREWS · ${scopeLabel.toUpperCase()}`
                 : `FRAKTIONS-DUELL · ${scopeLabel.toUpperCase()}`}
-          </div>
+          </div>}
 
           {mode === "runners" && (
             filteredRunners.length === 0 ? (
@@ -11396,7 +11904,10 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {filteredRunners.map((r, i) => (
-                  <RunnerRankRow key={r.id} runner={r} rank={i + 1} isMe={r.username === p?.username} sortBy={sortRunner} />
+                  <React.Fragment key={r.id}>
+                    <RunnerRankRow runner={r} rank={i + 1} isMe={r.username === p?.username} sortBy={sortRunner} />
+                    {i === 4 && <AdSenseSlot placement="ranking_list" />}
+                  </React.Fragment>
                 ))}
               </div>
             )
@@ -11483,13 +11994,13 @@ function PodiumRunners({ scope, runners, myUsername }: { scope: string; runners:
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
                   {r.display_name} {isMe && <span style={{ color: PRIMARY, fontSize: 10 }}>· Du</span>}
                 </div>
-                <div style={{ color: MUTED, fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
-                  <CountryFlag country={r.country} size={12} />
+                <div style={{ color: MUTED, fontSize: 11, display: "flex", alignItems: "center", gap: 6 }}>
+                  <CountryFlag country={r.country} size={18} />
                   <span>{r.city} · {r.crew_name || "Freelancer"}</span>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ color: PRIMARY, fontSize: 13, fontWeight: 900 }}>{r.weekly_xp.toLocaleString("de-DE")} XP</div>
+                <div style={{ color: PRIMARY, fontSize: 13, fontWeight: 900 }}>{r.weekly_xp.toLocaleString("de-DE")} 🪙</div>
                 <div style={{ color: MUTED, fontSize: 10 }}>{r.weekly_km} km</div>
               </div>
             </div>
@@ -11523,8 +12034,8 @@ function PodiumCrews({ scope, crews }: { scope: string; crews: NearbyCrew[] }) {
                 <span>{c.name}</span>
                 <LeagueBadge weeklyKm={c.weekly_km} />
               </div>
-              <div style={{ color: MUTED, fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}>
-                <CountryFlag country={c.country} size={12} />
+              <div style={{ color: MUTED, fontSize: 11, display: "flex", alignItems: "center", gap: 6 }}>
+                <CountryFlag country={c.country} size={18} />
                 <span>{c.city} · {c.zip}</span>
               </div>
             </div>
@@ -11546,9 +12057,9 @@ function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
   const primaryValue = sortBy === "weekly_km"
     ? `${r.weekly_km} km`
     : sortBy === "total_xp"
-      ? `${r.total_xp.toLocaleString("de-DE")} XP`
-      : `${r.weekly_xp.toLocaleString("de-DE")} XP`;
-  const primaryLabel = sortBy === "weekly_km" ? "Woche km" : sortBy === "total_xp" ? "Gesamt" : "Woche XP";
+      ? `${r.total_xp.toLocaleString("de-DE")} 🪙`
+      : `${r.weekly_xp.toLocaleString("de-DE")} 🪙`;
+  const primaryLabel = sortBy === "weekly_km" ? "Woche km" : sortBy === "total_xp" ? "Gesamt 🪙" : "Woche 🪙";
   const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
   return (
     <div style={{
@@ -11569,8 +12080,8 @@ function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
           <SupporterBadge tier={r.supporter_tier} size="xs" />
           {isMe && <span style={{ color: PRIMARY, fontSize: 10 }}>· Du</span>}
         </div>
-        <div style={{ color: MUTED, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          <CountryFlag country={r.country} size={12} />
+        <div style={{ color: MUTED, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <CountryFlag country={r.country} size={18} />
           <span>{r.city} · {r.rank_name}{r.crew_name ? ` · ${r.crew_name}` : ""}</span>
         </div>
       </div>
@@ -11607,8 +12118,8 @@ function CrewRankRow({ crew: c, rank, sortBy }: {
           </div>
           <LeagueBadge weeklyKm={c.weekly_km} />
         </div>
-        <div style={{ color: MUTED, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 5 }}>
-          <CountryFlag country={c.country} size={12} />
+        <div style={{ color: MUTED, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
+          <CountryFlag country={c.country} size={18} />
           <span>{c.city} · {c.zip} · {c.member_count} Mitglieder</span>
         </div>
       </div>
@@ -11773,35 +12284,43 @@ type GuardianLeaderRow = {
   id: string; user_id: string; archetype_id: string;
   level: number; xp?: number; wins: number; losses: number;
   guardian_archetypes: GuardianArchMini | GuardianArchMini[] | null;
-  users: { username: string; display_name: string | null; team_color: string | null } | { username: string; display_name: string | null; team_color: string | null }[] | null;
+  users: { username: string; display_name: string | null; team_color: string | null; country: string | null } | { username: string; display_name: string | null; team_color: string | null; country: string | null }[] | null;
 };
 type WinRateRow = {
   guardian_id: string; user_id: string; archetype_id: string;
   level: number; wins: number; losses: number;
   total: number; win_rate: number;
-  username: string; display_name: string | null; team_color: string | null;
+  username: string; display_name: string | null; team_color: string | null; country: string | null;
   arch_name: string; arch_emoji: string; arch_rarity: string;
 };
 
-type GuardianTypeFilter = "all" | "infantry" | "cavalry" | "marksman" | "mage";
+type GuardianTypeFilter = "all" | GuardianClass;
 const GUARDIAN_TYPE_CHIPS: Array<{ id: GuardianTypeFilter; label: string; color: string }> = [
-  { id: "all",      label: "🌐 Alle",         color: "#22D1C3" },
-  { id: "infantry", label: "🛡️ Infanterie",   color: "#60a5fa" },
-  { id: "cavalry",  label: "🐎 Kavallerie",   color: "#fb923c" },
-  { id: "marksman", label: "🏹 Scharfschütze", color: "#4ade80" },
-  { id: "mage",     label: "🔮 Magier",       color: "#c084fc" },
+  { id: "all",     label: "🌐 Alle",       color: "#22D1C3" },
+  { id: "tank",    label: `${GUARDIAN_CLASSES.tank.icon} Tank`,        color: GUARDIAN_CLASSES.tank.color },
+  { id: "support", label: `${GUARDIAN_CLASSES.support.icon} Support`,  color: GUARDIAN_CLASSES.support.color },
+  { id: "ranged",  label: `${GUARDIAN_CLASSES.ranged.icon} Fernkampf`, color: GUARDIAN_CLASSES.ranged.color },
+  { id: "melee",   label: `${GUARDIAN_CLASSES.melee.icon} Nahkampf`,   color: GUARDIAN_CLASSES.melee.color },
 ];
 
 function GuardianLeaderboardView() {
   const [data, setData] = useState<{ top_level: GuardianLeaderRow[]; most_played: GuardianLeaderRow[]; top_win_rate: WinRateRow[] } | null>(null);
   const [subTab, setSubTab] = useState<"level" | "played" | "winrate">("level");
   const [typeFilter, setTypeFilter] = useState<GuardianTypeFilter>("all");
+  const [subArchetypeFilter, setSubArchetypeFilter] = useState<string | null>(null);
+  const [isWide, setIsWide] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 900px)");
+    const upd = () => setIsWide(mq.matches);
+    upd();
+    mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
 
   useEffect(() => {
     fetch("/api/leaderboard/guardians").then(r => r.json()).then(setData).catch(() => {});
   }, []);
-
-  if (!data) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Wächter-Ranglisten…</div>;
 
   const unnest = <T extends object>(x: T | T[] | null): T | null => {
     if (!x) return null;
@@ -11811,8 +12330,8 @@ function GuardianLeaderboardView() {
   const rawRows: Array<{
     emoji: string; imageUrl: string | null; videoUrl: string | null;
     archName: string; archRarity: string; guardianType: string | null;
-    level: number; stat: string; username: string; teamColor: string;
-  }> = (() => {
+    level: number; stat: string; username: string; teamColor: string; country: string | null;
+  }> = !data ? [] : (() => {
     if (subTab === "level") {
       return data.top_level.map((r) => {
         const arch = unnest(r.guardian_archetypes);
@@ -11828,6 +12347,7 @@ function GuardianLeaderboardView() {
           stat: `Lvl ${r.level} · ${r.wins}W/${r.losses}L`,
           username: user?.display_name || user?.username || "?",
           teamColor: user?.team_color || "#22D1C3",
+          country: user?.country ?? null,
         };
       });
     }
@@ -11846,6 +12366,7 @@ function GuardianLeaderboardView() {
           stat: `${r.wins + r.losses} Kämpfe · ${r.wins}W/${r.losses}L`,
           username: user?.display_name || user?.username || "?",
           teamColor: user?.team_color || "#22D1C3",
+          country: user?.country ?? null,
         };
       });
     }
@@ -11860,63 +12381,83 @@ function GuardianLeaderboardView() {
       stat: `${r.win_rate}% · ${r.wins}W/${r.losses}L`,
       username: r.display_name || r.username,
       teamColor: r.team_color || "#22D1C3",
+      country: r.country ?? null,
     }));
   })();
 
-  const filtered = typeFilter === "all"
-    ? rawRows
-    : rawRows.filter((r) => r.guardianType === typeFilter);
+  const filtered = rawRows.filter((r) => {
+    if (typeFilter !== "all" && legacyTypeToClass(r.guardianType) !== typeFilter) return false;
+    if (subArchetypeFilter && !r.archName.toLowerCase().includes(subArchetypeFilter.toLowerCase())) return false;
+    return true;
+  });
   const currentRows = filtered.slice(0, 30).map((r, i) => ({ ...r, rank: i + 1 }));
 
   const rarityColor: Record<string, string> = { common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legend: "#FFD700" };
 
-  return (
+  const sidebar = (
+    <aside style={{
+      position: isWide ? "sticky" : "static",
+      top: isWide ? 12 : undefined,
+      background: isWide ? "rgba(30, 38, 60, 0.45)" : "rgba(30, 38, 60, 0.35)",
+      border: `1px solid ${BORDER}`, borderRadius: 14, padding: 14,
+      display: "flex", flexDirection: "column", gap: 14,
+    }}>
+      <div>
+        <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>ANSICHT</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <FilterPill active={subTab === "level"}   onClick={() => setSubTab("level")}>⭐ Top-Level</FilterPill>
+          <FilterPill active={subTab === "played"}  onClick={() => setSubTab("played")}>⚔️ Meist-Siege</FilterPill>
+          <FilterPill active={subTab === "winrate"} onClick={() => setSubTab("winrate")}>📈 Win-Rate</FilterPill>
+        </div>
+      </div>
+      <div>
+        <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>KLASSE</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, opacity: subTab === "winrate" ? 0.4 : 1 }}>
+          {GUARDIAN_TYPE_CHIPS.map((c) => {
+            const active = typeFilter === c.id;
+            const disabled = subTab === "winrate" && c.id !== "all";
+            return (
+              <FilterPill
+                key={c.id}
+                active={active}
+                onClick={() => {
+                  if (disabled) return;
+                  setTypeFilter(c.id);
+                  setSubArchetypeFilter(null);
+                }}
+              >{c.label}</FilterPill>
+            );
+          })}
+        </div>
+        {subTab === "winrate" && (
+          <div style={{ color: MUTED, fontSize: 10, marginTop: 4 }}>Klassen-Filter in Win-Rate nicht verfügbar</div>
+        )}
+      </div>
+      {typeFilter !== "all" && subTab !== "winrate" && (
+        <div>
+          <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
+            SUB-KLASSE · {GUARDIAN_CLASSES[typeFilter].label.toUpperCase()}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <FilterPill active={subArchetypeFilter === null} onClick={() => setSubArchetypeFilter(null)}>Alle</FilterPill>
+            {GUARDIAN_CLASSES[typeFilter].sub_archetypes.map((sub) => (
+              <FilterPill
+                key={sub}
+                active={subArchetypeFilter === sub}
+                onClick={() => setSubArchetypeFilter(subArchetypeFilter === sub ? null : sub)}
+              >{sub}</FilterPill>
+            ))}
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+
+  const main = (
     <div>
-      {/* Typ-Filter */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-        {GUARDIAN_TYPE_CHIPS.map((c) => {
-          const active = typeFilter === c.id;
-          const disabled = subTab === "winrate" && c.id !== "all";
-          return (
-            <button
-              key={c.id}
-              onClick={() => !disabled && setTypeFilter(c.id)}
-              disabled={disabled}
-              title={disabled ? "Typ-Filter nicht verfügbar für Win-Rate" : ""}
-              style={{
-                padding: "6px 12px", borderRadius: 999,
-                border: `1px solid ${active ? c.color : "rgba(255,255,255,0.1)"}`,
-                background: active ? `${c.color}22` : "rgba(255,255,255,0.04)",
-                color: active ? c.color : disabled ? "#4a5370" : "#a8b4cf",
-                fontSize: 11, fontWeight: 900,
-                cursor: disabled ? "not-allowed" : "pointer",
-                opacity: disabled ? 0.5 : 1,
-              }}
-            >{c.label}</button>
-          );
-        })}
-      </div>
-
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        {([
-          { id: "level",   label: "⭐ Top-Level" },
-          { id: "played",  label: "⚔️ Meist-Siege" },
-          { id: "winrate", label: "📈 Win-Rate" },
-        ] as const).map((t) => {
-          const active = subTab === t.id;
-          return (
-            <button key={t.id} onClick={() => setSubTab(t.id)} style={{
-              padding: "7px 12px", borderRadius: 8, border: "none",
-              background: active ? "linear-gradient(135deg,#FF2D78,#a855f7)" : "rgba(30,38,60,0.55)",
-              color: "#FFF", fontSize: 12, fontWeight: 900, cursor: "pointer", flex: 1,
-            }}>
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {currentRows.length === 0 ? (
+      {!data ? (
+        <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Wächter-Ranglisten…</div>
+      ) : currentRows.length === 0 ? (
         <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>
           {subTab === "winrate" ? "Win-Rate-Rangliste benötigt mindestens 5 Kämpfe" : "Noch keine Daten"}
         </div>
@@ -11956,8 +12497,11 @@ function GuardianLeaderboardView() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{r.archName}</div>
-                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
+                <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ color: r.teamColor, fontWeight: 700 }}>{r.username}</span>
+                  {r.country && (
+                    <CountryFlag country={r.country} size={18} />
+                  )}
                 </div>
               </div>
               <div style={{ color: rarityColor[r.archRarity] ?? "#8B8FA3", fontSize: 11, fontWeight: 900, textAlign: "right", minWidth: 80 }}>
@@ -11967,6 +12511,17 @@ function GuardianLeaderboardView() {
           ))}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: isWide ? "260px 1fr" : "1fr",
+      gap: 20, alignItems: "start",
+    }}>
+      {sidebar}
+      <div>{main}</div>
     </div>
   );
 }
@@ -12029,9 +12584,24 @@ type MmrEntry = {
   tier: MmrTier;
 };
 
+type MmrSort = "mmr" | "peak" | "winrate" | "games";
+type MmrFactionFilter = "all" | "kronenwacht" | "gossenbund";
+
 function MmrLeaderboardView() {
   const [entries, setEntries] = useState<MmrEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<MmrSort>("mmr");
+  const [factionFilter, setFactionFilter] = useState<MmrFactionFilter>("all");
+  const [tierFilter, setTierFilter] = useState<string | null>(null);
+  const [isWide, setIsWide] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 900px)");
+    const upd = () => setIsWide(mq.matches);
+    upd();
+    mq.addEventListener("change", upd);
+    return () => mq.removeEventListener("change", upd);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -12046,44 +12616,99 @@ function MmrLeaderboardView() {
     })();
   }, []);
 
-  return (
-    <div>
-      {/* Tier-Ladder */}
-      <details style={{ marginBottom: 12 }}>
-        <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 11, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "8px 12px", background: "rgba(30,38,60,0.55)", borderRadius: 10, border: `1px solid ${BORDER}` }}>
-          ▸ Rang-System (Elo-basiert)
-        </summary>
-        <div style={{ marginTop: 8, padding: 12, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 4 }}>
-          {MMR_TIERS.map((t) => {
-            const next = MMR_TIERS.find((x) => x.minMmr > t.minMmr);
-            const range = next ? `${t.minMmr}–${next.minMmr - 1}` : `${t.minMmr}+`;
-            return (
-              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderRadius: 8, background: `${t.color}11`, border: `1px solid ${t.color}33` }}>
-                <span style={{ fontSize: 16 }}>{t.icon}</span>
-                <span style={{ color: t.color, fontSize: 12, fontWeight: 900, flex: 1 }}>{t.label}</span>
-                <span style={{ color: "#8B8FA3", fontSize: 11, fontFamily: "monospace" }}>{range} MMR</span>
-              </div>
-            );
-          })}
-          <div style={{ marginTop: 6, fontSize: 10, color: "#8B8FA3", lineHeight: 1.5 }}>
-            K-Faktor: 32 in den ersten 30 Kämpfen (Kalibrierung), 16 ab Meister (≥2000 MMR), sonst 24.
-            Nur Spieler mit mindestens einem Kampf erscheinen im Leaderboard.
-          </div>
-        </div>
-      </details>
+  const visible = useMemo(() => {
+    if (!entries) return null;
+    const filtered = entries.filter((e) => {
+      if (factionFilter !== "all" && normalizeFaction(e.faction) !== factionFilter) return false;
+      if (tierFilter && e.tier.id !== tierFilter) return false;
+      return true;
+    });
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === "peak") return b.peak_mmr - a.peak_mmr;
+      if (sortBy === "winrate") return b.win_rate - a.win_rate;
+      if (sortBy === "games") return (b.wins + b.losses) - (a.wins + a.losses);
+      return b.mmr - a.mmr;
+    });
+    return sorted.map((e, i) => ({ ...e, rank: i + 1 }));
+  }, [entries, sortBy, factionFilter, tierFilter]);
 
+  const filterSidebar = (
+    <aside style={{
+      position: isWide ? "sticky" : "static",
+      top: isWide ? 12 : undefined,
+      background: isWide ? "rgba(30, 38, 60, 0.45)" : "rgba(30, 38, 60, 0.35)",
+      border: `1px solid ${BORDER}`, borderRadius: 14, padding: 14,
+      display: "flex", flexDirection: "column", gap: 14,
+    }}>
+      <div>
+        <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>SORTIERUNG</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <FilterPill active={sortBy === "mmr"} onClick={() => setSortBy("mmr")}>MMR</FilterPill>
+          <FilterPill active={sortBy === "peak"} onClick={() => setSortBy("peak")}>Peak</FilterPill>
+          <FilterPill active={sortBy === "winrate"} onClick={() => setSortBy("winrate")}>Winrate</FilterPill>
+          <FilterPill active={sortBy === "games"} onClick={() => setSortBy("games")}>Kämpfe</FilterPill>
+        </div>
+      </div>
+      <div>
+        <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>FRAKTION</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <FilterPill active={factionFilter === "all"} onClick={() => setFactionFilter("all")}>Alle</FilterPill>
+          <FilterPill active={factionFilter === "kronenwacht"} onClick={() => setFactionFilter("kronenwacht")}>👑 Kronenwacht</FilterPill>
+          <FilterPill active={factionFilter === "gossenbund"} onClick={() => setFactionFilter("gossenbund")}>🗝️ Gossenbund</FilterPill>
+        </div>
+      </div>
+      <div>
+        <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>RANG</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <FilterPill active={tierFilter === null} onClick={() => setTierFilter(null)}>Alle</FilterPill>
+          {MMR_TIERS.map((t) => (
+            <FilterPill key={t.id} active={tierFilter === t.id} onClick={() => setTierFilter(tierFilter === t.id ? null : t.id)}>
+              {t.icon} {t.label}
+            </FilterPill>
+          ))}
+        </div>
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
+            ▸ Wie erreicht man welchen Rang?
+          </summary>
+          <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 3 }}>
+            {MMR_TIERS.map((t) => {
+              const next = MMR_TIERS.find((x) => x.minMmr > t.minMmr);
+              const range = next ? `${t.minMmr}–${next.minMmr - 1}` : `${t.minMmr}+`;
+              return (
+                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 6px", borderRadius: 6, background: `${t.color}11`, border: `1px solid ${t.color}33` }}>
+                  <span style={{ fontSize: 12 }}>{t.icon}</span>
+                  <span style={{ color: t.color, fontSize: 10, fontWeight: 900, flex: 1 }}>{t.label}</span>
+                  <span style={{ color: "#8B8FA3", fontSize: 9, fontFamily: "monospace" }}>{range} MMR</span>
+                </div>
+              );
+            })}
+            <div style={{ marginTop: 4, fontSize: 9, color: "#8B8FA3", lineHeight: 1.5 }}>
+              Jeder startet bei 1000 MMR (Bronze). Sieg gegen Stärkere = viele MMR, Sieg gegen Schwächere = wenige. Nur Ranked-Runner-Fights zählen.
+              K-Faktor: 32 in den ersten 30 Kämpfen (Kalibrierung), 16 ab Meister (≥2000 MMR), sonst 24.
+            </div>
+          </div>
+        </details>
+      </div>
+    </aside>
+  );
+
+  const mainContent = (
+    <div>
       {error && <div style={{ color: "#FF2D78", padding: 16, textAlign: "center" }}>{error}</div>}
       {!entries && !error && (
         <div style={{ color: "#8B8FA3", padding: 16, textAlign: "center" }}>Lade Leaderboard …</div>
       )}
-      {entries && entries.length === 0 && (
+      {visible && visible.length === 0 && (
         <div style={{ color: "#8B8FA3", padding: 24, textAlign: "center", fontSize: 13, lineHeight: 1.6 }}>
-          Noch keine gewerteten Kämpfe.<br/>Sei der Erste im Ranked-Modus!
+          {entries && entries.length > 0
+            ? <>Keine Treffer für die gewählten Filter.</>
+            : <>Noch keine gewerteten Kämpfe.<br/>Sei der Erste im Ranked-Modus!</>}
         </div>
       )}
-      {entries && entries.length > 0 && (
+      {visible && visible.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {entries.map((e) => {
+          {visible.map((e) => {
             const isTop3 = e.rank <= 3;
             const rankColor = e.rank === 1 ? "#FFD700" : e.rank === 2 ? "#C0C0C0" : e.rank === 3 ? "#CD7F32" : "#8B8FA3";
             return (
@@ -12129,6 +12754,17 @@ function MmrLeaderboardView() {
           })}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: isWide ? "260px 1fr" : "1fr",
+      gap: 20, alignItems: "start",
+    }}>
+      {filterSidebar}
+      <div>{mainContent}</div>
     </div>
   );
 }
@@ -12333,7 +12969,8 @@ function ArenaLeaderboardView() {
           </div>
         )}
         {sorted.slice(0, 100).map((r, i) => {
-          const factionColor = r.faction === "syndicate" ? "#22D1C3" : r.faction === "vanguard" ? "#FF6B4A" : "#F0F0F0";
+          const fNorm = normalizeFaction(r.faction);
+          const factionColor = fNorm === "gossenbund" ? "#22D1C3" : fNorm === "kronenwacht" ? "#FFD700" : "#F0F0F0";
           const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3";
           const typeMeta = r.guardian_type ? ARENA_TYPE_META[r.guardian_type] : null;
           const streak = r.streak ?? 0;
@@ -12470,8 +13107,8 @@ function ArenaGlobalStats({ rows }: { rows: ArenaHonorRow[] }) {
   const topStreak = rows.reduce((best, r) => Math.max(best, r.streak ?? 0), 0);
   const streakHolder = rows.find((r) => (r.streak ?? 0) === topStreak && topStreak > 0);
 
-  const vanguardWins = rows.filter((r) => r.faction === "vanguard").reduce((s, r) => s + r.wins, 0);
-  const syndicateWins = rows.filter((r) => r.faction === "syndicate").reduce((s, r) => s + r.wins, 0);
+  const vanguardWins = rows.filter((r) => normalizeFaction(r.faction) === "kronenwacht").reduce((s, r) => s + r.wins, 0);
+  const syndicateWins = rows.filter((r) => normalizeFaction(r.faction) === "gossenbund").reduce((s, r) => s + r.wins, 0);
   const facTotal = vanguardWins + syndicateWins || 1;
   const vanguardPct = Math.round((vanguardWins / facTotal) * 100);
 
@@ -12488,8 +13125,8 @@ function ArenaGlobalStats({ rows }: { rows: ArenaHonorRow[] }) {
       <StatCard icon="🔥" label="LÄNGSTE SERIE" value={topStreak > 0 ? `${topStreak} Siege` : "—"} sub={streakHolder?.display_name ?? streakHolder?.username ?? "Noch keine Serie"} color="#FF2D78" />
       <StatCard icon="🏛️" label="FRAKTIONS-DUELL"
         value={`${vanguardPct}% vs ${100 - vanguardPct}%`}
-        sub="☀️ Sonnenwacht vs 🌙 Nachtpuls"
-        color="#FF6B4A" />
+        sub="👑 Kronenwacht vs 🗝️ Gossenbund"
+        color="#FFD700" />
       <StatCard icon="🌍" label="TOP-LÄNDER"
         value={topCountries.length > 0 ? topCountries.map(([, c]) => c).join(" · ") : "—"}
         sub={topCountries.length > 0 ? topCountries.map(([c]) => c).join(", ") : "—"}

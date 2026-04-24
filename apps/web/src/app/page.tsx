@@ -299,12 +299,12 @@ export default function LandingPage() {
           <div className="text-xs font-bold tracking-widest text-primary mb-3">FRAKTIONEN</div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-3">Zwei Teams. Ein Planet.</h2>
           <p className="text-text-muted mb-10 max-w-lg mx-auto">
-            Bei Registrierung wählst du deine Fraktion — sie bleibt für immer. Eure km zählen gegen die andere Fraktion, weltweit, in jedem Land, jeder Stadt, jeder PLZ.
+            Bei Registrierung wählst du deine Fraktion. Eure km zählen gegen die andere Fraktion, weltweit, in jedem Land, jeder Stadt, jeder PLZ. Wechsel später gegen Edelsteine, nur alle 30 Tage.
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
             {[
-              { id: "nachtpuls",   icon: "🌙", color: "#22D1C3", name: "Nachtpuls",   motto: "Strategie · Rhythmus · Stille Siege" },
-              { id: "sonnenwacht", icon: "☀️", color: "#FF6B4A", name: "Sonnenwacht", motto: "Mut · Tempo · Offene Wege" },
+              { id: "kronenwacht", icon: "👑", color: "#FFD700", name: "Kronenwacht", motto: "Beständig · Gebiete halten · Wurzeln schlagen" },
+              { id: "gossenbund",  icon: "🗝️", color: "#22D1C3", name: "Gossenbund",  motto: "Raubzug · neue Straßen erobern · nie stehenbleiben" },
             ].map((f) => (
               <div key={f.id} className="p-6 rounded-2xl border-2"
                 style={{ background: `${f.color}14`, borderColor: f.color }}>

@@ -206,7 +206,7 @@ export default function RegisterPage() {
               {/* Fraktion */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Fraktion wählen <span className="text-text-muted font-normal">(später nicht mehr änderbar)</span>
+                  Fraktion wählen <span className="text-text-muted font-normal">(Wechsel später kostet Edelsteine, nur alle 30 Tage)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {FACTIONS.map((f) => {

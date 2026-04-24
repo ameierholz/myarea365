@@ -278,8 +278,9 @@ export const GUARDIAN_ITEMS = {
 
 export const AD_REWARDS = {
   post_walk:    { xp: 100, cooldown_min: 720, label: "Lauf-Bonus",            description: "+100 🪙 Wegemünzen für 30 Sek Video" },
-  boost_24h:    { xp: 0,   cooldown_min: 1440, label: "24h Doppel-XP",         description: "Kurzes Video für 24h 2× XP" },
-  double_xp:    { xp: 0,   cooldown_min: 360, label: "15 Min Doppel-XP",       description: "Direkt-Boost für nächsten Lauf" },
+  pre_walk:     { xp: 250, cooldown_min: 360, label: "Pre-Walk-Starter",     description: "+250 🪙 vor dem Lauf-Start" },
+  boost_24h:    { xp: 0,   cooldown_min: 1440, label: "24h Doppel-🪙",         description: "Kurzes Video für 24h 2× Wegemünzen" },
+  double_xp:    { xp: 0,   cooldown_min: 360, label: "15 Min Doppel-🪙",       description: "Direkt-Boost für nächsten Lauf" },
   streak_save:  { xp: 0,   cooldown_min: 720, label: "Streak retten",          description: "Verpasster Tag einmalig verzeihen" },
 };
 
@@ -299,7 +300,7 @@ export const PLUS_FEATURES: { icon: string; title: string; desc: string; status:
 
 export const CREW_PRO_FEATURES = [
   { icon: "👥", title: "Bis 200 Mitglieder", desc: "Free: max 50 pro Crew" },
-  { icon: "💰", title: "Crew-Schatz", desc: "Gemeinsamer XP-Topf für Gruppen-Rabatte" },
+  { icon: "💰", title: "Crew-Schatz", desc: "Gemeinsamer 🪙-Topf für Gruppen-Rabatte" },
   { icon: "⚔️", title: "Auto-Matchmaking", desc: "Wöchentliche Duelle gegen Rivalen" },
   { icon: "🎨", title: "Custom-Branding", desc: "Logo, Farbe, Gebiet-Style" },
   { icon: "📈", title: "Analytics-Dashboard", desc: "Aktivität pro Mitglied, Inaktivitäts-Alarm" },
