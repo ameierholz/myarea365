@@ -120,10 +120,20 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
   const winRate = wins + losses > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
 
   const tierBadge = data?.supporter_tier
-    ? data.supporter_tier === "gold"   ? { bg: "linear-gradient(135deg,#FFD700,#FF9E2C)", label: "GOLD",   text: BG_DEEP }
-    : data.supporter_tier === "silver" ? { bg: "linear-gradient(135deg,#E0E0E0,#9A9A9A)", label: "SILBER", text: BG_DEEP }
-    : { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", label: "BRONZE", text: "#FFF" }
+    ? data.supporter_tier === "gold"   ? { bg: "linear-gradient(135deg,#FFD700,#FF9E2C)", label: "★ GOLD SUPPORTER",   text: BG_DEEP }
+    : data.supporter_tier === "silver" ? { bg: "linear-gradient(135deg,#E0E0E0,#9A9A9A)", label: "★ SILBER SUPPORTER", text: BG_DEEP }
+    : { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", label: "★ BRONZE SUPPORTER", text: "#FFF" }
     : null;
+
+  // CTA „MyArea unterstützen" — nur bei eigenem Profil sinnvoll, aber wir
+  // zeigen es derzeit immer an, wenn KEIN Tier vorhanden ist (oder ein niedrigerer
+  // → gibt's noch nicht). Klick öffnet die Supporter-Pakete via Custom-Event.
+  function openSupporterPackages() {
+    if (typeof window !== "undefined") {
+      // Pricing-Page hat alle Supporter-Pakete (Bronze/Silber/Gold) mit Stripe-Checkout
+      window.location.href = "/pricing#supporter";
+    }
+  }
 
   return (
     <div onClick={onClose} style={{
@@ -363,6 +373,33 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                   </div>
                 );
               })()}
+
+              {/* ══ SUPPORTER-CTA ══ */}
+              <div style={{ padding: "0 14px", marginTop: 12 }}>
+                <button
+                  onClick={openSupporterPackages}
+                  style={{
+                    width: "100%", padding: "10px 14px", borderRadius: 12,
+                    background: tierBadge
+                      ? "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,107,74,0.08))"
+                      : "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,107,74,0.14))",
+                    border: `1px dashed ${tierBadge ? "rgba(255,215,0,0.45)" : "#FFD70080"}`,
+                    color: "#FFF", cursor: "pointer", textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 10,
+                  }}
+                >
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>✨</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 900, color: "#FFD700" }}>
+                      {tierBadge ? "Tier upgraden — danke fuers Supporten!" : "Du moechtest MyArea365 unterstuetzen?"}
+                    </span>
+                    <span style={{ display: "block", fontSize: 11, color: TEXT_SOFT, marginTop: 2 }}>
+                      Bronze · Silber · Gold-Pakete — ab 4,99 €/Monat. Werbefrei + Badge + Skins.
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 18, color: "#FFD700", flexShrink: 0 }}>›</span>
+                </button>
+              </div>
 
               {/* ══ AKTIVER WÄCHTER ══ */}
               {data.active_guardian && (() => {
