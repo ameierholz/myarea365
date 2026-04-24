@@ -35,8 +35,10 @@ const nextConfig: NextConfig = {
       "media-src 'self' blob: data: https://*.supabase.co",
       `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://api.anthropic.com https://api.mapbox.com https://*.tiles.mapbox.com https://*.basemaps.cartocdn.com https://*.googleadservices.com https://overpass-api.de https://*.openstreetmap.org${devConnect}`,
       "worker-src 'self' blob:",
-      "frame-src https://js.stripe.com https://*.stripe.com https://www.googletagmanager.com",
-      "frame-ancestors 'none'",
+      // 'self' erlaubt Iframe-Einbettung eigener Seiten (Legal-Modal iframed /impressum, /datenschutz, /agb).
+      "frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.googletagmanager.com",
+      // 'self' statt 'none': erlaubt dass unsere eigenen Seiten von uns selbst geframed werden (Legal-Modal).
+      "frame-ancestors 'self'",
       "form-action 'self' https://checkout.stripe.com",
       "base-uri 'self'",
       "object-src 'none'",
@@ -46,7 +48,8 @@ const nextConfig: NextConfig = {
     const baseHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-      { key: "X-Frame-Options", value: "DENY" },
+      // SAMEORIGIN erlaubt unsere eigenen Seiten in Iframes von uns selbst (Legal-Modal).
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
       {
         key: "Permissions-Policy",
         value: "geolocation=(self), camera=(), microphone=(), payment=(self \"https://js.stripe.com\")",
