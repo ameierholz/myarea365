@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-// Vercel Analytics + Speed Insights muss im Vercel-Dashboard aktiviert werden,
-// sonst 404 auf /_vercel/insights/script.js.
-// Wenn aktiviert: einfach wieder importieren und unten rendern.
-// import { Analytics } from "@vercel/analytics/next";
-// import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "@/styles/globals.css";
@@ -15,6 +12,7 @@ import { LegalFooter } from "@/components/legal-footer";
 import { LegalModal } from "@/components/legal-modal";
 import { GlobalSvgFilters } from "@/components/global-svg-filters";
 import { CookieConsent } from "@/components/cookie-consent";
+import { CapacitorAuthBridge } from "@/components/capacitor-auth-bridge";
 
 export const metadata: Metadata = {
   title: {
@@ -24,7 +22,13 @@ export const metadata: Metadata = {
   description:
     "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
   metadataBase: new URL("https://myarea365.de"),
-  alternates: { canonical: "/" },
+  alternates: {
+    canonical: "/",
+    languages: {
+      "de-DE": "https://myarea365.de",
+      "x-default": "https://myarea365.de",
+    },
+  },
   applicationName: "MyArea365",
   keywords: [
     "Laufen", "Gehen", "Running", "Walking", "Gamification",
@@ -106,6 +110,7 @@ export default async function RootLayout({
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
         <PrefsBoot />
+        <CapacitorAuthBridge />
         <ReferralCapture />
         <AppDialogProvider />
         <PinThemeStyles />
@@ -116,8 +121,8 @@ export default async function RootLayout({
           <LegalModal />
           <CookieConsent />
         </NextIntlClientProvider>
-        {/* <Analytics /> — Vercel Analytics im Dashboard aktivieren, dann entkommentieren */}
-        {/* <SpeedInsights /> — Speed Insights im Dashboard aktivieren, dann entkommentieren */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

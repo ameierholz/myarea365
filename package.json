@@ -4,7 +4,10 @@
   "scripts": {
     "dev": "turbo dev",
     "dev:web": "turbo dev --filter=web",
-    "dev:mobile": "turbo dev --filter=mobile",
+    "mobile:add-android": "pnpm --filter @myarea365/mobile cap:add:android",
+    "mobile:sync": "pnpm --filter @myarea365/mobile cap:sync",
+    "mobile:open": "pnpm --filter @myarea365/mobile cap:open",
+    "mobile:run": "pnpm --filter @myarea365/mobile cap:run",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
