@@ -1974,7 +1974,7 @@ function ProfilTab({
         }}>
           {[
             { key: "arena", icon: "⚔️", label: "Arena",  color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
-            { key: "deals", icon: "🏷️", label: "Deals",  color: "#4ade80", title: "🏷️ Alle Shop-Deals filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => { window.location.href = "/deals"; } },
+            { key: "deals", icon: "🔥", label: "Deals",  color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
             { key: "crew",  icon: "👥", label: "Crew",   color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
             { key: "shop",  icon: "💎", label: "Shop",   color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
             { key: "inbox", icon: "📬", label: "Inbox",  color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },

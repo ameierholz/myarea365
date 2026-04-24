@@ -192,9 +192,11 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
 
-        {/* Material-Balance */}
+        {/* Material-Balance — auf Handy 2 Spalten, ab ~520 px 4 */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: 8,
           padding: "14px 16px",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
           background: "rgba(0,0,0,0.2)",
@@ -203,14 +205,21 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
             const qty = materials?.[m.id] ?? 0;
             return (
               <div key={m.id} style={{
-                padding: "8px 6px", borderRadius: 10, textAlign: "center",
+                padding: "8px 10px", borderRadius: 10,
                 background: `${m.color}12`, border: `1px solid ${m.color}33`,
+                display: "flex", alignItems: "center", gap: 10,
               }}>
-                <div style={{ height: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <MaterialIcon id={m.id} catalog={catalog} size={22} />
+                <div style={{
+                  width: 44, height: 44, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: 8, background: `${m.color}10`,
+                }}>
+                  <MaterialIcon id={m.id} catalog={catalog} size={40} />
                 </div>
-                <div style={{ color: m.color, fontSize: 15, fontWeight: 900, marginTop: 4 }}>{qty.toLocaleString("de-DE")}</div>
-                <div style={{ color: "#a8b4cf", fontSize: 8.5, letterSpacing: 0.5, marginTop: 2 }}>{m.name}</div>
+                <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
+                  <div style={{ color: m.color, fontSize: 17, fontWeight: 900, lineHeight: 1 }}>{qty.toLocaleString("de-DE")}</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 9, letterSpacing: 0.5, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</div>
+                </div>
               </div>
             );
           })}

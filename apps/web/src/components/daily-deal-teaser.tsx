@@ -24,6 +24,21 @@ const TIER_META: Record<DailyPack["tier"], { color: string; glow: string; label:
   gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.38)",   label: "GOLD" },
 };
 
+// Icon-Mapping für die Loot-Listen.
+// Synchron mit purchase_daily_deal-RPC (00063): gems, xp_boost_hours,
+// random_seals, random_potion, random_materials, arena_pass_days.
+const CONTENT_ICON: Record<string, string> = {
+  gems:             "💎",
+  xp_boost_hours:   "🚀",
+  random_seals:     "🏅",
+  random_potion:    "🧪",
+  random_materials: "🧱",
+  arena_pass_days:  "⚔️",
+};
+function iconFor(type: string): string {
+  return CONTENT_ICON[type] ?? "✨";
+}
+
 function formatPrice(p: DailyPack): string {
   if (p.price_cents != null) return `${(p.price_cents / 100).toFixed(2).replace(".", ",")} €`;
   return `💎 ${p.price_gems}`;
@@ -54,18 +69,30 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
     return () => clearInterval(id);
   }, [resetIn]);
 
-  // Event-Listener: Map-Badge → expandieren + hinscrollen
+  // Event-Listener: Map-Badge / Bottom-Nav → Modal öffnen
   useEffect(() => {
     if (typeof window === "undefined") return;
     function handler() {
       setExpanded(true);
-      setTimeout(() => {
-        rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
     }
     window.addEventListener("ma365:open-daily-deals", handler);
     return () => window.removeEventListener("ma365:open-daily-deals", handler);
   }, []);
+
+  // ESC schließt Modal + Body-Scroll-Lock während Modal auf
+  useEffect(() => {
+    if (!expanded) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setExpanded(false);
+    }
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [expanded]);
 
   async function buy(packId: string) {
     setBusy(packId);
@@ -106,8 +133,12 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
   const s = resetIn % 60;
   const countdown = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
-  // Günstigster offener Standard-Deal als Preis-Teaser (ab X 💎)
-  const cheapestOpen = [...standardOpen].sort((a, b) => a.price_gems - b.price_gems)[0];
+  // Günstigster offener Standard-Deal als Preis-Teaser (ab X €)
+  const cheapestOpen = [...standardOpen].sort((a, b) => {
+    const ap = a.price_cents ?? a.price_gems * 10;
+    const bp = b.price_cents ?? b.price_gems * 10;
+    return ap - bp;
+  })[0];
 
   return (
     <div ref={rootRef} style={{ display: "flex", flexDirection: "column", gap: 0, scrollMarginTop: 80 }}>
@@ -119,18 +150,17 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
         @keyframes daily-shimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(340%); } }
       `}</style>
 
-      {/* Banner */}
+      {/* Banner — pulst nur wenn Modal zu */}
       <button
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => setExpanded(true)}
         style={{
           position: "relative", overflow: "hidden",
           padding: "14px 14px",
-          borderRadius: expanded ? "14px 14px 0 0" : 14,
+          borderRadius: 14,
           background: hasBundleOpen
             ? "linear-gradient(135deg, rgba(255,45,120,0.28), rgba(255,215,0,0.22), rgba(34,209,195,0.22))"
             : "linear-gradient(135deg, rgba(255,107,74,0.22), rgba(255,215,0,0.16))",
           border: `1px solid ${hasBundleOpen ? "rgba(255,215,0,0.7)" : "rgba(255,107,74,0.55)"}`,
-          borderBottom: expanded ? "1px solid rgba(255,215,0,0.4)" : undefined,
           cursor: "pointer", textAlign: "left",
           display: "flex", alignItems: "center", gap: 12, color: "#FFF",
           animation: !expanded ? "daily-pulse-strong 2.4s ease-in-out infinite" : undefined,
@@ -199,23 +229,67 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
             boxShadow: "0 0 14px rgba(255,215,0,0.5)",
           }}>
             <div style={{ fontSize: 8, letterSpacing: 0.8, opacity: 0.75 }}>AB</div>
-            <div style={{ fontSize: 13 }}>💎 {cheapestOpen.price_gems}</div>
+            <div style={{ fontSize: 13 }}>{formatPrice(cheapestOpen)}</div>
           </div>
         )}
-        <span style={{ color: "#FFD700", fontSize: 18, fontWeight: 900, flexShrink: 0, transform: expanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>›</span>
+        <span style={{ color: "#FFD700", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
       </button>
 
-      {/* Aufgeklappter Bereich */}
+      {/* Modal-Overlay: Tagesangebote groß sichtbar mit Backdrop */}
       {expanded && (
-        <div style={{
-          padding: 12,
-          borderRadius: "0 0 14px 14px",
-          background: "rgba(26,29,35,0.85)",
-          border: "1px solid rgba(255,215,0,0.4)",
-          borderTop: "none",
-          display: "flex", flexDirection: "column", gap: 10,
-        }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+        <div
+          onClick={() => setExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 4000,
+            background: "rgba(10,12,20,0.85)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 760, maxHeight: "92vh",
+              borderRadius: 18, overflow: "auto",
+              background: "rgba(26,29,35,0.98)",
+              border: "1px solid rgba(255,215,0,0.45)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(255,215,0,0.18)",
+            }}
+          >
+            {/* Header mit Schließen-Button */}
+            <div style={{
+              position: "sticky", top: 0, zIndex: 1,
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "14px 16px",
+              background: "linear-gradient(135deg, rgba(255,107,74,0.22), rgba(255,215,0,0.16))",
+              borderBottom: "1px solid rgba(255,215,0,0.3)",
+            }}>
+              <span style={{ fontSize: 22 }}>🔥</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FFD700" }}>TAGES-DEALS</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>
+                  {standardOpen.length} Deal{standardOpen.length === 1 ? "" : "s"} offen
+                  {hasBundleOpen && <span style={{ color: "#FFD700" }}> + 🎁 Bundle</span>}
+                </div>
+                <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 1 }}>⏱️ Reset in {countdown}</div>
+              </div>
+              <button
+                onClick={() => setExpanded(false)}
+                aria-label="Schließen"
+                style={{
+                  background: "rgba(255,255,255,0.08)", border: "none",
+                  color: "#a8b4cf", width: 34, height: 34, borderRadius: 999,
+                  cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0,
+                }}
+              >×</button>
+            </div>
+
+            {/* Inhalt */}
+            <div style={{
+              padding: 14,
+              display: "flex", flexDirection: "column", gap: 12,
+            }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
             {standardPacks.map((p) => {
               const tm = TIER_META[p.tier];
               const owned = data.purchased_today.includes(p.id);
@@ -232,8 +306,13 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
                     <div style={{ fontSize: 22 }}>{p.icon}</div>
                     <div style={{ color: tm.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.8, marginTop: 1 }}>{tm.label}</div>
                   </div>
-                  <ul style={{ margin: "6px 0 6px 12px", padding: 0, listStyle: "disc", color: "#a8b4cf", fontSize: 9, lineHeight: 1.35 }}>
-                    {p.contents.map((c, i) => <li key={i}>{c.label}</li>)}
+                  <ul style={{ margin: "6px 0", padding: 0, listStyle: "none", color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>
+                    {p.contents.map((c, i) => (
+                      <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 12, lineHeight: 1, flexShrink: 0 }}>{iconFor(c.type)}</span>
+                        <span>{c.label}</span>
+                      </li>
+                    ))}
                   </ul>
                   <button
                     onClick={() => !owned && buy(p.id)}
@@ -292,6 +371,8 @@ export function DailyDealTeaser(_props: { onOpen: () => void }) {
               color: "#FFF", fontSize: 11, fontWeight: 800,
             }}>{toast}</div>
           )}
+            </div>
+          </div>
         </div>
       )}
     </div>
