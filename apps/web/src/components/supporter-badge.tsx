@@ -2,7 +2,7 @@ export type SupporterTier = "bronze" | "silver" | "gold";
 
 const TIER_CONFIG: Record<SupporterTier, { label: string; bg: string; border: string; text: string; shadow: string; icon: string }> = {
   bronze: {
-    label: "Bronze",
+    label: "Bronze Supporter",
     bg: "linear-gradient(135deg, #CD7F32, #A0522D)",
     border: "#CD7F32",
     text: "#FFF3E0",
@@ -10,7 +10,7 @@ const TIER_CONFIG: Record<SupporterTier, { label: string; bg: string; border: st
     icon: "🥉",
   },
   silver: {
-    label: "Silber",
+    label: "Silber Supporter",
     bg: "linear-gradient(135deg, #E0E0E0, #9A9A9A)",
     border: "#C0C0C0",
     text: "#1A1A1A",
@@ -18,7 +18,7 @@ const TIER_CONFIG: Record<SupporterTier, { label: string; bg: string; border: st
     icon: "🥈",
   },
   gold: {
-    label: "Gold",
+    label: "Gold Supporter",
     bg: "linear-gradient(135deg, #FFD700, #B8860B)",
     border: "#FFD700",
     text: "#1A1A1A",

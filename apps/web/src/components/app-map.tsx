@@ -1285,12 +1285,20 @@ export function AppMap({
           offY = -(pinHeight + countdownGap);
         }
         marker.setOffset([0, offY]);
-        // Scale via CSS-Var (Animation liest var(--s) aus; kein Konflikt mit Float-Anim)
         const el = marker.getElement();
         const wrap = el.querySelector(".ma365-countdown-wrap") as HTMLElement | null;
-        if (wrap) wrap.style.setProperty("--s", countdownScale.toFixed(2));
+        if (wrap) {
+          wrap.style.setProperty("--s", countdownScale.toFixed(2));
+          // Auf inner UND outer setzen — die Float-Animation auf dem wrap kann
+          // die outer-opacity sonst stoeren wenn Browser die Composite-Transparenz
+          // anders behandelt. Belt-and-suspenders.
+          wrap.style.opacity = hideCountdown ? "0" : "1";
+          wrap.style.transition = "opacity 0.25s";
+          wrap.style.visibility = hideCountdown ? "hidden" : "visible";
+        }
         el.style.opacity = hideCountdown ? "0" : "1";
         el.style.transition = "opacity 0.25s";
+        el.style.visibility = hideCountdown ? "hidden" : "visible";
       });
       // Loot-Kisten skalieren mit Zoom (aggressiver schrumpfen beim Rauszoomen)
       // Basis 64px, Faktor 0.22 (far) bis 0.85 (close)
