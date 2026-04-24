@@ -44,7 +44,20 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "mapbox_timeout" }, { status: 504 });
   }
-  if (!res.ok) return NextResponse.json({ ok: false, error: `mapbox_${res.status}` }, { status: 502 });
+  if (!res.ok) {
+    let mbBody = "";
+    try { mbBody = (await res.text()).slice(0, 200); } catch { /* nichts */ }
+    // 403 ist fast immer Token ohne directions-Scope oder URL-Restriction
+    const hint = res.status === 403
+      ? "Mapbox-Token fehlen die Directions-Rechte oder eine URL-Restriction blockt localhost. In Mapbox-Account → Token-Settings: Scope 'directions:read' aktivieren, URL-Restrictions ggf. um localhost erweitern."
+      : undefined;
+    return NextResponse.json({
+      ok: false,
+      error: `mapbox_${res.status}`,
+      mapbox_body: mbBody,
+      hint,
+    }, { status: 502 });
+  }
 
   type MbStep = {
     maneuver?: { instruction?: string };

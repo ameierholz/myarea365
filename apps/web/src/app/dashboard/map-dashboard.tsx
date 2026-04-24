@@ -3982,9 +3982,11 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               aria-label={isFavorite ? "Favorit entfernen" : "Als Favorit markieren"}
               style={{
                 ...actionBtnStyle(),
-                background: isFavorite ? `${color}33` : undefined,
-                border: isFavorite ? `1px solid ${color}` : undefined,
-                color: isFavorite ? color : undefined,
+                ...(isFavorite ? {
+                  background: `${color}33`,
+                  border: `1px solid ${color}`,
+                  color,
+                } : {}),
               }}
             >{isFavorite ? "★" : "⭐"}</button>
             <button
