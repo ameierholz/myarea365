@@ -19,12 +19,34 @@ type Materials = {
   scrap: number; crystal: number; essence: number; relikt: number;
 };
 
+type MaterialCatalogEntry = {
+  id: string; name: string; emoji: string; image_url: string | null; video_url: string | null;
+};
+
+// Hardcoded Defaults — werden vom material_catalog überschrieben sobald der
+// Admin eigene Grafiken hochgeladen hat (image_url/video_url auf der Tabelle).
 const MATERIAL_META: Array<{ id: keyof Materials; name: string; emoji: string; color: string }> = [
   { id: "scrap",   name: "Schrott",         emoji: "🔩", color: "#8B8FA3" },
   { id: "crystal", name: "Stadtkristall",   emoji: "💎", color: "#22D1C3" },
   { id: "essence", name: "Schatten-Essenz", emoji: "🔮", color: "#a855f7" },
   { id: "relikt",  name: "Relikt-Splitter", emoji: "✨", color: "#FFD700" },
 ];
+
+/**
+ * Render-Helper: zeigt das Custom-Image/Video aus material_catalog,
+ * fallback auf das Emoji aus MATERIAL_META.
+ */
+function MaterialIcon({ id, catalog, size = 22 }: { id: keyof Materials; catalog: MaterialCatalogEntry[] | null; size?: number }) {
+  const cat = catalog?.find((c) => c.id === id);
+  if (cat?.video_url) {
+    return <video src={cat.video_url} autoPlay loop muted playsInline style={{ width: size, height: size, objectFit: "contain" }} />;
+  }
+  if (cat?.image_url) {
+    return <img src={cat.image_url} alt={cat.name} style={{ width: size, height: size, objectFit: "contain" }} />;
+  }
+  const meta = MATERIAL_META.find((m) => m.id === id);
+  return <span style={{ fontSize: size, lineHeight: 1 }}>{cat?.emoji ?? meta?.emoji ?? "❓"}</span>;
+}
 
 const TIER_META = [
   { color: "#8B8FA3", name: "GRAU",  next: "GRÜN" },
@@ -59,6 +81,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
   onUpgraded: () => void | Promise<void>;
 }) {
   const [materials, setMaterials] = useState<Materials | null>(null);
+  const [catalog, setCatalog] = useState<MaterialCatalogEntry[] | null>(null);
   const [filterSlot, setFilterSlot] = useState<ItemSlot | "ALL">("ALL");
   const [forgingId, setForgingId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
@@ -66,7 +89,11 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
 
   async function loadMaterials() {
     const res = await fetch("/api/guardian/materials", { cache: "no-store" });
-    if (res.ok) setMaterials(await res.json());
+    if (res.ok) {
+      const j = await res.json() as Materials & { catalog?: MaterialCatalogEntry[] };
+      setMaterials({ scrap: j.scrap, crystal: j.crystal, essence: j.essence, relikt: j.relikt });
+      if (Array.isArray(j.catalog)) setCatalog(j.catalog);
+    }
   }
   useEffect(() => { void loadMaterials(); }, []);
 
@@ -173,7 +200,9 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
                 padding: "8px 6px", borderRadius: 10, textAlign: "center",
                 background: `${m.color}12`, border: `1px solid ${m.color}33`,
               }}>
-                <div style={{ fontSize: 22, lineHeight: 1 }}>{m.emoji}</div>
+                <div style={{ height: 22, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <MaterialIcon id={m.id} catalog={catalog} size={22} />
+                </div>
                 <div style={{ color: m.color, fontSize: 15, fontWeight: 900, marginTop: 4 }}>{qty.toLocaleString("de-DE")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 8.5, letterSpacing: 0.5, marginTop: 2 }}>{m.name}</div>
               </div>
@@ -202,6 +231,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
                   key={it.id}
                   item={it}
                   materials={materials}
+                  catalog={catalog}
                   forging={forgingId === it.id}
                   success={successId === it.id}
                   onForge={() => forge(it.id)}
@@ -254,9 +284,10 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
   );
 }
 
-function ForgeItemRow({ item, materials, forging, success, onForge, onFinalize }: {
+function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onFinalize }: {
   item: Item;
   materials: Materials | null;
+  catalog: MaterialCatalogEntry[] | null;
   forging: boolean;
   success: boolean;
   onForge: () => void;
@@ -406,12 +437,12 @@ function ForgeItemRow({ item, materials, forging, success, onForge, onFinalize }
             const has = have >= (v as number);
             return (
               <div key={k} style={{
-                display: "flex", alignItems: "center", gap: 3,
+                display: "flex", alignItems: "center", gap: 4,
                 fontSize: 11, fontWeight: 900,
                 color: has ? m?.color : "#FF2D78",
                 opacity: has ? 1 : 0.6,
               }}>
-                <span>{m?.emoji}</span>
+                <MaterialIcon id={k as keyof Materials} catalog={catalog} size={14} />
                 <span>{v as number}</span>
                 {!has && <span style={{ fontSize: 9, opacity: 0.7 }}>(hast {have})</span>}
               </div>

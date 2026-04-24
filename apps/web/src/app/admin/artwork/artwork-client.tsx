@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -44,16 +44,22 @@ type CosmeticArt = {
   rank:      Record<string, Art>;
 };
 
-type TabId = "archetype" | "item" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank";
 
 type Item = {
   id: string; name: string; emoji: string; slot: string; rarity: string;
   image_url: string | null;
 };
 
+type Material = {
+  id: string; name: string; emoji: string; description: string | null; tier: number; sort: number;
+  image_url: string | null; video_url: string | null;
+};
+
 export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {} });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
@@ -71,8 +77,10 @@ export function ArtworkAdminClient() {
       const j = await aw.json();
       type RawArch = { image_url: string | null; video_url: string | null; [k: string]: unknown };
       type RawItem = { image_url: string | null; [k: string]: unknown };
+      type RawMat  = { image_url: string | null; video_url: string | null; [k: string]: unknown };
       setArchetypes((j.archetypes as RawArch[]).map((a) => ({ ...a, image_url: bust(a.image_url), video_url: bust(a.video_url) })) as Archetype[]);
       setItems(((j.items ?? []) as RawItem[]).map((i) => ({ ...i, image_url: bust(i.image_url) })) as Item[]);
+      setMaterials(((j.materials ?? []) as RawMat[]).map((m) => ({ ...m, image_url: bust(m.image_url), video_url: bust(m.video_url) })) as Material[]);
     }
     if (co.ok) {
       const raw = await co.json() as CosmeticArt;
@@ -94,6 +102,7 @@ export function ArtworkAdminClient() {
 
   const doneArch   = archetypes.filter(a => a.image_url || a.video_url).length;
   const doneItems  = items.filter(i => i.image_url).length;
+  const doneMat    = materials.filter(m => m.image_url || m.video_url).length;
   const doneMark   = Object.values(cosmetic.marker).reduce((acc, variants) => acc + Object.values(variants).filter(a => a.image_url || a.video_url).length, 0);
   const doneLight  = Object.values(cosmetic.light).filter(a => a.image_url || a.video_url).length;
   const doneTheme  = Object.values(cosmetic.pin_theme).filter(a => a.image_url || a.video_url).length;
@@ -104,6 +113,7 @@ export function ArtworkAdminClient() {
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
     { id: "item",      label: "⚔️ Ausrüstung",     done: doneItems,  total: items.length },
+    { id: "material",  label: "🧱 Materialien",    done: doneMat,    total: materials.length },
     { id: "siegel",    label: "🏅 Siegel",          done: doneSiegel, total: SIEGEL_TYPES.length },
     { id: "potion",    label: "🧪 Tränke",          done: donePotion, total: POTION_CATALOG_ART.length },
     { id: "rank",      label: "🎖️ Ränge",           done: doneRank,   total: RANK_TIERS_ART.length },
@@ -142,6 +152,7 @@ export function ArtworkAdminClient() {
       {loading ? <LoadingBox /> : (
         tab === "archetype"  ? <ArchetypesTab archetypes={archetypes} onChange={reload} />
         : tab === "item"      ? <ItemsTab     items={items}              onChange={reload} />
+        : tab === "material"  ? <MaterialTab  materials={materials}      onChange={reload} />
         : tab === "siegel"    ? <SiegelTab    artMap={cosmetic.siegel ?? {}} onChange={reload} />
         : tab === "potion"    ? <PotionTab    artMap={cosmetic.potion ?? {}} onChange={reload} />
         : tab === "rank"      ? <RankTab      artMap={cosmetic.rank   ?? {}} onChange={reload} />
@@ -896,6 +907,68 @@ function RankTab({ artMap, onChange }: {
                 hasImage={!!art?.image_url}
                 hasVideo={!!art?.video_url}
                 buildPrompt={(mode) => buildRankPrompt({ id: r.id, name: r.name, tier: r.tier, color: r.color, hint: r.hint, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Materialien (4 Crafting-Stufen)                       */
+/* ═════════════════════════════════════════════════════════ */
+
+const MATERIAL_TIER_META: Record<number, { label: string; color: string }> = {
+  0: { label: "Schrott (Tier 0)",   color: "#8B8FA3" },
+  1: { label: "Kristall (Tier 1)",  color: "#5ddaf0" },
+  2: { label: "Essenz (Tier 2)",    color: "#a855f7" },
+  3: { label: "Relikt (Tier 3)",    color: "#FFD700" },
+};
+
+function MaterialTab({ materials, onChange }: { materials: Material[]; onChange: () => void }) {
+  if (materials.length === 0) {
+    return (
+      <div className="p-10 text-center text-sm text-[#8B8FA3]">
+        Keine Materialien gefunden — Migration <code className="text-[#22D1C3]">00029_equipment_materials.sql</code> + <code className="text-[#22D1C3]">00066_material_artwork_columns.sql</code> ausführen.
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="mb-3 text-xs text-[#a8b4cf]">
+        <strong className="text-white">{materials.length} Materialien</strong> · {materials.filter(m => m.image_url || m.video_url).length}/{materials.length} mit Artwork
+        <div className="mt-1 text-[11px] text-[#6c7590]">
+          Materialien droppen beim Lauf und werden zum Upgraden von Items genutzt. Eigene Grafik überschreibt das Emoji-Fallback in allen UI-Stellen.
+        </div>
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {materials.map((m) => {
+          const meta = MATERIAL_TIER_META[m.tier] ?? MATERIAL_TIER_META[0];
+          const hasArt = !!(m.image_url || m.video_url);
+          return (
+            <div key={m.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-[#0F1115]" style={{ border: `1px solid ${meta.color}55` }}>
+                  {m.video_url ? <video src={m.video_url} autoPlay loop muted playsInline className="w-16 h-16 object-contain" />
+                    : m.image_url ? <img src={m.image_url} alt={m.name} className="w-16 h-16 object-contain" />
+                    : <span className="text-3xl">{m.emoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: meta.color }}>{meta.label.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white truncate">{m.name}</div>
+                  {m.description && <div className="text-[10px] text-[#6c7590] truncate">{m.description}</div>}
+                </div>
+                {!hasArt && <span className="text-[9px] font-bold text-[#FF2D78]">LEER</span>}
+              </div>
+              <AdminArtworkControls
+                targetType="material"
+                targetId={m.id}
+                hasImage={!!m.image_url}
+                hasVideo={!!m.video_url}
+                buildPrompt={(mode) => buildMaterialPrompt({ id: m.id, name: m.name, tier: m.tier, hint: m.description ?? m.emoji, mode })}
                 onUploaded={onChange}
               />
             </div>

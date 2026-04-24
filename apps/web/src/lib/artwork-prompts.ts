@@ -282,32 +282,37 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   // Strategie: Green-Screen-Background (#00FF00). Wird clientseitig per SVG-Chroma-Key
   // zu 100% transparent geschlüsselt — gleiche Technik wie Film/VFX. Viel zuverlässiger
   // als schwarzer Hintergrund, weil Grün im Charakter-Design nie vorkommt.
+  // WICHTIG: Charakter muss bis zum Bildrand reichen (Bleed), sonst zeigt object-fit:cover
+  // in der UI einen sichtbaren Rand. Keine Nebel-/Wolken-/Partikel-Effekte die das Frame füllen,
+  // da nur reines #00FF00 sauber weggekeyt werden kann.
   if (in_.mode === "video") {
     return [
       // 1) Shot-Spec
       `Shot: a 4-second perfectly seamless looping idle clip, square 1:1 composition, 1024x1024, 24 fps.`,
       // 2) Background — GREEN SCREEN (chroma-key)
-      `Background: SOLID PURE NEON GREEN (#00FF00, also known as chroma-key green / green screen). Completely flat uniform color, no gradients, no patterns, no texture, no shadows on the background, no environment, no scene. The character must be clearly separated from this green background with a clean edge for chroma-key compositing.`,
-      // 3) Subject
-      `Subject: ${subjectBase}, full body visible, ${pose}, fully invented fictional character (not based on any existing franchise or celebrity).`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color, no gradients, no patterns, no texture, no shadows on the background, no environment, no scene, no atmospheric effects. Clean hard silhouette edge for chroma-key compositing.`,
+      // 3) Subject — FILLS FRAME
+      `Subject: ${subjectBase}, fully invented fictional character (not based on any existing franchise or celebrity). ${pose}.`,
+      // 4) Framing — edge bleed
+      `FRAMING (critical): the character fills the ENTIRE 1024x1024 frame edge-to-edge. Top of the head or helmet crop at or just beyond the top edge. Character's feet / base bleed past the bottom edge. Shoulders or cape span the full width — LEFT and RIGHT shoulders touch or slightly cross the left and right frame edges. NO empty green margin at top, bottom, left or right. Character silhouette must reach all four edges of the frame.`,
       `Hair and head: ${hair}.`,
       `Armor and outfit: ${armor} — unique to this specific character, distinct from other characters in the set.`,
       archetypeHint && `Character archetype traits: ${archetypeHint}.`,
       `Rarity and material feel: ${rarityMod}.`,
-      // 4) Aura / Signature-FX
-      `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. The aura pulses gently in sync with breathing.`,
-      abilityTheme && `The aura also visually references the character's signature ability "${abilityTheme}".`,
-      `Additional effect: ${effect}.`,
-      // 5) Motion
+      // 5) Aura / Signature-FX — kept TIGHT
+      `Signature aura hugging the character's silhouette only (close rim glow), themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. Aura does NOT fill the frame — it wraps tightly to the body outline (max 40 pixels beyond silhouette).`,
+      abilityTheme && `The aura subtly references the character's signature ability "${abilityTheme}".`,
+      `Additional effect: ${effect} — but kept close to the character; no wide atmospheric smoke, fog, clouds, mist, sparkle dust, or particles that spread across the frame.`,
+      // 6) Motion
       `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), cloth, hair, and aura reacting to a steady gentle wind, weight planted"}. Smooth, continuous, no sudden actions.`,
-      // 6) Camera
-      `Camera: locked static medium-wide shot, no pan, no tilt, no zoom, no dolly, character perfectly centered the entire clip.`,
-      // 7) Seamless-Loop
+      // 7) Camera
+      `Camera: locked static shot, no pan, no tilt, no zoom, no dolly, character stays fully in frame touching all edges the entire clip.`,
+      // 8) Seamless-Loop
       `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first.`,
-      // 8) Anti-Green-Bleed (wichtig für Chroma-Key)
-      `CRITICAL: NO green tones ANYWHERE on the character, armor, hair, skin, aura or effects. NO green eyes, NO green accents, NO green glow. The ONLY green in the entire video is the pure #00FF00 background. This is a green-screen shoot — green in the character would be keyed out as transparent.`,
-      // 9) Other negatives
-      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog. Only the green screen + character + aura.`,
+      // 9) Anti-Green-Bleed (wichtig für Chroma-Key)
+      `CRITICAL: NO green tones ANYWHERE on the character, armor, hair, skin, aura or effects. NO green eyes, NO green accents, NO green glow. The ONLY green in the entire video is the pure #00FF00 background. Green in the character would be keyed out as transparent.`,
+      // 10) Hard negatives — atmosphere + background bleed
+      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog, NO mist, NO smoke clouds filling the frame, NO volumetric haze, NO god-rays, NO wide particle storms, NO magic circles behind the character, NO sparkle dust clouds. NO colored backdrop behind the character — behind the character is ONLY pure #00FF00. Only the green screen + edge-to-edge character + tight silhouette aura.`,
       `No audio, no sound, no music, no voice. Silent video only.`,
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
     ].filter(Boolean).join(" ");
@@ -315,18 +320,21 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
 
   // ══════ IMAGE-PROMPT ══════
   return [
-    `Cinematic character key art, square 1:1, 1024x1024, single subject, TRANSPARENT BACKGROUND (PNG with alpha channel, NO BACKGROUND — character floats on pure transparency).`,
-    `Subject: ${subjectBase}, full body visible, ${pose}, confident heroic expression. Fully invented fictional character (not based on any existing franchise or celebrity).`,
+    `Cinematic character key art, square 1:1, 1024x1024, single subject.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color — no gradient, no pattern, no texture, no atmospheric effects. (Chroma-keyed to transparent in the app.)`,
+    `Subject: ${subjectBase}, fully invented fictional character (not based on any existing franchise or celebrity). ${pose}, confident heroic expression.`,
+    `FRAMING (critical): character fills the ENTIRE 1024x1024 frame edge-to-edge. Head/helmet crops at or just beyond the top edge, feet bleed past the bottom edge, shoulders or cape span the full width and touch the left and right edges. NO empty green margin at any edge.`,
     `Hair and head: ${hair}.`,
     `Armor and outfit: ${armor} — unique and distinct, so this character does not look like any other character in the set.`,
     archetypeHint && `Character archetype traits: ${archetypeHint}.`,
     `Rarity and material feel: ${rarityMod}.`,
-    `Signature aura wrapping the character, themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth.`,
-    abilityTheme && `Aura also visually references the character's signature ability "${abilityTheme}".`,
-    `Additional effect around the character: ${effect}.`,
+    `Signature aura tight to the character silhouette (close rim glow, max ~40 px beyond outline), themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. Aura does NOT fill the frame.`,
+    abilityTheme && `Aura subtly references the character's signature ability "${abilityTheme}".`,
+    `Additional effect close to the character: ${effect} — no wide smoke, fog, clouds, mist, sparkle dust, or atmospheric haze that covers the frame.`,
     `Lighting: ${aura.primary} rim light from the left, ${aura.secondary} rim light from the right, subtle top-light from above.`,
     `High detail on face and hands, sharp focus on character, tight silhouette.`,
-    `NO BACKGROUND. NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor. Pure alpha transparency outside the character silhouette.`,
+    `CRITICAL: NO green tones on the character, armor, hair, skin, aura or effects. ONLY the background is #00FF00 — green on the character would be keyed transparent.`,
+    `NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor, NO clouds, NO fog, NO mist, NO smoke, NO magic circles or glyphs behind the character, NO sparkle dust clouds, NO colored backdrop. Only: pure #00FF00 + edge-to-edge character + tight silhouette aura.`,
     `No text, no captions, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
   ].filter(Boolean).join(" ");
 }
@@ -600,4 +608,42 @@ export function buildRankPrompt(input: { id: string; name: string; tier: string;
   }
   return base;
 }
+
+// ─── Materials (Crafting/Upgrade) ──────────────────────────────────
+// Vier Tier-Stufen: scrap (Tier 0) → crystal (Tier 1) → essence (Tier 2) → relikt (Tier 3).
+// Pro Tier zunehmende Wertigkeit des dargestellten Items.
+
+const MATERIAL_TIER_TREATMENT: Record<number, string> = {
+  0: "rusted scrap metal pieces, dirty bolts, weathered industrial debris, gritty dark tones, low-value salvage feel",
+  1: "polished urban crystal shard, faceted geometric form, soft cyan glow inside, semi-translucent, modern utilitarian beauty",
+  2: "swirling shadow essence in a small glass vial or floating orb, deep purple and pink mist coiling inside, ethereal mystical aura",
+  3: "ornate golden relic shard with engraved arcane runes, fractured ancient artifact piece, intense radiant gold + pink magenta light, legendary feel",
+};
+
+export function buildMaterialPrompt(input: {
+  id: string;
+  name: string;
+  tier: number;
+  hint: string;
+  mode: "image" | "video";
+}): string {
+  const treatment = MATERIAL_TIER_TREATMENT[input.tier] ?? MATERIAL_TIER_TREATMENT[0];
+  const base = [
+    `A crafting material item icon for "${input.name}" (tier ${input.tier} of 3), centered composition, 1024x1024, fully transparent background (PNG with alpha).`,
+    `Material specifics: ${input.hint}.`,
+    `Treatment: ${treatment}.`,
+    `Style: high-detail painterly game item icon, Diablo/Path-of-Exile/Final-Fantasy quality, tight rim-light, readable at 64px in an inventory slot.`,
+    `Composition: item slightly tilted toward the viewer, centered, subtle drop shadow beneath. Item fills roughly 70 % of frame width, leaves clean margin around it.`,
+    `No text, no labels, no characters, no watermark, no environment, no scene — just the item on pure transparent background.`,
+  ].join(" ");
+  if (input.mode === "video") {
+    return [
+      base,
+      "Animation: 4-second seamless loop. The material drifts up and down by a few pixels (gentle floating), rotates a few degrees back and forth, inner glow pulses once per cycle, occasional sparkle particle drifts off the surface.",
+      "First and last frame match exactly. No audio.",
+    ].join(" ");
+  }
+  return base;
+}
+
 
