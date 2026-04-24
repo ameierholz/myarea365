@@ -69,6 +69,8 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Seiten-Auth (api ausgenommen — Auth läuft pro Route)
-    "/((?!_next/static|_next/image|favicon.ico|images|fonts|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Static-Files (Bilder, ads.txt, robots.txt, sitemap.xml) muessen ohne Auth-
+    // Redirect direkt ausgeliefert werden — sonst schlaegt AdSense-Verifikation fehl.
+    "/((?!_next/static|_next/image|favicon.ico|images|fonts|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
   ],
 };
