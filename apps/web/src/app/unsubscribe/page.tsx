@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
+import { verifyAction } from "@/lib/signed-token";
 
 export const metadata: Metadata = {
   title: "Newsletter abbestellen — MyArea365",
@@ -42,10 +43,19 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const uid = sp.uid;
   const email = sp.email;
+  const token = sp.token;
 
   let status: "success" | "error" | "missing" = "missing";
-  if (uid) status = (await unsubscribeByUserId(uid)) ? "success" : "error";
-  else if (email) status = (await unsubscribeByEmail(email)) ? "success" : "error";
+  if (uid && token && verifyAction("unsub", uid, token)) {
+    status = (await unsubscribeByUserId(uid)) ? "success" : "error";
+  } else if (email && token && verifyAction("unsub", email.toLowerCase().trim(), token)) {
+    status = (await unsubscribeByEmail(email)) ? "success" : "error";
+  } else if ((uid || email) && !token) {
+    // Kein Token → zeige Self-Service-Formular
+    status = "missing";
+  } else if (uid || email) {
+    status = "error";
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">

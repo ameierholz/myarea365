@@ -76,6 +76,10 @@ export default function ShopRegisterPage() {
   return (
     <main style={{ minHeight: "100vh", background: "#0F1115", color: "#F0F0F0", padding: "40px 20px" }}>
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <button
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+          style={BTN_BACK}
+        >← Zurück</button>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "#22D1C3", fontWeight: 900, marginBottom: 8 }}>
           MYAREA365 · PARTNER-SHOPS
         </div>
@@ -165,6 +169,14 @@ const BTN_PRIMARY: React.CSSProperties = {
   padding: "12px 20px", borderRadius: 10, border: "none",
   background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
   color: "#0F1115", fontSize: 14, fontWeight: 900, letterSpacing: 0.5,
+  cursor: "pointer",
+};
+
+const BTN_BACK: React.CSSProperties = {
+  padding: "8px 14px", borderRadius: 999, marginBottom: 16,
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "#a8b4cf", fontSize: 13, fontWeight: 700,
   cursor: "pointer",
 };
 

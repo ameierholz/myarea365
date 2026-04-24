@@ -21,7 +21,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ guardianId: st
 
   const archetypeId = (guardian as { archetype_id: string }).archetype_id;
 
-  const [{ data: nodes }, { data: talents }, { data: skills }, { data: skillLevels }, { data: siegel }] = await Promise.all([
+  const [{ data: nodes }, { data: talents }, { data: skills }, { data: skillLevels }, { data: siegel }, { data: me }] = await Promise.all([
     sb.from("talent_nodes")
       .select("id, archetype_id, branch, tier, slot, name, description, max_rank, effect_key, effect_per_rank, requires_node_id")
       .eq("archetype_id", archetypeId).order("branch").order("tier"),
@@ -31,6 +31,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ guardianId: st
       .eq("archetype_id", archetypeId),
     sb.from("guardian_skill_levels").select("skill_id, level").eq("guardian_id", guardianId),
     sb.from("user_siegel").select("*").eq("user_id", auth.user.id).maybeSingle(),
+    sb.from("users").select("faction, heimat_plz").eq("id", auth.user.id).maybeSingle(),
   ]);
 
   return NextResponse.json({
@@ -40,6 +41,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ guardianId: st
     archetype_skills: skills ?? [],
     guardian_skill_levels: skillLevels ?? [],
     siegel: siegel ?? { user_id: auth.user.id, siegel_infantry: 0, siegel_cavalry: 0, siegel_marksman: 0, siegel_mage: 0, siegel_universal: 0 },
+    user: {
+      faction: (me as { faction?: string | null } | null)?.faction ?? null,
+      heimat_plz: (me as { heimat_plz?: string | null } | null)?.heimat_plz ?? null,
+    },
   });
 }
 

@@ -22,7 +22,11 @@ export async function sendMail(input: SendMailInput): Promise<{ ok: boolean; id?
   const from = input.from ?? process.env.EMAIL_FROM ?? "MyArea365 <no-reply@myarea365.de>";
 
   if (!apiKey) {
-    console.log("[email] skipped (no RESEND_API_KEY):", input.subject, "→", input.to);
+    // In Produktion ist ein fehlender Key ein Konfig-Bug — laut loggen statt stumm schlucken.
+    const isProd = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+    const line = `[email] RESEND_API_KEY fehlt — Mail verworfen: "${input.subject}" → ${Array.isArray(input.to) ? input.to.join(",") : input.to}`;
+    if (isProd) console.error(line);
+    else console.log(line);
     return { ok: false, error: "no_api_key" };
   }
 

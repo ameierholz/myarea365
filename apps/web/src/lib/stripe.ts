@@ -5,8 +5,31 @@ export function getStripe(): Stripe {
   if (_stripe) return _stripe;
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY not set");
-  _stripe = new Stripe(key, { apiVersion: "2026-03-25.dahlia" });
+  _stripe = new Stripe(key, {
+    apiVersion: "2026-03-25.dahlia",
+    maxNetworkRetries: 2,  // Stripe SDK retry mit exponential backoff für transiente Fehler
+    timeout: 15_000,
+  });
   return _stripe;
+}
+
+/** Retry-Wrapper für Stripe-Calls mit exponential backoff bei 5xx/Network. */
+export async function withStripeRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const err = e as { type?: string; statusCode?: number };
+      const retriable = err?.type === "StripeConnectionError"
+        || err?.type === "StripeAPIError"
+        || (err?.statusCode != null && err.statusCode >= 500);
+      if (!retriable || i === attempts - 1) throw e;
+      await new Promise((r) => setTimeout(r, 250 * Math.pow(2, i)));
+    }
+  }
+  throw lastErr;
 }
 
 // Stripe Price-IDs je SKU (im Stripe-Dashboard anzulegen oder per stripe fixtures)

@@ -17,7 +17,8 @@ export function GlobalSvgFilters() {
             Schritt 3: Separater Pfad: Farben „entgrünen" (G → Mittel aus R und B)
             Schritt 4: Composite → Charakter-Kanten haben cleane Farben statt grünem Rand */}
         <filter id="ma365-chroma-black" colorInterpolationFilters="sRGB">
-          {/* Pfad A: nur Alpha, rgb=0 */}
+          {/* Pfad A: Alpha-Key — stärker auf Grün gewichtet (G zählt doppelt negativ),
+              damit mittlere Oliv-/Limetten-Grüntöne auch noch ausgeblendet werden. */}
           <feColorMatrix
             in="SourceGraphic"
             result="keyAlphaRaw"
@@ -26,13 +27,14 @@ export function GlobalSvgFilters() {
               0  0 0 0 0
               0  0 0 0 0
               0  0 0 0 0
-              1 -1 1 0 0.3
+              1 -2 1 0 0.2
             "
           />
           <feComponentTransfer in="keyAlphaRaw" result="keyAlpha">
-            <feFuncA type="linear" slope={8} intercept={-0.1} />
+            <feFuncA type="linear" slope={14} intercept={-0.25} />
           </feComponentTransfer>
-          {/* Pfad B: despilled RGB — Grün durch Mittel aus Rot und Blau ersetzt */}
+          {/* Pfad B: despilled RGB — Grün durch Mittel aus Rot und Blau ersetzt
+              (entfernt grünen Kantensaum an Charakter-Silhouetten) */}
           <feColorMatrix
             in="SourceGraphic"
             result="despilled"

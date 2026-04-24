@@ -518,25 +518,46 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         <select value={filterRarity} onChange={(e) => setFilterRarity(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Raritäten</option>
+          <option value="common">Gewöhnlich</option>
           <option value="elite">Elite</option>
           <option value="epic">Episch</option>
           <option value="legendary">Legendär</option>
         </select>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
-          <option value="ALL">Alle Typen</option>
-          <option value="infantry">🛡️ Infanterie</option>
-          <option value="cavalry">🐎 Kavallerie</option>
-          <option value="marksman">🏹 Scharfschütze</option>
-          <option value="mage">🔮 Magier</option>
+          <option value="ALL">Alle Klassen</option>
+          <option value="tank">🛡️ Tank</option>
+          <option value="support">✨ Support</option>
+          <option value="ranged">🏹 Fernkampf</option>
+          <option value="melee">⚔️ Nahkampf</option>
         </select>
         <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Rollen</option>
-          <option value="dps">DPS</option>
-          <option value="tank">Tank</option>
-          <option value="support">Support</option>
-          <option value="balanced">Balanced</option>
+          <optgroup label="🛡️ Tank">
+            <option value="krieger">Krieger</option>
+            <option value="ritter">Ritter</option>
+            <option value="paladin">Paladin</option>
+            <option value="berserker">Berserker</option>
+          </optgroup>
+          <optgroup label="✨ Support">
+            <option value="priester">Priester</option>
+            <option value="schamane">Schamane</option>
+            <option value="kleriker">Kleriker</option>
+            <option value="orakel">Orakel</option>
+          </optgroup>
+          <optgroup label="🏹 Fernkampf">
+            <option value="magier">Magier</option>
+            <option value="bogenschuetze">Bogenschütze</option>
+            <option value="hexer">Hexer</option>
+            <option value="runenmeister">Runenmeister</option>
+          </optgroup>
+          <optgroup label="⚔️ Nahkampf">
+            <option value="schurke">Schurke</option>
+            <option value="moench">Mönch</option>
+            <option value="samurai">Samurai</option>
+            <option value="ninja">Ninja</option>
+          </optgroup>
         </select>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche Name/ID…"
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm" />

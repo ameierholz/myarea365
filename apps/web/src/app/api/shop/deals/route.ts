@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { validate, str, int, uuid, oneOf } from "@/lib/validate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,33 +34,28 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
 
-  const body = await req.json() as {
-    shop_id: string; title: string; description?: string;
-    xp_cost: number; frequency: string;
-    max_redemptions?: number; active_until?: string;
-  };
-
-  if (!body.shop_id || !body.title || body.title.trim().length < 3) {
-    return NextResponse.json({ ok: false, error: "invalid_title" }, { status: 400 });
-  }
-  if (typeof body.xp_cost !== "number" || body.xp_cost < 0) {
-    return NextResponse.json({ ok: false, error: "invalid_xp_cost" }, { status: 400 });
-  }
-  const freq = FREQ.includes(body.frequency as typeof FREQ[number]) ? body.frequency : "weekly";
-
-  const minOrder = typeof (body as unknown as { min_order_amount_cents?: number }).min_order_amount_cents === "number"
-    ? (body as unknown as { min_order_amount_cents: number }).min_order_amount_cents
-    : null;
+  const raw = await req.json().catch(() => null);
+  const v = validate(raw, {
+    shop_id: uuid(),
+    title: str({ min: 3, max: 120 }),
+    description: str({ max: 1000, optional: true }),
+    xp_cost: int({ min: 0, max: 100000 }),
+    frequency: oneOf(FREQ, { optional: true }),
+    max_redemptions: int({ min: 1, max: 100000, optional: true }),
+    active_until: str({ max: 40, optional: true }),
+    min_order_amount_cents: int({ min: 0, max: 1000000, optional: true }),
+  });
+  if (!v.ok) return NextResponse.json({ ok: false, error: "invalid", issues: v.issues }, { status: 400 });
 
   const { data, error } = await sb.from("shop_deals").insert({
-    shop_id: body.shop_id,
-    title: body.title.trim(),
-    description: body.description?.trim() || null,
-    xp_cost: body.xp_cost,
-    frequency: freq,
-    max_redemptions: body.max_redemptions ?? null,
-    active_until: body.active_until ?? null,
-    min_order_amount_cents: minOrder,
+    shop_id: v.data.shop_id,
+    title: v.data.title!.trim(),
+    description: v.data.description?.trim() || null,
+    xp_cost: v.data.xp_cost,
+    frequency: v.data.frequency ?? "weekly",
+    max_redemptions: v.data.max_redemptions ?? null,
+    active_until: v.data.active_until ?? null,
+    min_order_amount_cents: v.data.min_order_amount_cents ?? null,
     active: true,
   }).select("*").single();
 

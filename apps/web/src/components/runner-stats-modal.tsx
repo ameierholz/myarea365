@@ -125,13 +125,25 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
     : { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", label: "★ BRONZE SUPPORTER", text: "#FFF" }
     : null;
 
-  // CTA „MyArea unterstützen" — nur bei eigenem Profil sinnvoll, aber wir
-  // zeigen es derzeit immer an, wenn KEIN Tier vorhanden ist (oder ein niedrigerer
-  // → gibt's noch nicht). Klick öffnet die Supporter-Pakete via Custom-Event.
-  function openSupporterPackages() {
-    if (typeof window !== "undefined") {
-      // Pricing-Page hat alle Supporter-Pakete (Bronze/Silber/Gold) mit Stripe-Checkout
-      window.location.href = "/pricing#supporter";
+  const [showSupporter, setShowSupporter] = useState(false);
+  const [buyingSku, setBuyingSku] = useState<string | null>(null);
+
+  async function buySupporterTier(sku: "badge_bronze" | "badge_silver" | "badge_gold") {
+    if (buyingSku) return;
+    setBuyingSku(sku);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sku }),
+      });
+      const j = await res.json().catch(() => null) as { url?: string; error?: string } | null;
+      if (j?.url) window.location.href = j.url;
+      else alert(j?.error ?? "Checkout fehlgeschlagen");
+    } catch {
+      alert("Netzwerkfehler beim Checkout");
+    } finally {
+      setBuyingSku(null);
     }
   }
 
@@ -185,7 +197,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                   display: "flex", alignItems: "center", gap: 4,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.4)", zIndex: 2,
                 }}>
-                  <span>★</span> {tierBadge.label}
+                  {tierBadge.label}
                 </div>
               )}
               {canEditBanner && data.banner_url && data.banner_status !== "approved" && (
@@ -283,6 +295,57 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                 {data.xp > 0 && <span style={{ color: GOLD, fontWeight: 800 }}>{data.xp.toLocaleString("de-DE")} 🪙</span>}
               </div>
 
+              {/* ══ SUPPORTER-CTA ══ */}
+              <div style={{ marginTop: 8 }}>
+                <button
+                  onClick={() => setShowSupporter((s) => !s)}
+                  style={{
+                    padding: 0, background: "none", border: "none",
+                    color: GOLD, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    textAlign: "left", textDecoration: "underline",
+                    textDecorationStyle: "dotted", textUnderlineOffset: 3,
+                  }}
+                >
+                  {showSupporter ? "Pakete ausblenden" : "Du möchtest MyArea auch unterstützen?"}
+                </button>
+                {showSupporter && (
+                  <div style={{ marginTop: 6, color: TEXT_SOFT, fontSize: 10, lineHeight: 1.4 }}>
+                    Monats-Abo · jederzeit kündbar · Werbefrei + Badge + Bonus-Skins
+                  </div>
+                )}
+                {showSupporter && (
+                  <div style={{
+                    marginTop: 8, display: "grid", gap: 8,
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                  }}>
+                    {([
+                      { sku: "badge_bronze", name: "Bronze", price: "1,99 €/Mon.", icon: "🥉", bg: "linear-gradient(135deg,#CD7F32,#A0522D)", text: "#FFF" },
+                      { sku: "badge_silver", name: "Silber", price: "4,99 €/Mon.", icon: "🥈", bg: "linear-gradient(135deg,#E0E0E0,#9A9A9A)", text: BG_DEEP },
+                      { sku: "badge_gold",   name: "Gold",   price: "9,99 €/Mon.", icon: "🥇", bg: "linear-gradient(135deg,#FFD700,#FF9E2C)", text: BG_DEEP },
+                    ] as const).map((t) => (
+                      <button
+                        key={t.sku}
+                        onClick={() => buySupporterTier(t.sku)}
+                        disabled={buyingSku !== null}
+                        style={{
+                          padding: "10px 8px", borderRadius: 10, border: "none",
+                          background: t.bg, color: t.text, cursor: buyingSku ? "wait" : "pointer",
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                          opacity: buyingSku && buyingSku !== t.sku ? 0.5 : 1,
+                          fontWeight: 900,
+                        }}
+                      >
+                        <span style={{ fontSize: 22 }}>{t.icon}</span>
+                        <span style={{ fontSize: 12 }}>{t.name}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700 }}>
+                          {buyingSku === t.sku ? "…" : t.price}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* ══ CREW-CARD (mit Banner + Stats) ══ */}
               {data.crew && (() => {
                 const cc = data.crew!.color ?? color;
@@ -374,32 +437,6 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                 );
               })()}
 
-              {/* ══ SUPPORTER-CTA ══ */}
-              <div style={{ padding: "0 14px", marginTop: 12 }}>
-                <button
-                  onClick={openSupporterPackages}
-                  style={{
-                    width: "100%", padding: "10px 14px", borderRadius: 12,
-                    background: tierBadge
-                      ? "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,107,74,0.08))"
-                      : "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,107,74,0.14))",
-                    border: `1px dashed ${tierBadge ? "rgba(255,215,0,0.45)" : "#FFD70080"}`,
-                    color: "#FFF", cursor: "pointer", textAlign: "left",
-                    display: "flex", alignItems: "center", gap: 10,
-                  }}
-                >
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>✨</span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 900, color: "#FFD700" }}>
-                      {tierBadge ? "Tier upgraden — danke fuers Supporten!" : "Du moechtest MyArea365 unterstuetzen?"}
-                    </span>
-                    <span style={{ display: "block", fontSize: 11, color: TEXT_SOFT, marginTop: 2 }}>
-                      Bronze · Silber · Gold-Pakete — ab 4,99 €/Monat. Werbefrei + Badge + Skins.
-                    </span>
-                  </span>
-                  <span style={{ fontSize: 18, color: "#FFD700", flexShrink: 0 }}>›</span>
-                </button>
-              </div>
 
               {/* ══ AKTIVER WÄCHTER ══ */}
               {data.active_guardian && (() => {

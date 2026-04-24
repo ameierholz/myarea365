@@ -77,13 +77,15 @@ export async function POST(req: NextRequest) {
     .update(patch).eq("id", shopId);
   if (updErr) return NextResponse.json({ ok: false, error: updErr.message }, { status: 500 });
 
-  // Alten Blob wegräumen (best-effort)
+  // Alten Blob wegräumen (best-effort). Path muss streng im Shop-Ordner liegen.
   const oldUrl = kind === "logo" ? shop.logo_url : shop.cover_url;
-  if (oldUrl && typeof oldUrl === "string" && oldUrl.includes("/shop-media/")) {
+  if (oldUrl && typeof oldUrl === "string") {
     try {
-      const match = oldUrl.match(/shop-media\/(.+)$/);
-      if (match?.[1]) {
-        await admin.storage.from("shop-media").remove([match[1]]);
+      const match = oldUrl.match(/\/storage\/v1\/object\/public\/shop-media\/([^?#]+)$/);
+      const oldPath = match?.[1];
+      // Nur löschen, wenn Path wirklich mit diesem Shop-Ordner beginnt (kein Traversal).
+      if (oldPath && oldPath.startsWith(`${shopId}/`) && !oldPath.includes("..")) {
+        await admin.storage.from("shop-media").remove([oldPath]);
       }
     } catch {
       /* ignore */

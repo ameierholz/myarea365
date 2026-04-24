@@ -9,8 +9,30 @@ import { HeroMap } from "@/components/hero-map-client";
 import { openLegalModal } from "@/components/legal-modal";
 
 const FACTIONS = [
-  { id: "syndicate", name: "Nachtpuls",    icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus · Stille Siege" },
-  { id: "vanguard",  name: "Sonnenwacht",  icon: "☀️", color: "#FF6B4A", motto: "Mut · Tempo · Offene Wege" },
+  {
+    id: "kronenwacht",
+    name: "Kronenwacht",
+    icon: "👑",
+    color: "#FFD700",
+    motto: "Halten · Pflegen · Bewahren",
+    buff_name: "Beständig",
+    buff_lines: [
+      "Bonus-Wegemünzen für lange gehaltene Straßen",
+      "Deine Gebiete verblassen langsamer",
+    ],
+  },
+  {
+    id: "gossenbund",
+    name: "Gossenbund",
+    icon: "🗝️",
+    color: "#22D1C3",
+    motto: "Erobern · Vorstoßen · Jagd",
+    buff_name: "Raubzug",
+    buff_lines: [
+      "Bonus-Wegemünzen beim Erobern neuer Straßen",
+      "Übermalst gegnerische Straßen schneller",
+    ],
+  },
 ] as const;
 
 export default function RegisterPage() {
@@ -19,7 +41,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [heimatPlz, setHeimatPlz] = useState("");
-  const [faction, setFaction] = useState<"syndicate" | "vanguard" | null>(null);
+  const [faction, setFaction] = useState<"kronenwacht" | "gossenbund" | null>(null);
   const [newsletter, setNewsletter] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -203,7 +225,16 @@ export default function RegisterPage() {
                           <span className="text-xl">{f.icon}</span>
                           <span className="font-bold" style={{ color: active ? f.color : undefined }}>{f.name}</span>
                         </div>
-                        <div className="text-[11px] text-text-muted leading-tight">{f.motto}</div>
+                        <div className="text-[11px] text-text-muted leading-tight mb-2">{f.motto}</div>
+                        <div className="text-[11px] font-bold mb-1" style={{ color: f.color }}>⚡ {f.buff_name}</div>
+                        <ul className="text-[10px] text-text-muted leading-snug space-y-0.5 list-none">
+                          {f.buff_lines.map((line) => (
+                            <li key={line} className="flex items-start gap-1">
+                              <span style={{ color: f.color }}>+</span>
+                              <span>{line}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </button>
                     );
                   })}

@@ -44,30 +44,41 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    // Bei verzögerten Zahlarten (SEPA, Banküberweisung, ACH) ist payment_status
+    // hier "unpaid" oder "no_payment_required". Erst async_payment_succeeded aktiviert.
+    if (session.payment_status !== "paid") {
+      if (session.metadata?.type === "stand_order") {
+        await admin().from("shop_stand_orders").update({ status: "pending_payment" })
+          .eq("stripe_session_id", session.id);
+      } else {
+        await admin().from("purchases").update({ status: "pending_payment" })
+          .eq("stripe_session_id", session.id);
+      }
+      return NextResponse.json({ received: true, pending_payment: true });
+    }
+    const result = await activateFromSession(session);
+    if (result) return result;
+  }
 
-    // Acryl-Aufsteller-Bestellung (eigener Flow, kein SKU aus monetization.ts)
+  if (event.type === "checkout.session.async_payment_succeeded") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const result = await activateFromSession(session);
+    if (result) return result;
+  }
+
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object as Stripe.Checkout.Session;
     if (session.metadata?.type === "stand_order") {
       await admin().from("shop_stand_orders").update({
-        status: "paid",
-        paid_at: new Date().toISOString(),
+        status: "payment_failed",
       }).eq("stripe_session_id", session.id);
-      return NextResponse.json({ received: true, stand_order: true });
+    } else {
+      await admin().from("purchases").update({
+        status: "failed",
+        failed_at: new Date().toISOString(),
+      }).eq("stripe_session_id", session.id);
     }
-
-    const sku = session.metadata?.sku;
-    const userId = session.metadata?.user_id;
-    const crewId = session.metadata?.crew_id || null;
-    const businessId = session.metadata?.business_id || null;
-    if (!sku || !userId) return NextResponse.json({ received: true });
-
-    // Purchase auf completed setzen
-    await admin().from("purchases").update({
-      status: "completed",
-      applied_at: new Date().toISOString(),
-      stripe_payment_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
-    }).eq("stripe_session_id", session.id);
-
-    await applyPurchaseEffect(sku, userId, crewId, businessId);
+    return NextResponse.json({ received: true, payment_failed: true });
   }
 
   if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
@@ -93,6 +104,32 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+async function activateFromSession(session: Stripe.Checkout.Session): Promise<NextResponse | null> {
+  // Acryl-Aufsteller-Bestellung (eigener Flow)
+  if (session.metadata?.type === "stand_order") {
+    await admin().from("shop_stand_orders").update({
+      status: "paid",
+      paid_at: new Date().toISOString(),
+    }).eq("stripe_session_id", session.id);
+    return NextResponse.json({ received: true, stand_order: true });
+  }
+
+  const sku = session.metadata?.sku;
+  const userId = session.metadata?.user_id;
+  const crewId = session.metadata?.crew_id || null;
+  const businessId = session.metadata?.business_id || null;
+  if (!sku || !userId) return NextResponse.json({ received: true });
+
+  await admin().from("purchases").update({
+    status: "completed",
+    applied_at: new Date().toISOString(),
+    stripe_payment_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
+  }).eq("stripe_session_id", session.id);
+
+  await applyPurchaseEffect(sku, userId, crewId, businessId);
+  return null;
 }
 
 async function applyPurchaseEffect(sku: string, userId: string, crewId: string | null, businessId: string | null = null) {

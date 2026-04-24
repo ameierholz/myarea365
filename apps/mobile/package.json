@@ -1,0 +1,31 @@
+{
+  "name": "@myarea365/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MyArea365 Capacitor-basierte Android-App (Remote-WebView auf myarea365.de)",
+  "scripts": {
+    "cap": "cap",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "cap:run": "cap run android",
+    "cap:add:android": "cap add android",
+    "android:build": "cd android && gradlew assembleDebug",
+    "android:release": "cd android && gradlew bundleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/browser": "^6",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/geolocation": "^6.1.0",
+    "@capacitor/preferences": "^6.0.3",
+    "@capacitor/splash-screen": "^6.0.3",
+    "@capacitor/status-bar": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0",
+    "sharp": "^0.34.5",
+    "typescript": "^5"
+  }
+}

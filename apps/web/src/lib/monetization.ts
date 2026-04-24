@@ -277,7 +277,7 @@ export const GUARDIAN_ITEMS = {
 // ── Ad-Rewards ────────────────────────────────────────
 
 export const AD_REWARDS = {
-  post_walk:    { xp: 100, cooldown_min: 720, label: "Lauf-Bonus",            description: "+100 XP für 30 Sek Video" },
+  post_walk:    { xp: 100, cooldown_min: 720, label: "Lauf-Bonus",            description: "+100 🪙 Wegemünzen für 30 Sek Video" },
   boost_24h:    { xp: 0,   cooldown_min: 1440, label: "24h Doppel-XP",         description: "Kurzes Video für 24h 2× XP" },
   double_xp:    { xp: 0,   cooldown_min: 360, label: "15 Min Doppel-XP",       description: "Direkt-Boost für nächsten Lauf" },
   streak_save:  { xp: 0,   cooldown_min: 720, label: "Streak retten",          description: "Verpasster Tag einmalig verzeihen" },

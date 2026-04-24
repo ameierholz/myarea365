@@ -19,6 +19,8 @@ import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
+import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
+import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
@@ -193,6 +195,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
   const [victoryTrigger, setVictoryTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>("profil");
+  const [rankingInitialMode, setRankingInitialMode] = useState<RankingMode | undefined>(undefined);
   // In-App-Routing: Mapbox-Direction zu Shop, gerendert auf der Karte
   const [routingRoute, setRoutingRoute] = useState<ActiveRoute | null>(null);
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
@@ -325,6 +328,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [shadowEnabled, setShadowEnabled] = useState(false);
 
   // 3-Ebenen-Modell: DB-geladene Layer fuer Karte
+  // mapLayersVersion wird nach Walk-Save inkrementiert, damit der Loader re-fetcht.
+  const [mapLayersVersion, setMapLayersVersion] = useState(0);
   const [walkedSegments, setWalkedSegments] = useState<Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>>([]);
   const [claimedStreets, setClaimedStreets] = useState<Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean; intensity: number }>>([]);
   const [ownedTerritories, setOwnedTerritories] = useState<Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string; intensity: number }>>([]);
@@ -426,7 +431,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
     })();
     return () => { cancelled = true; };
-  }, [profile?.id, profile?.current_crew_id, supabase]);
+  }, [profile?.id, profile?.current_crew_id, supabase, mapLayersVersion]);
 
   // Load crew + territories
   useEffect(() => {
@@ -687,6 +692,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       });
       setSavedTerritories((prev) => [...prev, finalRoute]);
       if (territoryCountNew > 0) setTerritoryCount((c) => c + territoryCountNew);
+      // Map-Layer neu laden: /api/walk/segments hat serverseitig street_segments
+      // + streets_claimed + territory_polygons geschrieben — ohne Refetch würden
+      // diese bis zum nächsten Reload nicht auf der Lifemap erscheinen.
+      setMapLayersVersion((v) => v + 1);
 
       // Km-Meilenstein-Check (10/50/100 km gesamt) -> gibt Beschwoerungssteine
       try {
@@ -1323,6 +1332,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               myCrew={myCrew}
               setMyCrew={setMyCrew}
               setActiveTab={setActiveTab}
+              onOpenMmrRanking={() => { setRankingInitialMode("mmr"); setActiveTab("ranking"); }}
               onLogout={handleLogout}
               onSwitchToMap={() => setActiveTab("map")}
               distance={distance}
@@ -1347,7 +1357,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         {/* ══ RANKING TAB ══ */}
         {activeTab === "ranking" && (
           <div style={{ height: "100%", overflowY: "auto" }}>
-            <RankingTab profile={p} leaderboard={leaderboard} />
+            <RankingTab profile={p} leaderboard={leaderboard} initialMode={rankingInitialMode} />
           </div>
         )}
       </div>
@@ -1628,6 +1638,7 @@ function ProfilTab({
   myCrew,
   setMyCrew,
   setActiveTab,
+  onOpenMmrRanking,
   onLogout,
   onSwitchToMap,
   distance,
@@ -1648,6 +1659,7 @@ function ProfilTab({
   myCrew: Crew | null;
   setMyCrew: (c: Crew | null) => void;
   setActiveTab: (t: TabId) => void;
+  onOpenMmrRanking: () => void;
   onLogout: () => void;
   onSwitchToMap: () => void;
   distance: number;
@@ -1724,6 +1736,29 @@ function ProfilTab({
     siegel_count: number;
   };
   const [activeGuardian, setActiveGuardian] = useState<ActiveGuardian | null>(null);
+  const [teaserDetailOpen, setTeaserDetailOpen] = useState(false);
+  const [guardianGalleryData, setGuardianGalleryData] = useState<{
+    archetypes: import("@/lib/guardian").GuardianArchetype[];
+    owned: Array<{ id: string; archetype_id: string; level: number; is_active: boolean }>;
+    active_id: string | null;
+  } | null>(null);
+  const [guardianGalleryOpen, setGuardianGalleryOpen] = useState(false);
+
+  async function openGuardianGallery() {
+    try {
+      const res = await fetch("/api/guardian/my-collection");
+      if (!res.ok) { alert("Konnte Wächter-Sammlung nicht laden"); return; }
+      const j = await res.json() as {
+        owned: Array<{ id: string; archetype_id: string; level: number; is_active: boolean }>;
+        archetypes: import("@/lib/guardian").GuardianArchetype[];
+        active_id: string | null;
+      };
+      setGuardianGalleryData(j);
+      setGuardianGalleryOpen(true);
+    } catch {
+      alert("Netzwerkfehler beim Laden der Sammlung");
+    }
+  }
   useEffect(() => {
     if (!p?.id) return;
     let cancelled = false;
@@ -2079,7 +2114,7 @@ function ProfilTab({
         {/* ═══ AKTIVER WÄCHTER — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
         {activeGuardian && activeGuardian.archetype && (
           <button
-            onClick={() => setOpenModal("arena")}
+            onClick={() => setTeaserDetailOpen(true)}
             style={{
               marginTop: 12, width: "100%", padding: 14, borderRadius: 16,
               background: "linear-gradient(135deg, rgba(255,45,120,0.10) 0%, rgba(168,85,247,0.10) 50%, rgba(34,209,195,0.10) 100%)",
@@ -2088,7 +2123,7 @@ function ProfilTab({
               cursor: "pointer", textAlign: "left",
               boxShadow: "0 2px 16px rgba(255,45,120,0.15)",
             }}
-            aria-label="Zur Arena"
+            aria-label="Wächter-Details öffnen"
           >
             {/* Portrait — bunter Gradient damit chroma-keyed Wächter pop'pt */}
             {(() => {
@@ -2145,8 +2180,8 @@ function ProfilTab({
               display: "inline-flex", alignItems: "center", gap: 6,
               whiteSpace: "nowrap",
             }}>
-              <span>⚔️</span>
-              <span>Kampfarena betreten</span>
+              <span>🛡️</span>
+              <span>Details</span>
               <span style={{ fontSize: 14 }}>›</span>
             </span>
           </button>
@@ -2816,6 +2851,41 @@ function ProfilTab({
             🪙 Wegemünzen schalten neue Ränge, Map-Icons und Runner Lights frei. Boost-Multiplikatoren wirken auf ALLE Wegemünzen-Quellen gleichzeitig — Gebietsruf und Sessionehre bleiben davon unberührt.
           </div>
         </Modal>
+      )}
+
+      {teaserDetailOpen && activeGuardian?.id && (
+        <GuardianDetailModal
+          guardianId={activeGuardian.id}
+          onClose={() => setTeaserDetailOpen(false)}
+          onArena={() => { setTeaserDetailOpen(false); setOpenModal("arena"); }}
+          onSwitch={() => { setTeaserDetailOpen(false); void openGuardianGallery(); }}
+          onOpenRanking={() => { setTeaserDetailOpen(false); onOpenMmrRanking(); }}
+        />
+      )}
+
+      {guardianGalleryOpen && guardianGalleryData && (
+        <GuardianGalleryModal
+          archetypes={guardianGalleryData.archetypes}
+          ownedIds={new Set(guardianGalleryData.owned.map((g) => g.archetype_id))}
+          ownedGuardians={guardianGalleryData.owned}
+          activeArchetypeId={guardianGalleryData.active_id}
+          onClose={() => setGuardianGalleryOpen(false)}
+          onActivate={async (archetypeId) => {
+            const g = guardianGalleryData.owned.find((x) => x.archetype_id === archetypeId);
+            if (!g) return;
+            const res = await fetch("/api/guardian/my-collection", {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ action: "activate", guardian_id: g.id }),
+            });
+            if (!res.ok) {
+              const j = await res.json().catch(() => ({}));
+              alert(`Aktivierung fehlgeschlagen: ${j.error ?? res.status}`);
+              return;
+            }
+            setGuardianGalleryOpen(false);
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );
@@ -10782,7 +10852,7 @@ function ShopsPartnerView() {
  * RANKING TAB (1:1 alte App)
  * ═══════════════════════════════════════════════════════ */
 
-type RankingMode = "runners" | "crews" | "factions" | "guardians" | "arena";
+type RankingMode = "runners" | "crews" | "factions" | "guardians" | "arena" | "mmr";
 type RankingSortRunner = "weekly_xp" | "weekly_km" | "total_xp";
 type RankingSortCrew = "weekly_km" | "member_count";
 
@@ -10957,8 +11027,8 @@ function FactionDuelView({ items, buckets, scopeLabel }: {
   );
 }
 
-function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; leaderboard: Profile[] }) {
-  const [mode, setMode] = useState<RankingMode>("runners");
+function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile | null; leaderboard: Profile[]; initialMode?: RankingMode }) {
+  const [mode, setMode] = useState<RankingMode>(initialMode ?? "runners");
   const [filters, setFilters] = useState<Partial<Record<GeoLevel, string>>>({});
   const [search, setSearch] = useState("");
   const [leagueFilter, setLeagueFilter] = useState<string | null>(null);
@@ -11094,6 +11164,7 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           { id: "factions",  label: "⚔️ Fraktionen" },
           { id: "guardians", label: "🛡️ Wächter" },
           { id: "arena",     label: "🏟️ Arena" },
+          { id: "mmr",       label: "🎯 MMR" },
         ] as const).map((m) => {
           const active = mode === m.id;
           return (
@@ -11349,6 +11420,9 @@ function RankingTab({ profile: p, leaderboard }: { profile: Profile | null; lead
           )}
           {mode === "arena" && (
             <ArenaLeaderboardView />
+          )}
+          {mode === "mmr" && (
+            <MmrLeaderboardView />
           )}
         </main>
       </div>
@@ -11932,6 +12006,128 @@ const DEMO_ARENA_ROWS: ArenaHonorRow[] = [
   { user_id: "d14",username: "onyx",     display_name: "Onyx",     level: 34, faction: "syndicate", country: "Deutschland",     guardian_type: "cavalry",  guardian_emoji: "⚔️", crew_name: "Kreuzberg Wölfe",      crew_color: "#22D1C3", wins:  71, losses: 52, streak:  0, honor:  24_140 },
   { user_id: "d15",username: "vex",      display_name: "Vex",      level: 32, faction: "vanguard",  country: "Frankreich",      guardian_type: "infantry", guardian_emoji: "🛡️", crew_name: null,                   crew_color: null,      wins:  64, losses: 41, streak:  1, honor:  20_480 },
 ];
+
+type MmrEntry = {
+  rank: number;
+  user_id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  faction: string | null;
+  team_color: string | null;
+  supporter_tier: string | null;
+  mmr: number;
+  games: number;
+  wins: number;
+  losses: number;
+  win_rate: number;
+  peak_mmr: number;
+  tier: MmrTier;
+};
+
+function MmrLeaderboardView() {
+  const [entries, setEntries] = useState<MmrEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/runner/mmr/leaderboard?limit=100");
+        if (!res.ok) { setError("Leaderboard konnte nicht geladen werden"); return; }
+        const j = await res.json() as { entries: MmrEntry[] };
+        setEntries(j.entries);
+      } catch {
+        setError("Netzwerkfehler");
+      }
+    })();
+  }, []);
+
+  return (
+    <div>
+      {/* Tier-Ladder */}
+      <details style={{ marginBottom: 12 }}>
+        <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 11, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "8px 12px", background: "rgba(30,38,60,0.55)", borderRadius: 10, border: `1px solid ${BORDER}` }}>
+          ▸ Rang-System (Elo-basiert)
+        </summary>
+        <div style={{ marginTop: 8, padding: 12, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 4 }}>
+          {MMR_TIERS.map((t) => {
+            const next = MMR_TIERS.find((x) => x.minMmr > t.minMmr);
+            const range = next ? `${t.minMmr}–${next.minMmr - 1}` : `${t.minMmr}+`;
+            return (
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderRadius: 8, background: `${t.color}11`, border: `1px solid ${t.color}33` }}>
+                <span style={{ fontSize: 16 }}>{t.icon}</span>
+                <span style={{ color: t.color, fontSize: 12, fontWeight: 900, flex: 1 }}>{t.label}</span>
+                <span style={{ color: "#8B8FA3", fontSize: 11, fontFamily: "monospace" }}>{range} MMR</span>
+              </div>
+            );
+          })}
+          <div style={{ marginTop: 6, fontSize: 10, color: "#8B8FA3", lineHeight: 1.5 }}>
+            K-Faktor: 32 in den ersten 30 Kämpfen (Kalibrierung), 16 ab Meister (≥2000 MMR), sonst 24.
+            Nur Spieler mit mindestens einem Kampf erscheinen im Leaderboard.
+          </div>
+        </div>
+      </details>
+
+      {error && <div style={{ color: "#FF2D78", padding: 16, textAlign: "center" }}>{error}</div>}
+      {!entries && !error && (
+        <div style={{ color: "#8B8FA3", padding: 16, textAlign: "center" }}>Lade Leaderboard …</div>
+      )}
+      {entries && entries.length === 0 && (
+        <div style={{ color: "#8B8FA3", padding: 24, textAlign: "center", fontSize: 13, lineHeight: 1.6 }}>
+          Noch keine gewerteten Kämpfe.<br/>Sei der Erste im Ranked-Modus!
+        </div>
+      )}
+      {entries && entries.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {entries.map((e) => {
+            const isTop3 = e.rank <= 3;
+            const rankColor = e.rank === 1 ? "#FFD700" : e.rank === 2 ? "#C0C0C0" : e.rank === 3 ? "#CD7F32" : "#8B8FA3";
+            return (
+              <div key={e.user_id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px", borderRadius: 12,
+                background: isTop3 ? `linear-gradient(90deg, ${e.tier.color}18, transparent 80%)` : "rgba(30,38,60,0.45)",
+                border: `1px solid ${isTop3 ? `${e.tier.color}66` : BORDER}`,
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 16, flexShrink: 0,
+                  background: `${rankColor}22`, border: `1px solid ${rankColor}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: rankColor, fontSize: 12, fontWeight: 900,
+                }}>#{e.rank}</div>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: e.avatar_url ? `url("${e.avatar_url}") center/cover` : `linear-gradient(135deg, ${e.team_color ?? "#22D1C3"}, ${e.team_color ?? "#22D1C3"}55)`,
+                  border: `1px solid ${e.team_color ?? "rgba(255,255,255,0.1)"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+                }}>{!e.avatar_url && "👣"}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {e.display_name ?? e.username ?? "Runner"}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, fontSize: 10, color: "#8B8FA3" }}>
+                    <span style={{ color: e.tier.color, fontWeight: 900 }}>{e.tier.icon} {e.tier.label}</span>
+                    <span>·</span>
+                    <span style={{ color: "#4ade80" }}>{e.wins}W</span>
+                    <span style={{ color: "#FF2D78" }}>{e.losses}L</span>
+                    <span>·</span>
+                    <span>{e.win_rate}% WR</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, lineHeight: 1 }}>{e.mmr}</div>
+                  <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 2 }}>
+                    PEAK <span style={{ color: "#FFD700", fontWeight: 800 }}>{e.peak_mmr}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const ARENA_TYPE_META: Record<string, { label: string; icon: string; color: string }> = {
   infantry: { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },

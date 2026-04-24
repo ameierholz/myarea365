@@ -8,11 +8,16 @@ export default async function SystemPage() {
   const { data: flags } = await sb.from("feature_flags").select("*").eq("key", "maintenance_mode").maybeSingle();
   const maintenance = !!flags?.enabled;
 
+  // Nur Booleans serialisieren — niemals Werte. Seite ist durch requireStaff() geschützt.
   const envChecks = [
     { key: "NEXT_PUBLIC_SUPABASE_URL", label: "Supabase URL", ok: !!process.env.NEXT_PUBLIC_SUPABASE_URL },
     { key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", label: "Supabase Anon", ok: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY },
     { key: "SUPABASE_SERVICE_ROLE_KEY", label: "Service Role", ok: !!process.env.SUPABASE_SERVICE_ROLE_KEY },
     { key: "NEXT_PUBLIC_MAPBOX_TOKEN", label: "Mapbox Token", ok: !!process.env.NEXT_PUBLIC_MAPBOX_TOKEN },
+    { key: "STRIPE_SECRET_KEY", label: "Stripe Secret", ok: !!process.env.STRIPE_SECRET_KEY },
+    { key: "RESEND_API_KEY", label: "Resend API", ok: !!process.env.RESEND_API_KEY },
+    { key: "UPSTASH_REDIS_REST_URL", label: "Upstash Redis", ok: !!process.env.UPSTASH_REDIS_REST_URL },
+    { key: "CRON_SECRET", label: "Cron Secret", ok: !!process.env.CRON_SECRET },
   ];
 
   const [{ count: totalUsers }, { count: totalWalks }, { count: totalTerritories }] = await Promise.all([

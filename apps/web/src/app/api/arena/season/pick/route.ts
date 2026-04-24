@@ -21,7 +21,7 @@ export async function GET() {
   const ownedIds = Array.from(new Set((owned ?? []).map((r: { archetype_id: string }) => r.archetype_id)));
 
   const { data: archetypes } = await sb.from("guardian_archetypes")
-    .select("id, name, emoji, rarity, guardian_type, role, ability_name, ability_desc");
+    .select("id, name, emoji, image_url, video_url, rarity, guardian_type, role, ability_name, ability_desc");
 
   const all = archetypes ?? [];
   const list = ownedIds.length > 0

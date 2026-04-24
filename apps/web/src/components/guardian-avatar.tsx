@@ -179,10 +179,12 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           .anim-ko   video { animation: ko-fall 0.9s forwards; }
           .anim-revive video { animation: revive-rise 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
           @keyframes aura-pulse   { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.12); } }
-          @keyframes crit-zoom    { 0%,100% { transform: scale(1); } 40% { transform: scale(1.22); filter: brightness(1.7) drop-shadow(0 0 25px #FFD700); } }
-          @keyframes hit-shake    { 0% { transform: translateX(0); } 20% { transform: translateX(-6px); filter: brightness(0.6) saturate(3) hue-rotate(-30deg); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
-          @keyframes ko-fall      { 0% { transform: rotate(0) translateY(0); opacity: 1; } 60% { transform: rotate(85deg) translateY(20px); opacity: 0.9; } 100% { transform: rotate(95deg) translateY(25px); opacity: 0.35; } }
-          @keyframes revive-rise  { 0% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: saturate(0); } 100% { transform: rotate(0) translateY(0); opacity: 1; filter: saturate(1) drop-shadow(0 0 20px #FFD700); } }
+          /* Wichtig: url(#ma365-chroma-black) MUSS in jedem Keyframe mit filter-Eigenschaft enthalten sein,
+             sonst wird der Green-Screen während der Animation sichtbar. */
+          @keyframes crit-zoom    { 0%,100% { transform: scale(1); filter: url(#ma365-chroma-black); } 40% { transform: scale(1.22); filter: url(#ma365-chroma-black) brightness(1.7) drop-shadow(0 0 25px #FFD700); } }
+          @keyframes hit-shake    { 0% { transform: translateX(0); filter: url(#ma365-chroma-black); } 20% { transform: translateX(-6px); filter: url(#ma365-chroma-black) brightness(0.6) saturate(3) hue-rotate(-30deg); } 40% { transform: translateX(6px); filter: url(#ma365-chroma-black); } 60% { transform: translateX(-4px); filter: url(#ma365-chroma-black); } 100% { transform: translateX(0); filter: url(#ma365-chroma-black); } }
+          @keyframes ko-fall      { 0% { transform: rotate(0) translateY(0); opacity: 1; filter: url(#ma365-chroma-black); } 60% { transform: rotate(85deg) translateY(20px); opacity: 0.9; filter: url(#ma365-chroma-black); } 100% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: url(#ma365-chroma-black) grayscale(0.7) brightness(0.6); } }
+          @keyframes revive-rise  { 0% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: url(#ma365-chroma-black) saturate(0); } 100% { transform: rotate(0) translateY(0); opacity: 1; filter: url(#ma365-chroma-black) saturate(1) drop-shadow(0 0 20px #FFD700); } }
         `}</style>
       </div>
     );
@@ -219,7 +221,10 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
             width: "100%", height: "100%",
             objectFit: fillMode,
             transform: flip,
-            filter: animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "none",
+            filter: [
+              archetype.image_url ? "url(#ma365-chroma-black)" : "",
+              animation === "ko" ? "grayscale(0.7) brightness(0.6)" : "",
+            ].filter(Boolean).join(" ") || "none",
           }}
         />
         <style jsx>{`
@@ -232,14 +237,16 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
           .anim-ko img      { animation: ko-fall 0.9s forwards; }
           .anim-revive img  { animation: revive-rise 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
           .aura-ring        { animation: aura-pulse 2.6s ease-in-out infinite; }
+          /* filter-Werte in Keyframes MÜSSEN url(#ma365-chroma-black) mitschleppen,
+             sonst wird während Hit/Crit der grüne Hintergrund kurz sichtbar. */
           @keyframes breathe      { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-2px) scaleY(1.01); } }
           @keyframes lunge        { 0%,100% { transform: translateX(0); } 40% { transform: translateX(28px) rotate(-4deg); } 60% { transform: translateX(20px); } }
-          @keyframes hit-shake    { 0% { transform: translateX(0); filter: none; } 20% { transform: translateX(-6px); filter: brightness(0.6) saturate(3) hue-rotate(-30deg); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 100% { transform: translateX(0); filter: none; } }
-          @keyframes crit-zoom    { 0%,100% { transform: scale(1); } 40% { transform: scale(1.22); filter: brightness(1.7) drop-shadow(0 0 25px #FFD700); } }
+          @keyframes hit-shake    { 0% { transform: translateX(0); filter: url(#ma365-chroma-black); } 20% { transform: translateX(-6px); filter: url(#ma365-chroma-black) brightness(0.6) saturate(3) hue-rotate(-30deg); } 40% { transform: translateX(6px); filter: url(#ma365-chroma-black); } 60% { transform: translateX(-4px); filter: url(#ma365-chroma-black); } 100% { transform: translateX(0); filter: url(#ma365-chroma-black); } }
+          @keyframes crit-zoom    { 0%,100% { transform: scale(1); filter: url(#ma365-chroma-black); } 40% { transform: scale(1.22); filter: url(#ma365-chroma-black) brightness(1.7) drop-shadow(0 0 25px #FFD700); } }
           @keyframes evade-slide  { 0% { transform: translateX(0); opacity: 1; } 40% { transform: translateX(-22px) scaleX(0.85); opacity: 0.5; } 100% { transform: translateX(0); opacity: 1; } }
-          @keyframes special-rise { 0% { transform: translateY(0) scale(1); } 45% { transform: translateY(-12px) scale(1.1); filter: drop-shadow(0 0 30px currentColor); } 100% { transform: translateY(0) scale(1); } }
-          @keyframes ko-fall      { 0% { transform: rotate(0) translateY(0); opacity: 1; } 60% { transform: rotate(85deg) translateY(20px); opacity: 0.9; } 100% { transform: rotate(95deg) translateY(25px); opacity: 0.35; } }
-          @keyframes revive-rise  { 0% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: saturate(0); } 100% { transform: rotate(0) translateY(0); opacity: 1; filter: saturate(1) drop-shadow(0 0 20px #FFD700); } }
+          @keyframes special-rise { 0% { transform: translateY(0) scale(1); filter: url(#ma365-chroma-black); } 45% { transform: translateY(-12px) scale(1.1); filter: url(#ma365-chroma-black) drop-shadow(0 0 30px currentColor); } 100% { transform: translateY(0) scale(1); filter: url(#ma365-chroma-black); } }
+          @keyframes ko-fall      { 0% { transform: rotate(0) translateY(0); opacity: 1; filter: url(#ma365-chroma-black); } 60% { transform: rotate(85deg) translateY(20px); opacity: 0.9; filter: url(#ma365-chroma-black); } 100% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: url(#ma365-chroma-black) grayscale(0.7) brightness(0.6); } }
+          @keyframes revive-rise  { 0% { transform: rotate(95deg) translateY(25px); opacity: 0.35; filter: url(#ma365-chroma-black) saturate(0); } 100% { transform: rotate(0) translateY(0); opacity: 1; filter: url(#ma365-chroma-black) saturate(1) drop-shadow(0 0 20px #FFD700); } }
           @keyframes aura-pulse   { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.12); } }
         `}</style>
       </div>

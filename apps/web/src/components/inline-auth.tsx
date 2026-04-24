@@ -10,8 +10,30 @@ import { isCapacitorNative, APP_AUTH_CALLBACK } from "@/lib/capacitor";
 import { openLegalModal } from "@/components/legal-modal";
 
 const FACTIONS = [
-  { id: "syndicate", name: "Nachtpuls",   icon: "🌙", color: "#22D1C3", motto: "Strategie · Rhythmus" },
-  { id: "vanguard",  name: "Sonnenwacht", icon: "☀️", color: "#FF6B4A", motto: "Mut · Tempo" },
+  {
+    id: "kronenwacht",
+    name: "Kronenwacht",
+    icon: "👑",
+    color: "#FFD700",
+    motto: "Halten · Pflegen",
+    buff_name: "Beständig",
+    buff_lines: [
+      "Bonus-Wegemünzen für lange gehaltene Straßen",
+      "Deine Gebiete verblassen langsamer",
+    ],
+  },
+  {
+    id: "gossenbund",
+    name: "Gossenbund",
+    icon: "🗝️",
+    color: "#22D1C3",
+    motto: "Erobern · Vorstoßen",
+    buff_name: "Raubzug",
+    buff_lines: [
+      "Bonus-Wegemünzen beim Erobern neuer Straßen",
+      "Übermalst gegnerische Straßen schneller",
+    ],
+  },
 ] as const;
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -32,7 +54,7 @@ export function InlineAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [heimatPlz, setHeimatPlz] = useState("");
-  const [faction, setFaction] = useState<"syndicate" | "vanguard" | null>(null);
+  const [faction, setFaction] = useState<"kronenwacht" | "gossenbund" | null>(null);
   const [newsletter, setNewsletter] = useState(false); // DSGVO: Opt-in, nicht vorausgewählt
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [showFactionInfo, setShowFactionInfo] = useState(false);
@@ -208,7 +230,7 @@ export function InlineAuth() {
                   return (
                     <button
                       key={f.id} type="button" onClick={() => setFaction(f.id)}
-                      className={`p-2.5 rounded-lg border text-left transition-all backdrop-blur-sm ${active ? "border-transparent" : "border-border hover:border-primary/30 bg-bg-elevated/60"}`}
+                      className={`p-3 rounded-lg border text-left transition-all backdrop-blur-sm ${active ? "border-transparent" : "border-border hover:border-primary/30 bg-bg-elevated/60"}`}
                       style={{
                         background: active ? `${f.color}22` : undefined,
                         borderColor: active ? f.color : undefined,
@@ -219,7 +241,16 @@ export function InlineAuth() {
                         <span className="text-base">{f.icon}</span>
                         <span className="font-bold text-xs" style={{ color: active ? f.color : undefined }}>{f.name}</span>
                       </div>
-                      <div className="text-[10px] text-text-muted">{f.motto}</div>
+                      <div className="text-[10px] text-text-muted mb-2">{f.motto}</div>
+                      <div className="text-[10px] font-bold mb-1" style={{ color: f.color }}>⚡ {f.buff_name}</div>
+                      <ul className="text-[10px] text-text-muted leading-snug space-y-0.5 list-none">
+                        {f.buff_lines.map((line) => (
+                          <li key={line} className="flex items-start gap-1">
+                            <span style={{ color: f.color }}>+</span>
+                            <span>{line}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </button>
                   );
                 })}

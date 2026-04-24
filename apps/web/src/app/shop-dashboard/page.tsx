@@ -385,10 +385,10 @@ function OverviewTab() {
             onClick={() => openShop("boosts")}
           />
           <HeroAction
-            icon="📡"
-            title="Radius-Boost 7 Tage"
-            subtitle="Sichtbar im 5 km statt 500 m Umkreis"
-            price="49 €"
+            icon="🎉"
+            title="Event hosten"
+            subtitle="Lauf-Event bei dir · Pin + Teilnehmerliste"
+            price="59 €"
             color="#FFD700"
             onClick={() => openShop("boosts")}
           />
@@ -489,10 +489,10 @@ function OverviewTab() {
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10,
         }}>
-          <QuickAction icon="🎁" title="Neuen Deal anlegen"      desc="Rabatt, Gratis-Artikel, Upgrade"        accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
-          <QuickAction icon="📢" title="Social-Post erstellen"   desc="Fertige IG/TikTok-Grafik · 9,90 €/Mo"   accent="#a855f7" onClick={() => openShop("marketing")} />
-          <QuickAction icon="📊" title="Analytics-Pro"            desc="Heatmap · Demografie · 39 €/Mo"         accent="#5ddaf0" onClick={() => openShop("analytics")} />
-          <QuickAction icon="🎪" title="Event veranstalten"       desc="Lauf-Event mit Teilnehmer-Liste · 59 €" accent="#4ade80" onClick={() => openShop("boosts")} />
+          <QuickAction icon="🎁" title="Neuen Deal anlegen"      desc="Rabatt, Gratis-Artikel, Upgrade"           accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
+          <QuickAction icon="⚡" title="Flash-Push starten"       desc="30-Min Push an Runner im 1 km · 9 €"      accent="#22D1C3" onClick={() => openShop("boosts")} />
+          <QuickAction icon="⭐" title="Spotlight buchen"         desc="Gold-Pin + Pulse · 3 Tage · 19 €"         accent="#FF2D78" onClick={() => openShop("boosts")} />
+          <QuickAction icon="🎪" title="Event veranstalten"       desc="Lauf-Event mit Teilnehmer-Liste · 59 €"   accent="#4ade80" onClick={() => openShop("boosts")} />
         </div>
       </div>
       {showShop && (

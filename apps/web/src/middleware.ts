@@ -1,10 +1,23 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { assertSameOrigin } from "@/lib/csrf";
 
 const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/impressum", "/agb", "/shop-dashboard", "/unsubscribe", "/leaderboard", "/pricing"];
 const PUBLIC_PREFIXES = ["/u/", "/crew/", "/api/share-card/"];
 
+// API-Pfade die CSRF-frei sind: Stripe-Webhook (eigene Signatur), Cron (CRON_SECRET).
+const CSRF_SKIP_PREFIXES = ["/api/stripe/webhook", "/api/cron/", "/api/health"];
+
 export async function middleware(request: NextRequest) {
+  const pathname0 = request.nextUrl.pathname;
+  if (pathname0.startsWith("/api")) {
+    if (!CSRF_SKIP_PREFIXES.some((p) => pathname0.startsWith(p))) {
+      const bad = assertSameOrigin(request);
+      if (bad) return bad;
+    }
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -55,6 +68,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|images|fonts|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Seiten-Auth (api ausgenommen — Auth läuft pro Route)
+    "/((?!_next/static|_next/image|favicon.ico|images|fonts|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

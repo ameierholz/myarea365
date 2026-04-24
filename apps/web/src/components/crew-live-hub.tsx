@@ -14,16 +14,14 @@ type Crew = {
 
 type Tab = "overview" | "war" | "season" | "flags" | "duel" | "challenges" | "events" | "chat" | "feed" | "shop" | "power";
 
+// Nur Pills, die NICHT in den Haupt-Crew-Tabs (map-dashboard.tsx) existieren —
+// Mitglieder/Challenges/Events/Chat/Feed werden dort schon abgebildet und wurden
+// hier entfernt, um die doppelte Tab-Reihe auf der Übersicht zu vermeiden.
 const TABS: Array<{ id: Tab; label: string; icon: string; color: string }> = [
-  { id: "overview",  label: "Mitglieder",  icon: "👥", color: "#22D1C3" },
   { id: "war",       label: "Krieg",       icon: "🔥", color: "#FF2D78" },
   { id: "season",    label: "Saison",      icon: "🏆", color: "#FFD700" },
   { id: "flags",     label: "Flaggen",     icon: "🚩", color: "#4ade80" },
   { id: "duel",      label: "Duell",       icon: "⚔️", color: "#FF6B4A" },
-  { id: "challenges",label: "Challenges",  icon: "🎯", color: "#FFD700" },
-  { id: "events",    label: "Events",      icon: "📅", color: "#4ade80" },
-  { id: "chat",      label: "Chat",        icon: "💬", color: "#5ddaf0" },
-  { id: "feed",      label: "Feed",        icon: "📜", color: "#a855f7" },
   { id: "shop",      label: "Shop",        icon: "💎", color: "#FF6B4A" },
   { id: "power",     label: "Power",       icon: "⚡", color: "#FFD700" },
 ];
@@ -33,7 +31,7 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
   userId: string;
   isAdmin: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("war");
   return (
     <div style={{
       background: "rgba(30,38,60,0.55)",
@@ -74,15 +72,10 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
         })}
       </div>
 
-      {tab === "overview"   && <MembersPanel crew={crew} />}
       {tab === "war"        && <WarPanel     crew={crew} isAdmin={isAdmin} />}
       {tab === "season"     && <SeasonPanel  crew={crew} />}
       {tab === "flags"      && <FlagsPanel   crew={crew} userId={userId} />}
       {tab === "duel"       && <DuelPanel    crew={crew} />}
-      {tab === "challenges" && <ChallengesPanel crew={crew} isAdmin={isAdmin} />}
-      {tab === "events"     && <EventsPanel  crew={crew} userId={userId} />}
-      {tab === "chat"       && <ChatPanel    crew={crew} userId={userId} />}
-      {tab === "feed"       && <FeedPanel    crew={crew} />}
       {tab === "shop"       && <ShopPanel    crew={crew} userId={userId} isAdmin={isAdmin} />}
       {tab === "power"      && <PowerPanel   crew={crew} userId={userId} isAdmin={isAdmin} />}
     </div>

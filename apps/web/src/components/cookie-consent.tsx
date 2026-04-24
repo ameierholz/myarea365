@@ -41,8 +41,11 @@ export function CookieConsent() {
   function save(next: ConsentState) {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
     setState(next);
-    // Reload einmalig, damit Third-Party-Scripts ggf. laden können.
-    if (next.ads || next.analytics) window.location.reload();
+    // Dispatch Custom-Event statt Full-Reload; Third-Party-Scripts können darauf hören
+    // und sich lazy initialisieren, ohne Form-State zu verlieren.
+    try {
+      window.dispatchEvent(new CustomEvent("ma365:consent-change", { detail: next }));
+    } catch {}
   }
 
   function acceptAll() {

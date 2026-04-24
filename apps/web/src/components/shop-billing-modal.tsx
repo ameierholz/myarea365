@@ -191,12 +191,21 @@ export function ShopBillingModal({ defaultShopId, onClose }: {
                             </div>
                             <div style={{ textAlign: "right" }}>
                               <div style={{ fontSize: 13, fontWeight: 900 }}>{(p.amount_cents / 100).toFixed(2)} €</div>
-                              <div style={{ fontSize: 9, color: p.status === "paid" ? "#4ade80" : "#FF2D78" }}>
-                                {p.status === "paid" ? "✓ BEZAHLT" : p.status.toUpperCase()}
-                              </div>
+                              <StatusBadge status={p.status} />
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                    {purchases.some((p) => p.status === "pending_payment") && (
+                      <div style={{
+                        marginTop: 10, padding: "10px 12px", borderRadius: 10,
+                        background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)",
+                        fontSize: 11, color: "#FFD700", lineHeight: 1.45,
+                      }}>
+                        ⏳ <b>Zahlung wird verarbeitet</b> — SEPA-Lastschrift 2–5 Werktage,
+                        Banküberweisung bis zu 7 Werktage. Freischaltung erfolgt automatisch,
+                        sobald Stripe den Zahlungseingang bestätigt.
                       </div>
                     )}
                     <p style={{ fontSize: 10, color: "#8B8FA3", marginTop: 6 }}>
@@ -224,6 +233,20 @@ const INPUT: React.CSSProperties = {
   background: "#0F1115", border: "1px solid rgba(255,255,255,0.12)",
   color: "#F0F0F0", fontSize: 14, fontFamily: "inherit",
 };
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; color: string }> = {
+    paid:            { label: "✓ BEZAHLT",       color: "#4ade80" },
+    completed:       { label: "✓ ABGESCHLOSSEN", color: "#4ade80" },
+    pending_payment: { label: "⏳ ZAHLUNG LÄUFT", color: "#FFD700" },
+    pending:         { label: "… AUSSTEHEND",    color: "#8B8FA3" },
+    failed:          { label: "✕ FEHLGESCHLAGEN", color: "#FF2D78" },
+    payment_failed:  { label: "✕ FEHLGESCHLAGEN", color: "#FF2D78" },
+    refunded:        { label: "↺ ERSTATTET",     color: "#8B8FA3" },
+  };
+  const m = map[status] ?? { label: status.toUpperCase(), color: "#FF2D78" };
+  return <div style={{ fontSize: 9, color: m.color, fontWeight: 900, letterSpacing: 0.5 }}>{m.label}</div>;
+}
 
 function AddonChip({ label, active, sub }: { label: string; active: boolean; sub: string }) {
   return (
