@@ -21,6 +21,7 @@ import { GuardianCard } from "@/components/guardian-card";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
+import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
@@ -1637,6 +1638,7 @@ function ProfilTab({
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [showGemShop, setShowGemShop] = useState(false);
   const [showShopHub, setShowShopHub] = useState(false);
+  const [showShopDeals, setShowShopDeals] = useState(false);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
 
   // Aktiver Wächter für den Profil-Teaser-Block
@@ -1977,7 +1979,7 @@ function ProfilTab({
             { key: "deals",      icon: "🔥", label: "Deals",      color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
             { key: "crew",       icon: "👥", label: "Crew",       color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
             { key: "shop",       icon: "💎", label: "Shop",       color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
-            { key: "shop-deals", icon: "🏪", label: "Shop-Deals", color: "#4ade80", title: "🏪 Lokale Angebote: alle Shop-Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => { window.location.href = "/deals"; } },
+            { key: "shop-deals", icon: "🏪", label: "Shop-Deals", color: "#4ade80", title: "🏪 Lokale Angebote: alle Shop-Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => setShowShopDeals(true) },
             { key: "inbox",      icon: "📬", label: "Inbox",      color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
           ].map((a) => (
             <button key={a.key} onClick={a.onClick} title={a.title} style={{
@@ -2512,6 +2514,8 @@ function ProfilTab({
       {showShopHub && p && (
         <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} />
       )}
+
+      <ShopDealsModal open={showShopDeals} onClose={() => setShowShopDeals(false)} />
 
       {openModal === "onboarding" && (
         <OnboardingModal onClose={() => { markOnboardingSeen(); setOpenModal(null); }} />
