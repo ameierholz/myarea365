@@ -2061,7 +2061,19 @@ function ProfilTab({
                 </div>
               )}
             </div>
-            <span style={{ color: "#FF2D78", fontSize: 22, fontWeight: 900, flexShrink: 0 }}>›</span>
+            <span style={{
+              flexShrink: 0,
+              padding: "8px 14px", borderRadius: 10,
+              background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
+              color: "#FFF", fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
+              boxShadow: "0 0 14px rgba(255,45,120,0.45)",
+              display: "inline-flex", alignItems: "center", gap: 6,
+              whiteSpace: "nowrap",
+            }}>
+              <span>⚔️</span>
+              <span>Kampfarena betreten</span>
+              <span style={{ fontSize: 14 }}>›</span>
+            </span>
           </button>
         )}
 
