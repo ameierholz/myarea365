@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-type TabId = "runners" | "guardians" | "factions" | "crews" | "arena" | "arena-fights";
+type TabId = "runners" | "guardians" | "factions" | "crews" | "arena" | "arena-fights" | "kiez";
 
 const TABS: Array<{ id: TabId; label: string }> = [
   { id: "runners",       label: "🏃 Runner" },
@@ -12,6 +12,7 @@ const TABS: Array<{ id: TabId; label: string }> = [
   { id: "crews",         label: "👥 Crews" },
   { id: "arena-fights",  label: "⚔️ Arena" },
   { id: "arena",         label: "🏆 Area-Liga" },
+  { id: "kiez",          label: "👑 Kiez-Kronen" },
 ];
 
 export function LeaderboardTabs() {
@@ -37,6 +38,7 @@ export function LeaderboardTabs() {
       {tab === "crews"        && <CrewsTab />}
       {tab === "arena-fights" && <ArenaFightsTab />}
       {tab === "arena"        && <ArenaTab />}
+      {tab === "kiez"         && <KiezTab />}
     </div>
   );
 }
@@ -670,4 +672,159 @@ function Countdown({ endsAt }: { endsAt: string }) {
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   return <div className="text-xs text-[#FFD700] font-bold">⏳ Noch {d}d {h}h</div>;
+}
+
+/* ═════════════════ KIEZ-KRONEN ═════════════════ */
+
+type KiezKing = {
+  plz: string;
+  user_id: string;
+  display_name: string | null;
+  username: string | null;
+  heimat_plz: string | null;
+  total_km: number;
+  segments: number;
+  week_start: string;
+};
+
+type KiezRankingRow = {
+  rank: number;
+  user_id: string;
+  display_name: string | null;
+  username: string | null;
+  heimat_plz: string | null;
+  total_km: number;
+  segments: number;
+};
+
+function KiezTab() {
+  const [kings, setKings] = useState<KiezKing[] | null>(null);
+  const [selectedPlz, setSelectedPlz] = useState<string | null>(null);
+  const [ranking, setRanking] = useState<KiezRankingRow[] | null>(null);
+  const [weekStart, setWeekStart] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const r = await fetch("/api/leaderboard/kiez", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json();
+      setKings(j.kings ?? []);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPlz) { setRanking(null); return; }
+    (async () => {
+      const r = await fetch(`/api/leaderboard/kiez?plz=${selectedPlz}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json();
+      setRanking(j.ranking ?? []);
+      setWeekStart(j.week_start ?? null);
+    })();
+  }, [selectedPlz]);
+
+  if (kings === null) return <Empty text="Lade Kiez-Kronen…" />;
+
+  const filtered = filter
+    ? kings.filter((k) => k.plz.startsWith(filter) || (k.display_name ?? k.username ?? "").toLowerCase().includes(filter.toLowerCase()))
+    : kings;
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">👑</span>
+          <div className="flex-1">
+            <div className="font-bold text-[#FFD700]">Kiez-Kronen der Woche</div>
+            <div className="text-xs text-[#a8b4cf] mt-0.5 leading-relaxed">
+              Wer in einer PLZ von Montag bis Sonntag die meisten km gelaufen ist, trägt die Krone bis zum nächsten Montag.
+              PLZ wird automatisch aus deinen GPS-Tracks abgeleitet — nicht aus deiner Wohnadresse.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* PLZ-Filter */}
+      <div className="flex gap-2">
+        <input
+          type="text" inputMode="numeric" maxLength={5}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value.replace(/\D/g, "").slice(0, 5))}
+          placeholder="PLZ oder Name suchen…"
+          className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:border-[#22D1C3]/50"
+        />
+        {selectedPlz && (
+          <button onClick={() => setSelectedPlz(null)} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-[#a8b4cf] hover:text-white">
+            ← Zurück zur Übersicht
+          </button>
+        )}
+      </div>
+
+      {/* Detail-Ranking einer PLZ */}
+      {selectedPlz && ranking !== null && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 flex items-baseline justify-between">
+            <div>
+              <span className="text-sm font-bold">📍 {selectedPlz}</span>
+              <span className="text-[11px] text-[#8B8FA3] ml-2">laufende Woche (ab {weekStart ?? "—"})</span>
+            </div>
+            <span className="text-[10px] text-[#8B8FA3]">Top 10</span>
+          </div>
+          {ranking.length === 0 ? (
+            <Empty text="Noch keine Aktivität in dieser Woche. Lauf los — die Krone ist frei!" />
+          ) : (
+            <div className="divide-y divide-white/5">
+              {ranking.map((row) => {
+                const name = row.display_name ?? row.username ?? "Unbekannt";
+                const isKing = row.rank === 1;
+                return (
+                  <div key={row.user_id} className="flex items-center gap-3 px-4 py-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isKing ? "bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/40" : "bg-white/5 text-[#a8b4cf]"}`}>
+                      {isKing ? "👑" : row.rank}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold truncate">{name}{row.heimat_plz && <span className="ml-2 text-[10px] text-[#22D1C3]">📍{row.heimat_plz}</span>}</div>
+                      <div className="text-[11px] text-[#8B8FA3]">{row.segments} Segmente</div>
+                    </div>
+                    <div className="text-sm font-bold text-[#22D1C3]">{row.total_km.toFixed(2)} km</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Übersicht aller aktuellen Könige */}
+      {!selectedPlz && (
+        filtered.length === 0 ? (
+          <Empty text={kings.length === 0 ? "Noch keine Kiez-Kronen vergeben. Die erste Woche läuft — nächsten Montag gibt's die ersten Gewinner." : "Keine Treffer für diesen Filter."} />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {filtered.map((k) => {
+              const name = k.display_name ?? k.username ?? "Unbekannt";
+              return (
+                <button
+                  key={k.plz}
+                  onClick={() => setSelectedPlz(k.plz)}
+                  className="text-left p-3 rounded-xl border border-white/10 bg-gradient-to-br from-[#FFD700]/10 to-transparent hover:border-[#FFD700]/40 transition"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-bold">📍 {k.plz}</span>
+                    <span className="text-xl">👑</span>
+                  </div>
+                  <div className="font-semibold truncate text-sm">{name}</div>
+                  <div className="flex justify-between items-baseline mt-1">
+                    <span className="text-[11px] text-[#8B8FA3]">{k.segments} Segmente</span>
+                    <span className="text-sm font-bold text-[#FFD700]">{k.total_km.toFixed(2)} km</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )
+      )}
+    </div>
+  );
 }
