@@ -98,12 +98,12 @@ function ModalContent({ data, tab, setTab, onClose, action }: {
     <>
       {/* Header */}
       <div style={{
-        padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
+        padding: "16px 18px", display: "flex", alignItems: "center", gap: 14,
         background: `linear-gradient(135deg, ${rarity.glow}, transparent)`,
         borderBottom: "1px solid rgba(255,255,255,0.08)",
       }}>
-        <div style={{ width: 70, height: 88, flexShrink: 0 }}>
-          <GuardianAvatar archetype={a} size={70} animation="idle" />
+        <div style={{ width: 120, height: 150, flexShrink: 0 }}>
+          <GuardianAvatar archetype={a} size={120} animation="idle" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: rarity.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>

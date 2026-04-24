@@ -129,11 +129,19 @@ export function RedeemFlow(props: Props) {
           } catch { /* ignore single-frame errors */ }
         }, 500);
       } catch (e) {
-        setScanError(
-          e instanceof Error && e.name === "NotAllowedError"
-            ? "Kamera-Zugriff wurde abgelehnt."
-            : "Kamera konnte nicht gestartet werden.",
-        );
+        const isHttps = typeof window !== "undefined" &&
+          (window.location.protocol === "https:" || window.location.hostname === "localhost");
+        let msg: string;
+        if (e instanceof Error && e.name === "NotAllowedError") {
+          msg = "Kamera-Zugriff wurde abgelehnt — bitte in den Browser-Einstellungen erlauben (Schloss-Symbol in der Adressleiste → Kamera → Zulassen). Alternativ unten Code manuell eingeben.";
+        } else if (e instanceof Error && e.name === "NotFoundError") {
+          msg = "Keine Kamera gefunden. Nutze stattdessen Code manuell eingeben.";
+        } else if (!isHttps) {
+          msg = "Kamera braucht HTTPS oder localhost — diese Seite lädt nicht über HTTPS. Code manuell eingeben.";
+        } else {
+          msg = "Kamera konnte nicht gestartet werden. Code manuell eingeben oder Seite neu laden.";
+        }
+        setScanError(msg);
       }
     })();
     return () => {
@@ -258,10 +266,10 @@ export function RedeemFlow(props: Props) {
         {step === "expired" && userXp < xpCost && (
           <div style={{ padding: 24, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Nicht genug XP</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Nicht genug Wegemünzen</div>
             <div style={{ color: "#a8b4cf", fontSize: 13, marginBottom: 16 }}>
-              Du hast <b style={{ color: "#FFD700" }}>{userXp.toLocaleString("de-DE")} XP</b>, brauchst aber <b style={{ color: "#FFD700" }}>{xpCost.toLocaleString("de-DE")} XP</b> für "{dealTitle}".
-              <br /><br />Sammel weitere <b>{(xpCost - userXp).toLocaleString("de-DE")} XP</b> durch Läufe oder im Shop.
+              Du hast <b style={{ color: "#FFD700" }}>{userXp.toLocaleString("de-DE")} 🪙</b>, brauchst aber <b style={{ color: "#FFD700" }}>{xpCost.toLocaleString("de-DE")} 🪙</b> für „{dealTitle}".
+              <br /><br />Sammel weitere <b>{(xpCost - userXp).toLocaleString("de-DE")} Wegemünzen</b> durch Läufe oder im Shop.
             </div>
             <button onClick={onClose} style={btnSecondary}>Zurück</button>
           </div>
@@ -274,11 +282,11 @@ export function RedeemFlow(props: Props) {
               <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, margin: "4px 0 10px" }}>{dealTitle}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ color: "#FFF", fontSize: 13 }}>Kosten</span>
-                <span style={{ color: "#FFD700", fontSize: 22, fontWeight: 900 }}>{xpCost.toLocaleString("de-DE")} XP</span>
+                <span style={{ color: "#FFD700", fontSize: 22, fontWeight: 900 }}>{xpCost.toLocaleString("de-DE")} 🪙 Wegemünzen</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "#a8b4cf" }}>
-                <span>Dein XP-Stand</span>
-                <span>{userXp.toLocaleString("de-DE")} XP → <b style={{ color: "#22D1C3" }}>{(userXp - xpCost).toLocaleString("de-DE")} nach Einlösen</b></span>
+                <span>Dein Stand</span>
+                <span>{userXp.toLocaleString("de-DE")} 🪙 → <b style={{ color: "#22D1C3" }}>{(userXp - xpCost).toLocaleString("de-DE")} nach Einlösen</b></span>
               </div>
             </div>
 
@@ -286,7 +294,7 @@ export function RedeemFlow(props: Props) {
             <ShopQuestsPreview businessId={businessId} />
 
             <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
-              Im nächsten Schritt scannst du den <b>Shop-QR-Code</b> vor Ort. XP werden erst bei erfolgreichem Scan abgezogen.
+              Im nächsten Schritt scannst du den <b>Shop-QR-Code</b> vor Ort. Wegemünzen werden erst bei erfolgreichem Scan abgezogen.
               Eine Bestätigung bleibt <b>5 Minuten gültig</b>.
             </div>
 

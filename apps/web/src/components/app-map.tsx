@@ -462,6 +462,8 @@ interface AppMapProps {
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean; intensity?: number }>;
   ownedTerritories?: Array<{ id: string; polygon: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean; status: string; intensity?: number }>;
+  /** In-App-Routing: GeoJSON-LineString der aktuellen Route (User → Shop). */
+  routeGeometry?: { type: "LineString"; coordinates: [number, number][] } | null;
   onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
   // ── Map-Features Wave ────────────────────────────────────
   powerZones?: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
@@ -710,6 +712,7 @@ export function AppMap({
   onSanctuaryClick,
   onPowerZoneClick,
   onLootClick,
+  routeGeometry = null,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -1616,6 +1619,56 @@ export function AppMap({
     }
   }, [mapReady, walkedSegments, onOwnershipClick]);
 
+  // ═══ In-App-Routing: aktive Route als animierter Cyan-Pfad ═══
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const sourceId = "active-route";
+    const lineId = "active-route-line";
+    const glowId = "active-route-glow";
+    const dashId = "active-route-dash";
+
+    if (!routeGeometry || routeGeometry.coordinates.length < 2) {
+      // Layer und Source entfernen wenn keine Route
+      [dashId, lineId, glowId].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      return;
+    }
+
+    const data = {
+      type: "Feature" as const,
+      geometry: routeGeometry,
+      properties: {},
+    };
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      // Glow-Layer (breit, transparent) → Linie unten → animierter Dash oben
+      map.addLayer({
+        id: glowId, type: "line", source: sourceId,
+        paint: { "line-color": "#22D1C3", "line-width": 14, "line-opacity": 0.18, "line-blur": 6 },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: lineId, type: "line", source: sourceId,
+        paint: { "line-color": "#22D1C3", "line-width": 6, "line-opacity": 0.85 },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: dashId, type: "line", source: sourceId,
+        paint: {
+          "line-color": "#FFFFFF",
+          "line-width": 2.5,
+          "line-opacity": 0.9,
+          "line-dasharray": [2, 4],
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+    }
+  }, [mapReady, routeGeometry]);
+
   // ═══ 3-Ebenen-Modell: Vollständige Straßenzüge (mittel, orange) ═══
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -2238,6 +2291,10 @@ export function AppMap({
         .setLngLat([c.business_lng, c.business_lat]).addTo(map);
       arenaCountdownMarkersRef.current.push({ marker, hasSpotlight, hasArena });
     });
+    // Geometrie-Update zwingen: der Spotlight-Effect-Hook lauscht auf "zoom"
+    // und positioniert Countdown-Marker (Offset/Skalierung). Ohne Trigger
+    // sitzen frisch gemountete Marker bei Offset [0,0] = unter dem Pin.
+    map.fire("zoom");
 
     // Live-Tick: alle 30s Wert neu rendern (kein kompletter Re-Setup)
     const tick = setInterval(() => {

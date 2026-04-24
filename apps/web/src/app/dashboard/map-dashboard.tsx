@@ -22,6 +22,8 @@ import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
+import { ShopDealsContent } from "@/components/shop-deals-content";
+import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
@@ -191,6 +193,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
   const [victoryTrigger, setVictoryTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<TabId>("profil");
+  // In-App-Routing: Mapbox-Direction zu Shop, gerendert auf der Karte
+  const [routingRoute, setRoutingRoute] = useState<ActiveRoute | null>(null);
   const [equippedMarker, setEquippedMarker] = useState(initialProfile?.equipped_marker_id || "foot");
   const [equippedMarkerVariant, setEquippedMarkerVariant] = useState<"neutral" | "male" | "female">(
     ((initialProfile as unknown as { equipped_marker_variant?: "neutral"|"male"|"female" })?.equipped_marker_variant) || "neutral"
@@ -201,6 +205,59 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   // Klick auf Runner-Badge im Map-Marker oeffnet Runner-Profil-Modal (Map-Tab).
   // Listener MUESSEN auf Root-Level sein, weil der ProfilTab nicht gemountet ist
+  // ── In-App-Routing: Shop ruft `ma365:start-route` mit { shopId, name, lat, lng } ──
+  // Wir holen die Wanderroute via /api/route (Mapbox Directions) und rendern
+  // sie auf der Karte. Bei Ankunft (Distanz <30m) auto-cancel + Toast.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    async function handler(ev: Event) {
+      const detail = (ev as CustomEvent).detail as
+        | { shopId: string; name: string; lat: number; lng: number }
+        | undefined;
+      if (!detail) return;
+      // Aktuelle GPS-Position holen — fallback auf last-known im AppMap-State
+      const userPos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 },
+        );
+      });
+      if (!userPos) {
+        alert("Kein GPS-Signal — Standort kann nicht bestimmt werden.");
+        return;
+      }
+      try {
+        const r = await fetch(
+          `/api/route?from=${userPos.lat},${userPos.lng}&to=${detail.lat},${detail.lng}`,
+        );
+        const j = await r.json() as
+          | { ok: true; geometry: { type: "LineString"; coordinates: [number, number][] }; distance_m: number; duration_s: number }
+          | { ok: false; error: string };
+        if (!j.ok) {
+          alert(`Route konnte nicht geladen werden: ${j.error}`);
+          return;
+        }
+        setRoutingRoute({
+          shopId: detail.shopId,
+          shopName: detail.name,
+          destLat: detail.lat,
+          destLng: detail.lng,
+          geometry: j.geometry,
+          distanceM: j.distance_m,
+          durationS: j.duration_s,
+        });
+        // Auf Map-Tab wechseln, damit User die Route sieht
+        setActiveTab("map");
+      } catch {
+        alert("Route konnte nicht geladen werden.");
+      }
+    }
+    window.addEventListener("ma365:start-route", handler as EventListener);
+    return () => window.removeEventListener("ma365:start-route", handler as EventListener);
+  }, []);
+
   // waehrend man auf der Karte ist.
   useEffect(() => {
     const uid = initialProfile?.id ?? null;
@@ -900,6 +957,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               markerVariant={equippedMarkerVariant}
               lightId={equippedLight}
               activeRoute={activeRoute}
+              routeGeometry={routingRoute?.geometry ?? null}
               savedTerritories={[]}
               claimedAreas={[]}
               supplyDrops={[]}
@@ -1535,6 +1593,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           beide listenen, modale rendern uebereinander (identisch), aber
           Map-Badge funktioniert auf jedem Tab. */}
       {initialProfile && activeTab !== "profil" && <DailyDealTeaser bannerHidden />}
+
+      {/* In-App-Routing-Banner: oben sichtbar waehrend zu einem Shop navigiert wird */}
+      {routingRoute && (
+        <RouteBanner
+          route={routingRoute}
+          userPos={userCenter}
+          onCancel={() => setRoutingRoute(null)}
+          onArrived={() => { /* Toast wird im Banner gezeigt */ }}
+        />
+      )}
     </div>
   );
 }
@@ -3628,12 +3696,14 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   }
 
   function openRoute() {
-    // Cross-Platform: öffnet native Maps-App (iOS→Apple Maps, sonst Google Maps)
-    const isApple = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
-    const url = isApple
-      ? `http://maps.apple.com/?daddr=${shop.lat},${shop.lng}&q=${encodeURIComponent(shop.name)}`
-      : `https://www.google.com/maps/dir/?api=1&destination=${shop.lat},${shop.lng}&destination_place_id=${encodeURIComponent(shop.name)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    // In-App-Routing: Dashboard hoert auf dieses Event und rendert die Mapbox-Route
+    // direkt auf der Hauptkarte. So zaehlen km/Loots/Eroberungen waehrend der Navigation.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("ma365:start-route", {
+        detail: { shopId: shop.id, name: shop.name, lat: shop.lat, lng: shop.lng },
+      }));
+    }
+    onClose();
   }
   return (
     <div
@@ -3973,8 +4043,19 @@ function ReportShopModal({ shop, onClose }: {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Pflicht-Details: ohne Beschreibung kann das Moderations-Team nichts tun.
+  // Mindestens 10 Zeichen, max. 500.
+  const MIN_COMMENT = 10;
+  const trimmedComment = comment.trim();
+  const commentValid = trimmedComment.length >= MIN_COMMENT;
+  const canSubmit = !!reason && commentValid && !busy;
+
   async function submit() {
     if (!reason) return;
+    if (!commentValid) {
+      await appAlert(`Bitte beschreibe das Problem in mindestens ${MIN_COMMENT} Zeichen — sonst koennen wir dem Hinweis nicht nachgehen.`);
+      return;
+    }
     setBusy(true);
     try {
       const { data: { user } } = await sb.auth.getUser();
@@ -3983,7 +4064,7 @@ function ReportShopModal({ shop, onClose }: {
         business_id: shop.id,
         user_id: user.id,
         reason,
-        comment: comment.trim() || null,
+        comment: trimmedComment,
       });
       if (error) { await appAlert(`Fehler: ${error.message}`); return; }
       await appAlert("Danke! Wir schauen uns den Shop an.");
@@ -4036,17 +4117,24 @@ function ReportShopModal({ shop, onClose }: {
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value.slice(0, 500))}
-          placeholder="Details (optional, max. 500 Zeichen)"
+          placeholder={`Details — was genau ist das Problem? (Pflicht, min. ${MIN_COMMENT} Zeichen, max. 500)`}
           rows={3}
           style={{
             width: "100%", resize: "vertical",
             background: "rgba(0,0,0,0.3)", color: "#FFF",
             padding: "10px 12px", borderRadius: 10,
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: `1px solid ${reason && !commentValid ? "rgba(255,45,120,0.6)" : "rgba(255,255,255,0.1)"}`,
             fontSize: 13, fontFamily: "inherit",
           }}
         />
-        <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>{comment.length} / 500</div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10 }}>
+          <span style={{ color: reason && !commentValid ? "#FF2D78" : "#8B8FA3" }}>
+            {reason && !commentValid
+              ? `Mindestens ${MIN_COMMENT} Zeichen — noch ${Math.max(0, MIN_COMMENT - trimmedComment.length)} fehlen.`
+              : "Hilft unserem Moderations-Team, dem Hinweis nachzugehen."}
+          </span>
+          <span style={{ color: "#8B8FA3" }}>{comment.length} / 500</span>
+        </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button onClick={onClose} style={{
@@ -4056,12 +4144,12 @@ function ReportShopModal({ shop, onClose }: {
           }}>Abbrechen</button>
           <button
             onClick={submit}
-            disabled={!reason || busy}
+            disabled={!canSubmit}
             style={{
               flex: 2, padding: "10px 14px", borderRadius: 10, border: "none",
-              background: reason ? "linear-gradient(135deg, #FF2D78, #FF6B4A)" : "rgba(255,255,255,0.08)",
-              color: reason ? "#FFF" : "#8B8FA3",
-              fontSize: 13, fontWeight: 900, cursor: reason ? "pointer" : "not-allowed",
+              background: canSubmit ? "linear-gradient(135deg, #FF2D78, #FF6B4A)" : "rgba(255,255,255,0.08)",
+              color: canSubmit ? "#FFF" : "#8B8FA3",
+              fontSize: 13, fontWeight: 900, cursor: canSubmit ? "pointer" : "not-allowed",
               opacity: busy ? 0.6 : 1,
             }}
           >{busy ? "Sende…" : "Melden"}</button>
@@ -9536,8 +9624,96 @@ function ShopsTab() {
   );
 }
 
-/* ═══ Runner-View ═══ */
+/* ═══ Runner-View — Filter+Liste der konkreten Kiez-Deals ═══ */
 function ShopsRunnerView() {
+  const [showHelp, setShowHelp] = useState(false);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Hilfe-Button — Marketing/Onboarding-Content als Modal */}
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          onClick={() => setShowHelp(true)}
+          style={{
+            padding: "8px 14px", borderRadius: 10,
+            background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.35)",
+            color: "#22D1C3", fontSize: 12, fontWeight: 800, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 6,
+          }}
+        >
+          <span>ℹ️</span>
+          <span>Was sind Kiez-Deals?</span>
+        </button>
+      </div>
+
+      <ShopDealsContent />
+
+      {showHelp && <KiezDealsHelpModal onClose={() => setShowHelp(false)} />}
+    </div>
+  );
+}
+
+/* ═══ Help-Modal mit Marketing/Onboarding-Inhalt (frueher ShopsRunnerView) ═══ */
+function KiezDealsHelpModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 4500,
+        background: "rgba(10,12,20,0.85)", backdropFilter: "blur(8px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16, paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 1100, maxHeight: "92vh",
+          borderRadius: 18, overflow: "hidden",
+          background: "#0F1115", border: "1px solid rgba(34,209,195,0.4)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
+          display: "flex", flexDirection: "column",
+        }}
+      >
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "14px 18px",
+          background: "linear-gradient(135deg, rgba(34,209,195,0.18), rgba(255,215,0,0.10))",
+          borderBottom: "1px solid rgba(34,209,195,0.3)",
+        }}>
+          <span style={{ fontSize: 22 }}>ℹ️</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#22D1C3" }}>ONBOARDING</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>Was sind Kiez-Deals?</div>
+          </div>
+          <button
+            onClick={onClose} aria-label="Schließen"
+            style={{
+              background: "rgba(255,255,255,0.08)", border: "none",
+              color: "#a8b4cf", width: 34, height: 34, borderRadius: 999,
+              cursor: "pointer", fontSize: 18, lineHeight: 1, flexShrink: 0,
+            }}
+          >×</button>
+        </div>
+        <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
+          <KiezDealsHelpContent />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ Marketing/Onboarding-Inhalt (frueher ShopsRunnerView-Body) ═══ */
+function KiezDealsHelpContent() {
   const categories = [
     { icon: "☕", name: "Café & Bäcker" },
     { icon: "🛍️", name: "Sport & Mode" },
