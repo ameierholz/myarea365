@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale } from "@/i18n/config";
 import { GEM_BUNDLES, totalGemsOfBundle, type GemBundle } from "@/lib/gem-bundles";
 import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
 
@@ -35,18 +37,18 @@ type DailyResponse = {
   reset_in_seconds: number;
 };
 
-const TIER_META: Record<DailyPack["tier"], { color: string; glow: string; label: string }> = {
-  bronze: { color: "#cd7f32", glow: "rgba(205,127,50,0.28)",   label: "BRONZE" },
-  silver: { color: "#d8d8d8", glow: "rgba(216,216,216,0.28)",  label: "SILBER" },
-  gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.38)",    label: "GOLD"   },
+// TIER_META + CATEGORY_META werden i18n-fähig in der Komponente aufgebaut (s.u.).
+const TIER_COLOR: Record<DailyPack["tier"], { color: string; glow: string }> = {
+  bronze: { color: "#cd7f32", glow: "rgba(205,127,50,0.28)" },
+  silver: { color: "#d8d8d8", glow: "rgba(216,216,216,0.28)" },
+  gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.38)"   },
 };
-
-const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = {
-  monthly_pass:{ label: "Monatspacks",      icon: "🎫", accent: "#FFD700" },
-  booster:     { label: "Wegemünzen-Booster", icon: "⚡", accent: "#22D1C3" },
-  cosmetic:    { label: "Skins & Designs",  icon: "✨", accent: "#a855f7" },
-  convenience: { label: "Komfort",          icon: "🎯", accent: "#5ddaf0" },
-  crew_emblem: { label: "Crew-Anpassung",   icon: "🏳️", accent: "#FF6B4A" },
+const CATEGORY_COLOR: Record<CategoryKey, { icon: string; accent: string }> = {
+  monthly_pass:{ icon: "🎫", accent: "#FFD700" },
+  booster:     { icon: "⚡", accent: "#22D1C3" },
+  cosmetic:    { icon: "✨", accent: "#a855f7" },
+  convenience: { icon: "🎯", accent: "#5ddaf0" },
+  crew_emblem: { icon: "🏳️", accent: "#FF6B4A" },
 };
 
 export function GemShopBody() {
@@ -59,15 +61,29 @@ export function GemShopModal({ onClose }: { onClose: () => void }) {
 
 type GemTab = "home" | "passes" | "boosters" | "skins" | "crew";
 
-const GEM_TABS: { id: GemTab; label: string; icon: string; color: string }[] = [
-  { id: "home",     label: "Start",      icon: "🏠", color: "#FFD700" },
-  { id: "passes",   label: "Packs",      icon: "🎫", color: "#FFD700" },
-  { id: "boosters", label: "Booster",    icon: "⚡", color: "#22D1C3" },
-  { id: "skins",    label: "Skins",      icon: "✨", color: "#a855f7" },
-  { id: "crew",     label: "Crew",       icon: "🏳️", color: "#FF6B4A" },
-];
-
 function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: boolean }) {
+  const tGS = useTranslations("GemShop");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
+  const GEM_TABS: { id: GemTab; label: string; icon: string; color: string }[] = useMemo(() => [
+    { id: "home",     label: tGS("tabHome"),     icon: "🏠", color: "#FFD700" },
+    { id: "passes",   label: tGS("tabPasses"),   icon: "🎫", color: "#FFD700" },
+    { id: "boosters", label: tGS("tabBoosters"), icon: "⚡", color: "#22D1C3" },
+    { id: "skins",    label: tGS("tabSkins"),    icon: "✨", color: "#a855f7" },
+    { id: "crew",     label: tGS("tabCrew"),     icon: "🏳️", color: "#FF6B4A" },
+  ], [tGS]);
+  const TIER_META: Record<DailyPack["tier"], { color: string; glow: string; label: string }> = useMemo(() => ({
+    bronze: { ...TIER_COLOR.bronze, label: tGS("tierBronze") },
+    silver: { ...TIER_COLOR.silver, label: tGS("tierSilver") },
+    gold:   { ...TIER_COLOR.gold,   label: tGS("tierGold") },
+  }), [tGS]);
+  const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = useMemo(() => ({
+    monthly_pass:{ ...CATEGORY_COLOR.monthly_pass, label: tGS("categoryMonthlyPass") },
+    booster:     { ...CATEGORY_COLOR.booster,      label: tGS("categoryBooster") },
+    cosmetic:    { ...CATEGORY_COLOR.cosmetic,     label: tGS("categoryCosmetic") },
+    convenience: { ...CATEGORY_COLOR.convenience,  label: tGS("categoryConvenience") },
+    crew_emblem: { ...CATEGORY_COLOR.crew_emblem,  label: tGS("categoryCrewEmblem") },
+  }), [tGS]);
   const [gemTab, setGemTab] = useState<GemTab>("home");
   const [items, setItems] = useState<ShopItem[]>([]);
   const [gems, setGems] = useState<Gems | null>(null);
@@ -128,8 +144,8 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
         body: JSON.stringify({ action: "purchase", item_id: itemId }),
       });
       const json = await res.json() as { ok?: boolean; error?: string; have?: number; need?: number };
-      if (json.ok) { setToast("Kauf erfolgreich!"); await load(); }
-      else setToast(json.error === "not_enough_gems" ? `Nicht genug Edelsteine (${json.have}/${json.need})` : (json.error ?? "Kauf fehlgeschlagen"));
+      if (json.ok) { setToast(tGS("purchaseSuccess")); await load(); }
+      else setToast(json.error === "not_enough_gems" ? tGS("notEnoughGems", { have: json.have ?? 0, need: json.need ?? 0 }) : (json.error ?? tGS("purchaseFailed")));
     } finally {
       setBusy(null);
       setTimeout(() => setToast(null), 3000);
@@ -151,7 +167,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
       if (json.url) {
         window.location.href = json.url;
       } else {
-        setToast(json.error ?? "Checkout fehlgeschlagen");
+        setToast(json.error ?? tGS("checkoutFailed"));
         setTimeout(() => setToast(null), 3000);
       }
     } finally { setBusy(null); }
@@ -165,11 +181,11 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
         body: JSON.stringify({ pack_id: packId }),
       });
       const json = await res.json() as { ok?: boolean; error?: string; have?: number; need?: number };
-      if (json.ok) { setToast("🎁 Tages-Pack eingelöst!"); await load(); }
+      if (json.ok) { setToast(tGS("dailyClaimedAlert")); await load(); }
       else setToast(
-        json.error === "already_purchased_today" ? "Heute schon gekauft — Reset um 00:00 UTC"
-        : json.error === "not_enough_gems" ? `Nicht genug Edelsteine (${json.have}/${json.need})`
-        : (json.error ?? "Kauf fehlgeschlagen")
+        json.error === "already_purchased_today" ? tGS("alreadyPurchasedToday")
+        : json.error === "not_enough_gems" ? tGS("notEnoughGems", { have: json.have ?? 0, need: json.need ?? 0 })
+        : (json.error ?? tGS("purchaseFailed"))
       );
     } finally {
       setBusy(null);
@@ -185,8 +201,8 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
         body: JSON.stringify({ purchase_id: purchaseId }),
       });
       const json = await res.json() as { ok?: boolean; claimed_gems?: number; error?: string };
-      if (json.ok) { setToast(`🎁 +${json.claimed_gems} Edelsteine erhalten!`); await load(); }
-      else setToast(json.error === "already_claimed_today" ? "Heute schon abgeholt" : (json.error ?? "Fehler"));
+      if (json.ok) { setToast(tGS("monthlyClaimedAlert", { gems: json.claimed_gems ?? 0 })); await load(); }
+      else setToast(json.error === "already_claimed_today" ? tGS("alreadyClaimedToday") : (json.error ?? tGS("errorGeneric")));
     } finally {
       setBusy(null);
       setTimeout(() => setToast(null), 3000);
@@ -203,10 +219,9 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
       const json = await res.json() as { ok?: boolean; error?: string };
       if (json.ok) {
         setPinThemeActive(theme);
-        setToast(`🎨 Theme „${PIN_THEME_META[theme].name}" aktiv`);
-        // Map neu laden damit data-pin-theme gesetzt wird — hartes Reload
+        setToast(tGS("themeActiveAlert", { name: PIN_THEME_META[theme].name }));
         if (typeof window !== "undefined") setTimeout(() => window.location.reload(), 600);
-      } else setToast(json.error ?? "Theme-Wechsel fehlgeschlagen");
+      } else setToast(json.error ?? tGS("themeSwitchFailed"));
     } finally {
       setBusy(null);
       setTimeout(() => setToast(null), 3000);
@@ -240,7 +255,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
             alignSelf: "center", padding: "4px 10px", borderRadius: 999,
             background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.35)",
             color: "#FFD700", fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", gap: 4,
-          }}>💎 Guthaben: {gems?.gems ?? 0}</div>
+          }}>{tGS("balance", { amount: (gems?.gems ?? 0).toLocaleString(numLocale) })}</div>
         </div>
 
 
@@ -252,27 +267,27 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
           <section style={{ marginBottom: 16 }}>
             <details style={{ marginBottom: 10 }}>
               <summary style={{ cursor: "pointer", listStyle: "none", userSelect: "none", padding: "10px 12px", borderRadius: 10, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)", color: "#FFD700", fontSize: 11, fontWeight: 900 }}>
-                ▸ Was sind Edelsteine 💎? Warum nicht Wegemünzen 🪙?
+                {tGS("explainerSummary")}
               </summary>
               <div style={{ marginTop: 6, padding: 10, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: "1px solid rgba(255,215,0,0.2)", fontSize: 11, color: "#a8b4cf", lineHeight: 1.55 }}>
-                <b style={{ color: "#FFD700" }}>💎 Edelsteine = Premium-Währung</b> (Echtgeld). Laufen bringt nur Wegemünzen 🪙 — die sind für Ränge, Map-Icons, Runner-Lights. Edelsteine sind für optionale Extras: Monatspacks, Doppel-🪙-Booster, Skins, Crew-Emblems.
+                {tGS.rich("explainerBody", { g: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
                 <br/><br/>
-                <b style={{ color: "#FFF" }}>Fair-Play:</b> Siegel, Wächter und alle Kampf-Werte bekommst du <i>nie</i> für Edelsteine — nur durchs Laufen und Kämpfen. Kein Pay-to-Win.
+                {tGS.rich("explainerFairPlay", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b>, i: (c) => <i>{c}</i> })}
               </div>
             </details>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 18 }}>💎</span>
               <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
-                EDELSTEINE KAUFEN
+                {tGS("buyGemsHeader")}
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
               {GEM_BUNDLES.map((b) => {
                 const total = totalGemsOfBundle(b);
-                const badge = b.badge === "best_value" ? { text: "BESTER WERT", color: "#FFD700" }
-                  : b.badge === "most_popular" ? { text: "BELIEBT", color: "#FF2D78" }
-                  : b.badge === "starter" ? { text: "EINSTEIGER", color: "#22D1C3" }
-                  : b.badge === "supporter" ? { text: "💛 GÖNNER", color: "#ff6b9d" } : null;
+                const badge = b.badge === "best_value" ? { text: tGS("badgeBestValue"), color: "#FFD700" }
+                  : b.badge === "most_popular" ? { text: tGS("badgePopular"), color: "#FF2D78" }
+                  : b.badge === "starter" ? { text: tGS("badgeStarter"), color: "#22D1C3" }
+                  : b.badge === "supporter" ? { text: tGS("badgeSupporter"), color: "#ff6b9d" } : null;
                 return (
                   <button key={b.sku}
                     onClick={() => buyBundle(b)}
@@ -297,7 +312,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                       <div style={{ fontSize: 22 }}>💎</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 15, fontWeight: 900 }}>
-                          {b.gems.toLocaleString("de-DE")}
+                          {b.gems.toLocaleString(numLocale)}
                           {b.bonus > 0 && (
                             <span style={{ color: "#4ade80", fontSize: 11, marginLeft: 4 }}>
                               +{b.bonus}
@@ -305,7 +320,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                           )}
                         </div>
                         <div style={{ color: "#a8b4cf", fontSize: 9 }}>
-                          = {total.toLocaleString("de-DE")} Edelsteine
+                          {tGS("totalGems", { total: total.toLocaleString(numLocale) })}
                         </div>
                       </div>
                       <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>
@@ -317,7 +332,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
               })}
             </div>
             <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
-              Sichere Zahlung via Stripe · Edelsteine werden sofort gutgeschrieben
+              {tGS("stripeNote")}
             </div>
           </section>
           )}
@@ -327,14 +342,14 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
           {gemTab === "passes" && monthlyActive.length > 0 && (
             <section style={{ marginBottom: 16 }}>
               <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
-                🎫 AKTIVE MONATSPACKS
+                {tGS("monthlyActiveHeader")}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {monthlyActive.map((p) => {
                   const canClaim = !p.claimed_today;
                   const daily = p.payload.daily_gems ?? 0;
                   const xpMult = p.payload.xp_multiplier;
-                  const expiresDate = p.expires_at ? new Date(p.expires_at).toLocaleDateString("de-DE") : null;
+                  const expiresDate = p.expires_at ? new Date(p.expires_at).toLocaleDateString(numLocale) : null;
                   return (
                     <div key={p.purchase_id} style={{
                       padding: 10, borderRadius: 12,
@@ -346,9 +361,9 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{p.name}</div>
                         <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
-                          {daily > 0 && `💎 ${daily}/Tag`}
+                          {daily > 0 && tGS("perDayShort", { amount: daily })}
                           {xpMult && ` · ⚡ ${xpMult}× 🪙`}
-                          {expiresDate && ` · bis ${expiresDate}`}
+                          {expiresDate && ` · ${tGS("untilDate", { date: expiresDate })}`}
                         </div>
                       </div>
                       <button
@@ -362,7 +377,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                           fontSize: 10, fontWeight: 900,
                           cursor: canClaim ? "pointer" : "not-allowed", whiteSpace: "nowrap",
                         }}>
-                        {canClaim ? `🎁 +${daily} abholen` : "✓ heute geholt"}
+                        {canClaim ? tGS("claimToday", { amount: daily }) : tGS("claimedToday")}
                       </button>
                     </div>
                   );
@@ -375,7 +390,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
           {gemTab === "skins" && (
           <section style={{ marginBottom: 16 }}>
             <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
-              🎨 RUNNER-PIN
+              {tGS("skinsHeader")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
               {ALL_PIN_THEMES.map((tid) => {
@@ -400,21 +415,21 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                         padding: "2px 6px", borderRadius: 999,
                         background: "#4ade80", color: "#0F1115",
                         fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
-                      }}>AKTIV</div>
+                      }}>{tGS("skinsActive")}</div>
                     )}
                     <div style={{ fontSize: 22 }}>{t.icon}</div>
                     <div style={{ color: t.preview.accent, fontSize: 10, fontWeight: 900, marginTop: 2 }}>
                       {t.name.toUpperCase()}
                     </div>
                     {!unlocked && (
-                      <div style={{ fontSize: 8, color: "#8B8FA3", marginTop: 1 }}>🔒 kaufen</div>
+                      <div style={{ fontSize: 8, color: "#8B8FA3", marginTop: 1 }}>{tGS("skinsLockedHint")}</div>
                     )}
                   </button>
                 );
               })}
             </div>
             <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
-              Verziert deinen eigenen Runner-Pin auf der Karte · Shop- und Boss-Pins bleiben neutral
+              {tGS("skinsNote")}
             </div>
           </section>
           )}
@@ -426,11 +441,11 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 18 }}>🔥</span>
                   <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
-                    TÄGLICHE ANGEBOTE
+                    {tGS("dailyHeader")}
                   </div>
                 </div>
                 <div style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 800 }}>
-                  🔄 Reset in {String(resetHours).padStart(2,"0")}:{String(resetMins).padStart(2,"0")}
+                  {tGS("resetIn", { hours: String(resetHours).padStart(2,"0"), mins: String(resetMins).padStart(2,"0") })}
                 </div>
               </div>
 
@@ -483,7 +498,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                           fontSize: 10, fontWeight: 900,
                           cursor: owned ? "not-allowed" : "pointer",
                         }}>
-                        {owned ? "✓ Heute eingelöst" : priceLabel}
+                        {owned ? tGS("redeemed") : priceLabel}
                       </button>
                     </div>
                   );
@@ -516,10 +531,10 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", letterSpacing: 0.5 }}>{p.name}</div>
                       <div style={{ fontSize: 11, color: "#FFF", fontWeight: 700, marginTop: 2 }}>
-                        Bronze + Silber + Gold zusammen
+                        {tGS("bundleSubtitle")}
                       </div>
                       <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 2 }}>
-                        Spare ggü. Einzelkauf · 1× pro Tag
+                        {tGS("bundleSubsubtitle")}
                       </div>
                     </div>
                     <div style={{
@@ -528,14 +543,14 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                       color: owned ? "#4ade80" : "#0F1115",
                       fontSize: 13, fontWeight: 900, flexShrink: 0,
                     }}>
-                      {owned ? "✓ GEHOLT" : priceLabel}
+                      {owned ? tGS("bundleClaimed") : priceLabel}
                     </div>
                   </button>
                 );
               })}
 
               <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 6, textAlign: "center" }}>
-                Jeder Pack 1× pro Tag · Reset um 00:00 UTC · Inhalte bleiben permanent
+                {tGS("dailyNote")}
               </div>
             </section>
           )}
@@ -582,7 +597,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                             cursor: owned || cantAfford ? "not-allowed" : "pointer",
                             whiteSpace: "nowrap",
                           }}>
-                          {owned ? "✓ Aktiv" : `💎 ${i.price_gems}`}
+                          {owned ? tGS("itemActive") : `💎 ${i.price_gems}`}
                         </button>
                       </div>
                     );
@@ -625,8 +640,8 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
           borderBottom: "1px solid rgba(255,215,0,0.25)",
         }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>EDELSTEIN-SHOP</div>
-            <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Fair-Play · kein Pay-to-Win</div>
+            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tGS("headerKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>{tGS("headerSubtitle")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
         </div>
