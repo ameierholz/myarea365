@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { buildInviteUrl, shareInvite } from "@/lib/referral";
 
 export function ReferralWidget({ userId, referralCode, displayName }: {
   userId: string; referralCode: string | null; displayName: string;
 }) {
+  const t = useTranslations("Referral");
   const sb = createClient();
   const [stats, setStats] = useState({ invited: 0, confirmed: 0, xp: 0 });
   const [code, setCode] = useState<string | null>(referralCode);
@@ -38,8 +40,8 @@ export function ReferralWidget({ userId, referralCode, displayName }: {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <span style={{ fontSize: 22 }}>🎁</span>
         <div style={{ flex: 1 }}>
-          <div style={{ color: "#FFF", fontWeight: 900, fontSize: 14 }}>Freunde einladen</div>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>Pro Freund: du +500 🪙, Freund +500 🪙</div>
+          <div style={{ color: "#FFF", fontWeight: 900, fontSize: 14 }}>{t("title")}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>{t("subtitle")}</div>
         </div>
       </div>
 
@@ -52,20 +54,20 @@ export function ReferralWidget({ userId, referralCode, displayName }: {
           onClick={async () => { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
           style={{ background: "#22D1C3", color: "#0F1115", padding: "6px 12px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
         >
-          {copied ? "✓ Kopiert" : "Link kopieren"}
+          {copied ? t("copied") : t("copyLink")}
         </button>
         <button
           onClick={() => shareInvite(code, displayName)}
           style={{ background: "#FF2D78", color: "#FFF", padding: "6px 12px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
         >
-          Teilen
+          {t("share")}
         </button>
       </div>
 
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-        <Stat label="Eingeladen" value={stats.invited} />
-        <Stat label="Beigetreten" value={stats.confirmed} />
-        <Stat label="🪙 erhalten" value={stats.xp} color="#FFD700" />
+        <Stat label={t("statInvited")} value={stats.invited} />
+        <Stat label={t("statJoined")} value={stats.confirmed} />
+        <Stat label={t("statXpEarned")} value={stats.xp} color="#FFD700" />
       </div>
     </div>
   );

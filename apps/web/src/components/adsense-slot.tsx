@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -45,6 +46,7 @@ type Props = {
 };
 
 export function AdSenseSlot({ placement, format = "in-feed", hideIf = false }: Props) {
+  const t = useTranslations("AdSense");
   const slot = SLOTS[placement];
   const [supporter, setSupporter] = useState<string | null | undefined>(undefined);
   const pushed = useRef(false);
@@ -88,7 +90,7 @@ export function AdSenseSlot({ placement, format = "in-feed", hideIf = false }: P
       }}
     >
       <div style={{ fontSize: 9, color: "#6c7590", letterSpacing: 1, marginBottom: 3, textAlign: "center" }}>
-        WERBUNG
+        {t("label")}
       </div>
       <ins
         className="adsbygoogle"

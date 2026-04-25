@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
 import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice, stackBoostUntil } from "@/lib/monetization";
 import { appAlert } from "@/components/app-dialog";
@@ -17,6 +19,9 @@ export function BoostShopModal({ userId, onClose }: { userId: string; onClose: (
 }
 
 function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose: () => void; embedded: boolean }) {
+  const tBS = useTranslations("BoostShop");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const sb = createClient();
   const [tab, setTab] = useState<ShopTab>("boosts");
   const [loading, setLoading] = useState<string | null>(null);
@@ -35,7 +40,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         const json = await res.json();
         if (json.client_secret) { setCheckoutSecret(json.client_secret); return; }
         if (json.url) { window.location.href = json.url; return; }
-        throw new Error(json.error ?? "Checkout fehlgeschlagen");
+        throw new Error(json.error ?? tBS("checkoutFailed"));
       }
       // Demo-Fallback (wenn Stripe nicht aktiv):
       const { data, error } = await sb.from("purchases").insert({
@@ -55,7 +60,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
             xp_boost_multiplier: stacked.mult,
           }).eq("id", userId);
           if (stacked.capped) {
-            appAlert("Boost-Zeit auf 14 Tage gecappt — der Rest wäre verloren gegangen.");
+            appAlert(tBS("boostCappedAlert"));
           }
         }
       } else if (sku.startsWith("xp_")) {
@@ -118,7 +123,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         const { data: u } = await sb.from("users").select("faction, faction_switch_at").eq("id", userId).single();
         const lastSwitch = u?.faction_switch_at ? new Date(u.faction_switch_at).getTime() : 0;
         if (Date.now() - lastSwitch < 30 * 86400000) {
-          throw new Error("Fraktions-Wechsel nur alle 30 Tage möglich!");
+          throw new Error(tBS("factionSwitchTooSoon"));
         }
         const newFaction = (u?.faction === "syndicate" || u?.faction === "gossenbund") ? "kronenwacht" : "gossenbund";
         await sb.from("users").update({
@@ -145,7 +150,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         if (r.kind === "xp") {
           const { data: u } = await sb.from("users").select("wegemuenzen").eq("id", userId).single();
           await sb.from("users").update({ wegemuenzen: (u?.wegemuenzen ?? 0) + r.xp }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: +${r.xp.toLocaleString("de-DE")} 🪙 Wegemünzen!`);
+          appAlert(tBS("mysteryXp", { amount: r.xp.toLocaleString(numLocale) }));
         } else if (r.kind === "boost") {
           const { data: u } = await sb.from("users").select("xp_boost_until, xp_boost_multiplier").eq("id", userId).single();
           const stacked = stackBoostUntil(u?.xp_boost_until, u?.xp_boost_multiplier, r.boost_hours, r.mult);
@@ -153,32 +158,32 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
             xp_boost_until: stacked.until,
             xp_boost_multiplier: stacked.mult,
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: ${r.mult}× 🪙 für ${r.boost_hours}h!${stacked.capped ? " (auf 14d gecappt)" : ""}`);
+          appAlert(tBS("mysteryBoost", { mult: r.mult, hours: r.boost_hours, capped: stacked.capped ? tBS("mysteryBoostCapped") : "" }));
         } else if (r.kind === "streak") {
           const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
           await sb.from("users").update({
             streak_freezes_remaining: (u?.streak_freezes_remaining ?? 0) + r.streak,
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: ${r.streak}× Streak-Freeze!`);
+          appAlert(tBS("mysteryStreak", { count: r.streak }));
         } else if (r.kind === "shouts") {
           const { data: u } = await sb.from("users").select("shouts_remaining").eq("id", userId).single();
           await sb.from("users").update({
             shouts_remaining: (u?.shouts_remaining ?? 0) + r.shouts,
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: ${r.shouts}× Kiez-Shout!`);
+          appAlert(tBS("mysteryShout", { count: r.shouts }));
         } else if (r.kind === "trail") {
           await sb.from("users").update({ equipped_trail: r.trail }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: ${r.trail === "golden_trail" ? "Golden" : "Neon"} Trail aktiviert!`);
+          appAlert(r.trail === "golden_trail" ? tBS("mysteryTrailGolden") : tBS("mysteryTrailNeon"));
         } else if (r.kind === "aura") {
           await sb.from("users").update({
             aura_until: new Date(Date.now() + r.aura_days * 86400000).toISOString(),
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: Aura-Effekt für ${r.aura_days} Tage!`);
+          appAlert(tBS("mysteryAura", { days: r.aura_days }));
         } else if (r.kind === "rainbow") {
           await sb.from("users").update({
             rainbow_name_until: new Date(Date.now() + r.rainbow_days * 86400000).toISOString(),
           }).eq("id", userId);
-          appAlert(`🎁 Mystery Box: Rainbow-Name für ${r.rainbow_days} Tage!`);
+          appAlert(tBS("mysteryRainbow", { days: r.rainbow_days }));
         }
         onClose();
         location.reload();
@@ -193,16 +198,16 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
             xp_boost_multiplier: stacked.mult,
           }).eq("id", u.current_crew_id);
           if (stacked.capped) {
-            appAlert("Crew-Boost auf 14 Tage gecappt — der Rest wäre verloren gegangen.");
+            appAlert(tBS("crewBoostCapped"));
           }
         }
       }
 
-      appAlert("Gekauft + aktiviert! (Stripe-Integration folgt)");
+      appAlert(tBS("purchasedActivated"));
       onClose();
       location.reload();
     } catch (e) {
-      appAlert("Fehler: " + (e instanceof Error ? e.message : String(e)));
+      appAlert(tBS("errorPrefix", { message: e instanceof Error ? e.message : String(e) }));
     } finally {
       setLoading(null);
     }
@@ -215,18 +220,18 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
           background: "rgba(255,215,0,0.07)", border: "1px dashed rgba(255,215,0,0.35)",
           fontSize: 11, lineHeight: 1.5, color: "#a8b4cf",
         }}>
-          <div style={{ color: "#FFD700", fontWeight: 900, marginBottom: 4, letterSpacing: 0.5 }}>⚡ SO FUNKTIONIEREN BOOSTS</div>
-          <div>• Zeit wird <b style={{ color: "#FFF" }}>aufaddiert</b> (gleicher Multiplikator) — max. <b style={{ color: "#FFF" }}>14 Tage</b> Restzeit.</div>
-          <div>• Personal- &amp; Crew-Boost <b style={{ color: "#FFF" }}>kombinieren sich nicht</b> — es gilt der höhere Wert (2× + 2× = 2×, nicht 4×).</div>
-          <div>• Boost zählt für <b style={{ color: "#FFF" }}>Level, Achievements, Deals &amp; Leaderboards</b>. Kein versteckter Haken.</div>
+          <div style={{ color: "#FFD700", fontWeight: 900, marginBottom: 4, letterSpacing: 0.5 }}>{tBS("howBoostsHeader")}</div>
+          <div>{tBS.rich("howBoostsLine1", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+          <div>{tBS.rich("howBoostsLine2", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+          <div>{tBS.rich("howBoostsLine3", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
         </div>
         <style>{`.ma365-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
         <div className="ma365-hide-scrollbar" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-          <TabBtn active={tab === "boosts"} onClick={() => setTab("boosts")}>⚡ Boosts</TabBtn>
-          <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>🪙 Wegemünzen</TabBtn>
-          <TabBtn active={tab === "gameplay"} onClick={() => setTab("gameplay")}>🎮 Gameplay</TabBtn>
-          <TabBtn active={tab === "cosmetics"} onClick={() => setTab("cosmetics")}>🎨 Skins</TabBtn>
-          <TabBtn active={tab === "extras"} onClick={() => setTab("extras")}>🎁 Extras</TabBtn>
+          <TabBtn active={tab === "boosts"} onClick={() => setTab("boosts")}>{tBS("tabBoosts")}</TabBtn>
+          <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>{tBS("tabXp")}</TabBtn>
+          <TabBtn active={tab === "gameplay"} onClick={() => setTab("gameplay")}>{tBS("tabGameplay")}</TabBtn>
+          <TabBtn active={tab === "cosmetics"} onClick={() => setTab("cosmetics")}>{tBS("tabCosmetics")}</TabBtn>
+          <TabBtn active={tab === "extras"} onClick={() => setTab("extras")}>{tBS("tabExtras")}</TabBtn>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -262,14 +267,14 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
                         padding: "2px 6px", borderRadius: 4,
                         background: "rgba(34,209,195,0.2)", color: "#22D1C3",
                         border: "1px solid rgba(34,209,195,0.4)",
-                      }}>ABO</span>
+                      }}>{tBS("subscriptionBadge")}</span>
                     )}
                   </div>
                   {desc && <div style={{ color: "#a8b4cf", fontSize: 10 }}>{desc}</div>}
-                  {isBadge && <div style={{ color: "#a8b4cf", fontSize: 10 }}>monatlich · jederzeit kündbar</div>}
+                  {isBadge && <div style={{ color: "#a8b4cf", fontSize: 10 }}>{tBS("subscriptionMonthly")}</div>}
                   {p.sku === "crew_boost_24h" && (
                     <div style={{ color: "#FFD700", fontSize: 9, marginTop: 2 }}>
-                      ℹ️ Stapelt nicht mit Personal-Boost — es gilt der höhere Wert
+                      {tBS("crewStackHint")}
                     </div>
                   )}
                 </div>
@@ -291,7 +296,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         </div>
 
         <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 12 }}>
-          Stripe-Integration folgt · aktuell Demo-Aktivierung
+          {tBS("stripeNote")}
         </div>
       {checkoutSecret && (
         <StripeCheckoutModal clientSecret={checkoutSecret} onClose={() => setCheckoutSecret(null)} />
@@ -318,8 +323,8 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 24 }}>⚡</span>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 900 }}>Power-Shop</div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>Wegemünzen-Boosts & Extras</div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>{tBS("title")}</div>
+              <div style={{ fontSize: 11, color: "#a8b4cf" }}>{tBS("subtitle")}</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
