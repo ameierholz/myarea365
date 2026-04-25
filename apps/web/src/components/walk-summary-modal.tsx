@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
 import { XP_REWARDED_AD } from "@/lib/game-config";
 import { AD_REWARDS } from "@/lib/monetization";
@@ -47,7 +48,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
 }) {
   const t = useTranslations("WalkSummary");
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   const richTags = { b: (c: React.ReactNode) => <b style={{ color: "#FFD700" }}>{c}</b> } as const;
   const [phase, setPhase] = useState<"checking" | "ad" | "summary">(isPremium ? "summary" : "checking");
   const [progress, setProgress] = useState(0);

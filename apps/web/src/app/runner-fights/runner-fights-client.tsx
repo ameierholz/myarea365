@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale } from "@/i18n/config";
 import Link from "next/link";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { CinematicBattleArena } from "@/components/battle-arena";
@@ -348,7 +349,7 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
 }) {
   const t = useTranslations("Arena");
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   const myType = myGuardian?.guardian_type && (myGuardian.guardian_type in TYPE_META)
     ? TYPE_META[myGuardian.guardian_type as GuardianType] : null;
   const rarityMeta = myGuardian?.rarity === "legendary"
@@ -483,7 +484,7 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
 }) {
   const t = useTranslations("Arena");
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   const eff = myGuardian.effective_stats;
   const bon = myGuardian.bonus_stats;
   const equippedMap = new Map(myGuardian.equipped.map((e) => [e.slot, e]));
@@ -802,7 +803,7 @@ function SlotPicker({ slotLabel, available, equippedId, anchorRight, onPick, onU
 
 function GearStat({ label, value, bonus, icon, color }: { label: string; value: number; bonus: number; icon: string; color: string }) {
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   return (
     <div style={{
       position: "relative", padding: "6px 8px", borderRadius: 8,
@@ -1001,7 +1002,7 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
 
 function StatRow({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) {
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1111,7 +1112,7 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
 }) {
   const t = useTranslations("Arena");
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   const won = settle?.won ?? winner === "A";
   const rarityMeta = settle?.rarity === "epic" ? { label: t("rarityEpic"), color: "#a855f7" }
                     : settle?.rarity === "rare" ? { label: t("rarityRare"), color: "#22D1C3" }
@@ -1273,7 +1274,7 @@ function FighterPanel({ side, name, emoji, imageUrl, videoUrl, level, hpPct, dmg
 }) {
   const t = useTranslations("Arena");
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   const color = winner ? "#4ade80" : "#FF2D78";
   return (
     <div style={{
@@ -1734,7 +1735,7 @@ const DEMO_LEVEL_CAP = 10;
 function PrestigeDemo() {
   const t = useTranslations("Arena");
   const locale = useLocale();
-  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const numLocale = getNumberLocale(locale);
   const [xp, setXp] = useState(0);
   const [wins, setWins] = useState(0);
   const [endedSeasons, setEndedSeasons] = useState(0);
