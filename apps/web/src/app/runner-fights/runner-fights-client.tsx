@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { CinematicBattleArena } from "@/components/battle-arena";
@@ -113,6 +114,7 @@ const DEMO_SEASON: SeasonInfo = {
 };
 
 export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boolean; onClose?: () => void } = {}) {
+  const t = useTranslations("Arena");
   const [data, setData] = useState<OpponentsResponse | null>(null);
   const [season, setSeason] = useState<SeasonInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,15 +138,15 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
   async function attack(op: Opponent) {
     const nextCost = data?.next_gem_cost ?? 0;
     if (nextCost === -1) {
-      await appAlert({ title: "Tageslimit erreicht", message: "Du hast heute bereits 15 Kämpfe bestritten. Komm morgen wieder!", icon: "⏱️" });
+      await appAlert({ title: t("dailyLimitTitle"), message: t("dailyLimitMessage"), icon: "⏱️" });
       return;
     }
     if (nextCost > 0) {
       const ok = await appConfirm({
-        title: "Kampf kostet Diamanten",
-        message: `Dieser Fight kostet ${nextCost} 💎. Fortfahren?`,
-        confirmLabel: `Für ${nextCost} 💎 kämpfen`,
-        cancelLabel: "Abbrechen",
+        title: t("fightCostsGemsTitle"),
+        message: t("fightCostsGemsMessage", { cost: nextCost }),
+        confirmLabel: t("fightCostsGemsConfirm", { cost: nextCost }),
+        cancelLabel: t("cancel"),
         icon: "💎",
       });
       if (!ok) return;
@@ -158,7 +160,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
       });
       const j = (await res.json()) as AttackResult;
       if (!j.ok) {
-        await appAlert({ title: "Kampf fehlgeschlagen", message: j.message ?? j.error ?? "Unbekannter Fehler", icon: "⚠️" });
+        await appAlert({ title: t("fightFailedTitle"), message: j.message ?? j.error ?? t("unknownError"), icon: "⚠️" });
         setBusyId(null);
         return;
       }
@@ -180,7 +182,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
     : Wrapper;
 
   if (loading || !data) {
-    return <W><div className="p-10 text-center text-[#8B8FA3]">Lade Gegner …</div></W>;
+    return <W><div className="p-10 text-center text-[#8B8FA3]">{t("loadingOpponents")}</div></W>;
   }
 
   if (demoSeason) {
@@ -216,8 +218,8 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
         <W>
           <div className="p-6 rounded-xl bg-[#1A1D23] border border-white/10 text-center">
             <div className="text-4xl mb-3">🛡️</div>
-            <div className="text-white font-black">Kein aktiver Wächter</div>
-            <div className="text-sm text-[#a8b4cf] mt-2">Wähle in deiner Crew einen aktiven Wächter aus, um zu kämpfen.</div>
+            <div className="text-white font-black">{t("noActiveGuardian")}</div>
+            <div className="text-sm text-[#a8b4cf] mt-2">{t("noActiveGuardianHint")}</div>
           </div>
         </W>
       );
@@ -226,7 +228,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
       <W>
         <div className="p-6 rounded-xl bg-[#1A1D23] border border-[#FF2D78]/40 text-center">
           <div className="text-3xl mb-2">⚠️</div>
-          <div className="text-[#FF2D78] font-black text-lg">{data.error ?? "Unbekannter Fehler"}</div>
+          <div className="text-[#FF2D78] font-black text-lg">{data.error ?? t("unknownError")}</div>
           {data.detail && <div className="text-[#a8b4cf] text-sm mt-2">{data.detail}</div>}
         </div>
       </W>
@@ -257,7 +259,7 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
           <button onClick={() => setDemoSeason(true)} style={{
             padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
             background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.4)", color: "#c084fc",
-          }}>🎬 Wächter-Wahl</button>
+          }}>{t("guardianPickButton")}</button>
         )}
         <PrestigeDemoButton />
         <GuardianExplainerButton />
@@ -265,32 +267,32 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
 
       {nextCost === -1 && (
         <div className="mb-3 p-3 rounded-xl bg-[#FF2D78]/10 border border-[#FF2D78]/30 text-sm text-[#FF2D78] font-bold">
-          🚫 Tageslimit (15) erreicht — morgen wieder frische Fights!
+          {t("dailyLimitBanner")}
         </div>
       )}
 
       <div className="flex items-center justify-between mb-3">
         <div className="text-[11px] text-[#8B8FA3]">
-          {data.opponents.length} Gegner verfügbar
-          {data.refresh_used_today > 0 && ` · ${data.refresh_used_today}× neu gemischt`}
+          {t("opponentsAvailable", { count: data.opponents.length })}
+          {data.refresh_used_today > 0 && t("shuffledSuffix", { count: data.refresh_used_today })}
         </div>
         <button
           onClick={() => reload(true)}
           className="text-xs px-3 py-1.5 rounded-lg bg-[#1A1D23] border border-white/10 hover:bg-white/5 text-[#a8b4cf] font-bold"
         >
-          🔄 Neu mischen {data.refresh_cost === 0 ? "(gratis)" : `(${data.refresh_cost} 💎)`}
+          {data.refresh_cost === 0 ? t("shuffleButtonFree") : t("shuffleButtonPaid", { cost: data.refresh_cost })}
         </button>
       </div>
 
       {data.opponents.length === 0 ? (
-        <div className="p-10 text-center text-[#8B8FA3] text-sm">Keine passenden Gegner gerade online. Versuche es später nochmal.</div>
+        <div className="p-10 text-center text-[#8B8FA3] text-sm">{t("noOpponents")}</div>
       ) : (
         <>
           <div className="text-center text-xs font-black tracking-widest text-[#FFD700] mb-1">
-            ⚔️ WÄHLE EINEN GEGNER ⚔️
+            {t("pickOpponent")}
           </div>
           <div className="text-center text-[10px] text-[#8B8FA3] mb-3" style={{ maxWidth: 540, margin: "0 auto 12px" }}>
-            Sieg = Siegel + Ausrüstungs-Drop + MMR · Niederlage = MMR-Verlust (nur im Ranked-Modus) · Gegner kann nach Angriff 6 h nicht nochmal attackiert werden
+            {t("rulesNote")}
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {data.opponents.map((op) => (
@@ -323,10 +325,11 @@ export function RunnerFightsClient({ inModal = false, onClose }: { inModal?: boo
 }
 
 function Wrapper({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("Arena");
   return (
     <main className="min-h-screen px-4 py-8">
       <div className="max-w-5xl mx-auto">
-        <Link href="/dashboard" className="text-xs text-[#8B8FA3] hover:text-white">← Dashboard</Link>
+        <Link href="/dashboard" className="text-xs text-[#8B8FA3] hover:text-white">{t("backDashboard")}</Link>
         <div className="mt-2">{children}</div>
       </div>
     </main>
@@ -343,13 +346,16 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
   nextCost: number | null;
   onChanged: () => void | Promise<void>;
 }) {
+  const t = useTranslations("Arena");
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   const myType = myGuardian?.guardian_type && (myGuardian.guardian_type in TYPE_META)
     ? TYPE_META[myGuardian.guardian_type as GuardianType] : null;
   const rarityMeta = myGuardian?.rarity === "legendary"
-    ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
+    ? { color: "#FFD700", label: t("rarityLegendary"), glow: "rgba(255,215,0,0.4)" }
     : myGuardian?.rarity === "epic"
-    ? { color: "#a855f7", label: "EPISCH",   glow: "rgba(168,85,247,0.4)" }
-    : { color: "#22D1C3", label: "ELITE",    glow: "rgba(34,209,195,0.3)" };
+    ? { color: "#a855f7", label: t("rarityEpic"),      glow: "rgba(168,85,247,0.4)" }
+    : { color: "#22D1C3", label: t("rarityElite"),     glow: "rgba(34,209,195,0.3)" };
 
   return (
     <div style={{
@@ -391,8 +397,8 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontSize: 22 }}>⚔️</div>
           <div>
-            <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 3 }}>DER RUF DER ARENA</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>Arena</div>
+            <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 3 }}>{t("headerKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>{t("headerTitle")}</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -417,23 +423,23 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
         display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
       }}>
           <ArenaStatTile
-            label="GRATIS-FIGHTS"
+            label={t("freeFightsLabel")}
             value={`${freeLeft}/5`}
-            sub={freeLeft > 0 ? "noch frei" : "aufgebraucht"}
+            sub={freeLeft > 0 ? t("freeFightsLeft") : t("freeFightsUsed")}
             icon="⚡"
             color={freeLeft > 0 ? "#4ade80" : "#8B8FA3"}
           />
           <ArenaStatTile
-            label="FIGHTS HEUTE"
+            label={t("fightsTodayLabel")}
             value={`${used}/${totalLimit}`}
-            sub="Tages-Counter"
+            sub={t("fightsTodaySub")}
             icon="🗡️"
             color="#22D1C3"
           />
           <ArenaStatTile
-            label="DIAMANTEN"
-            value={gemsAvailable.toLocaleString("de-DE")}
-            sub={nextCost && nextCost > 0 ? `nächster: ${nextCost} 💎` : "balance"}
+            label={t("gemsLabel")}
+            value={gemsAvailable.toLocaleString(numLocale)}
+            sub={nextCost && nextCost > 0 ? t("gemsNextCost", { cost: nextCost }) : t("gemsBalance")}
             icon="💎"
             color="#FFD700"
           />
@@ -441,7 +447,7 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
 
       {nextCost === -1 && (
         <div style={{ padding: "10px 18px", background: "rgba(255,45,120,0.14)", borderTop: "1px solid rgba(255,45,120,0.3)", color: "#FF2D78", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
-          🚫 Tageslimit (15) erreicht — morgen wieder frische Fights!
+          {t("dailyLimitBanner")}
         </div>
       )}
 
@@ -455,16 +461,16 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
   );
 }
 
-const SLOT_ORDER: Array<{ key: string; icon: string; label: string }> = [
-  { key: "helm",      icon: "⛑️", label: "Helm" },
-  { key: "shoulders", icon: "🦾", label: "Schultern" },
-  { key: "chest",     icon: "🛡️", label: "Brust" },
-  { key: "hands",     icon: "🧤", label: "Hände" },
-  { key: "wrist",     icon: "🔗", label: "Armschienen" },
-  { key: "boots",     icon: "🥾", label: "Stiefel" },
-  { key: "neck",      icon: "📿", label: "Halskette" },
-  { key: "ring",      icon: "💍", label: "Ring" },
-  { key: "weapon",    icon: "⚔️", label: "Waffe" },
+const SLOT_ORDER: Array<{ key: string; icon: string; labelKey: string }> = [
+  { key: "helm",      icon: "⛑️", labelKey: "slotHelm" },
+  { key: "shoulders", icon: "🦾", labelKey: "slotShoulders" },
+  { key: "chest",     icon: "🛡️", labelKey: "slotChest" },
+  { key: "hands",     icon: "🧤", labelKey: "slotHands" },
+  { key: "wrist",     icon: "🔗", labelKey: "slotWrist" },
+  { key: "boots",     icon: "🥾", labelKey: "slotBoots" },
+  { key: "neck",      icon: "📿", labelKey: "slotNeck" },
+  { key: "ring",      icon: "💍", labelKey: "slotRing" },
+  { key: "weapon",    icon: "⚔️", labelKey: "slotWeapon" },
 ];
 
 const TIER_COLORS = ["#8B8FA3", "#4ade80", "#a855f7", "#FFD700"];
@@ -475,6 +481,9 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
   rarityMeta: { color: string; label: string; glow: string };
   onChanged: () => void | Promise<void>;
 }) {
+  const t = useTranslations("Arena");
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   const eff = myGuardian.effective_stats;
   const bon = myGuardian.bonus_stats;
   const equippedMap = new Map(myGuardian.equipped.map((e) => [e.slot, e]));
@@ -557,7 +566,7 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
             padding: "2px 8px", borderRadius: 999,
             background: `${rarityMeta.color}22`, border: `1px solid ${rarityMeta.color}66`,
             color: rarityMeta.color, fontSize: 10, fontWeight: 900, letterSpacing: 1,
-          }}>Stufe {myGuardian.level}</div>
+          }}>{t("level", { level: myGuardian.level })}</div>
           {myType && (
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 4,
@@ -601,9 +610,9 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
             }}
           >
             <span>
-              ⚒️ AUSRÜSTUNG · <span style={{ color: equippedCount > 0 ? "#FFD700" : "#8B8FA3" }}>{equippedCount}/{SLOT_ORDER.length}</span> SLOTS
+              {t("gearHeader", { equipped: equippedCount, total: SLOT_ORDER.length })}
               <span style={{ color: "#6c7590", fontSize: 10, fontWeight: 700, marginLeft: 8, letterSpacing: 0 }}>
-                {gearOpen ? "(Slot klicken zum Wechseln · hier klicken zum Einklappen)" : "(tippen zum Ausklappen)"}
+                {gearOpen ? t("gearHintOpen") : t("gearHintClosed")}
               </span>
             </span>
             <span style={{
@@ -652,13 +661,13 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
                       }}>{eq ? eq.emoji : s.icon}</div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: 1, color: "#8B8FA3" }}>
-                          {s.label.toUpperCase()}
+                          {t(s.labelKey).toUpperCase()}
                         </div>
                         <div style={{
                           fontSize: 10, fontWeight: 900, color: empty ? "#6c7590" : tierColor,
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                         }}>
-                          {eq ? eq.name : "— leer —"}
+                          {eq ? eq.name : t("slotEmpty")}
                         </div>
                       </div>
                     </div>
@@ -674,7 +683,7 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
 
                   {isOpen && (
                     <SlotPicker
-                      slotLabel={s.label}
+                      slotLabel={t(s.labelKey)}
                       available={available}
                       equippedId={eq?.user_item_id ?? null}
                       anchorRight={anchorRight}
@@ -715,6 +724,7 @@ function SlotPicker({ slotLabel, available, equippedId, anchorRight, onPick, onU
   onUnequip: (() => void) | null;
   onClose: () => void;
 }) {
+  const t = useTranslations("Arena");
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
@@ -730,11 +740,11 @@ function SlotPicker({ slotLabel, available, equippedId, anchorRight, onPick, onU
         padding: 6, maxHeight: 280, overflowY: "auto",
       }}>
         <div style={{ padding: "4px 6px 6px", color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>
-          {slotLabel.toUpperCase()} WÄHLEN
+          {t("slotPickHeader", { slot: slotLabel.toUpperCase() })}
         </div>
         {available.length === 0 ? (
           <div style={{ padding: "10px 8px", fontSize: 10, color: "#6c7590", textAlign: "center" }}>
-            Keine Items für diesen Slot.
+            {t("slotPickEmpty")}
           </div>
         ) : (
           available.map((it) => {
@@ -782,7 +792,7 @@ function SlotPicker({ slotLabel, available, equippedId, anchorRight, onPick, onU
               cursor: "pointer",
             }}
           >
-            ✕ AUSZIEHEN
+            {t("slotUnequip")}
           </button>
         )}
       </div>
@@ -791,6 +801,8 @@ function SlotPicker({ slotLabel, available, equippedId, anchorRight, onPick, onU
 }
 
 function GearStat({ label, value, bonus, icon, color }: { label: string; value: number; bonus: number; icon: string; color: string }) {
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   return (
     <div style={{
       position: "relative", padding: "6px 8px", borderRadius: 8,
@@ -799,10 +811,10 @@ function GearStat({ label, value, bonus, icon, color }: { label: string; value: 
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 9, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1 }}>
         <span>{icon} {label}</span>
-        {bonus > 0 && <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 900 }}>+{bonus.toLocaleString("de-DE")}</span>}
+        {bonus > 0 && <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 900 }}>+{bonus.toLocaleString(numLocale)}</span>}
       </div>
       <div style={{ color, fontSize: 15, fontWeight: 900, lineHeight: 1.1, marginTop: 2 }}>
-        {value.toLocaleString("de-DE")}
+        {value.toLocaleString(numLocale)}
       </div>
     </div>
   );
@@ -830,20 +842,21 @@ function ArenaStatTile({ label, value, sub, icon, color }: { label: string; valu
 }
 
 function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; myType: GuardianType | null; onAttack: () => void; busy: boolean; disabled: boolean }) {
+  const t = useTranslations("Arena");
   const factionColor = (op.faction === "syndicate" || op.faction === "gossenbund") ? "#22D1C3" : (op.faction === "vanguard" || op.faction === "kronenwacht") ? "#FFD700" : "#8B8FA3";
   const rarityMeta = op.rarity === "legendary"
-    ? { color: "#FFD700", label: "LEGENDÄR", glow: "rgba(255,215,0,0.4)" }
+    ? { color: "#FFD700", label: t("rarityLegendary"), glow: "rgba(255,215,0,0.4)" }
     : op.rarity === "epic"
-    ? { color: "#a855f7", label: "EPISCH",   glow: "rgba(168,85,247,0.4)" }
-    : { color: "#22D1C3", label: "ELITE",    glow: "rgba(34,209,195,0.3)" };
+    ? { color: "#a855f7", label: t("rarityEpic"),      glow: "rgba(168,85,247,0.4)" }
+    : { color: "#22D1C3", label: t("rarityElite"),     glow: "rgba(34,209,195,0.3)" };
 
   const opType = op.guardian_type && (op.guardian_type in TYPE_META) ? TYPE_META[op.guardian_type as GuardianType] : null;
   const mult = myType && op.guardian_type && (op.guardian_type in TYPE_META)
     ? typeCounter(myType, op.guardian_type as GuardianType) : 1;
   const matchup = mult > 1
-    ? { label: "VORTEIL", color: "#4ade80", icon: "✅" }
+    ? { label: t("matchupAdvantage"), color: "#4ade80", icon: "✅" }
     : mult < 1
-    ? { label: "NACHTEIL", color: "#FF2D78", icon: "⚠️" }
+    ? { label: t("matchupDisadvantage"), color: "#FF2D78", icon: "⚠️" }
     : null;
 
   // S&F-Style Base-Stats (gleiche Formel wie Engine nutzt)
@@ -877,7 +890,7 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
           padding: "3px 8px", borderRadius: 999,
           background: "rgba(0,0,0,0.6)", color: "#a8b4cf",
           fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
-        }}>🤖 BOT</div>
+        }}>{t("botBadge")}</div>
       )}
 
       {matchup && (
@@ -941,16 +954,16 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
           textShadow: "0 1px 2px #000",
           boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
         }}>
-          Stufe {op.level}
+          {t("level", { level: op.level })}
         </div>
       </div>
 
       {/* Stat-Grid (S&F-Style Zeilen) */}
       <div style={{ padding: "4px 12px 8px" }}>
-        <StatRow label="Stärke"      value={base.atk} icon="⚔️" color="#FF6B4A" />
-        <StatRow label="Verteidigung" value={base.def} icon="🛡️" color="#60a5fa" />
-        <StatRow label="Lebensenergie" value={base.hp}  icon="❤️" color="#4ade80" />
-        <StatRow label="Geschwindigkeit" value={base.spd} icon="💨" color="#FFD700" />
+        <StatRow label={t("statStr")} value={base.atk} icon="⚔️" color="#FF6B4A" />
+        <StatRow label={t("statDef")} value={base.def} icon="🛡️" color="#60a5fa" />
+        <StatRow label={t("statHp")}  value={base.hp}  icon="❤️" color="#4ade80" />
+        <StatRow label={t("statSpd")} value={base.spd} icon="💨" color="#FFD700" />
       </div>
 
       {/* Record */}
@@ -959,8 +972,8 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
         borderTop: "1px solid rgba(255,255,255,0.06)",
         display: "flex", justifyContent: "space-between", fontSize: 10,
       }}>
-        <span style={{ color: "#4ade80", fontWeight: 700 }}>🏆 {op.wins} Siege</span>
-        <span style={{ color: "#FF2D78", fontWeight: 700 }}>💀 {op.losses} Niederlagen</span>
+        <span style={{ color: "#4ade80", fontWeight: 700 }}>🏆 {t("wins", { count: op.wins })}</span>
+        <span style={{ color: "#FF2D78", fontWeight: 700 }}>💀 {t("losses", { count: op.losses })}</span>
       </div>
 
       {/* Angreifen-Button (groß, rot, wie S&F) */}
@@ -980,13 +993,15 @@ function OpponentCard({ op, myType, onAttack, busy, disabled }: { op: Opponent; 
           textShadow: "0 1px 2px rgba(0,0,0,0.5)",
         }}
       >
-        {busy ? "⚔️ KÄMPFE…" : "⚔️ ANGREIFEN"}
+        {busy ? t("fighting") : t("attack")}
       </button>
     </div>
   );
 }
 
 function StatRow({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) {
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -997,7 +1012,7 @@ function StatRow({ label, value, icon, color }: { label: string; value: number; 
         <span>{icon}</span>
         <span>{label}</span>
       </div>
-      <div style={{ color, fontWeight: 900 }}>{value.toLocaleString("de-DE")}</div>
+      <div style={{ color, fontWeight: 900 }}>{value.toLocaleString(numLocale)}</div>
     </div>
   );
 }
@@ -1022,6 +1037,7 @@ function FightModal({ onClose, opponent, myGuardian, rounds, settle, winner }: {
   settle?: { won: boolean; xp: number; rarity: string; siegel_type: string; item_id: string | null };
   winner: "A" | "B" | null;
 }) {
+  const t = useTranslations("Arena");
   const [phase, setPhase] = useState<"fight" | "result">("fight");
 
   return (
@@ -1042,7 +1058,7 @@ function FightModal({ onClose, opponent, myGuardian, rounds, settle, winner }: {
           <div style={{ padding: 16 }}>
             <CinematicBattleArena
               sideA={{
-                name: "Du",
+                name: t("you"),
                 archetype: {
                   id: myGuardian?.archetype_id ?? "-",
                   emoji: myGuardian?.archetype_emoji ?? "🛡️",
@@ -1054,7 +1070,7 @@ function FightModal({ onClose, opponent, myGuardian, rounds, settle, winner }: {
                 maxHp: 100,
               }}
               sideB={{
-                name: opponent.display_name ?? opponent.username ?? "Gegner",
+                name: opponent.display_name ?? opponent.username ?? t("opponentFallback"),
                 archetype: {
                   id: opponent.archetype_id,
                   emoji: opponent.archetype_emoji,
@@ -1074,7 +1090,7 @@ function FightModal({ onClose, opponent, myGuardian, rounds, settle, winner }: {
               color: "#a8b4cf", fontSize: 12, fontWeight: 700,
               border: "none", cursor: "pointer",
             }}>
-              Überspringen →
+              {t("skipFight")}
             </button>
           </div>
         ) : (
@@ -1093,10 +1109,13 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
   settle?: { won: boolean; xp: number; rarity: string; siegel_type: string; item_id: string | null };
   winner: "A" | "B" | null;
 }) {
+  const t = useTranslations("Arena");
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   const won = settle?.won ?? winner === "A";
-  const rarityMeta = settle?.rarity === "epic" ? { label: "EPISCH", color: "#a855f7" }
-                    : settle?.rarity === "rare" ? { label: "SELTEN", color: "#22D1C3" }
-                    : { label: "GEWÖHNLICH", color: "#8B8FA3" };
+  const rarityMeta = settle?.rarity === "epic" ? { label: t("rarityEpic"), color: "#a855f7" }
+                    : settle?.rarity === "rare" ? { label: t("rarityRare"), color: "#22D1C3" }
+                    : { label: t("rarityCommon"), color: "#8B8FA3" };
 
   // Damage-Stats aus den Rounds berechnen
   let dmgA = 0, dmgB = 0, critsA = 0, critsB = 0;
@@ -1111,11 +1130,9 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
   const finalHpB = lastRound?.hp_b_after ?? 100;
 
   const bannerColor = won ? "#4ade80" : "#FF2D78";
-  const bannerLabel = won ? "SIEG" : "NIEDERLAGE";
+  const bannerLabel = won ? t("victory") : t("defeat");
   const bannerIcon = won ? "🏆" : "💀";
-  const flavorText = won
-    ? "Dieser Gegner war bestimmt nicht ganz ohne. Jetzt ist er es aber."
-    : "Heute ging's nicht auf. Morgen ist ein neuer Kampftag.";
+  const flavorText = won ? t("victoryFlavor") : t("defeatFlavor");
 
   return (
     <div style={{ position: "relative", overflow: "hidden" }}>
@@ -1155,7 +1172,7 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
         {/* Du */}
         <FighterPanel
           side="left"
-          name="Du"
+          name={t("you")}
           emoji={myGuardian?.archetype_emoji ?? "🛡️"}
           imageUrl={myGuardian?.archetype_image_url ?? null}
           videoUrl={myGuardian?.archetype_video_url ?? null}
@@ -1176,7 +1193,7 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
         {/* Gegner */}
         <FighterPanel
           side="right"
-          name={opponent.display_name ?? opponent.username ?? "Gegner"}
+          name={opponent.display_name ?? opponent.username ?? t("opponentFallback")}
           emoji={opponent.archetype_emoji}
           imageUrl={opponent.archetype_image_url ?? null}
           videoUrl={opponent.archetype_video_url ?? null}
@@ -1197,14 +1214,14 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
           border: `1px solid ${rarityMeta.color}55`,
         }}>
           <div style={{ color: rarityMeta.color, fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 8 }}>
-            💰 ENTWICKLUNG
+            {t("rewardsHeader")}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <RewardTile icon="⚡" label="XP" value={`+${settle.xp.toLocaleString("de-DE")}`} color="#FFD700" />
-            <RewardTile icon="🔖" label={`${settle.siegel_type}-Siegel`} value="+1" color={rarityMeta.color} />
+            <RewardTile icon="⚡" label={t("rewardXp")} value={`+${settle.xp.toLocaleString(numLocale)}`} color="#FFD700" />
+            <RewardTile icon="🔖" label={t("rewardSeal", { type: settle.siegel_type })} value="+1" color={rarityMeta.color} />
             {settle.item_id && (
               <div style={{ gridColumn: "1 / -1" }}>
-                <RewardTile icon="🎁" label="Ausrüstung erbeutet!" value="RARE+" color="#FFD700" />
+                <RewardTile icon="🎁" label={t("rewardLoot")} value={t("rewardLootValue")} color="#FFD700" />
               </div>
             )}
           </div>
@@ -1218,7 +1235,7 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
           color: "#a8b4cf", fontSize: 13, fontWeight: 800, letterSpacing: 1,
           cursor: "pointer",
         }}>
-          ← Zurück zur Arena
+          {t("backToArena")}
         </button>
         <button onClick={onClose} style={{
           padding: "14px 16px", borderRadius: 10,
@@ -1227,7 +1244,7 @@ function ResultView({ onClose, opponent, myGuardian, rounds, settle, winner }: {
           border: "none", cursor: "pointer",
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)",
         }}>
-          WEITER KÄMPFEN →
+          {t("fightAgain")}
         </button>
       </div>
 
@@ -1254,6 +1271,9 @@ function FighterPanel({ side, name, emoji, imageUrl, videoUrl, level, hpPct, dmg
   crits: number;
   winner: boolean;
 }) {
+  const t = useTranslations("Arena");
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   const color = winner ? "#4ade80" : "#FF2D78";
   return (
     <div style={{
@@ -1282,14 +1302,14 @@ function FighterPanel({ side, name, emoji, imageUrl, videoUrl, level, hpPct, dmg
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, lineHeight: 1.1 }}>{name}</div>
-          <div style={{ color: "#a8b4cf", fontSize: 10 }}>Stufe {level}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10 }}>{t("level", { level })}</div>
         </div>
       </div>
 
       {/* HP-Bar */}
       <div style={{ marginTop: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#a8b4cf", marginBottom: 2 }}>
-          <span>HP</span>
+          <span>{t("hpLabel")}</span>
           <span style={{ color: hpPct > 50 ? "#4ade80" : hpPct > 20 ? "#FFD700" : "#FF2D78", fontWeight: 900 }}>
             {Math.round(hpPct)}%
           </span>
@@ -1307,11 +1327,11 @@ function FighterPanel({ side, name, emoji, imageUrl, videoUrl, level, hpPct, dmg
       {/* Damage-Stats */}
       <div style={{ marginTop: 8, fontSize: 10, color: "#a8b4cf" }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Schaden</span>
-          <span style={{ color: "#FF6B4A", fontWeight: 900 }}>{dmgDealt.toLocaleString("de-DE")}</span>
+          <span>{t("damage")}</span>
+          <span style={{ color: "#FF6B4A", fontWeight: 900 }}>{dmgDealt.toLocaleString(numLocale)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-          <span>Krit-Treffer</span>
+          <span>{t("crits")}</span>
           <span style={{ color: "#FFD700", fontWeight: 900 }}>{crits}</span>
         </div>
       </div>
@@ -1355,6 +1375,7 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
   onClose?: () => void;
   demoMode?: boolean;
 }) {
+  const t = useTranslations("Arena");
   const [archetypes, setArchetypes] = useState<Archetype[] | null>(null);
   const [pickingId, setPickingId] = useState<string | null>(null);
   const [showExplainer, setShowExplainer] = useState(false);
@@ -1370,8 +1391,8 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
     if (demoMode) {
       const a = DEMO_ARCHETYPES.find((x) => x.id === archetypeId);
       await appAlert({
-        title: "🎬 Demo-Modus",
-        message: `„${a?.name}" wäre jetzt dein Saison-Wächter (Level 1). Dein Ewiger Wächter bleibt unberührt — alle Items aus dieser Saison landen dort.`,
+        title: t("demoModeAlertTitle"),
+        message: t("demoModeAlertMessage", { name: a?.name ?? t("pickGuardianFallback") }),
         icon: a?.emoji ?? "⚔️",
       });
       onPicked();
@@ -1379,10 +1400,10 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
     }
     const a = archetypes?.find((x) => x.id === archetypeId);
     const ok = await appConfirm({
-      title: "Saison-Wächter festlegen",
-      message: `„${a?.name ?? "Dieser Wächter"}" kämpft die gesamte Saison für dich und startet bei Level 1. Die Wahl ist bis zum Saisonende bindend.`,
-      confirmLabel: "Wählen",
-      cancelLabel: "Noch überlegen",
+      title: t("pickConfirmTitle"),
+      message: t("pickConfirmMessage", { name: a?.name ?? t("pickGuardianFallback") }),
+      confirmLabel: t("pickConfirmYes"),
+      cancelLabel: t("pickConfirmNo"),
       icon: a?.emoji ?? "⚔️",
     });
     if (!ok) return;
@@ -1392,7 +1413,7 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
       body: JSON.stringify({ archetype_id: archetypeId }),
     });
     const j = await res.json() as { ok: boolean; error?: string };
-    if (!j.ok) { await appAlert({ title: "Fehler", message: j.error ?? "Unbekannter Fehler", icon: "⚠️" }); setPickingId(null); return; }
+    if (!j.ok) { await appAlert({ title: t("errorTitle"), message: j.error ?? t("unknownError"), icon: "⚠️" }); setPickingId(null); return; }
     onPicked();
   }
 
@@ -1419,18 +1440,21 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
             display: "inline-block", padding: "3px 10px", borderRadius: 999,
             background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.5)",
             color: "#c084fc", fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 8,
-          }}>🎬 DEMO-MODUS</div>
+          }}>{t("demoModeBadge")}</div>
         )}
         <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 3 }}>
-          SAISON {season.number} · {season.name.toUpperCase()}
+          {t("seasonHeader", { number: season.number, name: season.name.toUpperCase() })}
         </div>
         <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginTop: 4 }}>
-          ⚔️ Wähle deinen Saison-Wächter
+          {t("seasonPickTitle")}
         </div>
         <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 6, maxWidth: 540, margin: "6px auto 0" }}>
-          Dein <b style={{ color: "#22D1C3" }}>Saison-Wächter</b> kämpft in dieser Saison und startet bei Level 1.
-          Dein <b style={{ color: "#FFD700" }}>Ewiger Wächter</b> bleibt unberührt und erbt die Items.
-          Noch <b>{daysLeft} Tage</b>.
+          {t.rich("seasonPickIntro", {
+            days: daysLeft,
+            a: (c) => <b style={{ color: "#22D1C3" }}>{c}</b>,
+            b: (c) => <b style={{ color: "#FFD700" }}>{c}</b>,
+            c: (c) => <b>{c}</b>,
+          })}
         </div>
         <button
           onClick={() => setShowExplainer((v) => !v)}
@@ -1439,7 +1463,7 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
             background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.35)",
             color: "#22D1C3", fontSize: 11, fontWeight: 800, cursor: "pointer",
           }}
-        >{showExplainer ? "Weniger anzeigen" : "❓ Wie funktioniert das genau?"}</button>
+        >{showExplainer ? t("showLess") : t("showHowItWorks")}</button>
       </div>
 
       {showExplainer && <GuardianExplainer />}
@@ -1452,18 +1476,18 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
         }}>
           <div style={{ fontSize: 26 }}>{eternal.guardian_archetypes.emoji}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>EWIGER WÄCHTER</div>
+            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>{t("eternalGuardianLabel")}</div>
             <div style={{ color: "#FFF", fontSize: 13, fontWeight: 700 }}>{eternal.guardian_archetypes.name}</div>
           </div>
-          <span style={{ color: "#a8b4cf", fontSize: 10 }}>erbt die Beute</span>
+          <span style={{ color: "#a8b4cf", fontSize: 10 }}>{t("eternalInheritsLoot")}</span>
         </div>
       )}
 
       {!archetypes ? (
-        <div className="p-10 text-center text-[#8B8FA3]">Lade Wächter …</div>
+        <div className="p-10 text-center text-[#8B8FA3]">{t("loadingGuardians")}</div>
       ) : archetypes.length === 0 ? (
         <div className="p-8 text-center text-[#8B8FA3] text-sm">
-          Keine Wächter verfügbar. Sammle zuerst Wächter über die Map.
+          {t("noGuardiansAvailable")}
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
@@ -1495,7 +1519,7 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
                   ) : a.emoji}
                 </div>
                 <div style={{ color: rarityColor, fontSize: 9, fontWeight: 900, letterSpacing: 1.5, marginTop: 4, textAlign: "center" }}>
-                  {a.rarity === "legendary" ? "LEGENDÄR" : a.rarity === "epic" ? "EPISCH" : "ELITE"}
+                  {a.rarity === "legendary" ? t("rarityLegendary") : a.rarity === "epic" ? t("rarityEpic") : t("rarityElite")}
                 </div>
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, marginTop: 2, textAlign: "center" }}>
                   {a.name}
@@ -1508,7 +1532,7 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
                   background: busy ? "#8B8FA3" : `linear-gradient(180deg, ${rarityColor} 0%, ${rarityColor}aa 100%)`,
                   color: "#0F1115", fontSize: 10, fontWeight: 900, letterSpacing: 1.2,
                 }}>
-                  {busy ? "WIRD GEWÄHLT…" : "⚔️ WÄHLEN"}
+                  {busy ? t("picking") : t("pickButton")}
                 </div>
               </button>
             );
@@ -1522,6 +1546,7 @@ function SeasonPicker({ season, eternal, onPicked, onClose, demoMode }: {
 /* ═══ Erklär-Komponenten: „Warum 2 Wächter?" ═══ */
 
 function GuardianExplainerButton() {
+  const t = useTranslations("Arena");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -1531,7 +1556,7 @@ function GuardianExplainerButton() {
           padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
           background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.35)", color: "#22D1C3",
         }}
-      >❓ Warum 2 Wächter?</button>
+      >{t("twoGuardiansButton")}</button>
       {open && (
         <div
           onClick={() => setOpen(false)}
@@ -1551,7 +1576,7 @@ function GuardianExplainerButton() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>🛡️⚔️ Die zwei Wächter</div>
+              <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{t("twoGuardiansTitle")}</div>
               <button onClick={() => setOpen(false)} style={{
                 background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
                 width: 30, height: 30, borderRadius: 999, cursor: "pointer", fontSize: 16,
@@ -1566,18 +1591,17 @@ function GuardianExplainerButton() {
 }
 
 function GuardianExplainer() {
+  const t = useTranslations("Arena");
+  const richB = { b: (c: React.ReactNode) => <b>{c}</b> };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, margin: "0 auto 18px", maxWidth: 540 }}>
       <div style={{
         padding: 14, borderRadius: 12,
         background: "rgba(34,209,195,0.06)", border: "1px solid rgba(34,209,195,0.25)",
       }}>
-        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 6 }}>WARUM ÜBERHAUPT ZWEI?</div>
+        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#22D1C3", marginBottom: 6 }}>{t("explainerWhyTwo")}</div>
         <div style={{ fontSize: 13, color: "#dde3f5", lineHeight: 1.55 }}>
-          In jeder <b>Arena-Saison</b> (ca. 90 Tage) starten alle Runner mit einem frischen
-          Saison-Wächter auf Level 1. Das sorgt für faire Kämpfe — niemand wird von Level-200-Veteranen
-          überrannt. Gleichzeitig <b>bleibt deine Sammlung erhalten</b>: dein Ewiger Wächter und alle
-          deine Items gehen nie verloren.
+          {t.rich("explainerWhyTwoBody", richB)}
         </div>
       </div>
 
@@ -1587,11 +1611,9 @@ function GuardianExplainer() {
           background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.3)",
         }}>
           <div style={{ fontSize: 22, marginBottom: 4 }}>🛡️</div>
-          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>EWIGER WÄCHTER</div>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>{t("explainerEternalLabel")}</div>
           <div style={{ fontSize: 12, color: "#dde3f5", marginTop: 4, lineHeight: 1.5 }}>
-            Dein <b>Haupt-Wächter</b>. Bleibt saisonübergreifend. Sammelt automatisch
-            <b style={{ color: "#FFD700" }}> alle Items</b>, die du während der Saison loots.
-            Wird <b>stärker</b> mit jeder Saison.
+            {t.rich("explainerEternalBody", { b: (c) => <b>{c}</b>, c: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
           </div>
         </div>
 
@@ -1600,11 +1622,9 @@ function GuardianExplainer() {
           background: "rgba(34,209,195,0.06)", border: "1px solid rgba(34,209,195,0.3)",
         }}>
           <div style={{ fontSize: 22, marginBottom: 4 }}>⚔️</div>
-          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3" }}>SAISON-WÄCHTER</div>
+          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#22D1C3" }}>{t("explainerSeasonalLabel")}</div>
           <div style={{ fontSize: 12, color: "#dde3f5", marginTop: 4, lineHeight: 1.5 }}>
-            Dein <b>Kampf-Wächter</b> für diese Saison. Startet bei <b>Level 1</b>.
-            Alle seine Siege bringen dir <b>Saison-Prestige</b>. Wird am Saisonende
-            <b> archiviert</b> — nicht gelöscht.
+            {t.rich("explainerSeasonalBody", richB)}
           </div>
         </div>
       </div>
@@ -1613,21 +1633,18 @@ function GuardianExplainer() {
         padding: 14, borderRadius: 12,
         background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
       }}>
-        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#FFD700", marginBottom: 8 }}>SO FUNKTIONIERT&apos;S</div>
-        <Step num="1" title="Saison startet">
-          Du wählst aus deiner Wächter-Sammlung einen für diese Saison. Er startet bei Level 1.
+        <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#FFD700", marginBottom: 8 }}>{t("explainerHowItWorks")}</div>
+        <Step num="1" title={t("stepSeasonStartTitle")}>
+          {t("stepSeasonStartBody")}
         </Step>
-        <Step num="2" title="Du kämpfst & lootest">
-          Jeder Sieg gibt deinem Saison-Wächter XP. Alle Items, Siegel und Drops wandern
-          automatisch in das Inventar deines <b style={{ color: "#FFD700" }}>Ewigen Wächters</b>.
+        <Step num="2" title={t("stepFightLootTitle")}>
+          {t.rich("stepFightLootBody", { b: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
         </Step>
-        <Step num="3" title="Saison endet">
-          Dein Saison-Wächter wird ins Archiv gelegt (du kannst ihn später ansehen).
-          Dein Ewiger Wächter bekommt Prestige-Punkte — dauerhafte Bonus-Stats.
+        <Step num="3" title={t("stepSeasonEndTitle")}>
+          {t("stepSeasonEndBody")}
         </Step>
-        <Step num="4" title="Neue Saison, gleiches Ritual" last>
-          Du wählst erneut. Aus deiner Sammlung — vielleicht diesmal ein anderer Typ,
-          um das Meta zu kontern.
+        <Step num="4" title={t("stepNewSeasonTitle")} last>
+          {t("stepNewSeasonBody")}
         </Step>
       </div>
 
@@ -1636,8 +1653,7 @@ function GuardianExplainer() {
         background: "rgba(168,85,247,0.06)", border: "1px solid rgba(168,85,247,0.25)",
         color: "#c084fc", fontSize: 11, lineHeight: 1.5,
       }}>
-        💡 <b>Wichtig:</b> Items bleiben IMMER bei dir. Der Saison-Reset betrifft nur Level, Talente
-        und Ausrüstungs-Slots deines Saison-Wächters — nie dein Inventar.
+        {t.rich("explainerImportant", richB)}
       </div>
     </div>
   );
@@ -1645,19 +1661,20 @@ function GuardianExplainer() {
 
 /* ═══ Potion-Button im ArenaHeader ═══ */
 function PotionButton() {
+  const t = useTranslations("Arena");
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        title="Tränke"
+        title={t("potionsLabel")}
         style={{
           background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.4)",
           color: "#a855f7", height: 34, borderRadius: 999, padding: "0 12px",
           cursor: "pointer", fontSize: 13, fontWeight: 800,
           display: "flex", alignItems: "center", gap: 6,
         }}
-      >🧪 <span>Tränke</span></button>
+      >🧪 <span>{t("potionsLabel")}</span></button>
       {open && <PotionInventoryModal onClose={() => setOpen(false)} />}
     </>
   );
@@ -1666,6 +1683,7 @@ function PotionButton() {
 /* ═══ Prestige-Demo: XP → Level → Saisonende → Prestige ═══ */
 
 function PrestigeDemoButton() {
+  const t = useTranslations("Arena");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -1675,7 +1693,7 @@ function PrestigeDemoButton() {
           padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, cursor: "pointer",
           background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.4)", color: "#FFD700",
         }}
-      >📈 Level & Prestige</button>
+      >{t("prestigeButton")}</button>
       {open && (
         <div
           onClick={() => setOpen(false)}
@@ -1695,7 +1713,7 @@ function PrestigeDemoButton() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>📈 Level &amp; Prestige</div>
+              <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{t("prestigeButton")}</div>
               <button onClick={() => setOpen(false)} style={{
                 background: "rgba(255,255,255,0.05)", border: "none", color: "#a8b4cf",
                 width: 30, height: 30, borderRadius: 999, cursor: "pointer", fontSize: 16,
@@ -1714,6 +1732,9 @@ const DEMO_XP_CURVE = [0, 100, 250, 500, 900, 1500, 2300, 3300, 4500, 6000, 8000
 const DEMO_LEVEL_CAP = 10;
 
 function PrestigeDemo() {
+  const t = useTranslations("Arena");
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
   const [xp, setXp] = useState(0);
   const [wins, setWins] = useState(0);
   const [endedSeasons, setEndedSeasons] = useState(0);
@@ -1745,9 +1766,9 @@ function PrestigeDemo() {
     setEndedSeasons((n) => n + 1);
     // Titel-Zuteilung
     let newTitle: string | null = null;
-    if (wins >= 10 && level >= 8) newTitle = "Kriegsmeister";
-    else if (wins >= 5 || level >= 6) newTitle = "Gladiator";
-    else if (wins >= 1) newTitle = "Veteran";
+    if (wins >= 10 && level >= 8) newTitle = t("titleWarmaster");
+    else if (wins >= 5 || level >= 6) newTitle = t("titleGladiator");
+    else if (wins >= 1) newTitle = t("titleVeteran");
     setTitle(newTitle);
     // Saison-Wächter reset
     setXp(0);
@@ -1761,9 +1782,7 @@ function PrestigeDemo() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ fontSize: 12, color: "#a8b4cf", lineHeight: 1.55 }}>
-        Spiel die Saison-Mechanik durch: simuliere Kämpfe, sieh wie XP dein Level treiben,
-        und beende die Saison um <b style={{ color: "#FFD700" }}>Prestige-Punkte</b> zu erhalten —
-        ein saisonübergreifender Account-Wert, der Titel und Dauer-Boni freischaltet.
+        {t.rich("prestigeIntro", { b: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
       </div>
 
       {/* Saison-Wächter Panel */}
@@ -1773,16 +1792,16 @@ function PrestigeDemo() {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#22D1C3" }}>
-            ⚔️ SAISON-WÄCHTER &middot; SAISON {endedSeasons + 1}
+            {t("prestigeSeasonalLabel", { number: endedSeasons + 1 })}
           </div>
-          <div style={{ fontSize: 11, color: "#a8b4cf" }}>Siege: <b style={{ color: "#FFF" }}>{wins}</b></div>
+          <div style={{ fontSize: 11, color: "#a8b4cf" }}>{t("prestigeWinsLabel")} <b style={{ color: "#FFF" }}>{wins}</b></div>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF" }}>Lvl {level}</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF" }}>{t("prestigeLevelShort", { level })}</div>
           <div style={{ fontSize: 12, color: "#a8b4cf" }}>
-            {xp.toLocaleString()} XP
-            {level < DEMO_LEVEL_CAP && <> / {nextThreshold.toLocaleString()}</>}
-            {level >= DEMO_LEVEL_CAP && <span style={{ color: "#FFD700" }}> &middot; MAX</span>}
+            {xp.toLocaleString(numLocale)} XP
+            {level < DEMO_LEVEL_CAP && <> / {nextThreshold.toLocaleString(numLocale)}</>}
+            {level >= DEMO_LEVEL_CAP && <span style={{ color: "#FFD700" }}>{t("prestigeMaxBadge")}</span>}
           </div>
         </div>
         <div style={{ height: 10, borderRadius: 999, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
@@ -1796,11 +1815,11 @@ function PrestigeDemo() {
           <button onClick={() => doFight(true)} style={{
             flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 900, cursor: "pointer",
             background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.5)", color: "#4ade80",
-          }}>⚔️ Sieg (+80 ⚔️)</button>
+          }}>{t("prestigeWinButton")}</button>
           <button onClick={() => doFight(false)} style={{
             flex: 1, padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 900, cursor: "pointer",
             background: "rgba(255,45,120,0.1)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78",
-          }}>💀 Niederlage (+20 ⚔️)</button>
+          }}>{t("prestigeLossButton")}</button>
         </div>
       </div>
 
@@ -1811,12 +1830,16 @@ function PrestigeDemo() {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>👑 ACCOUNT-PRESTIGE</div>
-            <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 2 }}>bleibt für immer</div>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>{t("prestigeAccountLabel")}</div>
+            <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 2 }}>{t("prestigeAccountSub")}</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: "#FFD700", lineHeight: 1 }}>{prestige}</div>
-            <div style={{ fontSize: 10, color: "#a8b4cf" }}>{endedSeasons} Saison{endedSeasons === 1 ? "" : "s"} gespielt</div>
+            <div style={{ fontSize: 10, color: "#a8b4cf" }}>
+              {endedSeasons === 1
+                ? t("prestigeSeasonsCountOne", { count: endedSeasons })
+                : t("prestigeSeasonsCountMany", { count: endedSeasons })}
+            </div>
           </div>
         </div>
         {title && (
@@ -1824,7 +1847,7 @@ function PrestigeDemo() {
             marginTop: 4, padding: "6px 10px", borderRadius: 8,
             background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.4)",
             color: "#c084fc", fontSize: 11, fontWeight: 800, textAlign: "center",
-          }}>🏆 Titel: {title}</div>
+          }}>{t("prestigeTitleBadge", { title })}</div>
         )}
         <button
           onClick={endSeason}
@@ -1839,9 +1862,9 @@ function PrestigeDemo() {
             border: "none",
             opacity: xp === 0 && wins === 0 ? 0.5 : 1,
           }}
-        >🏁 Saison beenden (+{level * 10 + wins * 3} Prestige)</button>
+        >{t("prestigeEndButton", { prestige: level * 10 + wins * 3 })}</button>
         <div style={{ fontSize: 10, color: "#6c7590", marginTop: 6, textAlign: "center" }}>
-          Prestige = Level × 10 + Siege × 3
+          {t("prestigeFormulaHint")}
         </div>
       </div>
 
@@ -1850,15 +1873,13 @@ function PrestigeDemo() {
         background: "rgba(168,85,247,0.05)", border: "1px solid rgba(168,85,247,0.2)",
         fontSize: 11, color: "#c8bbe6", lineHeight: 1.5,
       }}>
-        💡 <b>Nach dem Saison-Ende</b>: Dein Saison-Wächter wandert ins Archiv. Items bleiben bei
-        dir, der Ewige Wächter bekommt daraus einen permanenten Buff. Du startest die nächste
-        Saison bei Level 1 — aber mit mehr Prestige, Titel und einer wachsenden Sammlung.
+        {t.rich("prestigeAfterSeason", { b: (c) => <b>{c}</b> })}
       </div>
 
       <button onClick={reset} style={{
         padding: "7px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer",
         background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#a8b4cf",
-      }}>↺ Demo zurücksetzen</button>
+      }}>{t("prestigeReset")}</button>
     </div>
   );
 }
