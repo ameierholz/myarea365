@@ -8733,6 +8733,7 @@ function MyCrewView({
   setSubTab: (t: CrewSubTab) => void;
   onLeave: () => void;
 }) {
+  const tC = useTranslations("Crew");
   const isAdmin = profile?.id === crew.owner_id;
   const tier = leagueTierFor(DEMO_CREW_STATS.weekly_km);
   const nextTier = nextLeagueTier(tier);
@@ -8765,7 +8766,7 @@ function MyCrewView({
               backdropFilter: "blur(8px)",
             }}
           >
-            ⚙️ Cover ändern
+            {tC("myCoverChange")}
           </button>
         )}
       </div>
@@ -8803,14 +8804,14 @@ function MyCrewView({
               <LastSeasonBadge tierId={DEMO_LAST_SEASON_TIER_ID} />
             </div>
             <div style={{ color: MUTED, fontSize: 12, marginTop: 3 }}>
-              {DEMO_CREW_MEMBERS.length} Mitglieder · PLZ {crew.zip} · {currentSeason().label} · Noch {currentSeason().daysLeft} Tage
+              {tC("myMembersZipSeason", { members: DEMO_CREW_MEMBERS.length, zip: crew.zip ?? "", season: currentSeason().label, daysLeft: currentSeason().daysLeft })}
             </div>
           </div>
           {isAdmin && <span style={{
             fontSize: 10, fontWeight: 900, background: `${PRIMARY}22`,
             color: PRIMARY, padding: "3px 8px", borderRadius: 10,
             border: `1px solid ${PRIMARY}55`, alignSelf: "flex-start",
-          }}>ADMIN</span>}
+          }}>{tC("myAdminBadge")}</span>}
         </div>
 
         {/* Tier-Progress */}
@@ -8818,7 +8819,7 @@ function MyCrewView({
           <div style={{ marginTop: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: MUTED, marginBottom: 3 }}>
               <span style={{ color: tier.color, fontWeight: 800 }}>{tier.icon} {tier.name}</span>
-              <span>noch {(nextTier.minWeeklyKm - DEMO_CREW_STATS.weekly_km).toFixed(0)} km bis {nextTier.icon} {nextTier.name}</span>
+              <span>{tC("myTierProgress", { km: (nextTier.minWeeklyKm - DEMO_CREW_STATS.weekly_km).toFixed(0), nextIcon: nextTier.icon, nextName: nextTier.name })}</span>
             </div>
             <div style={{ height: 6, background: "rgba(0,0,0,0.35)", borderRadius: 3, overflow: "hidden" }}>
               <div style={{
@@ -8832,9 +8833,9 @@ function MyCrewView({
         )}
 
         <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-          <CrewStat label="Woche km" value={`${DEMO_CREW_STATS.weekly_km}`} accent={crew.color} />
-          <CrewStat label="Gebiete" value={`${DEMO_CREW_STATS.total_territories}`} accent="#FFD700" />
-          <CrewStat label="Rang Stadt" value={`#${DEMO_CREW_STATS.weekly_rank_city}`} accent={PRIMARY} />
+          <CrewStat label={tC("myStatWeekKm")}      value={`${DEMO_CREW_STATS.weekly_km}`} accent={crew.color} />
+          <CrewStat label={tC("myStatTerritories")} value={`${DEMO_CREW_STATS.total_territories}`} accent="#FFD700" />
+          <CrewStat label={tC("myStatRankCity")}    value={`#${DEMO_CREW_STATS.weekly_rank_city}`} accent={PRIMARY} />
         </div>
        </div>
       </div>
@@ -8846,14 +8847,14 @@ function MyCrewView({
         maxWidth: 960, margin: "0 auto", width: "100%",
       }}>
         {([
-          { id: "overview",   label: "Übersicht",  icon: "🏠" },
-          { id: "feed",       label: "Feed",       icon: "📰" },
-          { id: "members",    label: "Mitglieder", icon: "👥" },
-          { id: "guardians",  label: "Wächter",    icon: "🛡️" },
-          { id: "challenges", label: "Challenges", icon: "🏆" },
-          { id: "events",     label: "Events",     icon: "📅" },
-          { id: "chat",       label: "Chat",       icon: "💬" },
-          { id: "settings",   label: "Einstellungen", icon: "⚙️" },
+          { id: "overview",   label: tC("myTabOverview"),   icon: "🏠" },
+          { id: "feed",       label: tC("myTabFeed"),       icon: "📰" },
+          { id: "members",    label: tC("myTabMembers"),    icon: "👥" },
+          { id: "guardians",  label: tC("myTabGuardians"),  icon: "🛡️" },
+          { id: "challenges", label: tC("myTabChallenges"), icon: "🏆" },
+          { id: "events",     label: tC("myTabEvents"),     icon: "📅" },
+          { id: "chat",       label: tC("myTabChat"),       icon: "💬" },
+          { id: "settings",   label: tC("myTabSettings"),   icon: "⚙️" },
         ] as { id: CrewSubTab; label: string; icon: string }[]).map((t) => {
           const active = subTab === t.id;
           return (
