@@ -1,24 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { RARITY_META, type GuardianArchetype } from "@/lib/guardian";
 import { createClient } from "@/lib/supabase/client";
 
 type Tab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss" | "effects" | "fair";
 
-const TABS: Array<{ id: Tab; icon: string; label: string }> = [
-  { id: "overview",  icon: "🧭", label: "Übersicht" },
-  { id: "guardians", icon: "🛡️", label: "60 Wächter" },
-  { id: "talents",   icon: "🌟", label: "Talente" },
-  { id: "skills",    icon: "⚡", label: "Fähigkeiten" },
-  { id: "arena",     icon: "🏟️", label: "Arena" },
-  { id: "boss",      icon: "👹", label: "Area-Boss" },
-  { id: "effects",   icon: "✨", label: "Buffs & Debuffs" },
-  { id: "fair",      icon: "⚖️", label: "Fair-Play" },
-];
-
 export function GuardianHelpButton() {
+  const tH = useTranslations("GuardianHelp");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -31,8 +22,8 @@ export function GuardianHelpButton() {
           color: "#a855f7", fontSize: 13, fontWeight: 900,
           cursor: "pointer", lineHeight: "20px", padding: 0,
         }}
-        aria-label="Wächter-Hilfe"
-        title="Wie funktioniert der Wächter?"
+        aria-label={tH("buttonAria")}
+        title={tH("buttonTitle")}
       >?</button>
       {open && <GuardianHelpModal onClose={() => setOpen(false)} />}
     </>
@@ -40,15 +31,16 @@ export function GuardianHelpButton() {
 }
 
 export function GuardianGuideBanner() {
+  const tH = useTranslations("GuardianHelp");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const chips: Array<{ icon: string; label: string; tab: Tab }> = [
-    { icon: "⚔️", label: "So spielst du",          tab: "overview" },
-    { icon: "🛡️", label: "60 Wächter · 4 Typen",  tab: "guardians" },
-    { icon: "🌟", label: "Talentbaum",             tab: "talents" },
-    { icon: "⚡", label: "5 Fähigkeiten",          tab: "skills" },
-    { icon: "🏟️", label: "Arena-Kämpfe",          tab: "arena" },
-    { icon: "👹", label: "Area-Boss-Raids",        tab: "boss" },
+    { icon: "⚔️", label: tH("chipPlay"),      tab: "overview" },
+    { icon: "🛡️", label: tH("chipGuardians"), tab: "guardians" },
+    { icon: "🌟", label: tH("chipTalents"),   tab: "talents" },
+    { icon: "⚡", label: tH("chipSkills"),    tab: "skills" },
+    { icon: "🏟️", label: tH("chipArena"),     tab: "arena" },
+    { icon: "👹", label: tH("chipBoss"),      tab: "boss" },
   ];
   return (
     <>
@@ -60,7 +52,7 @@ export function GuardianGuideBanner() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 22 }}>📖</span>
-          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>Kompletter Wächter-Guide</div>
+          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{tH("guideHeader")}</div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
           {chips.map((chip) => (
@@ -88,7 +80,18 @@ export function GuardianGuideBanner() {
 }
 
 export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClose: () => void; initialTab?: Tab }) {
+  const tH = useTranslations("GuardianHelp");
   const [tab, setTab] = useState<Tab>(initialTab);
+  const TABS: Array<{ id: Tab; icon: string; label: string }> = [
+    { id: "overview",  icon: "🧭", label: tH("tabOverview") },
+    { id: "guardians", icon: "🛡️", label: tH("tabGuardians") },
+    { id: "talents",   icon: "🌟", label: tH("tabTalents") },
+    { id: "skills",    icon: "⚡", label: tH("tabSkills") },
+    { id: "arena",     icon: "🏟️", label: tH("tabArena") },
+    { id: "boss",      icon: "👹", label: tH("tabBoss") },
+    { id: "effects",   icon: "✨", label: tH("tabEffects") },
+    { id: "fair",      icon: "⚖️", label: tH("tabFair") },
+  ];
   return (
     <div
       onClick={onClose}
@@ -113,8 +116,8 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <span style={{ fontSize: 26 }}>🛡️</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>Wächter-Guide</div>
-            <div style={{ color: "#a855f7", fontSize: 9, fontWeight: 800, letterSpacing: 1 }}>KIEZ-KÄMPFER-SYSTEM</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tH("modalTitle")}</div>
+            <div style={{ color: "#a855f7", fontSize: 9, fontWeight: 800, letterSpacing: 1 }}>{tH("modalKicker")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
@@ -163,7 +166,7 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
             flex: 1, padding: 12, borderRadius: 10,
             background: "#22D1C3", color: "#0F1115",
             border: "none", fontSize: 13, fontWeight: 900, cursor: "pointer",
-          }}>Verstanden</button>
+          }}>{tH("gotIt")}</button>
         </div>
       </div>
     </div>

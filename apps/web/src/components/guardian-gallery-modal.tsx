@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import {
   rarityMeta, TYPE_META, RARITY_META,
@@ -28,6 +29,7 @@ export function GuardianGalleryModal({
   activeArchetypeId?: string | null;
   onActivate?: (archetypeId: string) => Promise<void> | void;
 }) {
+  const tG = useTranslations("GuardianGallery");
   const [tab, setTab] = useState<Tab>("all");
   const [onlyMissingArt, setOnlyMissingArt] = useState(false);
 
@@ -62,10 +64,10 @@ export function GuardianGalleryModal({
           borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>SAMMLUNG</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>60 Wächter · {ownedIds.size} im Besitz</div>
+            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tG("kicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tG("title", { owned: ownedIds.size })}</div>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label={tG("closeAria")} style={{
             background: "none", border: "none", color: "#8B8FA3",
             fontSize: 22, cursor: "pointer", width: 32, height: 32,
           }}>×</button>
@@ -74,7 +76,7 @@ export function GuardianGalleryModal({
         {/* Tabs */}
         <div style={{ padding: "8px 12px", display: "flex", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {(["all", "infantry", "cavalry", "marksman", "mage"] as Tab[]).map((t) => {
-            const meta = t === "all" ? { label: "Alle", icon: "🌐", color: "#22D1C3" } : TYPE_META[t];
+            const meta = t === "all" ? { label: tG("tabAll"), icon: "🌐", color: "#22D1C3" } : TYPE_META[t];
             return (
               <button key={t} onClick={() => setTab(t)} style={{
                 flexShrink: 0, padding: "7px 12px", borderRadius: 10,
@@ -100,7 +102,7 @@ export function GuardianGalleryModal({
                 onChange={(e) => setOnlyMissingArt(e.target.checked)}
                 style={{ margin: 0 }}
               />
-              🎨 Nur ohne Art
+              {tG("onlyMissingArt")}
             </label>
           )}
         </div>
@@ -122,7 +124,7 @@ export function GuardianGalleryModal({
           </div>
           {filtered.length === 0 && (
             <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>
-              Keine Wächter passen zur Auswahl.
+              {tG("noResults")}
             </div>
           )}
         </div>
@@ -140,6 +142,7 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
   onUploaded?: () => void;
   onActivate?: (archetypeId: string) => Promise<void> | void;
 }) {
+  const tG = useTranslations("GuardianGallery");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -199,7 +202,7 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
           color: isActive ? "#0F1115" : "#4ade80",
           border: isActive ? "none" : "1px solid rgba(74,222,128,0.5)",
           fontSize: 8, fontWeight: 900, letterSpacing: 0.5, zIndex: 2,
-        }}>{isActive ? "AKTIV" : `Lvl ${ownedLevel ?? 1}`}</div>
+        }}>{isActive ? tG("active") : tG("level", { n: ownedLevel ?? 1 })}</div>
       )}
 
       {/* Wächter-Portrait — groß, transparenter Hintergrund, nur Boden-Glow */}
@@ -225,7 +228,7 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
             padding: "2px 6px", borderRadius: 999,
             background: "rgba(255,45,120,0.2)", color: "#FF2D78",
             fontSize: 8, fontWeight: 900, letterSpacing: 0.5,
-          }}>KEIN BILD</div>
+          }}>{tG("noImage")}</div>
         )}
       </div>
 
@@ -246,7 +249,7 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
           background: `${r.color}22`, border: `1px solid ${r.color}88`,
           color: r.color, fontSize: 10, fontWeight: 900, cursor: "pointer",
           letterSpacing: 0.5,
-        }}>Aktivieren</button>
+        }}>{tG("activate")}</button>
       )}
 
       {/* Admin-Controls: Prompt (Bild/Video) + Upload */}
