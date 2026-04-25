@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale } from "@/i18n/config";
 import Link from "next/link";
 import { SHOP_CATEGORIES } from "@/lib/shop-categories";
 import { AdSenseSlot } from "@/components/adsense-slot";
@@ -28,13 +30,7 @@ type Pos = { lat: number; lng: number } | null;
 
 const CATEGORIES: string[] = ["", ...SHOP_CATEGORIES];
 
-const FREQ: Record<string, string> = {
-  daily:      "1×/Tag",
-  weekly:     "1×/Woche",
-  monthly:    "1×/Monat",
-  quarterly:  "1×/Quartal",
-  unlimited:  "unbegrenzt",
-};
+// FREQ wird i18n-fähig in der Komponente abgeleitet — Keys sind Backend-IDs.
 
 const INP: React.CSSProperties = {
   padding: "8px 12px", borderRadius: 8,
@@ -47,6 +43,16 @@ const INP: React.CSSProperties = {
  * SEO-/Bookmark-fähig) und vom Bottom-Nav-Modal (Overlay über Dashboard).
  */
 export function ShopDealsContent() {
+  const tSD = useTranslations("ShopDeals");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
+  const FREQ: Record<string, string> = useMemo(() => ({
+    daily:     tSD("freqDaily"),
+    weekly:    tSD("freqWeekly"),
+    monthly:   tSD("freqMonthly"),
+    quarterly: tSD("freqQuarterly"),
+    unlimited: tSD("freqUnlimited"),
+  }), [tSD]);
   const [deals, setDeals] = useState<DealRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pos, setPos] = useState<Pos>(null);
@@ -112,14 +118,14 @@ export function ShopDealsContent() {
     <div>
       <details style={{ marginBottom: 14 }}>
         <summary style={{ cursor: "pointer", listStyle: "none", userSelect: "none", padding: "10px 12px", borderRadius: 10, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", color: "#22D1C3", fontSize: 12, fontWeight: 900 }}>
-          ▸ Wie funktionieren Deals?
+          {tSD("explainerTitle")}
         </summary>
         <div style={{ marginTop: 8, padding: 12, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: "1px solid rgba(34,209,195,0.2)", fontSize: 12, color: "#a8b4cf", lineHeight: 1.55 }}>
-          Lokale Shops belohnen Bewegung: lauf zum Laden, scan den QR-Code an der Theke, kassier deinen Rabatt oder das Gratis-Produkt.
+          {tSD("explainerBody")}
           <br/><br/>
-          <b style={{ color: "#FFF" }}>🪙 Kosten</b> in Wegemünzen · <b style={{ color: "#FFF" }}>Frequenz</b> pro Deal (1×/Tag, 1×/Woche …) · <b style={{ color: "#FFF" }}>Mindestbestellwert</b> optional.
+          {tSD.rich("explainerCosts", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })}
           <br/>
-          Du bist bei Einlösung automatisch vor Ort — wir prüfen per GPS, kein Code-Tippen.
+          {tSD("explainerGps")}
         </div>
       </details>
 
@@ -127,7 +133,7 @@ export function ShopDealsContent() {
       <div style={{ marginBottom: 14 }}>
         <input
           value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder="Suche: Cappuccino, Pizza, Sportladen …"
+          placeholder={tSD("searchPlaceholder")}
           style={{
             width: "100%", padding: "11px 14px", borderRadius: 10,
             background: "#1A1D23", border: "1px solid rgba(255,255,255,0.12)",
@@ -136,40 +142,40 @@ export function ShopDealsContent() {
         />
 
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <Select value={country} onChange={setCountry} label="Land" options={[["DE","🇩🇪 DE"], ["AT","🇦🇹 AT"], ["CH","🇨🇭 CH"]]} />
-          <Select value={category} onChange={setCategory} label="Kategorie" options={CATEGORIES.map((c) => [c, c || "Alle"])} />
+          <Select value={country} onChange={setCountry} label={tSD("labelCountry")} options={[["DE","🇩🇪 DE"], ["AT","🇦🇹 AT"], ["CH","🇨🇭 CH"]]} />
+          <Select value={category} onChange={setCategory} label={tSD("labelCategory")} options={CATEGORIES.map((c) => [c, c || tSD("categoryAll")])} />
           <Select value={String(radiusKm)} onChange={(v) => setRadiusKm(Number(v))}
-            label="Radius"
-            options={[["0", pos ? "beliebig" : "beliebig (GPS aus)"], ["1","1 km"], ["3","3 km"], ["5","5 km"], ["10","10 km"], ["25","25 km"]]}
+            label={tSD("labelRadius")}
+            options={[["0", pos ? tSD("radiusAny") : tSD("radiusAnyGpsOff")], ["1","1 km"], ["3","3 km"], ["5","5 km"], ["10","10 km"], ["25","25 km"]]}
             disabled={!pos && radiusKm === 0}
           />
           <Select value={sort} onChange={(v) => setSort(v as typeof sort)}
-            label="Sortierung"
+            label={tSD("labelSort")}
             options={[
-              ["distance", pos ? "Nächste zuerst" : "Nächste zuerst (GPS aus)"],
-              ["price_asc", "🪙 günstig zuerst"],
-              ["popular", "🔥 beliebt"],
-              ["newest", "neu"],
+              ["distance", pos ? tSD("sortDistance") : tSD("sortDistanceGpsOff")],
+              ["price_asc", tSD("sortPriceAsc")],
+              ["popular", tSD("sortPopular")],
+              ["newest", tSD("sortNewest")],
             ]}
           />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
-          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Stadt" style={INP} />
-          <input value={zip} onChange={(e) => setZip(e.target.value)} placeholder="PLZ" style={INP} maxLength={5} />
-          <input value={state} onChange={(e) => setState(e.target.value)} placeholder="Bundesland" style={INP} />
+          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={tSD("placeCity")} style={INP} />
+          <input value={zip} onChange={(e) => setZip(e.target.value)} placeholder={tSD("placeZip")} style={INP} maxLength={5} />
+          <input value={state} onChange={(e) => setState(e.target.value)} placeholder={tSD("placeState")} style={INP} />
         </div>
 
         {activeFilterCount > 0 && (
           <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, color: "#a8b4cf" }}>{activeFilterCount} Filter aktiv</span>
+            <span style={{ fontSize: 11, color: "#a8b4cf" }}>{tSD("filtersActive", { count: activeFilterCount })}</span>
             <button onClick={() => { setState(""); setCity(""); setZip(""); setCategory(""); setQ(""); setRadiusKm(0); }}
               style={{
                 padding: "4px 10px", borderRadius: 8,
                 background: "rgba(255,45,120,0.12)", border: "1px solid rgba(255,45,120,0.35)",
                 color: "#FF2D78", fontSize: 11, fontWeight: 700, cursor: "pointer",
               }}>
-              Zurücksetzen
+              {tSD("reset")}
             </button>
           </div>
         )}
@@ -183,13 +189,12 @@ export function ShopDealsContent() {
           display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
         }}>
           <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: "#a8b4cf" }}>
-            📍 <b style={{ color: "#FFF" }}>Nächste Deals finden?</b> Mit deinem Standort sortieren wir Deals nach Entfernung.
-            Wir speichern deinen Standort nicht — er wird nur lokal für diese Seite verwendet.
+            📍 <b style={{ color: "#FFF" }}>{tSD("gpsAskTitle")}</b> {tSD("gpsAskBody")}
           </div>
           <button onClick={requestLocation} style={{
             padding: "10px 16px", borderRadius: 10, border: "none",
             background: "#22D1C3", color: "#0F1115", fontWeight: 900, fontSize: 12, cursor: "pointer",
-          }}>Standort erlauben</button>
+          }}>{tSD("gpsAllow")}</button>
         </div>
       )}
       {!pos && posAsked && (
@@ -198,34 +203,34 @@ export function ShopDealsContent() {
           background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.3)",
           color: "#FFD700", fontSize: 12,
         }}>
-          💡 GPS aus — Radius-Filter und Entfernungs-Sortierung sind deaktiviert.
+          {tSD("gpsOffHint")}
         </div>
       )}
 
       {/* Ergebnisse */}
       {loading && deals.length === 0 ? (
-        <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3" }}>Lade Deals…</div>
+        <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3" }}>{tSD("loadingDeals")}</div>
       ) : deals.length === 0 ? (
         <div style={{
           padding: 40, textAlign: "center",
           background: "#1A1D23", borderRadius: 14, border: "1px solid rgba(255,255,255,0.06)",
         }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🔍</div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>Keine Deals gefunden</div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>{tSD("noDealsFound")}</div>
           <div style={{ fontSize: 12, color: "#a8b4cf", marginTop: 4 }}>
-            Probier weniger Filter oder einen größeren Radius.
+            {tSD("noDealsHint")}
           </div>
         </div>
       ) : (
         <>
           <div style={{ fontSize: 11, color: "#8B8FA3", marginBottom: 10 }}>
-            {deals.length} {deals.length === 1 ? "Deal" : "Deals"}
-            {pos && radiusKm > 0 && ` im Umkreis von ${radiusKm} km`}
+            {deals.length === 1 ? tSD("dealsCountOne") : tSD("dealsCountMany", { count: deals.length })}
+            {pos && radiusKm > 0 && tSD("dealsRadius", { km: radiusKm })}
           </div>
           <div style={{ display: "grid", gap: 10 }}>
             {deals.map((d, i) => (
               <div key={d.deal_id}>
-                <DealCard deal={d} />
+                <DealCard deal={d} freqLabel={FREQ[d.frequency] ?? d.frequency} numLocale={numLocale} />
                 {i === 2 && <AdSenseSlot placement="deals_list" />}
               </div>
             ))}
@@ -258,7 +263,8 @@ function Select({ value, onChange, label, options, disabled }: {
   );
 }
 
-function DealCard({ deal }: { deal: DealRow }) {
+function DealCard({ deal, freqLabel, numLocale }: { deal: DealRow; freqLabel: string; numLocale: string }) {
+  const tSD = useTranslations("ShopDeals");
   const distanceLabel = deal.distance_m == null
     ? null
     : deal.distance_m < 1000
@@ -291,14 +297,14 @@ function DealCard({ deal }: { deal: DealRow }) {
           </div>
         )}
         <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap", fontSize: 11, color: "#8B8FA3" }}>
-          <span style={{ color: "#22D1C3", fontWeight: 700 }}>🪙 {deal.xp_cost.toLocaleString("de-DE")}</span>
+          <span style={{ color: "#22D1C3", fontWeight: 700 }}>🪙 {deal.xp_cost.toLocaleString(numLocale)}</span>
           {deal.min_order_amount_cents && deal.min_order_amount_cents > 0 && (
-            <span>ab {(deal.min_order_amount_cents / 100).toFixed(2).replace(".", ",")} €</span>
+            <span>{tSD("minOrder", { amount: (deal.min_order_amount_cents / 100).toFixed(2).replace(".", ",") })}</span>
           )}
-          <span>🔁 {FREQ[deal.frequency] ?? deal.frequency}</span>
+          <span>🔁 {freqLabel}</span>
           {distanceLabel && <span>📍 {distanceLabel}</span>}
           {deal.shop_city && !distanceLabel && <span>📍 {deal.shop_city}</span>}
-          {(deal.redemption_count ?? 0) >= 20 && <span style={{ color: "#FF6B4A" }}>🔥 {deal.redemption_count} eingelöst</span>}
+          {(deal.redemption_count ?? 0) >= 20 && <span style={{ color: "#FF6B4A" }}>{tSD("redemptionCount", { count: deal.redemption_count })}</span>}
         </div>
       </div>
     </Link>
