@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale } from "@/i18n/config";
 import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
@@ -9015,6 +9016,8 @@ function CrewStat({ label, value, accent }: { label: string; value: string; acce
 
 /* ═══ Overview ═══ */
 function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean; onLeave: () => void }) {
+  const tCrew = useTranslations("Crew");
+  const locale = useLocale();
   const [potionsOpen, setPotionsOpen] = useState(false);
   const topChallenge = DEMO_CREW_CHALLENGES[0];
   const topEvent = DEMO_CREW_EVENTS[0];
@@ -9070,7 +9073,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
           border: "1px solid rgba(255,107,74,0.4)",
         }}>
           <div style={{ color: "#FF6B4A", fontSize: 10, fontWeight: 900, letterSpacing: 1.2, marginBottom: 8 }}>
-            🏆 AREA-LIGA-TITEL
+            {tCrew("ovArenaTitles")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {crewTitles.map((t) => {
@@ -9093,21 +9096,21 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {guardian && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8 }}>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>🛡️ DEIN WÄCHTER</div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>{tCrew("ovGuardianHeader")}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               {trophies.length > 0 && (
                 <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900 }}>🏆 {trophies.length}</span>
               )}
               <button
                 onClick={() => setPotionsOpen(true)}
-                title="Trank-Inventar"
+                title={tCrew("ovPotionsTitle")}
                 style={{
                   padding: "4px 8px", borderRadius: 6, border: "1px solid rgba(168,85,247,0.4)",
                   background: "rgba(168,85,247,0.12)", color: "#a855f7",
                   fontSize: 11, fontWeight: 800, cursor: "pointer",
                 }}
               >
-                🧪 Tränke
+                {tCrew("ovPotionsButton")}
               </button>
               <GuardianHelpButton />
             </div>
@@ -9124,19 +9127,19 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
         border: `1px solid ${BORDER}`, position: "relative",
       }}>
         <div style={{ position: "absolute", top: 10, right: 10 }}>
-          <DemoBadge hint="Echte Duelle starten ab Launch via Auto-Matchmaking zwischen Crews" />
+          <DemoBadge hint={tCrew("ovDuelDemoHint")} />
         </div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.5 }}>
-          ⚔️ RIVALEN-DUELL
+          {tCrew("ovDuelHeader")}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
           <div>
             <div style={{ color: crew.color, fontWeight: 900 }}>{crew.name}</div>
-            <div style={{ color: MUTED, fontSize: 11 }}>{rival.our_weekly_km} km</div>
+            <div style={{ color: MUTED, fontSize: 11 }}>{tCrew("ovKm", { km: rival.our_weekly_km })}</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ color: rival.rival_color, fontWeight: 900 }}>{rival.rival_name}</div>
-            <div style={{ color: MUTED, fontSize: 11 }}>{rival.rival_weekly_km} km</div>
+            <div style={{ color: MUTED, fontSize: 11 }}>{tCrew("ovKm", { km: rival.rival_weekly_km })}</div>
           </div>
         </div>
         <div style={{ height: 10, background: "rgba(0,0,0,0.35)", borderRadius: 5, overflow: "hidden", display: "flex" }}>
@@ -9144,8 +9147,8 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
           <div style={{ width: `${100 - ourPct}%`, background: rival.rival_color, boxShadow: `0 0 8px ${rival.rival_color}88`, transition: "width 1s" }} />
         </div>
         <div style={{ marginTop: 8, fontSize: 11, color: MUTED, display: "flex", justifyContent: "space-between" }}>
-          <span>🏆 Sieger-Belohnung: <b style={{ color: "#FFD700" }}>{rival.prize}</b></span>
-          <span>{daysUntil(rival.ends_at)}</span>
+          <span>{tCrew.rich("ovDuelPrize", { prize: rival.prize, b: (chunks) => <b style={{ color: "#FFD700" }}>{chunks}</b> })}</span>
+          <span>{daysUntil(rival.ends_at, tCrew)}</span>
         </div>
       </div>
 
@@ -9158,9 +9161,9 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
         border: `1px solid ${BORDER}`,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 5 }}>
-          <span style={{ color: "#FFF" }}>Crew-Aktivität diese Woche</span>
+          <span style={{ color: "#FFF" }}>{tCrew("ovActivityWeek")}</span>
           <span style={{ color: activePct >= 75 ? "#4ade80" : activePct >= 50 ? "#FFD700" : ACCENT }}>
-            {activeMembers} / {DEMO_CREW_MEMBERS.length} aktiv · {activePct}%
+            {tCrew("ovActivityActive", { active: activeMembers, total: DEMO_CREW_MEMBERS.length, pct: activePct })}
           </span>
         </div>
         <div style={{ height: 6, background: "rgba(0,0,0,0.35)", borderRadius: 3, overflow: "hidden" }}>
@@ -9172,7 +9175,10 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
         </div>
         {activePct < 100 && (
           <div style={{ color: MUTED, fontSize: 11, marginTop: 6 }}>
-            💡 {DEMO_CREW_MEMBERS.length - activeMembers} Mitglieder noch nicht gelaufen — push sie im Chat!
+            {tCrew(
+              (DEMO_CREW_MEMBERS.length - activeMembers) === 1 ? "ovActivityHintOne" : "ovActivityHintMany",
+              { count: DEMO_CREW_MEMBERS.length - activeMembers },
+            )}
           </div>
         )}
       </div>
@@ -9182,7 +9188,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
         background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 14,
         border: `1px solid ${BORDER}`,
       }}>
-        <div style={{ color: MUTED, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>EINLADUNGSCODE</div>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 700, marginBottom: 6 }}>{tCrew("ovInviteHeader")}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             flex: 1, fontFamily: "monospace", fontSize: 18, fontWeight: 900,
@@ -9193,7 +9199,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
           <button
             onClick={() => {
               navigator.clipboard.writeText(crew.invite_code);
-              appAlert("Code kopiert!");
+              appAlert(tCrew("ovInviteCopiedAlert"));
             }}
             style={{
               padding: "8px 14px", borderRadius: 10,
@@ -9201,7 +9207,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
               fontSize: 12, fontWeight: 900, cursor: "pointer", border: "none",
             }}
           >
-            📋 Kopieren
+            {tCrew("ovInviteCopy")}
           </button>
         </div>
       </div>
@@ -9209,7 +9215,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {/* Aktive Challenge Highlight */}
       <div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 8, letterSpacing: 0.5 }}>
-          AKTIVE CHALLENGE
+          {tCrew("ovActiveChallenge")}
         </div>
         <div style={{
           background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 14,
@@ -9219,7 +9225,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
             <div style={{ fontSize: 24 }}>{topChallenge.icon}</div>
             <div style={{ flex: 1 }}>
               <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{topChallenge.title}</div>
-              <div style={{ color: MUTED, fontSize: 11 }}>Belohnung: +{topChallenge.reward_xp} XP</div>
+              <div style={{ color: MUTED, fontSize: 11 }}>{tCrew("ovChallengeReward", { xp: topChallenge.reward_xp })}</div>
             </div>
           </div>
           <div style={{ height: 8, background: "rgba(0,0,0,0.35)", borderRadius: 4, overflow: "hidden" }}>
@@ -9230,7 +9236,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11 }}>
             <span style={{ color: "#FFF", fontWeight: 900 }}>{topChallenge.current} / {topChallenge.target} {topChallenge.unit}</span>
-            <span style={{ color: MUTED }}>{daysUntil(topChallenge.ends_at)}</span>
+            <span style={{ color: MUTED }}>{daysUntil(topChallenge.ends_at, tCrew)}</span>
           </div>
         </div>
       </div>
@@ -9238,7 +9244,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {/* Nächstes Event */}
       <div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 8, letterSpacing: 0.5 }}>
-          NÄCHSTES EVENT
+          {tCrew("ovNextEvent")}
         </div>
         <div style={{
           background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 14,
@@ -9246,7 +9252,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
         }}>
           <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{topEvent.title}</div>
           <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-            {fmtEventTime(topEvent.when_iso)} · 📍 {topEvent.meeting_point}
+            {fmtEventTime(topEvent.when_iso, tCrew, locale)} · 📍 {topEvent.meeting_point}
           </div>
           <div style={{ color: TEXT_SOFT, fontSize: 12, marginTop: 8, display: "flex", gap: 12 }}>
             <span>🏃 {topEvent.distance_km} km</span>
@@ -9259,25 +9265,25 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       {/* Aktionen */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
         <button
-          onClick={() => navigator.share?.({ title: crew.name, text: `Komm in unsere Crew: ${crew.invite_code}` })
+          onClick={() => navigator.share?.({ title: crew.name, text: tCrew("ovShareText", { code: crew.invite_code }) })
             .catch(() => navigator.clipboard.writeText(crew.invite_code))}
           style={primaryBtnStyle(crew.color)}
         >
-          📤 Einladung teilen
+          {tCrew("ovShareInvite")}
         </button>
         {isAdmin && (
           <button
-            onClick={() => appAlert("Crew-Einstellungen — kommt bald")}
+            onClick={() => appAlert(tCrew("ovManageSoonAlert"))}
             style={outlineBtnStyle()}
           >
-            ⚙️ Crew verwalten
+            {tCrew("ovManageCrew")}
           </button>
         )}
         <button onClick={onLeave} style={{
           ...outlineBtnStyle(),
           color: ACCENT, border: `1px solid ${ACCENT}44`,
         }}>
-          {isAdmin ? "Crew auflösen" : "Crew verlassen"}
+          {isAdmin ? tCrew("ovDisband") : tCrew("ovLeave")}
         </button>
       </div>
     </div>
@@ -9286,6 +9292,8 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
 
 /* ═══ Members ═══ */
 function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: string }) {
+  const tCrew = useTranslations("Crew");
+  const locale = useLocale();
   const sb = useMemo(() => createClient(), []);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [myGuardian, setMyGuardian] = useState<GuardianWithArchetype | null>(null);
@@ -9355,7 +9363,7 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
     return () => { cancelled = true; };
   }, [sb, crewId]);
 
-  if (loading) return <div style={{ padding: 30, textAlign: "center", color: MUTED }}>Lade Wächter…</div>;
+  if (loading) return <div style={{ padding: 30, textAlign: "center", color: MUTED }}>{tCrew("gdLoading")}</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -9363,14 +9371,19 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
       {myGuardian && (
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>⚔️ DEIN WÄCHTER</div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>{tCrew("gdMyHeader")}</div>
             <GuardianHelpButton />
           </div>
           <GuardianCard guardian={myGuardian} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 10 }}>
-            <MiniKpi label="Siege" value={`${myGuardian.wins}`} color="#4ade80" />
-            <MiniKpi label="Niederlagen" value={`${myGuardian.losses}`} color="#FF2D78" />
-            <MiniKpi label="Quelle" value={myGuardian.source === "initial" ? "Start" : myGuardian.source === "fused" ? "Fusion" : myGuardian.source === "captured" ? "Erobert" : "Gekauft"} color={crewColor} />
+            <MiniKpi label={tCrew("gdMiniWins")} value={`${myGuardian.wins}`} color="#4ade80" />
+            <MiniKpi label={tCrew("gdMiniLosses")} value={`${myGuardian.losses}`} color="#FF2D78" />
+            <MiniKpi label={tCrew("gdMiniSource")} value={tCrew(
+              myGuardian.source === "initial" ? "gdSourceInitial"
+              : myGuardian.source === "fused" ? "gdSourceFused"
+              : myGuardian.source === "captured" ? "gdSourceCaptured"
+              : "gdSourceBought",
+            )} color={crewColor} />
           </div>
         </div>
       )}
@@ -9379,7 +9392,7 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
       {memberGuardians.filter((g) => g.user_id !== myUserId).length > 0 && (
         <div>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-            👥 WÄCHTER DER CREW ({memberGuardians.filter((g) => g.user_id !== myUserId).length})
+            {tCrew("gdMembersHeader", { count: memberGuardians.filter((g) => g.user_id !== myUserId).length })}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {memberGuardians.filter((g) => g.user_id !== myUserId).map((g) => (
@@ -9387,7 +9400,7 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
                 <span style={{ fontSize: 28 }}>{g.archetype.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{g.user_display}</div>
-                  <div style={{ color: "#a8b4cf", fontSize: 11 }}>{g.archetype.name} · Lv {g.level} · {g.wins}W / {g.losses}L</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 11 }}>{tCrew("gdMemberMeta", { archetype: g.archetype.name, level: g.level, wins: g.wins, losses: g.losses })}</div>
                 </div>
               </div>
             ))}
@@ -9398,19 +9411,19 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
       {/* Trophaeen */}
       <div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-          🏆 TROPHÄEN-SCHREIN ({trophies.length})
+          {tCrew("gdTrophiesHeader", { count: trophies.length })}
         </div>
         {trophies.length === 0 ? (
           <div style={{ padding: 16, borderRadius: 12, background: "rgba(70,82,122,0.35)", color: MUTED, fontSize: 12, textAlign: "center" }}>
-            Noch keine gefangenen Wächter. Gewinne 3× in Serie gegen eine andere Crew mit anderem Archetyp → du kapst ihren Wächter!
+            {tCrew("gdNoTrophies")}
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
-            {trophies.map((t) => (
-              <div key={t.id} style={{ padding: 10, borderRadius: 12, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)", textAlign: "center" }}>
-                <div style={{ fontSize: 36, marginBottom: 4 }}>{t.archetype?.emoji ?? "❓"}</div>
-                <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{t.archetype?.name ?? "?"}</div>
-                <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800 }}>Lv {t.captured_level}</div>
+            {trophies.map((tr) => (
+              <div key={tr.id} style={{ padding: 10, borderRadius: 12, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)", textAlign: "center" }}>
+                <div style={{ fontSize: 36, marginBottom: 4 }}>{tr.archetype?.emoji ?? "❓"}</div>
+                <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{tr.archetype?.name ?? "?"}</div>
+                <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800 }}>{tCrew("gdTrophyLevel", { level: tr.captured_level })}</div>
               </div>
             ))}
           </div>
@@ -9419,10 +9432,10 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
 
       {/* Kampf-Historie */}
       <div>
-        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>📜 LETZTE KÄMPFE</div>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>{tCrew("gdBattlesHeader")}</div>
         {recentBattles.length === 0 ? (
           <div style={{ padding: 16, borderRadius: 12, background: "rgba(70,82,122,0.35)", color: MUTED, fontSize: 12, textAlign: "center" }}>
-            Noch keine Kämpfe. Löse einen Deal bei einem Arena-Shop ein und fordere andere Crews heraus!
+            {tCrew("gdNoBattles")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -9434,14 +9447,14 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
                   <span style={{ fontSize: 20 }}>{iWon ? "🏆" : b.winner_crew_id === null ? "🤝" : "💀"}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>
-                      {didChallenge ? "Angriff" : "Verteidigung"} {b.business_name ? `· ${b.business_name}` : ""}
+                      {didChallenge ? tCrew("gdBattleAttack") : tCrew("gdBattleDefense")} {b.business_name ? `· ${b.business_name}` : ""}
                     </div>
                     <div style={{ color: MUTED, fontSize: 10 }}>
-                      {new Date(b.created_at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
+                      {new Date(b.created_at).toLocaleString(getDateLocale(locale), { dateStyle: "short", timeStyle: "short" })}
                     </div>
                   </div>
                   <span style={{ color: iWon ? "#4ade80" : b.winner_crew_id === null ? "#8B8FA3" : "#FF2D78", fontSize: 11, fontWeight: 900 }}>
-                    {iWon ? "SIEG" : b.winner_crew_id === null ? "UNENTSCHIEDEN" : "NIEDERLAGE"}
+                    {iWon ? tCrew("gdBattleWin") : b.winner_crew_id === null ? tCrew("gdBattleDraw") : tCrew("gdBattleLoss")}
                   </span>
                 </div>
               );
@@ -9454,6 +9467,7 @@ function CrewGuardians({ crewId, crewColor }: { crewId: string; crewColor: strin
 }
 
 function ProfileGuardianBlock({ userId }: { userId: string | null }) {
+  const tCrew = useTranslations("Crew");
   const sb = useMemo(() => createClient(), []);
   const [guardian, setGuardian] = useState<GuardianWithArchetype | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -9476,7 +9490,7 @@ function ProfileGuardianBlock({ userId }: { userId: string | null }) {
   if (!guardian) {
     return (
       <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-        Noch kein aktiver Wächter — wähle einen unter „Meine Wächter-Sammlung" weiter unten.
+        {tCrew("gdNoActive")}
       </div>
     );
   }
@@ -9501,11 +9515,12 @@ function MiniKpi({ label, value, color }: { label: string; value: string; color:
 }
 
 function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
+  const tCrew = useTranslations("Crew");
   const inactive = DEMO_CREW_MEMBERS.filter((m) => m.weekly_km < 5);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <DemoBadge hint="Echte Mitgliederliste wird sichtbar, sobald echte Crew-Mitglieder beigetreten sind" />
+        <DemoBadge hint={tCrew("memDemoHint")} />
       </div>
       {inactive.length > 0 && (
         <div style={{
@@ -9513,22 +9528,25 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
           padding: 12, border: `1px solid #ef716955`,
           fontSize: 12, color: TEXT_SOFT,
         }}>
-          💤 <b>{inactive.length} Mitglieder</b> sind diese Woche inaktiv.
+          {tCrew.rich(inactive.length === 1 ? "memInactiveWarningOne" : "memInactiveWarningMany", {
+            count: inactive.length,
+            b: (chunks) => <b>{chunks}</b>,
+          })}
           {isAdmin && (
             <button
-              onClick={() => appAlert("Reminder-Push an inaktive Mitglieder — Stub")}
+              onClick={() => appAlert(tCrew("memReminderAlert"))}
               style={{
                 marginLeft: 8, background: "transparent", border: "none",
                 color: ACCENT, fontWeight: 800, cursor: "pointer", fontSize: 12,
               }}
             >
-              Erinnerung senden →
+              {tCrew("memReminderBtn")}
             </button>
           )}
         </div>
       )}
       <div style={{ color: MUTED, fontSize: 11, marginBottom: 2 }}>
-        Sortiert nach Wochen-XP · {DEMO_CREW_MEMBERS.length} Mitglieder
+        {tCrew("memSortHint", { count: DEMO_CREW_MEMBERS.length })}
       </div>
       {DEMO_CREW_MEMBERS.map((m, idx) => (
         <div key={m.id} style={{
@@ -9553,10 +9571,10 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{m.display_name}</div>
-              {m.role === "admin" && <Badge color={PRIMARY}>ADMIN</Badge>}
-              {m.role === "captain" && <Badge color="#FFD700">CAPTAIN</Badge>}
-              {idx === 0 && <Badge color="#FFD700">👑 WOCHEN-CHAMP</Badge>}
-              {m.weekly_km < 5 && <Badge color="#ef7169">💤 INAKTIV</Badge>}
+              {m.role === "admin" && <Badge color={PRIMARY}>{tCrew("memBadgeAdmin")}</Badge>}
+              {m.role === "captain" && <Badge color="#FFD700">{tCrew("memBadgeCaptain")}</Badge>}
+              {idx === 0 && <Badge color="#FFD700">{tCrew("memBadgeWeekChamp")}</Badge>}
+              {m.weekly_km < 5 && <Badge color="#ef7169">{tCrew("memBadgeInactive")}</Badge>}
             </div>
             <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
               {m.rank_name} · @{m.username}
@@ -9564,19 +9582,19 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-              {m.weekly_km} km
+              {tCrew("memMemberKm", { km: m.weekly_km })}
             </div>
-            <div style={{ color: MUTED, fontSize: 10 }}>+{m.weekly_xp} XP</div>
+            <div style={{ color: MUTED, fontSize: 10 }}>{tCrew("memMemberXp", { xp: m.weekly_xp })}</div>
           </div>
           {isAdmin && (
             <button
-              onClick={() => appAlert(`Aktionen für ${m.display_name}\n• Zu Captain befördern\n• Zu Mod befördern\n• Aus Crew entfernen`)}
+              onClick={() => appAlert(tCrew("memActionsAlert", { name: m.display_name }))}
               style={{
                 background: "transparent", border: `1px solid ${BORDER}`,
                 borderRadius: 8, padding: "4px 8px", color: MUTED,
                 fontSize: 12, cursor: "pointer",
               }}
-              aria-label="Mehr"
+              aria-label={tCrew("memMoreActionsAria")}
             >⋯</button>
           )}
         </div>
@@ -9584,10 +9602,10 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
       {isAdmin && (
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
           <button style={outlineBtnStyle()}>
-            ➕ Mitglied einladen
+            {tCrew("memInviteMember")}
           </button>
-          <button style={outlineBtnStyle()} onClick={() => appAlert("Rollen-Editor (Mod, Event-Planner, Motivator) folgt.")}>
-            🎭 Rollen verwalten
+          <button style={outlineBtnStyle()} onClick={() => appAlert(tCrew("memRolesAlert"))}>
+            {tCrew("memManageRoles")}
           </button>
         </div>
       )}
@@ -9607,10 +9625,11 @@ function Badge({ color, children }: { color: string; children: React.ReactNode }
 
 /* ═══ Challenges ═══ */
 function CrewChallenges({ color }: { color: string }) {
+  const tCrew = useTranslations("Crew");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <DemoBadge hint="Live-Challenges werden ab Launch aus der Datenbank geladen" />
+        <DemoBadge hint={tCrew("chDemoHint")} />
       </div>
       {DEMO_CREW_CHALLENGES.map((c) => {
         const pct = Math.min(100, (c.current / c.target) * 100);
@@ -9634,14 +9653,14 @@ function CrewChallenges({ color }: { color: string }) {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11 }}>
               <span style={{ color: "#FFF", fontWeight: 900 }}>{c.current} / {c.target} {c.unit}</span>
-              <span style={{ color: "#FFD700", fontWeight: 900 }}>+{c.reward_xp} XP</span>
-              <span style={{ color: MUTED }}>{daysUntil(c.ends_at)}</span>
+              <span style={{ color: "#FFD700", fontWeight: 900 }}>{tCrew("chRewardXp", { xp: c.reward_xp })}</span>
+              <span style={{ color: MUTED }}>{daysUntil(c.ends_at, tCrew)}</span>
             </div>
           </div>
         );
       })}
       <button style={{ ...outlineBtnStyle(), marginTop: 6 }}>
-        🏁 Eigene Challenge starten
+        {tCrew("chOwnChallenge")}
       </button>
     </div>
   );
@@ -9649,10 +9668,12 @@ function CrewChallenges({ color }: { color: string }) {
 
 /* ═══ Events ═══ */
 function CrewEvents({ color }: { color: string }) {
+  const tCrew = useTranslations("Crew");
+  const locale = useLocale();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <DemoBadge hint="Live-Events werden ab Launch aus der Datenbank geladen" />
+        <DemoBadge hint={tCrew("evDemoHint")} />
       </div>
       {DEMO_CREW_EVENTS.map((e) => (
         <div key={e.id} style={{
@@ -9663,7 +9684,7 @@ function CrewEvents({ color }: { color: string }) {
             <div style={{ flex: 1 }}>
               <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{e.title}</div>
               <div style={{ color: color, fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-                {fmtEventTime(e.when_iso)}
+                {fmtEventTime(e.when_iso, tCrew, locale)}
               </div>
             </div>
             <div style={{
@@ -9676,7 +9697,7 @@ function CrewEvents({ color }: { color: string }) {
             📍 {e.meeting_point} · 🏃 {e.distance_km} km · ⏱️ {e.pace}
           </div>
           <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>
-            Host: @{e.host_username}
+            {tCrew("evHostLabel", { name: e.host_username })}
           </div>
           {e.note && (
             <div style={{
@@ -9688,16 +9709,16 @@ function CrewEvents({ color }: { color: string }) {
           )}
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button style={{ ...primaryBtnStyle(color), padding: "10px 14px", fontSize: 12, width: "auto", flex: 1 }}>
-              ✓ Dabei
+              {tCrew("evJoin")}
             </button>
             <button style={{ ...outlineBtnStyle(), padding: "10px 14px", fontSize: 12, width: "auto", flex: 1 }}>
-              Details
+              {tCrew("evDetails")}
             </button>
           </div>
         </div>
       ))}
       <button style={{ ...outlineBtnStyle(), marginTop: 6 }}>
-        📅 Neues Event planen
+        {tCrew("evNew")}
       </button>
     </div>
   );
@@ -9707,6 +9728,7 @@ function CrewEvents({ color }: { color: string }) {
 const CHAT_REACTIONS = ["👏", "🔥", "💪", "❤️", "😂", "🎉"];
 
 function CrewChat({ color, meUsername }: { color: string; meUsername: string }) {
+  const tCrew = useTranslations("Crew");
   const [draft, setDraft] = useState("");
   const [reactions, setReactions] = useState<Record<string, string[]>>({}); // msgId → emojis
   const [reactPickerFor, setReactPickerFor] = useState<string | null>(null);
@@ -9724,7 +9746,7 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <DemoBadge hint="Echter Crew-Chat wird mit Supabase Realtime ab Launch aktiv" />
+        <DemoBadge hint={tCrew("chatDemoHint")} />
       </div>
       <div style={{
         background: "rgba(0,0,0,0.2)", borderRadius: 14, padding: 12,
@@ -9752,7 +9774,7 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
                 }}>
                   <span style={{ fontWeight: 700 }}>{m.display_name}</span>
                   <span>·</span>
-                  <span>{fmtRelTime(m.ts_iso)}</span>
+                  <span>{fmtRelTime(m.ts_iso, tCrew)}</span>
                 </div>
                 <div
                   onDoubleClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
@@ -9766,7 +9788,7 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
                     cursor: "pointer",
                     userSelect: "none",
                   }}
-                  title="Doppelklick für Reaktion"
+                  title={tCrew("chatReactTitle")}
                 >
                   {m.text}
                 </div>
@@ -9802,7 +9824,7 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
                 )}
                 <button
                   onClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
-                  aria-label="Reagieren"
+                  aria-label={tCrew("chatReactAria")}
                   style={{
                     position: "absolute", top: 14,
                     [mine ? "left" : "right"]: -26,
@@ -9821,9 +9843,9 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
         <button
           onClick={() => {
             setRecording((r) => !r);
-            if (!recording) appAlert("🎙️ Voice-Note-Aufnahme startet — Backend-Upload folgt.");
+            if (!recording) appAlert(tCrew("chatVoiceAlert"));
           }}
-          aria-label="Voice-Note"
+          aria-label={tCrew("chatVoiceAria")}
           style={{
             padding: "0 14px", borderRadius: 12,
             background: recording ? ACCENT : "rgba(20, 26, 44, 0.6)",
@@ -9833,17 +9855,17 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
         >🎙️</button>
         <input
           value={draft} onChange={(e) => setDraft(e.target.value)}
-          placeholder="Nachricht an die Crew…"
+          placeholder={tCrew("chatPlaceholder")}
           style={inputStyle()}
           onKeyDown={(e) => {
             if (e.key === "Enter" && draft.trim()) {
-              appAlert("Chat-Senden wird mit Realtime-Backend verknüpft.");
+              appAlert(tCrew("chatSendAlert"));
               setDraft("");
             }
           }}
         />
         <button
-          onClick={() => { if (draft.trim()) { appAlert("Chat-Senden kommt bald."); setDraft(""); } }}
+          onClick={() => { if (draft.trim()) { appAlert(tCrew("chatSendSoon")); setDraft(""); } }}
           style={{
             padding: "0 18px", borderRadius: 12,
             background: color, color: BG_DEEP,
@@ -9859,6 +9881,7 @@ function CrewChat({ color, meUsername }: { color: string; meUsername: string }) 
 
 /* ═══ Crew Feed ═══ */
 function CrewFeed({ color }: { color: string }) {
+  const tCrew = useTranslations("Crew");
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
   const toggleReact = (id: string, emoji: string) => {
     setReactions((prev) => {
@@ -9871,9 +9894,9 @@ function CrewFeed({ color }: { color: string }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
         <span style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
-          CREW-AKTIVITÄT
+          {tCrew("feedHeader")}
         </span>
-        <DemoBadge hint="Echter Feed zeigt Aktivität echter Crew-Mitglieder ab Launch" />
+        <DemoBadge hint={tCrew("feedDemoHint")} />
       </div>
       {DEMO_CREW_FEED.map((item) => {
         const my = reactions[item.id] || [];
@@ -9899,7 +9922,7 @@ function CrewFeed({ color }: { color: string }) {
                   {item.username && " "}
                   <span dangerouslySetInnerHTML={{ __html: item.text.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") }} />
                 </div>
-                <div style={{ color: MUTED, fontSize: 10, marginTop: 3 }}>{fmtRelTime(item.ts_iso)}</div>
+                <div style={{ color: MUTED, fontSize: 10, marginTop: 3 }}>{fmtRelTime(item.ts_iso, tCrew)}</div>
               </div>
             </div>
             <div style={{ marginTop: 8, display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -9933,9 +9956,8 @@ function CrewFeed({ color }: { color: string }) {
 
 /* ═══ Crew Settings ═══ */
 function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
-  const [rules, setRules] = useState(
-    "1. Sei nett — Kritik ja, aber fair.\n2. Keine Werbung im Chat.\n3. Events pünktlich absagen wenn du nicht kommst.\n4. Alle Geschwindigkeiten willkommen — keiner wird zurückgelassen.",
-  );
+  const tCrew = useTranslations("Crew");
+  const [rules, setRules] = useState(tCrew("setRulesDefault"));
   const [pushNewChat, setPushNewChat] = useState(true);
   const [pushChallenges, setPushChallenges] = useState(true);
   const [pushEvents, setPushEvents] = useState(true);
@@ -9947,27 +9969,27 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
       {isAdmin && (
         <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 14, borderRadius: 14, border: `1px solid ${BORDER}` }}>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 10 }}>
-            🎨 IDENTITÄT
+            {tCrew("setIdentity")}
           </div>
           <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-            <button style={outlineBtnStyle()} onClick={() => appAlert("Cover-Upload folgt (Supabase Storage)")}>
-              🖼️ Cover hochladen
+            <button style={outlineBtnStyle()} onClick={() => appAlert(tCrew("setCoverAlert"))}>
+              {tCrew("setCoverUpload")}
             </button>
-            <button style={outlineBtnStyle()} onClick={() => appAlert("Logo-Upload folgt")}>
-              🛡️ Logo hochladen
+            <button style={outlineBtnStyle()} onClick={() => appAlert(tCrew("setLogoAlert"))}>
+              {tCrew("setLogoUpload")}
             </button>
           </div>
-          <div style={{ color: MUTED, fontSize: 11, marginBottom: 4 }}>Crew-Link</div>
+          <div style={{ color: MUTED, fontSize: 11, marginBottom: 4 }}>{tCrew("setCrewLink")}</div>
           <div style={{
             background: "rgba(0,0,0,0.3)", padding: "8px 10px", borderRadius: 10,
             fontFamily: "monospace", fontSize: 12, color: "#FFF",
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span>myarea365.de/crew/{crew.invite_code.toLowerCase()}</span>
-            <button onClick={() => { navigator.clipboard.writeText(`https://myarea365.de/crew/${crew.invite_code.toLowerCase()}`); appAlert("Link kopiert!"); }} style={{
+            <button onClick={() => { navigator.clipboard.writeText(`https://myarea365.de/crew/${crew.invite_code.toLowerCase()}`); appAlert(tCrew("setLinkCopiedAlert")); }} style={{
               background: "transparent", border: "none", color: crew.color,
               fontSize: 11, fontWeight: 700, cursor: "pointer",
-            }}>kopieren</button>
+            }}>{tCrew("setLinkCopy")}</button>
           </div>
         </div>
       )}
@@ -9975,7 +9997,7 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
       {/* Verhaltenskodex */}
       <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 14, borderRadius: 14, border: `1px solid ${BORDER}` }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>
-          📜 VERHALTENSKODEX
+          {tCrew("setRulesHeader")}
         </div>
         <textarea
           value={rules} onChange={(e) => setRules(e.target.value)}
@@ -9987,8 +10009,8 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
           }}
         />
         {isAdmin && (
-          <button style={{ ...primaryBtnStyle(crew.color), marginTop: 8 }} onClick={() => appAlert("Regeln gespeichert (Stub).")}>
-            Speichern
+          <button style={{ ...primaryBtnStyle(crew.color), marginTop: 8 }} onClick={() => appAlert(tCrew("setRulesSavedAlert"))}>
+            {tCrew("setRulesSave")}
           </button>
         )}
       </div>
@@ -9996,17 +10018,17 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
       {/* Push-Notifications */}
       <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 14, borderRadius: 14, border: `1px solid ${BORDER}` }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 10 }}>
-          🔔 PUSH-BENACHRICHTIGUNGEN
+          {tCrew("setPushHeader")}
         </div>
-        <SettingsToggle label="Neue Chat-Nachrichten" value={pushNewChat} onChange={setPushNewChat} />
-        <SettingsToggle label="Crew-Challenges" value={pushChallenges} onChange={setPushChallenges} />
-        <SettingsToggle label="Events & Gruppenläufe" value={pushEvents} onChange={setPushEvents} />
-        <SettingsToggle label="Rivalen-Duell Updates" value={pushRivalDuel} onChange={setPushRivalDuel} />
+        <SettingsToggle label={tCrew("setPushNewChat")} value={pushNewChat} onChange={setPushNewChat} />
+        <SettingsToggle label={tCrew("setPushChallenges")} value={pushChallenges} onChange={setPushChallenges} />
+        <SettingsToggle label={tCrew("setPushEvents")} value={pushEvents} onChange={setPushEvents} />
+        <SettingsToggle label={tCrew("setPushRivals")} value={pushRivalDuel} onChange={setPushRivalDuel} />
         <button
-          onClick={() => appAlert("Browser-Push-Permission wird angefragt — Backend-Service-Worker folgt.")}
+          onClick={() => appAlert(tCrew("setPushAlert"))}
           style={{ ...outlineBtnStyle(), marginTop: 10 }}
         >
-          🔔 Push aktivieren
+          {tCrew("setPushEnable")}
         </button>
       </div>
 
@@ -10017,39 +10039,39 @@ function CrewSettings({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
           <span style={{ fontSize: 22 }}>⭐</span>
-          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>MyArea365 Premium</div>
+          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tCrew("setPremiumTitle")}</div>
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 12, marginBottom: 10 }}>
-          Bis zu 200 Mitglieder · Custom-Branding · Statistik-Export · Prioritäts-Support · Merch-Rabatte
+          {tCrew("setPremiumDesc")}
         </div>
-        <button style={primaryBtnStyle("#FFD700")} onClick={() => appAlert("Premium-Upgrade kommt bald.")}>
-          Premium testen
+        <button style={primaryBtnStyle("#FFD700")} onClick={() => appAlert(tCrew("setPremiumAlert"))}>
+          {tCrew("setPremiumBtn")}
         </button>
       </div>
 
       {/* Sponsored-Teaser */}
       <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 14, borderRadius: 14, border: `1px solid ${BORDER}` }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 6 }}>
-          🤝 SPONSOR FINDEN
+          {tCrew("setSponsorHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 12, marginBottom: 10 }}>
-          Ein lokaler Shop kann eure Crew sponsern — Rabatte für Mitglieder, Branding auf eurem Cover, XP-Boni.
+          {tCrew("setSponsorDesc")}
         </div>
-        <button style={outlineBtnStyle()} onClick={() => appAlert("Sponsor-Matching folgt.")}>
-          Sponsor anfragen
+        <button style={outlineBtnStyle()} onClick={() => appAlert(tCrew("setSponsorAlert"))}>
+          {tCrew("setSponsorBtn")}
         </button>
       </div>
 
       {/* Merch */}
       <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 14, borderRadius: 14, border: `1px solid ${BORDER}` }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 6 }}>
-          👕 MERCH
+          {tCrew("setMerchHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 12, marginBottom: 10 }}>
-          Crew-T-Shirts mit Wappen-Print via Print-on-Demand. Kein Lager, kein Risiko.
+          {tCrew("setMerchDesc")}
         </div>
-        <button style={outlineBtnStyle()} onClick={() => appAlert("Merch-Shop folgt.")}>
-          Merch designen
+        <button style={outlineBtnStyle()} onClick={() => appAlert(tCrew("setMerchAlert"))}>
+          {tCrew("setMerchBtn")}
         </button>
       </div>
     </div>
@@ -10084,33 +10106,35 @@ function SettingsToggle({ label, value, onChange }: { label: string; value: bool
 }
 
 /* ═══ Datum/Zeit Helper ═══ */
-function daysUntil(iso: string): string {
+type CrewT = ReturnType<typeof useTranslations<"Crew">>;
+function daysUntil(iso: string, t: CrewT): string {
   const diff = new Date(iso).getTime() - Date.now();
   const d = Math.ceil(diff / (24 * 3600 * 1000));
-  if (d <= 0) return "endet heute";
-  if (d === 1) return "noch 1 Tag";
-  return `noch ${d} Tage`;
+  if (d <= 0) return t("daysEndsToday");
+  if (d === 1) return t("daysOne");
+  return t("daysMany", { n: d });
 }
-function fmtEventTime(iso: string): string {
+function fmtEventTime(iso: string, t: CrewT, locale: string): string {
+  const dl = getDateLocale(locale);
   const d = new Date(iso);
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const isTomorrow = d.toDateString() === tomorrow.toDateString();
-  const time = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
-  if (sameDay) return `Heute, ${time}`;
-  if (isTomorrow) return `Morgen, ${time}`;
-  return d.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" }) + ", " + time;
+  const time = d.toLocaleTimeString(dl, { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return t("evtToday", { time });
+  if (isTomorrow) return t("evtTomorrow", { time });
+  return d.toLocaleDateString(dl, { weekday: "short", day: "2-digit", month: "short" }) + ", " + time;
 }
-function fmtRelTime(iso: string): string {
+function fmtRelTime(iso: string, t: CrewT): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "jetzt";
-  if (m < 60) return `${m} Min`;
+  if (m < 1) return t("relNow");
+  if (m < 60) return t("relMin", { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} Std`;
-  return `${Math.floor(h / 24)} T`;
+  if (h < 24) return t("relHour", { n: h });
+  return t("relDay", { n: Math.floor(h / 24) });
 }
 
 /* ═══════════════════════════════════════════════════════
