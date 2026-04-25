@@ -1,8 +1,12 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 export type SupporterTier = "bronze" | "silver" | "gold";
 
-const TIER_CONFIG: Record<SupporterTier, { label: string; bg: string; border: string; text: string; shadow: string; icon: string }> = {
+const TIER_CONFIG: Record<SupporterTier, { labelKey: "bronze" | "silver" | "gold"; bg: string; border: string; text: string; shadow: string; icon: string }> = {
   bronze: {
-    label: "Bronze Supporter",
+    labelKey: "bronze",
     bg: "linear-gradient(135deg, #CD7F32, #A0522D)",
     border: "#CD7F32",
     text: "#FFF3E0",
@@ -10,7 +14,7 @@ const TIER_CONFIG: Record<SupporterTier, { label: string; bg: string; border: st
     icon: "🥉",
   },
   silver: {
-    label: "Silber Supporter",
+    labelKey: "silver",
     bg: "linear-gradient(135deg, #E0E0E0, #9A9A9A)",
     border: "#C0C0C0",
     text: "#1A1A1A",
@@ -18,7 +22,7 @@ const TIER_CONFIG: Record<SupporterTier, { label: string; bg: string; border: st
     icon: "🥈",
   },
   gold: {
-    label: "Gold Supporter",
+    labelKey: "gold",
     bg: "linear-gradient(135deg, #FFD700, #B8860B)",
     border: "#FFD700",
     text: "#1A1A1A",
@@ -32,8 +36,10 @@ export function SupporterBadge({ tier, size = "sm", showLabel = false }: {
   size?: "xs" | "sm" | "md";
   showLabel?: boolean;
 }) {
+  const t = useTranslations("SupporterBadge");
   if (!tier) return null;
   const cfg = TIER_CONFIG[tier];
+  const label = t(cfg.labelKey);
   const sz = size === "xs"
     ? { pad: "1px 5px", font: 9, icon: 10 }
     : size === "md"
@@ -41,7 +47,7 @@ export function SupporterBadge({ tier, size = "sm", showLabel = false }: {
       : { pad: "2px 7px", font: 10, icon: 12 };
   return (
     <span
-      title={`${cfg.label}-Supporter · danke für deine Unterstützung!`}
+      title={t("tooltip", { label })}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
         padding: sz.pad, borderRadius: 999,
@@ -54,7 +60,7 @@ export function SupporterBadge({ tier, size = "sm", showLabel = false }: {
       }}
     >
       <span style={{ fontSize: sz.icon }}>{cfg.icon}</span>
-      {showLabel && <span>{cfg.label}</span>}
+      {showLabel && <span>{label}</span>}
     </span>
   );
 }

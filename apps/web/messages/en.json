@@ -3690,5 +3690,48 @@
     "footnoteLong": "By submitting you consent to processing your data to handle your request. Details in the privacy policy. Retention: up to 3 years for traceability.",
     "catBillingLong": "Purchase/billing",
     "catOtherLong": "Other"
+  },
+  "LegalFooter": {
+    "copyright": "© MyArea365 {year} · All rights reserved · v0.3",
+    "impressum": "Imprint",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "support": "Support",
+    "made": "Made with ❤️ in Berlin"
+  },
+  "DemoBadge": {
+    "hint": "Sample data — real values follow once the community is bigger"
+  },
+  "SupporterBadge": {
+    "bronze": "Bronze Supporter",
+    "silver": "Silver Supporter",
+    "gold": "Gold Supporter",
+    "tooltip": "{label} supporter · thank you for your support!"
+  },
+  "MapHelp": {
+    "ariaHelp": "Help & explanations",
+    "intro": "🏁 Quick intro",
+    "legend": "🗺️ Map legend",
+    "faq": "❓ Help & FAQ"
+  },
+  "PurchaseBanner": {
+    "failedTitle": "Payment failed",
+    "failedOne": "{n} purchase could not be charged. Please retry or change payment method.",
+    "failedMany": "{n} purchases could not be charged. Please retry or change payment method.",
+    "pendingTitle": "Payment processing",
+    "pendingBody1": "Your purchase is registered. With",
+    "pendingBoldSepa": "SEPA direct debit",
+    "pendingBody2": "confirmation takes 2–5 business days, with",
+    "pendingBoldBank": "bank transfer",
+    "pendingBody3": "up to 7 business days. Activation happens automatically once the money arrives.",
+    "ariaClose": "Close"
+  },
+  "FlashPushBanner": {
+    "ariaClose": "Close"
+  },
+  "LivePaceHud": {
+    "labelDistance": "DISTANCE",
+    "labelPace": "PACE",
+    "labelTime": "TIME"
   }
 }

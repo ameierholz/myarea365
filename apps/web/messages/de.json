@@ -3690,5 +3690,48 @@
     "footnoteLong": "Mit dem Absenden stimmst du der Verarbeitung deiner Angaben zur Bearbeitung deiner Anfrage zu. Details findest du in der Datenschutzerklärung. Speicherdauer: bis zu 3 Jahre für Nachvollziehbarkeit.",
     "catBillingLong": "Kauf/Abrechnung",
     "catOtherLong": "Sonstiges"
+  },
+  "LegalFooter": {
+    "copyright": "© MyArea365 {year} · Alle Rechte vorbehalten · v0.3",
+    "impressum": "Impressum",
+    "privacy": "Datenschutz",
+    "terms": "AGB",
+    "support": "Support",
+    "made": "Made with ❤️ in Berlin"
+  },
+  "DemoBadge": {
+    "hint": "Beispiel-Daten — echte Werte folgen, sobald die Community größer ist"
+  },
+  "SupporterBadge": {
+    "bronze": "Bronze Supporter",
+    "silver": "Silber Supporter",
+    "gold": "Gold Supporter",
+    "tooltip": "{label}-Supporter · danke für deine Unterstützung!"
+  },
+  "MapHelp": {
+    "ariaHelp": "Hilfe & Erklärungen",
+    "intro": "🏁 Kurz-Einführung",
+    "legend": "🗺️ Map-Legende",
+    "faq": "❓ Hilfe & FAQ"
+  },
+  "PurchaseBanner": {
+    "failedTitle": "Zahlung fehlgeschlagen",
+    "failedOne": "{n} Kauf konnte nicht abgebucht werden. Bitte erneut versuchen oder Zahlungsart wechseln.",
+    "failedMany": "{n} Käufe konnten nicht abgebucht werden. Bitte erneut versuchen oder Zahlungsart wechseln.",
+    "pendingTitle": "Zahlung wird verarbeitet",
+    "pendingBody1": "Dein Kauf ist registriert. Bei",
+    "pendingBoldSepa": "SEPA-Lastschrift",
+    "pendingBody2": "dauert die Bestätigung 2–5 Werktage, bei",
+    "pendingBoldBank": "Banküberweisung",
+    "pendingBody3": "bis zu 7 Werktage. Die Freischaltung erfolgt automatisch, sobald das Geld eingegangen ist.",
+    "ariaClose": "Schließen"
+  },
+  "FlashPushBanner": {
+    "ariaClose": "Schließen"
+  },
+  "LivePaceHud": {
+    "labelDistance": "DISTANZ",
+    "labelPace": "PACE",
+    "labelTime": "ZEIT"
   }
 }

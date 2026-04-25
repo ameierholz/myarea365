@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * Live-Pace-HUD: schwebt während eines Walks oben und zeigt in Echtzeit
@@ -21,6 +22,7 @@ export function LivePaceHud({
   walking: boolean;
   xpBoost?: number;       // z.B. 2 = 2×
 }) {
+  const t = useTranslations("LivePaceHud");
   const [pulseXp, setPulseXp] = useState(false);
   const [pulseKm, setPulseKm] = useState(false);
   const [lastXp, setLastXp] = useState(xpGained);
@@ -72,15 +74,15 @@ export function LivePaceHud({
   return (
     <div className="ma365-pace-hud">
       <div className={`ma365-pace-stat ${pulseKm ? "pulse" : ""}`}>
-        <div className="ma365-pace-label">DISTANZ</div>
+        <div className="ma365-pace-label">{t("labelDistance")}</div>
         <div className="ma365-pace-value">{(distance / 1000).toFixed(2)} <span className="unit">km</span></div>
       </div>
       <div className="ma365-pace-stat">
-        <div className="ma365-pace-label">PACE</div>
+        <div className="ma365-pace-label">{t("labelPace")}</div>
         <div className="ma365-pace-value">{pace} <span className="unit">/km</span></div>
       </div>
       <div className="ma365-pace-stat">
-        <div className="ma365-pace-label">ZEIT</div>
+        <div className="ma365-pace-label">{t("labelTime")}</div>
         <div className="ma365-pace-value">{time}</div>
       </div>
       <div className={`ma365-pace-stat xp ${pulseXp ? "pulse" : ""}`}>

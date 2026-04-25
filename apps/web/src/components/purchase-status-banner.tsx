@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Purchase = { id: string; sku: string; status: string; created_at: string };
 
-/**
- * Zeigt dem Runner einen Hinweis, wenn eine Zahlung mit verzögerter
- * Zahlungsmethode (SEPA-Lastschrift, Banküberweisung, ACH) noch nicht
- * eingegangen ist. Wird automatisch ausgeblendet, sobald Stripe den
- * Zahlungseingang bestätigt hat (Webhook → status=completed).
- */
 export function PurchaseStatusBanner() {
+  const t = useTranslations("PurchaseBanner");
   const [pending, setPending] = useState<Purchase[]>([]);
   const [failed, setFailed] = useState<Purchase[]>([]);
   const [dismissed, setDismissed] = useState(false);
@@ -26,8 +22,8 @@ export function PurchaseStatusBanner() {
       })
       .catch(() => {});
     load();
-    const t = setInterval(load, 60_000);
-    return () => { alive = false; clearInterval(t); };
+    const tt = setInterval(load, 60_000);
+    return () => { alive = false; clearInterval(tt); };
   }, []);
 
   if (dismissed || (pending.length === 0 && failed.length === 0)) return null;
@@ -49,24 +45,21 @@ export function PurchaseStatusBanner() {
       <div style={{ flex: 1 }}>
         {failed.length > 0 ? (
           <>
-            <b style={{ color: "#FF2D78" }}>Zahlung fehlgeschlagen</b>
+            <b style={{ color: "#FF2D78" }}>{t("failedTitle")}</b>
             <div style={{ color: "#a8b4cf", marginTop: 2 }}>
-              {failed.length} {failed.length === 1 ? "Kauf konnte" : "Käufe konnten"} nicht
-              abgebucht werden. Bitte erneut versuchen oder Zahlungsart wechseln.
+              {failed.length === 1 ? t("failedOne", { n: 1 }) : t("failedMany", { n: failed.length })}
             </div>
           </>
         ) : (
           <>
-            <b style={{ color: "#FFD700" }}>Zahlung wird verarbeitet</b>
+            <b style={{ color: "#FFD700" }}>{t("pendingTitle")}</b>
             <div style={{ color: "#a8b4cf", marginTop: 2 }}>
-              Dein Kauf ist registriert. Bei <b>SEPA-Lastschrift</b> dauert die
-              Bestätigung 2–5 Werktage, bei <b>Banküberweisung</b> bis zu 7 Werktage.
-              Die Freischaltung erfolgt automatisch, sobald das Geld eingegangen ist.
+              {t("pendingBody1")} <b>{t("pendingBoldSepa")}</b> {t("pendingBody2")} <b>{t("pendingBoldBank")}</b> {t("pendingBody3")}
             </div>
           </>
         )}
       </div>
-      <button onClick={() => setDismissed(true)} aria-label="Schließen" style={{
+      <button onClick={() => setDismissed(true)} aria-label={t("ariaClose")} style={{
         background: "transparent", border: "none", color: "#8B8FA3",
         cursor: "pointer", fontSize: 16, padding: 0, lineHeight: 1,
       }}>✕</button>

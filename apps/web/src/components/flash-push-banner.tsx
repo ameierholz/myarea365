@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 type PushRow = {
@@ -12,6 +13,7 @@ type PushRow = {
 };
 
 export function FlashPushBanner() {
+  const t = useTranslations("FlashPushBanner");
   const sb = createClient();
   const [push, setPush] = useState<PushRow | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -59,7 +61,7 @@ export function FlashPushBanner() {
       <button
         onClick={() => { setDismissed((s) => new Set(s).add(push.id)); setPush(null); }}
         style={{ background: "rgba(0,0,0,0.15)", border: "none", color: "#0F1115", cursor: "pointer", borderRadius: 999, width: 24, height: 24, fontSize: 14, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}
-        aria-label="Schließen"
+        aria-label={t("ariaClose")}
       >✕</button>
       <style>{`@keyframes flashPushSlide { from { transform: translate(-50%, -20px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }`}</style>
     </div>

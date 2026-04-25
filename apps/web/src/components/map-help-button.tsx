@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { FaqModal } from "@/components/faq-modal";
 import { OnboardingModal, markOnboardingSeen } from "@/components/onboarding-modal";
 import { MapLegendModal } from "@/components/map-legend-modal";
 
-/**
- * Floating Help-Button unten rechts auf der Map (oberhalb der Mapbox-Attribution).
- * Öffnet ein kleines Menü: Onboarding / Legende / FAQ.
- */
 export function MapHelpButton() {
+  const t = useTranslations("MapHelp");
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState<null | "onboarding" | "faq" | "legend">(null);
 
@@ -18,7 +16,7 @@ export function MapHelpButton() {
       <div style={{ position: "absolute", bottom: 8, right: 8, zIndex: 55 }}>
         <button
           onClick={() => setOpen((v) => !v)}
-          aria-label="Hilfe & Erklärungen"
+          aria-label={t("ariaHelp")}
           style={{
             width: 40, height: 40, borderRadius: "50%",
             background: "rgba(15,17,21,0.85)",
@@ -45,17 +43,17 @@ export function MapHelpButton() {
               display: "block", width: "100%", padding: "10px 12px", borderRadius: 8,
               background: "transparent", border: "none",
               color: "#FFF", fontSize: 13, fontWeight: 700, textAlign: "left", cursor: "pointer",
-            }}>🏁 Kurz-Einführung</button>
+            }}>{t("intro")}</button>
             <button onClick={() => { setModal("legend"); setOpen(false); }} style={{
               display: "block", width: "100%", padding: "10px 12px", borderRadius: 8,
               background: "transparent", border: "none",
               color: "#FFF", fontSize: 13, fontWeight: 700, textAlign: "left", cursor: "pointer",
-            }}>🗺️ Map-Legende</button>
+            }}>{t("legend")}</button>
             <button onClick={() => { setModal("faq"); setOpen(false); }} style={{
               display: "block", width: "100%", padding: "10px 12px", borderRadius: 8,
               background: "transparent", border: "none",
               color: "#FFF", fontSize: 13, fontWeight: 700, textAlign: "left", cursor: "pointer",
-            }}>❓ Hilfe & FAQ</button>
+            }}>{t("faq")}</button>
           </div>
         )}
       </div>

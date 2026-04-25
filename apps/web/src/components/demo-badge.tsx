@@ -1,7 +1,12 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 export function DemoBadge({ label = "DEMO", hint }: { label?: string; hint?: string }) {
+  const t = useTranslations("DemoBadge");
   return (
     <span
-      title={hint ?? "Beispiel-Daten — echte Werte folgen, sobald die Community größer ist"}
+      title={hint ?? t("hint")}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
         padding: "2px 7px", borderRadius: 999,
