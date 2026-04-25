@@ -6767,6 +6767,7 @@ function CrewTab({
   onOpenRanking: () => void;
 }) {
   const supabase = createClient();
+  const tC = useTranslations("Crew");
   const [mode, setMode] = useState<"idle" | "create" | "join" | "discover">("idle");
   const [subTab, setSubTab] = useState<CrewSubTab>("overview");
 
@@ -6869,14 +6870,14 @@ function CrewTab({
 
         {mode === "join" && (
           <div style={{ background: CARD, padding: 22, borderRadius: 18 }}>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 6 }}>Crew beitreten</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 6 }}>{tC("joinTitle")}</div>
             <div style={{ color: MUTED, fontSize: 12, marginBottom: 16 }}>
-              Gib den Einladungscode ein, den du von der Crew bekommen hast.
+              {tC("joinIntro")}
             </div>
             <input
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="z.B. KIEZ-42AB"
+              placeholder={tC("joinCodePlaceholder")}
               style={{
                 ...inputStyle(),
                 fontFamily: "monospace", textAlign: "center", fontSize: 18,
@@ -6884,7 +6885,7 @@ function CrewTab({
               }}
             />
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button onClick={() => setMode("idle")} style={outlineBtnStyle()}>Abbrechen</button>
+              <button onClick={() => setMode("idle")} style={outlineBtnStyle()}>{tC("joinCancel")}</button>
               <button
                 onClick={async () => {
                   const code = joinCode.trim();
@@ -6894,17 +6895,17 @@ function CrewTab({
                     body: JSON.stringify({ code }),
                   });
                   const j = await r.json();
-                  if (!r.ok) { await appAlert(j.error === "crew_not_found" ? "Crew mit diesem Code nicht gefunden." : `Fehler: ${j.error ?? r.status}`); return; }
+                  if (!r.ok) { await appAlert(j.error === "crew_not_found" ? tC("joinNotFound") : tC("joinError", { error: String(j.error ?? r.status) })); return; }
                   const msg = j.promoted_territories > 0
-                    ? `✅ Beigetreten bei "${j.crew.name}"!\n🏆 ${j.promoted_territories} Solo-Gebiete aktiviert · +${j.promoted_xp} 🪙 Wegemünzen`
-                    : `✅ Beigetreten bei "${j.crew.name}"!`;
+                    ? tC("joinSuccessWithTerritories", { name: j.crew.name, count: j.promoted_territories, xp: j.promoted_xp })
+                    : tC("joinSuccess", { name: j.crew.name });
                   await appAlert(msg);
                   setMyCrew(j.crew);
                   setMode("idle");
                 }}
                 style={primaryBtnStyle(PRIMARY)}
               >
-                Beitreten
+                {tC("joinSubmit")}
               </button>
             </div>
           </div>
@@ -6922,6 +6923,7 @@ function CrewTab({
 function CrewOnboarding({
   onCreate, onDiscover, onJoin, onOpenRanking,
 }: { onCreate: () => void; onDiscover: () => void; onJoin: () => void; onOpenRanking: () => void }) {
+  const tC = useTranslations("Crew");
   // Live-Stats aus Demo-Daten (wirkt echt)
   const totalCrews = DEMO_NEARBY_CREWS.length;
   const totalMembers = DEMO_NEARBY_CREWS.reduce((s, c) => s + c.member_count, 0);
@@ -6988,25 +6990,24 @@ function CrewOnboarding({
               width: 6, height: 6, borderRadius: 3, background: PRIMARY,
               animation: "crewPulse 1.6s ease-in-out infinite",
             }} />
-            DU BIST FREELANCER
+            {tC("freelancerBadge")}
           </div>
           <h1 style={{
             color: "#FFF", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 900,
             margin: 0, lineHeight: 1.1, letterSpacing: -0.5,
           }}>
-            Allein läufst du schneller.<br />
+            {tC("heroTitle1")}<br />
             <span style={{
               background: `linear-gradient(90deg, ${PRIMARY}, ${ACCENT})`,
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               backgroundClip: "text",
-            }}>Zusammen</span> erobert ihr die Stadt.
+            }}>{tC("heroTitleAccent")}</span> {tC("heroTitle2")}
           </h1>
           <p style={{
             color: TEXT_SOFT, fontSize: 15, lineHeight: 1.55,
             margin: "14px auto 24px", maxWidth: 520,
           }}>
-            Gründe deine Crew — mit Freunden, Familie, Klasse, Arbeitskollegen oder
-            Nachbarn. Lauft gemeinsam, sichert eure Gebiete, steigt in Ligen auf.
+            {tC("heroSubtitle")}
           </p>
           <div style={{
             display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center",
@@ -7021,7 +7022,7 @@ function CrewOnboarding({
                 animation: "crewGlow 2.6s ease-in-out infinite",
               }}
             >
-              🎯 Eigene Crew gründen
+              {tC("btnFound")}
             </button>
             <button
               onClick={onDiscover}
@@ -7032,7 +7033,7 @@ function CrewOnboarding({
                 border: `1px solid ${BORDER}`, cursor: "pointer",
               }}
             >
-              🔍 Crews in Nähe
+              {tC("btnDiscover")}
             </button>
             <button
               onClick={onJoin}
@@ -7043,7 +7044,7 @@ function CrewOnboarding({
                 border: `1px solid ${BORDER}`, cursor: "pointer",
               }}
             >
-              🔑 Code eingeben
+              {tC("btnJoinCode")}
             </button>
           </div>
         </div>
@@ -7055,15 +7056,15 @@ function CrewOnboarding({
         gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
         gap: 10, marginBottom: 20,
       }}>
-        <LiveStat icon="👥" value={totalCrews.toString()} label="Crews weltweit" accent={PRIMARY} />
-        <LiveStat icon="🏃" value={totalMembers.toLocaleString("de-DE")} label="Läufer:innen" accent="#FFD700" />
-        <LiveStat icon="📏" value={`${totalKm.toLocaleString("de-DE")} km`} label="diese Woche" accent={ACCENT} />
+        <LiveStat icon="👥" value={totalCrews.toString()} label={tC("statCrews")} accent={PRIMARY} />
+        <LiveStat icon="🏃" value={totalMembers.toLocaleString("de-DE")} label={tC("statRunners")} accent="#FFD700" />
+        <LiveStat icon="📏" value={`${totalKm.toLocaleString("de-DE")} km`} label={tC("statKmThisWeek")} accent={ACCENT} />
       </div>
 
       {/* ═══ FEATURES ═══ */}
       <div style={{ marginBottom: 26 }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 12 }}>
-          WARUM EINE CREW
+          {tC("whyCrewHeader")}
         </div>
         <div style={{
           display: "grid",
@@ -7071,12 +7072,12 @@ function CrewOnboarding({
           gap: 12,
         }}>
           {[
-            { icon: "🗺️", title: "Revier dominieren", desc: "Straßenzüge einnehmen — eure Farbe färbt den Kiez.", accent: "#22D1C3" },
-            { icon: "🏆", title: "Liga aufsteigen", desc: "Bronze → Silber → Gold → Diamant → Legende.", accent: "#FFD700" },
-            { icon: "⚔️", title: "Rivalen schlagen", desc: "1:1 Wochen-Duelle gegen Nachbar-Crews. Sieger bekommt 🏴 Gebietsruf-Boost.", accent: "#FF2D78" },
-            { icon: "🔥", title: "Challenges meistern", desc: "Wöchentliche Team-Ziele — 150 km, 20 Gebiete, Früh-Vögel.", accent: "#FF6B4A" },
-            { icon: "📅", title: "Events planen", desc: "Treffpunkte koordinieren, Läufe mit der Crew.", accent: "#a855f7" },
-            { icon: "💬", title: "Chat & Feed", desc: "Reaktionen, Voice-Notes, Meilensteine feiern.", accent: "#4ade80" },
+            { icon: "🗺️", title: tC("featTerritory"),   desc: tC("featTerritoryDesc"),   accent: "#22D1C3" },
+            { icon: "🏆", title: tC("featLeague"),      desc: tC("featLeagueDesc"),      accent: "#FFD700" },
+            { icon: "⚔️", title: tC("featRivals"),      desc: tC("featRivalsDesc"),      accent: "#FF2D78" },
+            { icon: "🔥", title: tC("featChallenges"),  desc: tC("featChallengesDesc"),  accent: "#FF6B4A" },
+            { icon: "📅", title: tC("featEvents"),      desc: tC("featEventsDesc"),      accent: "#a855f7" },
+            { icon: "💬", title: tC("featChat"),        desc: tC("featChatDesc"),        accent: "#4ade80" },
           ].map((f) => (
             <div key={f.title} style={{
               background: "rgba(30, 38, 60, 0.55)",
@@ -7097,10 +7098,10 @@ function CrewOnboarding({
       {/* ═══ GESUNDHEITSEFFEKT ═══ */}
       <div style={{ marginBottom: 26 }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
-          GESUNDHEIT — DER ECHTE GRUND
+          {tC("healthHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Crews sind nicht nur Spaß. Studien zeigen: soziales Laufen hat messbare Effekte.
+          {tC("healthIntro")}
         </div>
         <div style={{
           display: "grid",
@@ -7108,14 +7109,14 @@ function CrewOnboarding({
           gap: 10,
         }}>
           {[
-            { icon: "❤️", stat: "+42%", title: "Herz-Kreislauf",    desc: "Regelmäßiges Gehen/Laufen senkt Bluthochdruck und Infarktrisiko.",    accent: "#FF2D78" },
-            { icon: "🧠", stat: "+23%", title: "Mentale Stärke",     desc: "30 Min Bewegung/Tag reduziert Depressions- und Angstsymptome.",       accent: "#22D1C3" },
-            { icon: "💪", stat: "2×",   title: "Durchhalte-Rate",    desc: "Gruppen-Athlet:innen bleiben doppelt so lange aktiv wie Solo-Läufer.", accent: "#FFD700" },
-            { icon: "😴", stat: "+18%", title: "Schlafqualität",     desc: "Tägliche Schritte verbessern Tiefschlaf-Phasen und Erholung.",        accent: "#a855f7" },
-            { icon: "🔥", stat: "+350", title: "kcal / Stunde",      desc: "Ein 6-km-Lauf verbrennt ~350 kcal — Crew-Sessions addieren sich.",    accent: "#F97316" },
-            { icon: "🦴", stat: "+15%", title: "Knochendichte",      desc: "Gehen stärkt Knochen und beugt Osteoporose im Alter vor.",            accent: "#5ddaf0" },
-            { icon: "🌿", stat: "-30%", title: "Stresslevel",        desc: "Outdoor-Aktivität senkt Cortisol — kombiniert mit Community doppelt.", accent: "#4ade80" },
-            { icon: "👥", stat: "3×",   title: "Soziale Bindung",    desc: "Crew-Mitglieder berichten über signifikant mehr neue Freundschaften.",accent: "#ef7169" },
+            { icon: "❤️", stat: "+42%", title: tC("healthHeart"),     desc: tC("healthHeartDesc"),     accent: "#FF2D78" },
+            { icon: "🧠", stat: "+23%", title: tC("healthMental"),    desc: tC("healthMentalDesc"),    accent: "#22D1C3" },
+            { icon: "💪", stat: "2×",   title: tC("healthEndurance"), desc: tC("healthEnduranceDesc"), accent: "#FFD700" },
+            { icon: "😴", stat: "+18%", title: tC("healthSleep"),     desc: tC("healthSleepDesc"),     accent: "#a855f7" },
+            { icon: "🔥", stat: "+350", title: tC("healthCal"),       desc: tC("healthCalDesc"),       accent: "#F97316" },
+            { icon: "🦴", stat: "+15%", title: tC("healthBones"),     desc: tC("healthBonesDesc"),     accent: "#5ddaf0" },
+            { icon: "🌿", stat: "-30%", title: tC("healthStress"),    desc: tC("healthStressDesc"),    accent: "#4ade80" },
+            { icon: "👥", stat: "3×",   title: tC("healthSocial"),    desc: tC("healthSocialDesc"),    accent: "#ef7169" },
           ].map((h) => (
             <div key={h.title} style={{
               background: `linear-gradient(135deg, ${h.accent}14 0%, rgba(30, 38, 60, 0.55) 100%)`,
@@ -7147,7 +7148,7 @@ function CrewOnboarding({
         <div style={{
           marginTop: 10, fontSize: 10, color: MUTED, fontStyle: "italic", textAlign: "center",
         }}>
-          Werte: Durchschnitte aus WHO-, Cochrane- und RKI-Studien zu sozialer Aktivität.
+          {tC("healthSourceNote")}
         </div>
       </div>
 
@@ -7155,15 +7156,14 @@ function CrewOnboarding({
       <div style={{ marginBottom: 26 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4, gap: 10, flexWrap: "wrap" }}>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>
-            LIGA-SYSTEM · {currentSeason().label.toUpperCase()}
+            {tC("leagueHeader", { season: currentSeason().label.toUpperCase() })}
           </div>
           <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 800 }}>
-            ⏳ Noch {currentSeason().daysLeft} von {currentSeason().daysTotal} Tagen
+            {tC("leagueDaysLeft", { daysLeft: currentSeason().daysLeft, daysTotal: currentSeason().daysTotal })}
           </div>
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Jede Crew startet monatlich in Bronze. Mit den gelaufenen km steigt ihr bis zum Monatsende auf.
-          <b style={{ color: "#FFF" }}> Am 1. jedes Monats</b> starten alle Crews neu — euer finaler Rang bleibt als <b style={{ color: "#FFF" }}>Saison-Trophäe</b> dauerhaft sichtbar.
+          {tC.rich("leagueIntro", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })}
         </div>
         <div style={{
           background: "rgba(30, 38, 60, 0.55)", borderRadius: 16, padding: 16,
@@ -7203,7 +7203,7 @@ function CrewOnboarding({
                     color: "#FFF", fontSize: 11, fontWeight: 900,
                     display: "inline-block",
                   }}>
-                    {count} Crew{count === 1 ? "" : "s"}
+                    {count === 1 ? tC("leagueCrewsCountOne", { count }) : tC("leagueCrewsCountMany", { count })}
                   </div>
                 </button>
               );
@@ -7222,9 +7222,7 @@ function CrewOnboarding({
             ))}
           </div>
           <div style={{ color: MUTED, fontSize: 12, marginTop: 12, textAlign: "center", lineHeight: 1.5 }}>
-            Die Liga deiner Crew siehst du als Badge im Profil und überall in der Suche.
-            Sie ist <b style={{ color: "#FFF" }}>unabhängig vom Ranking</b> — beim Ranking
-            zählen individuelle Leistungen, in der Liga kämpft die <b style={{ color: "#FFF" }}>ganze Crew</b>.
+            {tC.rich("leagueExplain", { b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })}
           </div>
           <button
             onClick={onOpenRanking}
@@ -7233,7 +7231,7 @@ function CrewOnboarding({
               marginTop: 14, width: "100%",
             }}
           >
-            🏁 Komplette Rangliste ansehen
+            {tC("leagueViewAll")}
           </button>
         </div>
       </div>
@@ -7241,10 +7239,10 @@ function CrewOnboarding({
       {/* ═══ TYPEN-SHOWCASE ═══ */}
       <div style={{ marginBottom: 26 }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
-          MIT WEM LÄUFST DU?
+          {tC("typesHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Jede Gruppe, die zusammen Spaß hat, ist eine Crew-Gründung wert.
+          {tC("typesIntro")}
         </div>
         <div style={{
           display: "grid",
@@ -7279,9 +7277,9 @@ function CrewOnboarding({
         marginBottom: 10,
       }}>
         {[
-          { name: "Lena K.", role: "Kiez Läufer 13435 · Admin", quote: "Seit wir als Crew laufen, fällt keiner mehr aus. Allein hätte ich schon zweimal aufgegeben." },
-          { name: "Jonas B.", role: "Prenzl'Pack · Captain", quote: "Unser Revier — das ist unser. Nachbar-Crew hat versucht, unseren Kiez zu nehmen. Pustekuchen." },
-          { name: "Ines R.", role: "Weißensee Walker · Member", quote: "Wochenziel 150 km. Wir schaffen's zu acht in 5 Tagen. Einfach weil's um was geht." },
+          { name: "Lena K.",  role: tC("testimonial1Role"), quote: tC("testimonial1Quote") },
+          { name: "Jonas B.", role: tC("testimonial2Role"), quote: tC("testimonial2Quote") },
+          { name: "Ines R.",  role: tC("testimonial3Role"), quote: tC("testimonial3Quote") },
         ].map((t) => (
           <div key={t.name} style={{
             background: "rgba(30, 38, 60, 0.55)",
@@ -7309,13 +7307,13 @@ function CrewOnboarding({
         justifyContent: "space-between",
       }}>
         <div>
-          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>Bereit?</div>
+          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tC("testimonialReady")}</div>
           <div style={{ color: TEXT_SOFT, fontSize: 12, marginTop: 2 }}>
-            Gründung dauert keine 30 Sekunden. Invite-Code wird automatisch generiert.
+            {tC("testimonialFooter")}
           </div>
         </div>
         <button onClick={onCreate} style={primaryBtnStyle(PRIMARY)}>
-          🚀 Jetzt Crew gründen
+          {tC("btnFoundNow")}
         </button>
       </div>
     </>
