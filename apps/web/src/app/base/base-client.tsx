@@ -2,6 +2,24 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const BaseScene = dynamic(() => import("@/components/base-3d/base-scene").then((m) => m.BaseScene), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[320px] flex items-center justify-center bg-gradient-to-b from-[#0e1a2c] to-[#0F1115]">
+      <div className="text-center text-[#a8b4cf]"><div className="text-4xl animate-pulse">🏰</div><div className="text-xs mt-2">Lade 3D-Base …</div></div>
+    </div>
+  ),
+});
+
+// 4 Solo-Slots in 2x2-Grid für die 4 Phase-1-Buildings
+const SOLO_SLOT_LAYOUT: Record<string, { x: number; y: number }> = {
+  wegekasse:      { x: 0, y: 0 },
+  wald_pfad:      { x: 1, y: 0 },
+  waechter_halle: { x: 0, y: 1 },
+  laufturm:       { x: 1, y: 1 },
+};
 
 type BuildingCatalog = {
   id: string; name: string; emoji: string; description: string; category: string; scope: string;
@@ -145,20 +163,41 @@ export function BaseClient() {
       </header>
 
       <main className="max-w-screen-md mx-auto px-3 py-4 space-y-5">
-        {/* Base-Header */}
-        <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1D23] to-[#0F1115] p-4">
-          <div className="flex items-center justify-between">
+        {/* 3D-Base-Header */}
+        <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#1A1D23] to-[#0F1115] overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between border-b border-white/5">
             <div>
               <div className="text-[10px] font-black tracking-widest text-[#22D1C3]">DEINE BASE</div>
-              <div className="text-2xl font-black mt-0.5">PLZ {base?.plz ?? "—"}</div>
-              <div className="text-xs text-[#a8b4cf] mt-1">Stufe {base?.level ?? 1} · ⚡ {resources.speed_tokens} Tokens</div>
+              <div className="text-xl font-black mt-0.5">PLZ {base?.plz ?? "—"}</div>
+              <div className="text-[10px] text-[#a8b4cf] mt-0.5">Stufe {base?.level ?? 1} · ⚡ {resources.speed_tokens} Tokens</div>
             </div>
-            {/* 3D-Scaffold-Hinweis */}
-            <div className="text-right text-[9px] text-[#6c7590]">
-              <div>2D-Mockup</div>
-              <div>3D folgt</div>
-            </div>
+            <Link
+              href="/crew/base"
+              className="text-[10px] font-black tracking-wider px-3 py-1.5 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 text-[#22D1C3]"
+            >
+              CREW-BASE →
+            </Link>
           </div>
+          <BaseScene
+            variant="solo"
+            buildings={buildings.map((b) => ({
+              building_id: b.building_id,
+              level: b.level,
+              position_x: SOLO_SLOT_LAYOUT[b.building_id]?.x ?? 0,
+              position_y: SOLO_SLOT_LAYOUT[b.building_id]?.y ?? 0,
+              status: b.status,
+            }))}
+            emptySlots={catalog
+              .filter((c) => !builtMap.has(c.id))
+              .map((c) => ({
+                position_x: SOLO_SLOT_LAYOUT[c.id]?.x ?? 0,
+                position_y: SOLO_SLOT_LAYOUT[c.id]?.y ?? 0,
+                empty_for: c.id,
+              }))}
+            onSlotTap={(id) => { void build(id); }}
+            onBuildingTap={(id) => { void build(id); }}
+            height={320}
+          />
         </section>
 
         {/* Aktive Bauaufträge */}

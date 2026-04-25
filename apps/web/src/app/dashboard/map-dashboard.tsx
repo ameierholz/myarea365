@@ -2440,12 +2440,13 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
-        {/* ═══ QUICK ACTIONS — 6 Kacheln: Arena · Deals · Crew · Shop · Shop-Deals · Inbox ═══ */}
+        {/* ═══ QUICK ACTIONS — 7 Kacheln: Base · Arena · Deals · Crew · Shop · Shop-Deals · Inbox ═══ */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(6, 1fr)",
+          display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
           gap: 6, marginTop: 14,
         }}>
           {[
+            { key: "base",       icon: "🏰", label: "Base",       color: "#22D1C3", title: "🏰 Deine 3D-Base: Resourcen aus deinen Läufen, Gebäude bauen, VIP-Tier, Truhen öffnen.", onClick: () => { window.location.href = "/base"; } },
             { key: "arena",      icon: "⚔️", label: "Arena",      color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
             { key: "deals",      icon: "🔥", label: "Deals",      color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
             { key: "crew",       icon: "👥", label: "Crew",       color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
