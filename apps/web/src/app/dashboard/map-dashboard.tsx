@@ -7464,6 +7464,7 @@ const GEO_ICON: Record<GeoLevel, string> = {
 
 function DiscoverView({ onBack }: { onBack: () => void }) {
   const tR = useTranslations("Ranking");
+  const tC = useTranslations("Crew");
   const [filters, setFilters] = useState<Partial<Record<GeoLevel, string>>>({});
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<CrewTypeId | null>(null);
@@ -7541,10 +7542,10 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
         <button onClick={onBack} style={{
           background: "transparent", border: "none", color: PRIMARY,
           fontSize: 14, cursor: "pointer", padding: 0,
-        }}>← zurück</button>
+        }}>{tC("discoverBack")}</button>
       </div>
 
-      <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Crews durchsuchen</div>
+      <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginBottom: 4 }}>{tC("discoverTitle")}</div>
       <div style={{ color: MUTED, fontSize: 13, marginBottom: 16 }}>
         {countLabel(filtered.length, trail)}
       </div>
@@ -7567,7 +7568,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="🔎 Name, Motto, Stadt, PLZ …"
+            placeholder={tC("discoverSearchPh")}
             style={{ ...inputStyle(), marginBottom: 10 }}
           />
           <button
@@ -7581,13 +7582,13 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}
           >
-            ❤️ Nur Favoriten {favs.size > 0 && `(${favs.size})`}
+            {tC("discoverFavoritesOnly")} {favs.size > 0 && `(${favs.size})`}
           </button>
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
-            TYP
+            {tC("labelType")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-            <FilterPill active={typeFilter === null} onClick={() => setTypeFilter(null)}>Alle</FilterPill>
+            <FilterPill active={typeFilter === null} onClick={() => setTypeFilter(null)}>{tC("filterAll")}</FilterPill>
             {CREW_TYPES.map((t) => (
               <FilterPill key={t.id} active={typeFilter === t.id} onClick={() => setTypeFilter(typeFilter === t.id ? null : t.id)}>
                 {t.icon} {t.name}
@@ -7595,10 +7596,10 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
             ))}
           </div>
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
-            SICHTBARKEIT
+            {tC("labelPrivacy")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-            <FilterPill active={privacyFilter === null} onClick={() => setPrivacyFilter(null)}>Alle</FilterPill>
+            <FilterPill active={privacyFilter === null} onClick={() => setPrivacyFilter(null)}>{tC("filterAll")}</FilterPill>
             {CREW_PRIVACY_OPTIONS.map((p) => (
               <FilterPill key={p.id} active={privacyFilter === p.id} onClick={() => setPrivacyFilter(privacyFilter === p.id ? null : p.id)}>
                 {p.icon} {p.label}
@@ -7607,10 +7608,10 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
           </div>
 
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
-            LIGA
+            {tC("labelLeague")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <FilterPill active={leagueFilter === null} onClick={() => setLeagueFilter(null)}>Alle</FilterPill>
+            <FilterPill active={leagueFilter === null} onClick={() => setLeagueFilter(null)}>{tC("filterAll")}</FilterPill>
             {LEAGUE_TIERS.map((t) => (
               <FilterPill key={t.id} active={leagueFilter === t.id} onClick={() => setLeagueFilter(leagueFilter === t.id ? null : t.id)}>
                 {t.icon} {t.name}
@@ -7711,7 +7712,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
       {/* Faction-War-Bar */}
       {filtered.length >= 2 && (
         <FactionWarBar
-          scopeLabel={trail.length ? trail[trail.length - 1].label : "Weltweit"}
+          scopeLabel={trail.length ? trail[trail.length - 1].label : tC("scopeWorld")}
           crews={filtered}
         />
       )}
@@ -7719,7 +7720,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
       {/* Top-3-Ranking auf aktueller Ebene */}
       {filtered.length >= 2 && (
         <TopThreeRanking
-          scopeLabel={trail.length ? trail[trail.length - 1].label : "Weltweit"}
+          scopeLabel={trail.length ? trail[trail.length - 1].label : tC("scopeWorld")}
           crews={filtered}
         />
       )}
@@ -7757,7 +7758,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
                     {b.label}
                   </div>
                   <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
-                    {b.child_count} Crew{b.child_count === 1 ? "" : "s"}
+                    {b.child_count === 1 ? tC("leagueCrewsCountOne", { count: b.child_count }) : tC("leagueCrewsCountMany", { count: b.child_count })}
                   </div>
                 </div>
                 <span style={{ color: MUTED }}>›</span>
@@ -7777,11 +7778,11 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
             background: "rgba(30, 38, 60, 0.45)", padding: 30, borderRadius: 16,
             textAlign: "center", color: MUTED, border: `1px solid ${BORDER}`,
           }}>
-            Keine Crews mit diesen Filtern.<br />
+            {tC("noCrewsFound")}<br />
             <button onClick={() => { setFilters({}); setSearch(""); }} style={{
               marginTop: 10, background: "transparent", border: "none",
               color: PRIMARY, cursor: "pointer", fontSize: 13, fontWeight: 700,
-            }}>Filter zurücksetzen</button>
+            }}>{tC("resetFilters")}</button>
           </div>
         ) : (
           <div style={{
