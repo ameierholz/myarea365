@@ -8358,6 +8358,7 @@ function CreateCrewForm({
   setCrewFaction: (f: "pfadfinder" | "waechterorden" | "stadtlaeufer" | "mystiker") => void;
   onSubmit: () => void; onCancel: () => void;
 }) {
+  const tC = useTranslations("Crew");
   const selectedType = CREW_TYPES.find((t) => t.id === type)!;
   const initial = (name.trim() || placeholderForType(type)).charAt(0).toUpperCase();
   const displayName = name.trim() || placeholderForType(type);
@@ -8384,7 +8385,7 @@ function CreateCrewForm({
         <button onClick={onCancel} style={{
           background: "transparent", border: "none", color: PRIMARY,
           fontSize: 14, cursor: "pointer", padding: 0,
-        }}>← zurück</button>
+        }}>{tC("createBack")}</button>
       </div>
 
       <div style={{
@@ -8395,14 +8396,14 @@ function CreateCrewForm({
         {/* ═══ LEFT — FORM ═══ */}
         <div style={{ background: CARD, padding: 20, borderRadius: 18 }}>
           <div style={{ color: "#FFF", fontSize: 24, fontWeight: 900, marginBottom: 4 }}>
-            Crew gründen — in 4 Schritten
+            {tC("createTitle")}
           </div>
           <div style={{ color: MUTED, fontSize: 13, marginBottom: 18 }}>
-            Unter 30 Sekunden. Danach sofort laufen und Gebiete sichern.
+            {tC("createSubtitle")}
           </div>
 
           {/* Schritt 1 — Typ */}
-          <StepLabel num={1} title="Mit wem läuft deine Crew?" />
+          <StepLabel num={1} title={tC("step1Title")} />
           <div style={{
             display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
             gap: 8, marginBottom: 10,
@@ -8438,26 +8439,26 @@ function CreateCrewForm({
           </div>
 
           {/* Schritt 2 — Identität */}
-          <StepLabel num={2} title="Gib deiner Crew Gesicht + Stimme" />
-          <Label>Crew-Name</Label>
+          <StepLabel num={2} title={tC("step2Title")} />
+          <Label>{tC("labelCrewName")}</Label>
           <input
             value={name} onChange={(e) => setName(e.target.value.slice(0, 32))}
             placeholder={placeholderForType(type)}
             style={{ ...inputStyle(), marginBottom: 12 }}
           />
-          <Label>Motto <span style={{ color: MUTED, fontWeight: 400 }}>(optional — macht euch wiedererkennbar)</span></Label>
+          <Label>{tC("labelMotto")} <span style={{ color: MUTED, fontWeight: 400 }}>{tC("labelMottoOptional")}</span></Label>
           <input
             value={motto} onChange={(e) => setMotto(e.target.value.slice(0, 60))}
             placeholder={mottoForType(type)}
             style={{ ...inputStyle(), marginBottom: 12 }}
           />
-          <Label>Crew-Farbe — eure Straßen-Markierung</Label>
+          <Label>{tC("labelColor")}</Label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 20 }}>
             {CREW_COLORS.map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                aria-label={`Farbe ${c}`}
+                aria-label={tC("colorAria", { color: c })}
                 style={{
                   width: 40, height: 40, borderRadius: 20,
                   background: c,
@@ -8471,19 +8472,19 @@ function CreateCrewForm({
           </div>
 
           {/* Schritt 3 — Revier */}
-          <StepLabel num={3} title="Wo ist euer Revier?" />
-          <Label>Einsatzgebiet (PLZ)</Label>
+          <StepLabel num={3} title={tC("step3Title")} />
+          <Label>{tC("labelZip")}</Label>
           <input
             value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 5))}
-            placeholder="z.B. 13435"
+            placeholder={tC("zipPlaceholder")}
             style={{ ...inputStyle(), marginBottom: 6, fontFamily: "monospace", fontSize: 16, letterSpacing: 2 }}
           />
           <div style={{ fontSize: 11, color: MUTED, marginBottom: 20 }}>
-            Hier erscheint eure Farbe auf der Karte. Rivalen-Crews aus Nachbar-PLZs können euch herausfordern.
+            {tC("zipHint")}
           </div>
 
           {/* Schritt 4 — Sichtbarkeit */}
-          <StepLabel num={4} title="Wer darf beitreten?" />
+          <StepLabel num={4} title={tC("step4Title")} />
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
             {CREW_PRIVACY_OPTIONS.map((opt) => {
               const active = privacy === opt.id;
@@ -8513,14 +8514,14 @@ function CreateCrewForm({
           {/* ═══ CREW-FRAKTION ═══ */}
           <div>
             <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-              4. CREW-FRAKTION · Buff für alle Mitglieder
+              {tC("factionHeader")}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
               {([
-                { id: "pfadfinder",    icon: "🏃", name: "Pfadfinder",    color: "#4ade80", buff: "+10 % 🪙 beim Laufen", hint: "Mehr Wegemünzen pro Walk" },
-                { id: "waechterorden", icon: "⚔️", name: "Wächter-Orden", color: "#FF6B4A", buff: "+5 % HP & ATK",         hint: "Stärkere Wächter" },
-                { id: "stadtlaeufer",  icon: "🏙️", name: "Stadtläufer",   color: "#22D1C3", buff: "+15 % Siegel",         hint: "Mehr Loot" },
-                { id: "mystiker",      icon: "🔮", name: "Mystiker",       color: "#a855f7", buff: "+10 % Wächter-XP",     hint: "Schnelleres Leveln" },
+                { id: "pfadfinder",    icon: "🏃", name: tC("factionPfadfinder"), color: "#4ade80", buff: tC("factionPfadfinderBuff"), hint: tC("factionPfadfinderHint") },
+                { id: "waechterorden", icon: "⚔️", name: tC("factionWaechter"),   color: "#FF6B4A", buff: tC("factionWaechterBuff"),   hint: tC("factionWaechterHint") },
+                { id: "stadtlaeufer",  icon: "🏙️", name: tC("factionStadt"),      color: "#22D1C3", buff: tC("factionStadtBuff"),      hint: tC("factionStadtHint") },
+                { id: "mystiker",      icon: "🔮", name: tC("factionMystiker"),   color: "#a855f7", buff: tC("factionMystikerBuff"),   hint: tC("factionMystikerHint") },
               ] as const).map((f) => {
                 const active = crewFaction === f.id;
                 return (
@@ -8548,7 +8549,7 @@ function CreateCrewForm({
               })}
             </div>
             <div style={{ fontSize: 10, color: MUTED, marginTop: 6 }}>
-              Wechsel später kostet 1.200 💎 und hat 30 Tage Cooldown.
+              {tC("factionSwitchHint")}
             </div>
           </div>
 
@@ -8562,14 +8563,14 @@ function CreateCrewForm({
               animation: "cardPulse 2.4s ease-in-out infinite",
             }}
           >
-            🚀 {name.trim() || "Meine Crew"} gründen
+            {tC("createButton", { name: name.trim() || tC("createButtonFallback") })}
           </button>
         </div>
 
         {/* ═══ RIGHT — LIVE PREVIEW + PERKS ═══ */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14, position: isWide ? "sticky" : "static", top: 12 }}>
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>
-            LIVE-VORSCHAU
+            {tC("livePreview")}
           </div>
 
           {/* Live Crew Card Preview */}
@@ -8626,17 +8627,17 @@ function CreateCrewForm({
           {/* Das bekommt ihr */}
           <div>
             <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-              DAS BEKOMMT IHR SOFORT
+              {tC("youGetHeader")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {[
-                { icon: "🔑", title: "Invite-Code",      desc: "Teilbar via Link, QR oder WhatsApp" },
-                { icon: "💬", title: "Crew-Chat",         desc: "Reaktionen, Voice-Notes, Events" },
-                { icon: "🏆", title: "Crew-Challenges",   desc: "Wochenziele, Gruppen-Boni" },
-                { icon: "⚔️", title: "Rivalen-Duelle",    desc: "Gegen Nachbar-Crews antreten" },
-                { icon: "📅", title: "Gruppenläufe",     desc: "Treffpunkte + Teilnehmerliste" },
-                { icon: "🏅", title: "Liga-System",       desc: "Bronze → Legende pro Monat" },
-                { icon: "🛡️", title: "Crew-Revier",      desc: "Eure Farbe auf den Straßen" },
+                { icon: "🔑", title: tC("perkInviteCode"),  desc: tC("perkInviteCodeDesc") },
+                { icon: "💬", title: tC("perkChat"),        desc: tC("perkChatDesc") },
+                { icon: "🏆", title: tC("perkChallenges"),  desc: tC("perkChallengesDesc") },
+                { icon: "⚔️", title: tC("perkRivals"),      desc: tC("perkRivalsDesc") },
+                { icon: "📅", title: tC("perkGroupRuns"),   desc: tC("perkGroupRunsDesc") },
+                { icon: "🏅", title: tC("perkLeague"),      desc: tC("perkLeagueDesc") },
+                { icon: "🛡️", title: tC("perkTerritory"),   desc: tC("perkTerritoryDesc") },
               ].map((p) => (
                 <div key={p.title} style={{
                   background: "rgba(30, 38, 60, 0.55)", borderRadius: 10,
@@ -8665,7 +8666,7 @@ function CreateCrewForm({
             color: TEXT_SOFT, fontSize: 11, lineHeight: 1.5,
             textAlign: "center",
           }}>
-            💡 Keine Vertragsbindung, keine Kosten. Ihr könnt jederzeit auflösen.
+            {tC("noContractHint")}
           </div>
         </div>
       </div>
