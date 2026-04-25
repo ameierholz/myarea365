@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 
@@ -27,20 +29,18 @@ function isActive(until: string | null | undefined) {
   return !!(until && new Date(until).getTime() > Date.now());
 }
 
-/* ═══════════════════════════════════════════════════════
- * FLASH-PUSH SENDER
- * ═══════════════════════════════════════════════════════ */
 export function FlashPushPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }) {
+  const t = useTranslations("ShopFeatures");
   const sb = createClient();
   const credits = shop.flash_push_credits ?? 0;
-  const [title, setTitle] = useState("Heute nur für Runner!");
-  const [body, setBody] = useState("30 % auf alle Getränke bei Vorzeigen der App");
+  const [title, setTitle] = useState(t("flashTitleDefault"));
+  const [body, setBody] = useState(t("flashBodyDefault"));
   const [radius, setRadius] = useState(1000);
   const [duration, setDuration] = useState(30);
   const [sending, setSending] = useState(false);
 
   async function send() {
-    if (credits < 1) { appAlert("Keine Flash-Push-Credits mehr. Bitte im Shop-Power-Up nachkaufen."); return; }
+    if (credits < 1) { appAlert(t("flashNoCredits")); return; }
     setSending(true);
     try {
       await sb.from("shop_push_messages").insert({
@@ -50,35 +50,35 @@ export function FlashPushPanel({ shop, onUsed }: { shop: Shop; onUsed: () => voi
         expires_at: new Date(Date.now() + duration * 60_000).toISOString(),
       });
       await sb.from("local_businesses").update({ flash_push_credits: credits - 1 }).eq("id", shop.id);
-      appAlert(`Flash-Push aktiv! Runner im ${(radius / 1000).toFixed(1)} km-Radius sehen deine Nachricht für ${duration} Minuten.`);
+      appAlert(t("flashActivedAlert", { km: (radius / 1000).toFixed(1), min: duration }));
       onUsed();
     } finally { setSending(false); }
   }
 
   return (
-    <Card title="⚡ Flash-Deal-Push" badge={`${credits} Credits`}>
-      <Field label="Titel" value={title} onChange={setTitle} />
-      <Field label="Nachricht" value={body} onChange={setBody} textarea />
+    <Card title={t("flashTitle")} badge={t("flashCreditsBadge", { n: credits })}>
+      <Field label={t("flashTitleField")} value={title} onChange={setTitle} />
+      <Field label={t("flashBodyField")} value={body} onChange={setBody} textarea />
       <div style={{ display: "flex", gap: 10 }}>
-        <Field label={`Radius: ${(radius/1000).toFixed(1)} km`} value={String(radius)} onChange={(v) => setRadius(parseInt(v) || 500)} type="range" min={500} max={5000} step={500} />
-        <Field label={`Dauer: ${duration} min`} value={String(duration)} onChange={(v) => setDuration(parseInt(v) || 15)} type="range" min={15} max={120} step={15} />
+        <Field label={t("flashRadiusLabel", { km: (radius/1000).toFixed(1) })} value={String(radius)} onChange={(v) => setRadius(parseInt(v) || 500)} type="range" min={500} max={5000} step={500} />
+        <Field label={t("flashDurationLabel", { min: duration })} value={String(duration)} onChange={(v) => setDuration(parseInt(v) || 15)} type="range" min={15} max={120} step={15} />
       </div>
       <PrimaryButton onClick={send} disabled={sending || credits < 1}>
-        {sending ? "Sende…" : `Jetzt pushen (1 Credit verbraucht)`}
+        {sending ? t("sending") : t("flashSendBtn")}
       </PrimaryButton>
     </Card>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * EVENT-HOST
- * ═══════════════════════════════════════════════════════ */
 export function EventsPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }) {
+  const t = useTranslations("ShopFeatures");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const sb = createClient();
   const credits = shop.event_host_credits ?? 0;
   const [events, setEvents] = useState<Array<{ id: string; title: string; starts_at: string; status: string }>>([]);
-  const [title, setTitle] = useState("Sonntags-Lauf @ Café");
-  const [desc, setDesc] = useState("Gemeinsamer 5 km Lauf, danach Kaffee bei uns.");
+  const [title, setTitle] = useState(t("eventsTitleDefault"));
+  const [desc, setDesc] = useState(t("eventsDescDefault"));
   const [date, setDate] = useState(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16));
   const [saving, setSaving] = useState(false);
 
@@ -88,7 +88,7 @@ export function EventsPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }
   }, [shop.id, sb]);
 
   async function create() {
-    if (credits < 1) { appAlert("Keine Event-Host-Credits. Bitte nachkaufen."); return; }
+    if (credits < 1) { appAlert(t("eventsNoCredits")); return; }
     setSaving(true);
     try {
       await sb.from("shop_events").insert({
@@ -97,27 +97,27 @@ export function EventsPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }
         max_participants: 50,
       });
       await sb.from("local_businesses").update({ event_host_credits: credits - 1 }).eq("id", shop.id);
-      appAlert("Event veröffentlicht! Runner im Kiez sehen es auf der Karte.");
+      appAlert(t("eventsCreated"));
       onUsed();
     } finally { setSaving(false); }
   }
 
   return (
-    <Card title="🎪 Event-Host" badge={`${credits} Slots`}>
-      <Field label="Titel" value={title} onChange={setTitle} />
-      <Field label="Beschreibung" value={desc} onChange={setDesc} textarea />
-      <Field label="Startzeit" value={date} onChange={setDate} type="datetime-local" />
+    <Card title={t("eventsTitle")} badge={t("eventsCreditsBadge", { n: credits })}>
+      <Field label={t("eventsTitleField")} value={title} onChange={setTitle} />
+      <Field label={t("eventsDescField")} value={desc} onChange={setDesc} textarea />
+      <Field label={t("eventsStartField")} value={date} onChange={setDate} type="datetime-local" />
       <PrimaryButton onClick={create} disabled={saving || credits < 1}>
-        {saving ? "Speichere…" : "Event veröffentlichen"}
+        {saving ? t("saving") : t("eventsCreateBtn")}
       </PrimaryButton>
 
       {events.length > 0 && (
         <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>DEINE EVENTS</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{t("eventsListHeading")}</div>
           {events.map((e) => (
             <div key={e.id} style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", fontSize: 12, color: "#d6ddeb", display: "flex", justifyContent: "space-between" }}>
               <span>{e.title}</span>
-              <span style={{ color: "#a8b4cf" }}>{new Date(e.starts_at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}</span>
+              <span style={{ color: "#a8b4cf" }}>{new Date(e.starts_at).toLocaleString(dateLocale, { dateStyle: "short", timeStyle: "short" })}</span>
             </div>
           ))}
         </div>
@@ -126,64 +126,60 @@ export function EventsPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * CHALLENGE-SPONSOR
- * ═══════════════════════════════════════════════════════ */
 export function ChallengesPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }) {
+  const t = useTranslations("ShopFeatures");
   const sb = createClient();
   const credits = shop.challenge_sponsor_credits ?? 0;
   const [target, setTarget] = useState<"first_5k"|"ten_territories"|"weekly_km"|"streak_7d">("first_5k");
-  const [reward, setReward] = useState("Gratis Cappuccino");
+  const [reward, setReward] = useState(t("challengeRewardDefault"));
   const [saving, setSaving] = useState(false);
 
   async function create() {
-    if (credits < 1) { appAlert("Keine Sponsor-Credits mehr."); return; }
+    if (credits < 1) { appAlert(t("challengeNoCredits")); return; }
     setSaving(true);
     try {
-      const title = target === "first_5k" ? "Erster 5-km-Lauf im Kiez"
-        : target === "ten_territories" ? "10 Gebiete in einer Woche"
-        : target === "weekly_km" ? "50 km diese Woche"
-        : "7-Tage-Streak";
+      const title = target === "first_5k" ? t("challengeTitleFirst5k")
+        : target === "ten_territories" ? t("challengeTitleTen")
+        : target === "weekly_km" ? t("challengeTitleWeekly")
+        : t("challengeTitleStreak");
       await sb.from("shop_challenges").insert({
         business_id: shop.id, title, target_type: target, reward_text: reward,
         ends_at: new Date(Date.now() + 14 * 86400000).toISOString(),
       });
       await sb.from("local_businesses").update({ challenge_sponsor_credits: credits - 1 }).eq("id", shop.id);
-      appAlert("Challenge gesponsert!");
+      appAlert(t("challengeCreated"));
       onUsed();
     } finally { setSaving(false); }
   }
 
   return (
-    <Card title="🏆 Challenge-Sponsor" badge={`${credits} verfügbar`}>
-      <Select label="Challenge-Typ" value={target} onChange={(v) => setTarget(v as typeof target)} options={[
-        ["first_5k", "Erster 5 km"],
-        ["ten_territories", "10 Gebiete/Woche"],
-        ["weekly_km", "50 km/Woche"],
-        ["streak_7d", "7-Tage-Streak"],
+    <Card title={t("challengeTitle")} badge={t("challengeBadge", { n: credits })}>
+      <Select label={t("challengeTypeField")} value={target} onChange={(v) => setTarget(v as typeof target)} options={[
+        ["first_5k", t("challengeTypeFirst5k")],
+        ["ten_territories", t("challengeTypeTen")],
+        ["weekly_km", t("challengeTypeWeekly")],
+        ["streak_7d", t("challengeTypeStreak")],
       ]} />
-      <Field label="Belohnung (an Gewinner)" value={reward} onChange={setReward} />
+      <Field label={t("challengeRewardField")} value={reward} onChange={setReward} />
       <PrimaryButton onClick={create} disabled={saving || credits < 1}>
-        {saving ? "Speichere…" : "Jetzt sponsern"}
+        {saving ? t("saving") : t("challengeBtn")}
       </PrimaryButton>
     </Card>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * SOCIAL-PRO GENERATOR
- * ═══════════════════════════════════════════════════════ */
 export function SocialPanel({ shop }: { shop: Shop }) {
+  const t = useTranslations("ShopFeatures");
   const active = isActive(shop.social_pro_until);
-  if (!active) return <LockedCard title="📱 Social-Post-Generator" msg="Aktiv mit Social-Pro-Abo (9,90 €/Mo)" />;
+  if (!active) return <LockedCard title={t("socialTitle")} msg={t("socialLockedMsg")} />;
 
   const templates = [
-    { id: "tpl1", label: "Stammkunden-Wochenpost",       color: "#FF2D78", gradient: "linear-gradient(135deg,#FF2D78,#a855f7)" },
-    { id: "tpl2", label: "Neue Deal-Ankündigung",        color: "#FFD700", gradient: "linear-gradient(135deg,#FFD700,#FF6B4A)" },
-    { id: "tpl3", label: "Kiez-Tipp-Story",              color: "#22D1C3", gradient: "linear-gradient(135deg,#22D1C3,#5ddaf0)" },
-    { id: "tpl4", label: "Spotlight-Announcement",       color: "#a855f7", gradient: "linear-gradient(135deg,#a855f7,#FF2D78)" },
-    { id: "tpl5", label: "Event-Einladung",              color: "#4ade80", gradient: "linear-gradient(135deg,#4ade80,#22D1C3)" },
-    { id: "tpl6", label: "Challenge-Launch",             color: "#FF6B4A", gradient: "linear-gradient(135deg,#FF6B4A,#FFD700)" },
+    { id: "tpl1", labelKey: "socialTpl1" as const, gradient: "linear-gradient(135deg,#FF2D78,#a855f7)" },
+    { id: "tpl2", labelKey: "socialTpl2" as const, gradient: "linear-gradient(135deg,#FFD700,#FF6B4A)" },
+    { id: "tpl3", labelKey: "socialTpl3" as const, gradient: "linear-gradient(135deg,#22D1C3,#5ddaf0)" },
+    { id: "tpl4", labelKey: "socialTpl4" as const, gradient: "linear-gradient(135deg,#a855f7,#FF2D78)" },
+    { id: "tpl5", labelKey: "socialTpl5" as const, gradient: "linear-gradient(135deg,#4ade80,#22D1C3)" },
+    { id: "tpl6", labelKey: "socialTpl6" as const, gradient: "linear-gradient(135deg,#FF6B4A,#FFD700)" },
   ];
 
   function downloadTemplate(tplId: string, label: string) {
@@ -198,22 +194,25 @@ export function SocialPanel({ shop }: { shop: Shop }) {
   }
 
   return (
-    <Card title="📱 Social-Post-Generator" badge="PRO AKTIV">
+    <Card title={t("socialTitle")} badge={t("proActive")}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: 10 }}>
-        {templates.map((t) => (
-          <button key={t.id}
-            onClick={() => downloadTemplate(t.id, t.label)}
-            style={{
-              aspectRatio: "9 / 16", borderRadius: 14,
-              background: t.gradient, border: "none", cursor: "pointer",
-              color: "#0F1115", fontWeight: 900, fontSize: 13,
-              padding: 12, display: "flex", flexDirection: "column", justifyContent: "space-between",
-            }}>
-            <span style={{ fontSize: 26 }}>📥</span>
-            <span style={{ textAlign: "left" }}>{t.label}</span>
-            <span style={{ fontSize: 10, opacity: 0.7 }}>1080 × 1920 · SVG</span>
-          </button>
-        ))}
+        {templates.map((tpl) => {
+          const label = t(tpl.labelKey);
+          return (
+            <button key={tpl.id}
+              onClick={() => downloadTemplate(tpl.id, label)}
+              style={{
+                aspectRatio: "9 / 16", borderRadius: 14,
+                background: tpl.gradient, border: "none", cursor: "pointer",
+                color: "#0F1115", fontWeight: 900, fontSize: 13,
+                padding: 12, display: "flex", flexDirection: "column", justifyContent: "space-between",
+              }}>
+              <span style={{ fontSize: 26 }}>📥</span>
+              <span style={{ textAlign: "left" }}>{label}</span>
+              <span style={{ fontSize: 10, opacity: 0.7 }}>1080 × 1920 · SVG</span>
+            </button>
+          );
+        })}
       </div>
     </Card>
   );
@@ -235,19 +234,17 @@ function buildSocialPostSvg(shopName: string, label: string): string {
   </svg>`;
 }
 
-/* ═══════════════════════════════════════════════════════
- * E-MAIL-KAMPAGNE
- * ═══════════════════════════════════════════════════════ */
 export function EmailPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }) {
+  const t = useTranslations("ShopFeatures");
   const sb = createClient();
   const credits = shop.email_campaign_credits ?? 0;
-  const [subject, setSubject] = useState("Neuer Deal in deinem Kiez");
-  const [body, setBody] = useState("Hallo Runner! Wir haben diese Woche eine neue Aktion für dich.");
+  const [subject, setSubject] = useState(t("emailSubjectDefault"));
+  const [body, setBody] = useState(t("emailBodyDefault"));
   const [saving, setSaving] = useState(false);
 
   async function send() {
-    if (credits < 1) { appAlert("Keine E-Mail-Kampagnen-Credits."); return; }
-    if (!(await appConfirm({ title: "Kampagne senden?", message: `Diese Nachricht geht an alle Stammkunden im Kiez. Ein Credit wird verbraucht.`, confirmLabel: "Senden" }))) return;
+    if (credits < 1) { appAlert(t("emailNoCredits")); return; }
+    if (!(await appConfirm({ title: t("emailConfirmTitle"), message: t("emailConfirmBody"), confirmLabel: t("emailConfirmBtn") }))) return;
     setSaving(true);
     try {
       await sb.from("shop_marketing_assets").insert({
@@ -259,28 +256,26 @@ export function EmailPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void })
         status: "scheduled", scheduled_at: new Date(Date.now() + 60_000).toISOString(),
       });
       await sb.from("local_businesses").update({ email_campaign_credits: credits - 1 }).eq("id", shop.id);
-      appAlert("E-Mail-Kampagne eingeplant! Versand startet in wenigen Minuten.");
+      appAlert(t("emailScheduledAlert"));
       onUsed();
     } finally { setSaving(false); }
   }
 
   return (
-    <Card title="✉️ E-Mail-Kampagne" badge={`${credits} Credits`}>
-      <Field label="Betreff" value={subject} onChange={setSubject} />
-      <Field label="Inhalt" value={body} onChange={setBody} textarea />
+    <Card title={t("emailTitle")} badge={t("emailCreditsBadge", { n: credits })}>
+      <Field label={t("emailSubjectField")} value={subject} onChange={setSubject} />
+      <Field label={t("emailBodyField")} value={body} onChange={setBody} textarea />
       <PrimaryButton onClick={send} disabled={saving || credits < 1}>
-        {saving ? "Sendet…" : "Jetzt senden"}
+        {saving ? t("sending") : t("emailSendBtn")}
       </PrimaryButton>
     </Card>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * ANALYTICS-PRO VIEW
- * ═══════════════════════════════════════════════════════ */
 export function AnalyticsProPanel({ shop }: { shop: Shop }) {
+  const t = useTranslations("ShopFeatures");
   const active = isActive(shop.analytics_pro_until);
-  if (!active) return <LockedCard title="📊 Analytics Pro" msg="Aktiv mit Analytics-Pro-Abo (39 €/Mo)" />;
+  if (!active) return <LockedCard title={t("analyticsTitle")} msg={t("analyticsLockedMsg")} />;
 
   const ageGroups = [
     { label: "18–24", pct: 18 }, { label: "25–34", pct: 34 }, { label: "35–44", pct: 26 },
@@ -293,8 +288,8 @@ export function AnalyticsProPanel({ shop }: { shop: Shop }) {
   const maxVisits = Math.max(...peakHours.map((p) => p.visits));
 
   return (
-    <Card title="📊 Analytics Pro" badge="PRO AKTIV">
-      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>ALTERSVERTEILUNG STAMMKUNDEN</div>
+    <Card title={t("analyticsTitle")} badge={t("proActive")}>
+      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>{t("analyticsAgeHeading")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 14 }}>
         {ageGroups.map((g) => (
           <div key={g.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -307,7 +302,7 @@ export function AnalyticsProPanel({ shop }: { shop: Shop }) {
         ))}
       </div>
 
-      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>BESUCHS-HEATMAP (TAGESZEIT)</div>
+      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>{t("analyticsHeatmapHeading")}</div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${peakHours.length}, 1fr)`, gap: 4, marginBottom: 14 }}>
         {peakHours.map((p) => (
           <div key={p.h} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -321,25 +316,23 @@ export function AnalyticsProPanel({ shop }: { shop: Shop }) {
         ))}
       </div>
 
-      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>LAUFROUTEN-HEATMAP (DEMO)</div>
+      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>{t("analyticsRouteHeading")}</div>
       <div style={{
         height: 140, borderRadius: 12,
         background: "radial-gradient(circle at 30% 40%, rgba(255,215,0,0.6), transparent 30%), radial-gradient(circle at 70% 60%, rgba(255,45,120,0.5), transparent 30%), radial-gradient(circle at 50% 50%, rgba(34,209,195,0.5), transparent 25%), #0F1115",
         border: "1px solid rgba(255,255,255,0.08)",
         display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: 8,
       }}>
-        <span style={{ color: "#a8b4cf", fontSize: 10 }}>Kiez 13435 · letzte 30 Tage</span>
+        <span style={{ color: "#a8b4cf", fontSize: 10 }}>{t("analyticsRouteFooter")}</span>
       </div>
     </Card>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * KONKURRENZ-ANALYSE
- * ═══════════════════════════════════════════════════════ */
 export function CompetitorPanel({ shop }: { shop: Shop }) {
+  const t = useTranslations("ShopFeatures");
   const active = isActive(shop.competitor_analysis_until);
-  if (!active) return <LockedCard title="🔍 Konkurrenz-Analyse" msg="Aktiv mit Konkurrenz-Abo (19 €/Mo)" />;
+  if (!active) return <LockedCard title={t("competitorTitle")} msg={t("competitorLockedMsg")} />;
 
   const competitors = [
     { name: "Bäckerei Schmidt",    checkins: 142, redemptions: 38, spotlight: false, plan: "Basis" },
@@ -349,18 +342,18 @@ export function CompetitorPanel({ shop }: { shop: Shop }) {
   const myCheckins = 184;
 
   return (
-    <Card title="🔍 Konkurrenz-Analyse · 13435" badge="PRO">
-      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>DEINE POSITION</div>
+    <Card title={t("competitorTitle")} badge={t("competitorBadge")}>
+      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>{t("competitorMyHeading")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <CompRow name={shop.name} checkins={myCheckins} redemptions={49} plan="Pro" spotlight={isActive(shop.spotlight_until)} highlight />
+        <CompRow name={shop.name} checkins={myCheckins} redemptions={49} plan="Pro" spotlight={isActive(shop.spotlight_until)} highlight youSuffix={t("competitorYouSuffix")} />
         {competitors.map((c) => <CompRow key={c.name} {...c} />)}
       </div>
     </Card>
   );
 }
 
-function CompRow({ name, checkins, redemptions, plan, spotlight, highlight }: {
-  name: string; checkins: number; redemptions: number; plan: string; spotlight: boolean; highlight?: boolean;
+function CompRow({ name, checkins, redemptions, plan, spotlight, highlight, youSuffix }: {
+  name: string; checkins: number; redemptions: number; plan: string; spotlight: boolean; highlight?: boolean; youSuffix?: string;
 }) {
   return (
     <div style={{
@@ -369,7 +362,7 @@ function CompRow({ name, checkins, redemptions, plan, spotlight, highlight }: {
       border: highlight ? "1px solid rgba(34,209,195,0.5)" : "1px solid rgba(255,255,255,0.08)",
       display: "flex", alignItems: "center", gap: 10, fontSize: 12,
     }}>
-      <span style={{ flex: 1, color: "#FFF", fontWeight: highlight ? 900 : 700 }}>{name}{highlight && " (Du)"}</span>
+      <span style={{ flex: 1, color: "#FFF", fontWeight: highlight ? 900 : 700 }}>{name}{highlight && (youSuffix ?? "")}</span>
       <span style={{ color: "#a8b4cf" }}>{checkins} CI</span>
       <span style={{ color: "#a8b4cf" }}>{redemptions} RE</span>
       <span style={{ color: "#FFD700", fontWeight: 700 }}>{plan}</span>
@@ -378,34 +371,34 @@ function CompRow({ name, checkins, redemptions, plan, spotlight, highlight }: {
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * KIEZ-REPORT
- * ═══════════════════════════════════════════════════════ */
 export function KiezReportPanel({ shop }: { shop: Shop }) {
+  const t = useTranslations("ShopFeatures");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   function generate() {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Kiez-Report ${shop.name}</title>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(t("kiezReportTitle", { name: shop.name }))}</title>
 <style>
 body{font-family:system-ui;background:#fafafa;color:#111;padding:40px;max-width:800px;margin:0 auto}
 h1{color:#22D1C3}h2{color:#FF2D78;margin-top:32px;border-bottom:2px solid #FF2D78;padding-bottom:4px}
 .kpi{display:inline-block;padding:16px 24px;background:#111;color:#FFD700;border-radius:12px;margin:4px;min-width:140px;text-align:center}
 .kpi b{display:block;font-size:28px}.kpi span{font-size:11px;color:#a8b4cf}
 </style></head><body>
-<h1>📍 Kiez-Report · 13435 Berlin</h1>
-<p><b>Auftraggeber:</b> ${shop.name} · Erstellt: ${new Date().toLocaleString("de-DE")}</p>
-<h2>Wer läuft hier?</h2>
-<div class="kpi"><b>247</b><span>Aktive Runner (30 T)</span></div>
-<div class="kpi"><b>62 %</b><span>25–44 Jahre</span></div>
-<div class="kpi"><b>41 %</b><span>Wiederkehrer</span></div>
-<div class="kpi"><b>18:00</b><span>Peak-Laufzeit</span></div>
-<h2>Beliebteste Straßen</h2>
-<ol><li>Senftenberger Ring (412 Läufe)</li><li>Wartiner Str. (289)</li><li>Pasewalker Str. (246)</li></ol>
-<h2>Geschäfte im Kiez</h2>
-<p>14 Shops · 3 im Plus-Plan · 1 mit aktivem Spotlight</p>
-<h2>Empfehlungen für ${shop.name}</h2>
-<ul><li>Flash-Push zwischen 17:30 und 18:30 → höchste Runner-Dichte</li>
-<li>Zielgruppe 25–34 ist überrepräsentiert → Social-Post-Anpassung</li>
-<li>Konkurrenz "Kaffee-Klüngel" hat Spotlight aktiv → Top-Listing 7 T kaufen</li></ul>
-<p style="margin-top:40px;color:#888;font-size:11px">Daten anonymisiert · powered by MyArea365</p>
+<h1>${escapeHtml(t("kiezReportH1"))}</h1>
+<p><b>${escapeHtml(t("kiezReportClient"))}</b> ${escapeHtml(shop.name)} · ${escapeHtml(t("kiezReportCreated"))} ${escapeHtml(new Date().toLocaleString(dateLocale))}</p>
+<h2>${escapeHtml(t("kiezReportH2WhoRuns"))}</h2>
+<div class="kpi"><b>247</b><span>${escapeHtml(t("kiezReportKpiActive"))}</span></div>
+<div class="kpi"><b>62 %</b><span>${escapeHtml(t("kiezReportKpiAge"))}</span></div>
+<div class="kpi"><b>41 %</b><span>${escapeHtml(t("kiezReportKpiRepeat"))}</span></div>
+<div class="kpi"><b>18:00</b><span>${escapeHtml(t("kiezReportKpiPeak"))}</span></div>
+<h2>${escapeHtml(t("kiezReportH2Streets"))}</h2>
+<ol><li>Senftenberger Ring (412)</li><li>Wartiner Str. (289)</li><li>Pasewalker Str. (246)</li></ol>
+<h2>${escapeHtml(t("kiezReportH2Shops"))}</h2>
+<p>${escapeHtml(t("kiezReportShopsBody"))}</p>
+<h2>${escapeHtml(t("kiezReportH2Reco", { name: shop.name }))}</h2>
+<ul><li>${escapeHtml(t("kiezReportReco1"))}</li>
+<li>${escapeHtml(t("kiezReportReco2"))}</li>
+<li>${escapeHtml(t("kiezReportReco3"))}</li></ul>
+<p style="margin-top:40px;color:#888;font-size:11px">${escapeHtml(t("kiezReportFooter"))}</p>
 </body></html>`;
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
@@ -413,19 +406,21 @@ h1{color:#22D1C3}h2{color:#FF2D78;margin-top:32px;border-bottom:2px solid #FF2D7
   }
 
   return (
-    <Card title="📄 Kiez-Report">
+    <Card title={t("kiezTitle")}>
       <div style={{ color: "#d6ddeb", fontSize: 12, marginBottom: 10 }}>
-        Anonymisierter Report mit Demografie, Peak-Zeiten, beliebte Straßen und konkreten Handlungsempfehlungen für deinen Shop.
+        {t("kiezBody")}
       </div>
-      <PrimaryButton onClick={generate}>📥 Report jetzt öffnen</PrimaryButton>
+      <PrimaryButton onClick={generate}>{t("kiezBtn")}</PrimaryButton>
     </Card>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * CUSTOM-PIN
- * ═══════════════════════════════════════════════════════ */
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]!));
+}
+
 export function CustomPinPanel({ shop, onUsed }: { shop: Shop; onUsed: () => void }) {
+  const t = useTranslations("ShopFeatures");
   const sb = createClient();
   const [url, setUrl] = useState(shop.custom_pin_url && shop.custom_pin_url !== "pending" ? shop.custom_pin_url : "");
   const [saving, setSaving] = useState(false);
@@ -434,43 +429,42 @@ export function CustomPinPanel({ shop, onUsed }: { shop: Shop; onUsed: () => voi
     setSaving(true);
     try {
       await sb.from("local_businesses").update({ custom_pin_url: url || null }).eq("id", shop.id);
-      appAlert("Custom-Pin aktiv! Neu laden um Änderung auf der Karte zu sehen.");
+      appAlert(t("pinSavedAlert"));
       onUsed();
     } finally { setSaving(false); }
   }
 
   return (
-    <Card title="🎨 Custom-Pin-Design">
-      <Field label="Bild-URL (PNG/SVG, quadratisch, min 64×64)" value={url} onChange={setUrl} placeholder="https://..." />
+    <Card title={t("pinTitle")}>
+      <Field label={t("pinUrlField")} value={url} onChange={setUrl} placeholder={t("pinUrlPh")} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       {url && <div style={{ marginTop: 8 }}><img src={url} alt="Preview" style={{ width: 48, height: 48, borderRadius: 12, border: "2px solid #FFF" }} /></div>}
-      <PrimaryButton onClick={save} disabled={saving}>{saving ? "Speichert…" : "Pin setzen"}</PrimaryButton>
+      <PrimaryButton onClick={save} disabled={saving}>{saving ? t("saving") : t("pinSetBtn")}</PrimaryButton>
     </Card>
   );
 }
 
-/* ═══════════════════════════════════════════════════════
- * QR-DRUCK
- * ═══════════════════════════════════════════════════════ */
 export function QrOrderPanel({ shop }: { shop: Shop }) {
+  const t = useTranslations("ShopFeatures");
   const ordered = !!(shop as { qr_print_ordered_at?: string | null }).qr_print_ordered_at;
   const code = shop.id.slice(0, 8).toUpperCase();
   return (
-    <Card title="🖨️ QR-Code & Druckservice">
+    <Card title={t("qrTitle")}>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
         <QrPlaceholder code={code} businessId={shop.id} />
         <div style={{ flex: 1 }}>
-          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Dein Check-in-QR</div>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>Code: <b>{code}</b></div>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>Ziel: myarea365.de/c/{code}</div>
+          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginBottom: 4 }}>{t("qrYourCode")}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>{t("qrCodeLabel")}<b>{code}</b></div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>{t("qrUrlLabel", { code })}</div>
         </div>
       </div>
       {ordered ? (
         <div style={{ padding: 10, borderRadius: 10, background: "rgba(34,209,195,0.12)", color: "#22D1C3", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-          ✓ Druck-Sticker bestellt — Lieferung 3–5 Werktage
+          {t("qrOrderedBadge")}
         </div>
       ) : (
         <div style={{ color: "#a8b4cf", fontSize: 11, marginBottom: 8 }}>
-          Tipp: Kaufe den QR-Druckservice im Shop-Power-Up um einen bereits aufgebrachten Tür-Sticker per Post zu erhalten.
+          {t("qrOrderHint")}
         </div>
       )}
       <a
@@ -484,7 +478,7 @@ export function QrOrderPanel({ shop }: { shop: Shop }) {
           fontSize: 13, fontWeight: 900,
         }}
       >
-        🖨️ QR zum Selbstdrucken öffnen
+        {t("qrOpenSelfPrint")}
       </a>
     </Card>
   );
@@ -500,9 +494,6 @@ function QrPlaceholder({ code, businessId }: { code: string; businessId?: string
   return <canvas ref={canvasRef} width={84} height={84} style={{ borderRadius: 6, background: "#FFF" }} />;
 }
 
-/* ═══════════════════════════════════════════════════════
- * SHARED UI
- * ═══════════════════════════════════════════════════════ */
 function Card({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
   return (
     <div style={{
