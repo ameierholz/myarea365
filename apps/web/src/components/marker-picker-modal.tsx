@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { UNLOCKABLE_MARKERS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildMarkerPrompt } from "@/lib/artwork-prompts";
@@ -21,6 +22,7 @@ export function MarkerPickerModal({
   onClose: () => void;
   isAdmin?: boolean;
 }) {
+  const tP = useTranslations("Picker");
   const [artMap, setArtMap] = useState<MarkerArtMap>({});
   async function loadArt() {
     try {
@@ -51,9 +53,9 @@ export function MarkerPickerModal({
       }}>
         <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>MAP-ICON WÄHLEN</div>
+            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tP("markerKicker")}</div>
             <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {unlockedCount} / {UNLOCKABLE_MARKERS.length} freigeschaltet
+              {tP("lightUnlockCount", { unlocked: unlockedCount, total: UNLOCKABLE_MARKERS.length })}
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
@@ -86,6 +88,7 @@ function MarkerCard({
   onClose: () => void;
   onArtReload: () => void;
 }) {
+  const tP = useTranslations("Picker");
   const isGendered = (GENDERED_MARKER_IDS as readonly string[]).includes(m.id);
   // Gendered Markers haben nur male/female — "neutral" wird auf "male" normalisiert.
   const initialVariant: Variant = isGendered
@@ -129,13 +132,13 @@ function MarkerCard({
           {isGendered && <span style={{ fontSize: 9, color: "#a8b4cf", marginLeft: 4 }}>· {MARKER_VARIANT_LABEL[effectiveVariant]}</span>}
         </span>
         {active
-          ? <span style={{ fontSize: 9, fontWeight: 900, color: PRIMARY }}>✓ AKTIV</span>
+          ? <span style={{ fontSize: 9, fontWeight: 900, color: PRIMARY }}>{tP("lightActive")}</span>
           : unlocked
-            ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>Wählen</span>
-            : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>🔒 {m.cost >= 1000 ? `${m.cost/1000}k` : m.cost} XP</span>
+            ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>{tP("lightChoose")}</span>
+            : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>{tP(m.cost >= 1000 ? "lightLockedKxp" : "lightLockedXp", { cost: m.cost >= 1000 ? m.cost/1000 : m.cost })}</span>
         }
         {isAdmin && !hasArt && (
-          <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>KEIN ARTWORK</span>
+          <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>{tP("lightNoArtwork")}</span>
         )}
       </button>
       {isGendered && (
@@ -146,8 +149,8 @@ function MarkerCard({
             background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.12)",
             color: "#FFF", fontSize: 10, fontWeight: 800, cursor: "pointer",
           }}>
-          <option value="male">🚹 Männlich</option>
-          <option value="female">🚺 Weiblich</option>
+          <option value="male">{tP("markerVariantMale")}</option>
+          <option value="female">{tP("markerVariantFemale")}</option>
         </select>
       )}
       {isAdmin && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const STORAGE_KEY = "ma365_consent_v1";
 
@@ -30,6 +31,7 @@ export const Consent = {
 };
 
 export function CookieConsent() {
+  const tC = useTranslations("Cookie");
   const [state, setState] = useState<ConsentState | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -61,29 +63,29 @@ export function CookieConsent() {
     <div
       role="dialog"
       aria-live="polite"
-      aria-label="Cookie-Einstellungen"
+      aria-label={tC("ariaLabel")}
       className="fixed bottom-0 left-0 right-0 z-[2000] p-4 bg-bg-card/95 backdrop-blur-md border-t border-border"
       style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
     >
       <div className="max-w-3xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex-1 text-xs sm:text-sm text-text-muted leading-relaxed">
-          <b className="text-white">🍪 Datenschutz.</b>{" "}
-          Wir setzen nur notwendige Cookies für Login und Sicherheit. Für Reichweiten-Messung
-          und Werbung holen wir deine Zustimmung ein. Details in der{" "}
-          <a href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</a>.
+          <b className="text-white">{tC("introBoldRich")}</b>{" "}
+          {tC.rich("introRich", {
+            a: (chunks) => <a href="/datenschutz" className="text-primary hover:underline">{chunks}</a>,
+          })}
         </div>
         <div className="flex gap-2 shrink-0">
           <button
             onClick={rejectOptional}
             className="px-4 py-2 rounded-lg border border-border text-text-muted hover:text-white text-xs font-bold"
           >
-            Nur notwendige
+            {tC("rejectBtn")}
           </button>
           <button
             onClick={acceptAll}
             className="px-4 py-2 rounded-lg bg-primary text-bg-deep text-xs font-bold hover:bg-primary-dim"
           >
-            Alle akzeptieren
+            {tC("acceptBtn")}
           </button>
         </div>
       </div>

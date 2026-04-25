@@ -1,43 +1,46 @@
 "use client";
 
+import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+
 type Entry = { icon: string; label: string; desc: string; color: string };
 type Section = { title: string; entries: Entry[] };
 
-const SECTIONS: Section[] = [
-  {
-    title: "Dein Fortschritt",
-    entries: [
-      { icon: "🟡", color: "#FFD700", label: "Dein Gebiet", desc: "Geschlossenes Polygon in deiner Runner-Farbe." },
-      { icon: "🟦", color: "#22D1C3", label: "Crew-Gebiet", desc: "Eroberung deiner Crew — zählt für den Crew-Rang." },
-      { icon: "🔴", color: "#FF2D78", label: "Feind-Gebiet", desc: "Gehört einer anderen Crew. Überlaufen = Steal-Bonus." },
-      { icon: "⚪", color: "#FFD700", label: "Pending (gestrichelt)", desc: "Ring geschlossen, aber noch ohne Crew — tritt einer bei und du kassierst 500 🪙 Wegemünzen rückwirkend." },
-    ],
-  },
-  {
-    title: "Welt-Features",
-    entries: [
-      { icon: "📍", color: "#FF6B4A", label: "Shop / Partner-Spot", desc: "Lokale Geschäfte mit Deals und Loot. QR-Scan für Rabatt + Siegel." },
-      { icon: "⚔️", color: "#FFD700", label: "Kampfarena (Shop)", desc: "Zeitbegrenzter Arena-Spot: Runner treffen sich hier zum 1v1." },
-      { icon: "🔦", color: "#FFD700", label: "Spotlight", desc: "Besonders beworbener Shop — extra Siegel-Chance beim Einlösen." },
-      { icon: "🐉", color: "#FF2D78", label: "Boss-Raid", desc: "Gemeinsam mit Crew den Boss klopfen → Top-Loot." },
-      { icon: "🏛️", color: "#22D1C3", label: "Sanktum", desc: "Täglicher Wächter-XP-Boost beim Vorbeilaufen." },
-      { icon: "⚡", color: "#a855f7", label: "Power-Zone", desc: "Zone mit passivem Buff für deinen Wächter." },
-      { icon: "💥", color: "#FF6B4A", label: "Flash-Push", desc: "Kurzzeitiger Crew-Challenge-Spot — Doppel-Belohnung für erste 15 min." },
-    ],
-  },
-  {
-    title: "Loot & Deals",
-    entries: [
-      { icon: "📦", color: "#9ba8c7", label: "Common-Kiste", desc: "Kleiner Loot — Gewöhnlich" },
-      { icon: "🎁", color: "#5ddaf0", label: "Rare-Geschenk", desc: "Selteneres Loot-Drop" },
-      { icon: "💎", color: "#a855f7", label: "Epic-Diamant", desc: "Epischer Drop — 25m rangehen zum Einsammeln" },
-      { icon: "👑", color: "#FFD700", label: "Legendary-Krone", desc: "Legendärer Drop — mega selten!" },
-      { icon: "🔥", color: "#FFD700", label: "Tages-Deals", desc: "Floating Badge oben — klick für 3 Packs + Super-Bundle." },
-    ],
-  },
-];
-
 export function MapLegendModal({ onClose }: { onClose: () => void }) {
+  const tL = useTranslations("MapLegend");
+  const SECTIONS: Section[] = useMemo(() => [
+    {
+      title: tL("secProgress"),
+      entries: [
+        { icon: "🟡", color: "#FFD700", label: tL("ownAreaLabel"),    desc: tL("ownAreaDesc") },
+        { icon: "🟦", color: "#22D1C3", label: tL("crewAreaLabel"),   desc: tL("crewAreaDesc") },
+        { icon: "🔴", color: "#FF2D78", label: tL("enemyAreaLabel"),  desc: tL("enemyAreaDesc") },
+        { icon: "⚪", color: "#FFD700", label: tL("pendingLabel"),    desc: tL("pendingDesc") },
+      ],
+    },
+    {
+      title: tL("secWorld"),
+      entries: [
+        { icon: "📍", color: "#FF6B4A", label: tL("shopLabel"),      desc: tL("shopDesc") },
+        { icon: "⚔️", color: "#FFD700", label: tL("arenaLabel"),     desc: tL("arenaDesc") },
+        { icon: "🔦", color: "#FFD700", label: tL("spotlightLabel"), desc: tL("spotlightDesc") },
+        { icon: "🐉", color: "#FF2D78", label: tL("bossLabel"),      desc: tL("bossDesc") },
+        { icon: "🏛️", color: "#22D1C3", label: tL("sanctumLabel"),   desc: tL("sanctumDesc") },
+        { icon: "⚡", color: "#a855f7", label: tL("powerZoneLabel"), desc: tL("powerZoneDesc") },
+        { icon: "💥", color: "#FF6B4A", label: tL("flashLabel"),     desc: tL("flashDesc") },
+      ],
+    },
+    {
+      title: tL("secLoot"),
+      entries: [
+        { icon: "📦", color: "#9ba8c7", label: tL("lootCommonLabel"), desc: tL("lootCommonDesc") },
+        { icon: "🎁", color: "#5ddaf0", label: tL("lootRareLabel"),   desc: tL("lootRareDesc") },
+        { icon: "💎", color: "#a855f7", label: tL("lootEpicLabel"),   desc: tL("lootEpicDesc") },
+        { icon: "👑", color: "#FFD700", label: tL("lootLegendLabel"), desc: tL("lootLegendDesc") },
+        { icon: "🔥", color: "#FFD700", label: tL("dealsLabel"),      desc: tL("dealsDesc") },
+      ],
+    },
+  ], [tL]);
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 1000,
@@ -64,10 +67,10 @@ export function MapLegendModal({ onClose }: { onClose: () => void }) {
             fontSize: 22,
           }}>🗺️</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>MAP-LEGENDE</div>
-            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 1 }}>Was bedeuten die Icons?</div>
+            <div style={{ fontSize: 9, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>{tL("kicker")}</div>
+            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 1 }}>{tL("title")}</div>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label={tL("closeAria")} style={{
             width: 32, height: 32, borderRadius: "50%",
             background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
             color: "#8B8FA3", fontSize: 16, fontWeight: 900, cursor: "pointer",

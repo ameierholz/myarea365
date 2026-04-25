@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { RUNNER_LIGHTS } from "@/lib/game-config";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildLightPrompt } from "@/lib/artwork-prompts";
@@ -18,6 +19,7 @@ export function LightPickerModal({
   onClose: () => void;
   isAdmin?: boolean;
 }) {
+  const tP = useTranslations("Picker");
   const [artMap, setArtMap] = useState<Record<string, Art>>({});
   async function loadArt() {
     try {
@@ -48,9 +50,9 @@ export function LightPickerModal({
       }}>
         <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>RUNNER-LIGHT WÄHLEN</div>
+            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tP("lightKicker")}</div>
             <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {unlockedCount} / {RUNNER_LIGHTS.length} freigeschaltet
+              {tP("lightUnlockCount", { unlocked: unlockedCount, total: RUNNER_LIGHTS.length })}
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
@@ -98,13 +100,13 @@ export function LightPickerModal({
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 800, marginBottom: 3 }}>{l.name}</span>
                     {active
-                      ? <span style={{ fontSize: 9, fontWeight: 900, color: PRIMARY }}>✓ AKTIV</span>
+                      ? <span style={{ fontSize: 9, fontWeight: 900, color: PRIMARY }}>{tP("lightActive")}</span>
                       : unlocked
-                        ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>Wählen</span>
-                        : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>🔒 {l.cost >= 1000 ? `${l.cost/1000}k` : l.cost} XP</span>
+                        ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>{tP("lightChoose")}</span>
+                        : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>{tP(l.cost >= 1000 ? "lightLockedKxp" : "lightLockedXp", { cost: l.cost >= 1000 ? l.cost/1000 : l.cost })}</span>
                     }
                     {isAdmin && !hasArt && (
-                      <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>KEIN ARTWORK</span>
+                      <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>{tP("lightNoArtwork")}</span>
                     )}
                   </button>
                   {isAdmin && (

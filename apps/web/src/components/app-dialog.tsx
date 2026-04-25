@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 
 type DialogKind = "alert" | "confirm";
@@ -33,6 +34,7 @@ export function appConfirm(opts: DialogOpts | string): Promise<boolean> {
 }
 
 export function AppDialogProvider() {
+  const t = useTranslations("Common");
   const [queue, setQueue] = useState<DialogState[]>([]);
   const [mounted, setMounted] = useState(false);
 
@@ -117,7 +119,7 @@ export function AppDialogProvider() {
                 color: "#a8b4cf", fontSize: 13, fontWeight: 800, cursor: "pointer",
               }}
             >
-              {current.cancelLabel ?? "Abbrechen"}
+              {current.cancelLabel ?? t("cancel")}
             </button>
           )}
           <button
@@ -130,7 +132,7 @@ export function AppDialogProvider() {
               boxShadow: `0 4px 14px ${accent}66`,
             }}
           >
-            {current.confirmLabel ?? (current.kind === "confirm" ? (isDanger ? "Löschen" : "Bestätigen") : "OK")}
+            {current.confirmLabel ?? (current.kind === "confirm" ? (isDanger ? t("delete") : t("confirm")) : t("ok"))}
           </button>
         </div>
       </div>
