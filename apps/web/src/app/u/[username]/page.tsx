@@ -1,17 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { getTranslations, getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { AdSenseSlot } from "@/components/adsense-slot";
+import { getNumberLocale } from "@/i18n/config";
 
 export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const t = await getTranslations("PublicProfile");
   const { username } = await params;
   const decoded = decodeURIComponent(username);
   return {
     title: `${decoded} · MyArea365`,
-    description: `Das öffentliche Runner-Profil von @${decoded} auf MyArea365.`,
+    description: t("metaDescription", { name: decoded }),
     openGraph: {
       images: [`/api/share-card/${decoded}`],
     },
@@ -20,6 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 }
 
 export default async function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const t = await getTranslations("PublicProfile");
+  const locale = await getLocale();
+  const numLocale = getNumberLocale(locale);
   const { username } = await params;
   const sb = await createClient();
   const { data: user } = await sb
@@ -30,7 +36,6 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   if (!user) notFound();
 
-  // Prestige-Historie aus Arena-Saisons
   const { data: prestigeRows } = await sb.from("user_prestige")
     .select("season_id, final_rank, final_wins, prestige_points, title, awarded_at, arena_seasons!inner(number, name)")
     .eq("user_id", user.id)
@@ -42,7 +47,8 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               : (user.faction === "syndicate" || user.faction === "gossenbund") ? "gossenbund"
               : null;
   const color = fNorm === "gossenbund" ? "#22D1C3" : fNorm === "kronenwacht" ? "#FFD700" : "#22D1C3";
-  const factionLabel = fNorm === "gossenbund" ? "🗝️ Gossenbund" : fNorm === "kronenwacht" ? "👑 Kronenwacht" : null;
+  const factionLabel = fNorm === "gossenbund" ? t("factionGossen") : fNorm === "kronenwacht" ? t("factionKronen") : null;
+  const displayName = user.display_name ?? user.username;
 
   return (
     <main className="min-h-screen px-4 py-12">
@@ -62,25 +68,24 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           >
             {(user.display_name ?? user.username ?? "?").charAt(0).toUpperCase()}
           </div>
-          <h1 className="text-3xl font-black text-white">{user.display_name ?? user.username}</h1>
+          <h1 className="text-3xl font-black text-white">{displayName}</h1>
           <div className="text-sm text-text-muted mt-1">@{user.username}</div>
           {factionLabel && <div className="mt-2 text-sm font-bold" style={{ color }}>{factionLabel}</div>}
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-3">
-          <Stat label="km" value={km} color={color} />
-          <Stat label="Läufe" value={String(user.total_walks ?? 0)} color="#FFD700" />
-          <Stat label="Level" value={String(user.level ?? 1)} color="#FF2D78" />
+          <Stat label={t("statKm")} value={km} color={color} />
+          <Stat label={t("statRuns")} value={String(user.total_walks ?? 0)} color="#FFD700" />
+          <Stat label={t("statLevel")} value={String(user.level ?? 1)} color="#FF2D78" />
         </div>
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <Stat label="🪙 Wegemünzen"  value={(user.wegemuenzen ?? 0).toLocaleString("de-DE")}  color="#22D1C3" />
-          <Stat label="🏴 Gebietsruf"  value={(user.gebietsruf ?? 0).toLocaleString("de-DE")}  color="#FF2D78" />
-          <Stat label="⚔️ Sessionehre" value={(user.sessionehre ?? 0).toLocaleString("de-DE")} color="#FFD700" />
+          <Stat label={t("statCoins")}  value={(user.wegemuenzen ?? 0).toLocaleString(numLocale)}  color="#22D1C3" />
+          <Stat label={t("statRep")}    value={(user.gebietsruf ?? 0).toLocaleString(numLocale)}   color="#FF2D78" />
+          <Stat label={t("statHonor")}  value={(user.sessionehre ?? 0).toLocaleString(numLocale)}  color="#FFD700" />
         </div>
 
         <AdSenseSlot placement="public_profile" />
 
-        {/* Prestige-Historie */}
         {prestigeRows && prestigeRows.length > 0 && (
           <div className="mb-6 p-5 rounded-2xl" style={{
             background: "radial-gradient(ellipse at top, rgba(255,215,0,0.12) 0%, transparent 60%), rgba(26,29,35,0.9)",
@@ -88,13 +93,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-[10px] font-black tracking-widest text-[#FFD700]">⚔️ ARENA-PRESTIGE</div>
+                <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("prestigeKicker")}</div>
                 <div className="text-xl font-black text-white mt-0.5">
-                  {totalPrestige.toLocaleString("de-DE")} <span className="text-xs text-[#a8b4cf] font-bold">Punkte</span>
+                  {totalPrestige.toLocaleString(numLocale)} <span className="text-xs text-[#a8b4cf] font-bold">{t("prestigePoints")}</span>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] text-[#8B8FA3] font-bold tracking-wider">SAISONS</div>
+                <div className="text-[10px] text-[#8B8FA3] font-bold tracking-wider">{t("prestigeSeasons")}</div>
                 <div className="text-xl font-black text-[#FFD700]">{prestigeRows.length}</div>
               </div>
             </div>
@@ -113,15 +118,15 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                   <div key={p.season_id} className="flex items-center gap-3 p-2 rounded-lg bg-black/30">
                     <div className="text-2xl">{titleMeta.icon}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-black text-white">Saison {s.number} · {s.name}</div>
+                      <div className="text-sm font-black text-white">{t("seasonHeader", { n: s.number, name: s.name })}</div>
                       <div className="text-[11px] text-[#a8b4cf]">
-                        Rang <b style={{ color: titleMeta.color }}>#{p.final_rank}</b>
+                        {t("rankLabel")} <b style={{ color: titleMeta.color }}>#{p.final_rank}</b>
                         {p.title && <> · <span style={{ color: titleMeta.color, fontWeight: 800 }}>{p.title}</span></>}
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-black text-[#FFD700]">{p.prestige_points}</div>
-                      <div className="text-[9px] text-[#8B8FA3]">Prestige</div>
+                      <div className="text-[9px] text-[#8B8FA3]">{t("prestigeLabel")}</div>
                     </div>
                   </div>
                 );
@@ -131,17 +136,17 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         )}
 
         <div className="p-6 rounded-2xl bg-bg-card border border-border text-center">
-          <div className="text-lg font-bold text-white mb-2">Lauf mit {user.display_name ?? user.username}</div>
+          <div className="text-lg font-bold text-white mb-2">{t("ctaTitle", { name: displayName })}</div>
           <p className="text-sm text-text-muted mb-4">
-            Tritt MyArea365 bei, baue deine eigene Runner-Identität auf und erobere deinen Kiez.
+            {t("ctaBody")}
           </p>
           <Link href="/#start" className="inline-block px-6 py-3 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim">
-            Kostenlos registrieren →
+            {t("ctaBtn")}
           </Link>
         </div>
 
         <div className="mt-6 text-center">
-          <Link href="/leaderboard" className="text-xs text-primary hover:underline">Komplettes Leaderboard →</Link>
+          <Link href="/leaderboard" className="text-xs text-primary hover:underline">{t("leaderboardLink")}</Link>
         </div>
       </div>
     </main>

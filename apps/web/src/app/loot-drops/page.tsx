@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import {
   RARITY_LABEL, RARITY_COLOR,
   REDEMPTION_LOOT_TABLE, EQUIPMENT_DROP_NOTE,
@@ -8,13 +10,13 @@ import {
   type LootRarity,
 } from "@/lib/loot-drops-public";
 
-export const metadata: Metadata = {
-  title: "Drop-Raten & Loot-Transparenz · MyArea365",
-  description:
-    "Vollständige Offenlegung aller Zufalls-Drops in MyArea365 — Wahrscheinlichkeiten, " +
-    "Rewards und Mechaniken für jeden Loot-Typ. Freiwillige Transparenz im Einklang mit " +
-    "EU Digital Fairness Act und nationalen Loot-Box-Regulierungen.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("LootDrops");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 function RarityPill({ rarity }: { rarity: LootRarity }) {
   return (
@@ -62,14 +64,15 @@ function LootTable({
 }: {
   rows: Array<{ rarity: LootRarity; chance_pct: number; [k: string]: unknown }>;
 }) {
+  const t = useTranslations("LootDrops");
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-            <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>SELTENHEIT</th>
-            <th style={{ textAlign: "right", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>CHANCE</th>
-            <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>REWARD</th>
+            <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{t("thRarity")}</th>
+            <th style={{ textAlign: "right", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{t("thChance")}</th>
+            <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{t("thReward")}</th>
           </tr>
         </thead>
         <tbody>
@@ -88,7 +91,7 @@ function LootTable({
                 )}
                 {Array.isArray((r as Record<string, unknown>).kinds) && (
                   <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 2 }}>
-                    Möglich: {((r as Record<string, unknown>).kinds as string[]).join(" · ")}
+                    {t("rowKindsPrefix")} {((r as Record<string, unknown>).kinds as string[]).join(" · ")}
                   </div>
                 )}
               </td>
@@ -100,7 +103,8 @@ function LootTable({
   );
 }
 
-export default function LootDropsPage() {
+export default async function LootDropsPage() {
+  const t = await getTranslations("LootDrops");
   return (
     <div style={{
       minHeight: "100vh",
@@ -110,16 +114,14 @@ export default function LootDropsPage() {
     }}>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 80px" }}>
         <Link href="/dashboard" style={{ color: "#22D1C3", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
-          ← Zurück zur App
+          {t("back")}
         </Link>
 
         <h1 style={{ margin: 0, marginBottom: 10, fontSize: 30, fontWeight: 900, letterSpacing: -0.5 }}>
-          🎲 Drop-Raten & Loot-Transparenz
+          {t("title")}
         </h1>
         <p style={{ color: "#a8b4cf", fontSize: 14, lineHeight: 1.6, marginBottom: 30 }}>
-          Vollständige Offenlegung aller Zufalls-Drops in MyArea365. Kein Glücksspiel, kein
-          Pay-to-Win – Bewegung ist die einzige „Währung". Trotzdem legen wir hier
-          freiwillig offen, was in welcher Mechanik mit welcher Wahrscheinlichkeit droppt.
+          {t("intro")}
         </p>
 
         <div style={{
@@ -128,49 +130,40 @@ export default function LootDropsPage() {
           borderRadius: 12, padding: 16, marginBottom: 28,
           fontSize: 12, color: "#DDD", lineHeight: 1.55,
         }}>
-          <strong style={{ color: "#22D1C3" }}>⚖️ Rechtlicher Kontext:</strong>{" "}
+          <strong style={{ color: "#22D1C3" }}>{t("legalLead")}</strong>{" "}
           {LOOT_DISCLOSURE_META.legal_note}
         </div>
 
-        <Section num="1" title="QR-Einlösung bei Shops — Guardian-Loot">
-          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            Nach jedem erfolgreich eingelösten Deal würfelt der Server <code>random()</code>{" "}
-            und ermittelt genau einen Drop nach folgender Verteilung. Die Roll-Logik ist
-            in Migration <code>00017_guardian_loot_drops.sql</code> dokumentiert.
-          </p>
+        <Section num="1" title={t("section1Title")}>
+          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}
+             dangerouslySetInnerHTML={{ __html: t("section1Body") }} />
           <LootTable rows={REDEMPTION_LOOT_TABLE} />
         </Section>
 
-        <Section num="2" title="Equipment-Drops (gekoppelt an Redemption-Loot)">
+        <Section num="2" title={t("section2Title")}>
           <p style={{ color: "#DDD", fontSize: 13, lineHeight: 1.5 }}>{EQUIPMENT_DROP_NOTE}</p>
-          <p style={{ color: "#8B8FA3", fontSize: 11, marginTop: 10 }}>
-            Item-Katalog und Stats siehe Migration{" "}
-            <code>00018_guardian_equipment.sql</code>.
-          </p>
+          <p style={{ color: "#8B8FA3", fontSize: 11, marginTop: 10 }}
+             dangerouslySetInnerHTML={{ __html: t("section2Foot") }} />
         </Section>
 
-        <Section num="3" title="Loot-Kisten auf der Karte">
+        <Section num="3" title={t("section3Title")}>
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            Spawnen automatisch alle 90–120 Sekunden im Umkreis von ca. 450 m um den
-            Runner. Ab 30 m Entfernung wird die Kiste automatisch aufgesammelt.
+            {t("section3Body")}
           </p>
           <LootTable rows={MAP_LOOT_CRATE_TABLE} />
         </Section>
 
-        <Section num="4" title="Mystery-Box (kostenpflichtig, € 1,99)">
+        <Section num="4" title={t("section4Title")}>
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            <strong style={{ color: "#FFD700" }}>Hinweis:</strong>{" "}
-            Einziger Paid-Loot-Artikel. Enthält immer genau 1 Equipment-Item; Rarity
-            ist gewürfelt, aber Mindest-Rarity <em>Common</em> ist garantiert
-            (keine „nichts"-Rolle). Shop-Ankündigung und Transaktionslog vollständig
-            einsehbar im Profil unter <em>Meine Käufe</em>.
+            <strong style={{ color: "#FFD700" }}>{t("section4Hint")}</strong>
+            <span dangerouslySetInnerHTML={{ __html: t("section4Body") }} />
           </p>
           <LootTable rows={MYSTERY_BOX_TABLE} />
         </Section>
 
-        <Section num="5" title="Arena & Boss-Raids — deterministische Belohnungen">
+        <Section num="5" title={t("section5Title")}>
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            Keine Zufalls-Rolls. Belohnungen sind rein an messbare Leistung gekoppelt.
+            {t("section5Body")}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {ARENA_WIN_REWARDS.map((r, i) => (
@@ -189,8 +182,7 @@ export default function LootDropsPage() {
         </Section>
 
         <div style={{ textAlign: "center", color: "#8B8FA3", fontSize: 11, marginTop: 30, lineHeight: 1.6 }}>
-          Stand: {LOOT_DISCLOSURE_META.last_updated} ·{" "}
-          Fragen oder Unstimmigkeiten?{" "}
+          {t("footStatus", { date: LOOT_DISCLOSURE_META.last_updated })}{" "}
           <a href={`mailto:${LOOT_DISCLOSURE_META.contact}`} style={{ color: "#22D1C3" }}>
             {LOOT_DISCLOSURE_META.contact}
           </a>
