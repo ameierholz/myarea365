@@ -197,6 +197,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const tPre = useTranslations("Popups.PreWalk");
   const tDrop = useTranslations("Popups.SupplyDrop");
   const tStreak = useTranslations("Popups.StreakSave");
+  const tMD = useTranslations("MapDashboard");
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
@@ -252,7 +253,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           | { ok: true; geometry: { type: "LineString"; coordinates: [number, number][] }; distance_m: number; duration_s: number }
           | { ok: false; error: string };
         if (!j.ok) {
-          alert(`Route konnte nicht geladen werden: ${j.error}`);
+          alert(tMD("routeLoadFailed", { error: String(j.error) }));
           return;
         }
         setRoutingRoute({
@@ -267,7 +268,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         // Auf Map-Tab wechseln, damit User die Route sieht
         setActiveTab("map");
       } catch {
-        alert("Route konnte nicht geladen werden.");
+        alert(tMD("routeLoadFailedShort"));
       }
     }
     window.addEventListener("ma365:start-route", handler as EventListener);
@@ -742,7 +743,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     timerRef.current = null;
 
     if (activeRoute.length < MIN_ROUTE_POINTS) {
-      appAlert("Lauf zu kurz! Du musst dich etwas mehr bewegen.");
+      appAlert(tMD("tooShort"));
       setActiveRoute([]);
       setCurrentStreet(null);
       return;
@@ -777,7 +778,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }).select("id").single<{ id: string }>();
 
       if (walkErr || !walkRow) {
-        appAlert("Lauf konnte nicht gespeichert werden.");
+        appAlert(tMD("saveFailed"));
         setActiveRoute([]);
         setCurrentStreet(null);
         return;
@@ -980,7 +981,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   };
 
   const clearMap = async () => {
-    if (!(await appConfirm({ message: "Karte wirklich leeren?", danger: true, confirmLabel: "Leeren" }))) return;
+    if (!(await appConfirm({ message: tMD("clearMapConfirm"), danger: true, confirmLabel: tMD("clearMapConfirmButton") }))) return;
     setSavedTerritories([]);
     setActiveRoute([]);
   };
@@ -1290,7 +1291,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   borderTopColor: "transparent",
                   animation: "snapSpin 0.8s linear infinite",
                 }} />
-                <span>Route wird auf Straßen ausgerichtet…</span>
+                <span>{tMD("routeAligning")}</span>
                 <style>{`@keyframes snapSpin { to { transform: rotate(360deg); } }`}</style>
               </div>
             )}
@@ -1310,7 +1311,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             }}>
               <MapIconButton
                 icon={controlsExpanded ? "✕" : "⋯"}
-                label={controlsExpanded ? "Controls einklappen" : "Controls anzeigen"}
+                label={controlsExpanded ? tMD("controlsCollapse") : tMD("controlsExpand")}
                 onClick={() => setControlsExpanded(!controlsExpanded)}
                 active={controlsExpanded}
                 size={32}
@@ -1319,7 +1320,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 <>
                   <MapIconButton
                     icon="📍"
-                    label="Auf mich zentrieren"
+                    label={tMD("centerOnMe")}
                     onClick={() => setRecenterAt(Date.now())}
                     accent="#4ade80"
                   />
@@ -1377,7 +1378,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               }}>
                 <span style={{ fontSize: 16 }}>{wakeLock.locked ? "🔋" : wakeLock.supported ? "⚠️" : "📵"}</span>
                 <div style={{ flex: 1, lineHeight: 1.4 }}>
-                  {wakeLock.locked && <><b>Screen bleibt an</b> · Handy kann in die Tasche. Sperre aktivieren → weniger Fehl-Taps.</>}
+                  {wakeLock.locked && tMD.rich("screenStaysOn", { b: (c) => <b>{c}</b> })}
                   {!wakeLock.locked && wakeLock.supported && <><b>Screen-an fehlgeschlagen</b> · tippe den Screen um ihn wach zu halten.</>}
                   {!wakeLock.supported && <><b>iOS Safari</b> · Tracking pausiert wenn Screen schläft. Für Dauerbetrieb: App installieren.</>}
                 </div>
@@ -1715,7 +1716,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 }),
               });
               const data = await res.json();
-              if (data.error === "too_far") { await appAlert(`Zu weit weg! ${data.distance_m}m entfernt (max 500m). Lauf hin!`); return; }
+              if (data.error === "too_far") { await appAlert(tMD("tooFar", { meters: data.distance_m })); return; }
               if (data.error === "location_required") { await appAlert("GPS wird benötigt."); return; }
               if (data.error === "crew_full") { await appAlert(`Deine Crew hat schon 10 Teilnehmer. Kein Slot mehr frei.`); return; }
               if (data.defeated) await appAlert("🏆 AREA-BOSS BESIEGT! Nur die Crew mit dem meisten Schaden bekommt den Loot.");
@@ -1758,8 +1759,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 body: JSON.stringify({ action: "train_sanctuary", sanctuary_id: s.id, user_lat: userCenter.lat, user_lng: userCenter.lng }),
               });
               const data = await res.json();
-              if (data.error === "already_trained_today") { await appAlert("Heute schon trainiert — komm morgen wieder."); return; }
-              if (data.error === "too_far") { await appAlert(`Du bist noch ${data.distance_m}m entfernt — komm näher an den Tempel (max 50m).`); return; }
+              if (data.error === "already_trained_today") { await appAlert(tMD("alreadyTrainedToday")); return; }
+              if (data.error === "too_far") { await appAlert(tMD("tooFarTemple", { meters: data.distance_m })); return; }
               if (data.error === "location_required") { await appAlert("GPS-Position wird benötigt."); return; }
               if (data.ok) {
                 await appAlert(`🙏 +${data.xp_gained} Wächter-XP`);
@@ -2003,6 +2004,7 @@ function ProfilTab({
   distance: number;
 }) {
   const supabase = createClient();
+  const tMD = useTranslations("MapDashboard");
 
   // ═══ DEMO-OVERLAY ═══
   // Aktiv wenn entweder DEMO_MODE global und Profil leer ODER User hat Demo-Overlay manuell aktiviert
@@ -2095,7 +2097,7 @@ function ProfilTab({
       setGuardianGalleryData(j);
       setGuardianGalleryOpen(true);
     } catch {
-      alert("Netzwerkfehler beim Laden der Sammlung");
+      alert(tMD("loadingCollectionFailed"));
     }
   }
   useEffect(() => {
@@ -2185,20 +2187,9 @@ function ProfilTab({
     return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   }
 
-  // Rang-basiertes Motto (persönliches Motto-Feld kommt später via DB-Migration)
-  const mottos: Record<string, string> = {
-    "Straßen-Scout":      "Jeder Weg beginnt mit dem ersten Schritt.",
-    "Kiez-Wanderer":      "Schritt für Schritt näher zum Kiez.",
-    "Block-Kundschafter": "Jede Straße ein neuer Datenpunkt.",
-    "Stadt-Pionier":      "Ich erkunde, was andere übersehen.",
-    "Bezirks-Entdecker":  "Mein Bezirk, meine Karte.",
-    "Viertel-Boss":       "Mein Kiez, meine Regeln.",
-    "Kiez-König":         "Unangefochten auf meinen Straßen.",
-    "Metropolen-Legende": "Die Stadt gehört denen, die sie erlaufen.",
-    "Urbaner Mythos":     "Von mir erzählen die Laternen.",
-    "Straßen-Gott":       "Ich bin der Puls der Stadt.",
-  };
-  const motto = mottos[currentRankLive.name] || mottos["Straßen-Scout"];
+  // Rang-basiertes Motto via i18n (key by rank id, fallback Stufe 1)
+  const motto = tMD(`motto${Math.max(1, Math.min(10, currentRankLive.id))}` as
+    "motto1"|"motto2"|"motto3"|"motto4"|"motto5"|"motto6"|"motto7"|"motto8"|"motto9"|"motto10");
 
   // Achievements: Unlock-Status live berechnen aus Profilstats
   const stats = {
@@ -2407,7 +2398,7 @@ function ProfilTab({
         <div
           onClick={() => setOpenModal("xpguide")}
           role="button"
-          title="Tippen für die Erklärung aller Währungen"
+          title={tMD("currencyTooltip")}
           style={{
             display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8,
             padding: 10, borderRadius: 12, cursor: "pointer",
@@ -2428,7 +2419,7 @@ function ProfilTab({
             <div style={{ fontSize: 15, color: "#22D1C3", fontWeight: 900, marginTop: 2 }}>{(p?.sessionehre ?? 0).toLocaleString("de-DE")}</div>
           </div>
         </div>
-        <div style={{ textAlign: "center", fontSize: 10, color: "#8B8FA3", marginTop: 4 }}>Tippen für Guide: wo kommt was her, wofür?</div>
+        <div style={{ textAlign: "center", fontSize: 10, color: "#8B8FA3", marginTop: 4 }}>{tMD("currencyGuideHint")}</div>
       </div>
 
       {/* ═══ WAS DU HIER TUN KANNST — Aktivitäten-Overview mit Info-Modals ═══ */}
@@ -2641,7 +2632,7 @@ function ProfilTab({
                   <div style={{ width: 22, height: 44, borderRadius: 11, marginRight: 15, background: "#333" }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ color: "#FFF", fontSize: 18, fontWeight: "bold" }}>Keine Crew</div>
-                    <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>Werde jetzt aktiv — tritt einer Crew bei oder gründe deine eigene!</div>
+                    <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>{tMD("soloCrewHint")}</div>
                   </div>
                   <span style={{ color: PRIMARY, fontSize: 20, fontWeight: 900 }}>›</span>
                 </button>
@@ -2741,7 +2732,7 @@ function ProfilTab({
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 20 }}>💛</span>
-                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>Du möchtest uns unterstützen?</div>
+                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{tMD("supportUs")}</div>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.45 }}>
                 Mit einem kurzen Werbevideo hilfst du uns, MyArea365 unabhängig weiterzuentwickeln — und kassierst selbst <b style={{ color: "#FFD700" }}>+100 🪙 Lauf-Bonus</b>. Danke! 🙏
@@ -2753,7 +2744,7 @@ function ProfilTab({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {[
               { icon: "❓", label: "Hilfe & FAQ",  onClick: () => setOpenModal("faq") },
-              { icon: "📤", label: "Profil teilen", onClick: async () => {
+              { icon: "📤", label: tMD("shareProfile"), onClick: async () => {
                 const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Gebiete · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
                 const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
                 try {
@@ -2826,14 +2817,14 @@ function ProfilTab({
                 </div>
                 <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
                   {demoOverride
-                    ? "Profil zeigt XP, Läufe, Gebiete, Gesundheit als Demo"
-                    : "Aktivieren um LETZTE LÄUFE, GESUNDHEITSDATEN, XP etc. gefüllt zu sehen"}
+                    ? tMD("demoOnHint")
+                    : tMD("demoOffHint")}
                 </div>
               </div>
             </button>
             <button
               onClick={() => {
-                if (!p) return appAlert("Profil lädt noch …");
+                if (!p) return appAlert(tMD("profileLoading"));
                 setMyCrew({
                   id: "demo-crew-kaelthor",
                   name: "Kaelthors Kiez-Crew",
@@ -2905,7 +2896,7 @@ function ProfilTab({
             <span style={{ opacity: 0.4 }}>|</span>
             <a href="/support" style={{ color: MUTED, textDecoration: "none" }}>Support</a>
           </div>
-          <div>Made with ❤️ in Berlin</div>
+          <div>{tMD("madeWithLove")}</div>
         </div>
       </div>
 
@@ -2913,7 +2904,7 @@ function ProfilTab({
       {openModal === "health" && (
         <Modal
           title="Gesundheitsdaten"
-          subtitle="Dein kompletter Fitness-Überblick"
+          subtitle={tMD("fitnessOverviewSubtitle")}
           icon="💪"
           accent={PRIMARY}
           onClose={() => setOpenModal(null)}
@@ -2961,7 +2952,7 @@ function ProfilTab({
               if (!newPw || newPw.length < 8) { if (newPw) appAlert("Mindestens 8 Zeichen."); return; }
               const { error } = await supabase.auth.updateUser({ password: newPw });
               if (error) appAlert("Fehler: " + error.message);
-              else appAlert("Passwort geändert.");
+              else appAlert(tMD("passwordChanged"));
             }} last />
           </div>
 
@@ -2984,13 +2975,13 @@ function ProfilTab({
           <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
             <AccountRow label="🚪 Ausloggen" onClick={onLogout} danger />
             <AccountRow label="⚠️ Konto löschen" onClick={async () => {
-              if (!(await appConfirm({ title: "Konto löschen", message: "Alle Daten gehen unwiderruflich verloren. Wirklich fortfahren?", danger: true, confirmLabel: "Löschen" }))) return;
+              if (!(await appConfirm({ title: tMD("deleteAccountTitle"), message: tMD("deleteAccountMessage"), danger: true, confirmLabel: tMD("deleteAccountConfirm") }))) return;
               appAlert("Account-Löschung per E-Mail an support@myarea365.de anfordern. (Automatisierter Flow folgt.)");
             }} danger last />
           </div>
 
           <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
-            <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>Support kontaktieren</a>
+            <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>{tMD("supportContact")}</a>
           </div>
         </Modal>
       )}
@@ -3124,13 +3115,13 @@ function ProfilTab({
       )}
 
       {openModal === "arena" && (
-        <Modal title="Kampfarena" subtitle="Runner vs Runner · Siegel & Loot" icon="⚔️" accent="#FF2D78" maxWidth={920} onClose={() => setOpenModal(null)}>
+        <Modal title={tMD("modalArenaTitle")} subtitle={tMD("modalArenaSubtitle")} icon="⚔️" accent="#FF2D78" maxWidth={920} onClose={() => setOpenModal(null)}>
           <RunnerFightsClient inModal onClose={() => setOpenModal(null)} />
         </Modal>
       )}
 
       {openModal === "inbox" && (
-        <Modal title="Posteingang" subtitle="Nachrichten vom MyArea365-Team" icon="📬" accent="#22D1C3" onClose={() => setOpenModal(null)}>
+        <Modal title={tMD("modalInboxTitle")} subtitle={tMD("modalInboxSubtitle")} icon="📬" accent="#22D1C3" onClose={() => setOpenModal(null)}>
           <InboxContent />
         </Modal>
       )}
@@ -3153,7 +3144,7 @@ function ProfilTab({
           onClose={() => setOpenModal(null)}
         >
           <div style={{ color: TEXT_SOFT, fontSize: 13, lineHeight: 1.5, marginBottom: 16 }}>
-            MyArea365 hat <b style={{ color: "#FFF" }}>drei getrennte Währungen</b> — so kannst du nicht Gebiete gegen Arena-Rewards tauschen, jeder Bereich hat seinen eigenen Fortschritt.
+            {tMD.rich("currencyHeaderIntro", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginBottom: 18 }}>
@@ -3343,7 +3334,7 @@ function ProfilTab({
             });
             if (!res.ok) {
               const j = await res.json().catch(() => ({}));
-              alert(`Aktivierung fehlgeschlagen: ${j.error ?? res.status}`);
+              alert(tMD("activationFailed", { error: String(j.error ?? res.status) }));
               return;
             }
             setGuardianGalleryOpen(false);
@@ -4000,6 +3991,7 @@ function LockOverlay({ onUnlock, teamColor, walking, currentStreet, distance }: 
   currentStreet: string | null;
   distance: number;
 }) {
+  const tMD = useTranslations("MapDashboard");
   const [pressing, setPressing] = useState(false);
   const [progress, setProgress] = useState(0); // 0..100
   const rafRef = useRef<number>(0);
@@ -4104,7 +4096,7 @@ function LockOverlay({ onUnlock, teamColor, walking, currentStreet, distance }: 
           textAlign: "center",
         }}>
           {pressing
-            ? "Halten zum Entsperren…"
+            ? tMD("holdToUnlock")
             : "🔒 Tap & Hold unten zum Entsperren"}
         </div>
         <button
@@ -4150,6 +4142,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   userXp: number;
   onClose: () => void;
 }) {
+  const tMD = useTranslations("MapDashboard");
   const color = shop.color || "#FFD700";
   const sb = createClient();
   const [rating, setRating] = useState(0);
@@ -4198,7 +4191,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
     setReviewBusy(true);
     try {
       const { data: { user } } = await sb.auth.getUser();
-      if (!user) { await appAlert("Bitte einloggen, um zu bewerten."); return; }
+      if (!user) { await appAlert(tMD("loginToRate")); return; }
       const { error } = await sb.from("shop_reviews").upsert({
         business_id: shop.id,
         user_id: user.id,
@@ -4219,7 +4212,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
 
   async function toggleFavorite() {
     const { data: { user } } = await sb.auth.getUser();
-    if (!user) { await appAlert("Bitte einloggen, um zu favorisieren."); return; }
+    if (!user) { await appAlert(tMD("loginToFavorite")); return; }
     if (isFavorite) {
       await sb.from("shop_favorites").delete().eq("user_id", user.id).eq("business_id", shop.id);
       setIsFavorite(false);
@@ -4300,7 +4293,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                 </span>
               </>
             ) : (
-              <span style={{ color: MUTED, opacity: 0.7 }}>Noch keine Bewertungen</span>
+              <span style={{ color: MUTED, opacity: 0.7 }}>{tMD("noReviewsYet")}</span>
             )}
           </div>
           {shop.address && (
@@ -4323,7 +4316,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               🎁 AKTUELLER DEAL
             </div>
             <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {shop.deal_text || "Komm vorbei!"}
+              {shop.deal_text || tMD("comeByDefault")}
             </div>
             <div style={{
               marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -4356,7 +4349,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 22 }}>⚔️</span>
-                <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, flex: 1 }}>Arena aktiv</div>
+                <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, flex: 1 }}>{tMD("arenaActiveLabel")}</div>
                 <span style={{ padding: "2px 8px", borderRadius: 999, background: "rgba(74,222,128,0.25)", color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>LIVE</span>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
@@ -4405,7 +4398,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
               <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-                {showReview ? "Deine Bewertung" : "Warst du hier? Bewerte den Shop"}
+                {showReview ? tMD("yourReview") : tMD("rateShop")}
               </div>
               {!showReview && (
                 <button
@@ -5742,6 +5735,7 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
   onExportData: () => void;
   onLogout: () => void;
 }) {
+  const tMD = useTranslations("MapDashboard");
   // Benachrichtigungen
   const [pushEnabled, setPushEnabled] = useLocalPref<boolean>("notif_push", true);
   const [notifCrewChat, setNotifCrewChat] = useLocalPref<boolean>("notif_crew_chat", true);
@@ -5829,7 +5823,7 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
           if (v) {
             const { requestPushPermission } = await import("@/lib/prefs");
             const ok = await requestPushPermission();
-            if (!ok) { appAlert("Browser hat Push-Benachrichtigungen abgelehnt. Bitte in den Browser-Einstellungen erlauben."); return; }
+            if (!ok) { appAlert(tMD("pushDeniedHint")); return; }
           }
           setPushEnabled(v);
         }} />
@@ -5997,9 +5991,9 @@ function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
       </SettingsGroup>
 
       <SettingsGroup title="🧹 CACHE">
-        <SettingAction label="Cache leeren" value="2,4 MB" onClick={() => {
+        <SettingAction label={tMD("cacheClearedLabel")} value={tMD("cacheSize")} onClick={() => {
           try { Object.keys(localStorage).filter(k => k.startsWith("cache:")).forEach(k => localStorage.removeItem(k)); } catch {}
-          appAlert("Cache geleert");
+          appAlert(tMD("cacheCleared"));
         }} last />
       </SettingsGroup>
 
