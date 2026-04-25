@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale, getNumberLocale } from "@/i18n/config";
 import { claimIntensity } from "@/lib/claim-intensity";
+
+type ModalsT = ReturnType<typeof useTranslations<"Modals">>;
 
 export type OwnershipQuery =
   | { type: "segment"; id: string }
@@ -30,23 +34,25 @@ type OwnershipData = {
   stole_from?: Owner | null;
 };
 
-function ownerLabel(o: Owner | null | undefined): { label: string; sub: string | null; color: string; plzBadge?: string | null } {
-  if (!o) return { label: "Unbeansprucht", sub: null, color: "#8B8FA3" };
-  if (o.crew) return { label: `👥 ${o.crew.name}`, sub: "Crew-Gebiet", color: "#22D1C3" };
+function ownerLabel(o: Owner | null | undefined, tM: ModalsT): { label: string; sub: string | null; color: string; plzBadge?: string | null } {
+  if (!o) return { label: tM("owUnclaimed"), sub: null, color: "#8B8FA3" };
+  if (o.crew) return { label: `👥 ${o.crew.name}`, sub: tM("owCrewArea"), color: "#22D1C3" };
   if (o.user) {
-    const name = o.user.display_name ?? o.user.username ?? "Unbekannt";
-    return { label: `🏃 ${name}`, sub: "Runner-Gebiet", color: "#FFD700", plzBadge: o.user.heimat_plz ?? null };
+    const name = o.user.display_name ?? o.user.username ?? tM("owUnknown");
+    return { label: `🏃 ${name}`, sub: tM("owRunnerArea"), color: "#FFD700", plzBadge: o.user.heimat_plz ?? null };
   }
-  return { label: "Unbeansprucht", sub: null, color: "#8B8FA3" };
+  return { label: tM("owUnclaimed"), sub: null, color: "#8B8FA3" };
 }
 
-function fmtDate(iso?: string): string {
-  if (!iso) return "—";
+function fmtDate(iso: string | undefined, tM: ModalsT, locale: string): string {
+  if (!iso) return tM("owDash");
   const d = new Date(iso);
-  return d.toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" });
+  return d.toLocaleString(getDateLocale(locale), { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onClose: () => void }) {
+  const tM = useTranslations("Modals");
+  const locale = useLocale();
   const [data, setData] = useState<OwnershipData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,9 +75,9 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
     return () => { cancelled = true; };
   }, [query.type, query.id]);
 
-  const title = query.type === "segment" ? "Straßenabschnitt" : query.type === "street" ? "Straßenzug" : "Gebiet";
+  const title = query.type === "segment" ? tM("owTitleSegment") : query.type === "street" ? tM("owTitleStreet") : tM("owTitleTerritory");
   const icon = query.type === "segment" ? "🛤️" : query.type === "street" ? "🛣️" : "🏆";
-  const owner = data ? ownerLabel(data.owner) : ownerLabel(null);
+  const owner = data ? ownerLabel(data.owner, tM) : ownerLabel(null, tM);
 
   return (
     <div
@@ -99,14 +105,14 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
               <div style={{ color: "#a8b4cf", fontSize: 12 }}>{data.street_name}</div>
             )}
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
 
         {loading ? (
-          <div style={{ padding: "30px 0", textAlign: "center", color: "#8B8FA3" }}>Lade Besitzer-Info…</div>
+          <div style={{ padding: "30px 0", textAlign: "center", color: "#8B8FA3" }}>{tM("owLoading")}</div>
         ) : error ? (
           <div style={{ padding: 14, borderRadius: 10, background: "rgba(255,45,120,0.15)", color: "#FF2D78", fontSize: 12 }}>
-            Konnte Besitzer nicht laden ({error})
+            {tM("owLoadFailed", { error })}
           </div>
         ) : data ? (
           <>
@@ -116,7 +122,7 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
               border: `1px solid ${owner.color}55`,
               marginBottom: 12,
             }}>
-              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>BESITZER</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>{tM("owOwnerLabel")}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <div style={{ color: owner.color, fontSize: 20, fontWeight: 900 }}>{owner.label}</div>
                 {owner.plzBadge && (
@@ -140,18 +146,16 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
                   background: "rgba(70,82,122,0.3)", border: "1px solid rgba(255,255,255,0.08)",
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                    <span style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>HALTBARKEIT</span>
+                    <span style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{tM("owDurabilityLabel")}</span>
                     <span style={{ color: barColor, fontSize: 13, fontWeight: 900 }}>
-                      {intensity} %{daysLeft > 0 && <span style={{ color: "#8B8FA3", fontWeight: 600, fontSize: 11 }}> · noch {daysLeft} {daysLeft === 1 ? "Tag" : "Tage"}</span>}
+                      {intensity} %{daysLeft > 0 && <span style={{ color: "#8B8FA3", fontWeight: 600, fontSize: 11 }}> · {tM(daysLeft === 1 ? "owDaysLeftOne" : "owDaysLeftMany", { n: daysLeft })}</span>}
                     </span>
                   </div>
                   <div style={{ height: 6, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${intensity}%`, background: barColor, transition: "width 300ms ease" }} />
                   </div>
                   <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
-                    {intensity === 0
-                      ? "Neutralisiert — das Gebiet wird beim naechsten Lauf neu beanspruchbar."
-                      : "Lauft der Besitzer hier wieder entlang, springt der Wert zurueck auf 100 %."}
+                    {intensity === 0 ? tM("owNeutralizedHint") : tM("owDurabilityHint")}
                   </div>
                 </div>
               );
@@ -159,24 +163,24 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 11, marginBottom: 12 }}>
               {data.length_m !== undefined && (
-                <Row label="Länge" value={`${data.length_m} m`} />
+                <Row label={tM("owLength")} value={tM("owLengthMeters", { m: data.length_m })} />
               )}
               {data.total_length_m !== undefined && (
-                <Row label="Länge gesamt" value={`${(data.total_length_m / 1000).toFixed(2)} km`} />
+                <Row label={tM("owLengthTotal")} value={tM("owLengthKm", { km: (data.total_length_m / 1000).toFixed(2) })} />
               )}
               {data.segments_count !== undefined && (
-                <Row label="Abschnitte" value={`${data.segments_count}`} />
+                <Row label={tM("owSegments")} value={`${data.segments_count}`} />
               )}
               {data.area_m2 !== undefined && (
-                <Row label="Fläche" value={`${data.area_m2.toLocaleString("de-DE")} m²`} />
+                <Row label={tM("owArea")} value={tM("owAreaM2", { m2: data.area_m2.toLocaleString(getNumberLocale(locale)) })} />
               )}
               {data.perimeter_m !== undefined && (
-                <Row label="Umfang" value={`${data.perimeter_m} m`} />
+                <Row label={tM("owPerimeter")} value={tM("owLengthMeters", { m: data.perimeter_m })} />
               )}
               {data.status && (
-                <Row label="Status" value={data.status === "active" ? "✓ aktiv" : data.status === "stolen" ? "⚔️ erobert" : data.status} />
+                <Row label={tM("owStatus")} value={data.status === "active" ? tM("owStatusActive") : data.status === "stolen" ? tM("owStatusStolen") : data.status} />
               )}
-              <Row label="Beansprucht" value={fmtDate(data.claimed_at)} />
+              <Row label={tM("owClaimed")} value={fmtDate(data.claimed_at, tM, locale)} />
             </div>
 
             {data.stole_from && (data.stole_from.user || data.stole_from.crew) && (
@@ -185,9 +189,9 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
                 background: "rgba(255,45,120,0.1)", border: "1px solid rgba(255,45,120,0.35)",
                 fontSize: 11, marginBottom: 12,
               }}>
-                <div style={{ color: "#FF2D78", fontWeight: 900, marginBottom: 3 }}>⚔️ Zurückerobert von</div>
-                <div style={{ color: "#FFF" }}>{ownerLabel(data.stole_from).label}</div>
-                <div style={{ color: "#a8b4cf", fontSize: 10 }}>{fmtDate(data.stolen_at ?? undefined)}</div>
+                <div style={{ color: "#FF2D78", fontWeight: 900, marginBottom: 3 }}>{tM("owStolenFromHeader")}</div>
+                <div style={{ color: "#FFF" }}>{ownerLabel(data.stole_from, tM).label}</div>
+                <div style={{ color: "#a8b4cf", fontSize: 10 }}>{fmtDate(data.stolen_at ?? undefined, tM, locale)}</div>
               </div>
             )}
 
@@ -197,7 +201,7 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
                 background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.4)",
                 fontSize: 11, color: "#a8b4cf",
               }}>
-                💡 Lauf eine neue Runde durch dieses Gebiet um es zurückzuerobern. Crew-Gebiete sind nur als Crew schützbar.
+                {tM("owReclaimHint")}
               </div>
             )}
           </>

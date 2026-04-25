@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { createClient } from "@/lib/supabase/client";
@@ -15,6 +16,7 @@ export function RunRouteModal({ runId, streetName, teamColor, onClose }: {
   teamColor: string;
   onClose: () => void;
 }) {
+  const tM = useTranslations("Modals");
   const [route, setRoute] = useState<Coord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -24,12 +26,12 @@ export function RunRouteModal({ runId, streetName, teamColor, onClose }: {
       const sb = createClient();
       const { data, error } = await sb.from("territories").select("route").eq("id", runId).maybeSingle<{ route: Coord[] | null }>();
       if (error || !data?.route || data.route.length < 2) {
-        setError("Route nicht verfügbar");
+        setError(tM("rtRouteUnavailable"));
         return;
       }
       setRoute(data.route);
     })();
-  }, [runId]);
+  }, [runId, tM]);
 
   useEffect(() => {
     if (!route || !mapContainer.current) return;
@@ -90,16 +92,16 @@ export function RunRouteModal({ runId, streetName, teamColor, onClose }: {
       }}>
         <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: teamColor, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>ROUTE</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{streetName || "Unbekannter Weg"}</div>
+            <div style={{ color: teamColor, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tM("rtKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{streetName || tM("rtUnknownPath")}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
         </div>
         <div style={{ flex: 1, minHeight: 400, position: "relative", background: "#0F1115" }}>
           {error ? (
             <div style={{ padding: 40, textAlign: "center", color: "#FF2D78" }}>{error}</div>
           ) : !route ? (
-            <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>Lade Route …</div>
+            <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>{tM("rtLoading")}</div>
           ) : (
             <div ref={mapContainer} style={{ width: "100%", height: "100%", minHeight: 400 }} />
           )}
@@ -110,8 +112,8 @@ export function RunRouteModal({ runId, streetName, teamColor, onClose }: {
               color: "#a8b4cf", fontSize: 11, display: "flex", gap: 10,
               border: "1px solid rgba(255,255,255,0.1)",
             }}>
-              <span style={{ color: "#4ade80" }}>● Start</span>
-              <span style={{ color: "#FF2D78" }}>● Ziel</span>
+              <span style={{ color: "#4ade80" }}>● {tM("rtStart")}</span>
+              <span style={{ color: "#FF2D78" }}>● {tM("rtEnd")}</span>
             </div>
           )}
         </div>

@@ -1,20 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { UpgradeBody } from "@/components/upgrade-modal";
 import { BoostShopBody } from "@/components/boost-shop";
 import { GemShopBody } from "@/components/gem-shop-modal";
 
 type TabId = "plus" | "power" | "gems";
 
-const TABS: { id: TabId; label: string; icon: string; color: string }[] = [
-  { id: "plus",  label: "MyArea+",   icon: "💎", color: "#22D1C3" },
-  { id: "power", label: "Power",     icon: "⚡", color: "#FFD700" },
-  { id: "gems",  label: "Diamanten", icon: "💠", color: "#5ddaf0" },
-];
-
 export function ShopHubModal({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const tM = useTranslations("Modals");
   const [tab, setTab] = useState<TabId>("plus");
+  const TABS: { id: TabId; label: string; icon: string; color: string }[] = useMemo(() => [
+    { id: "plus",  label: tM("shTabPlus"),  icon: "💎", color: "#22D1C3" },
+    { id: "power", label: tM("shTabPower"), icon: "⚡", color: "#FFD700" },
+    { id: "gems",  label: tM("shTabGems"),  icon: "💠", color: "#5ddaf0" },
+  ], [tM]);
 
   return (
     <div onClick={onClose} style={{
@@ -33,8 +34,8 @@ export function ShopHubModal({ userId, onClose }: { userId: string; onClose: () 
         <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <span style={{ fontSize: 22 }}>💎</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>MYAREA365</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>Shop</div>
+            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tM("shKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tM("shTitle")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
         </div>
@@ -64,13 +65,16 @@ export function ShopHubModal({ userId, onClose }: { userId: string; onClose: () 
             border: "1px solid rgba(34,209,195,0.25)",
           }}>
             <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2, marginBottom: 4 }}>
-              💎 SHOP-GUIDE · KEIN PAY-TO-WIN
+              {tM("shGuideKicker")}
             </div>
             <div style={{ fontSize: 11, color: "#a8b4cf", lineHeight: 1.55 }}>
-              • <b style={{ color: "#22D1C3" }}>MyArea+</b> — Premium-Abo: werbefrei, Streak-Freeze-Vorrat, Map-Themes.<br />
-              • <b style={{ color: "#FFD700" }}>Power</b> — 🪙-Boosts & Komfort (Zeit sparen, keine Macht).<br />
-              • <b style={{ color: "#5ddaf0" }}>Diamanten</b> — Premium-Währung für Kosmetik & Wächter-Skins.<br />
-              <span style={{ color: "#8B8FA3" }}>Alle Ränge, Gebiete, Crews &amp; Arena sind ohne Euro spielbar.</span>
+              {tM.rich("shGuideRich", {
+                a: (chunks) => <>• <b style={{ color: "#22D1C3" }}>{chunks}</b></>,
+                b: (chunks) => <>• <b style={{ color: "#FFD700" }}>{chunks}</b></>,
+                c: (chunks) => <>• <b style={{ color: "#5ddaf0" }}>{chunks}</b></>,
+                d: (chunks) => <span style={{ color: "#8B8FA3" }}>{chunks}</span>,
+                br: () => <br />,
+              })}
             </div>
           </div>
           {tab === "plus"  && <UpgradeBody mode="plus" userId={userId} onDone={onClose} />}

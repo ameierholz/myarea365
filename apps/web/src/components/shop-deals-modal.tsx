@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { ShopDealsContent } from "./shop-deals-content";
 
 /**
@@ -12,6 +13,7 @@ import { ShopDealsContent } from "./shop-deals-content";
  * SEO/Bookmark-fähig) und von hier geteilt.
  */
 export function ShopDealsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const tM = useTranslations("Modals");
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -58,12 +60,12 @@ export function ShopDealsModal({ open, onClose }: { open: boolean; onClose: () =
         }}>
           <span style={{ fontSize: 22 }}>🏪</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#4ade80" }}>SHOP-DEALS</div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>Kiez-Angebote in deiner Nähe</div>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#4ade80" }}>{tM("sdmKicker")}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>{tM("sdmTitle")}</div>
           </div>
           <button
             onClick={onClose}
-            aria-label="Schließen"
+            aria-label={tM("closeAria")}
             style={{
               background: "rgba(255,255,255,0.08)", border: "none",
               color: "#a8b4cf", width: 34, height: 34, borderRadius: 999,
