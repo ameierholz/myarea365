@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 
@@ -10,20 +11,31 @@ type Activity = {
   id: ActivityId;
   icon: string;
   title: string;
-  hook: string;               // 1-Zeiler auf der Karte
-  gradient: [string, string]; // Card-Farben
-  accent: string;             // Akzent-Farbe
+  hook: string;
+  gradient: [string, string];
+  accent: string;
 };
 
-const ACTIVITIES: Activity[] = [
-  { id: "walk",         icon: "🥾", title: "Gehen & Laufen",     hook: "Die Basis — wandle Schritte in 🪙 Wegemünzen.", gradient: ["#22D1C3", "#5ddaf0"], accent: "#22D1C3" },
-  { id: "shop",         icon: "🏪", title: "Shop-Einlösungen",   hook: "Rabatte + Bonus-Loot per Kassenbon.",    gradient: ["#FFD700", "#FF6B4A"], accent: "#FFD700" },
-  { id: "runner_fight", icon: "⚔️", title: "Arena",              hook: "10/Tag PvP mit Matchmaking.",            gradient: ["#FF2D78", "#a855f7"], accent: "#FF2D78" },
-  { id: "arena",        icon: "🏛️", title: "Area-Liga",          hook: "30-Tage-Meta mit Titeln & Belohnung.",   gradient: ["#a855f7", "#5ddaf0"], accent: "#a855f7" },
-  { id: "area_boss",    icon: "👹", title: "Area-Boss",          hook: "Crew-Raid auf Karte — größter Schaden gewinnt.", gradient: ["#FF6B4A", "#FF2D78"], accent: "#FF6B4A" },
-];
+type ModalContent = {
+  icon: string;
+  title: string;
+  subtitle: string;
+  accent: string;
+  how: Array<{ step: number; text: string }>;
+  tips?: string[];
+  reward?: string;
+  cta?: { label: string; href: string };
+};
 
 export function RunnerActivityCards() {
+  const tA = useTranslations("ActivityCards");
+  const ACTIVITIES: Activity[] = useMemo(() => [
+    { id: "walk",         icon: "🥾", title: tA("walkTitle"),  hook: tA("walkHook"),  gradient: ["#22D1C3", "#5ddaf0"], accent: "#22D1C3" },
+    { id: "shop",         icon: "🏪", title: tA("shopTitle"),  hook: tA("shopHook"),  gradient: ["#FFD700", "#FF6B4A"], accent: "#FFD700" },
+    { id: "runner_fight", icon: "⚔️", title: tA("fightTitle"), hook: tA("fightHook"), gradient: ["#FF2D78", "#a855f7"], accent: "#FF2D78" },
+    { id: "arena",        icon: "🏛️", title: tA("ligaTitle"),  hook: tA("ligaHook"),  gradient: ["#a855f7", "#5ddaf0"], accent: "#a855f7" },
+    { id: "area_boss",    icon: "👹", title: tA("bossTitle"),  hook: tA("bossHook"),  gradient: ["#FF6B4A", "#FF2D78"], accent: "#FF6B4A" },
+  ], [tA]);
   const [open, setOpen] = useState<ActivityId | null>(null);
   const [showArena, setShowArena] = useState(false);
   return (
@@ -33,9 +45,9 @@ export function RunnerActivityCards() {
         marginBottom: 12,
       }}>
         <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#8B8FA3" }}>
-          🎮 WAS DU HIER TUN KANNST
+          {tA("header")}
         </div>
-        <div style={{ fontSize: 10, color: "#a8b4cf" }}>Tippe für Details</div>
+        <div style={{ fontSize: 10, color: "#a8b4cf" }}>{tA("tapForDetails")}</div>
       </div>
 
       <div style={{
@@ -99,108 +111,65 @@ export function RunnerActivityCards() {
   );
 }
 
-/* ═════════════════ MODAL ═════════════════ */
-
-type ModalContent = {
-  icon: string;
-  title: string;
-  subtitle: string;
-  accent: string;
-  how: Array<{ step: number; text: string }>;
-  tips?: string[];
-  reward?: string;
-  cta?: { label: string; href: string };
-};
-
-const CONTENT: Record<ActivityId, ModalContent> = {
-  walk: {
-    icon: "🥾", title: "Gehen & Laufen",
-    subtitle: "Dein Schrittzähler ist deine Waffe.",
-    accent: "#22D1C3",
-    how: [
-      { step: 1, text: "Tippe in der Karte auf \"Walk starten\" — GPS wird aktiviert." },
-      { step: 2, text: "Gehe oder laufe echte Straßen ab. Jedes neue Gebiet gehört dir." },
-      { step: 3, text: "Am Ende: 🪙 Wegemünzen für Distanz + Gebiete + Streak-Bonus." },
-    ],
-    tips: [
-      "Fahrrad, Roller und Auto werden erkannt und geben keine Wegemünzen (Anti-Cheat).",
-      "Jeden Tag laufen → Streak-Bonus wächst.",
-      "Gebiete im Radius deines Lieblings-Shops? Gebietsfürst-Bonus!",
-    ],
-    reward: "🪙 Wegemünzen · Level-Ups · Wächter-XP · Siegel über Zeit",
-  },
-  shop: {
-    icon: "🏪", title: "Shop-Einlösungen",
-    subtitle: "🪙 Wegemünzen gegen echte Rabatte — plus Bonus-Loot.",
-    accent: "#FFD700",
-    how: [
-      { step: 1, text: "Shop auf der Karte ansteuern → Deal auswählen → QR scannen." },
-      { step: 2, text: "6-stelligen Code an der Kasse zeigen. Rabatt eingelöst, Wegemünzen abgezogen." },
-      { step: 3, text: "\"Bonus-Loot freischalten\" antippen → Kaufbetrag eingeben + Kassenbon fotografieren." },
-      { step: 4, text: "KI prüft den Bon → Siegel, Ausrüstung, ggf. Quest-Rewards." },
-    ],
-    tips: [
-      "Je höher der Einkauf, desto besser der Bonus-Loot.",
-      "Shops mit aktiven Quests (🎯) geben Extra-🪙 bei bestimmten Artikeln.",
-      "Gebietsfürst eines Shops? +🪙 und Extra-Siegel bei jeder Einlösung.",
-    ],
-    reward: "Rabatt · Bonus-Loot (Siegel + Items) · Quest-🪙 · Gebietsfürst-Bonus",
-  },
-  runner_fight: {
-    icon: "⚔️", title: "Arena",
-    subtitle: "PvP-Grind mit fairem Matchmaking.",
-    accent: "#FF2D78",
-    how: [
-      { step: 1, text: "10 Gratis-Fights pro Tag. Eskalation danach: 50→100→200→400 💎 je 5 Stufen." },
-      { step: 2, text: "Gegner werden gematcht: Level-Differenz max ±3, nur aktive Runner." },
-      { step: 3, text: "Wähle einen Gegner → dein aktiver Wächter kämpft mit Talenten, Skills & Items." },
-      { step: 4, text: "Sieg: ⚔️ Sessionehre + Wächter-XP + Siegel (rarity-skaliert) + 15% Item-Drop. Niederlage: Sessionehre-Abzug (Floor 0) + Trostpreis." },
-    ],
-    tips: [
-      "Gegen stärkere Gegner kämpfen gibt 50% mehr Wächter-XP.",
-      "Max 2× gleicher Gegner pro Tag (Anti-Farming).",
-      "Matchmaker mischen: 1× gratis pro Tag, danach 30 💎.",
-    ],
-    reward: "⚔️ Sessionehre · Wächter-XP · Siegel (Common → Epic) · Ausrüstung",
-    cta: { label: "Zur Arena →", href: "/runner-fights" },
-  },
-  arena: {
-    icon: "🏛️", title: "Area-Liga",
-    subtitle: "30-Tage-Wettkampf um Ruhm und Titel.",
-    accent: "#a855f7",
-    how: [
-      { step: 1, text: "Jede Area-Liga läuft in einem Shop mit aktivem Liga-Pass." },
-      { step: 2, text: "Fordere einen anderen Runner heraus, der dort eingelöst hat (3-Tage-Eligibility)." },
-      { step: 3, text: "Session-Punkte sammeln durch Siege. Crew-Punkte aggregieren." },
-      { step: 4, text: "Session-Ende: Top 3 Runner + Top 3 Crews kriegen permanente Titel." },
-    ],
-    tips: [
-      "Level-Spread max ±5. Revenge-Sperre 6h, Weekly-Cap 1× pro Gegner.",
-      "Glückstreffer-Bonus: Gegner knapp besiegt → +100 Wächter-XP.",
-      "Underdog-Bonus: gegen höher-leveligen Gegner → +200 Wächter-XP.",
-    ],
-    reward: "Session-Punkte · Titel · Crew-Pakete (80/50/25 Universal-Siegel)",
-  },
-  area_boss: {
-    icon: "👹", title: "Area-Boss",
-    subtitle: "Crew-Raid — wer am meisten Schaden macht, gewinnt.",
-    accent: "#FF6B4A",
-    how: [
-      { step: 1, text: "Area-Boss erscheint zufällig auf der Karte. Alle Crews in der Nähe sehen ihn." },
-      { step: 2, text: "Anklicken → dein aktiver Wächter attackiert. Schaden wird serverseitig berechnet (Anti-Cheat)." },
-      { step: 3, text: "Jeder deiner Crew-Member trägt bei. Gesamt-Schaden-Ranking pro Crew." },
-      { step: 4, text: "Boss stirbt → Crew mit höchstem Schaden bekommt das dicke Paket." },
-    ],
-    tips: [
-      "Talente, Skills, Equipment und Tränke zählen wie in normalen Kämpfen.",
-      "Power-Zone-Buffs addieren sich auf deine Stats.",
-      "HP-Regen pro Runde — hält dich auch bei starken Bossen am Leben.",
-    ],
-    reward: "Universal-Siegel · Rare/Epic-Items · Crew-XP · Trophäen",
-  },
-};
-
 function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: () => void; onOpenArena?: () => void }) {
+  const tA = useTranslations("ActivityCards");
+  const CONTENT: Record<ActivityId, ModalContent> = useMemo(() => ({
+    walk: {
+      icon: "🥾", title: tA("walkTitle"), subtitle: tA("walkSubtitle"), accent: "#22D1C3",
+      how: [
+        { step: 1, text: tA("walkStep1") },
+        { step: 2, text: tA("walkStep2") },
+        { step: 3, text: tA("walkStep3") },
+      ],
+      tips: [tA("walkTip1"), tA("walkTip2"), tA("walkTip3")],
+      reward: tA("walkReward"),
+    },
+    shop: {
+      icon: "🏪", title: tA("shopTitle"), subtitle: tA("shopSubtitle"), accent: "#FFD700",
+      how: [
+        { step: 1, text: tA("shopStep1") },
+        { step: 2, text: tA("shopStep2") },
+        { step: 3, text: tA("shopStep3") },
+        { step: 4, text: tA("shopStep4") },
+      ],
+      tips: [tA("shopTip1"), tA("shopTip2"), tA("shopTip3")],
+      reward: tA("shopReward"),
+    },
+    runner_fight: {
+      icon: "⚔️", title: tA("fightTitle"), subtitle: tA("fightSubtitle"), accent: "#FF2D78",
+      how: [
+        { step: 1, text: tA("fightStep1") },
+        { step: 2, text: tA("fightStep2") },
+        { step: 3, text: tA("fightStep3") },
+        { step: 4, text: tA("fightStep4") },
+      ],
+      tips: [tA("fightTip1"), tA("fightTip2"), tA("fightTip3")],
+      reward: tA("fightReward"),
+      cta: { label: tA("ctaArena"), href: "/runner-fights" },
+    },
+    arena: {
+      icon: "🏛️", title: tA("ligaTitle"), subtitle: tA("ligaSubtitle"), accent: "#a855f7",
+      how: [
+        { step: 1, text: tA("ligaStep1") },
+        { step: 2, text: tA("ligaStep2") },
+        { step: 3, text: tA("ligaStep3") },
+        { step: 4, text: tA("ligaStep4") },
+      ],
+      tips: [tA("ligaTip1"), tA("ligaTip2"), tA("ligaTip3")],
+      reward: tA("ligaReward"),
+    },
+    area_boss: {
+      icon: "👹", title: tA("bossTitle"), subtitle: tA("bossSubtitle"), accent: "#FF6B4A",
+      how: [
+        { step: 1, text: tA("bossStep1") },
+        { step: 2, text: tA("bossStep2") },
+        { step: 3, text: tA("bossStep3") },
+        { step: 4, text: tA("bossStep4") },
+      ],
+      tips: [tA("bossTip1"), tA("bossTip2"), tA("bossTip3")],
+      reward: tA("bossReward"),
+    },
+  }), [tA]);
   const c = CONTENT[id];
   return (
     <div
@@ -235,7 +204,7 @@ function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: 
               <div style={{ color: "#a8b4cf", fontSize: 12 }}>{c.subtitle}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label={tA("closeAria")} style={{
             background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf",
             width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16,
           }}>✕</button>
@@ -244,7 +213,7 @@ function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: 
         {/* Body */}
         <div style={{ padding: 20 }}>
           <div style={{ color: c.accent, fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 10 }}>
-            SO GEHT&apos;S
+            {tA("soGehts")}
           </div>
           <ol style={{ listStyle: "none", padding: 0, margin: "0 0 18px 0" }}>
             {c.how.map((h) => (
@@ -263,7 +232,7 @@ function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: 
           {c.tips && c.tips.length > 0 && (
             <>
               <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 8 }}>
-                💡 TIPPS
+                {tA("tips")}
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: "0 0 18px 0" }}>
                 {c.tips.map((t, i) => (
@@ -285,7 +254,7 @@ function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: 
               background: `${c.accent}15`, border: `1px solid ${c.accent}44`, marginBottom: 14,
             }}>
               <div style={{ color: c.accent, fontSize: 10, fontWeight: 900, letterSpacing: 2, marginBottom: 4 }}>
-                🎁 BELOHNUNGEN
+                {tA("rewards")}
               </div>
               <div style={{ color: "#FFF", fontSize: 12, lineHeight: 1.5 }}>{c.reward}</div>
             </div>
