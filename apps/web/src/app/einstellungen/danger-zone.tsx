@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export function DangerZone({ deletionPending }: { deletionPending: boolean }) {
+  const t = useTranslations("DangerZone");
   const router = useRouter();
   const [confirmText, setConfirmText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -11,7 +13,7 @@ export function DangerZone({ deletionPending }: { deletionPending: boolean }) {
 
   async function deleteAccount() {
     if (confirmText !== "DELETE") {
-      setError('Bitte „DELETE" exakt eingeben.');
+      setError(t("confirmInputErr"));
       return;
     }
     setBusy(true);
@@ -24,14 +26,14 @@ export function DangerZone({ deletionPending }: { deletionPending: boolean }) {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error ?? "Fehler beim Löschen");
+        setError(json.error ?? t("errorPrefix"));
         setBusy(false);
         return;
       }
-      alert("Konto wurde zur Löschung markiert. Du wirst ausgeloggt.");
+      alert(t("alertMarked"));
       router.push("/");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Netzwerk-Fehler");
+      setError(e instanceof Error ? e.message : t("networkErr"));
       setBusy(false);
     }
   }
@@ -39,10 +41,9 @@ export function DangerZone({ deletionPending }: { deletionPending: boolean }) {
   if (deletionPending) {
     return (
       <section className="p-5 rounded-2xl border border-[#FF2D78]/40 bg-[#FF2D78]/10">
-        <h2 className="text-lg font-bold text-[#FF2D78] mb-2">⚠ Konto-Löschung läuft</h2>
+        <h2 className="text-lg font-bold text-[#FF2D78] mb-2">{t("pendingTitle")}</h2>
         <p className="text-sm text-text-muted">
-          Dein Konto wurde zur Löschung markiert und wird innerhalb von 14 Tagen endgültig entfernt.
-          Wenn du das rückgängig machen möchtest, kontaktiere uns über den Support.
+          {t("pendingBody")}
         </p>
       </section>
     );
@@ -50,14 +51,12 @@ export function DangerZone({ deletionPending }: { deletionPending: boolean }) {
 
   return (
     <section className="p-5 rounded-2xl border border-[#FF2D78]/30 bg-[#FF2D78]/5">
-      <h2 className="text-lg font-bold text-[#FF2D78] mb-2">🗑 Konto löschen</h2>
+      <h2 className="text-lg font-bold text-[#FF2D78] mb-2">{t("title")}</h2>
       <p className="text-sm text-text-muted mb-3">
-        DSGVO Art. 17 — Recht auf Löschung. Nach Bestätigung wird dein öffentliches Profil
-        sofort anonymisiert und deine Rohdaten innerhalb von <b>14 Tagen</b> endgültig entfernt.
-        Diese Aktion kann nicht rückgängig gemacht werden.
+        {t.rich("body", { b: (chunks) => <b>{chunks}</b> })}
       </p>
       <label className="block text-xs text-text-muted mb-1.5">
-        Tippe „DELETE" (Großbuchstaben) zur Bestätigung:
+        {t("confirmHint")}
       </label>
       <input
         type="text"
@@ -73,7 +72,7 @@ export function DangerZone({ deletionPending }: { deletionPending: boolean }) {
         disabled={busy || confirmText !== "DELETE"}
         className="px-5 py-2.5 rounded-lg bg-[#FF2D78] text-white font-bold text-sm disabled:opacity-50"
       >
-        {busy ? "Löschung wird ausgeführt…" : "Konto jetzt löschen"}
+        {busy ? t("btnBusy") : t("btn")}
       </button>
     </section>
   );

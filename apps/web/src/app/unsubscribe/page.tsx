@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { verifyAction } from "@/lib/signed-token";
 
-export const metadata: Metadata = {
-  title: "Newsletter abbestellen — MyArea365",
-  robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Unsubscribe");
+  return {
+    title: t("metaTitle"),
+    robots: { index: false },
+  };
+}
 
 type SearchParams = Promise<{ uid?: string; token?: string; email?: string }>;
 
@@ -40,6 +44,7 @@ async function unsubscribeByEmail(email: string): Promise<boolean> {
 }
 
 export default async function UnsubscribePage({ searchParams }: { searchParams: SearchParams }) {
+  const t = await getTranslations("Unsubscribe");
   const sp = await searchParams;
   const uid = sp.uid;
   const email = sp.email;
@@ -51,7 +56,6 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   } else if (email && token && verifyAction("unsub", email.toLowerCase().trim(), token)) {
     status = (await unsubscribeByEmail(email)) ? "success" : "error";
   } else if ((uid || email) && !token) {
-    // Kein Token → zeige Self-Service-Formular
     status = "missing";
   } else if (uid || email) {
     status = "error";
@@ -70,13 +74,12 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
           {status === "success" && (
             <>
               <div className="text-5xl mb-4">✓</div>
-              <h1 className="text-2xl font-bold mb-2 text-primary">Abgemeldet</h1>
+              <h1 className="text-2xl font-bold mb-2 text-primary">{t("successTitle")}</h1>
               <p className="text-text-muted leading-relaxed">
-                Du bekommst ab jetzt keine Newsletter-Mails mehr von uns. Dein Konto und deine Läufe bleiben aktiv.
+                {t("successBody")}
               </p>
               <p className="text-xs text-text-muted mt-6">
-                Hast du deine Meinung geändert? Im Profil → Einstellungen kannst du den Newsletter jederzeit
-                wieder aktivieren.
+                {t("successHint")}
               </p>
             </>
           )}
@@ -84,13 +87,13 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
           {status === "error" && (
             <>
               <div className="text-5xl mb-4">⚠️</div>
-              <h1 className="text-2xl font-bold mb-2">Hmm, irgendwas lief schief</h1>
+              <h1 className="text-2xl font-bold mb-2">{t("errorTitle")}</h1>
               <p className="text-text-muted leading-relaxed">
-                Wir konnten die Abmeldung nicht ausführen. Bitte schreib kurz an{" "}
+                {t("errorBody1")}{" "}
                 <a href="mailto:support@myarea365.de" className="text-primary hover:underline">
                   support@myarea365.de
                 </a>{" "}
-                — wir nehmen dich manuell raus.
+                {t("errorBody2")}
               </p>
             </>
           )}
@@ -98,23 +101,23 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
           {status === "missing" && (
             <>
               <div className="text-5xl mb-4">📬</div>
-              <h1 className="text-2xl font-bold mb-2">Newsletter abbestellen</h1>
+              <h1 className="text-2xl font-bold mb-2">{t("missingTitle")}</h1>
               <p className="text-text-muted leading-relaxed mb-6">
-                Gib deine E-Mail ein, um dich vom Newsletter abzumelden:
+                {t("missingBody")}
               </p>
               <form method="get" action="/unsubscribe/" className="space-y-3">
                 <input
                   type="email"
                   name="email"
                   required
-                  placeholder="deine@mail.de"
+                  placeholder={t("emailPh")}
                   className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                 />
                 <button
                   type="submit"
                   className="w-full py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim transition-colors"
                 >
-                  Abbestellen
+                  {t("submit")}
                 </button>
               </form>
             </>
@@ -122,9 +125,9 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
         </div>
 
         <p className="text-center text-xs text-text-muted mt-6">
-          <Link href="/datenschutz" className="hover:text-text">Datenschutz</Link> ·{" "}
-          <Link href="/impressum" className="hover:text-text">Impressum</Link> ·{" "}
-          <Link href="/" className="hover:text-text">Zurück zur Startseite</Link>
+          <Link href="/datenschutz" className="hover:text-text">{t("footerPrivacy")}</Link> ·{" "}
+          <Link href="/impressum" className="hover:text-text">{t("footerImpressum")}</Link> ·{" "}
+          <Link href="/" className="hover:text-text">{t("footerHome")}</Link>
         </p>
       </div>
     </div>

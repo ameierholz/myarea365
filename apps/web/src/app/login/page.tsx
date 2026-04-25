@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { HeroMap } from "@/components/hero-map-client";
@@ -17,6 +18,7 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
+  const t = useTranslations("LoginPage");
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
@@ -35,7 +37,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message === "Invalid login credentials" ? "E-Mail oder Passwort falsch." : error.message);
+      setError(error.message === "Invalid login credentials" ? t("errorInvalidCreds") : error.message);
       setLoading(false);
       return;
     }
@@ -46,7 +48,6 @@ function LoginForm() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Karte + Radar als Hintergrund (wie Landing) */}
       <div className="absolute inset-0 -z-10">
         <HeroMap />
       </div>
@@ -60,9 +61,9 @@ function LoginForm() {
           </Link>
 
           <div className="p-8 rounded-2xl bg-bg-card/90 border border-border backdrop-blur-md shadow-2xl">
-            <h1 className="text-2xl font-bold mb-2">Willkommen zurück</h1>
+            <h1 className="text-2xl font-bold mb-2">{t("title")}</h1>
             <p className="text-sm text-text-muted mb-8">
-              Melde dich an, um deine Stadt weiter zu erobern.
+              {t("subtitle")}
             </p>
 
             {error && (
@@ -74,20 +75,20 @@ function LoginForm() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-1.5">E-Mail</label>
+                <label htmlFor="email" className="block text-sm font-medium mb-1.5">{t("emailLabel")}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
                     id="email" type="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="deine@email.de"
+                    placeholder={t("emailPh")}
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-1.5">Passwort</label>
+                <label htmlFor="password" className="block text-sm font-medium mb-1.5">{t("passwordLabel")}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
@@ -103,25 +104,24 @@ function LoginForm() {
                 type="submit" disabled={loading}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Anmelden"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("submit")}
               </button>
             </form>
           </div>
 
           <p className="text-center text-sm text-text-muted mt-6 drop-shadow">
-            Noch kein Account?{" "}
-            <Link href="/registrieren" className="text-primary hover:text-primary-dim font-medium transition-colors">Jetzt registrieren</Link>
+            {t("noAccount")}{" "}
+            <Link href="/registrieren" className="text-primary hover:text-primary-dim font-medium transition-colors">{t("registerLink")}</Link>
           </p>
 
-          {/* Legal-Footer — alle Modals + Support */}
           <div className="flex flex-wrap justify-center gap-3 mt-5 text-[11px] text-text-muted">
-            <button onClick={() => openLegalModal("impressum")} className="hover:text-text transition-colors">Impressum</button>
+            <button onClick={() => openLegalModal("impressum")} className="hover:text-text transition-colors">{t("legalImpressum")}</button>
             <span className="opacity-40">·</span>
-            <button onClick={() => openLegalModal("datenschutz")} className="hover:text-text transition-colors">Datenschutz</button>
+            <button onClick={() => openLegalModal("datenschutz")} className="hover:text-text transition-colors">{t("legalPrivacy")}</button>
             <span className="opacity-40">·</span>
-            <button onClick={() => openLegalModal("agb")} className="hover:text-text transition-colors">AGB</button>
+            <button onClick={() => openLegalModal("agb")} className="hover:text-text transition-colors">{t("legalTerms")}</button>
             <span className="opacity-40">·</span>
-            <Link href="/support" className="hover:text-text transition-colors">Support</Link>
+            <Link href="/support" className="hover:text-text transition-colors">{t("legalSupport")}</Link>
           </div>
         </div>
       </div>

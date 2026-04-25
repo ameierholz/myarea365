@@ -1,18 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Category = "general" | "bug" | "billing" | "partner" | "abuse" | "other";
-const CATS: { key: Category; label: string; emoji: string }[] = [
-  { key: "general", label: "Allgemein", emoji: "💬" },
-  { key: "bug", label: "Bug", emoji: "🐛" },
-  { key: "billing", label: "Kauf", emoji: "💳" },
-  { key: "partner", label: "Partner", emoji: "🤝" },
-  { key: "abuse", label: "Missbrauch", emoji: "⚠️" },
-  { key: "other", label: "Sonst", emoji: "📎" },
+const CAT_DEFS: { key: Category; emoji: string; labelKey: "catGeneral" | "catBug" | "catBilling" | "catPartner" | "catAbuse" | "catOther" }[] = [
+  { key: "general", labelKey: "catGeneral", emoji: "💬" },
+  { key: "bug",     labelKey: "catBug",     emoji: "🐛" },
+  { key: "billing", labelKey: "catBilling", emoji: "💳" },
+  { key: "partner", labelKey: "catPartner", emoji: "🤝" },
+  { key: "abuse",   labelKey: "catAbuse",   emoji: "⚠️" },
+  { key: "other",   labelKey: "catOther",   emoji: "📎" },
 ];
 
 export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: string; prefillName: string }) {
+  const t = useTranslations("Support");
   const [email, setEmail] = useState(prefillEmail);
   const [name, setName] = useState(prefillName);
   const [category, setCategory] = useState<Category>("general");
@@ -25,7 +27,7 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!email || !subject || !body) { setError("Bitte E-Mail, Betreff und Nachricht ausfüllen."); return; }
+    if (!email || !subject || !body) { setError(t("errMissing")); return; }
     setBusy(true);
     try {
       const res = await fetch("/api/support", {
@@ -33,7 +35,7 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
         body: JSON.stringify({ email, name, category, subject, body }),
       });
       const j = await res.json();
-      if (!j.ok) { setError(j.error ?? "Fehler beim Senden."); return; }
+      if (!j.ok) { setError(j.error ?? t("errSend")); return; }
       setDone(j.ticket_id);
     } finally { setBusy(false); }
   }
@@ -42,9 +44,9 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
     return (
       <div style={{ padding: 18, borderRadius: 14, background: "rgba(34,209,195,0.1)", border: "1px solid rgba(34,209,195,0.4)" }}>
         <div style={{ fontSize: 36, marginBottom: 6 }}>✅</div>
-        <div style={{ fontSize: 16, fontWeight: 900, color: "#FFF", marginBottom: 4 }}>Anfrage erhalten!</div>
+        <div style={{ fontSize: 16, fontWeight: 900, color: "#FFF", marginBottom: 4 }}>{t("doneTitle")}</div>
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 10 }}>
-          Wir antworten per E-Mail an <b>{email}</b> — meist innerhalb von 24h.
+          {t.rich("doneBody", { email, b: (chunks) => <b>{chunks}</b> })}
         </div>
         <code style={{ display: "block", padding: 8, borderRadius: 6, background: "rgba(0,0,0,0.3)", fontSize: 11, color: "#22D1C3", fontFamily: "monospace", marginBottom: 10 }}>
           {done}
@@ -53,7 +55,7 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
           onClick={() => { setDone(null); setSubject(""); setBody(""); }}
           style={{ background: "transparent", border: "none", color: "#22D1C3", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}
         >
-          Weitere Anfrage
+          {t("doneNew")}
         </button>
       </div>
     );
@@ -71,19 +73,19 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
     <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>
-          <label style={lbl}>NAME (OPT.)</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" style={inp} />
+          <label style={lbl}>{t("labelName")}</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("phName")} style={inp} />
         </div>
         <div>
-          <label style={lbl}>E-MAIL *</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="du@example.com" style={inp} />
+          <label style={lbl}>{t("labelEmail")}</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder={t("phEmail")} style={inp} />
         </div>
       </div>
 
       <div>
-        <label style={lbl}>THEMA</label>
+        <label style={lbl}>{t("labelTopic")}</label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
-          {CATS.map((c) => {
+          {CAT_DEFS.map((c) => {
             const on = category === c.key;
             return (
               <button
@@ -97,7 +99,7 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
                 }}
               >
                 <span style={{ fontSize: 16 }}>{c.emoji}</span>
-                {c.label}
+                {t(c.labelKey)}
               </button>
             );
           })}
@@ -105,15 +107,15 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
       </div>
 
       <div>
-        <label style={lbl}>BETREFF *</label>
-        <input value={subject} onChange={(e) => setSubject(e.target.value)} required maxLength={120} placeholder="Kurz auf den Punkt" style={inp} />
+        <label style={lbl}>{t("labelSubject")}</label>
+        <input value={subject} onChange={(e) => setSubject(e.target.value)} required maxLength={120} placeholder={t("phSubject")} style={inp} />
       </div>
 
       <div>
-        <label style={lbl}>NACHRICHT *</label>
+        <label style={lbl}>{t("labelMessage")}</label>
         <textarea
           value={body} onChange={(e) => setBody(e.target.value)} required rows={5} maxLength={4000}
-          placeholder="Was ist los? Gerät, Browser, was du erwartet hast, was passiert ist…"
+          placeholder={t("phMessage")}
           style={{ ...inp, resize: "vertical" }}
         />
         <div style={{ fontSize: 10, color: "#6c7590", textAlign: "right", marginTop: 2 }}>{body.length}/4000</div>
@@ -133,11 +135,11 @@ export function SupportContent({ prefillEmail, prefillName }: { prefillEmail: st
           background: "linear-gradient(135deg, #22D1C3 0%, #FFD700 100%)",
         }}
       >
-        {busy ? "Sende …" : "📤 Anfrage senden"}
+        {busy ? t("submitBusy") : t("submit")}
       </button>
 
       <p style={{ fontSize: 10, color: "#6c7590", lineHeight: 1.5, margin: 0 }}>
-        Mit dem Absenden stimmst du der Verarbeitung deiner Angaben zur Bearbeitung deiner Anfrage zu (Datenschutzerklärung). Speicherdauer: bis zu 3 Jahre.
+        {t("footnote")}
       </p>
     </form>
   );

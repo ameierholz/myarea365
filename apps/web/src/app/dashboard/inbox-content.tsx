@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
 
 type Msg = {
@@ -12,6 +14,9 @@ type Msg = {
 };
 
 export function InboxContent() {
+  const t = useTranslations("Inbox");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const [messages, setMessages] = useState<Msg[] | null>(null);
   const [open, setOpen] = useState<Msg | null>(null);
 
@@ -49,14 +54,14 @@ export function InboxContent() {
   }
 
   if (messages === null) {
-    return <div style={{ padding: 24, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>Lade …</div>;
+    return <div style={{ padding: 24, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>{t("loading")}</div>;
   }
   if (messages.length === 0) {
     return (
       <div style={{ padding: 28, textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>📭</div>
         <div style={{ color: "#8B8FA3", fontSize: 13 }}>
-          Noch keine Nachrichten. Wir melden uns, wenn es etwas Neues gibt.
+          {t("emptyBody")}
         </div>
       </div>
     );
@@ -75,11 +80,11 @@ export function InboxContent() {
             cursor: "pointer", marginBottom: 12,
           }}
         >
-          ← Zurück zur Liste
+          {t("back")}
         </button>
         <div style={{ fontSize: 18, fontWeight: 900, color: "#FFF", marginBottom: 6 }}>{open.title}</div>
         <div style={{ fontSize: 11, color: "#6c7590", marginBottom: 14 }}>
-          {new Date(open.created_at).toLocaleString("de-DE")}
+          {new Date(open.created_at).toLocaleString(dateLocale)}
         </div>
         <div style={{ fontSize: 13, color: "#dde3f5", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
           {open.body}
@@ -92,16 +97,16 @@ export function InboxContent() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, fontSize: 12 }}>
         <span style={{ color: "#8B8FA3" }}>
-          {messages.length} Nachricht{messages.length === 1 ? "" : "en"}
+          {messages.length === 1 ? t("countOne", { n: 1 }) : t("countMany", { n: messages.length })}
           {unread > 0 && (
             <span style={{ marginLeft: 8, padding: "2px 8px", borderRadius: 999, background: "rgba(255,45,120,0.15)", color: "#FF2D78", fontWeight: 900, fontSize: 10 }}>
-              {unread} NEU
+              {t("newBadge", { n: unread })}
             </span>
           )}
         </span>
         {unread > 0 && (
           <button onClick={markAllRead} style={{ background: "transparent", border: "none", color: "#22D1C3", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-            Alle gelesen
+            {t("markAll")}
           </button>
         )}
       </div>
@@ -124,7 +129,7 @@ export function InboxContent() {
                   {m.title}
                 </span>
                 <span style={{ color: "#6c7590", fontSize: 10 }}>
-                  {new Date(m.created_at).toLocaleDateString("de-DE")}
+                  {new Date(m.created_at).toLocaleDateString(dateLocale)}
                 </span>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
