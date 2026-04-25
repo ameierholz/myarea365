@@ -4843,6 +4843,7 @@ type LiveMission = {
 };
 
 function MissionsModal({ onClose }: { onClose: () => void }) {
+  const tM = useTranslations("Missions");
   const [missions, setMissions] = useState<LiveMission[] | null>(null);
   const [claiming, setClaiming] = useState<string | null>(null);
 
@@ -4868,11 +4869,11 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
       if (r.ok) {
         const j = await r.json();
         const amt = j.reward_wegemuenzen ?? j.reward_xp ?? 0;
-        await appAlert(`🎉 +${amt} 🪙 Wegemünzen kassiert!`);
+        await appAlert(tM("claimedAlert", { xp: amt }));
         await load();
       } else {
         const j = await r.json().catch(() => ({}));
-        await appAlert(`Fehler: ${j.error ?? "unbekannt"}`);
+        await appAlert(tM("errorAlert", { error: String(j.error ?? tM("errorUnknown")) }));
       }
     } finally { setClaiming(null); }
   };
@@ -4882,25 +4883,25 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal
-      title="Missionen"
-      subtitle="Tägliche & Wöchentliche Ziele"
+      title={tM("modalTitle")}
+      subtitle={tM("modalSubtitle")}
       icon="🎯"
       accent="#FF6B4A"
       onClose={onClose}
     >
       {missions === null ? (
-        <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>Lade Missionen…</div>
+        <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>{tM("loading")}</div>
       ) : missions.length === 0 ? (
         <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 13 }}>
-          Noch keine Missionen verfügbar.<br />
-          <span style={{ fontSize: 11, opacity: 0.7 }}>Admin muss erst Missionen im Pool anlegen.</span>
+          {tM("empty")}<br />
+          <span style={{ fontSize: 11, opacity: 0.7 }}>{tM("emptyHint")}</span>
         </div>
       ) : (
         <>
           {daily.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 12, color: "#FF6B4A", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-                ⏰ TÄGLICH (Reset um Mitternacht)
+                {tM("dailyHeader")}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {daily.map((m) => <MissionRow key={m.assignment_id} mission={m} claiming={claiming === m.assignment_id} onClaim={() => claim(m.assignment_id)} />)}
@@ -4910,7 +4911,7 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
           {weekly.length > 0 && (
             <div>
               <div style={{ fontSize: 12, color: "#FFD700", fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>
-                🗓️ WÖCHENTLICH (Reset montags)
+                {tM("weeklyHeader")}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {weekly.map((m) => <MissionRow key={m.assignment_id} mission={m} claiming={claiming === m.assignment_id} onClaim={() => claim(m.assignment_id)} />)}
@@ -4924,6 +4925,7 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
 }
 
 function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; claiming?: boolean; onClaim?: () => void }) {
+  const tM = useTranslations("Missions");
   const pct = Math.min(100, (m.progress / m.target) * 100);
   const done = m.progress >= m.target;
   const accent = m.type === "daily" ? "#FF6B4A" : "#FFD700";
@@ -4972,7 +4974,7 @@ function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; c
             opacity: claiming ? 0.5 : 1,
           }}
         >
-          {claiming ? "…" : `💰 +${m.reward_xp} 🪙`}
+          {claiming ? tM("claiming") : `💰 +${m.reward_xp} 🪙`}
         </button>
       ) : (
         <div style={{
@@ -4981,7 +4983,7 @@ function MissionRow({ mission: m, claiming, onClaim }: { mission: LiveMission; c
           border: `1px solid ${m.claimed_at ? "#4ade80" : accent}`,
         }}>
           <span style={{ color: m.claimed_at ? "#4ade80" : accent, fontSize: 10, fontWeight: 900 }}>
-            {m.claimed_at ? "✓ Geholt" : `+${m.reward_xp} 🪙`}
+            {m.claimed_at ? tM("claimed") : `+${m.reward_xp} 🪙`}
           </span>
         </div>
       )}

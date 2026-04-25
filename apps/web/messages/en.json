@@ -165,6 +165,20 @@
     "supporterReward": "Badge + pride",
     "footer": "🪙 Path Coins unlock new ranks, map icons and Runner Lights. Boost multipliers apply to ALL Path Coin sources simultaneously — Territory Rep and Arena Honor stay unaffected."
   },
+  "Missions": {
+    "modalTitle": "Missions",
+    "modalSubtitle": "Daily & weekly goals",
+    "loading": "Loading missions…",
+    "empty": "No missions available yet.",
+    "emptyHint": "Admin needs to add missions to the pool first.",
+    "dailyHeader": "⏰ DAILY (Reset at midnight)",
+    "weeklyHeader": "🗓️ WEEKLY (Reset Mondays)",
+    "claimedAlert": "🎉 +{xp} 🪙 Path Coins claimed!",
+    "errorAlert": "Error: {error}",
+    "errorUnknown": "unknown",
+    "claiming": "…",
+    "claimed": "✓ Claimed"
+  },
   "MapDashboard": {
     "motto1": "Every road begins with the first step.",
     "motto2": "Step by step closer to the neighborhood.",
