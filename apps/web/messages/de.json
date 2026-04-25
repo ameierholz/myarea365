@@ -3670,5 +3670,25 @@
     "extrasHeading": "🎁 Einmalige Extras",
     "footer": "Alle Preise inkl. MwSt. · Abos jederzeit kündbar ·",
     "questions": "Fragen?"
+  },
+  "SupportPage": {
+    "metaTitle": "Support & Kontakt",
+    "metaDescription": "Hilfe, Bug-Report oder Partner-Anfrage — wir sind für dich da.",
+    "back": "← Zurück",
+    "heading": "🎫 Support & Kontakt",
+    "intro": "Bug gefunden? Frage zum Spiel? Interesse als Partner? Schreib uns — wir antworten meist innerhalb von 24h.",
+    "altLead": "Alternative Wege:",
+    "altImprint": "📄 Siehe auch unser Impressum, AGB und Datenschutz im Footer",
+    "doneLong": "Danke, wir haben deine Anfrage erhalten!",
+    "doneTicketLine": "Wir antworten per E-Mail an <b>{email}</b> — meist innerhalb von 24 Stunden. Deine Ticket-ID lautet:",
+    "doneNewLong": "Weitere Anfrage stellen",
+    "phNameLong": "Wie heißt du?",
+    "labelNameLong": "Name (optional)",
+    "phSubjectLong": "Kurz auf den Punkt gebracht",
+    "phMessageLong": "Beschreib dein Anliegen so ausführlich wie möglich — Gerät, Browser, was du erwartet hast, was passiert ist…",
+    "submitBusy": "Sende…",
+    "footnoteLong": "Mit dem Absenden stimmst du der Verarbeitung deiner Angaben zur Bearbeitung deiner Anfrage zu. Details findest du in der Datenschutzerklärung. Speicherdauer: bis zu 3 Jahre für Nachvollziehbarkeit.",
+    "catBillingLong": "Kauf/Abrechnung",
+    "catOtherLong": "Sonstiges"
   }
 }

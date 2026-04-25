@@ -3670,5 +3670,25 @@
     "extrasHeading": "🎁 One-off extras",
     "footer": "All prices incl. VAT · plans cancellable any time ·",
     "questions": "Questions?"
+  },
+  "SupportPage": {
+    "metaTitle": "Support & contact",
+    "metaDescription": "Help, bug report or partner inquiry — we're here for you.",
+    "back": "← Back",
+    "heading": "🎫 Support & contact",
+    "intro": "Found a bug? Question about the game? Interested as a partner? Write to us — we usually reply within 24h.",
+    "altLead": "Other ways:",
+    "altImprint": "📄 See also our imprint, terms and privacy in the footer",
+    "doneLong": "Thanks, we received your request!",
+    "doneTicketLine": "We'll reply via email to <b>{email}</b> — usually within 24 hours. Your ticket ID is:",
+    "doneNewLong": "Submit another request",
+    "phNameLong": "What's your name?",
+    "labelNameLong": "Name (optional)",
+    "phSubjectLong": "Brief and to the point",
+    "phMessageLong": "Describe your request as thoroughly as possible — device, browser, what you expected, what happened…",
+    "submitBusy": "Sending…",
+    "footnoteLong": "By submitting you consent to processing your data to handle your request. Details in the privacy policy. Retention: up to 3 years for traceability.",
+    "catBillingLong": "Purchase/billing",
+    "catOtherLong": "Other"
   }
 }

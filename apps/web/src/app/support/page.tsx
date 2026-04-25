@@ -1,14 +1,20 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { SupportForm } from "./support-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = {
-  title: "Support & Kontakt",
-  description:
-    "Hilfe, Bug-Report oder Partner-Anfrage — wir sind für dich da.",
-};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("SupportPage");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+  };
+}
 
 export default async function SupportPage() {
+  const t = await getTranslations("SupportPage");
   const sb = await createClient();
   const { data: auth } = await sb.auth.getUser();
   let prefillEmail = "";
@@ -34,20 +40,19 @@ export default async function SupportPage() {
           href="/"
           className="inline-block text-xs text-[#22D1C3] hover:underline mb-4"
         >
-          ← Zurück
+          {t("back")}
         </a>
-        <h1 className="text-3xl font-black mb-2">🎫 Support & Kontakt</h1>
+        <h1 className="text-3xl font-black mb-2">{t("heading")}</h1>
         <p className="text-sm text-[#a8b4cf] mb-8">
-          Bug gefunden? Frage zum Spiel? Interesse als Partner? Schreib uns —
-          wir antworten meist innerhalb von 24h.
+          {t("intro")}
         </p>
 
         <SupportForm prefillEmail={prefillEmail} prefillName={prefillName} />
 
         <div className="mt-8 p-4 rounded-xl bg-[#1A1D23] border border-white/5 text-xs text-[#8B8FA3]">
-          <div className="font-bold text-white mb-1">Alternative Wege:</div>
+          <div className="font-bold text-white mb-1">{t("altLead")}</div>
           <div>📧 support@myarea365.de</div>
-          <div>📄 Siehe auch unser Impressum, AGB und Datenschutz im Footer</div>
+          <div>{t("altImprint")}</div>
         </div>
       </div>
     </main>
