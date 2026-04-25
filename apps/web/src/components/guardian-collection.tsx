@@ -4,6 +4,7 @@
 // Zeigt owned crew_guardians + alle 60 guardian_archetypes (nicht die alten Rassen).
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GemShopModal } from "@/components/gem-shop-modal";
@@ -35,6 +36,7 @@ type CollectionResponse = {
 };
 
 export function GuardianCollectionPanel({ onChange }: { onChange?: () => void }) {
+  const tGC = useTranslations("GuardianCollection");
   const [col, setCol] = useState<CollectionResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
     } finally { setBusy(false); }
   }
 
-  if (!col) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Wächter-Sammlung…</div>;
+  if (!col) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{tGC("loading")}</div>;
 
   const ownedIds = new Set(col.owned.map((g) => g.archetype_id));
   const unowned = col.archetypes.filter((a) => !ownedIds.has(a.id));
@@ -101,10 +103,10 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
       }}>
         <div>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-            🛡️ Sammlung: {col.owned.length} / {col.archetypes.length}
+            {tGC("headerTitle", { owned: col.owned.length, total: col.archetypes.length })}
           </div>
           <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
-            Neue Wächter gibt&apos;s durch Arena-Siege, Boss-Raids & Meilensteine
+            {tGC("headerHint")}
           </div>
         </div>
         <button onClick={() => setShopOpen(true)} style={{
@@ -112,7 +114,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
           padding: "6px 10px", borderRadius: 999,
           background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.5)",
           color: "#FFD700", fontSize: 11, fontWeight: 900, cursor: "pointer",
-        }}>💎 Shop</button>
+        }}>{tGC("shopBtn")}</button>
       </div>
 
       {/* Starter-Wahl wenn User noch keinen Wächter hat */}
@@ -122,9 +124,9 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
           background: "linear-gradient(135deg, rgba(34,209,195,0.18), rgba(255,45,120,0.1))",
           border: "1px solid rgba(34,209,195,0.4)",
         }}>
-          <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>🎮 WÄHLE DEINEN STARTER</div>
+          <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>{tGC("starterKicker")}</div>
           <div style={{ color: "#FFF", fontSize: 12, marginTop: 3, marginBottom: 10 }}>
-            Du hast noch keinen aktiven Wächter. Such dir einen Elite-Starter aus — je nach Typ spielt er sich anders.
+            {tGC("starterIntro")}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 6 }}>
             {col.archetypes.filter((a) => a.rarity === "elite").map((a) => {
@@ -141,7 +143,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
                     <GuardianAvatar archetype={a} size={72} animation="idle" />
                   </div>
                   <div style={{ color: typ?.color ?? "#22D1C3", fontSize: 8, fontWeight: 900 }}>
-                    {typ ? `${typ.icon} ${typ.label.toUpperCase()}` : "ELITE"}
+                    {typ ? tGC("starterTypeLabel", { icon: typ.icon, label: typ.label.toUpperCase() }) : tGC("starterEliteFallback")}
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 900, marginTop: 1 }}>{a.name}</div>
                   <div style={{ color: "#FFD700", fontSize: 9, marginTop: 1 }}>⚡ {a.ability_name}</div>
@@ -154,7 +156,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
 
       {/* Besessene Wächter */}
       <div style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
-        DEINE WÄCHTER ({col.owned.length})
+        {tGC("myGuardians", { count: col.owned.length })}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8, marginBottom: 16 }}>
         {col.owned.map((g) => {
@@ -173,7 +175,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
                   position: "absolute", top: 6, right: 6,
                   padding: "2px 7px", borderRadius: 999,
                   background: r.color, color: "#0F1115", fontSize: 8, fontWeight: 900, letterSpacing: 0.5,
-                }}>AKTIV</div>
+                }}>{tGC("active")}</div>
               )}
               {g.talent_points_available > 0 && (
                 <div style={{
@@ -194,7 +196,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
                 {g.custom_name ?? g.archetype.name}
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
-                Lvl {g.level} · {g.wins}W/{g.losses}L
+                {tGC("lvlWl", { level: g.level, wins: g.wins, losses: g.losses })}
               </div>
 
               <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
@@ -202,7 +204,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
                   flex: 1, padding: "4px 6px", borderRadius: 6,
                   background: "rgba(255,255,255,0.08)", border: "none", cursor: "pointer",
                   color: "#FFF", fontSize: 9, fontWeight: 900, textAlign: "center",
-                }}>Öffnen</button>
+                }}>{tGC("open")}</button>
                 {!g.is_active && (
                   <button onClick={() => activate(g.id)} disabled={busy}
                     style={{
@@ -210,7 +212,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
                       background: `${r.color}33`, border: `1px solid ${r.color}`, color: r.color,
                       fontSize: 9, fontWeight: 900, cursor: busy ? "not-allowed" : "pointer",
                     }}>
-                    Aktivieren
+                    {tGC("activate")}
                   </button>
                 )}
               </div>
@@ -231,13 +233,13 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
           <span style={{ fontSize: 24 }}>📖</span>
           <div style={{ flex: 1 }}>
             <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
-              NOCH NICHT GESAMMELT ({unowned.length}/{col.archetypes.length})
+              {tGC("uncollectedKicker", { owned: unowned.length, total: col.archetypes.length })}
             </div>
             <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, marginTop: 2 }}>
-              Alle 60 Wächter ansehen
+              {tGC("viewAll")}
             </div>
             <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
-              Sortiert nach Typ · {isAdmin ? "Prompt & Upload verfügbar (Admin)" : "Wächter kommen durch Arena, Boss, Meilensteine"}
+              {isAdmin ? tGC("viewAllHintAdmin") : tGC("viewAllHint")}
             </div>
           </div>
           <span style={{ color: "#22D1C3", fontSize: 18 }}>→</span>

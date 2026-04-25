@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import { MarkerPickerModal } from "@/components/marker-picker-modal";
 import { LightPickerModal } from "@/components/light-picker-modal";
@@ -47,6 +48,7 @@ export function LoadoutTrio({
   isAdmin?: boolean;
   onPinThemeChange?: (theme: PinTheme) => void;
 }) {
+  const tL = useTranslations("Loadout");
   const [col, setCol] = useState<CollectionResponse | null>(null);
   const [markerOpen, setMarkerOpen] = useState(false);
   const [lightOpen, setLightOpen] = useState(false);
@@ -105,10 +107,10 @@ export function LoadoutTrio({
         border: "1px solid rgba(34,209,195,0.4)",
       }}>
         <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          🎮 WÄHLE DEINEN STARTER
+          {tL("starterKicker")}
         </div>
         <div style={{ color: "#FFF", fontSize: 12, marginBottom: 10 }}>
-          Such dir einen Elite-Wächter aus — je nach Typ spielt er sich anders.
+          {tL("starterIntro")}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 6 }}>
           {col.archetypes.filter((a) => a.rarity === "elite").map((a) => {
@@ -124,7 +126,7 @@ export function LoadoutTrio({
                   <GuardianAvatar archetype={a} size={72} animation="idle" />
                 </div>
                 <div style={{ color: typ?.color ?? "#22D1C3", fontSize: 8, fontWeight: 900 }}>
-                  {typ ? `${typ.icon} ${typ.label.toUpperCase()}` : "ELITE"}
+                  {typ ? tL("starterTypeLabel", { icon: typ.icon, label: typ.label.toUpperCase() }) : tL("starterEliteFallback")}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 900, marginTop: 1 }}>{a.name}</div>
               </button>
@@ -138,7 +140,7 @@ export function LoadoutTrio({
   if (!col || !active) {
     return (
       <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>
-        Lade Wächter …
+        {tL("loading")}
       </div>
     );
   }
@@ -152,7 +154,7 @@ export function LoadoutTrio({
       }}>
         {/* ── MAP-ICON ── */}
         <div style={tileStyle()} onClick={() => setMarkerOpen(true)}>
-          <div style={labelStyle()}>MAP-ICON</div>
+          <div style={labelStyle()}>{tL("labelMapIcon")}</div>
           {(() => {
             const variants = cosmeticArt.marker[currentMarker.id];
             const mArt = variants?.[equippedMarkerVariant] ?? variants?.neutral;
@@ -161,12 +163,12 @@ export function LoadoutTrio({
             return <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>;
           })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{currentMarker.name}</div>
-          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>Ändern →</div>
+          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
         </div>
 
         {/* ── RUNNER-LIGHT ── */}
         <div style={tileStyle()} onClick={() => setLightOpen(true)}>
-          <div style={labelStyle()}>RUNNER-LIGHT</div>
+          <div style={labelStyle()}>{tL("labelLight")}</div>
           {(() => {
             const lArt = cosmeticArt.light[currentLight.id];
             if (lArt?.video_url) return <video src={lArt.video_url} autoPlay loop muted playsInline style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
@@ -181,7 +183,7 @@ export function LoadoutTrio({
             );
           })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{currentLight.name}</div>
-          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>Ändern →</div>
+          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
         </div>
 
         {/* ── PIN-THEME ── */}
@@ -190,7 +192,7 @@ export function LoadoutTrio({
           const tArt = cosmeticArt.pin_theme[pinThemeState.active];
           return (
             <div style={tileStyle()} onClick={() => setThemeOpen(true)}>
-              <div style={labelStyle()}>PIN-THEME</div>
+              <div style={labelStyle()}>{tL("labelPinTheme")}</div>
               {tArt?.video_url ? (
                 <video src={tArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
               ) : tArt?.image_url ? (
@@ -208,7 +210,7 @@ export function LoadoutTrio({
                 </div>
               )}
               <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{tMeta.name}</div>
-              <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>Ändern →</div>
+              <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
             </div>
           );
         })()}
@@ -260,6 +262,7 @@ function PinThemePickerModal({
   onClose: () => void;
   onArtworkChanged?: () => void;
 }) {
+  const tL = useTranslations("Loadout");
   const unlockedSet = new Set(unlocked);
   return (
     <div onClick={onClose} style={{
@@ -277,9 +280,9 @@ function PinThemePickerModal({
       }}>
         <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>PIN-THEME WÄHLEN</div>
+            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tL("themeKicker")}</div>
             <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {unlocked.length} / {ALL_PIN_THEMES.length} freigeschaltet
+              {tL("themeUnlockCount", { unlocked: unlocked.length, total: ALL_PIN_THEMES.length })}
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
@@ -324,14 +327,14 @@ function PinThemePickerModal({
                     <span style={{ fontSize: 9, color: "#a8b4cf", textAlign: "center", marginTop: 3, lineHeight: 1.3 }}>{m.description}</span>
                     <div style={{ marginTop: 6 }}>
                       {isActive
-                        ? <span style={{ fontSize: 9, fontWeight: 900, color: m.preview.accent }}>✓ AKTIV</span>
+                        ? <span style={{ fontSize: 9, fontWeight: 900, color: m.preview.accent }}>{tL("themeActive")}</span>
                         : isUnlocked
-                          ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>Wählen</span>
-                          : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>🔒 Gem-Shop</span>
+                          ? <span style={{ fontSize: 9, fontWeight: 800, color: "#4ade80" }}>{tL("themeChoose")}</span>
+                          : <span style={{ fontSize: 9, fontWeight: 800, color: "#FFD700" }}>{tL("themeLockedShop")}</span>
                       }
                     </div>
                     {isAdmin && !hasArt && (
-                      <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>KEIN ARTWORK</span>
+                      <span style={{ fontSize: 7, fontWeight: 900, color: "#FF2D78", marginTop: 2 }}>{tL("themeNoArtwork")}</span>
                     )}
                   </button>
                   {isAdmin && (

@@ -1277,6 +1277,42 @@
     "linkImpressum": "Impressum",
     "linkSupport": "Support",
     "closeFactionInfo": "Schließen"
+  },
+  "GuardianCollection": {
+    "loading": "Lade Wächter-Sammlung…",
+    "headerTitle": "🛡️ Sammlung: {owned} / {total}",
+    "headerHint": "Neue Wächter gibt's durch Arena-Siege, Boss-Raids & Meilensteine",
+    "shopBtn": "💎 Shop",
+    "starterKicker": "🎮 WÄHLE DEINEN STARTER",
+    "starterIntro": "Du hast noch keinen aktiven Wächter. Such dir einen Elite-Starter aus — je nach Typ spielt er sich anders.",
+    "starterEliteFallback": "ELITE",
+    "starterTypeLabel": "{icon} {label}",
+    "myGuardians": "DEINE WÄCHTER ({count})",
+    "active": "AKTIV",
+    "lvlWl": "Lvl {level} · {wins}W/{losses}L",
+    "open": "Öffnen",
+    "activate": "Aktivieren",
+    "uncollectedKicker": "NOCH NICHT GESAMMELT ({owned}/{total})",
+    "viewAll": "Alle 60 Wächter ansehen",
+    "viewAllHintAdmin": "Sortiert nach Typ · Prompt & Upload verfügbar (Admin)",
+    "viewAllHint": "Sortiert nach Typ · Wächter kommen durch Arena, Boss, Meilensteine"
+  },
+  "Loadout": {
+    "starterKicker": "🎮 WÄHLE DEINEN STARTER",
+    "starterIntro": "Such dir einen Elite-Wächter aus — je nach Typ spielt er sich anders.",
+    "starterEliteFallback": "ELITE",
+    "starterTypeLabel": "{icon} {label}",
+    "loading": "Lade Wächter …",
+    "labelMapIcon": "MAP-ICON",
+    "labelLight": "RUNNER-LIGHT",
+    "labelPinTheme": "PIN-THEME",
+    "change": "Ändern →",
+    "themeKicker": "PIN-THEME WÄHLEN",
+    "themeUnlockCount": "{unlocked} / {total} freigeschaltet",
+    "themeActive": "✓ AKTIV",
+    "themeChoose": "Wählen",
+    "themeLockedShop": "🔒 Gem-Shop",
+    "themeNoArtwork": "KEIN ARTWORK"
   }
   "ShopQuests": {
     "title": "📋 Shop-Quests",

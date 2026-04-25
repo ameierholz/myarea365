@@ -1277,6 +1277,42 @@
     "linkImpressum": "Imprint",
     "linkSupport": "Support",
     "closeFactionInfo": "Close"
+  },
+  "GuardianCollection": {
+    "loading": "Loading guardian collection…",
+    "headerTitle": "🛡️ Collection: {owned} / {total}",
+    "headerHint": "New guardians come from arena wins, boss raids & milestones",
+    "shopBtn": "💎 Shop",
+    "starterKicker": "🎮 PICK YOUR STARTER",
+    "starterIntro": "You don't have an active guardian yet. Pick an elite starter — each type plays differently.",
+    "starterEliteFallback": "ELITE",
+    "starterTypeLabel": "{icon} {label}",
+    "myGuardians": "YOUR GUARDIANS ({count})",
+    "active": "ACTIVE",
+    "lvlWl": "Lvl {level} · {wins}W/{losses}L",
+    "open": "Open",
+    "activate": "Activate",
+    "uncollectedKicker": "NOT YET COLLECTED ({owned}/{total})",
+    "viewAll": "View all 60 guardians",
+    "viewAllHintAdmin": "Sorted by type · prompt & upload available (admin)",
+    "viewAllHint": "Sorted by type · guardians come via arena, boss, milestones"
+  },
+  "Loadout": {
+    "starterKicker": "🎮 PICK YOUR STARTER",
+    "starterIntro": "Pick an elite guardian — each type plays differently.",
+    "starterEliteFallback": "ELITE",
+    "starterTypeLabel": "{icon} {label}",
+    "loading": "Loading guardian…",
+    "labelMapIcon": "MAP ICON",
+    "labelLight": "RUNNER LIGHT",
+    "labelPinTheme": "PIN THEME",
+    "change": "Change →",
+    "themeKicker": "PICK PIN THEME",
+    "themeUnlockCount": "{unlocked} / {total} unlocked",
+    "themeActive": "✓ ACTIVE",
+    "themeChoose": "Pick",
+    "themeLockedShop": "🔒 Gem shop",
+    "themeNoArtwork": "NO ARTWORK"
   }
   "ShopQuests": {
     "title": "📋 Shop quests",
