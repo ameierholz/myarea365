@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { appAlert, appConfirm } from "@/components/app-dialog";
+import { getDateLocale, getNumberLocale } from "@/i18n/config";
 
 type Crew = {
   id: string;
@@ -13,17 +15,15 @@ type Crew = {
 };
 
 type Tab = "overview" | "war" | "season" | "flags" | "duel" | "challenges" | "events" | "chat" | "feed" | "shop" | "power";
+type CrewT = ReturnType<typeof useTranslations<"CrewLiveHub">>;
 
-// Nur Pills, die NICHT in den Haupt-Crew-Tabs (map-dashboard.tsx) existieren —
-// Mitglieder/Challenges/Events/Chat/Feed werden dort schon abgebildet und wurden
-// hier entfernt, um die doppelte Tab-Reihe auf der Übersicht zu vermeiden.
-const TABS: Array<{ id: Tab; label: string; icon: string; color: string }> = [
-  { id: "war",       label: "Krieg",       icon: "🔥", color: "#FF2D78" },
-  { id: "season",    label: "Saison",      icon: "🏆", color: "#FFD700" },
-  { id: "flags",     label: "Flaggen",     icon: "🚩", color: "#4ade80" },
-  { id: "duel",      label: "Duell",       icon: "⚔️", color: "#FF6B4A" },
-  { id: "shop",      label: "Shop",        icon: "💎", color: "#FF6B4A" },
-  { id: "power",     label: "Power",       icon: "⚡", color: "#FFD700" },
+const TAB_DEFS: Array<{ id: Tab; icon: string; color: string; labelKey: "tabWar" | "tabSeason" | "tabFlags" | "tabDuel" | "tabShop" | "tabPower" }> = [
+  { id: "war",       icon: "🔥", color: "#FF2D78", labelKey: "tabWar" },
+  { id: "season",    icon: "🏆", color: "#FFD700", labelKey: "tabSeason" },
+  { id: "flags",     icon: "🚩", color: "#4ade80", labelKey: "tabFlags" },
+  { id: "duel",      icon: "⚔️", color: "#FF6B4A", labelKey: "tabDuel" },
+  { id: "shop",      icon: "💎", color: "#FF6B4A", labelKey: "tabShop" },
+  { id: "power",     icon: "⚡", color: "#FFD700", labelKey: "tabPower" },
 ];
 
 export function CrewLiveHub({ crew, userId, isAdmin }: {
@@ -31,6 +31,7 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
   userId: string;
   isAdmin: boolean;
 }) {
+  const t = useTranslations("CrewLiveHub");
   const [tab, setTab] = useState<Tab>("war");
   return (
     <div style={{
@@ -42,31 +43,30 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
       marginBottom: 18,
     }}>
       <div style={{ fontSize: 10, letterSpacing: 1.5, color: "#22D1C3", fontWeight: 900, marginBottom: 10 }}>
-        🛰️ LIVE · CREW-ZENTRALE
+        {t("liveHeader")}
       </div>
 
-      {/* Tabs */}
       <div style={{
         display: "flex", gap: 4, overflowX: "auto", marginBottom: 14,
         scrollbarWidth: "none",
       }}>
-        {TABS.map((t) => {
-          const active = tab === t.id;
+        {TAB_DEFS.map((td) => {
+          const active = tab === td.id;
           return (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={td.id}
+              onClick={() => setTab(td.id)}
               style={{
                 flexShrink: 0, padding: "8px 12px", borderRadius: 999,
-                background: active ? `${t.color}22` : "rgba(255,255,255,0.04)",
-                border: `1px solid ${active ? t.color : "rgba(255,255,255,0.1)"}`,
-                color: active ? t.color : "#a8b4cf",
+                background: active ? `${td.color}22` : "rgba(255,255,255,0.04)",
+                border: `1px solid ${active ? td.color : "rgba(255,255,255,0.1)"}`,
+                color: active ? td.color : "#a8b4cf",
                 fontSize: 12, fontWeight: 800, cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 4,
               }}
             >
-              <span>{t.icon}</span>
-              <span>{t.label}</span>
+              <span>{td.icon}</span>
+              <span>{t(td.labelKey)}</span>
             </button>
           );
         })}
@@ -82,7 +82,7 @@ export function CrewLiveHub({ crew, userId, isAdmin }: {
   );
 }
 
-// ═══ WAR (Crew vs Crew 7-Tage-Fehde) ═══
+// ═══ WAR ═══
 type War = {
   id: string; status: string; starts_at: string | null; ends_at: string | null;
   crew_a_id: string; crew_b_id: string;
@@ -94,6 +94,9 @@ type War = {
   crew_b: { id: string; name: string; color: string | null } | { id: string; name: string; color: string | null }[] | null;
 };
 function WarPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [wars, setWars] = useState<War[] | null>(null);
   const [declaring, setDeclaring] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -129,14 +132,14 @@ function WarPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
           width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
           background: "rgba(255,45,120,0.15)", border: "1px dashed rgba(255,45,120,0.5)",
           color: "#FF2D78", fontWeight: 900, fontSize: 12, cursor: "pointer",
-        }}>🔥 Krieg erklären</button>
+        }}>{t("warDeclareButton")}</button>
       )}
 
-      {active && <WarCard war={active} myCrewId={crew.id} />}
+      {active && <WarCard war={active} myCrewId={crew.id} t={t} numLocale={numLocale} />}
 
       {pending.length > 0 && (
         <>
-          <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginTop: 12, marginBottom: 6 }}>AUSSTEHENDE EINLADUNGEN</div>
+          <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginTop: 12, marginBottom: 6 }}>{t("warPendingHeading")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {pending.map((w) => {
               const a = Array.isArray(w.crew_a) ? w.crew_a[0] : w.crew_a;
@@ -149,18 +152,18 @@ function WarPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
                     {a?.name} <span style={{ color: "#FF2D78" }}>vs</span> {b?.name}
                   </div>
                   <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
-                    {iAmTarget ? "Eine andere Crew will gegen euch in den Krieg ziehen." : "Warte auf Antwort der gegnerischen Crew."}
+                    {iAmTarget ? t("warOtherWants") : t("warWaitResponse")}
                   </div>
                   {isAdmin && (
                     <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                       {iAmTarget && (
                         <>
-                          <button onClick={() => act(w.id, "accept")} disabled={busy === w.id} style={{ ...btnPrimary, background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115" }}>✓ Annehmen</button>
-                          <button onClick={() => act(w.id, "decline")} disabled={busy === w.id} style={btnSecondary}>✗ Ablehnen</button>
+                          <button onClick={() => act(w.id, "accept")} disabled={busy === w.id} style={{ ...btnPrimary, background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115" }}>{t("warAccept")}</button>
+                          <button onClick={() => act(w.id, "decline")} disabled={busy === w.id} style={btnSecondary}>{t("warDecline")}</button>
                         </>
                       )}
                       {iAmDeclarer && (
-                        <button onClick={() => act(w.id, "cancel")} disabled={busy === w.id} style={btnSecondary}>Zurückziehen</button>
+                        <button onClick={() => act(w.id, "cancel")} disabled={busy === w.id} style={btnSecondary}>{t("warWithdraw")}</button>
                       )}
                     </div>
                   )}
@@ -173,22 +176,22 @@ function WarPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
 
       {past.length > 0 && (
         <>
-          <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginTop: 14, marginBottom: 6 }}>VERGANGENE KRIEGE</div>
+          <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginTop: 14, marginBottom: 6 }}>{t("warPastHeading")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {past.slice(0, 5).map((w) => <WarCard key={w.id} war={w} myCrewId={crew.id} compact />)}
+            {past.slice(0, 5).map((w) => <WarCard key={w.id} war={w} myCrewId={crew.id} compact t={t} numLocale={numLocale} />)}
           </div>
         </>
       )}
 
       {!active && pending.length === 0 && past.length === 0 && (
-        <Empty text="Noch kein Krieg geführt. Admins können Feinde herausfordern." />
+        <Empty text={t("warEmpty")} />
       )}
 
       {declaring && <DeclareWarModal onClose={() => { setDeclaring(false); void load(); }} />}
     </div>
   );
 }
-function WarCard({ war, myCrewId, compact }: { war: War; myCrewId: string; compact?: boolean }) {
+function WarCard({ war, myCrewId, compact, t, numLocale }: { war: War; myCrewId: string; compact?: boolean; t: CrewT; numLocale: string }) {
   const a = Array.isArray(war.crew_a) ? war.crew_a[0] : war.crew_a;
   const b = Array.isArray(war.crew_b) ? war.crew_b[0] : war.crew_b;
   const total = war.crew_a_score + war.crew_b_score;
@@ -209,7 +212,9 @@ function WarCard({ war, myCrewId, compact }: { war: War; myCrewId: string; compa
     }}>
       {isActive && (
         <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: "#FF2D78", marginBottom: 6 }}>
-          🔥 KRIEG AKTIV {hoursLeft < 48 ? `· noch ${hoursLeft}h` : `· noch ${Math.ceil(hoursLeft/24)} Tage`} · Preis {war.prize_xp} 🏴 Gebietsruf
+          {hoursLeft < 48
+            ? t("warActiveHoursLeft", { hours: hoursLeft, prize: war.prize_xp })
+            : t("warActiveDaysLeft", { days: Math.ceil(hoursLeft/24), prize: war.prize_xp })}
         </div>
       )}
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
@@ -221,23 +226,26 @@ function WarCard({ war, myCrewId, compact }: { war: War; myCrewId: string; compa
         <div style={{ flex: 1, background: b?.color ?? "#FF2D78" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginTop: 4, color: "#a8b4cf" }}>
-        <span>{Math.round(war.crew_a_score)} Pt · {Number(war.crew_a_km).toFixed(1)} km · {war.crew_a_territories} Terr</span>
-        <span>{Math.round(war.crew_b_score)} Pt · {Number(war.crew_b_km).toFixed(1)} km · {war.crew_b_territories} Terr</span>
+        <span>{t("warStatsLine", { score: Math.round(war.crew_a_score), km: Number(war.crew_a_km).toFixed(1), terr: war.crew_a_territories })}</span>
+        <span>{t("warStatsLine", { score: Math.round(war.crew_b_score), km: Number(war.crew_b_km).toFixed(1), terr: war.crew_b_territories })}</span>
       </div>
       {!isActive && war.winner_crew_id && (
         <div style={{ fontSize: 10, marginTop: 6, color: iWon ? "#4ade80" : "#FF2D78", fontWeight: 900, textAlign: "center" }}>
-          {iWon ? `✓ Du gewinnst · +${war.prize_xp} 🏴 Gebietsruf` : `✗ Verloren`}
+          {iWon ? t("warYouWin", { prize: war.prize_xp }) : t("warLost")}
         </div>
       )}
       {isActive && (
         <div style={{ fontSize: 10, marginTop: 6, color: "#FFF", fontWeight: 700, textAlign: "center" }}>
-          {mine > opp ? `Du führst um ${Math.round(mine - opp)} Pt` : mine < opp ? `Rückstand ${Math.round(opp - mine)} Pt` : "Gleichstand"}
+          {mine > opp ? t("warLeading", { n: Math.round(mine - opp) }) : mine < opp ? t("warBehind", { n: Math.round(opp - mine) }) : t("warTie")}
         </div>
       )}
+      {/* numLocale reserved for future */}
+      <span hidden>{numLocale}</span>
     </div>
   );
 }
 function DeclareWarModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("CrewLiveHub");
   const sb = useMemo(() => createClient(), []);
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState<Array<{ id: string; name: string; color: string | null; zip: string | null; member_count: number | null }> | null>(null);
@@ -264,8 +272,8 @@ function DeclareWarModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ target_crew_id: targetId }),
       });
       const j = await r.json();
-      if (!r.ok) { await appAlert(`Fehler: ${j.error ?? r.status}`); return; }
-      await appAlert("⚔️ Kriegserklärung versendet! Sobald die Gegner-Crew annimmt, beginnen die 7 Tage.");
+      if (!r.ok) { await appAlert(t("warErrorPrefix", { msg: String(j.error ?? r.status) })); return; }
+      await appAlert(t("warSentAlert"));
       onClose();
     } finally { setBusy(null); }
   }
@@ -273,42 +281,43 @@ function DeclareWarModal({ onClose }: { onClose: () => void }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, maxHeight: "90vh", overflow: "auto", background: "#1A1D23", borderRadius: 16, border: "1px solid rgba(255,45,120,0.4)", padding: 20, color: "#FFF" }}>
-        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 4 }}>🔥 Krieg erklären</div>
+        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 4 }}>{t("warModalTitle")}</div>
         <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 12 }}>
-          Wähle eine Feind-Crew. Nimmt deren Admin an, startet ein 7-Tage-Krieg (km + Gebiete zählen).
+          {t("warModalSub")}
         </div>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Crew-Name suchen…"
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("warSearchPlaceholder")}
           style={{ ...selectStyle, width: "100%", marginBottom: 10 }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
-          {candidates === null ? <Loading /> : candidates.length === 0 ? <Empty text="Keine Crews gefunden." /> : candidates.map((c) => (
+          {candidates === null ? <Loading /> : candidates.length === 0 ? <Empty text={t("warNoCrewsFound")} /> : candidates.map((c) => (
             <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: "rgba(15,17,21,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ width: 30, height: 30, borderRadius: 8, background: c.color ?? "#22D1C3", display: "flex", alignItems: "center", justifyContent: "center", color: "#0F1115", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
                 {c.name.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{c.name}</div>
-                <div style={{ color: "#8B8FA3", fontSize: 10 }}>PLZ {c.zip ?? "?"} · {c.member_count ?? 0} Mitglieder</div>
+                <div style={{ color: "#8B8FA3", fontSize: 10 }}>{t("warPlzMembers", { plz: c.zip ?? "?", n: c.member_count ?? 0 })}</div>
               </div>
               <button onClick={() => declare(c.id)} disabled={busy === c.id} style={{
                 padding: "6px 10px", borderRadius: 8, border: "none",
                 background: "linear-gradient(135deg,#FF2D78,#FF6B4A)", color: "#FFF",
                 fontSize: 11, fontWeight: 900, cursor: "pointer", opacity: busy === c.id ? 0.6 : 1,
-              }}>⚔️ Krieg</button>
+              }}>{t("warBtnDeclare")}</button>
             </div>
           ))}
         </div>
-        <button onClick={onClose} style={{ ...btnSecondary, width: "100%", marginTop: 12 }}>Abbrechen</button>
+        <button onClick={onClose} style={{ ...btnSecondary, width: "100%", marginTop: 12 }}>{t("abort")}</button>
       </div>
     </div>
   );
 }
 
-// ═══ SEASON (Monats-Liga) ═══
+// ═══ SEASON ═══
 type SeasonStanding = {
   crew_id: string; tier: string; points: number; duel_wins: number; war_wins: number; territories_claimed: number;
   crew: { id: string; name: string; color: string | null } | { id: string; name: string; color: string | null }[] | null;
 };
 function SeasonPanel({ crew }: { crew: Crew }) {
+  const t = useTranslations("CrewLiveHub");
   const [data, setData] = useState<{ standings: SeasonStanding[]; my_rank: number | null; my_entry: { tier: string; points: number } | null; season: { year: number; month: number; ends_at: string } | null } | null>(null);
 
   useEffect(() => {
@@ -327,22 +336,26 @@ function SeasonPanel({ crew }: { crew: Crew }) {
       <CrewTabInfo tab="season" />
       <div style={{ padding: 14, borderRadius: 12, background: "linear-gradient(135deg,rgba(255,215,0,0.12),rgba(255,107,74,0.08))", border: "1px solid rgba(255,215,0,0.3)", marginBottom: 12 }}>
         <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700" }}>
-          🏆 SAISON {data.season ? `${data.season.month}/${data.season.year}` : "?"} · noch {daysLeft} Tage
+          {data.season
+            ? t("seasonInfo", { month: data.season.month, year: data.season.year, days: daysLeft })
+            : t("seasonInfoUnknown", { days: daysLeft })}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6 }}>
           <div style={{ flex: 1 }}>
             <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>
-              {data.my_rank ? `#${data.my_rank}` : "Ungerankt"}
+              {data.my_rank ? t("seasonRank", { rank: data.my_rank }) : t("seasonUnranked")}
             </div>
             <div style={{ color: "#a8b4cf", fontSize: 11 }}>
-              {data.my_entry ? `${data.my_entry.tier.toUpperCase()} · ${Math.round(data.my_entry.points)} Pt` : "Lauf die ersten km, um dich zu ranken."}
+              {data.my_entry
+                ? t("seasonTierLine", { tier: data.my_entry.tier.toUpperCase(), points: Math.round(data.my_entry.points) })
+                : t("seasonStartHint")}
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>TOP 20 CREWS</div>
-      {data.standings.length === 0 ? <Empty text="Noch keine Saison-Standings." /> : (
+      <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{t("seasonTopHeading")}</div>
+      {data.standings.length === 0 ? <Empty text={t("seasonNoStandings")} /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {data.standings.slice(0, 20).map((s, i) => {
             const c = Array.isArray(s.crew) ? s.crew[0] : s.crew;
@@ -363,7 +376,7 @@ function SeasonPanel({ crew }: { crew: Crew }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c?.name ?? "?"}</div>
                   <div style={{ color: "#8B8FA3", fontSize: 9 }}>
-                    {s.tier} · {s.duel_wins}D {s.war_wins}W {s.territories_claimed}T
+                    {t("seasonRowSub", { tier: s.tier, d: s.duel_wins, w: s.war_wins, t: s.territories_claimed })}
                   </div>
                 </div>
                 <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>{Math.round(s.points)}</div>
@@ -376,13 +389,14 @@ function SeasonPanel({ crew }: { crew: Crew }) {
   );
 }
 
-// ═══ FLAGS (Capture-the-Flag Flash-Events) ═══
+// ═══ FLAGS ═══
 type FlagEvent = {
   id: string; name: string; lat: number; lng: number; radius_m: number; plz: string | null;
   ends_at: string; target_visits: number; prize_xp: number; status: string;
   leaderboard: Array<{ crew_id: string; name: string; color: string | null; visits: number }>;
 };
-function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
+function FlagsPanel({ crew }: { crew: Crew; userId: string }) {
+  const t = useTranslations("CrewLiveHub");
   const [events, setEvents] = useState<FlagEvent[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -394,7 +408,7 @@ function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
   useEffect(() => { void load(); }, [load]);
 
   async function claimVisit(eventId: string) {
-    if (!navigator.geolocation) { await appAlert("GPS nicht verfügbar."); return; }
+    if (!navigator.geolocation) { await appAlert(t("flagGpsUnavail")); return; }
     setBusy(eventId);
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
@@ -405,14 +419,16 @@ function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
       });
       const j = await r.json();
       if (!r.ok) {
-        await appAlert(j.error === "out_of_range" ? `Zu weit weg (${j.distance}m). Komm näher.` : `Fehler: ${j.error}`);
+        await appAlert(j.error === "out_of_range"
+          ? t("flagOutOfRange", { distance: j.distance })
+          : t("flagGenericError", { error: String(j.error) }));
         return;
       }
-      if (j.won) await appAlert(`🏆 Crew gewinnt die Flagge! +${j.gebietsruf ?? j.xp ?? 0} 🏴 Gebietsruf für alle Mitglieder.`);
-      else await appAlert(`🚩 Visit registriert! Crew hat ${j.crew_visits} Visits.`);
+      if (j.won) await appAlert(t("flagWonAlert", { xp: j.gebietsruf ?? j.xp ?? 0 }));
+      else await appAlert(t("flagVisitAlert", { visits: j.crew_visits }));
       await load();
     } catch (e) {
-      await appAlert(`GPS-Fehler: ${e instanceof Error ? e.message : "?"}`);
+      await appAlert(t("flagGpsError", { msg: e instanceof Error ? e.message : "?" }));
     } finally { setBusy(null); }
   }
 
@@ -420,10 +436,10 @@ function FlagsPanel({ crew, userId }: { crew: Crew; userId: string }) {
     <div>
       <CrewTabInfo tab="flags" />
       {events === null ? <Loading /> : events.length === 0 ? (
-        <Empty text="Keine aktiven Flaggen-Kämpfe. Neue werden regelmäßig freigeschaltet." />
+        <Empty text={t("flagsEmpty")} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {renderFlagEvents(events, crew.id, busy, claimVisit)}
+          {renderFlagEvents(events, crew.id, busy, claimVisit, t)}
         </div>
       )}
     </div>
@@ -435,6 +451,7 @@ function renderFlagEvents(
   crewId: string,
   busy: string | null,
   claimVisit: (eventId: string) => void,
+  t: CrewT,
 ) {
   return events.map((e) => {
     const hoursLeft = Math.max(0, Math.ceil((new Date(e.ends_at).getTime() - Date.now()) / 3600000));
@@ -445,22 +462,24 @@ function renderFlagEvents(
       <div key={e.id} style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.5)", border: "1px solid rgba(74,222,128,0.35)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>🚩 FLAGGEN-KAMPF</div>
+            <div style={{ color: "#4ade80", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>{t("flagBadge")}</div>
             <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{e.name}</div>
             <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-              {e.plz ? `PLZ ${e.plz} · ` : ""}Radius {e.radius_m}m · endet in {hoursLeft}h
+              {e.plz
+                ? t("flagDetails", { plz: e.plz, radius: e.radius_m, hours: hoursLeft })
+                : t("flagDetailsNoPlz", { radius: e.radius_m, hours: hoursLeft })}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>+{e.prize_xp} 🏴</div>
-            <div style={{ color: "#8B8FA3", fontSize: 9 }}>an Winner-Crew</div>
+            <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 900 }}>{t("flagPrize", { xp: e.prize_xp })}</div>
+            <div style={{ color: "#8B8FA3", fontSize: 9 }}>{t("flagWinnerTo")}</div>
           </div>
         </div>
         <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${pctToTarget}%`, background: "linear-gradient(90deg,#4ade80,#22D1C3)" }} />
         </div>
         <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>
-          Deine Crew: {myVisits} / {e.target_visits} Visits
+          {t("flagYourCrew", { visits: myVisits, target: e.target_visits })}
         </div>
         {e.leaderboard.length > 0 && (
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
@@ -481,13 +500,13 @@ function renderFlagEvents(
             background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115",
             fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy === e.id ? 0.6 : 1,
           }}
-        >{busy === e.id ? "Prüfe GPS…" : "🚩 Ich bin vor Ort!"}</button>
+        >{busy === e.id ? t("flagChecking") : t("flagAtSpot")}</button>
       </div>
     );
   });
 }
 
-// ═══ MEMBERS ═══
+// ═══ MEMBERS (currently unused but kept) ═══
 type Member = {
   user_id: string; role: string; joined_at: string | null;
   username: string | null; display_name: string | null; avatar_url: string | null;
@@ -496,7 +515,11 @@ type Member = {
   team_color: string | null;
   last_seen_at: string | null; streak_days: number;
 };
-function MembersPanel({ crew }: { crew: Crew }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _MembersPanel({ crew }: { crew: Crew }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [members, setMembers] = useState<Member[] | null>(null);
   useEffect(() => {
     (async () => {
@@ -509,16 +532,16 @@ function MembersPanel({ crew }: { crew: Crew }) {
   return (
     <div>
       <CrewTabInfo tab="overview" />
-      {members === null ? <Loading /> : members.length === 0 ? <Empty text="Noch keine Mitglieder." /> : (
+      {members === null ? <Loading /> : members.length === 0 ? <Empty text={t("membersEmpty")} /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {renderMemberRows(members)}
+          {renderMemberRows(members, t, numLocale)}
         </div>
       )}
     </div>
   );
 }
 
-function renderMemberRows(members: Member[]) {
+function renderMemberRows(members: Member[], t: CrewT, numLocale: string) {
   return members.map((m) => {
     const online = m.last_seen_at && Date.now() - new Date(m.last_seen_at).getTime() < 5 * 60 * 1000;
     return (
@@ -551,13 +574,13 @@ function renderMemberRows(members: Member[]) {
             </span>
             {(m.role === "admin" || m.role === "owner") && (
               <span style={{ fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 4, background: "rgba(255,215,0,0.2)", color: "#FFD700" }}>
-                {m.role === "owner" ? "👑 OWNER" : "ADMIN"}
+                {m.role === "owner" ? t("memberOwner") : t("memberAdmin")}
               </span>
             )}
           </div>
           <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 1 }}>
-            Lvl {m.level} · {(m.gebietsruf ?? 0).toLocaleString("de-DE")} 🏴
-            {m.streak_days > 0 && <> · 🔥 {m.streak_days}</>}
+            {t("memberLevelLine", { level: m.level, gebietsruf: (m.gebietsruf ?? 0).toLocaleString(numLocale) })}
+            {m.streak_days > 0 && t("memberStreak", { days: m.streak_days })}
           </div>
         </div>
       </div>
@@ -575,6 +598,7 @@ type Duel = {
   my_side: "a" | "b";
 };
 function DuelPanel({ crew }: { crew: Crew }) {
+  const t = useTranslations("CrewLiveHub");
   const [duels, setDuels] = useState<Duel[] | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -600,36 +624,36 @@ function DuelPanel({ crew }: { crew: Crew }) {
   return (
     <div>
       <CrewTabInfo tab="duel" />
-      {active ? <DuelCard duel={active} /> : (
+      {active ? <DuelCard duel={active} t={t} /> : (
         <div style={{ padding: 16, textAlign: "center", borderRadius: 12, background: "rgba(255,45,120,0.05)", border: "1px dashed rgba(255,45,120,0.3)" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>⚔️</div>
-          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Kein aktives Duell</div>
+          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, marginBottom: 4 }}>{t("duelEmptyTitle")}</div>
           <div style={{ color: "#a8b4cf", fontSize: 11, marginBottom: 12 }}>
-            Match mit Auto-Matchmaking starten — Gegner-Crew in ähnlicher Liga
+            {t("duelEmptySub")}
           </div>
           <button onClick={triggerMatch} disabled={busy} style={{
             padding: "8px 18px", borderRadius: 10, border: "none",
             background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
             color: "#FFF", fontWeight: 900, fontSize: 12, cursor: "pointer",
             opacity: busy ? 0.6 : 1,
-          }}>{busy ? "…" : "Duell starten"}</button>
+          }}>{busy ? "…" : t("duelStart")}</button>
         </div>
       )}
 
       {past.length > 0 && (
         <>
           <div style={{ fontSize: 10, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginTop: 14, marginBottom: 6 }}>
-            VERGANGENE DUELLE
+            {t("duelPastHeading")}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {past.map((d) => <DuelCard key={d.id} duel={d} compact />)}
+            {past.map((d) => <DuelCard key={d.id} duel={d} compact t={t} />)}
           </div>
         </>
       )}
     </div>
   );
 }
-function DuelCard({ duel, compact }: { duel: Duel; compact?: boolean }) {
+function DuelCard({ duel, compact, t }: { duel: Duel; compact?: boolean; t: CrewT }) {
   const a = duel.crew_a; const b = duel.crew_b;
   const myKm = duel.my_side === "a" ? duel.crew_a_km : duel.crew_b_km;
   const oppKm = duel.my_side === "a" ? duel.crew_b_km : duel.crew_a_km;
@@ -652,21 +676,23 @@ function DuelCard({ duel, compact }: { duel: Duel; compact?: boolean }) {
         <div style={{ flex: 1, background: b?.color ?? "#FF2D78" }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginTop: 4, color: "#a8b4cf" }}>
-        <span>{Number(duel.crew_a_km).toFixed(1)} km</span>
-        <span>{duel.status === "finished" ? (iWon ? "✓ Du gewinnst" : "✗ Niederlage") : `Preis: +${duel.prize_xp} 🏴 Gebietsruf`}</span>
-        <span>{Number(duel.crew_b_km).toFixed(1)} km</span>
+        <span>{t("duelKm", { km: Number(duel.crew_a_km).toFixed(1) })}</span>
+        <span>{duel.status === "finished" ? (iWon ? t("duelYouWin") : t("duelLost")) : t("duelPrize", { xp: duel.prize_xp })}</span>
+        <span>{t("duelKm", { km: Number(duel.crew_b_km).toFixed(1) })}</span>
       </div>
     </div>
   );
 }
 
-// ═══ CHALLENGES ═══
+// ═══ CHALLENGES (unused — kept for future) ═══
 type Challenge = {
   id: string; name: string; description: string | null; icon: string;
   target_metric: string; target_value: number; progress: number; reward_xp: number;
   starts_at: string; ends_at: string; completed_at: string | null;
 };
-function ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
+  const t = useTranslations("CrewLiveHub");
   const [items, setItems] = useState<Challenge[] | null>(null);
   const [creating, setCreating] = useState(false);
   const load = useCallback(async () => {
@@ -685,9 +711,9 @@ function ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
           width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
           background: "rgba(255,215,0,0.12)", border: "1px dashed rgba(255,215,0,0.5)",
           color: "#FFD700", fontWeight: 900, fontSize: 12, cursor: "pointer",
-        }}>+ Neue Crew-Challenge anlegen</button>
+        }}>{t("challengeNewBtn")}</button>
       )}
-      {items.length === 0 ? <Empty text="Noch keine aktiven Challenges." /> : (
+      {items.length === 0 ? <Empty text={t("challengeEmpty")} /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {items.map((c) => {
             const pct = Math.min(100, (Number(c.progress) / Number(c.target_value)) * 100);
@@ -706,8 +732,8 @@ function ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
                     {c.description && <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>{c.description}</div>}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900 }}>+{c.reward_xp} 🏴</div>
-                    <div style={{ color: "#8B8FA3", fontSize: 9 }}>{daysLeft}d</div>
+                    <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900 }}>{t("challengeReward", { xp: c.reward_xp })}</div>
+                    <div style={{ color: "#8B8FA3", fontSize: 9 }}>{t("challengeDays", { n: daysLeft })}</div>
                   </div>
                 </div>
                 <div style={{ marginTop: 8, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
@@ -718,18 +744,20 @@ function ChallengesPanel({ crew, isAdmin }: { crew: Crew; isAdmin: boolean }) {
                   }} />
                 </div>
                 <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 4, textAlign: "right" }}>
-                  {Number(c.progress).toFixed(1)} / {c.target_value}
+                  {t("challengeProgress", { progress: Number(c.progress).toFixed(1), target: c.target_value })}
                 </div>
               </div>
             );
           })}
         </div>
       )}
-      {creating && <ChallengeEditor crewId={crew.id} onClose={() => { setCreating(false); void load(); }} />}
+      {creating && <_ChallengeEditor crewId={crew.id} onClose={() => { setCreating(false); void load(); }} />}
     </div>
   );
 }
-function ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => void }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => void }) {
+  const t = useTranslations("CrewLiveHub");
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [metric, setMetric] = useState<Challenge["target_metric"]>("weekly_km");
@@ -746,7 +774,7 @@ function ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => v
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ crew_id: crewId, name, description: desc, target_metric: metric, target_value: target, reward_xp: reward, days }),
       });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(`Fehler: ${j.error ?? r.status}`); return; }
+      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(t("warErrorPrefix", { msg: String(j.error ?? r.status) })); return; }
       onClose();
     } finally { setBusy(false); }
   }
@@ -754,28 +782,28 @@ function ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => v
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, background: "#1A1D23", borderRadius: 16, border: "1px solid rgba(255,215,0,0.4)", padding: 20, color: "#FFF" }}>
-        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 12 }}>🎯 Neue Crew-Challenge</div>
-        <Input label="Titel" value={name} onChange={setName} placeholder="z. B. 100 km Wochen-Sprint" />
-        <Input label="Beschreibung (optional)" value={desc} onChange={setDesc} />
+        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 12 }}>{t("challengeEditorTitle")}</div>
+        <Input label={t("challengeFieldName")} value={name} onChange={setName} placeholder={t("challengeFieldNamePh")} />
+        <Input label={t("challengeFieldDesc")} value={desc} onChange={setDesc} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <div>
-            <Label>Metrik</Label>
+            <Label>{t("challengeFieldMetric")}</Label>
             <select value={metric} onChange={(e) => setMetric(e.target.value as Challenge["target_metric"])} style={selectStyle}>
-              <option value="weekly_km">Gesamt-km</option>
-              <option value="new_streets">Neue Straßen</option>
-              <option value="territories">Gebiete</option>
-              <option value="arena_wins">Arena-Siege</option>
-              <option value="members_active">Aktive Mitglieder</option>
+              <option value="weekly_km">{t("challengeMetricKm")}</option>
+              <option value="new_streets">{t("challengeMetricStreets")}</option>
+              <option value="territories">{t("challengeMetricTerritories")}</option>
+              <option value="arena_wins">{t("challengeMetricArena")}</option>
+              <option value="members_active">{t("challengeMetricMembers")}</option>
             </select>
           </div>
-          <Input label="Ziel" type="number" value={String(target)} onChange={(v) => setTarget(Number(v))} />
-          <Input label="Gebietsruf" type="number" value={String(reward)} onChange={(v) => setReward(Number(v))} />
-          <Input label="Dauer (Tage)" type="number" value={String(days)} onChange={(v) => setDays(Number(v))} />
+          <Input label={t("challengeFieldTarget")} type="number" value={String(target)} onChange={(v) => setTarget(Number(v))} />
+          <Input label={t("challengeFieldReward")} type="number" value={String(reward)} onChange={(v) => setReward(Number(v))} />
+          <Input label={t("challengeFieldDays")} type="number" value={String(days)} onChange={(v) => setDays(Number(v))} />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button onClick={onClose} style={btnSecondary}>Abbrechen</button>
+          <button onClick={onClose} style={btnSecondary}>{t("abort")}</button>
           <button onClick={save} disabled={busy || !name} style={{ ...btnPrimary, background: "linear-gradient(135deg,#FFD700,#FF6B4A)", color: "#0F1115" }}>
-            {busy ? "…" : "Anlegen"}
+            {busy ? "…" : t("challengeSave")}
           </button>
         </div>
       </div>
@@ -783,7 +811,7 @@ function ChallengeEditor({ crewId, onClose }: { crewId: string; onClose: () => v
   );
 }
 
-// ═══ EVENTS ═══
+// ═══ EVENTS (unused — kept for future) ═══
 type CrewEvent = {
   id: string; title: string; description: string | null;
   starts_at: string; meeting_point: string | null;
@@ -791,7 +819,11 @@ type CrewEvent = {
   max_attendees: number | null;
   going_count: number; maybe_count: number; my_rsvp: string | null;
 };
-function EventsPanel({ crew, userId }: { crew: Crew; userId: string }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _EventsPanel({ crew, userId }: { crew: Crew; userId: string }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const [events, setEvents] = useState<CrewEvent[] | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -818,8 +850,8 @@ function EventsPanel({ crew, userId }: { crew: Crew; userId: string }) {
         width: "100%", marginBottom: 10, padding: "10px 12px", borderRadius: 10,
         background: "rgba(74,222,128,0.12)", border: "1px dashed rgba(74,222,128,0.5)",
         color: "#4ade80", fontWeight: 900, fontSize: 12, cursor: "pointer",
-      }}>+ Neuen Gruppenlauf planen</button>
-      {events.length === 0 ? <Empty text="Kein geplantes Event. Lade zu einem Gruppenlauf ein!" /> : (
+      }}>{t("eventNewBtn")}</button>
+      {events.length === 0 ? <Empty text={t("eventEmpty")} /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {events.map((e) => {
             const start = new Date(e.starts_at);
@@ -835,27 +867,27 @@ function EventsPanel({ crew, userId }: { crew: Crew; userId: string }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{e.title}</div>
                     <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>
-                      📅 {start.toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      📅 {start.toLocaleString(dateLocale, { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       {e.meeting_point && <> · 📍 {e.meeting_point}</>}
                     </div>
                     {(e.target_distance_km || e.target_pace_min_per_km) && (
                       <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 2 }}>
-                        {e.target_distance_km && <>{e.target_distance_km} km</>}
-                        {e.target_pace_min_per_km && <> · Pace {e.target_pace_min_per_km}:00</>}
+                        {e.target_distance_km && <>{t("eventDistanceKm", { km: e.target_distance_km })}</>}
+                        {e.target_pace_min_per_km && <> · {t("eventPace", { pace: e.target_pace_min_per_km })}</>}
                       </div>
                     )}
                     {e.description && <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{e.description}</div>}
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 900 }}>✓ {e.going_count}</div>
-                    <div style={{ color: "#FFD700", fontSize: 10 }}>~ {e.maybe_count}</div>
+                    <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 900 }}>{t("eventGoingCount", { n: e.going_count })}</div>
+                    <div style={{ color: "#FFD700", fontSize: 10 }}>{t("eventMaybeCount", { n: e.maybe_count })}</div>
                   </div>
                 </div>
                 {!isPast && (
                   <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                     {(["going","maybe","declined"] as const).map((s) => {
                       const active = e.my_rsvp === s;
-                      const label = s === "going" ? "✓ Dabei" : s === "maybe" ? "~ Vielleicht" : "✗ Nein";
+                      const label = s === "going" ? t("eventGoing") : s === "maybe" ? t("eventMaybe") : t("eventDeclined");
                       return (
                         <button key={s} onClick={() => rsvp(e.id, s)} style={{
                           flex: 1, padding: "6px 10px", borderRadius: 8,
@@ -873,11 +905,13 @@ function EventsPanel({ crew, userId }: { crew: Crew; userId: string }) {
           })}
         </div>
       )}
-      {creating && <EventEditor crewId={crew.id} userId={userId} onClose={() => { setCreating(false); void load(); }} />}
+      {creating && <_EventEditor crewId={crew.id} userId={userId} onClose={() => { setCreating(false); void load(); }} />}
     </div>
   );
 }
-function EventEditor({ crewId, onClose }: { crewId: string; userId: string; onClose: () => void }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _EventEditor({ crewId, onClose }: { crewId: string; userId: string; onClose: () => void }) {
+  const t = useTranslations("CrewLiveHub");
   const now = new Date(Date.now() + 86400000);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
@@ -901,7 +935,7 @@ function EventEditor({ crewId, onClose }: { crewId: string; userId: string; onCl
           target_pace_min_per_km: pace || null,
         }),
       });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(`Fehler: ${j.error ?? r.status}`); return; }
+      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(t("warErrorPrefix", { msg: String(j.error ?? r.status) })); return; }
       onClose();
     } finally { setBusy(false); }
   }
@@ -909,19 +943,19 @@ function EventEditor({ crewId, onClose }: { crewId: string; userId: string; onCl
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 440, background: "#1A1D23", borderRadius: 16, border: "1px solid rgba(74,222,128,0.4)", padding: 20, color: "#FFF" }}>
-        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 12 }}>📅 Neuer Gruppenlauf</div>
-        <Input label="Titel" value={title} onChange={setTitle} placeholder="z. B. Mittwochs-Kiez-Runde" />
-        <Input label="Beschreibung" value={desc} onChange={setDesc} />
-        <Input label="Datum & Uhrzeit" type="datetime-local" value={date} onChange={setDate} />
-        <Input label="Treffpunkt" value={mp} onChange={setMp} placeholder="z. B. Südkreuz Haupteingang" />
+        <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 12 }}>{t("eventEditorTitle")}</div>
+        <Input label={t("eventFieldTitle")} value={title} onChange={setTitle} placeholder={t("eventFieldTitlePh")} />
+        <Input label={t("eventFieldDesc")} value={desc} onChange={setDesc} />
+        <Input label={t("eventFieldDate")} type="datetime-local" value={date} onChange={setDate} />
+        <Input label={t("eventFieldMp")} value={mp} onChange={setMp} placeholder={t("eventFieldMpPh")} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <Input label="Distanz (km)" type="number" value={String(km)} onChange={(v) => setKm(Number(v))} />
-          <Input label="Pace (min/km)" type="number" value={String(pace)} onChange={(v) => setPace(Number(v))} />
+          <Input label={t("eventFieldKm")} type="number" value={String(km)} onChange={(v) => setKm(Number(v))} />
+          <Input label={t("eventFieldPace")} type="number" value={String(pace)} onChange={(v) => setPace(Number(v))} />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button onClick={onClose} style={btnSecondary}>Abbrechen</button>
+          <button onClick={onClose} style={btnSecondary}>{t("abort")}</button>
           <button onClick={save} disabled={busy || !title} style={{ ...btnPrimary, background: "linear-gradient(135deg,#4ade80,#22D1C3)", color: "#0F1115" }}>
-            {busy ? "…" : "Anlegen"}
+            {busy ? "…" : t("eventSave")}
           </button>
         </div>
       </div>
@@ -929,13 +963,17 @@ function EventEditor({ crewId, onClose }: { crewId: string; userId: string; onCl
   );
 }
 
-// ═══ CHAT ═══
+// ═══ CHAT (unused — kept for future) ═══
 type ChatMessage = {
   id: string; user_id: string; body: string; reply_to: string | null;
   created_at: string; deleted_at: string | null;
   user: { username: string | null; display_name: string | null; avatar_url: string | null; team_color: string | null } | { username: string | null; display_name: string | null; avatar_url: string | null; team_color: string | null }[] | null;
 };
-function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -950,7 +988,6 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
 
   useEffect(() => { void load(); }, [load]);
 
-  // Realtime-Subscribe
   useEffect(() => {
     const ch = sb.channel(`crew_chat_${crew.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "crew_messages", filter: `crew_id=eq.${crew.id}` },
@@ -964,13 +1001,13 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
   }, [messages]);
 
   async function send() {
-    const t = text.trim();
-    if (!t || busy) return;
+    const tx = text.trim();
+    if (!tx || busy) return;
     setBusy(true);
     try {
       const r = await fetch("/api/crew/messages", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ crew_id: crew.id, body: t }),
+        body: JSON.stringify({ crew_id: crew.id, body: tx }),
       });
       if (r.ok) setText("");
       await load();
@@ -978,7 +1015,7 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
   }
 
   async function del(id: string) {
-    if (!await appConfirm("Nachricht löschen?")) return;
+    if (!await appConfirm(t("chatDeleteConfirm"))) return;
     await fetch(`/api/crew/messages?id=${id}`, { method: "DELETE" });
     await load();
   }
@@ -989,7 +1026,7 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
     <div>
       <CrewTabInfo tab="chat" />
       <div ref={scrollRef} style={{ maxHeight: 360, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, padding: "4px 2px" }}>
-        {messages.length === 0 && <Empty text="Noch keine Nachrichten. Schreib die erste!" />}
+        {messages.length === 0 && <Empty text={t("chatEmpty")} />}
         {messages.map((m) => {
           const u = Array.isArray(m.user) ? m.user[0] : m.user;
           const mine = m.user_id === userId;
@@ -1011,7 +1048,7 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
               </div>
               <div style={{ display: "flex", justifyContent: mine ? "flex-end" : "flex-start", alignItems: "center", gap: 6, marginTop: 2 }}>
                 <span style={{ fontSize: 8, color: "#8B8FA3" }}>
-                  {new Date(m.created_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(m.created_at).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 {mine && <button onClick={() => del(m.id)} style={{ background: "transparent", border: "none", color: "#8B8FA3", fontSize: 9, cursor: "pointer" }}>✕</button>}
               </div>
@@ -1024,7 +1061,7 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, 600))}
           onKeyDown={(e) => { if (e.key === "Enter") void send(); }}
-          placeholder="Nachricht an Crew…"
+          placeholder={t("chatPlaceholder")}
           maxLength={600}
           style={{
             flex: 1, padding: "10px 12px", borderRadius: 10,
@@ -1044,23 +1081,44 @@ function ChatPanel({ crew, userId }: { crew: Crew; userId: string }) {
   );
 }
 
-// ═══ FEED ═══
+// ═══ FEED (unused — kept for future) ═══
 type FeedItem = {
   id: string; kind: string; data: Record<string, unknown>; created_at: string;
   user: { username: string | null; display_name: string | null; avatar_url: string | null } | { username: string | null; display_name: string | null; avatar_url: string | null }[] | null;
 };
-const FEED_META: Record<string, { icon: string; color: string; label: (data: Record<string, unknown>, actor: string) => string }> = {
-  member_joined:        { icon: "🎉", color: "#4ade80",  label: (_, a) => `${a} ist der Crew beigetreten` },
-  member_left:          { icon: "👋", color: "#8B8FA3",  label: (_, a) => `${a} hat die Crew verlassen` },
-  territory_claimed:    { icon: "🏴", color: "#FFD700",  label: (d, a) => `${a} hat ein Gebiet erobert${d.area_m2 ? ` (${Math.round(Number(d.area_m2))} m²)` : ""}` },
-  challenge_completed:  { icon: "🏆", color: "#FFD700",  label: (d) => `Challenge abgeschlossen: ${d.name ?? ""}` },
-  duel_won:             { icon: "⚔️", color: "#4ade80",  label: (d) => `Duell gewonnen gegen ${d.opponent ?? "?"}` },
-  duel_lost:            { icon: "⚔️", color: "#FF2D78",  label: (d) => `Duell verloren gegen ${d.opponent ?? "?"}` },
-  event_created:        { icon: "📅", color: "#5ddaf0",  label: (d) => `Neuer Gruppenlauf: ${d.title ?? ""}` },
-  km_milestone:         { icon: "🏃", color: "#22D1C3",  label: (d, a) => `${a} hat ${d.km ?? "?"} km erreicht` },
-  arena_victory:        { icon: "🛡️", color: "#a855f7", label: (_, a) => `${a} hat ein Arena-Duell gewonnen` },
+const FEED_META: Record<string, { icon: string; color: string }> = {
+  member_joined:        { icon: "🎉", color: "#4ade80" },
+  member_left:          { icon: "👋", color: "#8B8FA3" },
+  territory_claimed:    { icon: "🏴", color: "#FFD700" },
+  challenge_completed:  { icon: "🏆", color: "#FFD700" },
+  duel_won:             { icon: "⚔️", color: "#4ade80" },
+  duel_lost:            { icon: "⚔️", color: "#FF2D78" },
+  event_created:        { icon: "📅", color: "#5ddaf0" },
+  km_milestone:         { icon: "🏃", color: "#22D1C3" },
+  arena_victory:        { icon: "🛡️", color: "#a855f7" },
 };
-function FeedPanel({ crew }: { crew: Crew }) {
+function feedLabel(t: CrewT, kind: string, data: Record<string, unknown>, actor: string): string {
+  switch (kind) {
+    case "member_joined": return t("feedJoined", { actor });
+    case "member_left": return t("feedLeft", { actor });
+    case "territory_claimed":
+      return data.area_m2
+        ? t("feedTerritoryClaimedM2", { actor, m2: Math.round(Number(data.area_m2)) })
+        : t("feedTerritoryClaimed", { actor });
+    case "challenge_completed": return t("feedChallengeCompleted", { name: String(data.name ?? "") });
+    case "duel_won": return t("feedDuelWon", { opponent: String(data.opponent ?? "?") });
+    case "duel_lost": return t("feedDuelLost", { opponent: String(data.opponent ?? "?") });
+    case "event_created": return t("feedEventCreated", { title: String(data.title ?? "") });
+    case "km_milestone": return t("feedKmMilestone", { actor, km: String(data.km ?? "?") });
+    case "arena_victory": return t("feedArenaVictory", { actor });
+    default: return kind;
+  }
+}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _FeedPanel({ crew }: { crew: Crew }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const [items, setItems] = useState<FeedItem[] | null>(null);
   useEffect(() => {
     (async () => {
@@ -1074,21 +1132,21 @@ function FeedPanel({ crew }: { crew: Crew }) {
     <div>
       <CrewTabInfo tab="feed" />
       {items === null ? <Loading /> : items.length === 0 ? (
-        <Empty text="Noch keine Crew-Aktivität. Sobald Mitglieder laufen, Gebiete erobern oder Challenges schaffen, erscheint es hier." />
+        <Empty text={t("feedEmpty")} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {renderFeedItems(items)}
+          {renderFeedItems(items, t, dateLocale)}
         </div>
       )}
     </div>
   );
 }
 
-function renderFeedItems(items: FeedItem[]) {
+function renderFeedItems(items: FeedItem[], t: CrewT, dateLocale: string) {
   return items.map((item) => {
-    const meta = FEED_META[item.kind] ?? { icon: "•", color: "#8B8FA3", label: () => item.kind };
+    const meta = FEED_META[item.kind] ?? { icon: "•", color: "#8B8FA3" };
     const u = Array.isArray(item.user) ? item.user[0] : item.user;
-    const actor = u?.display_name ?? u?.username ?? "Jemand";
+    const actor = u?.display_name ?? u?.username ?? t("feedSomeone");
     const d = item.data ?? {};
     return (
       <div key={item.id} style={{
@@ -1105,9 +1163,9 @@ function renderFeedItems(items: FeedItem[]) {
           fontSize: 14, flexShrink: 0,
         }}>{meta.icon}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#FFF", fontSize: 12, fontWeight: 700 }}>{meta.label(d, actor)}</div>
+          <div style={{ color: "#FFF", fontSize: 12, fontWeight: 700 }}>{feedLabel(t, item.kind, d, actor)}</div>
           <div style={{ color: "#8B8FA3", fontSize: 9, marginTop: 1 }}>
-            {new Date(item.created_at).toLocaleString("de-DE")}
+            {new Date(item.created_at).toLocaleString(dateLocale)}
           </div>
         </div>
       </div>
@@ -1121,6 +1179,9 @@ type ShopItem = {
   price_gems: number; duration_hours: number | null; payload: Record<string, unknown>;
 };
 function ShopPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAdmin: boolean }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [items, setItems] = useState<ShopItem[] | null>(null);
   const [gems, setGems] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -1136,15 +1197,15 @@ function ShopPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAd
   useEffect(() => { void load(); }, [load]);
 
   async function buy(item: ShopItem) {
-    if (!isAdmin) { await appAlert("Nur Crew-Admins dürfen Crew-Kosmetik kaufen."); return; }
-    if (gems < item.price_gems) { await appAlert(`Zu wenig Diamanten: ${gems} / ${item.price_gems} 💎`); return; }
-    if (!await appConfirm(`"${item.name}" für ${item.price_gems} 💎 kaufen?`)) return;
+    if (!isAdmin) { await appAlert(t("shopOnlyAdminAlert")); return; }
+    if (gems < item.price_gems) { await appAlert(t("shopNotEnough", { have: gems, need: item.price_gems })); return; }
+    if (!await appConfirm(t("shopBuyConfirm", { name: item.name, price: item.price_gems }))) return;
 
     setBusy(item.id);
     try {
       const { error } = await sb.rpc("purchase_gem_item", { p_user_id: userId, p_item_id: item.id, p_crew_id: crew.id });
-      if (error) { await appAlert(`Fehler: ${error.message}`); return; }
-      await appAlert(`✓ ${item.name} aktiviert!`);
+      if (error) { await appAlert(t("shopErrorPrefix", { msg: error.message })); return; }
+      await appAlert(t("shopActivated", { name: item.name }));
       await load();
     } finally { setBusy(null); }
   }
@@ -1158,12 +1219,12 @@ function ShopPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAd
         padding: "8px 12px", borderRadius: 10, marginBottom: 10,
         background: "rgba(93,218,240,0.08)", border: "1px solid rgba(93,218,240,0.3)",
       }}>
-        <span style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 700 }}>Dein Guthaben</span>
-        <span style={{ color: "#5ddaf0", fontSize: 15, fontWeight: 900 }}>💎 {gems.toLocaleString("de-DE")}</span>
+        <span style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 700 }}>{t("shopBalance")}</span>
+        <span style={{ color: "#5ddaf0", fontSize: 15, fontWeight: 900 }}>💎 {gems.toLocaleString(numLocale)}</span>
       </div>
       {!isAdmin && (
         <div style={{ padding: "8px 10px", borderRadius: 8, background: "rgba(255,215,0,0.08)", border: "1px dashed rgba(255,215,0,0.3)", fontSize: 10, color: "#FFD700", marginBottom: 10 }}>
-          ℹ️ Crew-Kosmetik kann nur von Admins gekauft werden.
+          {t("shopAdminOnly")}
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1193,7 +1254,7 @@ function ShopPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAd
                 fontSize: 12, fontWeight: 900, cursor: gems >= i.price_gems && isAdmin ? "pointer" : "not-allowed",
                 flexShrink: 0, opacity: busy === i.id ? 0.6 : 1,
               }}
-            >💎 {i.price_gems}</button>
+            >{t("shopBuyBtn", { price: i.price_gems })}</button>
           </div>
         ))}
       </div>
@@ -1202,7 +1263,10 @@ function ShopPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAd
 }
 
 // ═══ SHARED ═══
-function Loading() { return <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade…</div>; }
+function Loading() {
+  const t = useTranslations("CrewLiveHub");
+  return <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{t("loading")}</div>;
+}
 function Empty({ text }: { text: string }) { return <div style={{ padding: 24, textAlign: "center", color: "#8B8FA3", fontSize: 12, lineHeight: 1.5 }}>{text}</div>; }
 
 const selectStyle: React.CSSProperties = {
@@ -1239,97 +1303,27 @@ function Input({ label, value, onChange, placeholder, type = "text" }: {
 }
 
 // ═══ INFO-BOX PRO TAB ═══
-type InfoContent = {
-  icon: string;
-  color: string;
-  title: string;
-  how: string;
-  loot: string;
-  tips?: string;
-};
-
-const TAB_INFO: Record<Tab, InfoContent> = {
-  overview: {
-    icon: "👥", color: "#22D1C3",
-    title: "Mitglieder",
-    how: "Liste aller aktiven Crew-Mitglieder sortiert nach 🏴 Gebietsruf. Der grüne Punkt zeigt an, wer gerade online ist (zuletzt innerhalb von 5 Minuten aktiv). Admins und Owner haben Badges. Je aktiver eure Mitglieder, desto stärker die Crew in Duellen, Kriegen und Saison-Liga.",
-    loot: "Keine direkten Belohnungen — aber je mehr Mitglieder aktiv sind, desto mehr km, Gebiete und Arena-Siege fließen in alle anderen Crew-Modi.",
-    tips: "Wenn Mitglieder länger als 14 Tage inaktiv sind: per Chat pushen oder über die Crew-Shouts motivieren.",
-  },
-  war: {
-    icon: "🔥", color: "#FF2D78",
-    title: "Crew-War (7-Tage-Fehde)",
-    how: "Admins können anderen Crews den Krieg erklären. Akzeptiert die Ziel-Crew, startet ein 7-Tage-Match. Während der Fehde zählt jede km = 1 Punkt, jedes eroberte Gebiet = 10 Punkte. Nach Ablauf gewinnt die Crew mit mehr Punkten automatisch. Abgelehnte oder zurückgezogene Einladungen haben keine Folgen.",
-    loot: "Sieger-Crew: alle aktiven Mitglieder bekommen +5 000 🏴 Gebietsruf. Zusätzlich wandert der Sieg ins Saison-Ranking und in den Crew-Feed (für Bragging-Rights).",
-    tips: "Gute Zeit für einen Krieg: kurz vor Monatsende, um die Saison-Liga zu pushen. Gegner gezielt aus eurer Liga wählen — Gleichstark ist spannender.",
-  },
-  season: {
-    icon: "🏆", color: "#FFD700",
-    title: "Saison-Liga (monatlich)",
-    how: "Jeden Monat startet automatisch eine neue Saison. Crews sammeln Punkte für Gebiete (+5), Duell-Siege und Kriegs-Siege. Das Ranking bestimmt den Tier (Bronze → Silber → Gold → Diamond → Legend). Am Monatsende werden die Standings eingefroren.",
-    loot: "Top-Platzierungen am Monatsende bekommen Rang-Abzeichen auf dem Crew-Profil (kosmetisch + Bragging-Rights). Diamond- und Legend-Tier geben zusätzlich Bonus-Gebietsruf-Multiplikator in der nächsten Saison (geplant).",
-    tips: "Gebiete zählen am meisten. Konzentriert euch gegen Monatsende auf Polygon-Ringe, nicht auf einzelne Straßen.",
-  },
-  flags: {
-    icon: "🚩", color: "#4ade80",
-    title: "Capture-the-Flag (Flash-Events)",
-    how: "Spontane zeitlich limitierte Micro-Events. Eine Flagge erscheint an einer PLZ, hat ein Zeitfenster (z. B. 30 Min) und ein Visit-Ziel (z. B. 10). Crew-Mitglieder laufen in den Radius (GPS-Check) und tippen 'Ich bin vor Ort!'. Erste Crew, die das Visit-Ziel erreicht, gewinnt.",
-    loot: "Winner-Crew: Prize-Gebietsruf (meist 3 000 🏴) wird an alle Mitglieder verteilt. Sieg zählt zusätzlich in den Crew-Feed. Premium: Gewinner-Crew-Name bleibt 1 Stunde auf der Karte sichtbar (geplant).",
-    tips: "Reaktionszeit zählt. Per Crew-Chat in Sekunden alle mobilisieren. Je näher ihr dem Flag-Spot wohnt, desto größer euer Vorteil.",
-  },
-  duel: {
-    icon: "⚔️", color: "#FF6B4A",
-    title: "Wochen-Duell (Auto-Matchmaking)",
-    how: "Automatische wöchentliche 1:1-Matchups zwischen zwei Crews ähnlicher Stärke. Jede gelaufene km zählt in beide aktiven Duelle (eure und die Gegner-Crew). Montags resetten die Duelle, am Sonntag steht der Sieger fest.",
-    loot: "Winner: Prize-Gebietsruf (meist 2 000 🏴) + Punkte für Saison-Liga. Teilnahme allein zählt bereits fürs Wochenrating.",
-    tips: "Jeder km hilft — auch kleine Spaziergänge. Koordiniert euch im Chat, wer an welchen Tagen geht, um kein Wochenloch zu haben.",
-  },
-  challenges: {
-    icon: "🎯", color: "#FFD700",
-    title: "Crew-Challenges",
-    how: "Admins definieren gemeinsame Ziele (z. B. 'Crew läuft zusammen 100 km in 7 Tagen', '10 neue Gebiete'). Der Fortschritt ist kollektiv — jedes Mitglied trägt bei. Wenn die Crew das Ziel erreicht, bekommen alle die Belohnung.",
-    loot: "Reward-Gebietsruf wird an alle aktiven Crew-Mitglieder verteilt. Abgeschlossene Challenges landen im Crew-Feed und zählen fürs Saison-Ranking.",
-    tips: "Realistisch bleiben: bei 5 Mitgliedern reicht ein 50-km-Wochenziel, bei 20 Mitgliedern geht locker 200 km. Start mit einfachen Challenges, dann eskalieren.",
-  },
-  events: {
-    icon: "📅", color: "#4ade80",
-    title: "Gruppenläufe",
-    how: "Jedes Crew-Mitglied kann einen Gruppenlauf planen (Datum, Uhrzeit, Treffpunkt, Distanz, Ziel-Pace). Andere Mitglieder antworten mit 'Dabei / Vielleicht / Nein'. Der Ersteller wird automatisch als 'Dabei' gelistet.",
-    loot: "Keine direkten Wegemünzen für das Event selbst — aber: gemeinsam läufst du länger, sammelst mehr km → Crew-Score in Duell, Krieg, Saison und Challenges steigt alle gleichzeitig.",
-    tips: "Offene Treffpunkte funktionieren besser (z. B. 'Südkreuz Haupteingang'). Für regelmäßige Läufe: macht einen wiederkehrenden Wochenslot.",
-  },
-  chat: {
-    icon: "💬", color: "#5ddaf0",
-    title: "Crew-Chat",
-    how: "Echtzeit-Chat nur für eure Crew. Nachrichten erscheinen sofort bei allen Mitgliedern (Supabase Realtime). Max. 600 Zeichen pro Nachricht. Du kannst deine eigenen Nachrichten löschen.",
-    loot: "Der Chat selbst gibt kein XP. Aber: gute Kommunikation = mehr Gruppenläufe = mehr Crew-Siege.",
-    tips: "Nutz ihn für Event-Mobilisierung, Challenge-Push, Flaggen-Alerts und Motivation. Kein Spam — Admin kann bei Missbrauch Rechte entziehen.",
-  },
-  feed: {
-    icon: "📜", color: "#a855f7",
-    title: "Crew-Feed",
-    how: "Automatisch generierter Aktivitäts-Stream: wer ist beigetreten, welche Gebiete wurden erobert, welche Challenges abgeschlossen, welche Duelle/Kriege gewonnen, Arena-Siege der Mitglieder. Kein manuelles Posten — alles passiert durch echte Crew-Aktionen.",
-    loot: "Kein direktes XP. Feed dient der Transparenz und Motivation: ihr seht, was eure Crew gerade leistet.",
-    tips: "Wenn der Feed leer bleibt: Mitglieder sind inaktiv. Das ist der beste Indikator für Crew-Gesundheit.",
-  },
-  shop: {
-    icon: "💎", color: "#FF6B4A",
-    title: "Crew-Cosmetic-Shop",
-    how: "Exklusive Crew-Kosmetik, zahlbar mit Diamanten (💎). Nur Admins können kaufen — die Items werden für die ganze Crew aktiviert. Manche Items sind dauerhaft (Flagge, Gebiet-Farbe), andere zeitlich begrenzt (30 Tage: Name-Glow, Banner-Animation).",
-    loot: "Keine XP — rein kosmetisch für Bragging-Rights und Crew-Identität. Einige Items verbessern die Sichtbarkeit auf der Karte (z. B. eigene Territory-Farbe).",
-    tips: "Lohnt sich erst ab ~10 aktiven Mitgliedern. Startet mit Custom-Flagge (500 💎) für Wiedererkennung.",
-  },
-  power: {
-    icon: "⚡", color: "#FFD700",
-    title: "Crew-Power (Pay-to-Progress)",
-    how: "Gemeinsame Crew-Kasse mit Diamanten. Mitglieder zahlen 💎 aus ihrem Konto in den Pool, Admins aktivieren damit 7 Power-Items (Score-Boosts, Shield, Flaggen-Spawn, Reroll, Duel-Pick). Boosts pushen NUR Crew-Rankings (Duell/War/Saison), nicht die persönliche XP — damit Runner-Ränge wertvoll bleiben.",
-    loot: "Kein direktes XP. Aber: +50 % Crew-Score-Multiplier in Duell/War/Saison/Challenges, Schutz vor Gebiet-Diebstahl, strategische Vorteile. Limit: max 1 Boost aktiv gleichzeitig, max 72 h Boost-Zeit pro Woche.",
-    tips: "Score-Boosts lohnen vor allem kurz vor Ende eines Duells/Krieges. Territory-Shield bei laufenden Feindangriffen. Member-Slot-Packs (€) wenn Crew voll wird (Start: 10 Slots, max. 100).",
-  },
+const TAB_META: Record<Tab, { icon: string; color: string }> = {
+  overview:   { icon: "👥", color: "#22D1C3" },
+  war:        { icon: "🔥", color: "#FF2D78" },
+  season:     { icon: "🏆", color: "#FFD700" },
+  flags:      { icon: "🚩", color: "#4ade80" },
+  duel:       { icon: "⚔️", color: "#FF6B4A" },
+  challenges: { icon: "🎯", color: "#FFD700" },
+  events:     { icon: "📅", color: "#4ade80" },
+  chat:       { icon: "💬", color: "#5ddaf0" },
+  feed:       { icon: "📜", color: "#a855f7" },
+  shop:       { icon: "💎", color: "#FF6B4A" },
+  power:      { icon: "⚡", color: "#FFD700" },
 };
 
 function CrewTabInfo({ tab }: { tab: Tab }) {
-  const info = TAB_INFO[tab];
+  const t = useTranslations("CrewLiveHub");
+  const meta = TAB_META[tab];
+  const title = t(`info.${tab}.title` as const);
+  const how = t(`info.${tab}.how` as const);
+  const loot = t(`info.${tab}.loot` as const);
+  const tips = t(`info.${tab}.tips` as const);
   const storageKey = `ma365:crewInfoDismissed:${tab}`;
   const [collapsed, setCollapsed] = useState<boolean | null>(null);
 
@@ -1353,8 +1347,8 @@ function CrewTabInfo({ tab }: { tab: Tab }) {
   return (
     <div style={{
       marginBottom: 12, borderRadius: 12,
-      background: `${info.color}0d`,
-      border: `1px solid ${info.color}44`,
+      background: `${meta.color}0d`,
+      border: `1px solid ${meta.color}44`,
       overflow: "hidden",
     }}>
       <button
@@ -1363,29 +1357,29 @@ function CrewTabInfo({ tab }: { tab: Tab }) {
           width: "100%", padding: "8px 12px",
           display: "flex", alignItems: "center", gap: 8,
           background: "transparent", border: "none", cursor: "pointer",
-          color: info.color, fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+          color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
         }}
       >
-        <span style={{ fontSize: 14 }}>{info.icon}</span>
+        <span style={{ fontSize: 14 }}>{meta.icon}</span>
         <span style={{ flex: 1, textAlign: "left" }}>
-          {collapsed ? `Wie funktioniert "${info.title}"?` : info.title.toUpperCase()}
+          {collapsed ? t("infoToggleCollapsed", { title }) : title.toUpperCase()}
         </span>
         <span style={{ fontSize: 13, transform: collapsed ? "none" : "rotate(180deg)", transition: "transform 0.2s" }}>▾</span>
       </button>
       {!collapsed && (
         <div style={{ padding: "4px 14px 14px", color: "#D0D0D5", fontSize: 12, lineHeight: 1.55 }}>
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 9, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>📘 WIE ES FUNKTIONIERT</div>
-            <div>{info.how}</div>
+            <div style={{ fontSize: 9, color: "#8B8FA3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>{t("infoHowHeading")}</div>
+            <div>{how}</div>
           </div>
-          <div style={{ marginBottom: info.tips ? 10 : 0 }}>
-            <div style={{ fontSize: 9, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>🎁 DEIN LOOT</div>
-            <div>{info.loot}</div>
+          <div style={{ marginBottom: tips ? 10 : 0 }}>
+            <div style={{ fontSize: 9, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>{t("infoLootHeading")}</div>
+            <div>{loot}</div>
           </div>
-          {info.tips && (
+          {tips && (
             <div>
-              <div style={{ fontSize: 9, color: "#4ade80", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>💡 TIPP</div>
-              <div>{info.tips}</div>
+              <div style={{ fontSize: 9, color: "#4ade80", fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>{t("infoTipHeading")}</div>
+              <div>{tips}</div>
             </div>
           )}
         </div>
@@ -1394,7 +1388,7 @@ function CrewTabInfo({ tab }: { tab: Tab }) {
   );
 }
 
-// ═══ POWER (Pay-to-Progress: Gem-Pool + Boost-Items + €-Pakete) ═══
+// ═══ POWER ═══
 type PoolData = {
   pool: { gems: number; total_deposited: number; total_spent: number };
   my_gems: number;
@@ -1415,7 +1409,10 @@ const CREW_SLOT_PACKS_CLIENT = [
   { sku: "crew_slots_plus10", name: "+10 Slots", slots: 10, price: 499 },
 ];
 
-function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isAdmin: boolean }) {
+function PowerPanel({ crew, isAdmin }: { crew: Crew; userId: string; isAdmin: boolean }) {
+  const t = useTranslations("CrewLiveHub");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [pool, setPool] = useState<PoolData | null>(null);
   const [catalog, setCatalog] = useState<BoostCatalog>({});
   const [active, setActive] = useState<ActiveBoost[]>([]);
@@ -1449,27 +1446,27 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
   async function deposit() {
     const amount = parseInt(depositAmount, 10);
     if (!amount || amount <= 0) return;
-    if (!pool || pool.my_gems < amount) { await appAlert("Nicht genug Diamanten auf deinem Konto."); return; }
-    if (!await appConfirm(`${amount} 💎 in den Crew-Pool einzahlen?`)) return;
+    if (!pool || pool.my_gems < amount) { await appAlert(t("powerDepositLowGems")); return; }
+    if (!await appConfirm(t("powerDepositConfirm", { amount }))) return;
     setBusy("deposit");
     try {
       const r = await fetch("/api/crew/gem-pool", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ crew_id: crew.id, amount }),
       });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(`Fehler: ${j.error ?? r.status}`); return; }
-      await appAlert(`✅ ${amount} 💎 eingezahlt.`);
+      if (!r.ok) { const j = await r.json().catch(() => ({})); await appAlert(t("powerErrorPrefix", { msg: String(j.error ?? r.status) })); return; }
+      await appAlert(t("powerDepositOk", { amount }));
       setDepositAmount("100");
       await load();
     } finally { setBusy(null); }
   }
 
   async function activate(kind: string) {
-    if (!isAdmin) { await appAlert("Nur Admins/Owner können Boosts aktivieren."); return; }
+    if (!isAdmin) { await appAlert(t("powerOnlyAdmin")); return; }
     const item = catalog[kind];
     if (!item) return;
-    if ((pool?.pool.gems ?? 0) < item.cost) { await appAlert(`Nicht genug Pool-Diamanten: ${pool?.pool.gems ?? 0} / ${item.cost}`); return; }
-    if (!await appConfirm(`"${item.name}" für ${item.cost} 💎 aktivieren?`)) return;
+    if ((pool?.pool.gems ?? 0) < item.cost) { await appAlert(t("powerNotEnoughPool", { have: pool?.pool.gems ?? 0, need: item.cost })); return; }
+    if (!await appConfirm(t("powerActivateConfirm", { name: item.name, cost: item.cost }))) return;
     setBusy(kind);
     try {
       const r = await fetch("/api/crew/boosts", {
@@ -1477,8 +1474,8 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
         body: JSON.stringify({ crew_id: crew.id, kind }),
       });
       const j = await r.json();
-      if (!r.ok) { await appAlert(`${j.error ?? "Fehler"}`); return; }
-      await appAlert(`⚡ "${item.name}" aktiviert!`);
+      if (!r.ok) { await appAlert(String(j.error ?? t("powerErrorPrefix", { msg: "?" }))); return; }
+      await appAlert(t("powerActivatedAlert", { name: item.name }));
       await load();
     } finally { setBusy(null); }
   }
@@ -1492,7 +1489,7 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
       });
       const j = await res.json();
       if (j.url) { window.location.href = j.url; return; }
-      if (!res.ok) { await appAlert(`Stripe-Fehler: ${j.error ?? res.status}`); return; }
+      if (!res.ok) { await appAlert(t("powerStripeError", { msg: String(j.error ?? res.status) })); return; }
     } finally { setBusy(null); }
   }
 
@@ -1502,22 +1499,20 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
     <div>
       <CrewTabInfo tab="power" />
 
-      {/* Gem-Pool-Status */}
       <div style={{
         padding: 14, borderRadius: 12, marginBottom: 10,
         background: "linear-gradient(135deg, rgba(93,218,240,0.12), rgba(255,215,0,0.08))",
         border: "1px solid rgba(93,218,240,0.35)",
       }}>
-        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#5ddaf0" }}>💎 CREW-POOL</div>
+        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#5ddaf0" }}>{t("powerPoolTitle")}</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-          <div style={{ color: "#FFF", fontSize: 26, fontWeight: 900 }}>{pool.pool.gems.toLocaleString("de-DE")}</div>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>💎 verfügbar</div>
+          <div style={{ color: "#FFF", fontSize: 26, fontWeight: 900 }}>{pool.pool.gems.toLocaleString(numLocale)}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>{t("powerGemsAvailable")}</div>
         </div>
         <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 2 }}>
-          Eingezahlt: {pool.pool.total_deposited.toLocaleString("de-DE")} · Ausgegeben: {pool.pool.total_spent.toLocaleString("de-DE")}
+          {t("powerDepositedSpent", { dep: pool.pool.total_deposited.toLocaleString(numLocale), sp: pool.pool.total_spent.toLocaleString(numLocale) })}
         </div>
 
-        {/* Deposit */}
         <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
           <input
             type="number" min="1" value={depositAmount}
@@ -1538,14 +1533,13 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
               color: "#0F1115", fontSize: 12, fontWeight: 900, cursor: "pointer",
               opacity: busy === "deposit" ? 0.6 : 1,
             }}
-          >Einzahlen (Dein Guthaben: 💎 {pool.my_gems})</button>
+          >{t("powerDepositBtn", { gems: pool.my_gems })}</button>
         </div>
       </div>
 
-      {/* Aktive Boosts */}
       {active.length > 0 && (
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, color: "#4ade80", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>AKTIVE BOOSTS</div>
+          <div style={{ fontSize: 10, color: "#4ade80", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{t("powerActiveBoosts")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {active.map((b) => {
               const item = catalog[b.kind];
@@ -1560,7 +1554,7 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
                   <span style={{ fontSize: 14 }}>{item?.icon ?? "⚡"}</span>
                   <span style={{ color: "#FFF", fontSize: 11, fontWeight: 800, flex: 1 }}>{item?.name ?? b.kind}</span>
                   <span style={{ color: "#4ade80", fontSize: 10, fontWeight: 800 }}>
-                    {b.expires_at ? (remainingH > 24 ? `${Math.ceil(remainingH/24)}d` : `${remainingH}h`) : "bereit"}
+                    {b.expires_at ? (remainingH > 24 ? `${Math.ceil(remainingH/24)}d` : `${remainingH}h`) : t("powerReady")}
                   </span>
                 </div>
               );
@@ -1569,8 +1563,7 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
         </div>
       )}
 
-      {/* Power-Items */}
-      <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>⚡ POWER-ITEMS</div>
+      <div style={{ fontSize: 10, color: "#FFD700", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{t("powerItemsHeading")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
         {Object.entries(catalog).map(([kind, item]) => {
           const alreadyActive = active.some((a) => a.kind === kind);
@@ -1595,7 +1588,7 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
               <button
                 onClick={() => activate(kind)}
                 disabled={busy === kind || alreadyActive || !canAfford || !isAdmin}
-                title={!isAdmin ? "Nur Admins" : alreadyActive ? "Schon aktiv" : !canAfford ? "Pool zu klein" : ""}
+                title={!isAdmin ? t("powerActiveTagAdmin") : alreadyActive ? t("powerActiveTagAlready") : !canAfford ? t("powerActiveTagPool") : ""}
                 style={{
                   padding: "6px 10px", borderRadius: 8, border: "none", flexShrink: 0,
                   background: alreadyActive ? "rgba(74,222,128,0.2)" : canAfford && isAdmin ? "linear-gradient(135deg,#FFD700,#FF6B4A)" : "rgba(255,255,255,0.05)",
@@ -1604,14 +1597,13 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
                   cursor: alreadyActive || !canAfford || !isAdmin ? "not-allowed" : "pointer",
                   opacity: busy === kind ? 0.6 : 1,
                 }}
-              >{alreadyActive ? "✓ aktiv" : `💎 ${item.cost}`}</button>
+              >{alreadyActive ? t("powerActiveBadge") : t("powerCost", { cost: item.cost })}</button>
             </div>
           );
         })}
       </div>
 
-      {/* €-Gem-Packs */}
-      <div style={{ fontSize: 10, color: "#5ddaf0", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>💎 DIAMANTEN-PAKETE (IN POOL)</div>
+      <div style={{ fontSize: 10, color: "#5ddaf0", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{t("powerGemPacksHeading")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
         {CREW_GEM_PACKS_CLIENT.map((p) => (
           <button
@@ -1627,23 +1619,27 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
             }}
           >
             <div style={{ fontSize: 18 }}>{p.icon}</div>
-            <div style={{ fontSize: 12, fontWeight: 900, marginTop: 2 }}>{p.gems.toLocaleString("de-DE")} 💎{p.bonus > 0 && <span style={{ color: "#4ade80" }}> +{p.bonus}</span>}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, marginTop: 2 }}>
+              {t("powerGemAmount", { gems: p.gems.toLocaleString(numLocale) })}
+              {p.bonus > 0 && <span style={{ color: "#4ade80" }}>{t("powerGemBonus", { bonus: p.bonus })}</span>}
+            </div>
             <div style={{ fontSize: 10, color: "#a8b4cf" }}>{p.name}</div>
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", marginTop: 4 }}>€ {(p.price / 100).toFixed(2).replace(".", ",")}</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", marginTop: 4 }}>
+              {t("powerPriceEur", { price: (p.price / 100).toFixed(2).replace(".", locale === "de" ? "," : ".") })}
+            </div>
           </button>
         ))}
       </div>
 
-      {/* Member-Slots */}
-      <div style={{ fontSize: 10, color: "#22D1C3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>👥 MITGLIEDER-SLOTS</div>
+      <div style={{ fontSize: 10, color: "#22D1C3", fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{t("powerSlotsHeading")}</div>
       <div style={{
         padding: 10, borderRadius: 10, marginBottom: 6,
         background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-          <span style={{ color: "#22D1C3", fontSize: 11, fontWeight: 700 }}>Belegt</span>
+          <span style={{ color: "#22D1C3", fontSize: 11, fontWeight: 700 }}>{t("powerSlotsOccupied")}</span>
           <span style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>
-            {memberCount} / {memberCap} <span style={{ color: "#8B8FA3", fontSize: 10 }}>(max 100)</span>
+            {t("powerSlotsCount", { used: memberCount, cap: memberCap })} <span style={{ color: "#8B8FA3", fontSize: 10 }}>{t("powerSlotsMax")}</span>
           </span>
         </div>
         <div style={{ marginTop: 6, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
@@ -1665,8 +1661,10 @@ function PowerPanel({ crew, userId, isAdmin }: { crew: Crew; userId: string; isA
               opacity: busy === p.sku ? 0.6 : 1,
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 900 }}>+{p.slots} Slots</div>
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", marginTop: 4 }}>€ {(p.price / 100).toFixed(2).replace(".", ",")}</div>
+            <div style={{ fontSize: 12, fontWeight: 900 }}>{t("powerSlotsBtn", { n: p.slots })}</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700", marginTop: 4 }}>
+              {t("powerPriceEur", { price: (p.price / 100).toFixed(2).replace(".", locale === "de" ? "," : ".") })}
+            </div>
           </button>
         ))}
       </div>
