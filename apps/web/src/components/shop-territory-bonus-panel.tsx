@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 type ShopRow = {
@@ -9,13 +10,15 @@ type ShopRow = {
   territory_bonus_min_claims: number | null;
 };
 
-const PACKAGES = [
-  { days:  7, price:  19, label: "Schnupper-Woche", popular: false },
-  { days: 30, price:  59, label: "Ein Monat",       popular: true  },
-  { days: 90, price: 149, label: "Ein Quartal",     popular: false },
+type PkgKey = "week" | "month" | "quarter";
+const PACKAGES: Array<{ key: PkgKey; days: number; price: number; popular: boolean; labelKey: "terrPkgWeek" | "terrPkgMonth" | "terrPkgQuarter" }> = [
+  { key: "week",    days:  7, price:  19, popular: false, labelKey: "terrPkgWeek" },
+  { key: "month",   days: 30, price:  59, popular: true,  labelKey: "terrPkgMonth" },
+  { key: "quarter", days: 90, price: 149, popular: false, labelKey: "terrPkgQuarter" },
 ];
 
 export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) {
+  const t = useTranslations("ShopPanels");
   const sb = createClient();
   const [shop, setShop] = useState<ShopRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +38,7 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
   async function activate() {
     const pkg = PACKAGES.find((p) => p.days === selected);
     if (!pkg) return;
-    if (!confirm(`Nachbarschafts-Prämie für ${pkg.days} Tage aktivieren?\n\nKosten: € ${pkg.price}`)) return;
+    if (!confirm(t("terrConfirm", { days: pkg.days, price: pkg.price }))) return;
     setBusy(true);
     const { data, error } = await sb.rpc("activate_territory_bonus", {
       p_business_id: businessId,
@@ -45,18 +48,18 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
     });
     setBusy(false);
     if (error || (data as { ok?: boolean })?.ok === false) {
-      alert(error?.message ?? (data as { error?: string })?.error ?? "Fehler");
+      alert(error?.message ?? (data as { error?: string })?.error ?? t("errorGeneric"));
       return;
     }
     await reload();
-    alert("Nachbarschafts-Prämie ist jetzt aktiv!");
+    alert(t("terrActivated"));
   }
 
   const until = shop?.territory_bonus_until ? new Date(shop.territory_bonus_until) : null;
   const active = !!(until && until > new Date());
   const daysLeft = active && until ? Math.ceil((until.getTime() - Date.now()) / 86400000) : 0;
 
-  if (loading) return <div className="p-8 text-center text-[#8B8FA3] text-sm">Lade…</div>;
+  if (loading) return <div className="p-8 text-center text-[#8B8FA3] text-sm">{t("terrLoading")}</div>;
 
   return (
     <div className="p-5 rounded-2xl" style={{
@@ -66,32 +69,26 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
           <h3 className="text-lg font-black text-white flex items-center gap-2">
-            🏘️ Nachbarschafts-Prämie
+            {t("terrTitle")}
           </h3>
           <p className="text-xs text-[#a8b4cf] mt-1">
-            Belohne treue Anwohner. Runner, die regelmäßig in deinem Viertel unterwegs sind,
-            erhalten bei Einlösungen in deinem Shop eine kleine Extra-Belohnung — und erinnern sich so an dich.
+            {t("terrBody")}
           </p>
         </div>
         {active && (
           <div className="px-3 py-1 rounded-full bg-[#4ade80]/15 text-[#4ade80] text-xs font-bold whitespace-nowrap flex-shrink-0">
-            ✓ Aktiv · noch {daysLeft} {daysLeft === 1 ? "Tag" : "Tage"}
+            {daysLeft === 1 ? t("terrActiveOne") : t("terrActiveMany", { n: daysLeft })}
           </div>
         )}
       </div>
 
-      {/* Benefit-Punkte */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-        <Benefit icon="📍" title="Lokale Reichweite"
-          text="Du wirst den Runnern angezeigt, die in deiner Gegend am aktivsten sind." />
-        <Benefit icon="🔁" title="Wiederholungs-Besuche"
-          text="Die Extra-Belohnung ist ein Anreiz, den Shop öfter anzusteuern." />
-        <Benefit icon="⭐" title="Sichtbarkeits-Boost"
-          text="Dein Shop wird auf der Karte für berechtigte Runner hervorgehoben." />
+        <Benefit icon="📍" title={t("terrBenefit1Title")} text={t("terrBenefit1Text")} />
+        <Benefit icon="🔁" title={t("terrBenefit2Title")} text={t("terrBenefit2Text")} />
+        <Benefit icon="⭐" title={t("terrBenefit3Title")} text={t("terrBenefit3Text")} />
       </div>
 
-      {/* Pakete als kompaktes Segmented-Control */}
-      <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-2">LAUFZEIT</div>
+      <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-2">{t("terrDuration")}</div>
       <div style={{
         display: "flex", gap: 4, padding: 4, borderRadius: 10,
         background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)",
@@ -119,12 +116,12 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
                   padding: "1px 5px", borderRadius: 999,
                   background: "#FFD700", color: "#0F1115",
                   fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
-                }}>BELIEBT</span>
+                }}>{t("terrPkgPopular")}</span>
               )}
-              <div>{p.days} Tage</div>
+              <div>{t("terrDays", { n: p.days })}</div>
               <div style={{
                 fontSize: 10, fontWeight: 700, opacity: isSel ? 0.85 : 0.6, marginTop: 1,
-              }}>€ {p.price}</div>
+              }}>{t("terrPrice", { price: p.price })}</div>
             </button>
           );
         })}
@@ -140,12 +137,12 @@ export function ShopTerritoryBonusPanel({ businessId }: { businessId: string }) 
           opacity: busy ? 0.6 : 1,
         }}>
         {busy ? "…" : active
-          ? `+${selected} TAGE VERLÄNGERN`
-          : `FÜR ${selected} TAGE AKTIVIEREN · € ${PACKAGES.find((p) => p.days === selected)?.price}`}
+          ? t("terrExtendBtn", { n: selected })
+          : t("terrActivateBtn", { n: selected, price: PACKAGES.find((p) => p.days === selected)?.price ?? 0 })}
       </button>
 
       <p className="text-[10px] text-[#6c7590] text-center mt-2">
-        Abrechnung einmalig, automatische Deaktivierung am Laufzeit-Ende. Keine Verlängerung ohne deine Zustimmung.
+        {t("terrFooter")}
       </p>
     </div>
   );

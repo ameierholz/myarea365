@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { SHOP_PLANS, SHOP_BOOSTS, SHOP_FEATURES_BY_PLAN, formatPrice } from "@/lib/monetization";
 import { appAlert } from "@/components/app-dialog";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 
 type ShopTab = "plans" | "boosts";
-// Legacy-Kompatibilität: die alten Tab-Namen leiten auf die neuen Tabs um
 const NORMALIZE_TAB: Record<string, ShopTab> = {
   plans: "plans",
   boosts: "boosts",
@@ -15,11 +15,14 @@ const NORMALIZE_TAB: Record<string, ShopTab> = {
   analytics: "plans",
 };
 
+type PanT = ReturnType<typeof useTranslations<"ShopPanels">>;
+
 export function ShopProductsModal({ businessId, initialTab = "plans", onClose }: {
   businessId: string;
   initialTab?: string;
   onClose: () => void;
 }) {
+  const t = useTranslations("ShopPanels");
   const sb = createClient();
   const [tab, setTab] = useState<ShopTab>(NORMALIZE_TAB[initialTab] ?? "plans");
   const [loading, setLoading] = useState<string | null>(null);
@@ -37,7 +40,7 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
         const json = await res.json();
         if (json.client_secret) { setCheckoutSecret(json.client_secret); return; }
         if (json.url) { window.location.href = json.url; return; }
-        throw new Error(json.error ?? "Checkout fehlgeschlagen");
+        throw new Error(json.error ?? t("prodCheckoutFailed"));
       }
       const { data, error } = await sb.from("purchases").insert({
         product_sku: sku, product_name: name, amount_cents: price, status: "pending",
@@ -45,11 +48,11 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
       if (error) throw error;
       await sb.from("purchases").update({ status: "completed", applied_at: new Date().toISOString() }).eq("id", data.id);
       await applyShopEffectDemo(sb, sku, businessId);
-      appAlert("Gekauft + aktiviert! (Demo)");
+      appAlert(t("prodCheckoutSuccess"));
       onClose();
       location.reload();
     } catch (e) {
-      appAlert("Fehler: " + (e instanceof Error ? e.message : String(e)));
+      appAlert(t("prodErrorPrefix") + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(null);
     }
@@ -65,29 +68,27 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
         background: "#1A1D23", border: "1px solid rgba(255,215,0,0.4)", borderRadius: "20px 20px 0 0",
         padding: 24, color: "#F0F0F0",
       }}>
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 28 }}>🎯</span>
             <div>
-              <div style={{ fontSize: 19, fontWeight: 900 }}>Angebote buchen</div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>Abo wählen oder heute einen Push starten</div>
+              <div style={{ fontSize: 19, fontWeight: 900 }}>{t("prodModalTitle")}</div>
+              <div style={{ fontSize: 11, color: "#a8b4cf" }}>{t("prodModalSub")}</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
         </div>
 
-        {/* 2 Tabs statt 4 */}
         <div style={{ display: "flex", gap: 6, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 16 }}>
-          <Tab active={tab === "plans"}  onClick={() => setTab("plans")}>💎 Abo wählen</Tab>
-          <Tab active={tab === "boosts"} onClick={() => setTab("boosts")}>🔥 Heute pushen</Tab>
+          <Tab active={tab === "plans"}  onClick={() => setTab("plans")}>{t("prodTabPlans")}</Tab>
+          <Tab active={tab === "boosts"} onClick={() => setTab("boosts")}>{t("prodTabBoosts")}</Tab>
         </div>
 
-        {tab === "plans" && <PlansTab onBuy={buy} loading={loading} />}
-        {tab === "boosts" && <BoostsTab onBuy={buy} loading={loading} />}
+        {tab === "plans" && <PlansTab onBuy={buy} loading={loading} t={t} />}
+        {tab === "boosts" && <BoostsTab onBuy={buy} loading={loading} t={t} />}
 
         <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 18 }}>
-          Sichere Zahlung via Stripe · Abos jederzeit kündbar · MwSt.-Rechnung automatisch
+          {t("prodPaymentFooter")}
         </div>
       </div>
       {checkoutSecret && (
@@ -97,14 +98,14 @@ export function ShopProductsModal({ businessId, initialTab = "plans", onClose }:
   );
 }
 
-/* ═══ Tab 1: Plans mit sich aufbauenden Features ═══ */
-function PlansTab({ onBuy, loading }: {
+function PlansTab({ onBuy, loading, t }: {
   onBuy: (sku: string, name: string, price: number) => void;
   loading: string | null;
+  t: PanT;
 }) {
   type PlanRow = { key: "free"|"basis"|"pro"|"ultra"; price: number; name: string; sku: string | null; color: string; featured?: boolean };
   const plans: PlanRow[] = [
-    { key: "free",  price: 0,                    name: "Free",                     sku: null, color: "#8B8FA3" },
+    { key: "free",  price: 0,                    name: t("prodPlanFree"),          sku: null, color: "#8B8FA3" },
     { key: "basis", price: SHOP_PLANS.shop_basis.price, name: SHOP_PLANS.shop_basis.name, sku: "shop_basis", color: "#22D1C3" },
     { key: "pro",   price: SHOP_PLANS.shop_pro.price,   name: SHOP_PLANS.shop_pro.name,   sku: "shop_pro", color: "#FFD700", featured: true },
     { key: "ultra", price: SHOP_PLANS.shop_ultra.price, name: SHOP_PLANS.shop_ultra.name, sku: "shop_ultra", color: "#FF2D78" },
@@ -130,13 +131,13 @@ function PlansTab({ onBuy, loading }: {
                 padding: "3px 8px", borderRadius: 4,
                 background: p.color, color: "#0F1115",
                 fontSize: 9, fontWeight: 900, letterSpacing: 1,
-              }}>EMPFOHLEN</div>
+              }}>{t("prodPlanRecommended")}</div>
             )}
             <div>
               <div style={{ fontSize: 16, fontWeight: 900, color: p.color }}>{p.name}</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
-                {p.price === 0 ? "0 €" : `${(p.price / 100).toFixed(0)} €`}
-                <span style={{ fontSize: 11, color: "#a8b4cf", fontWeight: 600 }}> / Monat</span>
+                {p.price === 0 ? t("prodFreePrice") : t("prodEurFmt", { value: (p.price / 100).toFixed(0) })}
+                <span style={{ fontSize: 11, color: "#a8b4cf", fontWeight: 600 }}> {t("prodPlanPerMonth")}</span>
               </div>
             </div>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5, flex: 1 }}>
@@ -155,14 +156,14 @@ function PlansTab({ onBuy, loading }: {
                   opacity: loading === p.sku ? 0.6 : 1,
                 }}
               >
-                {loading === p.sku ? "…" : `${p.name} wählen`}
+                {loading === p.sku ? "…" : t("prodPlanChoose", { name: p.name })}
               </button>
             ) : (
               <div style={{
                 padding: "10px 12px", borderRadius: 8,
                 background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
                 color: "#8B8FA3", fontSize: 11, fontWeight: 700, textAlign: "center",
-              }}>Aktueller Default</div>
+              }}>{t("prodPlanCurrentDefault")}</div>
             )}
           </div>
         );
@@ -171,10 +172,10 @@ function PlansTab({ onBuy, loading }: {
   );
 }
 
-/* ═══ Tab 2: 3 Einzel-Boosts ═══ */
-function BoostsTab({ onBuy, loading }: {
+function BoostsTab({ onBuy, loading, t }: {
   onBuy: (sku: string, name: string, price: number) => void;
   loading: string | null;
+  t: PanT;
 }) {
   type BoostRow = { sku: string; name: string; icon: string; price: number; tagline: string; desc: string; duration: string; color: string; featured?: boolean };
   const boosts: BoostRow[] = [
@@ -183,9 +184,9 @@ function BoostsTab({ onBuy, loading }: {
       name: SHOP_BOOSTS.flash_push.name,
       icon: SHOP_BOOSTS.flash_push.icon,
       price: SHOP_BOOSTS.flash_push.price,
-      tagline: "Für den Nachmittag, an dem wenig los ist",
-      desc: "Benachrichtige ~200 Runner in 1 km Umkreis. Sie bekommen Push auf's Handy, der Deal ist 30 min gültig.",
-      duration: "Einmalig · sofort gesendet",
+      tagline: t("prodBoostFlashTagline"),
+      desc: t("prodBoostFlashDesc"),
+      duration: t("prodBoostFlashDuration"),
       color: "#FF6B4A",
     },
     {
@@ -193,9 +194,9 @@ function BoostsTab({ onBuy, loading }: {
       name: SHOP_BOOSTS.spotlight_3d.name,
       icon: SHOP_BOOSTS.spotlight_3d.icon,
       price: SHOP_BOOSTS.spotlight_3d.price,
-      tagline: "Für Wochenenden oder Aktions-Tage",
-      desc: "Dein Shop bekommt einen auffälligen Gold-Pin auf der Karte und ist im 5-km-Radius sichtbar (statt 500 m).",
-      duration: "72 Stunden aktiv",
+      tagline: t("prodBoostSpotTagline"),
+      desc: t("prodBoostSpotDesc"),
+      duration: t("prodBoostSpotDuration"),
       color: "#FFD700",
       featured: true,
     },
@@ -204,9 +205,9 @@ function BoostsTab({ onBuy, loading }: {
       name: SHOP_BOOSTS.event_host.name,
       icon: SHOP_BOOSTS.event_host.icon,
       price: SHOP_BOOSTS.event_host.price,
-      tagline: "Für organisierte Lauftreffs bei dir",
-      desc: "Plane einen Lauf-Event. Runner können sich anmelden, du siehst die Teilnehmer-Liste, dein Shop ist Start/Ziel-Pin.",
-      duration: "Einmalig · bis zu 50 Teilnehmer",
+      tagline: t("prodBoostEventTagline"),
+      desc: t("prodBoostEventDesc"),
+      duration: t("prodBoostEventDuration"),
       color: "#FF2D78",
     },
   ];
@@ -218,8 +219,7 @@ function BoostsTab({ onBuy, loading }: {
         background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.2)",
         color: "#a8b4cf", fontSize: 11, lineHeight: 1.5,
       }}>
-        💡 In <b style={{ color: "#FFD700" }}>Pro</b> sind 3 Flash-Pushes und 1 Spotlight pro Monat schon drin.
-        Einzeln kaufen nur, wenn du gerade mehr brauchst.
+        {t("prodBoostHint")}
       </div>
 
       {boosts.map((b) => (
@@ -237,7 +237,7 @@ function BoostsTab({ onBuy, loading }: {
               padding: "2px 8px", borderRadius: 4,
               background: b.color, color: "#0F1115",
               fontSize: 9, fontWeight: 900, letterSpacing: 1,
-            }}>BESTSELLER</div>
+            }}>{t("prodBoostBestseller")}</div>
           )}
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
             <div style={{
@@ -264,7 +264,7 @@ function BoostsTab({ onBuy, loading }: {
                   opacity: loading === b.sku ? 0.6 : 1,
                 }}
               >
-                {loading === b.sku ? "…" : "Jetzt buchen"}
+                {loading === b.sku ? "…" : t("prodBoostBookNow")}
               </button>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type MyShop = {
   id: string;
@@ -13,14 +14,8 @@ type MyShop = {
   total_checkins: number | null;
 };
 
-/**
- * Banner, der im Shop-Dashboard oben eingeblendet wird:
- * - keine Shops → lockt zur Anmeldung
- * - pending → wartet auf Review
- * - rejected → zeigt Grund
- * - approved & jung (< 7 Tage) → Onboarding-Checkliste
- */
 export function ShopOnboardingBanner() {
+  const t = useTranslations("ShopPanels");
   const [shops, setShops] = useState<MyShop[] | null>(null);
 
   useEffect(() => {
@@ -32,20 +27,19 @@ export function ShopOnboardingBanner() {
   if (shops.length === 0) {
     return (
       <Banner tone="primary" icon="🏪"
-        title="Noch kein Shop angemeldet?"
-        body="Trag dein Geschäft kostenlos ein — Runner bekommen Bewegungs-Boni, du bekommst Laufkundschaft."
-        cta={{ label: "Shop anmelden", href: "/shop/anmelden" }}
+        title={t("onbNoShopTitle")}
+        body={t("onbNoShopBody")}
+        cta={{ label: t("onbNoShopCta"), href: "/shop/anmelden" }}
       />
     );
   }
 
-  // Zeige den ersten relevanten Hinweis
   const pending = shops.find((s) => s.status === "pending");
   if (pending) {
     return (
       <Banner tone="warning" icon="⏳"
-        title={`„${pending.name}" wartet auf Freigabe`}
-        body="Wir prüfen deine Einreichung innerhalb von 48 Stunden. Du erhältst eine E-Mail, sobald dein Shop live ist."
+        title={t("onbPendingTitle", { name: pending.name })}
+        body={t("onbPendingBody")}
       />
     );
   }
@@ -54,14 +48,13 @@ export function ShopOnboardingBanner() {
   if (rejected) {
     return (
       <Banner tone="danger" icon="✗"
-        title={`„${rejected.name}" abgelehnt`}
-        body={rejected.rejection_reason ?? "Bitte prüfe deine Angaben und reiche den Shop erneut ein."}
-        cta={{ label: "Neu einreichen", href: "/shop/anmelden" }}
+        title={t("onbRejectedTitle", { name: rejected.name })}
+        body={rejected.rejection_reason ?? t("onbRejectedFallback")}
+        cta={{ label: t("onbRejectedCta"), href: "/shop/anmelden" }}
       />
     );
   }
 
-  // Approved aber jung → Checkliste
   const approved = shops.find((s) => s.status === "approved");
   if (approved) {
     const daysSince = approved.approved_at
@@ -70,14 +63,14 @@ export function ShopOnboardingBanner() {
     if (daysSince < 7 && (approved.total_checkins ?? 0) < 10) {
       return (
         <Banner tone="success" icon="✓"
-          title={`„${approved.name}" ist live! Nächste Schritte:`}
+          title={t("onbApprovedTitle", { name: approved.name })}
           body=""
           checklist={[
-            { done: true,  text: "Shop freigegeben" },
-            { done: false, text: "QR-Code drucken oder Acryl-Aufsteller bestellen", href: `/shop/${approved.id}/qr` },
-            { done: false, text: "Ersten Deal anlegen (bringt Runner zu dir)" },
-            { done: false, text: "Flash-Push testen (einmalig gratis, 1 km Radius)" },
-            { done: false, text: "Paket wählen — Basis 29 €/Mo reicht meist für den Anfang", href: "/shop/billing" },
+            { done: true,  text: t("onbCheck1") },
+            { done: false, text: t("onbCheck2"), href: `/shop/${approved.id}/qr` },
+            { done: false, text: t("onbCheck3") },
+            { done: false, text: t("onbCheck4") },
+            { done: false, text: t("onbCheck5"), href: "/shop/billing" },
           ]}
         />
       );

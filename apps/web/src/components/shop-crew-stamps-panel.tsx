@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Reward = {
   id: string;
@@ -22,22 +23,26 @@ type TopCrew = {
   last_stamp_at: string | null;
 };
 
-const TIER_META = [
+type PanT = ReturnType<typeof useTranslations<"ShopPanels">>;
+
+type TierMeta = { color: string; defaultThreshold: number; labelKey: "stampTierBronze" | "stampTierSilver" | "stampTierGold" };
+const TIER_META: (TierMeta | null)[] = [
   null,
-  { color: "#CD7F32", defaultLabel: "Bronze",  defaultThreshold: 10 },
-  { color: "#C0C0C0", defaultLabel: "Silber",  defaultThreshold: 25 },
-  { color: "#FFD700", defaultLabel: "Gold",    defaultThreshold: 50 },
+  { color: "#CD7F32", defaultThreshold: 10, labelKey: "stampTierBronze" },
+  { color: "#C0C0C0", defaultThreshold: 25, labelKey: "stampTierSilver" },
+  { color: "#FFD700", defaultThreshold: 50, labelKey: "stampTierGold" },
 ];
 
-const KIND_LABEL: Record<Reward["reward_kind"], string> = {
-  discount_percent:   "Rabatt in %",
-  free_item:          "Gratis-Artikel (Text)",
-  wegemuenzen_unlock: "🪙 Wegemünzen-Bonus (In-App)",
-  gebietsruf_unlock:  "🏴 Gebietsruf-Bonus (In-App)",
-  crew_emblem:        "Crew-Emblem am Shop-Pin",
+const KIND_KEYS: Record<Reward["reward_kind"], "stampKindDiscount" | "stampKindFreeItem" | "stampKindWege" | "stampKindGebiet" | "stampKindEmblem"> = {
+  discount_percent:   "stampKindDiscount",
+  free_item:          "stampKindFreeItem",
+  wegemuenzen_unlock: "stampKindWege",
+  gebietsruf_unlock:  "stampKindGebiet",
+  crew_emblem:        "stampKindEmblem",
 };
 
 export function ShopCrewStampsPanel({ shopId }: { shopId: string }) {
+  const t = useTranslations("ShopPanels");
   const [rewards, setRewards] = useState<Reward[] | null>(null);
   const [topCrews, setTopCrews] = useState<TopCrew[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -57,43 +62,38 @@ export function ShopCrewStampsPanel({ shopId }: { shopId: string }) {
       body: JSON.stringify({ shop_id: shopId, ...form }),
     });
     const j = await res.json();
-    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    if (!j.ok) { setError(j.error ?? t("errorGeneric")); return; }
     void load();
   }
 
   async function removeTier(id: string) {
-    if (!window.confirm("Diese Stufe wirklich entfernen?")) return;
+    if (!window.confirm(t("stampConfirmRemove"))) return;
     const res = await fetch(`/api/shop/crew-rewards?id=${id}`, { method: "DELETE" });
     const j = await res.json();
-    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    if (!j.ok) { setError(j.error ?? t("errorGeneric")); return; }
     void load();
   }
 
-  if (rewards === null) return <div style={{ padding: 20, color: "#a8b4cf" }}>Lade Stempel-System …</div>;
+  if (rewards === null) return <div style={{ padding: 20, color: "#a8b4cf" }}>{t("stampLoading")}</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      {/* Intro */}
       <div style={{
         padding: 14, borderRadius: 12,
         background: "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(34,209,195,0.08))",
         border: "1px solid rgba(255,215,0,0.35)",
       }}>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "#FFD700", fontWeight: 900 }}>
-          STAMMKUNDEN-STEMPELKARTE
+          {t("stampKicker")}
         </div>
         <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>
-          Crews belohnen, die regelmäßig kommen
+          {t("stampTitle")}
         </div>
         <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.55, marginTop: 6 }}>
-          Jede Deal-Einlösung eines Crew-Mitglieds zählt als Stempel für die gesamte Crew.
-          Ab deinen definierten Schwellen schaltet automatisch die Belohnung frei — für
-          alle Crew-Mitglieder. Du musst nichts tun, läuft im Hintergrund. Ein perfektes
-          Stammkunden-Feature für Kiez-nahe Crews.
+          {t("stampBody")}
         </div>
       </div>
 
-      {/* Tier-Editor */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {[1, 2, 3].map((tier) => {
           const existing = rewards.find((r) => r.tier === tier);
@@ -104,6 +104,7 @@ export function ShopCrewStampsPanel({ shopId }: { shopId: string }) {
               existing={existing}
               onSave={saveTier}
               onDelete={existing ? () => removeTier(existing.id) : undefined}
+              t={t}
             />
           );
         })}
@@ -115,10 +116,9 @@ export function ShopCrewStampsPanel({ shopId }: { shopId: string }) {
         </div>
       )}
 
-      {/* Top-Crews */}
       <div>
         <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 2, marginBottom: 8 }}>
-          🏆 TOP-STAMMCREWS
+          {t("stampTopHeading")}
         </div>
         {topCrews.length === 0 ? (
           <div style={{
@@ -126,43 +126,46 @@ export function ShopCrewStampsPanel({ shopId }: { shopId: string }) {
             background: "rgba(255,255,255,0.03)", borderRadius: 10,
             color: "#8B8FA3", fontSize: 12,
           }}>
-            Noch keine Crew hat bei dir gesammelt. Sobald ein Crew-Mitglied einlöst, taucht die Crew hier auf.
+            {t("stampNoCrews")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {topCrews.map((c, i) => (
-              <div key={c.crew_id} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: 10, borderRadius: 10,
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
-              }}>
-                <div style={{
-                  width: 28, textAlign: "center",
-                  fontSize: 14, fontWeight: 900,
-                  color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3",
-                }}>#{i + 1}</div>
-                <div style={{
-                  width: 8, height: 8, borderRadius: 999,
-                  background: c.crew_color ?? "#22D1C3",
-                }} />
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 800, color: "#FFF" }}>{c.crew_name}</div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700" }}>
-                  {c.stamp_count} {c.stamp_count === 1 ? "Stempel" : "Stempel"}
-                </div>
-                {c.tier_unlocked > 0 && (
+            {topCrews.map((c, i) => {
+              const meta = TIER_META[c.tier_unlocked];
+              return (
+                <div key={c.crew_id} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: 10, borderRadius: 10,
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}>
                   <div style={{
-                    padding: "2px 8px", borderRadius: 999,
-                    background: `${TIER_META[c.tier_unlocked]?.color}33`,
-                    border: `1px solid ${TIER_META[c.tier_unlocked]?.color}`,
-                    color: TIER_META[c.tier_unlocked]?.color,
-                    fontSize: 9, fontWeight: 900, letterSpacing: 1,
-                  }}>
-                    {TIER_META[c.tier_unlocked]?.defaultLabel.toUpperCase()}
+                    width: 28, textAlign: "center",
+                    fontSize: 14, fontWeight: 900,
+                    color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3",
+                  }}>#{i + 1}</div>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: 999,
+                    background: c.crew_color ?? "#22D1C3",
+                  }} />
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 800, color: "#FFF" }}>{c.crew_name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: "#FFD700" }}>
+                    {c.stamp_count} {t("stampStamps")}
                   </div>
-                )}
-              </div>
-            ))}
+                  {c.tier_unlocked > 0 && meta && (
+                    <div style={{
+                      padding: "2px 8px", borderRadius: 999,
+                      background: `${meta.color}33`,
+                      border: `1px solid ${meta.color}`,
+                      color: meta.color,
+                      fontSize: 9, fontWeight: 900, letterSpacing: 1,
+                    }}>
+                      {t(meta.labelKey).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -170,13 +173,15 @@ export function ShopCrewStampsPanel({ shopId }: { shopId: string }) {
   );
 }
 
-function TierCard({ tier, existing, onSave, onDelete }: {
+function TierCard({ tier, existing, onSave, onDelete, t }: {
   tier: number;
   existing: Reward | undefined;
   onSave: (form: Partial<Reward> & { tier: number }) => Promise<void>;
   onDelete?: () => void;
+  t: PanT;
 }) {
   const meta = TIER_META[tier]!;
+  const defaultLabel = t(meta.labelKey);
   const [editing, setEditing] = useState(false);
 
   if (!editing && !existing) {
@@ -194,13 +199,13 @@ function TierCard({ tier, existing, onSave, onDelete }: {
           fontSize: 14, fontWeight: 900,
         }}>{tier}</div>
         <div style={{ flex: 1, color: "#a8b4cf", fontSize: 13 }}>
-          <b style={{ color: meta.color }}>{meta.defaultLabel}</b> · noch nicht konfiguriert
+          <b style={{ color: meta.color }}>{defaultLabel}</b> · {t("stampNotConfig")}
         </div>
         <button onClick={() => setEditing(true)} style={{
           padding: "6px 12px", borderRadius: 8, border: "none",
           background: meta.color, color: "#0F1115",
           fontSize: 11, fontWeight: 900, cursor: "pointer",
-        }}>+ Anlegen</button>
+        }}>{t("stampCreate")}</button>
       </div>
     );
   }
@@ -222,14 +227,14 @@ function TierCard({ tier, existing, onSave, onDelete }: {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>{existing.label}</div>
             <div style={{ fontSize: 11, color: "#a8b4cf" }}>
-              Ab <b style={{ color: meta.color }}>{existing.threshold} Stempeln</b>
+              <b style={{ color: meta.color }}>{t("stampFromN", { n: existing.threshold })}</b>
             </div>
           </div>
           <button onClick={() => setEditing(true)} style={BTN_ICON}>✏️</button>
           {onDelete && <button onClick={onDelete} style={{ ...BTN_ICON, color: "#FF2D78" }}>🗑️</button>}
         </div>
         <div style={{ fontSize: 12, color: "#D0D0D5" }}>
-          🎁 {KIND_LABEL[existing.reward_kind]}
+          🎁 {t(KIND_KEYS[existing.reward_kind])}
           {existing.reward_value_int != null && <span> · <b>{existing.reward_value_int}</b></span>}
           {existing.reward_value_text && <span> · {existing.reward_value_text}</span>}
         </div>
@@ -238,19 +243,22 @@ function TierCard({ tier, existing, onSave, onDelete }: {
   }
 
   return (
-    <TierForm tier={tier} meta={meta} existing={existing}
+    <TierForm tier={tier} meta={meta} defaultLabel={defaultLabel} existing={existing}
       onCancel={() => setEditing(false)}
       onSaved={async (form) => { await onSave(form); setEditing(false); }}
+      t={t}
     />
   );
 }
 
-function TierForm({ tier, meta, existing, onCancel, onSaved }: {
+function TierForm({ tier, meta, defaultLabel, existing, onCancel, onSaved, t }: {
   tier: number;
-  meta: NonNullable<(typeof TIER_META)[1]>;
+  meta: TierMeta;
+  defaultLabel: string;
   existing: Reward | undefined;
   onCancel: () => void;
   onSaved: (form: Partial<Reward> & { tier: number }) => Promise<void>;
+  t: PanT;
 }) {
   const [kind, setKind] = useState<Reward["reward_kind"]>(existing?.reward_kind ?? "free_item");
   const [busy, setBusy] = useState(false);
@@ -262,7 +270,7 @@ function TierForm({ tier, meta, existing, onCancel, onSaved }: {
     const form: Partial<Reward> & { tier: number } = {
       tier,
       threshold: Number(fd.get("threshold")) || meta.defaultThreshold,
-      label: String(fd.get("label") ?? meta.defaultLabel),
+      label: String(fd.get("label") ?? defaultLabel),
       reward_kind: kind,
       reward_value_int: ["discount_percent", "wegemuenzen_unlock", "gebietsruf_unlock"].includes(kind)
         ? Number(fd.get("value_int")) || 0
@@ -283,32 +291,34 @@ function TierForm({ tier, meta, existing, onCancel, onSaved }: {
       border: `1px solid ${meta.color}`,
     }}>
       <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 2, marginBottom: 10 }}>
-        STUFE {tier} · KONFIGURIEREN
+        {t("stampCfgKicker", { n: tier })}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <label style={LBL}>
-          <span>Name der Stufe</span>
-          <input name="label" defaultValue={existing?.label ?? meta.defaultLabel} style={INP} />
+          <span>{t("stampLabelField")}</span>
+          <input name="label" defaultValue={existing?.label ?? defaultLabel} style={INP} />
         </label>
         <label style={LBL}>
-          <span>Ab wie vielen Stempeln</span>
+          <span>{t("stampThresholdField")}</span>
           <input name="threshold" type="number" min={1} defaultValue={existing?.threshold ?? meta.defaultThreshold} style={INP} />
         </label>
       </div>
 
       <label style={LBL}>
-        <span>Belohnung</span>
+        <span>{t("stampRewardField")}</span>
         <select value={kind} onChange={(e) => setKind(e.target.value as Reward["reward_kind"])} style={INP}>
-          {Object.entries(KIND_LABEL).map(([k, lbl]) => <option key={k} value={k}>{lbl}</option>)}
+          {(Object.keys(KIND_KEYS) as Array<keyof typeof KIND_KEYS>).map((k) => (
+            <option key={k} value={k}>{t(KIND_KEYS[k])}</option>
+          ))}
         </select>
       </label>
 
       {["discount_percent", "wegemuenzen_unlock", "gebietsruf_unlock"].includes(kind) && (
         <label style={LBL}>
           <span>
-            {kind === "discount_percent" && "% Rabatt (an der Kasse, für alle Crew-Mitglieder)"}
-            {kind === "wegemuenzen_unlock" && "🪙 Bonus pro Crew-Mitglied (einmalig bei Freischaltung)"}
-            {kind === "gebietsruf_unlock" && "🏴 Bonus pro Crew-Mitglied (einmalig bei Freischaltung)"}
+            {kind === "discount_percent" && t("stampDiscountField")}
+            {kind === "wegemuenzen_unlock" && t("stampWegeField")}
+            {kind === "gebietsruf_unlock" && t("stampGebietField")}
           </span>
           <input name="value_int" type="number" min={0}
             defaultValue={existing?.reward_value_int ?? (kind === "discount_percent" ? 10 : kind === "wegemuenzen_unlock" ? 200 : 100)}
@@ -317,14 +327,14 @@ function TierForm({ tier, meta, existing, onCancel, onSaved }: {
       )}
       {kind === "free_item" && (
         <label style={LBL}>
-          <span>Beschreibung der Gratis-Leistung</span>
-          <input name="value_text" placeholder="z.B. Gratis-Cappuccino pro Mitglied 1×/Monat"
+          <span>{t("stampFreeItemField")}</span>
+          <input name="value_text" placeholder={t("stampFreeItemPh")}
             defaultValue={existing?.reward_value_text ?? ""} style={INP} />
         </label>
       )}
       {kind === "crew_emblem" && (
         <div style={{ fontSize: 11, color: "#a8b4cf", padding: 8, background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
-          Die Crew erscheint als sichtbares Emblem am Shop-Pin auf der Karte. Prestige-Belohnung ohne Kosten.
+          {t("stampEmblemHint")}
         </div>
       )}
 
@@ -333,12 +343,12 @@ function TierForm({ tier, meta, existing, onCancel, onSaved }: {
           flex: 1, padding: "9px", borderRadius: 8,
           background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
           color: "#FFF", fontSize: 12, fontWeight: 700, cursor: "pointer",
-        }}>Abbrechen</button>
+        }}>{t("abort")}</button>
         <button type="submit" disabled={busy} style={{
           flex: 2, padding: "9px", borderRadius: 8, border: "none",
           background: meta.color, color: "#0F1115",
           fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy ? 0.6 : 1,
-        }}>{busy ? "Speichert…" : "Speichern"}</button>
+        }}>{busy ? t("saving") : t("save")}</button>
       </div>
     </form>
   );

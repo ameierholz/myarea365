@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 type ArenaStatus = {
@@ -16,6 +17,7 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
   businessId: string;
   onBuyArena: (sku: "arena_daily" | "arena_monthly") => void;
 }) {
+  const t = useTranslations("ShopPanels");
   const sb = createClient();
   const [arena, setArena] = useState<ArenaStatus | null>(null);
   const [eligibleCount, setEligibleCount] = useState(0);
@@ -31,7 +33,6 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
       if (cancelled) return;
       setArena(a && a.status === "active" && new Date(a.expires_at).getTime() > Date.now() ? a : null);
 
-      // Zaehle eligible Crews (Deals in 7d)
       const since = new Date(Date.now() - 7 * 86400000).toISOString();
       const { data: reds } = await sb.from("deal_redemptions")
         .select("user_id")
@@ -70,8 +71,8 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
       }
     }
     load();
-    const t = setInterval(load, 15000);
-    return () => { cancelled = true; clearInterval(t); };
+    const tt = setInterval(load, 15000);
+    return () => { cancelled = true; clearInterval(tt); };
   }, [sb, businessId]);
 
   const expiresInDays = arena ? Math.max(0, Math.floor((new Date(arena.expires_at).getTime() - Date.now()) / 86400000)) : 0;
@@ -84,10 +85,10 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 22 }}>⚔️</span>
-        <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>Kampf-Arena</div>
+        <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>{t("arenaTitle")}</div>
         {arena && (
           <span style={{ marginLeft: "auto", padding: "2px 8px", borderRadius: 999, background: "rgba(74,222,128,0.25)", color: "#4ade80", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>
-            LIVE · {expiresInDays}T
+            {t("arenaLiveBadge", { days: expiresInDays })}
           </span>
         )}
       </div>
@@ -95,39 +96,38 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
       {!arena ? (
         <>
           <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
-            Crews können bei euch <b style={{ color: "#FFF" }}>virtuell kämpfen</b> — aber nur wenn ein Mitglied
-            in den letzten 3 Tagen einen Deal eingelöst hat. <b style={{ color: "#FFD700" }}>Mehr Traffic, mehr Einlösungen.</b>
+            {t("arenaTeaser1")} <b style={{ color: "#FFF" }}>{t("arenaTeaserBold")}</b>{t("arenaTeaser2")} <b style={{ color: "#FFD700" }}>{t("arenaTeaserGold")}</b>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <button
               onClick={() => onBuyArena("arena_daily")}
               style={{ padding: 12, borderRadius: 10, background: "rgba(168,85,247,0.3)", border: "1px solid #a855f7", color: "#FFF", cursor: "pointer", textAlign: "left" }}
             >
-              <div style={{ fontSize: 11, fontWeight: 900, color: "#a855f7" }}>1 TAG TEST</div>
-              <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>9 €</div>
-              <div style={{ fontSize: 10, color: "#a8b4cf" }}>24h Arena-Event</div>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "#a855f7" }}>{t("arenaDayTest")}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>{t("arenaDayPrice")}</div>
+              <div style={{ fontSize: 10, color: "#a8b4cf" }}>{t("arenaDaySub")}</div>
             </button>
             <button
               onClick={() => onBuyArena("arena_monthly")}
               style={{ padding: 12, borderRadius: 10, background: "linear-gradient(135deg, #a855f7, #FF2D78)", border: "none", color: "#FFF", cursor: "pointer", textAlign: "left", position: "relative" }}
             >
-              <div style={{ position: "absolute", top: -8, right: 8, padding: "2px 6px", borderRadius: 6, background: "#FFD700", color: "#0F1115", fontSize: 8, fontWeight: 900 }}>BELIEBT</div>
-              <div style={{ fontSize: 11, fontWeight: 900 }}>ARENA-ABO</div>
-              <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>49 €/Monat</div>
-              <div style={{ fontSize: 10, opacity: 0.85 }}>30 Tage Dauer-Arena</div>
+              <div style={{ position: "absolute", top: -8, right: 8, padding: "2px 6px", borderRadius: 6, background: "#FFD700", color: "#0F1115", fontSize: 8, fontWeight: 900 }}>{t("arenaPopular")}</div>
+              <div style={{ fontSize: 11, fontWeight: 900 }}>{t("arenaSubKicker")}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>{t("arenaSubPrice")}</div>
+              <div style={{ fontSize: 10, opacity: 0.85 }}>{t("arenaSubSub")}</div>
             </button>
           </div>
         </>
       ) : (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <Stat label="Kämpfe" value={`${arena.total_battles}`} color="#FFD700" />
-            <Stat label="Eligible Crews" value={`${eligibleCount}`} color="#22D1C3" />
-            <Stat label="Läuft ab" value={`${expiresInDays}T`} color="#FF6B4A" />
+            <Stat label={t("arenaStatBattles")} value={`${arena.total_battles}`} color="#FFD700" />
+            <Stat label={t("arenaStatEligible")} value={`${eligibleCount}`} color="#22D1C3" />
+            <Stat label={t("arenaStatExpires")} value={t("arenaDaysShort", { n: expiresInDays })} color="#FF6B4A" />
           </div>
           {battles.length > 0 ? (
             <div style={{ marginTop: 10 }}>
-              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>LETZTE KÄMPFE</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>{t("arenaRecentHeading")}</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {battles.map((b) => (
                   <div key={b.id} style={{ padding: "6px 10px", borderRadius: 8, background: "rgba(70,82,122,0.35)", fontSize: 11, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -141,7 +141,7 @@ export function ShopArenaPanel({ businessId, onBuyArena }: {
             </div>
           ) : (
             <div style={{ padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.5)", color: "#a8b4cf", fontSize: 11, textAlign: "center" }}>
-              Noch keine Kämpfe. Lade Crews via Deals in deinen Shop ein!
+              {t("arenaEmpty")}
             </div>
           )}
         </>

@@ -1,20 +1,16 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 type Plan = "free" | "basis" | "pro" | "ultra" | null | undefined;
 
-/**
- * Zeigt einen Upsell-Hinweis, abhängig von Plan und Aktivität.
- * - free    → „Upgrade auf Basis (29 €/Mo) für Pin-Priorität + Analytics"
- * - basis   → bei >= 3 Deals/Monat: „Pro für unbegrenzte Deals + Flash-Push"
- * - pro     → bei >= 5 Deals/Monat: „Ultra für Daueranzeige + Stadt-Feature"
- * - ultra   → kein Upsell
- */
 export function ShopUpsellBanner({ plan, monthlyRedemptions, flashCredits, onOpenProducts }: {
   plan: Plan;
   monthlyRedemptions: number;
   flashCredits: number;
   onOpenProducts: (tab: "plans" | "boosts" | "marketing" | "analytics") => void;
 }) {
+  const t = useTranslations("ShopPanels");
   const p = plan ?? "free";
 
   if (p === "ultra") return null;
@@ -22,14 +18,11 @@ export function ShopUpsellBanner({ plan, monthlyRedemptions, flashCredits, onOpe
   if (p === "free") {
     return (
       <Upsell color="#22D1C3" onClick={() => onOpenProducts("plans")}
-        title="Dein Shop ist kostenlos gelistet — für mehr Reichweite gibt's Basis"
-        items={[
-          "📍 Pin-Priorität auf der Karte",
-          "🪙 Wegemünzen-Belohnung für Scans (zieht Runner an)",
-          "📊 Basis-Analytics: Scans, Besuche, Einlösungen",
-          "🧪 1× Flash-Push gratis zum Testen",
-        ]}
-        priceLine="29 € / Monat · monatlich kündbar"
+        title={t("upsellFreeTitle")}
+        items={[t("upsellFreeI1"), t("upsellFreeI2"), t("upsellFreeI3"), t("upsellFreeI4")]}
+        priceLine={t("upsellFreePrice")}
+        ctaLabel={t("upsellCta")}
+        kicker={t("upsellKicker")}
       />
     );
   }
@@ -37,14 +30,11 @@ export function ShopUpsellBanner({ plan, monthlyRedemptions, flashCredits, onOpe
   if (p === "basis" && monthlyRedemptions >= 3) {
     return (
       <Upsell color="#FFD700" onClick={() => onOpenProducts("plans")}
-        title={`Du hast ${monthlyRedemptions} Einlösungen diesen Monat — mit Pro könntest du 3× mehr Runner erreichen`}
-        items={[
-          "🚀 Unbegrenzte Deal-Slots statt 1",
-          "⚡ 3 Flash-Pushes/Monat inklusive (1 km Radius)",
-          "📈 Erweiterte Analytics (Top-Zeiten, Kiez-Benchmark)",
-          "🏆 Spotlight 3 Tage/Monat inkl.",
-        ]}
-        priceLine="Pro: 79 € / Monat — bei 3 zusätzlichen Einlösungen hast du's raus"
+        title={t("upsellBasisProTitle", { n: monthlyRedemptions })}
+        items={[t("upsellBasisProI1"), t("upsellBasisProI2"), t("upsellBasisProI3"), t("upsellBasisProI4")]}
+        priceLine={t("upsellBasisProPrice")}
+        ctaLabel={t("upsellCta")}
+        kicker={t("upsellKicker")}
       />
     );
   }
@@ -52,14 +42,11 @@ export function ShopUpsellBanner({ plan, monthlyRedemptions, flashCredits, onOpe
   if (p === "pro" && monthlyRedemptions >= 5) {
     return (
       <Upsell color="#FF2D78" onClick={() => onOpenProducts("plans")}
-        title="Ultra lohnt sich für dich — Daueranzeige + Stadt-Feature"
-        items={[
-          "💎 Dauer-Spotlight (permanent Gold-Pin)",
-          "📣 Push-Broadcast an ganze Stadt",
-          "🥇 Stadt-Feature (1× im Monat Shop-der-Woche-Platzierung)",
-          "🎯 Demographic-Targeting für Deals",
-        ]}
-        priceLine="Ultra: 199 € / Monat · für aktive Shops mit viel Laufkundschaft"
+        title={t("upsellProUltraTitle")}
+        items={[t("upsellProUltraI1"), t("upsellProUltraI2"), t("upsellProUltraI3"), t("upsellProUltraI4")]}
+        priceLine={t("upsellProUltraPrice")}
+        ctaLabel={t("upsellCta")}
+        kicker={t("upsellKicker")}
       />
     );
   }
@@ -67,13 +54,11 @@ export function ShopUpsellBanner({ plan, monthlyRedemptions, flashCredits, onOpe
   if (p === "basis" && flashCredits === 0) {
     return (
       <Upsell color="#FF6B4A" onClick={() => onOpenProducts("boosts")}
-        title="Dein erster Flash-Push wartet auf dich"
-        items={[
-          "Einmalig 9 € (oder in Pro/Ultra inklusive)",
-          "Benachrichtigung an Runner in 1 km Radius",
-          "Typisch: 15–30 zusätzliche Besuche pro Push",
-        ]}
-        priceLine="Testen, ob es sich für deinen Shop lohnt"
+        title={t("upsellFlashTitle")}
+        items={[t("upsellFlashI1"), t("upsellFlashI2"), t("upsellFlashI3")]}
+        priceLine={t("upsellFlashPrice")}
+        ctaLabel={t("upsellCta")}
+        kicker={t("upsellKicker")}
       />
     );
   }
@@ -81,9 +66,9 @@ export function ShopUpsellBanner({ plan, monthlyRedemptions, flashCredits, onOpe
   return null;
 }
 
-function Upsell({ color, title, items, priceLine, onClick }: {
+function Upsell({ color, title, items, priceLine, onClick, ctaLabel, kicker }: {
   color: string; title: string; items: string[]; priceLine: string;
-  onClick: () => void;
+  onClick: () => void; ctaLabel: string; kicker: string;
 }) {
   return (
     <div style={{
@@ -96,7 +81,7 @@ function Upsell({ color, title, items, priceLine, onClick }: {
       alignItems: "center",
     }}>
       <div>
-        <div style={{ fontSize: 10, color, fontWeight: 900, letterSpacing: 2, marginBottom: 4 }}>💡 UPGRADE-VORSCHLAG</div>
+        <div style={{ fontSize: 10, color, fontWeight: 900, letterSpacing: 2, marginBottom: 4 }}>{kicker}</div>
         <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF", marginBottom: 8 }}>{title}</div>
         <ul style={{ margin: "0 0 8px", paddingLeft: 18, color: "#a8b4cf", fontSize: 12, lineHeight: 1.7 }}>
           {items.map((it, i) => <li key={i}>{it}</li>)}
@@ -108,7 +93,7 @@ function Upsell({ color, title, items, priceLine, onClick }: {
         background: color, color: "#0F1115",
         fontSize: 12, fontWeight: 900, letterSpacing: 0.5,
         cursor: "pointer", whiteSpace: "nowrap",
-      }}>Angebote ansehen →</button>
+      }}>{ctaLabel}</button>
     </div>
   );
 }

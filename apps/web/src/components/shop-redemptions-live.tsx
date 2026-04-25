@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { appAlert } from "@/components/app-dialog";
 
@@ -14,6 +15,7 @@ type Pending = {
 };
 
 export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
+  const t = useTranslations("ShopPanels");
   const sb = createClient();
   const [code, setCode] = useState("");
   const [pending, setPending] = useState<Pending[]>([]);
@@ -38,7 +40,7 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
   }, [sb, businessId]);
 
   async function verify(codeToVerify: string) {
-    if (!codeToVerify || codeToVerify.length < 4) { appAlert("Bitte Code eingeben"); return; }
+    if (!codeToVerify || codeToVerify.length < 4) { appAlert(t("redCodeRequired")); return; }
     setVerifying(true);
     try {
       const res = await fetch("/api/deals/verify", {
@@ -47,7 +49,7 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
         body: JSON.stringify({ code: codeToVerify, business_id: businessId }),
       });
       const json = await res.json();
-      if (!json.ok) { appAlert(json.error ?? "Code ungültig"); return; }
+      if (!json.ok) { appAlert(json.error ?? t("redCodeInvalid")); return; }
       setVerifiedFlash(codeToVerify);
       setCode("");
       setTimeout(() => setVerifiedFlash(null), 2500);
@@ -60,8 +62,8 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
       border: "1px solid rgba(255,255,255,0.14)",
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>✓ Einlösungen bestätigen</span>
-        <span style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1, padding: "2px 8px", borderRadius: 999, background: "rgba(34,209,195,0.15)" }}>LIVE</span>
+        <span style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{t("redConfirmTitle")}</span>
+        <span style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 1, padding: "2px 8px", borderRadius: 999, background: "rgba(34,209,195,0.15)" }}>{t("redLive")}</span>
       </div>
 
       {verifiedFlash && (
@@ -71,7 +73,7 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
           color: "#4ade80", fontWeight: 800, textAlign: "center", marginBottom: 10,
           animation: "verifyFlash 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}>
-          ✓ Code {verifiedFlash} bestätigt — Rabatt kann gewährt werden
+          {t("redCodeOk", { code: verifiedFlash })}
           <style>{`@keyframes verifyFlash { from { transform: scale(0.9); opacity: 0 } to { transform: scale(1); opacity: 1 } }`}</style>
         </div>
       )}
@@ -81,7 +83,7 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
           inputMode="numeric"
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="6-stelligen Code eingeben"
+          placeholder={t("redCodePh")}
           style={{
             flex: 1, padding: "10px 12px", borderRadius: 10,
             background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.12)",
@@ -99,16 +101,16 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
             fontSize: 13, fontWeight: 900,
           }}
         >
-          {verifying ? "…" : "Bestätigen"}
+          {verifying ? "…" : t("redConfirmBtn")}
         </button>
       </div>
 
       <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>
-        OFFENE EINLÖSUNGEN ({pending.length})
+        {t("redOpenHeading", { n: pending.length })}
       </div>
       {pending.length === 0 ? (
         <div style={{ padding: 20, textAlign: "center", color: "#a8b4cf", fontSize: 12 }}>
-          Keine offenen Einlösungen. Wenn ein Runner den Deal einlöst, erscheint hier der Code.
+          {t("redEmpty")}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -128,10 +130,10 @@ export function ShopRedemptionsLive({ businessId }: { businessId: string }) {
                 }}>{p.one_time_code}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ color: "#FFF", fontSize: 12, fontWeight: 700 }}>
-                    Runner {p.user_id.slice(0, 8)}…
+                    {t("redRunner", { id: p.user_id.slice(0, 8) })}
                   </div>
                   <div style={{ color: secondsLeft < 60 ? "#FF2D78" : "#a8b4cf", fontSize: 11 }}>
-                    ⏱ {mm}:{ss.toString().padStart(2, "0")} · {p.xp_paid} XP gezahlt
+                    {t("redTimeLeft", { mm, ss: ss.toString().padStart(2, "0"), xp: p.xp_paid })}
                   </div>
                 </div>
                 <button
