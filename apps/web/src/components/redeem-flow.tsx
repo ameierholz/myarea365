@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { appAlert } from "@/components/app-dialog";
+import { getNumberLocale, getDateLocale } from "@/i18n/config";
 
 type Step = "confirm" | "scan" | "redeeming" | "active" | "done" | "expired";
 
@@ -38,6 +40,9 @@ type RedeemResult = {
 };
 
 export function RedeemFlow(props: Props) {
+  const tR = useTranslations("Redeem");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const { businessId, businessName, dealTitle, xpCost, userXp, onClose, onRedeemed } = props;
   const [step, setStep] = useState<Step>(userXp >= xpCost ? "confirm" : "expired");
   const [code, setCode] = useState("");
@@ -106,7 +111,7 @@ export function RedeemFlow(props: Props) {
           ? new (window as unknown as { BarcodeDetector: new (opts: { formats: string[] }) => { detect(src: HTMLVideoElement): Promise<Array<{ rawValue: string }>> } }).BarcodeDetector({ formats: ["qr_code"] })
           : null;
         if (!detector) {
-          setScanError("QR-Scanner nicht verfügbar. Bitte Code manuell eingeben oder Browser updaten.");
+          setScanError(tR("errScannerNotAvail"));
           return;
         }
         scanIntervalRef.current = window.setInterval(async () => {
@@ -123,7 +128,7 @@ export function RedeemFlow(props: Props) {
                 cleanupCamera();
                 void doRedeem();
               } else if (scannedId) {
-                setScanError("Dieser QR gehört zu einem anderen Shop.");
+                setScanError(tR("errWrongShop"));
               }
             }
           } catch { /* ignore single-frame errors */ }
@@ -133,13 +138,13 @@ export function RedeemFlow(props: Props) {
           (window.location.protocol === "https:" || window.location.hostname === "localhost");
         let msg: string;
         if (e instanceof Error && e.name === "NotAllowedError") {
-          msg = "Kamera-Zugriff wurde abgelehnt — bitte in den Browser-Einstellungen erlauben (Schloss-Symbol in der Adressleiste → Kamera → Zulassen). Alternativ unten Code manuell eingeben.";
+          msg = tR("errCameraDenied");
         } else if (e instanceof Error && e.name === "NotFoundError") {
-          msg = "Keine Kamera gefunden. Nutze stattdessen Code manuell eingeben.";
+          msg = tR("errNoCamera");
         } else if (!isHttps) {
-          msg = "Kamera braucht HTTPS oder localhost — diese Seite lädt nicht über HTTPS. Code manuell eingeben.";
+          msg = tR("errNoHttps");
         } else {
-          msg = "Kamera konnte nicht gestartet werden. Code manuell eingeben oder Seite neu laden.";
+          msg = tR("errCameraGeneric");
         }
         setScanError(msg);
       }
@@ -166,7 +171,7 @@ export function RedeemFlow(props: Props) {
         .eq("active", true)
         .limit(1)
         .maybeSingle<{ id: string; title: string; xp_cost: number; min_order_amount_cents: number | null }>();
-      if (!deal) throw new Error("Kein aktiver Deal für diesen Shop");
+      if (!deal) throw new Error(tR("noActiveDeal"));
 
       setMinOrderCents(deal.min_order_amount_cents ?? null);
 
@@ -188,7 +193,7 @@ export function RedeemFlow(props: Props) {
         shop_name?: string; deal_title?: string; min_order_cents?: number | null;
       };
       if (!json.ok) {
-        appAlert(json.error ?? "Fehler beim Einlösen");
+        appAlert(json.error ?? tR("redeemError"));
         setStep("confirm");
         return;
       }
@@ -221,13 +226,13 @@ export function RedeemFlow(props: Props) {
   }
 
   async function doManualCode() {
-    const manual = prompt("Manueller Shop-Code (von Shop-Inhaber):");
+    const manual = prompt(tR("promptManual"));
     if (!manual) return;
     if (manual === businessId.slice(0, 8).toUpperCase() || manual === businessId) {
       cleanupCamera();
       void doRedeem();
     } else {
-      setScanError("Shop-Code falsch.");
+      setScanError(tR("errBadShopCode"));
     }
   }
 
@@ -257,36 +262,49 @@ export function RedeemFlow(props: Props) {
         {/* Header */}
         <div style={{ padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>EINLÖSEN</div>
+            <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>{tR("kicker")}</div>
             <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{businessName}</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>✕</button>
+          <button onClick={onClose} aria-label={tR("closeAria")} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
 
         {step === "expired" && userXp < xpCost && (
           <div style={{ padding: 24, textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Nicht genug Wegemünzen</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{tR("notEnoughTitle")}</div>
             <div style={{ color: "#a8b4cf", fontSize: 13, marginBottom: 16 }}>
-              Du hast <b style={{ color: "#FFD700" }}>{userXp.toLocaleString("de-DE")} 🪙</b>, brauchst aber <b style={{ color: "#FFD700" }}>{xpCost.toLocaleString("de-DE")} 🪙</b> für „{dealTitle}".
-              <br /><br />Sammel weitere <b>{(xpCost - userXp).toLocaleString("de-DE")} Wegemünzen</b> durch Läufe oder im Shop.
+              {tR.rich("notEnoughBodyRich", {
+                have: userXp.toLocaleString(numLocale),
+                need: xpCost.toLocaleString(numLocale),
+                missing: (xpCost - userXp).toLocaleString(numLocale),
+                title: dealTitle,
+                g: (chunks) => <b style={{ color: "#FFD700" }}>{chunks}</b>,
+                b: (chunks) => <b>{chunks}</b>,
+                br: () => <br />,
+              })}
             </div>
-            <button onClick={onClose} style={btnSecondary}>Zurück</button>
+            <button onClick={onClose} style={btnSecondary}>{tR("back")}</button>
           </div>
         )}
 
         {step === "confirm" && (
           <div style={{ padding: 20 }}>
             <div style={{ padding: 16, borderRadius: 14, background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.4)", marginBottom: 16 }}>
-              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>AKTUELLER DEAL</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{tR("currentDeal")}</div>
               <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, margin: "4px 0 10px" }}>{dealTitle}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#FFF", fontSize: 13 }}>Kosten</span>
-                <span style={{ color: "#FFD700", fontSize: 22, fontWeight: 900 }}>{xpCost.toLocaleString("de-DE")} 🪙 Wegemünzen</span>
+                <span style={{ color: "#FFF", fontSize: 13 }}>{tR("cost")}</span>
+                <span style={{ color: "#FFD700", fontSize: 22, fontWeight: 900 }}>{tR("costAmount", { n: xpCost.toLocaleString(numLocale) })}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, color: "#a8b4cf" }}>
-                <span>Dein Stand</span>
-                <span>{userXp.toLocaleString("de-DE")} 🪙 → <b style={{ color: "#22D1C3" }}>{(userXp - xpCost).toLocaleString("de-DE")} nach Einlösen</b></span>
+                <span>{tR("yourBalance")}</span>
+                <span>
+                  {tR.rich("yourBalanceAfterRich", {
+                    have: userXp.toLocaleString(numLocale),
+                    after: (userXp - xpCost).toLocaleString(numLocale),
+                    b: (chunks) => <b style={{ color: "#22D1C3" }}>{chunks}</b>,
+                  })}
+                </span>
               </div>
             </div>
 
@@ -294,12 +312,11 @@ export function RedeemFlow(props: Props) {
             <ShopQuestsPreview businessId={businessId} />
 
             <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
-              Im nächsten Schritt scannst du den <b>Shop-QR-Code</b> vor Ort. Wegemünzen werden erst bei erfolgreichem Scan abgezogen.
-              Eine Bestätigung bleibt <b>5 Minuten gültig</b>.
+              {tR.rich("nextStepInfoRich", { b: (chunks) => <b>{chunks}</b> })}
             </div>
 
             <button onClick={() => setStep("scan")} style={btnPrimary}>
-              📷 Kamera öffnen & QR scannen
+              {tR("openCamera")}
             </button>
           </div>
         )}
@@ -322,14 +339,14 @@ export function RedeemFlow(props: Props) {
               }} />
             </div>
             <div style={{ color: "#a8b4cf", fontSize: 12, textAlign: "center", marginBottom: 10 }}>
-              Richte die Kamera auf den QR-Code am Shop-Tresen.
+              {tR("aimCamera")}
             </div>
             {scanError && (
               <div style={{ padding: 10, borderRadius: 10, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78", fontSize: 12, marginBottom: 10 }}>
                 {scanError}
               </div>
             )}
-            <button onClick={doManualCode} style={btnSecondary}>Code manuell eingeben</button>
+            <button onClick={doManualCode} style={btnSecondary}>{tR("manualCode")}</button>
             <style>{`@keyframes redeemScanPulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }`}</style>
           </div>
         )}
@@ -337,7 +354,7 @@ export function RedeemFlow(props: Props) {
         {step === "redeeming" && (
           <div style={{ padding: 40, textAlign: "center" }}>
             <div style={{ fontSize: 36, animation: "spin 1s linear infinite" }}>⟳</div>
-            <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800, marginTop: 10 }}>Prüfe & ziehe XP ab …</div>
+            <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800, marginTop: 10 }}>{tR("checking")}</div>
             <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
           </div>
         )}
@@ -346,7 +363,7 @@ export function RedeemFlow(props: Props) {
           <div style={{ padding: 18 }}>
             <div style={{ textAlign: "center", marginBottom: 8 }}>
               <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>
-                ✓ AN DER KASSE VORZEIGEN
+                {tR("showAtCheckout")}
               </div>
             </div>
 
@@ -378,7 +395,7 @@ export function RedeemFlow(props: Props) {
                   display: "inline-block",
                   background: "rgba(15,17,21,0.85)", color: "#4ade80",
                 }}>
-                  VOR ORT BESTÄTIGT · {new Date(now).toLocaleTimeString("de-DE")}
+                  {tR("vorortBestaetigt", { time: new Date(now).toLocaleTimeString(getDateLocale(locale)) })}
                 </div>
               </div>
             </div>
@@ -392,13 +409,13 @@ export function RedeemFlow(props: Props) {
                 textAlign: "center", marginBottom: 10,
               }}>
                 <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>
-                  MINDESTUMSATZ
+                  {tR("minOrderHeader")}
                 </div>
                 <div style={{ fontSize: 32, fontWeight: 900, color: "#FFD700", marginTop: 2, lineHeight: 1 }}>
-                  {(minOrderCents / 100).toFixed(2).replace(".", ",")} €
+                  {tR("minOrderEur", { eur: (minOrderCents / 100).toLocaleString(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}
                 </div>
                 <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 4 }}>
-                  muss an der Kasse erreicht werden
+                  {tR("minOrderHint")}
                 </div>
               </div>
             )}
@@ -418,17 +435,17 @@ export function RedeemFlow(props: Props) {
               <span style={{ fontSize: 20 }}>⚠️</span>
               <div style={{ flex: 1 }}>
                 <div style={{ color: "#FF2D78", fontSize: 12, fontWeight: 900 }}>
-                  Gültig noch {mm}:{ss.toString().padStart(2, "0")}
+                  {tR("validFor", { min: mm, sec: ss.toString().padStart(2, "0") })}
                 </div>
                 <div style={{ color: "#a8b4cf", fontSize: 10 }}>
-                  Der Live-Ring rotiert — Screenshot erkennt man an stehendem Ring.
+                  {tR("liveRingHint")}
                 </div>
               </div>
               <PulseDot />
             </div>
 
             <div style={{ color: "#a8b4cf", fontSize: 11, textAlign: "center", lineHeight: 1.5 }}>
-              Personal schaut nur auf diesen Screen: ✓ grün + rotierender Ring + Shop-Name = echt.
+              {tR("staffHint")}
             </div>
             <style>{`@keyframes redeemSpin { to { transform: rotate(360deg) } }`}</style>
           </div>
@@ -437,9 +454,9 @@ export function RedeemFlow(props: Props) {
         {step === "active" && !autoVerified && (
           <div style={{ padding: 18 }}>
             <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>⏳ CODE AN DER KASSE ZEIGEN</div>
+              <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>{tR("showCodeAtCheckout")}</div>
               <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                (GPS nicht bestätigt — Personal muss bestätigen)
+                {tR("gpsNotConfirmed")}
               </div>
             </div>
 
@@ -457,7 +474,7 @@ export function RedeemFlow(props: Props) {
                 pointerEvents: "none",
               }} />
               <div style={{ position: "relative" }}>
-                <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, opacity: 0.8 }}>EIN-MAL-CODE</div>
+                <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, opacity: 0.8 }}>{tR("oneTimeCode")}</div>
                 <div style={{
                   fontSize: 56, fontWeight: 900, letterSpacing: 8,
                   marginTop: 4, fontFamily: "ui-monospace, monospace",
@@ -465,7 +482,7 @@ export function RedeemFlow(props: Props) {
                 }}>{code}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, marginTop: 6 }}>{dealTitle}</div>
                 <div style={{ fontSize: 11, marginTop: 4, opacity: 0.75 }}>
-                  ✓ {xpCost.toLocaleString("de-DE")} 🪙 abgezogen
+                  {tR("xpDeducted", { n: xpCost.toLocaleString(numLocale) })}
                 </div>
               </div>
             </div>
@@ -477,9 +494,9 @@ export function RedeemFlow(props: Props) {
                 border: "1px solid rgba(255,215,0,0.35)",
                 textAlign: "center", marginBottom: 10,
               }}>
-                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>MINDESTUMSATZ</div>
+                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: "#FFD700" }}>{tR("minOrderHeader")}</div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: "#FFD700", marginTop: 1 }}>
-                  {(minOrderCents / 100).toFixed(2).replace(".", ",")} €
+                  {tR("minOrderEur", { eur: (minOrderCents / 100).toLocaleString(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}
                 </div>
               </div>
             )}
@@ -493,10 +510,10 @@ export function RedeemFlow(props: Props) {
               <span style={{ fontSize: 24 }}>{secondsLeft < 60 ? "⚠️" : "⏱️"}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ color: secondsLeft < 60 ? "#FF2D78" : "#22D1C3", fontSize: 13, fontWeight: 900 }}>
-                  Gültig noch {mm}:{ss.toString().padStart(2, "0")}
+                  {tR("validFor", { min: mm, sec: ss.toString().padStart(2, "0") })}
                 </div>
                 <div style={{ color: "#a8b4cf", fontSize: 10 }}>
-                  Live-Code · Screenshot verfällt mit Zeitablauf
+                  {tR("liveCodeHint")}
                 </div>
               </div>
               <PulseDot />
@@ -511,12 +528,12 @@ export function RedeemFlow(props: Props) {
               fontSize: 80, marginBottom: 10,
               animation: "redeemPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
             }}>✅</div>
-            <div style={{ color: "#4ade80", fontSize: 22, fontWeight: 900 }}>Eingelöst!</div>
+            <div style={{ color: "#4ade80", fontSize: 22, fontWeight: 900 }}>{tR("redeemed")}</div>
             <div style={{ color: "#FFF", fontSize: 14, marginTop: 4 }}>{dealTitle}</div>
 
             {loot && loot.rarity !== "none" ? <LootReveal rarity={loot.rarity} xp={loot.xp} /> : (
               <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 14 }}>
-                Kein Loot diesmal. Beim nächsten Einlösen wieder Glück haben!
+                {tR("noLootHint")}
               </div>
             )}
 
@@ -527,9 +544,9 @@ export function RedeemFlow(props: Props) {
                 border: "1px solid rgba(255,215,0,0.4)",
               }}>
                 <div style={{ fontSize: 24, marginBottom: 4 }}>👑</div>
-                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>GEBIETSFÜRST-BONUS</div>
-                {territoryBonus.xp > 0 && <div style={{ color: "#FFF", fontSize: 12, marginTop: 4 }}>+{territoryBonus.xp} XP</div>}
-                {territoryBonus.siegel && <div style={{ color: "#FFF", fontSize: 12 }}>+1× Universal-Siegel</div>}
+                <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>{tR("territoryBonusKicker")}</div>
+                {territoryBonus.xp > 0 && <div style={{ color: "#FFF", fontSize: 12, marginTop: 4 }}>{tR("territoryBonusXp", { xp: territoryBonus.xp })}</div>}
+                {territoryBonus.siegel && <div style={{ color: "#FFF", fontSize: 12 }}>{tR("territoryBonusSiegel")}</div>}
               </div>
             )}
 
@@ -537,7 +554,7 @@ export function RedeemFlow(props: Props) {
               <ReceiptBonusSection redemptionId={redemptionId} onClose={onClose} />
             )}
 
-            <button onClick={onClose} style={{ ...btnSecondary, marginTop: 14 }}>Schließen</button>
+            <button onClick={onClose} style={{ ...btnSecondary, marginTop: 14 }}>{tR("close")}</button>
             <style>{`@keyframes redeemPop { 0% { transform: scale(0.3); opacity: 0 } 60% { transform: scale(1.2) } 100% { transform: scale(1); opacity: 1 } }`}</style>
           </div>
         )}
@@ -545,12 +562,11 @@ export function RedeemFlow(props: Props) {
         {step === "expired" && userXp >= xpCost && (
           <div style={{ padding: 24, textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>⌛</div>
-            <div style={{ color: "#FF2D78", fontSize: 18, fontWeight: 900, marginBottom: 6 }}>Zeit abgelaufen</div>
+            <div style={{ color: "#FF2D78", fontSize: 18, fontWeight: 900, marginBottom: 6 }}>{tR("timeExpiredTitle")}</div>
             <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
-              Die Einlösung wurde nicht innerhalb von 5 Minuten bestätigt.
-              Die XP-Abbuchung wird am nächsten Werktag automatisch rückerstattet.
+              {tR("timeExpiredBody")}
             </div>
-            <button onClick={onClose} style={btnSecondary}>Schließen</button>
+            <button onClick={onClose} style={btnSecondary}>{tR("close")}</button>
           </div>
         )}
       </div>
@@ -559,6 +575,7 @@ export function RedeemFlow(props: Props) {
 }
 
 function TerritoryLordBadge({ businessId }: { businessId: string }) {
+  const tR = useTranslations("Redeem");
   const [state, setState] = useState<{ is_lord: boolean; active: boolean; radius_m: number; min_claims: number } | null>(null);
   useEffect(() => {
     fetch(`/api/shop/territory-lord?business_id=${businessId}`, { cache: "no-store" })
@@ -576,8 +593,8 @@ function TerritoryLordBadge({ businessId }: { businessId: string }) {
       }}>
         <span style={{ fontSize: 24 }}>👑</span>
         <div style={{ flex: 1 }}>
-          <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>GEBIETSFÜRST</div>
-          <div style={{ color: "#a8b4cf", fontSize: 10 }}>Extra-XP & Siegel bei dieser Einlösung</div>
+          <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>{tR("lordKicker")}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 10 }}>{tR("lordHint")}</div>
         </div>
       </div>
     );
@@ -588,7 +605,11 @@ function TerritoryLordBadge({ businessId }: { businessId: string }) {
       background: "rgba(139,143,163,0.1)", border: "1px dashed rgba(139,143,163,0.3)",
     }}>
       <div style={{ color: "#a8b4cf", fontSize: 11 }}>
-        🗺️ Erobere <b>{state.min_claims}</b> Gebiete im <b>{state.radius_m}m</b>-Radius rings um diesen Shop (letzte 30 Tage) für den Gebietsfürst-Bonus.
+        {tR.rich("lordRequirementRich", {
+          count: state.min_claims,
+          radius: state.radius_m,
+          b: (chunks) => <b>{chunks}</b>,
+        })}
       </div>
     </div>
   );
@@ -606,6 +627,7 @@ type QuestPreview = {
 };
 
 function ShopQuestsPreview({ businessId }: { businessId: string }) {
+  const tR = useTranslations("Redeem");
   const [quests, setQuests] = useState<QuestPreview[]>([]);
   useEffect(() => {
     fetch(`/api/shop/quests?business_id=${businessId}`, { cache: "no-store" })
@@ -617,18 +639,18 @@ function ShopQuestsPreview({ businessId }: { businessId: string }) {
   if (open.length === 0) return null;
   return (
     <div style={{ padding: 12, borderRadius: 12, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", marginBottom: 14 }}>
-      <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>🎯 OFFENE QUESTS</div>
+      <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{tR("questsKicker")}</div>
       {open.slice(0, 3).map((q) => (
         <div key={q.id} style={{ padding: "6px 0", borderTop: "1px solid rgba(34,209,195,0.15)" }}>
           <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>{q.title}</div>
           <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-            Tipp: Kaufe &quot;{q.article_pattern}&quot; → {q.reward_xp > 0 && `+${q.reward_xp} XP`}
-            {q.reward_loot_rarity && ` + 🎁 ${q.reward_loot_rarity}-Item`}
+            {tR("questTip", { pattern: q.article_pattern })}{q.reward_xp > 0 && tR("questXp", { xp: q.reward_xp })}
+            {q.reward_loot_rarity && tR("questLoot", { rarity: q.reward_loot_rarity })}
           </div>
         </div>
       ))}
       <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 6 }}>
-        Wird automatisch freigeschaltet wenn du den Bon hochlädst.
+        {tR("questsAutoHint")}
       </div>
     </div>
   );
@@ -653,6 +675,7 @@ type BonusResult = {
 };
 
 function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; onClose: () => void }) {
+  const tR = useTranslations("Redeem");
   const [expanded, setExpanded] = useState(false);
   const [amount, setAmount] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -671,7 +694,7 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
     if (!file || !amount) return;
     const cents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
     if (!Number.isFinite(cents) || cents < 100) {
-      appAlert("Bitte gültigen Betrag in € eingeben (mind. 1,00 €).");
+      appAlert(tR("amountInvalid"));
       return;
     }
     setBusy(true);
@@ -693,7 +716,7 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
       });
       const json = (await res.json()) as BonusResult;
       if (!json.ok) {
-        appAlert(json.message ?? json.error ?? "Fehler beim Prüfen");
+        appAlert(json.message ?? json.error ?? tR("checkError"));
         setBusy(false);
         return;
       }
@@ -705,42 +728,42 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
 
   if (result) {
     const r = result.loot;
-    const meta = r?.rarity === "legendary" ? { label: "LEGENDÄR", color: "#FFD700", emoji: "💎" }
-              : r?.rarity === "epic"      ? { label: "EPISCH",   color: "#a855f7", emoji: "🔮" }
-              : r?.rarity === "rare"      ? { label: "SELTEN",   color: "#22D1C3", emoji: "💠" }
-              : r?.rarity === "common"    ? { label: "BONUS",    color: "#8B8FA3", emoji: "📦" }
-              : { label: "KEIN BONUS",   color: "#8B8FA3", emoji: "—" };
+    const meta = r?.rarity === "legendary" ? { label: tR("rarityLegend"), color: "#FFD700", emoji: "💎" }
+              : r?.rarity === "epic"      ? { label: tR("rarityEpic"),   color: "#a855f7", emoji: "🔮" }
+              : r?.rarity === "rare"      ? { label: tR("rarityRare"),   color: "#22D1C3", emoji: "💠" }
+              : r?.rarity === "common"    ? { label: tR("rarityCommon"), color: "#8B8FA3", emoji: "📦" }
+              : { label: tR("rarityNone"), color: "#8B8FA3", emoji: "—" };
     return (
       <div style={{ marginTop: 18, padding: 14, borderRadius: 14, background: `${meta.color}18`, border: `1px solid ${meta.color}55` }}>
         <div style={{ fontSize: 40 }}>{meta.emoji}</div>
         <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 2, marginTop: 4 }}>{meta.label}</div>
         {r && r.rarity !== "none" && (
           <>
-            {r.bonus_universal > 0 && <div style={{ color: "#FFF", fontSize: 13, marginTop: 6 }}>+{r.bonus_universal}× Universal-Siegel</div>}
-            {r.bonus_typed > 0 && <div style={{ color: "#FFF", fontSize: 13 }}>+{r.bonus_typed}× {r.typed_rarity}-Siegel</div>}
-            {r.item_id && <div style={{ color: "#FFD700", fontSize: 12, marginTop: 4, fontWeight: 700 }}>🎁 Ausrüstung erbeutet!</div>}
+            {r.bonus_universal > 0 && <div style={{ color: "#FFF", fontSize: 13, marginTop: 6 }}>{tR("bonusUniversal", { n: r.bonus_universal })}</div>}
+            {r.bonus_typed > 0 && <div style={{ color: "#FFF", fontSize: 13 }}>{tR("bonusTyped", { n: r.bonus_typed, rarity: r.typed_rarity })}</div>}
+            {r.item_id && <div style={{ color: "#FFD700", fontSize: 12, marginTop: 4, fontWeight: 700 }}>{tR("gearLooted")}</div>}
           </>
         )}
         {!result.verified && (
           <div style={{ color: "#FF6B4A", fontSize: 10, marginTop: 6 }}>
-            ⚠️ Betrag konnte nicht eindeutig verifiziert werden — nur halber Bonus
+            {tR("ocrUnverified")}
           </div>
         )}
         {result.quests && result.quests.completed.length > 0 && (
           <div style={{ marginTop: 14, padding: 12, borderRadius: 12, background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.4)", textAlign: "left" }}>
-            <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>🎯 QUEST{result.quests.completed.length > 1 ? "S" : ""} ABGESCHLOSSEN!</div>
+            <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>{result.quests.completed.length > 1 ? tR("questCompletedKickerMany") : tR("questCompletedKickerOne")}</div>
             {result.quests.completed.map((q) => (
               <div key={q.quest_id} style={{ padding: "6px 0", borderTop: "1px solid rgba(255,215,0,0.15)" }}>
                 <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>✓ {q.title}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                  {q.reward_xp > 0 && <span>+{q.reward_xp} XP</span>}
-                  {q.reward_loot_rarity && <span>{q.reward_xp > 0 ? " · " : ""}🎁 {q.reward_loot_rarity}-Item</span>}
+                  {q.reward_xp > 0 && <span>{tR("questXp", { xp: q.reward_xp })}</span>}
+                  {q.reward_loot_rarity && <span>{q.reward_xp > 0 ? " · " : ""}{tR("questLoot", { rarity: q.reward_loot_rarity }).slice(3)}</span>}
                 </div>
               </div>
             ))}
           </div>
         )}
-        <button onClick={onClose} style={{ ...btnPrimary, marginTop: 12 }}>Fertig</button>
+        <button onClick={onClose} style={{ ...btnPrimary, marginTop: 12 }}>{tR("doneBtn")}</button>
       </div>
     );
   }
@@ -753,9 +776,9 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
         border: "1px dashed rgba(255,215,0,0.5)",
         color: "#FFF", cursor: "pointer", fontSize: 13, fontWeight: 800, textAlign: "left",
       }}>
-        <div style={{ fontSize: 20, marginBottom: 2 }}>🧾 Bonus-Loot freischalten</div>
+        <div style={{ fontSize: 20, marginBottom: 2 }}>{tR("bonusCtaTitle")}</div>
         <div style={{ fontSize: 11, fontWeight: 500, color: "#a8b4cf", lineHeight: 1.4 }}>
-          Kassenbon hochladen → Extra-Siegel & Ausrüstung je nach Einkaufswert
+          {tR("bonusCtaHint")}
         </div>
       </button>
     );
@@ -763,16 +786,16 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
 
   return (
     <div style={{ marginTop: 18, padding: 14, borderRadius: 14, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", textAlign: "left" }}>
-      <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>BONUS-LOOT</div>
+      <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>{tR("bonusKicker")}</div>
       <div style={{ color: "#a8b4cf", fontSize: 11, margin: "4px 0 10px", lineHeight: 1.4 }}>
-        Je höher dein Einkaufsbetrag, desto besser der Bonus. KI prüft den Bon automatisch.
+        {tR("bonusBody")}
       </div>
 
-      <label style={{ display: "block", color: "#FFF", fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Kaufbetrag (€)</label>
+      <label style={{ display: "block", color: "#FFF", fontSize: 11, fontWeight: 800, marginBottom: 4 }}>{tR("amountLabel")}</label>
       <input
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        placeholder="z.B. 38,50"
+        placeholder={tR("amountPh")}
         inputMode="decimal"
         style={{
           width: "100%", padding: "10px 12px", borderRadius: 10,
@@ -781,7 +804,7 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
         }}
       />
 
-      <label style={{ display: "block", color: "#FFF", fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Kassenbon-Foto</label>
+      <label style={{ display: "block", color: "#FFF", fontSize: 11, fontWeight: 800, marginBottom: 4 }}>{tR("receiptLabel")}</label>
       {preview ? (
         <div style={{ position: "relative", marginBottom: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -798,7 +821,7 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
           border: "1px dashed rgba(255,255,255,0.2)", textAlign: "center",
           cursor: "pointer", marginBottom: 10, color: "#a8b4cf", fontSize: 12,
         }}>
-          📷 Foto aufnehmen oder auswählen
+          {tR("receiptUploadCta")}
           <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
             style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) pickFile(f); }}
@@ -811,20 +834,22 @@ function ReceiptBonusSection({ redemptionId, onClose }: { redemptionId: string; 
         disabled={busy || !file || !amount}
         style={{ ...btnPrimary, opacity: (!file || !amount || busy) ? 0.5 : 1 }}
       >
-        {busy ? "Prüfe Bon …" : "Bonus einlösen"}
+        {busy ? tR("checkingReceipt") : tR("submitBonus")}
       </button>
     </div>
   );
 }
 
 function LootReveal({ rarity, xp }: { rarity: "common" | "rare" | "epic" | "legend"; xp: number }) {
+  const tR = useTranslations("Redeem");
+  const locale = useLocale();
   const meta = rarity === "legend"
-    ? { label: "LEGENDÄR", color: "#FFD700", glow: "rgba(255,215,0,0.8)", emoji: "💎" }
+    ? { label: tR("lootLegendary"), color: "#FFD700", glow: "rgba(255,215,0,0.8)", emoji: "💎" }
     : rarity === "epic"
-    ? { label: "EPISCH", color: "#a855f7", glow: "rgba(168,85,247,0.7)", emoji: "🔮" }
+    ? { label: tR("lootEpic"), color: "#a855f7", glow: "rgba(168,85,247,0.7)", emoji: "🔮" }
     : rarity === "rare"
-    ? { label: "SELTEN", color: "#22D1C3", glow: "rgba(34,209,195,0.7)", emoji: "💠" }
-    : { label: "GEWÖHNLICH", color: "#8B8FA3", glow: "rgba(139,143,163,0.45)", emoji: "📦" };
+    ? { label: tR("lootRare"), color: "#22D1C3", glow: "rgba(34,209,195,0.7)", emoji: "💠" }
+    : { label: tR("lootCommon"), color: "#8B8FA3", glow: "rgba(139,143,163,0.45)", emoji: "📦" };
   return (
     <div style={{
       marginTop: 18, padding: 16, borderRadius: 16,
@@ -834,9 +859,9 @@ function LootReveal({ rarity, xp }: { rarity: "common" | "rare" | "epic" | "lege
       animation: "lootReveal 0.9s cubic-bezier(0.34, 1.56, 0.64, 1)",
     }}>
       <div style={{ fontSize: 48, marginBottom: 6, animation: "lootBounce 1.2s ease-in-out infinite" }}>{meta.emoji}</div>
-      <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>{meta.label} LOOT</div>
-      <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginTop: 4 }}>+{xp.toLocaleString("de-DE")} XP</div>
-      <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>auf deinen Wächter</div>
+      <div style={{ color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>{meta.label} {tR("lootSuffix")}</div>
+      <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginTop: 4 }}>{tR("lootXp", { xp: xp.toLocaleString(getNumberLocale(locale)) })}</div>
+      <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{tR("lootForGuardian")}</div>
       <style>{`
         @keyframes lootReveal {
           0%   { transform: scale(0.4) rotate(-6deg); opacity: 0; }
@@ -878,6 +903,7 @@ const btnSecondary: React.CSSProperties = {
 };
 
 function CrewStampWidget({ stamp }: { stamp: CrewStamp }) {
+  const tR = useTranslations("Redeem");
   const hasUnlocks = (stamp.new_unlocks?.length ?? 0) > 0;
   return (
     <div style={{
@@ -891,26 +917,29 @@ function CrewStampWidget({ stamp }: { stamp: CrewStamp }) {
         <div style={{ fontSize: 24 }}>{hasUnlocks ? "🏆" : "🗂️"}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: hasUnlocks ? "#FFD700" : "#22D1C3" }}>
-            CREW-STEMPEL · {stamp.crew_name?.toUpperCase()}
+            {tR("stampKicker", { name: stamp.crew_name?.toUpperCase() ?? "" })}
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 1 }}>
-            +1 Stempel · <span style={{ color: "#FFD700" }}>{stamp.stamp_count} gesammelt</span>
+            {tR.rich("stampGainRich", {
+              count: stamp.stamp_count ?? 0,
+              g: (chunks) => <span style={{ color: "#FFD700" }}>{chunks}</span>,
+            })}
           </div>
         </div>
       </div>
       {hasUnlocks && (
         <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.4)" }}>
           <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700", marginBottom: 4 }}>
-            🎉 FREIGESCHALTET!
+            {tR("unlocksKicker")}
           </div>
           {stamp.new_unlocks!.map((u, i) => (
             <div key={i} style={{ fontSize: 12, color: "#FFF", fontWeight: 700, marginTop: 2 }}>
               • <b>{u.label}</b>
-              {u.kind === "discount_percent" && u.value_int ? ` — ${u.value_int} % Rabatt für alle Crew-Mitglieder` : ""}
-              {u.kind === "free_item" && u.value_text ? ` — ${u.value_text}` : ""}
-              {u.kind === "wegemuenzen_unlock" && u.value_int ? ` — +${u.value_int} 🪙 für jedes Mitglied` : ""}
-              {u.kind === "gebietsruf_unlock" && u.value_int ? ` — +${u.value_int} 🏴 für jedes Mitglied` : ""}
-              {u.kind === "crew_emblem" ? " — Crew-Emblem erscheint am Shop-Pin auf der Karte" : ""}
+              {u.kind === "discount_percent" && u.value_int ? tR("unlockDiscount", { pct: u.value_int }) : ""}
+              {u.kind === "free_item" && u.value_text ? tR("unlockFreeItem", { item: u.value_text }) : ""}
+              {u.kind === "wegemuenzen_unlock" && u.value_int ? tR("unlockWegemuenzen", { n: u.value_int }) : ""}
+              {u.kind === "gebietsruf_unlock" && u.value_int ? tR("unlockGebietsruf", { n: u.value_int }) : ""}
+              {u.kind === "crew_emblem" ? tR("unlockEmblem") : ""}
             </div>
           ))}
         </div>
