@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Mission = {
   id: string;
@@ -39,6 +40,7 @@ const EMPTY: Mission = {
 };
 
 export function MissionsClient() {
+  const t = useTranslations("AdminMissions");
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Mission | null>(null);
@@ -65,7 +67,7 @@ export function MissionsClient() {
     });
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
-      alert(`Speichern fehlgeschlagen: ${j.error ?? r.status}`);
+      alert(t("saveFail", { error: String(j.error ?? r.status) }));
       return;
     }
     setEditing(null);
@@ -73,9 +75,9 @@ export function MissionsClient() {
   }
 
   async function del(id: string) {
-    if (!confirm("Wirklich löschen? Alle Zuweisungen an User bleiben bestehen, aber kein neuer Pick mehr.")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     const r = await fetch(`/api/admin/missions?id=${id}`, { method: "DELETE" });
-    if (!r.ok) { alert("Löschen fehlgeschlagen"); return; }
+    if (!r.ok) { alert(t("deleteFail")); return; }
     await load();
   }
 
@@ -100,43 +102,41 @@ export function MissionsClient() {
     <div className="p-8 max-w-6xl">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-black text-white mb-1">🎯 Missionen</h1>
-          <p className="text-[13px] text-[#a8b4cf]">
-            Pool für Tages- &amp; Wochenmissionen. Spieler bekommen täglich 3 Dailies + 1 Weekly zufällig zugewiesen.
-          </p>
+          <h1 className="text-3xl font-black text-white mb-1">{t("title")}</h1>
+          <p className="text-[13px] text-[#a8b4cf]">{t("subtitle")}</p>
         </div>
         <button
           onClick={() => setEditing({ ...EMPTY })}
           className="px-4 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115] font-black text-sm hover:opacity-90"
-        >+ Neue Mission</button>
+        >{t("newMission")}</button>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard label="POOL AKTIV" value={countActive} total={missions.length} color="#22D1C3" />
-        <StatCard label="DAILIES AKTIV" value={countDailyActive} color="#FFD700" />
-        <StatCard label="WEEKLIES AKTIV" value={countWeeklyActive} color="#FF2D78" />
+        <StatCard label={t("statPoolActive")} value={countActive} total={missions.length} color="#22D1C3" />
+        <StatCard label={t("statDailyActive")} value={countDailyActive} color="#FFD700" />
+        <StatCard label={t("statWeeklyActive")} value={countWeeklyActive} color="#FF2D78" />
       </div>
 
       <div className="flex gap-3 mb-4">
         <div className="flex gap-1 p-1 rounded-lg bg-white/5">
-          {(["all", "daily", "weekly"] as const).map((t) => (
-            <button key={t} onClick={() => setFilter(t)} className={`px-3 py-1.5 rounded-md text-xs font-bold ${filter === t ? "bg-[#22D1C3] text-[#0F1115]" : "text-white/70 hover:text-white"}`}>
-              {t === "all" ? "Alle" : t === "daily" ? "Daily" : "Weekly"}
+          {(["all", "daily", "weekly"] as const).map((tab) => (
+            <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1.5 rounded-md text-xs font-bold ${filter === tab ? "bg-[#22D1C3] text-[#0F1115]" : "text-white/70 hover:text-white"}`}>
+              {tab === "all" ? t("filterAll") : tab === "daily" ? t("filterDaily") : t("filterWeekly")}
             </button>
           ))}
         </div>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Suche nach Name oder Code…"
+          placeholder={t("searchPlaceholder")}
           className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[#22D1C3]"
         />
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-[#8B8FA3]">Lade Missionen…</div>
+        <div className="text-center py-12 text-[#8B8FA3]">{t("loading")}</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-[#8B8FA3]">Keine Missionen gefunden.</div>
+        <div className="text-center py-12 text-[#8B8FA3]">{t("empty")}</div>
       ) : (
         <div className="space-y-2">
           {filtered.map((m) => (
@@ -159,10 +159,10 @@ export function MissionsClient() {
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <button onClick={() => toggleActive(m)} className={`px-3 py-1.5 rounded-md text-xs font-bold ${m.active ? "bg-[#4ade80]/20 text-[#4ade80] border border-[#4ade80]/40" : "bg-white/5 text-white/40 border border-white/10"}`}>
-                  {m.active ? "Aktiv" : "Inaktiv"}
+                  {m.active ? t("active") : t("inactive")}
                 </button>
                 <button onClick={() => setEditing({ ...m })} className="px-3 py-1.5 rounded-md bg-white/5 text-white hover:bg-white/10 text-xs font-bold">
-                  Edit
+                  {t("edit")}
                 </button>
                 <button onClick={() => del(m.id)} className="px-3 py-1.5 rounded-md bg-[#FF2D78]/15 text-[#FF2D78] hover:bg-[#FF2D78]/25 text-xs font-bold">
                   🗑
@@ -200,6 +200,7 @@ function MissionEditor({ mission, onCancel, onSave }: {
   onCancel: () => void;
   onSave: (m: Mission) => void;
 }) {
+  const t = useTranslations("AdminMissions");
   const [m, setM] = useState<Mission>(mission);
   const isNew = !m.id;
 
@@ -208,58 +209,58 @@ function MissionEditor({ mission, onCancel, onSave }: {
   return (
     <div onClick={onCancel} className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
       <div onClick={(e) => e.stopPropagation()} className="bg-[#1A1D23] border border-white/10 rounded-2xl p-6 w-full max-w-xl max-h-[90vh] overflow-auto">
-        <h2 className="text-xl font-black text-white mb-4">{isNew ? "Neue Mission" : "Mission bearbeiten"}</h2>
+        <h2 className="text-xl font-black text-white mb-4">{isNew ? t("editorNew") : t("editorEdit")}</h2>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Code (unique)">
+          <Field label={t("fieldCode")}>
             <input value={m.code} onChange={(e) => set("code", e.target.value)} className={inputCls} placeholder="daily_3_new_streets" />
           </Field>
-          <Field label="Icon">
+          <Field label={t("fieldIcon")}>
             <input value={m.icon} onChange={(e) => set("icon", e.target.value)} className={inputCls} placeholder="🎯" />
           </Field>
-          <Field label="Typ">
+          <Field label={t("fieldType")}>
             <select value={m.type} onChange={(e) => set("type", e.target.value as "daily" | "weekly")} className={inputCls}>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
+              <option value="daily">{t("filterDaily")}</option>
+              <option value="weekly">{t("filterWeekly")}</option>
             </select>
           </Field>
-          <Field label="Kategorie">
+          <Field label={t("fieldCategory")}>
             <select value={m.category} onChange={(e) => set("category", e.target.value)} className={inputCls}>
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-          <Field label="Name" wide>
+          <Field label={t("fieldName")} wide>
             <input value={m.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
           </Field>
-          <Field label="Beschreibung" wide>
+          <Field label={t("fieldDescription")} wide>
             <textarea value={m.description} onChange={(e) => set("description", e.target.value)} className={`${inputCls} min-h-[60px]`} rows={2} />
           </Field>
-          <Field label="Target-Metric">
+          <Field label={t("fieldTargetMetric")}>
             <select value={m.target_metric} onChange={(e) => set("target_metric", e.target.value)} className={inputCls}>
               {METRIC_OPTIONS.map((mt) => <option key={mt} value={mt}>{mt}</option>)}
             </select>
           </Field>
-          <Field label="Target-Wert">
+          <Field label={t("fieldTargetValue")}>
             <input type="number" value={m.target_value} onChange={(e) => set("target_value", Number(e.target.value))} className={inputCls} />
           </Field>
-          <Field label="Reward XP">
+          <Field label={t("fieldRewardXp")}>
             <input type="number" value={m.reward_xp} onChange={(e) => set("reward_xp", Number(e.target.value))} className={inputCls} />
           </Field>
-          <Field label="Sort-Order">
+          <Field label={t("fieldSortOrder")}>
             <input type="number" value={m.sort_order} onChange={(e) => set("sort_order", Number(e.target.value))} className={inputCls} />
           </Field>
-          <Field label="Aktiv" wide>
+          <Field label={t("fieldActive")} wide>
             <label className="flex items-center gap-2 text-sm text-white">
               <input type="checkbox" checked={m.active} onChange={(e) => set("active", e.target.checked)} />
-              In Pool aufnehmen (wird an Spieler zugewiesen)
+              {t("activeHint")}
             </label>
           </Field>
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-lg bg-white/5 text-white font-bold hover:bg-white/10">Abbrechen</button>
+          <button onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-lg bg-white/5 text-white font-bold hover:bg-white/10">{t("cancel")}</button>
           <button onClick={() => onSave(m)} className="flex-1 px-4 py-2.5 rounded-lg bg-[#22D1C3] text-[#0F1115] font-black hover:opacity-90">
-            {isNew ? "Anlegen" : "Speichern"}
+            {isNew ? t("create") : t("save")}
           </button>
         </div>
       </div>

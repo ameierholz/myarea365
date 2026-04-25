@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { XP_REWARDED_AD } from "@/lib/game-config";
 import { AD_REWARDS } from "@/lib/monetization";
@@ -44,6 +45,10 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
   isPremium: boolean;
   onClose: (bonusXp: number) => void;
 }) {
+  const t = useTranslations("WalkSummary");
+  const locale = useLocale();
+  const numLocale = locale === "en" ? "en-US" : "de-DE";
+  const richTags = { b: (c: React.ReactNode) => <b style={{ color: "#FFD700" }}>{c}</b> } as const;
   const [phase, setPhase] = useState<"checking" | "ad" | "summary">(isPremium ? "summary" : "checking");
   const [progress, setProgress] = useState(0);
   const [bonusXp, setBonusXp] = useState(0);
@@ -129,15 +134,15 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
         ) : phase === "ad" ? (
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>📺</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Kurze Werbung läuft…</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{t("adTitle")}</div>
             <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
-              {adDurationSec} Sek — danach siehst du deine Lauf-Zusammenfassung + <b style={{ color: "#FFD700" }}>+{XP_REWARDED_AD} 🪙 Bonus</b>
+              {t.rich("adSubtitle", { seconds: adDurationSec, xp: XP_REWARDED_AD, ...richTags })}
             </div>
             <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
               <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #22D1C3, #FFD700)", transition: "width 0.1s linear" }} />
             </div>
             <div style={{ color: "#22D1C3", fontSize: 12, fontWeight: 800, marginBottom: 16 }}>
-              {Math.ceil((100 - progress) * (adDurationSec / 100))} Sekunden verbleibend
+              {t("adSecondsLeft", { seconds: Math.ceil((100 - progress) * (adDurationSec / 100)) })}
             </div>
             <button
               onClick={skipAd}
@@ -147,14 +152,14 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 fontSize: 11, cursor: "pointer",
               }}
             >
-              Überspringen (kein Bonus)
+              {t("adSkip")}
             </button>
           </div>
         ) : (
           <div>
             <div style={{ textAlign: "center", marginBottom: 18 }}>
               <div style={{ fontSize: 48, marginBottom: 4 }}>🎉</div>
-              <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>Lauf beendet!</div>
+              <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{t("doneTitle")}</div>
               {summary.streets.length > 0 && (
                 <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 4 }}>
                   {summary.streets.slice(0, 3).join(" · ")}
@@ -165,10 +170,10 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14,
             }}>
-              <Stat icon="📏" label="Strecke" value={`${km} km`} accent="#22D1C3" />
-              <Stat icon="⏱️" label="Zeit" value={`${mins}:${String(secs).padStart(2, "0")} min`} accent="#5ddaf0" />
-              <Stat icon="⚡" label="Pace" value={pace > 0 ? `${pace.toFixed(1)} min/km` : "—"} accent="#FF6B4A" />
-              <Stat icon="🔥" label="Kalorien" value={`${cal} kcal`} accent="#FF2D78" />
+              <Stat icon="📏" label={t("statDistance")} value={`${km} km`} accent="#22D1C3" />
+              <Stat icon="⏱️" label={t("statTime")} value={`${mins}:${String(secs).padStart(2, "0")} min`} accent="#5ddaf0" />
+              <Stat icon="⚡" label={t("statPace")} value={pace > 0 ? `${pace.toFixed(1)} ${t("paceUnit")}` : t("paceEmpty")} accent="#FF6B4A" />
+              <Stat icon="🔥" label={t("statCalories")} value={`${cal} ${t("calUnit")}`} accent="#FF2D78" />
             </div>
 
             <div style={{
@@ -176,32 +181,32 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
               border: "1px solid rgba(255,215,0,0.4)",
               padding: 14, borderRadius: 14, marginBottom: 16,
             }}>
-              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>🪙 WEGEMÜNZEN</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>{t("currencyHeader")}</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 4 }}>
                 <span style={{ color: "#FFD700", fontSize: 28, fontWeight: 900 }}>
-                  +{(summary.xp_earned + bonusXp).toLocaleString("de-DE")} 🪙
+                  +{(summary.xp_earned + bonusXp).toLocaleString(numLocale)} 🪙
                 </span>
                 {bonusXp > 0 && (
                   <span style={{ color: "#22D1C3", fontSize: 11, fontWeight: 800 }}>
-                    inkl. +{bonusXp} Werbe-Bonus 🙏
+                    {t("adBonusInline", { xp: bonusXp })}
                   </span>
                 )}
                 {skipped && !isPremium && (
-                  <span style={{ color: "#a8b4cf", fontSize: 10 }}>(Bonus übersprungen)</span>
+                  <span style={{ color: "#a8b4cf", fontSize: 10 }}>{t("skippedInline")}</span>
                 )}
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap", fontSize: 11 }}>
                 {summary.segment_count > 0 && (
-                  <span style={{ color: "#22D1C3" }}>🛤️ {summary.segment_count}× Abschnitt</span>
+                  <span style={{ color: "#22D1C3" }}>{t("segmentBadge", { count: summary.segment_count })}</span>
                 )}
                 {summary.street_count > 0 && (
-                  <span style={{ color: "#FF6B4A" }}>🛣️ {summary.street_count}× Straßenzug</span>
+                  <span style={{ color: "#FF6B4A" }}>{t("streetBadge", { count: summary.street_count })}</span>
                 )}
                 {summary.territory_count > 0 && (
-                  <span style={{ color: "#FFD700", fontWeight: 800 }}>🏆 {summary.territory_count}× Gebiet</span>
+                  <span style={{ color: "#FFD700", fontWeight: 800 }}>{t("territoryBadge", { count: summary.territory_count })}</span>
                 )}
                 {summary.segment_count === 0 && summary.street_count === 0 && summary.territory_count === 0 && (
-                  <span style={{ color: "#a8b4cf" }}>Keine neuen Abschnitte</span>
+                  <span style={{ color: "#a8b4cf" }}>{t("noNewSegments")}</span>
                 )}
               </div>
 
@@ -212,54 +217,57 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                     cursor: "pointer", listStyle: "none", userSelect: "none",
                     color: "#8B8FA3", fontSize: 10, fontWeight: 800, letterSpacing: 1,
                   }}>
-                    ▸ Aufschlüsselung anzeigen
+                    {t("breakdownToggle")}
                   </summary>
                   <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 3, fontSize: 11 }}>
                     {summary.breakdown.walkBase > 0 && (
-                      <BreakdownRow icon="✅" label="Walk abgeschlossen (Basis)" value={summary.breakdown.walkBase} />
+                      <BreakdownRow icon="✅" label={t("breakdownWalkBase")} value={summary.breakdown.walkBase} numLocale={numLocale} />
                     )}
                     {summary.breakdown.kmXp > 0 && (
-                      <BreakdownRow icon="📏" label={`Distanz (${((summary.distance_m) / 1000).toFixed(2)} km)`} value={summary.breakdown.kmXp} />
+                      <BreakdownRow icon="📏" label={t("breakdownDistance", { km })} value={summary.breakdown.kmXp} numLocale={numLocale} />
                     )}
                     {summary.breakdown.segmentsXp > 0 && (
-                      <BreakdownRow icon="🛤️" label={`${summary.segment_count}× neuer Abschnitt`} value={summary.breakdown.segmentsXp} />
+                      <BreakdownRow icon="🛤️" label={t("breakdownSegments", { count: summary.segment_count })} value={summary.breakdown.segmentsXp} numLocale={numLocale} />
                     )}
                     {summary.breakdown.streetsXp > 0 && (
-                      <BreakdownRow icon="🛣️" label={`${summary.street_count}× kompletter Straßenzug`} value={summary.breakdown.streetsXp} />
+                      <BreakdownRow icon="🛣️" label={t("breakdownStreets", { count: summary.street_count })} value={summary.breakdown.streetsXp} numLocale={numLocale} />
                     )}
                     {summary.breakdown.territoryXp > 0 && (
-                      <BreakdownRow icon="🏆" label={`${summary.territory_count}× Gebiet geschlossen`} value={summary.breakdown.territoryXp} />
+                      <BreakdownRow icon="🏆" label={t("breakdownTerritories", { count: summary.territory_count })} value={summary.breakdown.territoryXp} numLocale={numLocale} />
                     )}
                     {summary.breakdown.doubleClaimBonus > 0 && (
-                      <BreakdownRow icon="🎯" label="Doppel-Claim-Charge (Gebiet ×2)" value={summary.breakdown.doubleClaimBonus} accent="#FFD700" />
+                      <BreakdownRow icon="🎯" label={t("breakdownDoubleClaim")} value={summary.breakdown.doubleClaimBonus} accent="#FFD700" numLocale={numLocale} />
                     )}
                     {summary.breakdown.factionClaimBonus && summary.breakdown.factionClaimBonus > 0 ? (
-                      <BreakdownRow icon="🗝️" label="Gossenbund-Raubzug (+25 % + 50/Feind)" value={summary.breakdown.factionClaimBonus} accent="#22D1C3" />
+                      <BreakdownRow icon="🗝️" label={t("breakdownFactionClaim")} value={summary.breakdown.factionClaimBonus} accent="#22D1C3" numLocale={numLocale} />
                     ) : null}
                     {summary.reclaim && summary.reclaim.reclaim_xp > 0 && (
-                      <BreakdownRow icon="♻️" label={`Reclaim (${summary.reclaim.reclaim_count} bekannte Abschnitte)`} value={summary.reclaim.reclaim_xp} accent="#22D1C3" />
+                      <BreakdownRow icon="♻️" label={t("breakdownReclaim", { count: summary.reclaim.reclaim_count })} value={summary.reclaim.reclaim_xp} accent="#22D1C3" numLocale={numLocale} />
                     )}
                     {summary.bonuses && summary.bonuses.streakBonus > 0 && (
-                      <BreakdownRow icon="🔥" label="Streak-Bonus" value={summary.bonuses.streakBonus} accent="#FF6B4A" />
+                      <BreakdownRow icon="🔥" label={t("breakdownStreak")} value={summary.bonuses.streakBonus} accent="#FF6B4A" numLocale={numLocale} />
                     )}
                     {summary.bonuses && (summary.bonuses.happyHourMult > 1 || summary.bonuses.boostMult > 1 || summary.bonuses.crewBoostMult > 1) && (
                       <div style={{ padding: "4px 2px 0", borderTop: "1px dashed rgba(255,255,255,0.1)", marginTop: 3, color: "#FFD700", fontSize: 10 }}>
-                        × Multiplikatoren: {summary.bonuses.happyHourMult > 1 && `Happy-Hour ${summary.bonuses.happyHourMult}× `}{summary.bonuses.boostMult > 1 && `Boost ${summary.bonuses.boostMult}× `}{summary.bonuses.crewBoostMult > 1 && `Crew-Boost ${summary.bonuses.crewBoostMult}×`}
+                        {t("breakdownMultipliers")}{" "}
+                        {summary.bonuses.happyHourMult > 1 && `${t("multHappyHour", { mult: summary.bonuses.happyHourMult })} `}
+                        {summary.bonuses.boostMult > 1 && `${t("multBoost", { mult: summary.bonuses.boostMult })} `}
+                        {summary.bonuses.crewBoostMult > 1 && `${t("multCrewBoost", { mult: summary.bonuses.crewBoostMult })}`}
                       </div>
                     )}
                     {summary.achievementXp && summary.achievementXp > 0 ? (
-                      <BreakdownRow icon="🏅" label="Achievements (siehe unten)" value={summary.achievementXp} accent="#FFD700" />
+                      <BreakdownRow icon="🏅" label={t("breakdownAchievements")} value={summary.achievementXp} accent="#FFD700" numLocale={numLocale} />
                     ) : null}
                     <div style={{ borderTop: "1px solid rgba(255,255,255,0.12)", marginTop: 4, paddingTop: 4, display: "flex", justifyContent: "space-between", fontWeight: 900, color: "#FFF" }}>
-                      <span>Gesamt</span>
-                      <span style={{ color: "#FFD700" }}>+{(summary.xp_earned + (bonusXp || 0)).toLocaleString("de-DE")} 🪙</span>
+                      <span>{t("breakdownTotal")}</span>
+                      <span style={{ color: "#FFD700" }}>+{(summary.xp_earned + (bonusXp || 0)).toLocaleString(numLocale)} 🪙</span>
                     </div>
                   </div>
                 </details>
               )}
               {summary.stolen_count && summary.stolen_count > 0 ? (
                 <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "#FF2D78", fontSize: 11, fontWeight: 800 }}>
-                  ⚔️ {summary.stolen_count}× Gebiet erobert (zurueckgeholt!)
+                  {t("stolenLabel", { count: summary.stolen_count })}
                 </div>
               ) : null}
 
@@ -272,11 +280,13 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
                 }}>
                   {summary.reclaim.reclaim_xp > 0 && (
-                    <span>♻️ Reclaim-Bonus: +{summary.reclaim.reclaim_xp} Wegemünzen ({summary.reclaim.reclaim_count} bekannte Abschnitte)</span>
+                    <span>{t("reclaimBonus", { xp: summary.reclaim.reclaim_xp, count: summary.reclaim.reclaim_count })}</span>
                   )}
                   {summary.reclaim.segments_cooldown > 0 && (
                     <span style={{ color: "#8B8FA3", fontWeight: 700 }}>
-                      ⏱️ {summary.reclaim.segments_cooldown} Abschnitt{summary.reclaim.segments_cooldown === 1 ? "" : "e"} noch im Cooldown
+                      {summary.reclaim.segments_cooldown === 1
+                        ? t("cooldownInfoOne", { count: summary.reclaim.segments_cooldown })
+                        : t("cooldownInfoMany", { count: summary.reclaim.segments_cooldown })}
                     </span>
                   )}
                 </div>
@@ -290,10 +300,10 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                   color: "#FFD700", fontSize: 11, fontWeight: 800,
                   lineHeight: 1.45,
                 }}>
-                  🏆 {summary.pending_territory_count}× Gebiet geschlossen — aber noch <b>ohne Crew</b>.
+                  {t.rich("pendingTerritoryHead", { count: summary.pending_territory_count, b: (c) => <b>{c}</b> })}
                   <br />
                   <span style={{ color: "#a8b4cf", fontWeight: 700 }}>
-                    Tritt einer Crew bei, um je +500 Wegemünzen rückwirkend zu kassieren.
+                    {t("pendingTerritoryHint")}
                   </span>
                 </div>
               ) : null}
@@ -307,20 +317,20 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 marginBottom: 14,
               }}>
                 <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>
-                  BONI AKTIV
+                  {t("bonusActiveHeader")}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11 }}>
                   {summary.bonuses.streakBonus > 0 && (
-                    <div style={{ color: "#FF6B4A" }}>🔥 Streak-Bonus: <b>+{summary.bonuses.streakBonus} 🪙</b></div>
+                    <div style={{ color: "#FF6B4A" }}>{t.rich("bonusStreak", { xp: summary.bonuses.streakBonus, b: (c) => <b>{c}</b> })}</div>
                   )}
                   {summary.bonuses.happyHourMult > 1 && (
-                    <div style={{ color: "#FFD700" }}>⏰ Happy Hour: <b>{summary.bonuses.happyHourMult}× 🪙</b></div>
+                    <div style={{ color: "#FFD700" }}>{t.rich("bonusHappyHour", { mult: summary.bonuses.happyHourMult, b: (c) => <b>{c}</b> })}</div>
                   )}
                   {summary.bonuses.boostMult > 1 && (
-                    <div style={{ color: "#FFD700" }}>⚡ Münzen-Boost: <b>{summary.bonuses.boostMult}× 🪙</b></div>
+                    <div style={{ color: "#FFD700" }}>{t.rich("bonusCoinBoost", { mult: summary.bonuses.boostMult, b: (c) => <b>{c}</b> })}</div>
                   )}
                   {summary.bonuses.crewBoostMult > 1 && (
-                    <div style={{ color: "#22D1C3" }}>👥 Crew-Boost: <b>{summary.bonuses.crewBoostMult}× 🪙</b></div>
+                    <div style={{ color: "#22D1C3" }}>{t.rich("bonusCrewBoost", { mult: summary.bonuses.crewBoostMult, b: (c) => <b>{c}</b> })}</div>
                   )}
                 </div>
               </div>
@@ -334,20 +344,20 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 marginBottom: 14,
               }}>
                 <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1, marginBottom: 8 }}>
-                  🏆 {summary.newAchievements.length} NEU FREIGESCHALTET
+                  {t("achievementsHeader", { count: summary.newAchievements.length })}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {summary.newAchievements.map((a) => (
                     <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
                       <span style={{ fontSize: 18 }}>{a.icon}</span>
                       <span style={{ color: "#FFF", flex: 1, fontWeight: 700 }}>{a.name}</span>
-                      <span style={{ color: "#FFD700", fontWeight: 900 }}>+{a.xp.toLocaleString("de-DE")} 🪙</span>
+                      <span style={{ color: "#FFD700", fontWeight: 900 }}>+{a.xp.toLocaleString(numLocale)} 🪙</span>
                     </div>
                   ))}
                 </div>
                 {summary.achievementXp && summary.achievementXp > 0 ? (
                   <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 8, textAlign: "right" }}>
-                    Summe Achievement-XP: <b style={{ color: "#FFD700" }}>+{summary.achievementXp.toLocaleString("de-DE")}</b>
+                    {t.rich("achievementSum", { xp: summary.achievementXp.toLocaleString(numLocale), b: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
                   </div>
                 ) : null}
               </div>
@@ -362,7 +372,7 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
                 fontSize: 15, fontWeight: 900,
               }}
             >
-              Weiter
+              {t("continueButton")}
             </button>
           </div>
         )}
@@ -386,13 +396,13 @@ function Stat({ icon, label, value, accent }: { icon: string; label: string; val
   );
 }
 
-function BreakdownRow({ icon, label, value, accent = "#a8b4cf" }: { icon: string; label: string; value: number; accent?: string }) {
+function BreakdownRow({ icon, label, value, accent = "#a8b4cf", numLocale = "de-DE" }: { icon: string; label: string; value: number; accent?: string; numLocale?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
       <span style={{ color: "#a8b4cf", display: "inline-flex", alignItems: "center", gap: 6 }}>
         <span>{icon}</span><span>{label}</span>
       </span>
-      <span style={{ color: accent, fontWeight: 800, fontFamily: "monospace" }}>+{value.toLocaleString("de-DE")}</span>
+      <span style={{ color: accent, fontWeight: 800, fontFamily: "monospace" }}>+{value.toLocaleString(numLocale)}</span>
     </div>
   );
 }
