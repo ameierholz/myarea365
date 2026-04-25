@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale, getDateLocale } from "@/i18n/config";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { ShopProductsModal } from "@/components/shop-products-modal";
 import {
-  FlashPushPanel, EventsPanel, ChallengesPanel, SocialPanel, EmailPanel,
+  FlashPushPanel, EventsPanel, ChallengesPanel,
   AnalyticsProPanel, CompetitorPanel, KiezReportPanel, CustomPinPanel, QrOrderPanel,
 } from "@/components/shop-features";
 import { ShopRedemptionsLive } from "@/components/shop-redemptions-live";
@@ -20,7 +22,6 @@ import { ShopCrewStampsPanel } from "@/components/shop-crew-stamps-panel";
 import { ShopSettingsPanel } from "@/components/shop-settings-panel";
 import { createClient } from "@/lib/supabase/client";
 
-/* Farb-Tokens (1:1 aus map-dashboard) */
 const BG_DEEP = "#0F1115";
 const CARD = "rgba(41, 51, 73, 0.55)";
 const BORDER = "rgba(255, 255, 255, 0.14)";
@@ -29,7 +30,8 @@ const TEXT_SOFT = "#dde3f5";
 const PRIMARY = "#22D1C3";
 const ACCENT = "#FF2D78";
 
-/* ═══ Demo-Shop-Daten ═══ */
+type DashT = ReturnType<typeof useTranslations<"ShopDashboard">>;
+
 const DEMO_SHOP = {
   id: "shop-demo-1",
   name: "Café Kaelthor",
@@ -47,44 +49,16 @@ const DEMO_STATS = {
   checkinsToday: 8,
   checkinsWeek: 52,
   checkinsMonth: 184,
-  revenueMonth: 2280, // € geschätzt
-  costMonth: 368, // 184 × 2 €
+  revenueMonth: 2280,
+  costMonth: 368,
   newCustomersMonth: 71,
-  repeatRate: 41, // %
+  repeatRate: 41,
   avgBasket: 12.4,
   rankInZip: 3,
   totalShopsInZip: 14,
 };
 
 type DealFreq = "once" | "weekly" | "monthly" | "quarterly" | "halfyearly" | "yearly" | "unlimited";
-
-type Deal = {
-  id: string;
-  title: string;
-  xp: number;
-  freq: DealFreq;
-  active: boolean;
-  redemptions_month: number;
-  created: string;
-};
-
-const FREQ_LABEL: Record<DealFreq, string> = {
-  once: "1× einmalig",
-  weekly: "1× / Woche",
-  monthly: "1× / Monat",
-  quarterly: "1× / Quartal",
-  halfyearly: "1× / Halbjahr",
-  yearly: "1× / Jahr",
-  unlimited: "Unbegrenzt",
-};
-
-const DEMO_DEALS: Deal[] = [
-  { id: "d1", title: "Gratis Cappuccino ab 3 km Lauf", xp: 300, freq: "weekly",    active: true,  redemptions_month: 82, created: "2026-02-01" },
-  { id: "d2", title: "2. Croissant gratis",            xp: 150, freq: "monthly",   active: true,  redemptions_month: 54, created: "2026-02-15" },
-  { id: "d3", title: "10 € Gutschein ab 500 🪙",       xp: 500, freq: "quarterly", active: true,  redemptions_month: 18, created: "2026-03-01" },
-  { id: "d4", title: "Geburtstags-Kuchen gratis",      xp: 200, freq: "yearly",    active: true,  redemptions_month: 4,  created: "2026-01-20" },
-  { id: "d5", title: "Happy Hour Eistee 50%",          xp: 100, freq: "unlimited", active: false, redemptions_month: 0,  created: "2026-02-10" },
-];
 
 type FlashDeal = {
   id: string;
@@ -104,14 +78,12 @@ const DEMO_FLASH_DEALS: FlashDeal[] = [
 ];
 
 const DEMO_TOP_RUNNERS = [
-  { name: "NeonFuchs",   emoji: "🦊", visits: 14, last: "vor 2 Std.",  spent: 168 },
-  { name: "Pacer99",     emoji: "🚀", visits: 11, last: "gestern",      spent: 132 },
-  { name: "StadtPuma",   emoji: "🐆", visits: 9,  last: "vor 3 Tagen", spent: 108 },
-  { name: "WegFinder",   emoji: "🧭", visits: 7,  last: "vor 5 Tagen", spent: 84  },
-  { name: "Schrittzahl", emoji: "👟", visits: 6,  last: "heute",        spent: 72  },
+  { name: "NeonFuchs",   emoji: "🦊", visits: 14, lastMs: 2 * 3600000, spent: 168 },
+  { name: "Pacer99",     emoji: "🚀", visits: 11, lastMs: 1 * 86400000, spent: 132 },
+  { name: "StadtPuma",   emoji: "🐆", visits: 9,  lastMs: 3 * 86400000, spent: 108 },
+  { name: "WegFinder",   emoji: "🧭", visits: 7,  lastMs: 5 * 86400000, spent: 84  },
+  { name: "Schrittzahl", emoji: "👟", visits: 6,  lastMs: 0,            spent: 72  },
 ];
-
-/* ═══════════════════════════════════════════════════════ */
 
 type SubTab = "overview" | "deals" | "quests" | "stamps" | "flash" | "spotlight" | "customers" | "performance" | "settings";
 
@@ -147,14 +119,12 @@ function useShop(fallbackId: string): [ShopRow, () => void] {
   };
   const [shop, setShop] = useState<ShopRow>(fallback);
   useEffect(() => {
-    // 1) Prüfe zuerst, ob der eingeloggte User einen eigenen approved Shop hat
     fetch("/api/shop/my").then((r) => r.json()).then((d: { shops?: ShopRow[] }) => {
       const owned = (d.shops ?? []).find((s) => s.status === "approved");
       if (owned) {
         setShop(owned);
         return;
       }
-      // 2) Fallback: Demo-Shop aus der DB (für Preview-Zwecke)
       sb.from("local_businesses").select("*").eq("id", fallbackId).maybeSingle()
         .then(({ data }) => { if (data) setShop(data as ShopRow); });
     }).catch(() => { /* fallback bleibt */ });
@@ -163,6 +133,7 @@ function useShop(fallbackId: string): [ShopRow, () => void] {
 }
 
 export default function ShopDashboardPage() {
+  const t = useTranslations("ShopDashboard");
   const [tab, setTab] = useState<SubTab>("overview");
   const [shop, reloadShop] = useShop(DEMO_SHOP.id);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
@@ -173,12 +144,23 @@ export default function ShopDashboardPage() {
   const monthlyRedemptions = DEMO_STATS.checkinsMonth ?? 0;
   const flashCredits = shop.flash_push_credits ?? 0;
 
+  const TABS: Array<{ id: SubTab; label: string; icon: string }> = [
+    { id: "overview",    label: t("tabOverview"),    icon: "🏠" },
+    { id: "deals",       label: t("tabDeals"),       icon: "🎁" },
+    { id: "quests",      label: t("tabQuests"),      icon: "🎯" },
+    { id: "stamps",      label: t("tabStamps"),      icon: "🗂️" },
+    { id: "flash",       label: t("tabFlash"),       icon: "⚡" },
+    { id: "spotlight",   label: t("tabSpotlight"),   icon: "🏆" },
+    { id: "customers",   label: t("tabCustomers"),   icon: "🧑‍🤝‍🧑" },
+    { id: "performance", label: t("tabPerformance"), icon: "📊" },
+    { id: "settings",    label: t("tabSettings"),    icon: "⚙️" },
+  ];
+
   return (
     <div style={{
       minHeight: "100vh", paddingBottom: 40,
       background: "radial-gradient(circle at 20% 10%, #1a2340 0%, #0F1115 60%)",
     }}>
-      {/* Status-Banner (kein Shop / pending / rejected / Onboarding-Checkliste) */}
       <div style={{ paddingTop: 16 }}>
         <ShopOnboardingBanner />
         <ShopUpsellBanner
@@ -188,14 +170,13 @@ export default function ShopDashboardPage() {
           onOpenProducts={(tab) => { setShopPreselect(tab); setShowShop(true); }}
         />
       </div>
-      {/* Header */}
       <header style={{
         padding: "24px 20px 0", maxWidth: 1200, margin: "0 auto",
       }}>
         <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
           <Link href="/dashboard/" style={{
             color: PRIMARY, textDecoration: "none", fontSize: 13, fontWeight: 700,
-          }}>← zurück zur Runner-App</Link>
+          }}>{t("navBack")}</Link>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <button onClick={() => { setShopPreselect("plans"); setShowShop(true); }} style={{
             padding: "6px 12px", borderRadius: 999, border: "none",
@@ -203,25 +184,25 @@ export default function ShopDashboardPage() {
             color: "#0F1115", fontSize: 12, fontWeight: 900, cursor: "pointer",
             boxShadow: "0 2px 10px rgba(255,215,0,0.3)",
           }}>
-            🎯 Angebote buchen
+            {t("navOffersBtn")}
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <Link href={`/shop/${shop.id}/qr`} style={{ color: MUTED, textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
-            🔲 QR-Code drucken
+            {t("navQr")}
           </Link>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <button onClick={() => setBillingOpen(true)} style={{
             background: "transparent", border: "none", color: MUTED,
             fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0,
           }}>
-            💳 Abrechnung
+            {t("navBilling")}
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>·</span>
           <button onClick={() => setHowItWorksOpen(true)} style={{
             background: "transparent", border: "none", color: MUTED,
             fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0,
           }}>
-            🤝 So funktioniert&apos;s
+            {t("navHowto")}
           </button>
         </div>
         {howItWorksOpen && <ShopHowItWorksModal onClose={() => setHowItWorksOpen(false)} />}
@@ -250,48 +231,37 @@ export default function ShopDashboardPage() {
                 background: "#4ade8022", border: "1px solid #4ade8066",
                 color: "#4ade80", padding: "2px 7px", borderRadius: 8,
                 fontSize: 10, fontWeight: 900,
-              }}>✓ VERIFIZIERT</span>}
+              }}>{t("verified")}</span>}
               <span style={{
                 background: `${DEMO_SHOP.planColor}22`, border: `1px solid ${DEMO_SHOP.planColor}55`,
                 color: DEMO_SHOP.planColor, padding: "2px 8px", borderRadius: 8,
                 fontSize: 10, fontWeight: 900,
-              }}>🏆 {DEMO_SHOP.plan.toUpperCase()}-PAKET</span>
+              }}>{t("planBadge", { plan: DEMO_SHOP.plan.toUpperCase() })}</span>
             </div>
             <div style={{ color: MUTED, fontSize: 12, marginTop: 3 }}>
-              👤 {DEMO_SHOP.owner} · 📍 {DEMO_SHOP.address} · ⭐ {DEMO_SHOP.rating}/5
+              {t("infoLine", { owner: DEMO_SHOP.owner, address: DEMO_SHOP.address, rating: DEMO_SHOP.rating })}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ color: "#FFF", fontSize: 26, fontWeight: 900 }}>
               {DEMO_STATS.checkinsToday}
             </div>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 700 }}>CHECK-INS HEUTE</div>
+            <div style={{ color: MUTED, fontSize: 11, fontWeight: 700 }}>{t("checkinsToday")}</div>
           </div>
         </div>
       </header>
 
-      {/* Tabs */}
       <nav style={{
         maxWidth: 1200, margin: "14px auto 0", padding: "0 20px",
         borderBottom: `1px solid ${BORDER}`,
       }}>
         <div style={{ display: "flex", gap: 4, overflowX: "auto", scrollbarWidth: "none" }}>
-          {([
-            { id: "overview",    label: "Übersicht",    icon: "🏠" },
-            { id: "deals",       label: "Deals",        icon: "🎁" },
-            { id: "quests",      label: "Quests",       icon: "🎯" },
-            { id: "stamps",      label: "Stempelkarte", icon: "🗂️" },
-            { id: "flash",       label: "Flash-Deals",  icon: "⚡" },
-            { id: "spotlight",   label: "Spotlight",    icon: "🏆" },
-            { id: "customers",   label: "Stammkunden",  icon: "🧑‍🤝‍🧑" },
-            { id: "performance", label: "Performance",  icon: "📊" },
-            { id: "settings",    label: "Einstellungen", icon: "⚙️" },
-          ] as { id: SubTab; label: string; icon: string }[]).map((t) => {
-            const active = tab === t.id;
+          {TABS.map((tt) => {
+            const active = tab === tt.id;
             return (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
+                key={tt.id}
+                onClick={() => setTab(tt.id)}
                 style={{
                   padding: "10px 14px", borderRadius: "12px 12px 0 0",
                   background: active ? CARD : "transparent",
@@ -302,8 +272,8 @@ export default function ShopDashboardPage() {
                   display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
                 }}
               >
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
+                <span>{tt.icon}</span>
+                <span>{tt.label}</span>
               </button>
             );
           })}
@@ -311,22 +281,23 @@ export default function ShopDashboardPage() {
       </nav>
 
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "20px" }}>
-        {tab === "overview"    && <OverviewTab />}
-        {tab === "deals"       && <DealsTab shopId={shop.id} />}
+        {tab === "overview"    && <OverviewTab t={t} />}
+        {tab === "deals"       && <DealsTab shopId={shop.id} t={t} />}
         {tab === "quests"      && <ShopQuestsManager businessId={shop.id} />}
         {tab === "stamps"      && <ShopCrewStampsPanel shopId={shop.id} />}
-        {tab === "flash"       && <FlashTab shop={shop} reloadShop={reloadShop} />}
-        {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} />}
-        {tab === "customers"   && <CustomersTab />}
-        {tab === "performance" && <PerformanceTab shop={shop} />}
+        {tab === "flash"       && <FlashTab shop={shop} reloadShop={reloadShop} t={t} />}
+        {tab === "spotlight"   && <SpotlightTab shop={shop} reloadShop={reloadShop} t={t} />}
+        {tab === "customers"   && <CustomersTab t={t} />}
+        {tab === "performance" && <PerformanceTab shop={shop} t={t} />}
         {tab === "settings"    && <ShopSettingsPanel shopId={shop.id} onBillingClick={() => setBillingOpen(true)} />}
       </main>
     </div>
   );
 }
 
-/* ═══ Overview ═══ */
-function OverviewTab() {
+function OverviewTab({ t }: { t: DashT }) {
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const net = DEMO_STATS.revenueMonth - DEMO_STATS.costMonth;
   const [showShop, setShowShop] = useState(false);
   const [shopPreselect, setShopPreselect] = useState<"plans" | "boosts" | "marketing" | "analytics">("boosts");
@@ -337,7 +308,6 @@ function OverviewTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* ═══ SICHTBARKEIT-HERO — die 3 umsatzträchtigsten Aktionen ═══ */}
       <div style={{
         padding: 18, borderRadius: 18,
         background: "linear-gradient(135deg, rgba(255,215,0,0.12), rgba(168,85,247,0.1), rgba(255,45,120,0.1))",
@@ -346,9 +316,9 @@ function OverviewTab() {
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
           <div>
-            <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>🚀 MEHR LAUFKUNDSCHAFT</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginTop: 4 }}>Jetzt mehr Runner in deinen Laden bringen</div>
-            <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>Die 3 wirkungsvollsten Hebel für dein Café · direkt buchbar</div>
+            <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>{t("heroKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginTop: 4 }}>{t("heroTitle")}</div>
+            <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>{t("heroSubtitle")}</div>
           </div>
           <button
             onClick={() => openShop("plans")}
@@ -358,7 +328,7 @@ function OverviewTab() {
               fontSize: 13, fontWeight: 900, whiteSpace: "nowrap",
             }}
           >
-            Alle Pläne ansehen →
+            {t("heroPlansBtn")}
           </button>
         </div>
 
@@ -369,42 +339,43 @@ function OverviewTab() {
         }}>
           <HeroAction
             icon="⚡"
-            title="Flash-Deal-Push"
-            subtitle="30-Min Push an alle Runner im 1 km"
-            price="9 €"
+            title={t("heroFlashTitle")}
+            subtitle={t("heroFlashSub")}
+            price={t("heroFlashPrice")}
             color="#22D1C3"
+            bookLabel={t("heroBookNow")}
             onClick={() => openShop("boosts")}
           />
           <HeroAction
             icon="⭐"
-            title="Spotlight 3 Tage"
-            subtitle="Gold-Pin + Pulse · platz #1 im Kiez"
-            price="19 €"
+            title={t("heroSpotTitle")}
+            subtitle={t("heroSpotSub")}
+            price={t("heroSpotPrice")}
             color="#FF2D78"
             featured
+            featuredLabel={t("heroBestseller")}
+            bookLabel={t("heroBookNow")}
             onClick={() => openShop("boosts")}
           />
           <HeroAction
             icon="🎉"
-            title="Event hosten"
-            subtitle="Lauf-Event bei dir · Pin + Teilnehmerliste"
-            price="59 €"
+            title={t("heroEventTitle")}
+            subtitle={t("heroEventSub")}
+            price={t("heroEventPrice")}
             color="#FFD700"
+            bookLabel={t("heroBookNow")}
             onClick={() => openShop("boosts")}
           />
         </div>
       </div>
 
-      {/* ═══ Live-Einlösungen (Kassa) ═══ */}
       <ShopRedemptionsLive businessId={DEMO_SHOP.id} />
 
-      {/* ═══ Arena-Panel ═══ */}
       <ShopArenaPanel
         businessId={DEMO_SHOP.id}
         onBuyArena={(sku) => { setShowShop(true); void sku; }}
       />
 
-      {/* ═══ Plan-Status-Card ═══ */}
       <div style={{
         padding: 14, borderRadius: 14,
         background: "rgba(34, 209, 195, 0.08)",
@@ -413,11 +384,11 @@ function OverviewTab() {
       }}>
         <div style={{ fontSize: 28 }}>💎</div>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>AKTUELLER PLAN · PRO</div>
+          <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>{t("planStatusKicker")}</div>
           <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800, marginTop: 2 }}>
-            3 Deal-Slots · Flash-Deals · Analytics · Verifiziert-Badge
+            {t("planStatusBody")}
           </div>
-          <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>Verlängert am 18.05.2026 · 79 €/Monat</div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>{t("planStatusRenewal")}</div>
         </div>
         <button
           onClick={() => openShop("plans")}
@@ -428,34 +399,31 @@ function OverviewTab() {
             fontSize: 12, fontWeight: 900,
           }}
         >
-          🚀 Auf Ultra upgraden
+          {t("planStatusUpgrade")}
         </button>
       </div>
 
-      {/* KPIs */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
         gap: 10,
       }}>
-        <KpiCard icon="📍" value={DEMO_STATS.checkinsToday.toString()} label="Check-ins heute" accent={PRIMARY} />
-        <KpiCard icon="📅" value={DEMO_STATS.checkinsWeek.toString()} label="diese Woche" accent="#5ddaf0" />
-        <KpiCard icon="📈" value={DEMO_STATS.checkinsMonth.toString()} label="diesen Monat" accent="#FFD700" />
-        <KpiCard icon="🧑‍🤝‍🧑" value={DEMO_STATS.newCustomersMonth.toString()} label="Neu-Kund:innen (Monat)" accent="#a855f7" />
-        <KpiCard icon="🔁" value={`${DEMO_STATS.repeatRate} %`} label="Wiederkehrer-Rate" accent="#4ade80" />
-        <KpiCard icon="🛒" value={`${DEMO_STATS.avgBasket.toFixed(2)} €`} label="Ø Warenkorb" accent="#FF6B4A" />
+        <KpiCard icon="📍" value={DEMO_STATS.checkinsToday.toString()} label={t("kpiToday")} accent={PRIMARY} />
+        <KpiCard icon="📅" value={DEMO_STATS.checkinsWeek.toString()} label={t("kpiWeek")} accent="#5ddaf0" />
+        <KpiCard icon="📈" value={DEMO_STATS.checkinsMonth.toString()} label={t("kpiMonth")} accent="#FFD700" />
+        <KpiCard icon="🧑‍🤝‍🧑" value={DEMO_STATS.newCustomersMonth.toString()} label={t("kpiNew")} accent="#a855f7" />
+        <KpiCard icon="🔁" value={`${DEMO_STATS.repeatRate} %`} label={t("kpiRepeat")} accent="#4ade80" />
+        <KpiCard icon="🛒" value={t("moneyEur", { value: DEMO_STATS.avgBasket.toFixed(2) })} label={t("kpiBasket")} accent="#FF6B4A" />
       </div>
 
-      {/* Revenue Block */}
       <div style={{
         display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10,
       }}>
-        <MoneyCard label="Geschätzter Umsatz (Monat)" value={DEMO_STATS.revenueMonth} color="#FFD700" icon="💰" />
-        <MoneyCard label="MyArea-Kosten (Monat)"       value={DEMO_STATS.costMonth} color="#ef7169" icon="💳" negative />
-        <MoneyCard label="Netto-Plus"                  value={net} color="#4ade80" icon="📈" highlight />
+        <MoneyCard label={t("moneyRevenue")} value={DEMO_STATS.revenueMonth} color="#FFD700" icon="💰" t={t} numLocale={numLocale} />
+        <MoneyCard label={t("moneyCost")} value={DEMO_STATS.costMonth} color="#ef7169" icon="💳" negative t={t} numLocale={numLocale} />
+        <MoneyCard label={t("moneyNet")} value={net} color="#4ade80" icon="📈" highlight t={t} numLocale={numLocale} />
       </div>
 
-      {/* Map-Rang */}
       <div style={{
         background: CARD, borderRadius: 14, padding: 14, border: `1px solid ${BORDER}`,
       }}>
@@ -463,10 +431,10 @@ function OverviewTab() {
           <div style={{ fontSize: 28 }}>🏅</div>
           <div style={{ flex: 1 }}>
             <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>
-              Platz #{DEMO_STATS.rankInZip} unter {DEMO_STATS.totalShopsInZip} Shops in PLZ 13435
+              {t("rankLine", { rank: DEMO_STATS.rankInZip, total: DEMO_STATS.totalShopsInZip, zip: "13435" })}
             </div>
             <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>
-              Du bist in den Top 25% — Spotlight-Termin setzen pusht dich weiter.
+              {t("rankSub")}
             </div>
           </div>
           <div style={{
@@ -474,25 +442,24 @@ function OverviewTab() {
             padding: "6px 12px", borderRadius: 10,
             color: "#FFD700", fontSize: 12, fontWeight: 900,
           }}>
-            TOP 25%
+            {t("rankBadge")}
           </div>
         </div>
       </div>
 
-      {/* Quick-Actions */}
       <div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 10 }}>
-          SCHNELL-AKTIONEN
+          {t("quickHeading")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10,
         }}>
-          <QuickAction icon="🎁" title="Neuen Deal anlegen"      desc="Rabatt, Gratis-Artikel, Upgrade"           accent="#FFD700" onClick={() => appAlert("Neuer Deal")} />
-          <QuickAction icon="⚡" title="Flash-Push starten"       desc="30-Min Push an Runner im 1 km · 9 €"      accent="#22D1C3" onClick={() => openShop("boosts")} />
-          <QuickAction icon="⭐" title="Spotlight buchen"         desc="Gold-Pin + Pulse · 3 Tage · 19 €"         accent="#FF2D78" onClick={() => openShop("boosts")} />
-          <QuickAction icon="🎪" title="Event veranstalten"       desc="Lauf-Event mit Teilnehmer-Liste · 59 €"   accent="#4ade80" onClick={() => openShop("boosts")} />
+          <QuickAction icon="🎁" title={t("quickDealTitle")}  desc={t("quickDealDesc")}  accent="#FFD700" onClick={() => appAlert(t("quickDealAlert"))} />
+          <QuickAction icon="⚡" title={t("quickFlashTitle")} desc={t("quickFlashDesc")} accent="#22D1C3" onClick={() => openShop("boosts")} />
+          <QuickAction icon="⭐" title={t("quickSpotTitle")}  desc={t("quickSpotDesc")}  accent="#FF2D78" onClick={() => openShop("boosts")} />
+          <QuickAction icon="🎪" title={t("quickEventTitle")} desc={t("quickEventDesc")} accent="#4ade80" onClick={() => openShop("boosts")} />
         </div>
       </div>
       {showShop && (
@@ -523,8 +490,8 @@ function KpiCard({ icon, value, label, accent }: { icon: string; value: string; 
   );
 }
 
-function MoneyCard({ label, value, color, icon, negative, highlight }: {
-  label: string; value: number; color: string; icon: string; negative?: boolean; highlight?: boolean;
+function MoneyCard({ label, value, color, icon, negative, highlight, t, numLocale }: {
+  label: string; value: number; color: string; icon: string; negative?: boolean; highlight?: boolean; t: DashT; numLocale: string;
 }) {
   const sign = negative ? "−" : highlight ? "+" : "";
   return (
@@ -541,14 +508,14 @@ function MoneyCard({ label, value, color, icon, negative, highlight }: {
         color, fontSize: 26, fontWeight: 900, marginTop: 6,
         textShadow: highlight ? `0 0 10px ${color}55` : "none",
       }}>
-        {sign}{value.toLocaleString("de-DE")} €
+        {sign}{t("moneyEur", { value: value.toLocaleString(numLocale) })}
       </div>
     </div>
   );
 }
 
-function HeroAction({ icon, title, subtitle, price, color, featured, onClick }: {
-  icon: string; title: string; subtitle: string; price: string; color: string; featured?: boolean; onClick: () => void;
+function HeroAction({ icon, title, subtitle, price, color, featured, featuredLabel, bookLabel, onClick }: {
+  icon: string; title: string; subtitle: string; price: string; color: string; featured?: boolean; featuredLabel?: string; bookLabel: string; onClick: () => void;
 }) {
   return (
     <button
@@ -574,7 +541,7 @@ function HeroAction({ icon, title, subtitle, price, color, featured, onClick }: 
           background: color, color: "#0F1115",
           fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
           padding: "2px 7px", borderRadius: 999,
-        }}>BESTSELLER</div>
+        }}>{featuredLabel}</div>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ fontSize: 28 }}>{icon}</div>
@@ -587,7 +554,7 @@ function HeroAction({ icon, title, subtitle, price, color, featured, onClick }: 
           padding: "6px 12px", borderRadius: 8,
           background: color, color: "#0F1115",
           fontSize: 11, fontWeight: 900,
-        }}>Jetzt buchen →</span>
+        }}>{bookLabel}</span>
       </div>
     </button>
   );
@@ -609,7 +576,6 @@ function QuickAction({ icon, title, desc, accent, onClick }: {
   );
 }
 
-/* ═══ Deals ═══ */
 type LiveDeal = {
   id: string; shop_id: string; title: string; description: string | null;
   xp_cost: number; frequency: string; active: boolean;
@@ -618,7 +584,18 @@ type LiveDeal = {
   min_order_amount_cents: number | null;
 };
 
-function DealsTab({ shopId }: { shopId: string }) {
+function freqLabel(t: DashT, k: string): string {
+  switch (k) {
+    case "daily":     return t("freqDaily");
+    case "weekly":    return t("freqWeekly");
+    case "monthly":   return t("freqMonthly");
+    case "quarterly": return t("freqQuarterly");
+    case "unlimited": return t("freqUnlimited");
+    default:          return k;
+  }
+}
+
+function DealsTab({ shopId, t }: { shopId: string; t: DashT }) {
   const [deals, setDeals] = useState<LiveDeal[] | null>(null);
   const [editing, setEditing] = useState<LiveDeal | null>(null);
   const [creating, setCreating] = useState(false);
@@ -638,29 +615,29 @@ function DealsTab({ shopId }: { shopId: string }) {
       body: JSON.stringify({ id: d.id, active: !d.active }),
     });
     const j = await res.json();
-    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    if (!j.ok) { setError(j.error ?? t("errorGeneric")); return; }
     void load();
   }
 
   async function remove(d: LiveDeal) {
-    const ok = await appConfirm(`Deal "${d.title}" wirklich löschen?`);
+    const ok = await appConfirm(t("dealDeleteConfirm", { title: d.title }));
     if (!ok) return;
     const res = await fetch(`/api/shop/deals?id=${d.id}`, { method: "DELETE" });
     const j = await res.json();
-    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    if (!j.ok) { setError(j.error ?? t("errorGeneric")); return; }
     void load();
   }
 
   if (deals === null) {
-    return <div style={{ color: MUTED, fontSize: 13, padding: 20 }}>Lade Deals…</div>;
+    return <div style={{ color: MUTED, fontSize: 13, padding: 20 }}>{t("dealsLoading")}</div>;
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div>
-          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Deals verwalten</div>
-          <div style={{ color: MUTED, fontSize: 12 }}>{deals.filter((d) => d.active).length} aktiv · {deals.length} insgesamt</div>
+          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{t("dealsManageTitle")}</div>
+          <div style={{ color: MUTED, fontSize: 12 }}>{t("dealsCount", { active: deals.filter((d) => d.active).length, total: deals.length })}</div>
         </div>
         <button
           onClick={() => setCreating(true)}
@@ -670,7 +647,7 @@ function DealsTab({ shopId }: { shopId: string }) {
             border: "none", fontSize: 13, fontWeight: 900, cursor: "pointer",
           }}
         >
-          ➕ Neuer Deal
+          {t("dealsNewBtn")}
         </button>
       </div>
 
@@ -683,8 +660,8 @@ function DealsTab({ shopId }: { shopId: string }) {
       {deals.length === 0 && !creating && (
         <div style={{ padding: 30, textAlign: "center", background: CARD, borderRadius: 14, border: `1px solid ${BORDER}` }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>🏷️</div>
-          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>Noch kein Deal angelegt</div>
-          <div style={{ color: MUTED, fontSize: 12 }}>Leg deinen ersten Deal an — Runner bekommen ihn direkt im Shop-POI auf der Karte angezeigt.</div>
+          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>{t("dealsEmptyTitle")}</div>
+          <div style={{ color: MUTED, fontSize: 12 }}>{t("dealsEmptyBody")}</div>
         </div>
       )}
 
@@ -699,9 +676,9 @@ function DealsTab({ shopId }: { shopId: string }) {
               <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{d.title}</div>
               {d.description && <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>{d.description}</div>}
               <div style={{ color: MUTED, fontSize: 11, marginTop: 3, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <span>🪙 {d.xp_cost}</span>
-                <span>🔁 {FREQ_LABEL_LIVE[d.frequency] ?? d.frequency}</span>
-                <span>📈 {d.redemption_count ?? 0} eingelöst</span>
+                <span>{t("dealCoinCost", { coins: d.xp_cost })}</span>
+                <span>{t("freqHeader", { label: freqLabel(t, d.frequency) })}</span>
+                <span>{t("dealRedeemed", { n: d.redemption_count ?? 0 })}</span>
               </div>
             </div>
             <Toggle value={d.active} onChange={() => toggleActive(d)} />
@@ -709,7 +686,7 @@ function DealsTab({ shopId }: { shopId: string }) {
               background: "transparent", border: `1px solid ${BORDER}`,
               padding: "6px 10px", borderRadius: 8, color: "#FFF",
               fontSize: 11, fontWeight: 700, cursor: "pointer",
-            }}>✏️ Bearbeiten</button>
+            }}>{t("dealEdit")}</button>
             <button onClick={() => remove(d)} style={{
               background: "transparent", border: `1px solid ${ACCENT}44`,
               padding: "6px 10px", borderRadius: 8, color: ACCENT,
@@ -725,25 +702,19 @@ function DealsTab({ shopId }: { shopId: string }) {
           initial={editing}
           onCancel={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); void load(); }}
+          t={t}
         />
       )}
     </div>
   );
 }
 
-const FREQ_LABEL_LIVE: Record<string, string> = {
-  daily:      "1× / Tag",
-  weekly:     "1× / Woche",
-  monthly:    "1× / Monat",
-  quarterly:  "1× / Quartal",
-  unlimited:  "Unbegrenzt",
-};
-
-function DealEditor({ shopId, initial, onCancel, onSaved }: {
+function DealEditor({ shopId, initial, onCancel, onSaved, t }: {
   shopId: string;
   initial: LiveDeal | null;
   onCancel: () => void;
   onSaved: () => void;
+  t: DashT;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -773,7 +744,7 @@ function DealEditor({ shopId, initial, onCancel, onSaved }: {
     });
     setBusy(false);
     const j = await res.json();
-    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    if (!j.ok) { setError(j.error ?? t("errorGeneric")); return; }
     onSaved();
   }
 
@@ -783,40 +754,40 @@ function DealEditor({ shopId, initial, onCancel, onSaved }: {
       background: "#1A1D23", border: `1px solid ${PRIMARY}55`,
     }}>
       <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 2, marginBottom: 10 }}>
-        {initial ? "DEAL BEARBEITEN" : "NEUER DEAL"}
+        {initial ? t("editorEditing") : t("editorNew")}
       </div>
       <label style={LBL}>
-        <span>Titel *</span>
-        <input name="title" required defaultValue={initial?.title ?? ""} placeholder="Gratis Cappuccino ab 3 km Lauf"
+        <span>{t("editorTitle")}</span>
+        <input name="title" required defaultValue={initial?.title ?? ""} placeholder={t("editorTitlePh")}
           style={INP} />
       </label>
       <label style={LBL}>
-        <span>Beschreibung (optional)</span>
+        <span>{t("editorDesc")}</span>
         <textarea name="description" rows={2} defaultValue={initial?.description ?? ""}
           style={INP} />
       </label>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <label style={LBL}>
-          <span>Wegemünzen-Kosten 🪙</span>
+          <span>{t("editorCoins")}</span>
           <input name="xp_cost" type="number" min={0} defaultValue={initial?.xp_cost ?? 300}
             style={INP} />
         </label>
         <label style={LBL}>
-          <span>Häufigkeit</span>
+          <span>{t("editorFrequency")}</span>
           <select name="frequency" defaultValue={initial?.frequency ?? "weekly"} style={INP}>
-            <option value="daily">Täglich</option>
-            <option value="weekly">1× pro Woche</option>
-            <option value="monthly">1× pro Monat</option>
-            <option value="quarterly">1× pro Quartal</option>
-            <option value="unlimited">Unbegrenzt</option>
+            <option value="daily">{t("freqDailyOpt")}</option>
+            <option value="weekly">{t("freqWeeklyOpt")}</option>
+            <option value="monthly">{t("freqMonthlyOpt")}</option>
+            <option value="quarterly">{t("freqQuarterlyOpt")}</option>
+            <option value="unlimited">{t("freqUnlimitedOpt")}</option>
           </select>
         </label>
       </div>
       <label style={LBL}>
-        <span>Mindestumsatz in € (optional) — wird dem Runner groß angezeigt</span>
+        <span>{t("editorMinOrder")}</span>
         <input name="min_order_eur" type="number" step="0.50" min={0}
           defaultValue={initial?.min_order_amount_cents ? (initial.min_order_amount_cents / 100).toFixed(2) : ""}
-          placeholder="z.B. 5,00 (leer lassen = kein Mindestumsatz)"
+          placeholder={t("editorMinOrderPh")}
           style={INP} />
       </label>
 
@@ -827,12 +798,12 @@ function DealEditor({ shopId, initial, onCancel, onSaved }: {
           flex: 1, padding: "10px", borderRadius: 10,
           background: "rgba(255,255,255,0.05)", border: `1px solid ${BORDER}`,
           color: "#FFF", fontSize: 12, fontWeight: 700, cursor: "pointer",
-        }}>Abbrechen</button>
+        }}>{t("abort")}</button>
         <button type="submit" disabled={busy} style={{
           flex: 2, padding: "10px", borderRadius: 10, border: "none",
           background: PRIMARY, color: BG_DEEP,
           fontSize: 13, fontWeight: 900, cursor: "pointer", opacity: busy ? 0.6 : 1,
-        }}>{busy ? "Speichert…" : (initial ? "Änderungen speichern" : "Deal anlegen")}</button>
+        }}>{busy ? t("saving") : (initial ? t("save") : t("create"))}</button>
       </div>
     </form>
   );
@@ -865,11 +836,10 @@ function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
   );
 }
 
-/* ═══ Flash-Deals ═══ */
-function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
+function FlashTab({ shop, reloadShop, t }: { shop: ShopRow; reloadShop: () => void; t: DashT }) {
   const [pct, setPct] = useState(30);
   const [mins, setMins] = useState(30);
-  const [title, setTitle] = useState("Nächste 30 Min: −30% auf Heißgetränke");
+  const [title, setTitle] = useState(t("flashTitleDefault"));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -880,18 +850,18 @@ function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <span style={{ fontSize: 28 }}>⚡</span>
           <div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Flash-Deal jetzt starten</div>
-            <div style={{ color: MUTED, fontSize: 12 }}>Push an alle Runner im 1 km-Radius — sofort aktiv</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{t("flashHeroTitle")}</div>
+            <div style={{ color: MUTED, fontSize: 12 }}>{t("flashHeroSub")}</div>
           </div>
         </div>
-        <Label>Titel</Label>
+        <Label>{t("flashTitle")}</Label>
         <input
           value={title} onChange={(e) => setTitle(e.target.value)}
           style={inputStyle}
         />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
           <div>
-            <Label>Rabatt</Label>
+            <Label>{t("flashDiscount")}</Label>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {[10, 20, 30, 50, 100].map((p) => (
                 <button key={p} onClick={() => setPct(p)} style={{
@@ -900,12 +870,12 @@ function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void 
                   color: pct === p ? BG_DEEP : "#FFF",
                   border: `1px solid ${pct === p ? PRIMARY : BORDER}`,
                   fontSize: 12, fontWeight: 800, cursor: "pointer",
-                }}>{p === 100 ? "Gratis" : `−${p}%`}</button>
+                }}>{p === 100 ? t("flashFree") : t("flashPctOff", { pct: p })}</button>
               ))}
             </div>
           </div>
           <div>
-            <Label>Dauer</Label>
+            <Label>{t("flashDuration")}</Label>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {[15, 30, 60, 120].map((m) => (
                 <button key={m} onClick={() => setMins(m)} style={{
@@ -914,13 +884,13 @@ function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void 
                   color: mins === m ? BG_DEEP : "#FFF",
                   border: `1px solid ${mins === m ? PRIMARY : BORDER}`,
                   fontSize: 12, fontWeight: 800, cursor: "pointer",
-                }}>{m} Min</button>
+                }}>{t("flashMin", { n: m })}</button>
               ))}
             </div>
           </div>
         </div>
         <button
-          onClick={() => appAlert(`Flash-Deal "${title}" wird an ~${Math.floor(pct * 12)} Runner in der Nähe gepusht`)}
+          onClick={() => appAlert(t("flashPushAlert", { title, n: Math.floor(pct * 12) }))}
           style={{
             marginTop: 16, width: "100%",
             padding: "14px 20px", borderRadius: 12,
@@ -928,13 +898,13 @@ function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void 
             border: "none", fontSize: 14, fontWeight: 900, cursor: "pointer",
           }}
         >
-          🚀 Jetzt pushen
+          {t("flashPushBtn")}
         </button>
       </div>
 
       <div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 10 }}>
-          LETZTE FLASH-DEALS
+          {t("flashRecentHeading")}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {DEMO_FLASH_DEALS.map((f) => (
@@ -946,14 +916,16 @@ function FlashTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void 
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{f.title}</div>
                   <div style={{ color: MUTED, fontSize: 11, marginTop: 3 }}>
-                    {f.status === "scheduled" ? `⏰ Startet ${relTime(f.scheduledAt)}` : f.status === "active" ? "🔴 LIVE" : `✓ Beendet ${relTime(f.scheduledAt)}`}
+                    {f.status === "scheduled" ? t("flashScheduled", { when: relTime(t, f.scheduledAt) })
+                      : f.status === "active" ? t("flashLive")
+                      : t("flashDone", { when: relTime(t, f.scheduledAt) })}
                   </div>
                 </div>
                 {f.status === "done" && (
                   <div style={{ display: "flex", gap: 10, fontSize: 11 }}>
-                    <Stat label="Pushes" value={f.pushedTo.toString()} />
-                    <Stat label="Einlösungen" value={f.converted.toString()} color="#4ade80" />
-                    <Stat label="CVR" value={`${Math.round((f.converted / f.pushedTo) * 100)}%`} color="#FFD700" />
+                    <Stat label={t("flashStatPushes")} value={f.pushedTo.toString()} />
+                    <Stat label={t("flashStatRedemp")} value={f.converted.toString()} color="#4ade80" />
+                    <Stat label={t("flashStatCvr")} value={`${Math.round((f.converted / f.pushedTo) * 100)}%`} color="#FFD700" />
                   </div>
                 )}
               </div>
@@ -976,22 +948,23 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
   );
 }
 
-/* ═══ Spotlight ═══ */
-function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => void }) {
+function SpotlightTab({ shop, reloadShop, t }: { shop: ShopRow; reloadShop: () => void; t: DashT }) {
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set(["2026-04-20", "2026-04-21", "2026-04-27"]));
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
-  const offset = (firstDayOfMonth + 6) % 7; // Mo=0
+  const offset = (firstDayOfMonth + 6) % 7;
 
   function toggleDay(key: string) {
     setSelectedDays((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else if (next.size >= 3) {
-        appAlert("Maximal 3 Tage pro Monat bei Pro. Upgrade auf Premium für mehr.");
+        appAlert(t("spotMaxAlert"));
         return prev;
       } else {
         next.add(key);
@@ -999,6 +972,11 @@ function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => v
       return next;
     });
   }
+
+  const weekdays = [
+    t("weekdayMon"), t("weekdayTue"), t("weekdayWed"), t("weekdayThu"),
+    t("weekdayFri"), t("weekdaySat"), t("weekdaySun"),
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1009,10 +987,9 @@ function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => v
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 28 }}>🏆</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>Spotlight-Tage wählen</div>
+            <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>{t("spotTitle")}</div>
             <div style={{ color: MUTED, fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
-              Dein Shop-Pin leuchtet und pulsiert für 24 Stunden auf der Karte. Ideal vor Events,
-              am Wochenende oder Launches. <b style={{ color: "#FFD700" }}>3 Tage / Monat inkl. im Pro-Paket.</b>
+              {t("spotBody")} <b style={{ color: "#FFD700" }}>{t("spotIncluded")}</b>
             </div>
           </div>
         </div>
@@ -1021,12 +998,11 @@ function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => v
           display: "flex", justifyContent: "space-between", alignItems: "center",
           fontSize: 12, color: "#FFF",
         }}>
-          <span>✨ Gewählt: <b>{selectedDays.size} / 3</b></span>
-          <span style={{ color: MUTED }}>{new Date(year, month).toLocaleDateString("de-DE", { month: "long", year: "numeric" })}</span>
+          <span>{t("spotChosen", { n: selectedDays.size })}</span>
+          <span style={{ color: MUTED }}>{new Date(year, month).toLocaleDateString(dateLocale, { month: "long", year: "numeric" })}</span>
         </div>
       </div>
 
-      {/* Kalender */}
       <div style={{
         background: CARD, borderRadius: 16, padding: 16, border: `1px solid ${BORDER}`,
       }}>
@@ -1035,7 +1011,7 @@ function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => v
           fontSize: 10, color: MUTED, fontWeight: 800, letterSpacing: 1,
           textAlign: "center", marginBottom: 8,
         }}>
-          {["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((d) => <div key={d}>{d}</div>)}
+          {weekdays.map((d) => <div key={d}>{d}</div>)}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
           {Array.from({ length: offset }).map((_, i) => <div key={`e${i}`} />)}
@@ -1084,59 +1060,60 @@ function SpotlightTab({ shop, reloadShop }: { shop: ShopRow; reloadShop: () => v
   );
 }
 
-/* ═══ Stammkunden ═══ */
-function CustomersTab() {
+function CustomersTab({ t }: { t: DashT }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Top-Kund:innen</div>
-        <div style={{ color: MUTED, fontSize: 12 }}>Sortiert nach Besuchen diesen Monat · anonymisiert (nur Username)</div>
+        <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{t("custTitle")}</div>
+        <div style={{ color: MUTED, fontSize: 12 }}>{t("custSub")}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {DEMO_TOP_RUNNERS.map((r, i) => (
-          <div key={r.name} style={{
-            background: CARD, borderRadius: 14, padding: "10px 14px",
-            border: `1px solid ${BORDER}`,
-            display: "flex", alignItems: "center", gap: 12,
-          }}>
-            <span style={{
-              color: i === 0 ? "#FFD700" : MUTED,
-              fontSize: 14, fontWeight: 900, width: 28, textAlign: "right",
-            }}>#{i + 1}</span>
-            <div style={{
-              width: 36, height: 36, borderRadius: 18,
-              background: `${PRIMARY}22`, border: `1px solid ${PRIMARY}55`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 18,
-            }}>{r.emoji}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>@{r.name}</div>
-              <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-                {r.visits} Besuche · zuletzt {r.last}
+        {DEMO_TOP_RUNNERS.map((r, i) => {
+          const lastIso = r.lastMs > 0 ? new Date(Date.now() - r.lastMs).toISOString() : new Date().toISOString();
+          return (
+            <div key={r.name} style={{
+              background: CARD, borderRadius: 14, padding: "10px 14px",
+              border: `1px solid ${BORDER}`,
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <span style={{
+                color: i === 0 ? "#FFD700" : MUTED,
+                fontSize: 14, fontWeight: 900, width: 28, textAlign: "right",
+              }}>#{i + 1}</span>
+              <div style={{
+                width: 36, height: 36, borderRadius: 18,
+                background: `${PRIMARY}22`, border: `1px solid ${PRIMARY}55`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18,
+              }}>{r.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>@{r.name}</div>
+                <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
+                  {t("custVisits", { n: r.visits, last: relTime(t, lastIso) })}
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>
+                  {t("custSpent", { n: r.spent })}
+                </div>
+                <div style={{ color: MUTED, fontSize: 10 }}>{t("custEstimated")}</div>
               </div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>
-                ~{r.spent} €
-              </div>
-              <div style={{ color: MUTED, fontSize: 10 }}>geschätzt</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div style={{
         background: `${PRIMARY}11`, border: `1px dashed ${PRIMARY}55`,
         borderRadius: 12, padding: 14, fontSize: 12, color: TEXT_SOFT, lineHeight: 1.5,
       }}>
-        💡 <b style={{ color: "#FFF" }}>Stammkunden-Bonus aktiv:</b> Wer ≥ 3× in 30 Tagen kommt, bekommt automatisch ein besseres Angebot.
-        Aktuell betrifft das <b style={{ color: PRIMARY }}>5 Kund:innen</b>. Feature deaktivierbar in Einstellungen.
+        {t("custBonusLead")} <b style={{ color: "#FFF" }}>{t("custBonusBoldLabel")}</b>
+        {t("custBonusBody")} <b style={{ color: PRIMARY }}>{t("custBonusCount")}</b>{t("custBonusTail")}
       </div>
     </div>
   );
 }
 
-/* ═══ Performance ═══ */
-function PerformanceTab({ shop }: { shop: ShopRow }) {
+function PerformanceTab({ shop, t }: { shop: ShopRow; t: DashT }) {
   const weeks = [
     { w: "KW 12", checkins: 38, revenue: 470 },
     { w: "KW 13", checkins: 44, revenue: 545 },
@@ -1146,7 +1123,7 @@ function PerformanceTab({ shop }: { shop: ShopRow }) {
   const maxC = Math.max(...weeks.map(w => w.checkins));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Letzte 4 Wochen</div>
+      <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{t("perfTitle")}</div>
       <div style={{
         background: CARD, borderRadius: 16, padding: 16, border: `1px solid ${BORDER}`,
       }}>
@@ -1174,20 +1151,20 @@ function PerformanceTab({ shop }: { shop: ShopRow }) {
       <div style={{
         display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10,
       }}>
-        <KpiCard icon="📈" value="+37%" label="Check-ins vs. Vormonat" accent="#4ade80" />
-        <KpiCard icon="💰" value="2.267 €" label="Umsatz (4 Wochen)" accent="#FFD700" />
-        <KpiCard icon="⚡" value="3" label="Flash-Deals gestartet" accent={PRIMARY} />
-        <KpiCard icon="🏆" value="2 / 3" label="Spotlight-Tage genutzt" accent="#FF2D78" />
+        <KpiCard icon="📈" value="+37%" label={t("perfKpiCheckins")} accent="#4ade80" />
+        <KpiCard icon="💰" value={t("moneyEur", { value: "2.267" })} label={t("perfKpiRevenue")} accent="#FFD700" />
+        <KpiCard icon="⚡" value="3" label={t("perfKpiFlash")} accent={PRIMARY} />
+        <KpiCard icon="🏆" value="2 / 3" label={t("perfKpiSpot")} accent="#FF2D78" />
       </div>
       <button
-        onClick={() => appAlert("CSV-/DATEV-Export wird generiert …")}
+        onClick={() => appAlert(t("perfExportAlert"))}
         style={{
           padding: "12px 16px", borderRadius: 12,
           background: "transparent", border: `1px solid ${PRIMARY}`,
           color: PRIMARY, fontSize: 13, fontWeight: 800, cursor: "pointer",
         }}
       >
-        📥 Vollständigen Report als CSV / DATEV exportieren
+        {t("perfExportBtn")}
       </button>
 
       <AnalyticsProPanel shop={shop} />
@@ -1196,8 +1173,6 @@ function PerformanceTab({ shop }: { shop: ShopRow }) {
     </div>
   );
 }
-
-/* Settings-Tab: siehe ShopSettingsPanel in components/shop-settings-panel.tsx */
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -1214,13 +1189,13 @@ const inputStyle: React.CSSProperties = {
   fontSize: 13,
 };
 
-function relTime(iso: string): string {
+function relTime(t: DashT, iso: string): string {
   const diff = new Date(iso).getTime() - Date.now();
   const abs = Math.abs(diff);
   const m = Math.floor(abs / 60000);
-  if (m < 60) return diff > 0 ? `in ${m} Min` : `vor ${m} Min`;
+  if (m < 60) return diff > 0 ? t("relInMin", { n: m }) : t("relAgoMin", { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return diff > 0 ? `in ${h} Std` : `vor ${h} Std`;
+  if (h < 24) return diff > 0 ? t("relInHour", { n: h }) : t("relAgoHour", { n: h });
   const d = Math.floor(h / 24);
-  return diff > 0 ? `in ${d} T` : `vor ${d} T`;
+  return diff > 0 ? t("relInDay", { n: d }) : t("relAgoDay", { n: d });
 }
