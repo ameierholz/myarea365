@@ -2005,6 +2005,7 @@ function ProfilTab({
 }) {
   const supabase = createClient();
   const tMD = useTranslations("MapDashboard");
+  const tXG = useTranslations("XpGuide");
 
   // ═══ DEMO-OVERLAY ═══
   // Aktiv wenn entweder DEMO_MODE global und Profil leer ODER User hat Demo-Overlay manuell aktiviert
@@ -3137,8 +3138,8 @@ function ProfilTab({
 
       {openModal === "xpguide" && (
         <Modal
-          title="Die 3 Währungen — Guide"
-          subtitle="🪙 Wegemünzen · 🏴 Gebietsruf · ⚔️ Sessionehre"
+          title={tXG("title")}
+          subtitle={tXG("subtitle")}
           icon="🪙"
           accent="#FFD700"
           onClose={() => setOpenModal(null)}
@@ -3149,47 +3150,47 @@ function ProfilTab({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginBottom: 18 }}>
             <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)" }}>
-              <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>🪙 Wegemünzen</div>
+              <div style={{ color: "#FFD700", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>{tXG("pathCoinsTitle")}</div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5 }}>
-                <b style={{ color: "#FFF" }}>Wofür?</b> Rabatte bei lokalen Shops einlösen (QR-Scan), Ränge aufsteigen, Map-Icons und Runner-Lights freischalten, Boosts & Skins im Shop.<br/>
-                <b style={{ color: "#FFF" }}>Woher?</b> Jeder Lauf — Straßen (+50), Straßenzüge (+250), Gebiete mit Crew (+500), km, Streak-Boni, Achievements, Werbe-Videos.
+                <b style={{ color: "#FFF" }}>{tXG("labelForWhat")}</b> {tXG("pathCoinsForWhat")}<br/>
+                <b style={{ color: "#FFF" }}>{tXG("labelFromWhere")}</b> {tXG("pathCoinsFromWhere")}
               </div>
             </div>
             <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,45,120,0.08)", border: "1px solid rgba(255,45,120,0.3)" }}>
-              <div style={{ color: "#FF2D78", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>🏴 Gebietsruf</div>
+              <div style={{ color: "#FF2D78", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>{tXG("territoryRepTitle")}</div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5 }}>
-                <b style={{ color: "#FFF" }}>Wofür?</b> Crew-Liga hochstufen (mehr 🪙 Wegemünzen pro Gebiet für alle Mitglieder), Crew-Buffs aktivieren (Bonus-km, Streak-Schutz), Crew-Wars gegen Nachbar-Crews starten.<br/>
-                <b style={{ color: "#FFF" }}>Woher?</b> Nur als Crew-Mitglied — pro Gebiet das deine Crew erobert, für Crew-Siege in der Wochen-Liga, und für Gebiete die ihr länger als 7 Tage haltet.
+                <b style={{ color: "#FFF" }}>{tXG("labelForWhat")}</b> {tXG("territoryRepForWhat")}<br/>
+                <b style={{ color: "#FFF" }}>{tXG("labelFromWhere")}</b> {tXG("territoryRepFromWhere")}
               </div>
             </div>
             <div style={{ padding: 12, borderRadius: 10, background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)" }}>
-              <div style={{ color: "#22D1C3", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>⚔️ Sessionehre</div>
+              <div style={{ color: "#22D1C3", fontSize: 13, fontWeight: 900, marginBottom: 3 }}>{tXG("arenaHonorTitle")}</div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5 }}>
-                <b style={{ color: "#FFF" }}>Wofür?</b> Dein Arena-Rang (Holz → Legende), Top-100-Saison-Belohnungen (Legendäre Siegel, exklusive Wächter-Skins, Edelsteine).<br/>
-                <b style={{ color: "#FFF" }}>Woher?</b> Wächter-Kämpfe — Sieg bringt Ehre, Niederlage kostet Ehre, 3+ Siege in Folge geben Streak-Bonus.<br/>
-                <b style={{ color: "#FFF" }}>Achtung:</b> Reset alle 4 Wochen auf Saison-Start. Nur wer in der Saison kämpft, kommt ins Ranking.
+                <b style={{ color: "#FFF" }}>{tXG("labelForWhat")}</b> {tXG("arenaHonorForWhat")}<br/>
+                <b style={{ color: "#FFF" }}>{tXG("labelFromWhere")}</b> {tXG("arenaHonorFromWhere")}<br/>
+                <b style={{ color: "#FFF" }}>{tXG("labelWarning")}</b> {tXG("arenaHonorWarning")}
               </div>
             </div>
           </div>
 
-          <div style={{ color: TEXT_SOFT, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>🪙 Wegemünzen im Detail</div>
+          <div style={{ color: TEXT_SOFT, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>{tXG("subtitlePathCoinsDetail")}</div>
 
-          <XpGuideSection title="🏃 Pro Aktivität" subtitle="Basis-Wegemünzen beim Laufen" defaultOpen>
-            <XpGuideRow icon="🛤️" label="Neuer Straßenabschnitt" xp={`+${XP_PER_SEGMENT}`} />
-            <XpGuideRow icon="🛣️" label="Kompletter Straßenzug" xp={`+${XP_PER_STREET_CLAIMED} Bonus`} />
-            <XpGuideRow icon="🏆" label="Geschlossenes Gebiet (nur mit Crew)" xp={`+${XP_PER_TERRITORY}`} />
-            <XpGuideRow icon="📏" label="Pro gelaufener km" xp={`+${XP_PER_KM}`} />
-            <XpGuideRow icon="✅" label="Walk abgeschlossen (Basis)" xp={`+${XP_PER_WALK}`} last />
+          <XpGuideSection title={tXG("sectionPerActivityTitle")} subtitle={tXG("sectionPerActivitySubtitle")} defaultOpen>
+            <XpGuideRow icon="🛤️" label={tXG("rowNewSegment")} xp={`+${XP_PER_SEGMENT}`} />
+            <XpGuideRow icon="🛣️" label={tXG("rowFullStreet")} xp={`+${XP_PER_STREET_CLAIMED}${tXG("fullStreetSuffix")}`} />
+            <XpGuideRow icon="🏆" label={tXG("rowClosedTerritory")} xp={`+${XP_PER_TERRITORY}`} />
+            <XpGuideRow icon="📏" label={tXG("rowPerKm")} xp={`+${XP_PER_KM}`} />
+            <XpGuideRow icon="✅" label={tXG("rowWalkBase")} xp={`+${XP_PER_WALK}`} last />
           </XpGuideSection>
 
-          <XpGuideSection title="🔥 Tages-Streak" subtitle="Täglich laufen = Bonus pro Tag">
-            <XpGuideRow icon="2️⃣" label="Tag 2–3" xp="+25 / Tag" />
-            <XpGuideRow icon="4️⃣" label="Tag 4–6" xp="+50 / Tag" />
-            <XpGuideRow icon="7️⃣" label="Tag 7–9" xp="+100 / Tag" />
-            <XpGuideRow icon="🔟" label="Ab Tag 10" xp="+200 / Tag" last />
+          <XpGuideSection title={tXG("sectionStreakTitle")} subtitle={tXG("sectionStreakSubtitle")}>
+            <XpGuideRow icon="2️⃣" label={tXG("rowStreak2_3")} xp={`+25 ${tXG("perDay")}`} />
+            <XpGuideRow icon="4️⃣" label={tXG("rowStreak4_6")} xp={`+50 ${tXG("perDay")}`} />
+            <XpGuideRow icon="7️⃣" label={tXG("rowStreak7_9")} xp={`+100 ${tXG("perDay")}`} />
+            <XpGuideRow icon="🔟" label={tXG("rowStreak10")} xp={`+200 ${tXG("perDay")}`} last />
           </XpGuideSection>
 
-          <XpGuideSection title="⚡ Wegemünzen-Multiplikatoren" subtitle="Stapeln sich mit den Basis-Werten">
+          <XpGuideSection title={tXG("sectionMultsTitle")} subtitle={tXG("sectionMultsSubtitle")}>
             <div style={{ padding: "4px 2px 10px" }}>
               <button
                 onClick={() => setGuideShopExpanded((v) => !v)}
@@ -3203,8 +3204,8 @@ function ProfilTab({
                   display: "flex", justifyContent: "center", alignItems: "center", gap: 6,
                 }}
               >
-                <span>🛒 Bezahlte Boosts {guideShopExpanded ? "ausblenden" : "hier kaufen"}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.7 }}>{guideShopExpanded ? "▴" : "ab € 0,99 ▾"}</span>
+                <span>{guideShopExpanded ? tXG("boostBuyHide") : tXG("boostBuyShow")}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.7 }}>{guideShopExpanded ? tXG("boostBuyHideShort") : tXG("boostBuyShowShort")}</span>
               </button>
               {guideShopExpanded && p && (
                 <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -3212,32 +3213,35 @@ function ProfilTab({
                 </div>
               )}
             </div>
-            <XpGuideRow icon="⚡" label="24h Doppel-Boost (Shop € 0,99)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="48h Doppel-Boost (Shop € 1,99)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="1 Woche Doppel-Boost (Shop)" xp="2× auf alles" />
-            <XpGuideRow icon="⚡" label="1 Woche Triple-Boost (Shop)" xp="3× auf alles" last />
+            <XpGuideRow icon="⚡" label={tXG("row24hBoost")} xp={tXG("boostDouble")} />
+            <XpGuideRow icon="⚡" label={tXG("row48hBoost")} xp={tXG("boostDouble")} />
+            <XpGuideRow icon="⚡" label={tXG("rowWeekDouble")} xp={tXG("boostDouble")} />
+            <XpGuideRow icon="⚡" label={tXG("rowWeekTriple")} xp={tXG("boostTriple")} last />
             <div style={{ padding: "12px 0 2px", color: "#a8b4cf", fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>
-              GRATIS VIA WERBUNG — direkt hier starten:
+              {tXG("freeViaAd")}
             </div>
             <div style={{ padding: "0 2px 8px", color: "#8B8FA3", fontSize: 10, lineHeight: 1.45 }}>
-              Beides ist ein <b style={{ color: "#FFF" }}>30-Sekunden-Video</b>. Unterschied = Belohnung:
-              <b style={{ color: "#FFD700" }}> 24 h</b> wirkt den ganzen Tag (nur 1× täglich), <b style={{ color: "#c084fc" }}>15 min</b> ist für einen geplanten Lauf (bis zu 4× pro Tag). Clever: morgens <b style={{ color: "#FFD700" }}>24 h</b> holen und bei Bedarf später zusätzlich <b style={{ color: "#c084fc" }}>15 min</b> stapeln.
+              {tXG.rich("adExplainer", {
+                b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b>,
+                c: (c: React.ReactNode) => <b style={{ color: "#FFD700" }}>{c}</b>,
+                p: (c: React.ReactNode) => <b style={{ color: "#c084fc" }}>{c}</b>,
+              })}
             </div>
             {p && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "2px 2px 4px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 14 }}>📺</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>24 h Doppel-Boost</div>
-                    <div style={{ color: "#8B8FA3", fontSize: 10 }}>Für den ganzen Tag · nur 1× pro 24 h</div>
+                    <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>{tXG("row24hBoostFree")}</div>
+                    <div style={{ color: "#8B8FA3", fontSize: 10 }}>{tXG("row24hBoostFreeSub")}</div>
                   </div>
                   <RewardedAdButton placement="boost_24h" userId={p.id} variant="chip" />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 14 }}>📺</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>15 min Doppel-Boost</div>
-                    <div style={{ color: "#8B8FA3", fontSize: 10 }}>Für einen gezielten Lauf · alle 6 h erneut</div>
+                    <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>{tXG("row15minBoostFree")}</div>
+                    <div style={{ color: "#8B8FA3", fontSize: 10 }}>{tXG("row15minBoostFreeSub")}</div>
                   </div>
                   <RewardedAdButton placement="double_xp" userId={p.id} variant="chip" />
                 </div>
@@ -3245,39 +3249,39 @@ function ProfilTab({
             )}
           </XpGuideSection>
 
-          <XpGuideSection title="📺 Werbe-Belohnungen" subtitle="Videos schauen für Bonus-Wegemünzen">
+          <XpGuideSection title={tXG("sectionAdsTitle")} subtitle={tXG("sectionAdsSubtitle")}>
             {p && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 2px 10px" }}>
                 <span style={{ fontSize: 14 }}>🏁</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>Lauf-Bonus</div>
-                  <div style={{ color: "#8B8FA3", fontSize: 10 }}>+100 🪙 · 1× alle 12 h</div>
+                  <div style={{ color: "#FFF", fontSize: 12, fontWeight: 800 }}>{tXG("rowWalkBonus")}</div>
+                  <div style={{ color: "#8B8FA3", fontSize: 10 }}>{tXG("rowWalkBonusSub")}</div>
                 </div>
                 <RewardedAdButton placement="post_walk" userId={p.id} variant="chip" />
               </div>
             )}
-            <XpGuideRow icon="🎯" label="Pre-Walk-Bonus · beim Walk-Start" xp="+250" />
+            <XpGuideRow icon="🎯" label={tXG("rowPreWalk")} xp={tXG("rowPreWalkXp")} />
             <div style={{ padding: "0 8px 6px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45 }}>
-              Wenn du „Losgehen" tippst, erscheint ein Popup: „Video für +250 🪙 Starter-Bonus?" — optional. Alle 6 h wieder verfügbar.
+              {tXG("preWalkExplainer")}
             </div>
-            <XpGuideRow icon="🎁" label="Supply-Drop · auf der Karte" xp="+25 / +100" />
+            <XpGuideRow icon="🎁" label={tXG("rowSupplyDrop")} xp={tXG("rowSupplyDropXp")} />
             <div style={{ padding: "0 8px 6px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45 }}>
-              Beute-Kisten (📦🎁💎👑) erscheinen zufällig auf der Karte. Lauf ≤25 m ran, dann wählst du: direkt einsacken (+25 🪙) oder 30-Sek-Video (+100 🪙). Potion-Chance bleibt in beiden Fällen.
+              {tXG("supplyDropExplainer")}
             </div>
-            <XpGuideRow icon="❄️" label="Streak retten · wenn Serie gefährdet" xp="Streak bleibt" last />
+            <XpGuideRow icon="❄️" label={tXG("rowStreakRescue")} xp={tXG("rowStreakRescueXp")} last />
             <div style={{ padding: "0 8px 4px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45 }}>
-              Zwischen 18–36 h nach dem letzten Lauf erscheint ein Rescue-Popup. Ein Video rettet die Streak, statt bei 0 neu anzufangen. Alle 12 h einmal möglich.
+              {tXG("streakRescueExplainer")}
             </div>
           </XpGuideSection>
 
-          <XpGuideSection title="🏪 Community & Social">
-            <XpGuideRow icon="🏪" label="Kiez-Deal Check-in (QR-Code)" xp={`+${XP_KIEZ_CHECKIN}`} />
-            <XpGuideRow icon="👥" label="Crew-Sieg im Wochen-Ranking" xp={`+${XP_CREW_WIN}`} />
-            <XpGuideRow icon="🤝" label="Freund geworben + aktiv" xp="+500 pro Freund" />
-            <XpGuideRow icon="📤" label="Profil geteilt (einmalig)" xp="+50" last />
+          <XpGuideSection title={tXG("sectionCommunityTitle")}>
+            <XpGuideRow icon="🏪" label={tXG("rowKiezDeal")} xp={`+${XP_KIEZ_CHECKIN}`} />
+            <XpGuideRow icon="👥" label={tXG("rowCrewWin")} xp={`+${XP_CREW_WIN}`} />
+            <XpGuideRow icon="🤝" label={tXG("rowFriendInvite")} xp={tXG("rowFriendInviteXp")} />
+            <XpGuideRow icon="📤" label={tXG("rowProfileShare")} xp={tXG("rowProfileShareXp")} last />
           </XpGuideSection>
 
-          <XpGuideSection title="🏆 Achievements" subtitle={`${ACHIEVEMENTS.length} einmalige Belohnungen`}>
+          <XpGuideSection title={tXG("sectionAchievementsTitle")} subtitle={tXG("sectionAchievementsSubtitle", { count: ACHIEVEMENTS.length })}>
             {ACHIEVEMENTS.map((a, i) => (
               <XpGuideRow
                 key={a.id}
@@ -3289,21 +3293,21 @@ function ProfilTab({
             ))}
           </XpGuideSection>
 
-          <XpGuideSection title="💎 Premium-Perks" subtitle="MyArea+ Vorteile (keine direkten Wegemünzen)">
-            <XpGuideRow icon="❄️" label="Streak-Freeze (schützt Tages-Streak)" xp="3× monatlich" />
-            <XpGuideRow icon="🚫" label="Werbefrei im Profil & Menüs" xp="—" />
-            <XpGuideRow icon="🎨" label="Exklusive Marker & Themes" xp="—" />
-            <XpGuideRow icon="📊" label="Detaillierte Statistik-Historie" xp="—" last />
+          <XpGuideSection title={tXG("sectionPremiumTitle")} subtitle={tXG("sectionPremiumSubtitle")}>
+            <XpGuideRow icon="❄️" label={tXG("rowStreakFreeze")} xp={tXG("rowStreakFreezeXp")} />
+            <XpGuideRow icon="🚫" label={tXG("rowAdFree")} xp={tXG("dash")} />
+            <XpGuideRow icon="🎨" label={tXG("rowExclusiveMarkers")} xp={tXG("dash")} />
+            <XpGuideRow icon="📊" label={tXG("rowDetailedStats")} xp={tXG("dash")} last />
           </XpGuideSection>
 
-          <XpGuideSection title="🥇 Supporter-Badges" subtitle="Bronze / Silber / Gold ABO">
-            <XpGuideRow icon="🥉" label="Bronze-Supporter (€ 1,99 / Monat)" xp="Badge + Stolz" />
-            <XpGuideRow icon="🥈" label="Silber-Supporter (€ 4,99 / Monat)" xp="Badge + Stolz" />
-            <XpGuideRow icon="🥇" label="Gold-Supporter (€ 9,99 / Monat)" xp="Badge + Stolz" last />
+          <XpGuideSection title={tXG("sectionSupporterTitle")} subtitle={tXG("sectionSupporterSubtitle")}>
+            <XpGuideRow icon="🥉" label={tXG("rowBronze")} xp={tXG("supporterReward")} />
+            <XpGuideRow icon="🥈" label={tXG("rowSilver")} xp={tXG("supporterReward")} />
+            <XpGuideRow icon="🥇" label={tXG("rowGold")} xp={tXG("supporterReward")} last />
           </XpGuideSection>
 
           <div style={{ color: MUTED, fontSize: 12, marginTop: 16, textAlign: "center", fontStyle: "italic" }}>
-            🪙 Wegemünzen schalten neue Ränge, Map-Icons und Runner Lights frei. Boost-Multiplikatoren wirken auf ALLE Wegemünzen-Quellen gleichzeitig — Gebietsruf und Sessionehre bleiben davon unberührt.
+            {tXG("footer")}
           </div>
         </Modal>
       )}
