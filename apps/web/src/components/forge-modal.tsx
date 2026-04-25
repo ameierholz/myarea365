@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { SLOT_META, type ItemSlot } from "@/lib/items";
+
+type ForgeT = ReturnType<typeof useTranslations<"Forge">>;
 
 type Catalog = {
   id: string; name: string; emoji: string; slot: ItemSlot; rarity: string;
@@ -25,12 +28,19 @@ type MaterialCatalogEntry = {
 
 // Hardcoded Defaults — werden vom material_catalog überschrieben sobald der
 // Admin eigene Grafiken hochgeladen hat (image_url/video_url auf der Tabelle).
-const MATERIAL_META: Array<{ id: keyof Materials; name: string; emoji: string; color: string }> = [
-  { id: "scrap",   name: "Schrott",         emoji: "🔩", color: "#8B8FA3" },
-  { id: "crystal", name: "Stadtkristall",   emoji: "💎", color: "#22D1C3" },
-  { id: "essence", name: "Schatten-Essenz", emoji: "🔮", color: "#a855f7" },
-  { id: "relikt",  name: "Relikt-Splitter", emoji: "✨", color: "#FFD700" },
+const MATERIAL_DEFS: Array<{ id: keyof Materials; emoji: string; color: string; nameKey: "matScrap"|"matCrystal"|"matEssence"|"matRelikt" }> = [
+  { id: "scrap",   nameKey: "matScrap",   emoji: "🔩", color: "#8B8FA3" },
+  { id: "crystal", nameKey: "matCrystal", emoji: "💎", color: "#22D1C3" },
+  { id: "essence", nameKey: "matEssence", emoji: "🔮", color: "#a855f7" },
+  { id: "relikt",  nameKey: "matRelikt",  emoji: "✨", color: "#FFD700" },
 ];
+
+function useMaterialMeta(tF: ForgeT) {
+  return useMemo(
+    () => MATERIAL_DEFS.map((d) => ({ id: d.id, emoji: d.emoji, color: d.color, name: tF(d.nameKey) })),
+    [tF],
+  );
+}
 
 /**
  * Render-Helper: zeigt das Custom-Image/Video aus material_catalog,
@@ -44,15 +54,15 @@ function MaterialIcon({ id, catalog, size = 22 }: { id: keyof Materials; catalog
   if (cat?.image_url) {
     return <img src={cat.image_url} alt={cat.name} style={{ width: size, height: size, objectFit: "contain" }} />;
   }
-  const meta = MATERIAL_META.find((m) => m.id === id);
-  return <span style={{ fontSize: size, lineHeight: 1 }}>{cat?.emoji ?? meta?.emoji ?? "❓"}</span>;
+  const def = MATERIAL_DEFS.find((m) => m.id === id);
+  return <span style={{ fontSize: size, lineHeight: 1 }}>{cat?.emoji ?? def?.emoji ?? "❓"}</span>;
 }
 
-const TIER_META = [
-  { color: "#8B8FA3", name: "GRAU",  next: "GRÜN" },
-  { color: "#4ade80", name: "GRÜN",  next: "LILA" },
-  { color: "#a855f7", name: "LILA",  next: "GOLD" },
-  { color: "#FFD700", name: "GOLD",  next: null   },
+const TIER_DEFS: Array<{ color: string; nameKey: "tierGray"|"tierGreen"|"tierPurple"|"tierGold"; nextKey: "tierGreen"|"tierPurple"|"tierGold"|null }> = [
+  { color: "#8B8FA3", nameKey: "tierGray",   nextKey: "tierGreen" },
+  { color: "#4ade80", nameKey: "tierGreen",  nextKey: "tierPurple" },
+  { color: "#a855f7", nameKey: "tierPurple", nextKey: "tierGold" },
+  { color: "#FFD700", nameKey: "tierGold",   nextKey: null },
 ];
 
 const UPGRADE_COST: Array<Record<string, number>> = [
@@ -64,8 +74,8 @@ const UPGRADE_COST: Array<Record<string, number>> = [
 // Muss mit packages/supabase/migrations/00053 forge_duration_seconds() matchen.
 const FORGE_DURATION_HOURS: number[] = [0, 4, 12];
 
-function formatRemaining(ms: number): string {
-  if (ms <= 0) return "fertig";
+function formatRemaining(ms: number, tF: ForgeT): string {
+  if (ms <= 0) return tF("done");
   const totalSec = Math.ceil(ms / 1000);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
@@ -80,6 +90,8 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
   onClose: () => void;
   onUpgraded: () => void | Promise<void>;
 }) {
+  const tF = useTranslations("Forge");
+  const MATERIAL_META = useMaterialMeta(tF);
   const [materials, setMaterials] = useState<Materials | null>(null);
   const [catalog, setCatalog] = useState<MaterialCatalogEntry[] | null>(null);
   const [filterSlot, setFilterSlot] = useState<ItemSlot | "ALL">("ALL");
@@ -115,9 +127,9 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
       });
       const j = await res.json();
       if (!j.ok) {
-        const errorMsg = j.error === "not_enough_materials" ? "Nicht genug Materialien."
-          : j.error === "already_crafting" ? "Schmiedet bereits — warte bis fertig."
-          : j.error ?? "Fehler";
+        const errorMsg = j.error === "not_enough_materials" ? tF("errNotEnoughMat")
+          : j.error === "already_crafting" ? tF("errAlreadyCrafting")
+          : j.error ?? tF("errGeneric");
         setError(errorMsg);
         setForgingId(null);
         return;
@@ -135,7 +147,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
         setForgingId(null);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(e instanceof Error ? e.message : tF("errUnknown"));
       setForgingId(null);
     }
   }
@@ -149,14 +161,14 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
       });
       const j = await res.json();
       if (!j.ok) {
-        setError(j.error === "still_crafting" ? "Noch nicht fertig." : j.error ?? "Fehler");
+        setError(j.error === "still_crafting" ? tF("errStillCrafting") : j.error ?? tF("errGeneric"));
         return;
       }
       setSuccessId(itemId);
       await onUpgraded();
       setTimeout(() => { setSuccessId(null); }, 1600);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(e instanceof Error ? e.message : tF("errUnknown"));
     }
   }
 
@@ -186,8 +198,8 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
         }}>
           <div style={{ fontSize: 40, animation: "forgeFlicker 1.2s ease-in-out infinite" }}>🔥</div>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FF6B4A", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>SCHMIEDE</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Veredle deine Ausrüstung</div>
+            <div style={{ color: "#FF6B4A", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>{tF("kicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{tF("title")}</div>
           </div>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
@@ -217,7 +229,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
                   <MaterialIcon id={m.id} catalog={catalog} size={40} />
                 </div>
                 <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
-                  <div style={{ color: m.color, fontSize: 17, fontWeight: 900, lineHeight: 1 }}>{qty.toLocaleString("de-DE")}</div>
+                  <div style={{ color: m.color, fontSize: 17, fontWeight: 900, lineHeight: 1 }}>{qty.toLocaleString()}</div>
                   <div style={{ color: "#a8b4cf", fontSize: 9, letterSpacing: 0.5, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</div>
                 </div>
               </div>
@@ -227,7 +239,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
 
         {/* Filter */}
         <div style={{ padding: "10px 16px", display: "flex", gap: 4, flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-          <FilterChip label="Alle" active={filterSlot === "ALL"} onClick={() => setFilterSlot("ALL")} />
+          <FilterChip label={tF("filterAll")} active={filterSlot === "ALL"} onClick={() => setFilterSlot("ALL")} />
           {(["helm","chest","shoulders","hands","boots","wrist","neck","ring","weapon"] as ItemSlot[]).map((s) => (
             <FilterChip key={s} label={`${SLOT_META[s].icon} ${SLOT_META[s].label}`} active={filterSlot === s} onClick={() => setFilterSlot(s)} />
           ))}
@@ -237,7 +249,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
           {filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3" }}>
-              Kein Item für diesen Slot. Lauf Gebiete ab und gewinn Kämpfe, um Ausrüstung zu finden.
+              {tF("noItems")}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -308,9 +320,12 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
   onForge: () => void;
   onFinalize: () => void;
 }) {
+  const tF = useTranslations("Forge");
+  const MATERIAL_META = useMaterialMeta(tF);
   const tier = item.upgrade_tier ?? 0;
-  const tierM = TIER_META[tier];
-  const nextTier = TIER_META[tier + 1];
+  const tierM = { color: TIER_DEFS[tier].color, name: tF(TIER_DEFS[tier].nameKey) };
+  const nextTierKey = TIER_DEFS[tier + 1]?.nameKey;
+  const nextTier = TIER_DEFS[tier + 1] ? { color: TIER_DEFS[tier + 1].color, name: nextTierKey ? tF(nextTierKey) : "" } : null;
   const cost = UPGRADE_COST[tier];
   const maxed = tier >= 3;
   const hasMaterials = !maxed && cost && materials && Object.entries(cost).every(
@@ -381,7 +396,7 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
               {success ? nextTier?.name : tierM.name}
             </span>
             <span style={{ color: "#8B8FA3", fontSize: 9 }}>· {SLOT_META[item.catalog.slot].label}</span>
-            {item.equipped && <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 900 }}>· AUSGERÜSTET</span>}
+            {item.equipped && <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 900 }}>· {tF("equipped")}</span>}
           </div>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{item.catalog.name}</div>
           <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 2 }}>
@@ -406,10 +421,10 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
           <div style={{ fontSize: 18 }}>{craftReady ? "✨" : "⏳"}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 10, color: craftReady ? nextTier?.color : "#FF6B4A", fontWeight: 900, letterSpacing: 1 }}>
-              {craftReady ? `BEREIT → ${nextTier?.name}` : `SCHMIEDET → ${nextTier?.name}`}
+              {craftReady ? tF("ready", { tier: nextTier?.name ?? "" }) : tF("forging", { tier: nextTier?.name ?? "" })}
             </div>
             <div style={{ fontSize: 11, color: "#FFF", fontWeight: 700, marginTop: 1 }}>
-              {craftReady ? "Tippe Fertig zum Abholen." : `Noch ${formatRemaining(craftRemainingMs)}`}
+              {craftReady ? tF("tapToFinish") : tF("remaining", { time: formatRemaining(craftRemainingMs, tF) })}
             </div>
           </div>
           <button
@@ -425,7 +440,7 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
               cursor: craftReady ? "pointer" : "not-allowed",
             }}
           >
-            {craftReady ? "✓ FERTIG" : "⏳ WARTEN"}
+            {craftReady ? tF("btnFertig") : tF("btnWarten")}
           </button>
         </div>
       )}
@@ -438,10 +453,10 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
           display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
         }}>
           <div style={{ fontSize: 10, color: "#a8b4cf", fontWeight: 700 }}>
-            → {nextTier?.name}
+            {tF("nextArrow", { tier: nextTier?.name ?? "" })}
             {FORGE_DURATION_HOURS[tier] > 0 && (
               <span style={{ color: "#FF6B4A", marginLeft: 4 }}>
-                · {FORGE_DURATION_HOURS[tier]}h Schmiede-Zeit
+                {tF("forgeTime", { hours: FORGE_DURATION_HOURS[tier] })}
               </span>
             )}
             :
@@ -459,7 +474,7 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
               }}>
                 <MaterialIcon id={k as keyof Materials} catalog={catalog} size={14} />
                 <span>{v as number}</span>
-                {!has && <span style={{ fontSize: 9, opacity: 0.7 }}>(hast {have})</span>}
+                {!has && <span style={{ fontSize: 9, opacity: 0.7 }}>{tF("have", { n: have })}</span>}
               </div>
             );
           })}
@@ -480,14 +495,14 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
                 boxShadow: hasMaterials ? "inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -2px 4px rgba(0,0,0,0.3)" : "none",
               }}
             >
-              {success ? "✓ ERFOLG" : forging ? "🔨 SCHMIEDE…" : "🔨 SCHMIEDEN"}
+              {success ? tF("btnSuccess") : forging ? tF("btnForging") : tF("btnForge")}
             </button>
           </div>
         </div>
       )}
       {maxed && (
         <div style={{ marginTop: 10, padding: 8, borderRadius: 8, background: "rgba(255,215,0,0.1)", textAlign: "center", color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>
-          👑 MAX-STUFE ERREICHT
+          {tF("maxLevel")}
         </div>
       )}
     </div>

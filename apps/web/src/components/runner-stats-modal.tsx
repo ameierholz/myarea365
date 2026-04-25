@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import {
   rarityMeta, TYPE_META, statsAtLevel,
@@ -54,6 +55,7 @@ type RunnerProfileData = {
 type ArenaTitle = { id: string; rank: number; title: string; awarded_at: string; arena_sessions: { name: string } };
 
 export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { userId: string; onClose: () => void; canEditBanner?: boolean }) {
+  const tRS = useTranslations("RunnerStats");
   const [data, setData] = useState<RunnerProfileData | null>(null);
   const [titles, setTitles] = useState<ArenaTitle[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -164,7 +166,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
         {error ? (
           <div style={{ padding: 30, textAlign: "center", color: PINK }}>{error}</div>
         ) : !data ? (
-          <div style={{ padding: 40, textAlign: "center", color: TEXT_SOFT }}>Lade Runner-Profil …</div>
+          <div style={{ padding: 40, textAlign: "center", color: TEXT_SOFT }}>{tRS("loading")}</div>
         ) : (
           <div style={{ overflowY: "auto" }}>
             {/* ═══ HERO BAND ═══ */}

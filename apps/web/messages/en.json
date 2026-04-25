@@ -1349,7 +1349,48 @@
     "rewardsCrewsGoldRich": "🥇 <b>80 universal sigils</b> per member + banner + 500 💎 crew chest",
     "rewardsCrewsSilver": "🥈 50 sigils + banner",
     "rewardsCrewsBronze": "🥉 25 sigils"
-  }
+  },
+  "PaperDoll": {
+    "loading": "Loading equipment…",
+    "noEquipmentHint": "No equipment yet — win items via redemptions or battles"
+  },
+  "RunnerStats": {
+    "loading": "Loading runner profile…"
+  },
+  "Forge": {
+    "errNotEnoughMat": "Not enough materials.",
+    "errAlreadyCrafting": "Already forging — wait until it's done.",
+    "errStillCrafting": "Not done yet.",
+    "errGeneric": "Error",
+    "errUnknown": "Unknown error",
+    "matScrap": "Scrap",
+    "matCrystal": "City crystal",
+    "matEssence": "Shadow essence",
+    "matRelikt": "Relic shard",
+    "tierGray": "GRAY",
+    "tierGreen": "GREEN",
+    "tierPurple": "PURPLE",
+    "tierGold": "GOLD",
+    "kicker": "FORGE",
+    "title": "Refine your gear",
+    "filterAll": "All",
+    "noItems": "No item for this slot. Walk territories and win battles to find gear.",
+    "equipped": "EQUIPPED",
+    "ready": "READY → {tier}",
+    "forging": "FORGING → {tier}",
+    "tapToFinish": "Tap done to collect.",
+    "remaining": "{time} left",
+    "done": "done",
+    "btnFertig": "✓ DONE",
+    "btnWarten": "⏳ WAIT",
+    "nextArrow": "→ {tier}",
+    "forgeTime": "· {hours}h forge time",
+    "have": "(you have {n})",
+    "btnSuccess": "✓ SUCCESS",
+    "btnForging": "🔨 FORGING…",
+    "btnForge": "🔨 FORGE",
+    "maxLevel": "👑 MAX TIER REACHED"
+  },
   "ShopQuests": {
     "title": "📋 Shop quests",
     "subtitle": "Runners redeem quests automatically when uploading receipts (AI recognizes the article).",

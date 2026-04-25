@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { RARITY_META, type GuardianRarity } from "@/lib/guardian";
 import { SLOT_META, type ItemSlot } from "@/lib/items";
 import { ForgeModal } from "@/components/forge-modal";
@@ -40,6 +41,7 @@ export function GuardianPaperDoll({
   avatar: React.ReactNode;
   onChange?: () => void;
 }) {
+  const tPD = useTranslations("PaperDoll");
   const [inv, setInv] = useState<InventoryResponse | null>(null);
   const [pickerSlot, setPickerSlot] = useState<ItemSlot | null>(null);
   const [showForge, setShowForge] = useState(false);
@@ -78,7 +80,7 @@ export function GuardianPaperDoll({
     } finally { setBusy(false); }
   }
 
-  if (!inv) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Ausrüstung…</div>;
+  if (!inv) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{tPD("loading")}</div>;
 
   const totalBonus = { hp: 0, atk: 0, def: 0, spd: 0 };
   for (const s of [...LEFT_COLUMN, ...RIGHT_COLUMN, "helm"] as ItemSlot[]) {
@@ -144,7 +146,7 @@ export function GuardianPaperDoll({
         </div>
       ) : (
         <div style={{ padding: 10, margin: "0 12px", borderRadius: 10, background: "rgba(70,82,122,0.2)", textAlign: "center", color: "#8B8FA3", fontSize: 11 }}>
-          Noch keine Ausrüstung — gewinn Items bei Einlösungen oder Kämpfen
+          {tPD("noEquipmentHint")}
         </div>
       )}
 

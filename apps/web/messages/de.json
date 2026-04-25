@@ -1349,7 +1349,48 @@
     "rewardsCrewsGoldRich": "🥇 <b>80 Universal-Siegel</b> an jedes Mitglied + Banner + 500 💎 Crew-Schatz",
     "rewardsCrewsSilver": "🥈 50 Siegel + Banner",
     "rewardsCrewsBronze": "🥉 25 Siegel"
-  }
+  },
+  "PaperDoll": {
+    "loading": "Lade Ausrüstung…",
+    "noEquipmentHint": "Noch keine Ausrüstung — gewinn Items bei Einlösungen oder Kämpfen"
+  },
+  "RunnerStats": {
+    "loading": "Lade Runner-Profil …"
+  },
+  "Forge": {
+    "errNotEnoughMat": "Nicht genug Materialien.",
+    "errAlreadyCrafting": "Schmiedet bereits — warte bis fertig.",
+    "errStillCrafting": "Noch nicht fertig.",
+    "errGeneric": "Fehler",
+    "errUnknown": "Unbekannter Fehler",
+    "matScrap": "Schrott",
+    "matCrystal": "Stadtkristall",
+    "matEssence": "Schatten-Essenz",
+    "matRelikt": "Relikt-Splitter",
+    "tierGray": "GRAU",
+    "tierGreen": "GRÜN",
+    "tierPurple": "LILA",
+    "tierGold": "GOLD",
+    "kicker": "SCHMIEDE",
+    "title": "Veredle deine Ausrüstung",
+    "filterAll": "Alle",
+    "noItems": "Kein Item für diesen Slot. Lauf Gebiete ab und gewinn Kämpfe, um Ausrüstung zu finden.",
+    "equipped": "AUSGERÜSTET",
+    "ready": "BEREIT → {tier}",
+    "forging": "SCHMIEDET → {tier}",
+    "tapToFinish": "Tippe Fertig zum Abholen.",
+    "remaining": "Noch {time}",
+    "done": "fertig",
+    "btnFertig": "✓ FERTIG",
+    "btnWarten": "⏳ WARTEN",
+    "nextArrow": "→ {tier}",
+    "forgeTime": "· {hours}h Schmiede-Zeit",
+    "have": "(hast {n})",
+    "btnSuccess": "✓ ERFOLG",
+    "btnForging": "🔨 SCHMIEDE…",
+    "btnForge": "🔨 SCHMIEDEN",
+    "maxLevel": "👑 MAX-STUFE ERREICHT"
+  },
   "ShopQuests": {
     "title": "📋 Shop-Quests",
     "subtitle": "Runner lösen Quests automatisch beim Bon-Upload ein (KI erkennt Artikel).",
