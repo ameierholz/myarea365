@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type DailyContent = { type: string; amount?: number; min?: number; max?: number; label: string };
 type DailyPack = {
@@ -18,15 +19,12 @@ type DailyResponse = {
   reset_in_seconds: number;
 };
 
-const TIER_META: Record<DailyPack["tier"], { color: string; glow: string; label: string }> = {
-  bronze: { color: "#cd7f32", glow: "rgba(205,127,50,0.28)",  label: "BRONZE" },
-  silver: { color: "#d8d8d8", glow: "rgba(216,216,216,0.28)", label: "SILBER" },
-  gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.38)",   label: "GOLD" },
+const TIER_DEFS: Record<DailyPack["tier"], { color: string; glow: string; labelKey: "tierBronze" | "tierSilver" | "tierGold" }> = {
+  bronze: { color: "#cd7f32", glow: "rgba(205,127,50,0.28)",  labelKey: "tierBronze" },
+  silver: { color: "#d8d8d8", glow: "rgba(216,216,216,0.28)", labelKey: "tierSilver" },
+  gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.38)",   labelKey: "tierGold" },
 };
 
-// Icon-Mapping für die Loot-Listen.
-// Synchron mit purchase_daily_deal-RPC (00063): gems, xp_boost_hours,
-// random_seals, random_potion, random_materials, arena_pass_days.
 const CONTENT_ICON: Record<string, string> = {
   gems:             "💎",
   xp_boost_hours:   "🚀",
@@ -39,18 +37,19 @@ function iconFor(type: string): string {
   return CONTENT_ICON[type] ?? "✨";
 }
 
-function formatPrice(p: DailyPack): string {
-  if (p.price_cents != null) return `${(p.price_cents / 100).toFixed(2).replace(".", ",")} €`;
-  return `💎 ${p.price_gems}`;
-}
-
 export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void; bannerHidden?: boolean }) {
+  const t = useTranslations("DailyDeals");
   const [data, setData] = useState<DailyResponse | null>(null);
   const [resetIn, setResetIn] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+
+  function formatPrice(p: DailyPack): string {
+    if (p.price_cents != null) return t("priceEur", { price: (p.price_cents / 100).toFixed(2).replace(".", ",") });
+    return t("priceGems", { gems: p.price_gems });
+  }
 
   const load = useCallback(async () => {
     try {
@@ -69,7 +68,6 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
     return () => clearInterval(id);
   }, [resetIn]);
 
-  // Event-Listener: Map-Badge / Bottom-Nav → Modal öffnen
   useEffect(() => {
     if (typeof window === "undefined") return;
     function handler() {
@@ -79,7 +77,6 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
     return () => window.removeEventListener("ma365:open-daily-deals", handler);
   }, []);
 
-  // ESC schließt Modal + Body-Scroll-Lock während Modal auf
   useEffect(() => {
     if (!expanded) return;
     function onKey(e: KeyboardEvent) {
@@ -103,10 +100,10 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
       });
       const j = await res.json() as { ok?: boolean; error?: string; seals_granted?: number };
       if (j.ok) {
-        setToast(j.seals_granted ? `🎁 Eingelöst · ${j.seals_granted} Siegel dazu!` : "🎁 Eingelöst!");
+        setToast(j.seals_granted ? t("alertRedeemedSeals", { n: j.seals_granted }) : t("alertRedeemed"));
         await load();
       } else {
-        setToast(j.error === "already_purchased_today" ? "Heute schon gekauft" : (j.error ?? "Fehler"));
+        setToast(j.error === "already_purchased_today" ? t("alertAlready") : (j.error ?? t("alertGenericErr")));
       }
     } finally {
       setBusy(null);
@@ -133,12 +130,13 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
   const s = resetIn % 60;
   const countdown = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
-  // Günstigster offener Standard-Deal als Preis-Teaser (ab X €)
   const cheapestOpen = [...standardOpen].sort((a, b) => {
     const ap = a.price_cents ?? a.price_gems * 10;
     const bp = b.price_cents ?? b.price_gems * 10;
     return ap - bp;
   })[0];
+
+  const openLabel = standardOpen.length === 1 ? t("openOne", { n: 1 }) : t("openMany", { n: standardOpen.length });
 
   return (
     <div ref={rootRef} style={{ display: "flex", flexDirection: "column", gap: 0, scrollMarginTop: 80 }}>
@@ -150,7 +148,6 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
         @keyframes daily-shimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(340%); } }
       `}</style>
 
-      {/* Banner — pulst nur wenn Modal zu. Wenn bannerHidden, nur Modal-Listener aktiv. */}
       {!bannerHidden && (
       <button
         onClick={() => setExpanded(true)}
@@ -167,7 +164,6 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
           animation: !expanded ? "daily-pulse-strong 2.4s ease-in-out infinite" : undefined,
         }}
       >
-        {/* Shimmer-Overlay */}
         {!expanded && (
           <span style={{
             position: "absolute", top: 0, left: 0, width: "35%", height: "100%",
@@ -185,7 +181,7 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
         <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FFD700" }}>
-              🔥 TAGES-DEALS
+              {t("kicker")}
             </span>
             {hasBundleOpen && (
               <span style={{
@@ -193,32 +189,32 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
                 padding: "1px 6px", borderRadius: 4,
                 background: "linear-gradient(135deg, #FF2D78, #FFD700)",
                 color: "#0F1115",
-              }}>SUPER-BUNDLE</span>
+              }}>{t("superBundle")}</span>
             )}
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF", marginTop: 2 }}>
-            {standardOpen.length} Deal{standardOpen.length === 1 ? "" : "s"} offen
-            {hasBundleOpen && <span style={{ color: "#FFD700" }}> + 🎁 Bundle</span>}
+            {openLabel}
+            {hasBundleOpen && <span style={{ color: "#FFD700" }}>{t("plusBundle")}</span>}
           </div>
-          {/* Mini-Tier-Chips */}
           <div style={{ display: "flex", gap: 4, marginTop: 5, alignItems: "center", flexWrap: "wrap" }}>
             {standardPacks.map((p) => {
               const owned = data.purchased_today.includes(p.id);
-              const tm = TIER_META[p.tier];
+              const td = TIER_DEFS[p.tier];
+              const tierLabel = t(td.labelKey);
               return (
-                <span key={p.id} title={`${tm.label} · ${owned ? "gekauft" : formatPrice(p)}`} style={{
+                <span key={p.id} title={owned ? t("tierTitleOwned", { tier: tierLabel }) : t("tierTitle", { tier: tierLabel, price: formatPrice(p) })} style={{
                   fontSize: 9, fontWeight: 900, letterSpacing: 0.4,
                   padding: "2px 6px", borderRadius: 4,
-                  background: owned ? "rgba(74,222,128,0.12)" : `${tm.color}22`,
-                  color: owned ? "#4ade80" : tm.color,
-                  border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : tm.color + "77"}`,
+                  background: owned ? "rgba(74,222,128,0.12)" : `${td.color}22`,
+                  color: owned ? "#4ade80" : td.color,
+                  border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : td.color + "77"}`,
                   opacity: owned ? 0.6 : 1,
                   textDecoration: owned ? "line-through" : "none",
-                }}>{owned ? "✓" : ""}{p.icon} {tm.label}</span>
+                }}>{owned ? "✓" : ""}{p.icon} {tierLabel}</span>
               );
             })}
             <span style={{ color: "#8B8FA3", fontSize: 10, marginLeft: 4 }}>
-              ⏱️ {countdown}
+              {t("resetTimer", { countdown })}
             </span>
           </div>
         </div>
@@ -229,7 +225,7 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
             color: "#0F1115", fontWeight: 900,
             boxShadow: "0 0 14px rgba(255,215,0,0.5)",
           }}>
-            <div style={{ fontSize: 8, letterSpacing: 0.8, opacity: 0.75 }}>AB</div>
+            <div style={{ fontSize: 8, letterSpacing: 0.8, opacity: 0.75 }}>{t("fromLabel")}</div>
             <div style={{ fontSize: 13 }}>{formatPrice(cheapestOpen)}</div>
           </div>
         )}
@@ -237,7 +233,6 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
       </button>
       )}
 
-      {/* Modal-Overlay: Tagesangebote groß sichtbar mit Backdrop */}
       {expanded && (
         <div
           onClick={() => setExpanded(false)}
@@ -258,7 +253,6 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
               boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(255,215,0,0.18)",
             }}
           >
-            {/* Header mit Schließen-Button */}
             <div style={{
               position: "sticky", top: 0, zIndex: 1,
               display: "flex", alignItems: "center", gap: 10,
@@ -268,16 +262,16 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
             }}>
               <span style={{ fontSize: 22 }}>🔥</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FFD700" }}>TAGES-DEALS</div>
+                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#FFD700" }}>{t("kicker")}</div>
                 <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>
-                  {standardOpen.length} Deal{standardOpen.length === 1 ? "" : "s"} offen
-                  {hasBundleOpen && <span style={{ color: "#FFD700" }}> + 🎁 Bundle</span>}
+                  {openLabel}
+                  {hasBundleOpen && <span style={{ color: "#FFD700" }}>{t("plusBundle")}</span>}
                 </div>
-                <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 1 }}>⏱️ Reset in {countdown}</div>
+                <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 1 }}>{t("resetIn", { countdown })}</div>
               </div>
               <button
                 onClick={() => setExpanded(false)}
-                aria-label="Schließen"
+                aria-label={t("ariaClose")}
                 style={{
                   background: "rgba(255,255,255,0.08)", border: "none",
                   color: "#a8b4cf", width: 34, height: 34, borderRadius: 999,
@@ -286,27 +280,24 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
               >×</button>
             </div>
 
-            {/* Inhalt */}
             <div style={{
               padding: 14,
               display: "flex", flexDirection: "column", gap: 12,
             }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
             {standardPacks.map((p) => {
-              const tm = TIER_META[p.tier];
+              const td = TIER_DEFS[p.tier];
               const owned = data.purchased_today.includes(p.id);
               return (
                 <div key={p.id} style={{
                   padding: 8, borderRadius: 10,
-                  background: owned ? "rgba(74,222,128,0.08)" : `linear-gradient(180deg, ${tm.glow}, rgba(15,17,21,0.7))`,
-                  border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : tm.color}`,
+                  background: owned ? "rgba(74,222,128,0.08)" : `linear-gradient(180deg, ${td.glow}, rgba(15,17,21,0.7))`,
+                  border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : td.color}`,
                   position: "relative",
                 }}>
-                  {/* Badge entfernt: wurde als Zusatz-Bonus missverstanden — die 💎
-                      stehen bereits im Pack-Inhalt und müssen nicht doppelt beworben werden. */}
                   <div style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 22 }}>{p.icon}</div>
-                    <div style={{ color: tm.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.8, marginTop: 1 }}>{tm.label}</div>
+                    <div style={{ color: td.color, fontSize: 8, fontWeight: 900, letterSpacing: 0.8, marginTop: 1 }}>{t(td.labelKey)}</div>
                   </div>
                   <ul style={{ margin: "6px 0", padding: 0, listStyle: "none", color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>
                     {p.contents.map((c, i) => (
@@ -321,13 +312,13 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
                     disabled={owned || busy === p.id}
                     style={{
                       width: "100%", padding: "6px 4px", borderRadius: 7,
-                      background: owned ? "rgba(74,222,128,0.15)" : `linear-gradient(135deg, ${tm.color}, #FFD700)`,
+                      background: owned ? "rgba(74,222,128,0.15)" : `linear-gradient(135deg, ${td.color}, #FFD700)`,
                       color: owned ? "#4ade80" : "#0F1115",
                       border: owned ? "1px solid rgba(74,222,128,0.4)" : "none",
                       fontSize: 10, fontWeight: 900,
                       cursor: owned ? "not-allowed" : "pointer",
                     }}>
-                    {owned ? "✓ geholt" : formatPrice(p)}
+                    {owned ? t("ownedLong") : formatPrice(p)}
                   </button>
                 </div>
               );
@@ -354,14 +345,14 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
                 <span style={{ fontSize: 22 }}>{bundlePack.icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 11, fontWeight: 900, color: "#FFD700", letterSpacing: 0.4 }}>{bundlePack.name}</div>
-                  <div style={{ fontSize: 9, color: "#a8b4cf", marginTop: 1 }}>Bronze + Silber + Gold zusammen</div>
+                  <div style={{ fontSize: 9, color: "#a8b4cf", marginTop: 1 }}>{t("bundleCombo")}</div>
                 </div>
                 <div style={{
                   padding: "6px 12px", borderRadius: 8,
                   background: owned ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg, #FFD700, #FF6B4A)",
                   color: owned ? "#4ade80" : "#0F1115",
                   fontSize: 12, fontWeight: 900, flexShrink: 0,
-                }}>{owned ? "✓" : formatPrice(bundlePack)}</div>
+                }}>{owned ? t("ownedShort") : formatPrice(bundlePack)}</div>
               </button>
             );
           })()}

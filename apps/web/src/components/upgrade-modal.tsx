@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { PLANS, PLUS_FEATURES, CREW_PRO_FEATURES, formatPrice } from "@/lib/monetization";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
@@ -11,6 +12,7 @@ type Mode = "plus" | "crew";
 export function UpgradeBody({ mode, userId, crewId, onDone }: {
   mode: Mode; userId?: string; crewId?: string; onDone?: () => void;
 }) {
+  const t = useTranslations("Upgrade");
   const sb = createClient();
   const [billing, setBilling] = useState<"monthly" | "yearly" | "lifetime">("monthly");
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,7 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
         const json = await res.json();
         if (json.client_secret) { setCheckoutSecret(json.client_secret); return; }
         if (json.url) { window.location.href = json.url; return; }
-        throw new Error(json.error ?? "Checkout fehlgeschlagen");
+        throw new Error(json.error ?? t("checkoutFailed"));
       }
 
       const { data, error } = await sb.from("purchases").insert({
@@ -62,11 +64,11 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
       if (mode === "crew" && crewId) {
         await sb.from("crews").update({ plan: "pro", plan_expires_at: expiresAt }).eq("id", crewId);
       }
-      appAlert("Upgrade aktiv! (Demo-Modus — Stripe kann mit STRIPE_SECRET_KEY aktiviert werden)");
+      appAlert(t("demoActive"));
       onDone?.();
       location.reload();
     } catch (e) {
-      appAlert("Fehler: " + (e instanceof Error ? e.message : String(e)));
+      appAlert(t("errorPrefix") + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }
@@ -84,30 +86,27 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
           <div style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>💛</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginBottom: 4 }}>
-              Bewegung, Gesundheit & echte Nachbarschaft
+              {t("plusKickerTitle")}
             </div>
             <div style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.55 }}>
-              MyArea365 motiviert dich, mehr zu gehen, fitter zu werden und deinen Kiez neu zu entdecken —
-              ohne Tracking-Wahn, ohne Pay-to-Win. Mit <b style={{ color: "#22D1C3" }}>MyArea+</b> bekommst
-              du Extras, die dein Training angenehmer machen, und gibst dem Projekt Rückenwind, damit wir
-              mit viel Liebe weiter an neuen Features feilen können. 🙌
+              {t("plusKickerBody1")} <b style={{ color: "#22D1C3" }}>{t("plusKickerBoldName")}</b> {t("plusKickerBody2")}
             </div>
           </div>
         </div>
       )}
       <div style={{ display: "flex", gap: 6, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 16 }}>
         <BillingTab active={billing === "monthly"} onClick={() => setBilling("monthly")} accent={accent}>
-          Monatlich
+          {t("billingMonthly")}
         </BillingTab>
         <BillingTab active={billing === "yearly"} onClick={() => setBilling("yearly")} accent={accent}>
-          Jährlich
+          {t("billingYearly")}
           <span style={{ marginLeft: 4, fontSize: 9, padding: "1px 5px", borderRadius: 4, background: accent, color: "#0F1115" }}>
-            -{plans.yearly?.savings_pct ?? 40}%
+            {t("billingSavings", { pct: plans.yearly?.savings_pct ?? 40 })}
           </span>
         </BillingTab>
         {plans.lifetime && (
           <BillingTab active={billing === "lifetime"} onClick={() => setBilling("lifetime")} accent={accent}>
-            Lifetime
+            {t("billingLifetime")}
           </BillingTab>
         )}
       </div>
@@ -115,9 +114,9 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
       <div style={{ textAlign: "center", padding: "14px 0", borderRadius: 14, background: `${accent}15`, border: `1px solid ${accent}44`, marginBottom: 16 }}>
         <div style={{ fontSize: 36, fontWeight: 900, color: accent }}>{formatPrice(active.price)}</div>
         <div style={{ fontSize: 12, color: "#a8b4cf" }}>
-          {active.duration_days === 30 && "pro Monat"}
-          {active.duration_days === 365 && "pro Jahr"}
-          {active.duration_days === null && "einmalig, für immer"}
+          {active.duration_days === 30 && t("perMonth")}
+          {active.duration_days === 365 && t("perYear")}
+          {active.duration_days === null && t("lifetimeNote")}
         </div>
       </div>
 
@@ -136,7 +135,7 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
                       padding: "2px 6px", borderRadius: 4,
                       background: "rgba(74,222,128,0.18)", color: "#4ade80",
                       border: "1px solid rgba(74,222,128,0.4)",
-                    }}>LIVE</span>
+                    }}>{t("badgeLive")}</span>
                   )}
                   {status === "soon" && (
                     <span style={{
@@ -144,7 +143,7 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
                       padding: "2px 6px", borderRadius: 4,
                       background: "rgba(255,215,0,0.15)", color: "#FFD700",
                       border: "1px solid rgba(255,215,0,0.4)",
-                    }}>BALD</span>
+                    }}>{t("badgeSoon")}</span>
                   )}
                 </div>
                 <div style={{ fontSize: 11, color: "#a8b4cf" }}>{f.desc}</div>
@@ -164,10 +163,10 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
           opacity: loading ? 0.6 : 1,
         }}
       >
-        {loading ? "…" : `Für ${formatPrice(active.price)} freischalten`}
+        {loading ? "…" : t("ctaUnlock", { price: formatPrice(active.price) })}
       </button>
       <div style={{ textAlign: "center", fontSize: 10, color: "#a8b4cf", marginTop: 8 }}>
-        Sichere Zahlung via Stripe · jederzeit kündbar
+        {t("footerStripe")}
       </div>
 
       {checkoutSecret && (
@@ -180,6 +179,7 @@ export function UpgradeBody({ mode, userId, crewId, onDone }: {
 export function UpgradeModal({ mode, userId, crewId, onClose }: {
   mode: Mode; userId?: string; crewId?: string; onClose: () => void;
 }) {
+  const t = useTranslations("Upgrade");
   const accent = mode === "plus" ? "#22D1C3" : "#FF2D78";
   return (
     <div style={{
@@ -200,10 +200,10 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
             <span style={{ fontSize: 28 }}>{mode === "plus" ? "💎" : "👥"}</span>
             <div>
               <div style={{ fontSize: 20, fontWeight: 900 }}>
-                {mode === "plus" ? "MyArea+" : "Crew-Pro"}
+                {mode === "plus" ? t("modalPlus") : t("modalCrew")}
               </div>
               <div style={{ fontSize: 11, color: "#a8b4cf" }}>
-                {mode === "plus" ? "Werbefrei, mehr Features, Statistik-Pack" : "Mehr Mitglieder, Analytics, Custom-Branding"}
+                {mode === "plus" ? t("modalSubPlus") : t("modalSubCrew")}
               </div>
             </div>
           </div>

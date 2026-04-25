@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type DailyPack = {
   id: string; is_bundle?: boolean;
@@ -19,25 +20,19 @@ function todayKey(): string {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-/**
- * Floating Badge oben rechts auf der Map.
- * Zeigt wie viele Tagesangebote noch offen sind und pulsiert auffällig.
- * Kann pro Tag weggeklickt werden (per localStorage).
- */
 export function DailyDealMapBadge({ userId, hidden = false }: { userId: string | null | undefined; hidden?: boolean }) {
+  const t = useTranslations("DailyDealBadge");
   const [data, setData] = useState<DailyResponse | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [resetIn, setResetIn] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
   function openDailyDeals() {
-    // Teaser lauscht auf dieses Event → expandiert sich + scrollt ins Bild
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("ma365:open-daily-deals"));
     }
   }
 
-  // Mobile-Detection für kompakte Darstellung (reines Icon-Pill unter 480 px)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 480px)");
@@ -47,7 +42,6 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
     return () => mq.removeEventListener("change", upd);
   }, []);
 
-  // Dismiss-State aus localStorage laden
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
@@ -56,7 +50,6 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
     } catch { /* ignore */ }
   }, []);
 
-  // Daten laden
   useEffect(() => {
     if (!userId) return;
     (async () => {
@@ -70,7 +63,6 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
     })();
   }, [userId]);
 
-  // Countdown-Timer
   useEffect(() => {
     if (resetIn <= 0) return;
     const id = setInterval(() => setResetIn((s) => Math.max(0, s - 1)), 1000);
@@ -92,6 +84,7 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
   const h = Math.floor(resetIn / 3600);
   const m = Math.floor((resetIn % 3600) / 60);
   const countdown = h > 0 ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
+  const openLabel = standardOpen.length === 1 ? t("openOne", { n: 1 }) : t("openMany", { n: standardOpen.length });
 
   return (
     <>
@@ -105,7 +98,7 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
 
       <button
         onClick={openDailyDeals}
-        aria-label="Tägliche Angebote öffnen"
+        aria-label={t("ariaOpen")}
         style={{
           position: "absolute",
           top: 14, left: "50%", transform: "translateX(-50%)", zIndex: 55,
@@ -123,7 +116,6 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
           overflow: "hidden",
         }}
       >
-        {/* Shimmer */}
         <span style={{
           position: "absolute", top: 0, left: 0, width: "40%", height: "100%",
           background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
@@ -145,19 +137,18 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
         ) : (
           <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.1, zIndex: 1 }}>
             <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 0.3 }}>
-              {standardOpen.length} Deal{standardOpen.length === 1 ? "" : "s"} offen
-              {bundleOpen && " + Bundle"}
+              {openLabel}
+              {bundleOpen && t("plusBundle")}
             </span>
             <span style={{ fontSize: 9, opacity: 0.75, fontWeight: 700 }}>
-              Reset in {countdown}
+              {t("resetIn", { countdown })}
             </span>
           </span>
         )}
 
-        {/* Dismiss */}
         <span
           role="button"
-          aria-label="Für heute ausblenden"
+          aria-label={t("ariaDismiss")}
           onClick={dismiss}
           style={{
             width: 18, height: 18, borderRadius: "50%",
