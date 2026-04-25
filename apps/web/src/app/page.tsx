@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import {
   MapPin, Trophy, Users, Store, Shield, Footprints, Zap,
   Heart, Flame, Brain, Moon, Map, Sparkles, Target, Award,
@@ -7,7 +8,9 @@ import {
 import { InlineAuth } from "@/components/inline-auth";
 import { HeroMap } from "@/components/hero-map-client";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const t = await getTranslations("Landing");
+  void Users; void Store;
   return (
     <>
       {/* ── Nav ─────────────────────────────────────────── */}
@@ -20,14 +23,14 @@ export default function LandingPage() {
             </span>
           </Link>
           <div className="hidden sm:flex items-center gap-6 text-sm text-text-muted">
-            <a href="#runner" className="hover:text-text transition-colors">Runner</a>
-            <a href="#crews" className="hover:text-text transition-colors">Crews</a>
-            <a href="#shops" className="hover:text-text transition-colors">Shops</a>
-            <a href="#gesundheit" className="hover:text-text transition-colors">Gesundheit</a>
+            <a href="#runner" className="hover:text-text transition-colors">{t("navRunner")}</a>
+            <a href="#crews" className="hover:text-text transition-colors">{t("navCrews")}</a>
+            <a href="#shops" className="hover:text-text transition-colors">{t("navShops")}</a>
+            <a href="#gesundheit" className="hover:text-text transition-colors">{t("navHealth")}</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-text-muted hover:text-text transition-colors">Anmelden</Link>
-            <a href="#start" className="text-sm px-4 py-2 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim transition-colors">Loslegen</a>
+            <Link href="/login" className="text-sm text-text-muted hover:text-text transition-colors">{t("navSignIn")}</Link>
+            <a href="#start" className="text-sm px-4 py-2 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim transition-colors">{t("navStart")}</a>
           </div>
         </div>
       </nav>
@@ -41,14 +44,14 @@ export default function LandingPage() {
             <Image src="/logo.png" alt="MyArea365 Logo" width={72} height={72} priority className="drop-shadow-[0_0_20px_rgba(34,209,195,0.3)]" />
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-semibold">
               <Footprints className="w-4 h-4" />
-              Bewegung · Spaß · Echte Rabatte
+              {t("heroBadge")}
             </div>
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1]">
-            Erobere deine Stadt.
+            {t("heroTitle1")}
             <br />
-            <span className="text-primary">Schritt für Schritt.</span>
+            <span className="text-primary">{t("heroTitle2")}</span>
           </h1>
         </div>
 
@@ -56,9 +59,7 @@ export default function LandingPage() {
 
         <div id="start" className="relative z-10 text-center px-4 max-w-xl mx-auto pb-4">
           <p className="text-sm sm:text-base text-text-muted mb-5">
-            Geh Straßen ab, jogge durch dein Viertel, erschließe ganze Straßenzüge.
-            Sammle 🪙 Wegemünzen — löse sie bei lokalen Shops gegen echte Rabatte ein.
-            Allein oder mit deiner Crew.
+            {t("heroSubtitle")}
           </p>
 
           <InlineAuth />
@@ -67,9 +68,9 @@ export default function LandingPage() {
         <div className="relative z-10 mt-auto pb-10">
           <div className="flex justify-center gap-8">
             {[
-              { value: "100%", label: "Kostenlos" },
-              { value: "∞", label: "Straßen" },
-              { value: "365", label: "Tage im Jahr" },
+              { value: "100%", label: t("statFree") },
+              { value: "∞",    label: t("statStreets") },
+              { value: "365",  label: t("statDays") },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-2xl font-bold text-primary">{s.value}</div>
@@ -83,14 +84,14 @@ export default function LandingPage() {
       {/* ── 4 Säulen ────────────────────────────────────── */}
       <section className="relative py-20 px-4 border-t border-border/50 bg-[radial-gradient(ellipse_at_top,rgba(34,209,195,0.18),transparent_60%)]">
         <div className="mx-auto max-w-6xl text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-3">Warum MyArea365?</h2>
-          <p className="text-text-muted mb-12 max-w-lg mx-auto">Vier Dinge auf einmal. Nicht schlecht für einen Spaziergang.</p>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-3">{t("pillarsTitle")}</h2>
+          <p className="text-text-muted mb-12 max-w-lg mx-auto">{t("pillarsSub")}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: "💪", label: "Gesundheit",   desc: "Messbar mehr Bewegung", color: "#4ade80" },
-              { icon: "🎉", label: "Spaß",          desc: "Gamification statt Tracker-Stress", color: "#FF2D78" },
-              { icon: "💸", label: "Spare Geld",    desc: "Echte Rabatte statt Punkte-Zirkus", color: "#FFD700" },
-              { icon: "🏘️", label: "Lokal stärken", desc: "Dein Kiez bleibt lebendig", color: "#22D1C3" },
+              { icon: "💪", label: t("pillarHealth"), desc: t("pillarHealthDesc"), color: "#4ade80" },
+              { icon: "🎉", label: t("pillarFun"),    desc: t("pillarFunDesc"),    color: "#FF2D78" },
+              { icon: "💸", label: t("pillarSave"),   desc: t("pillarSaveDesc"),   color: "#FFD700" },
+              { icon: "🏘️", label: t("pillarLocal"),  desc: t("pillarLocalDesc"),  color: "#22D1C3" },
             ].map((p) => (
               <div key={p.label} className="p-5 rounded-2xl border"
                 style={{ background: `${p.color}14`, borderColor: `${p.color}55` }}>
@@ -108,29 +109,27 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
             <div>
-              <div className="text-xs font-bold tracking-widest text-primary mb-3">RUNNER</div>
+              <div className="text-xs font-bold tracking-widest text-primary mb-3">{t("runnerKicker")}</div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-                Deine Schritte sind <span className="text-primary">echte Währung</span>.
+                {t("runnerTitle1")} <span className="text-primary">{t("runnerTitle2")}</span>{t("runnerTitleDot")}
               </h2>
               <p className="text-text-muted leading-relaxed mb-6">
-                Jede Straße die du abgehst wird auf der Karte in deiner Farbe eingefärbt.
-                Sammle 🪙 Wegemünzen für jeden Kilometer, jede Straße, jeden Kiez-Check-in. Level up,
-                Rangliste, Streaks — spielerisch in Bewegung bleiben.
+                {t("runnerDesc")}
               </p>
               <div className="grid grid-cols-3 gap-3">
-                <FeatureMini icon={<MapPin className="w-5 h-5" />} label="Revier" desc="Straßen einnehmen" />
-                <FeatureMini icon={<Trophy className="w-5 h-5" />} label="Level" desc="10 Ränge" />
-                <FeatureMini icon={<Zap className="w-5 h-5" />} label="Streaks" desc="Tägl. Boni" />
+                <FeatureMini icon={<MapPin className="w-5 h-5" />} label={t("miniTerritory")} desc={t("miniTerritoryDesc")} />
+                <FeatureMini icon={<Trophy className="w-5 h-5" />} label={t("miniLevel")} desc={t("miniLevelDesc")} />
+                <FeatureMini icon={<Zap className="w-5 h-5" />} label={t("miniStreaks")} desc={t("miniStreaksDesc")} />
               </div>
             </div>
             <div className="p-6 rounded-3xl bg-linear-to-br from-primary/10 via-bg-card to-accent/10 border border-primary/20">
-              <div className="text-xs font-bold text-primary tracking-widest mb-4">🪙 WEGEMÜNZEN VERDIENEN</div>
+              <div className="text-xs font-bold text-primary tracking-widest mb-4">{t("earnHeader")}</div>
               <div className="space-y-3">
                 {[
-                  { icon: "📏", label: "Pro km", xp: "+50 🪙" },
-                  { icon: "🏃", label: "Pro Lauf", xp: "+100 🪙" },
-                  { icon: "🗺️", label: "Neues Gebiet", xp: "+500 🪙" },
-                  { icon: "🔥", label: "Streak-Tag", xp: "bis +1.000 🪙" },
+                  { icon: "📏", label: t("earnPerKm"),     xp: "+50 🪙" },
+                  { icon: "🏃", label: t("earnPerRun"),    xp: "+100 🪙" },
+                  { icon: "🗺️", label: t("earnNewArea"),   xp: "+500 🪙" },
+                  { icon: "🔥", label: t("earnStreakDay"), xp: t("earnStreakDayValue") },
                 ].map((x) => (
                   <div key={x.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-black/20">
                     <div className="text-xl">{x.icon}</div>
@@ -148,18 +147,18 @@ export default function LandingPage() {
       <section id="gesundheit" className="relative py-24 px-4 border-t border-border/50 bg-bg-card/70 bg-[radial-gradient(ellipse_at_center,rgba(74,222,128,0.20),transparent_60%)]">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-14">
-            <div className="text-xs font-bold tracking-widest text-primary mb-3">GESUNDHEIT</div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Nicht nur Spaß — messbarer Effekt.</h2>
+            <div className="text-xs font-bold tracking-widest text-primary mb-3">{t("healthKicker")}</div>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">{t("healthTitle")}</h2>
             <p className="text-text-muted max-w-xl mx-auto">
-              Studien der WHO, Cochrane und des RKI belegen: regelmäßige Bewegung hat massive Wirkung.
+              {t("healthSubtitle")}
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: <Heart className="w-6 h-6" />, stat: "+42%", title: "Herz-Kreislauf",   desc: "Weniger Infarktrisiko", color: "#FF2D78" },
-              { icon: <Brain className="w-6 h-6" />, stat: "+23%", title: "Mentale Stärke",   desc: "Gegen Stress + Angst",  color: "#22D1C3" },
-              { icon: <Flame className="w-6 h-6" />, stat: "350",  title: "kcal / Stunde",    desc: "Entspannt nebenbei",    color: "#FF6B4A" },
-              { icon: <Moon  className="w-6 h-6" />, stat: "+18%", title: "Schlafqualität",   desc: "Besserer Tiefschlaf",   color: "#a855f7" },
+              { icon: <Heart className="w-6 h-6" />, stat: "+42%", title: t("healthHeart"),  desc: t("healthHeartDesc"),  color: "#FF2D78" },
+              { icon: <Brain className="w-6 h-6" />, stat: "+23%", title: t("healthMental"), desc: t("healthMentalDesc"), color: "#22D1C3" },
+              { icon: <Flame className="w-6 h-6" />, stat: "350",  title: t("healthCal"),    desc: t("healthCalDesc"),    color: "#FF6B4A" },
+              { icon: <Moon  className="w-6 h-6" />, stat: "+18%", title: t("healthSleep"),  desc: t("healthSleepDesc"),  color: "#a855f7" },
             ].map((h) => (
               <div key={h.title} className="p-5 rounded-2xl bg-bg-card border" style={{ borderColor: `${h.color}44` }}>
                 <div className="mb-3" style={{ color: h.color }}>{h.icon}</div>
@@ -170,7 +169,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="mt-6 text-center text-xs text-text-muted italic">
-            Werte: Durchschnitte aus WHO/Cochrane/RKI-Studien
+            {t("healthSource")}
           </div>
         </div>
       </section>
@@ -179,24 +178,23 @@ export default function LandingPage() {
       <section id="crews" className="relative py-24 px-4 border-t border-border/50 bg-[radial-gradient(ellipse_at_top_right,rgba(168,85,247,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(34,209,195,0.14),transparent_55%)]">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-14">
-            <div className="text-xs font-bold tracking-widest text-primary mb-3">CREWS</div>
+            <div className="text-xs font-bold tracking-widest text-primary mb-3">{t("crewsKicker")}</div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-              Allein läufst du schneller.<br />
-              <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Zusammen</span> erobert ihr die Stadt.
+              {t("crewsTitle1")}<br />
+              <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">{t("crewsTitleAccent")}</span> {t("crewsTitle2")}
             </h2>
             <p className="text-text-muted max-w-xl mx-auto">
-              Gründe deine Crew mit Freunden, Familie, Klasse, Arbeitskollegen oder der
-              Nachbarschaft. Gemeinsam Kilometer sammeln, Revier sichern, in Ligen aufsteigen.
+              {t("crewsSubtitle")}
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {[
-              { icon: "🗺️", title: "Revier dominieren",  desc: "Straßenzüge eurer Crew gehören — eure Farbe färbt den Kiez.", accent: "#22D1C3" },
-              { icon: "🏆", title: "Liga aufsteigen",    desc: "Bronze → Silber → Gold → Diamant → Legende. Monatlich neu.", accent: "#FFD700" },
-              { icon: "⚔️", title: "Rivalen schlagen",    desc: "1:1 Wochen-Duelle gegen Nachbar-Crews. Sieger kriegt 🏴 Gebietsruf-Boost.", accent: "#FF2D78" },
-              { icon: "🔥", title: "Challenges",           desc: "Wöchentliche Team-Ziele: 150 km, 20 Gebiete, Früh-Vögel.", accent: "#FF6B4A" },
-              { icon: "📅", title: "Events planen",        desc: "Treffpunkte, Gruppenläufe, gemeinsame Runden.", accent: "#a855f7" },
-              { icon: "💬", title: "Chat & Feed",          desc: "Reaktionen, Voice-Notes, Meilensteine feiern.", accent: "#4ade80" },
+              { icon: "🗺️", title: t("crewTerritory"),   desc: t("crewTerritoryDesc"),   accent: "#22D1C3" },
+              { icon: "🏆", title: t("crewLeague"),      desc: t("crewLeagueDesc"),      accent: "#FFD700" },
+              { icon: "⚔️", title: t("crewRivals"),      desc: t("crewRivalsDesc"),      accent: "#FF2D78" },
+              { icon: "🔥", title: t("crewChallenges"),  desc: t("crewChallengesDesc"),  accent: "#FF6B4A" },
+              { icon: "📅", title: t("crewEvents"),      desc: t("crewEventsDesc"),      accent: "#a855f7" },
+              { icon: "💬", title: t("crewChat"),        desc: t("crewChatDesc"),        accent: "#4ade80" },
             ].map((f) => (
               <div key={f.title} className="p-5 rounded-2xl bg-bg-card border border-border" style={{ borderTop: `3px solid ${f.accent}` }}>
                 <div className="text-2xl mb-2">{f.icon}</div>
@@ -207,13 +205,13 @@ export default function LandingPage() {
           </div>
           <div className="mt-10 text-center">
             <div className="inline-flex items-center gap-6 flex-wrap justify-center text-sm text-text-muted">
-              <span>🎉 Freundeskreis</span>
-              <span>👨‍👩‍👧 Familie</span>
-              <span>🎓 Schule/Uni</span>
-              <span>💼 Arbeitskollegen</span>
-              <span>🏃 Sportverein</span>
-              <span>🏘️ Nachbarschaft</span>
-              <span>🌐 Offene Community</span>
+              <span>{t("crewChip1")}</span>
+              <span>{t("crewChip2")}</span>
+              <span>{t("crewChip3")}</span>
+              <span>{t("crewChip4")}</span>
+              <span>{t("crewChip5")}</span>
+              <span>{t("crewChip6")}</span>
+              <span>{t("crewChip7")}</span>
             </div>
           </div>
         </div>
@@ -223,22 +221,21 @@ export default function LandingPage() {
       <section id="shops" className="relative py-24 px-4 border-t border-border/50 bg-bg-card/70 bg-[radial-gradient(ellipse_at_center,rgba(255,215,0,0.18),transparent_60%)]">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-14">
-            <div className="text-xs font-bold tracking-widest text-xp mb-3">SHOPS</div>
+            <div className="text-xs font-bold tracking-widest text-xp mb-3">{t("shopsKicker")}</div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-              🪙 Wegemünzen gegen <span className="text-xp">echte Rabatte</span>.
+              {t("shopsTitle1")} <span className="text-xp">{t("shopsTitleAccent")}</span>{t("shopsTitle2")}
             </h2>
             <p className="text-text-muted max-w-xl mx-auto">
-              Nicht noch eine App-Währung. Deine Wegemünzen werden zu Geld — in Cafés, Bäckereien,
-              Sportläden, Fitness-Studios, Apotheken, Gastro. Immer vor Ort, nie online.
+              {t("shopsSubtitle")}
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="space-y-3">
               {[
-                { icon: "☕", shop: "Café Liebling",     deal: "Gratis Cappuccino ab 3 km",  xp: "300 🪙" },
-                { icon: "🛍️", shop: "Runners Point",     deal: "15% auf den Einkauf",       xp: "800 🪙" },
-                { icon: "🥗", shop: "Bio-Bowl",          deal: "Gratis Smoothie zur Bowl",  xp: "400 🪙" },
-                { icon: "🏋️", shop: "MyCityFit",         deal: "Kostenlose Probewoche",     xp: "1.500 🪙" },
+                { icon: "☕", shop: t("shopExample1"), deal: t("shopExample1Deal"), xp: "300 🪙" },
+                { icon: "🛍️", shop: t("shopExample2"), deal: t("shopExample2Deal"), xp: "800 🪙" },
+                { icon: "🥗", shop: t("shopExample3"), deal: t("shopExample3Deal"), xp: "400 🪙" },
+                { icon: "🏋️", shop: t("shopExample4"), deal: t("shopExample4Deal"), xp: "1.500 🪙" },
               ].map((d) => (
                 <div key={d.shop} className="flex items-center gap-3 p-3 rounded-xl bg-bg-card border border-border">
                   <div className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center text-xl">{d.icon}</div>
@@ -250,15 +247,15 @@ export default function LandingPage() {
                 </div>
               ))}
               <div className="text-xs text-text-muted text-center italic mt-3">
-                Beispiel-Deals. Echte Shops folgen beim Launch in deiner Stadt.
+                {t("shopExamplesNote")}
               </div>
             </div>
             <div className="space-y-4">
               {[
-                { icon: <Target className="w-5 h-5 text-primary" />, title: "Nur vor Ort einlösbar", desc: "GPS + rotierender QR. Kein Online-Missbrauch, nur im Laden — unterstützt wirklich lokale Shops." },
-                { icon: <Sparkles className="w-5 h-5 text-xp" />, title: "Faire Regeln", desc: "Jeder Deal zeigt offen: 1× / Woche, Monat oder unbegrenzt. Keine versteckten Klauseln." },
-                { icon: <Shield className="w-5 h-5 text-energy" />, title: "Deine Daten bleiben bei dir", desc: "Shops sehen nur anonymen Check-in + km. Kein Profil-Tracking, keine Werbe-IDs." },
-                { icon: <Award className="w-5 h-5 text-accent" />, title: "Keine App-Währung", desc: "Deine Wegemünzen bleiben Wegemünzen. Kein Ablaufdatum. Einlösen wann du willst." },
+                { icon: <Target className="w-5 h-5 text-primary" />, title: t("shopFeatureLocalTitle"),    desc: t("shopFeatureLocalDesc") },
+                { icon: <Sparkles className="w-5 h-5 text-xp" />,    title: t("shopFeatureFairTitle"),     desc: t("shopFeatureFairDesc") },
+                { icon: <Shield className="w-5 h-5 text-energy" />,  title: t("shopFeatureDataTitle"),     desc: t("shopFeatureDataDesc") },
+                { icon: <Award className="w-5 h-5 text-accent" />,   title: t("shopFeatureNoCurrencyTitle"), desc: t("shopFeatureNoCurrencyDesc") },
               ].map((f) => (
                 <div key={f.title} className="flex gap-3 p-4 rounded-xl bg-bg-card border border-border">
                   <div>{f.icon}</div>
@@ -276,12 +273,12 @@ export default function LandingPage() {
       {/* ── 3 Schritte ──────────────────────────────────── */}
       <section className="relative py-24 px-4 border-t border-border/50 bg-[radial-gradient(ellipse_at_top,rgba(34,209,195,0.14),transparent_55%)]">
         <div className="mx-auto max-w-4xl">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">In 3 Schritten dabei</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">{t("stepsTitle")}</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "Account in 30 Sek", desc: "Runner-Name, Fraktion wählen, los. Keine Kreditkarte, keine Vertragsbindung." },
-              { step: "02", title: "Rausgehen & laufen", desc: "Karte öffnen, Losgehen drücken. Screen bleibt automatisch an — Handy kann in die Tasche." },
-              { step: "03", title: "Wegemünzen & Rabatte kassieren", desc: "Straßen einnehmen, im Shop QR scannen, Deal abholen." },
+              { step: "01", title: t("step1Title"), desc: t("step1Desc") },
+              { step: "02", title: t("step2Title"), desc: t("step2Desc") },
+              { step: "03", title: t("step3Title"), desc: t("step3Desc") },
             ].map((item) => (
               <div key={item.step} className="text-center">
                 <div className="text-5xl font-black text-primary/20 mb-4">{item.step}</div>
@@ -296,15 +293,15 @@ export default function LandingPage() {
       {/* ── Fraktionen ────────────────────────────────────── */}
       <section className="relative py-24 px-4 border-t border-border/50 bg-bg-card/70 bg-[radial-gradient(ellipse_at_left,rgba(34,209,195,0.20),transparent_50%),radial-gradient(ellipse_at_right,rgba(255,107,74,0.20),transparent_50%)]">
         <div className="mx-auto max-w-4xl text-center">
-          <div className="text-xs font-bold tracking-widest text-primary mb-3">FRAKTIONEN</div>
-          <h2 className="text-3xl sm:text-4xl font-bold mb-3">Zwei Teams. Ein Planet.</h2>
+          <div className="text-xs font-bold tracking-widest text-primary mb-3">{t("factionsKicker")}</div>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-3">{t("factionsTitle")}</h2>
           <p className="text-text-muted mb-10 max-w-lg mx-auto">
-            Bei Registrierung wählst du deine Fraktion. Eure km zählen gegen die andere Fraktion, weltweit, in jedem Land, jeder Stadt, jeder PLZ. Wechsel später gegen Edelsteine, nur alle 30 Tage.
+            {t("factionsSubtitle")}
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
             {[
-              { id: "kronenwacht", icon: "👑", color: "#FFD700", name: "Kronenwacht", motto: "Beständig · Gebiete halten · Wurzeln schlagen" },
-              { id: "gossenbund",  icon: "🗝️", color: "#22D1C3", name: "Gossenbund",  motto: "Raubzug · neue Straßen erobern · nie stehenbleiben" },
+              { id: "kronenwacht", icon: "👑", color: "#FFD700", name: t("factionKronenwacht"), motto: t("factionKronenwachtMotto") },
+              { id: "gossenbund",  icon: "🗝️", color: "#22D1C3", name: t("factionGossenbund"),  motto: t("factionGossenbundMotto") },
             ].map((f) => (
               <div key={f.id} className="p-6 rounded-2xl border-2"
                 style={{ background: `${f.color}14`, borderColor: f.color }}>
@@ -322,9 +319,9 @@ export default function LandingPage() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="p-10 sm:p-14 rounded-3xl bg-linear-to-br from-primary/10 via-bg-card to-accent/10 border border-primary/20">
             <Map className="w-12 h-12 text-primary mx-auto mb-6" />
-            <h2 className="text-3xl font-bold mb-4">Bereit, deine Stadt zu erobern?</h2>
+            <h2 className="text-3xl font-bold mb-4">{t("ctaTitle")}</h2>
             <p className="text-text-muted mb-8 max-w-md mx-auto">
-              Kostenlos. Keine Kreditkarte. Einfach loslaufen.
+              {t("ctaSubtitle")}
             </p>
             <InlineAuth />
           </div>
@@ -341,40 +338,40 @@ export default function LandingPage() {
                 <span className="font-bold">MyArea365</span>
               </div>
               <p className="text-xs text-text-muted leading-relaxed">
-                Gamifizierte Lauf-Community. Bewegung, Spaß und lokale Rabatte.
+                {t("footerTagline")}
               </p>
             </div>
             <div>
-              <div className="text-xs font-bold tracking-widest text-text-muted mb-3">APP</div>
+              <div className="text-xs font-bold tracking-widest text-text-muted mb-3">{t("footerApp")}</div>
               <ul className="space-y-2 text-sm">
-                <li><a href="#runner" className="text-text-muted hover:text-text">Für Runner</a></li>
-                <li><a href="#crews" className="text-text-muted hover:text-text">Crews</a></li>
-                <li><a href="#shops" className="text-text-muted hover:text-text">Shops</a></li>
-                <li><a href="#gesundheit" className="text-text-muted hover:text-text">Gesundheit</a></li>
-                <li><Link href="/leaderboard" className="text-text-muted hover:text-text">🏆 Leaderboard</Link></li>
+                <li><a href="#runner" className="text-text-muted hover:text-text">{t("footerLinkRunner")}</a></li>
+                <li><a href="#crews" className="text-text-muted hover:text-text">{t("navCrews")}</a></li>
+                <li><a href="#shops" className="text-text-muted hover:text-text">{t("navShops")}</a></li>
+                <li><a href="#gesundheit" className="text-text-muted hover:text-text">{t("navHealth")}</a></li>
+                <li><Link href="/leaderboard" className="text-text-muted hover:text-text">{t("footerLinkLeaderboard")}</Link></li>
               </ul>
             </div>
             <div>
-              <div className="text-xs font-bold tracking-widest text-text-muted mb-3">FÜR GESCHÄFTE</div>
+              <div className="text-xs font-bold tracking-widest text-text-muted mb-3">{t("footerBusiness")}</div>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/shop-dashboard/" className="text-text-muted hover:text-text">Demo-Dashboard</Link></li>
-                <li><a href="mailto:partner@myarea365.de" className="text-text-muted hover:text-text">Shop anmelden</a></li>
-                <li><a href="mailto:partner@myarea365.de" className="text-text-muted hover:text-text">Demo buchen</a></li>
+                <li><Link href="/shop-dashboard/" className="text-text-muted hover:text-text">{t("footerLinkDemo")}</Link></li>
+                <li><a href="mailto:partner@myarea365.de" className="text-text-muted hover:text-text">{t("footerLinkSignup")}</a></li>
+                <li><a href="mailto:partner@myarea365.de" className="text-text-muted hover:text-text">{t("footerLinkBookDemo")}</a></li>
               </ul>
             </div>
             <div>
-              <div className="text-xs font-bold tracking-widest text-text-muted mb-3">RECHTLICHES</div>
+              <div className="text-xs font-bold tracking-widest text-text-muted mb-3">{t("footerLegal")}</div>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/agb" className="text-text-muted hover:text-text">AGB</Link></li>
-                <li><Link href="/datenschutz" className="text-text-muted hover:text-text">Datenschutz</Link></li>
-                <li><Link href="/impressum" className="text-text-muted hover:text-text">Impressum</Link></li>
-                <li><Link href="/loot-drops" className="text-text-muted hover:text-text">Drop-Raten</Link></li>
-                <li><a href="mailto:support@myarea365.de" className="text-text-muted hover:text-text">Support</a></li>
+                <li><Link href="/agb" className="text-text-muted hover:text-text">{t("footerLinkAgb")}</Link></li>
+                <li><Link href="/datenschutz" className="text-text-muted hover:text-text">{t("footerLinkPrivacy")}</Link></li>
+                <li><Link href="/impressum" className="text-text-muted hover:text-text">{t("footerLinkImprint")}</Link></li>
+                <li><Link href="/loot-drops" className="text-text-muted hover:text-text">{t("footerLinkDropRates")}</Link></li>
+                <li><a href="mailto:support@myarea365.de" className="text-text-muted hover:text-text">{t("footerLinkSupport")}</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-border/50 pt-6 text-center text-xs text-text-muted">
-            © {new Date().getFullYear()} MyArea365 · Made with ❤️ in Berlin
+            {t("footerCopyright", { year: new Date().getFullYear() })}
           </div>
         </div>
       </footer>
