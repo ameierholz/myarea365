@@ -1,32 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, ArrowRight, ArrowLeft, Info, Check } from "lucide-react";
 
-const FACTIONS = [
-  { id: "gossenbund",  name: "Gossenbund",  icon: "🗝️", color: "#22D1C3", motto: "Raubzug · neue Straßen erobern" },
-  { id: "kronenwacht", name: "Kronenwacht", icon: "👑", color: "#FFD700", motto: "Beständig · Gebiete halten" },
-] as const;
-
 type Race = {
   id: string; name: string; role: string;
   lore: string | null; material_desc: string | null; energy_color: string | null;
 };
 
-const ROLE_META: Record<string, { label: string; emoji: string; color: string; desc: string }> = {
-  tank:       { label: "Tank",          emoji: "🛡️", color: "#6991d8", desc: "Hält viel aus. Konstitution + Widerstand." },
-  healer:     { label: "Heiler",        emoji: "💚", color: "#1db682", desc: "Unterstützt. Fokus + Heilkraft." },
-  melee_dps:  { label: "Nahkampf-DPS",  emoji: "⚔️", color: "#ef7169", desc: "Schnell. Beweglichkeit + Stärke." },
-  ranged_dps: { label: "Fernkampf-DPS", emoji: "🏹", color: "#a855f7", desc: "Distanz. Präzision + Reichweite." },
-};
-
 export default function OnboardingPage() {
+  const t = useTranslations("OnboardingPage");
   const router = useRouter();
   const supabase = createClient();
+
+  const FACTIONS = useMemo(() => [
+    { id: "gossenbund",  name: t("factionGossenbund"),  icon: "🗝️", color: "#22D1C3", motto: t("factionGossenbundMotto") },
+    { id: "kronenwacht", name: t("factionKronenwacht"), icon: "👑", color: "#FFD700", motto: t("factionKronenwachtMotto") },
+  ] as const, [t]);
+
+  const ROLE_META: Record<string, { label: string; emoji: string; color: string; desc: string }> = useMemo(() => ({
+    tank:       { label: t("roleTank"),    emoji: "🛡️", color: "#6991d8", desc: t("roleTankDesc") },
+    healer:     { label: t("roleHealer"),  emoji: "💚", color: "#1db682", desc: t("roleHealerDesc") },
+    melee_dps:  { label: t("roleMelee"),   emoji: "⚔️", color: "#ef7169", desc: t("roleMeleeDesc") },
+    ranged_dps: { label: t("roleRanged"),  emoji: "🏹", color: "#a855f7", desc: t("roleRangedDesc") },
+  }), [t]);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [username, setUsername] = useState("");
@@ -77,14 +79,14 @@ export default function OnboardingPage() {
     e.preventDefault();
     setError("");
     if (!userId) return;
-    if (username.length < 3) return setError("Runner-Name: mindestens 3 Zeichen.");
-    if (!faction) return setError("Bitte wähle eine Fraktion.");
-    if (!acceptTerms) return setError("Bitte akzeptiere AGB und Datenschutz.");
+    if (username.length < 3) return setError(t("runnerNameMin"));
+    if (!faction) return setError(t("factionRequired"));
+    if (!acceptTerms) return setError(t("termsRequired"));
 
     setLoading(true);
     const { data: existing } = await supabase
       .from("users").select("id").eq("username", username.toLowerCase()).neq("id", userId).maybeSingle();
-    if (existing) { setError("Dieser Runner-Name ist vergeben."); setLoading(false); return; }
+    if (existing) { setError(t("usernameTaken")); setLoading(false); return; }
 
     const { error: upsertErr } = await supabase.from("users").upsert({
       id: userId,
@@ -99,12 +101,12 @@ export default function OnboardingPage() {
   }
 
   async function handleStep2() {
-    if (!pickedRace) return setError("Bitte wähle einen Wächter.");
+    if (!pickedRace) return setError(t("guardianRequired"));
     setError("");
     setLoading(true);
     const { data, error: rpcErr } = await supabase.rpc("pick_guardian_race", { p_race_id: pickedRace });
     if (rpcErr || data?.error) {
-      setError(rpcErr?.message || data?.error || "Fehler beim Speichern");
+      setError(rpcErr?.message || data?.error || t("guardianSaveError"));
       setLoading(false);
       return;
     }
@@ -122,12 +124,12 @@ export default function OnboardingPage() {
         <div className="text-center mb-6">
           <Image src="/logo.png" alt="MyArea365" width={64} height={64} className="mx-auto mb-3 rounded-full" />
           <h1 className="text-2xl font-bold">
-            {step === 1 ? "Willkommen, Runner!" : "Wähle deinen Wächter"}
+            {step === 1 ? t("step1Title") : t("step2Title")}
           </h1>
           <p className="text-sm text-text-muted mt-1">
             {step === 1
-              ? <>Noch ein paar Angaben — {email && <span className="text-text">{email}</span>}</>
-              : "Dein Kiez-Kämpfer. Jede Rasse hat eine eigene Rolle und Material-Thematik."}
+              ? t.rich("step1Subtitle", { email: () => <span className="text-text">{email}</span> })
+              : t("step2Subtitle")}
           </p>
           <div className="flex items-center justify-center gap-2 mt-3">
             {[1, 2].map((n) => (
@@ -143,26 +145,26 @@ export default function OnboardingPage() {
         {step === 1 && (
           <form onSubmit={handleStep1} className="space-y-3 p-5 rounded-2xl bg-bg-card border border-border">
             <div>
-              <label className="text-xs font-semibold text-text-muted">Runner-Name</label>
+              <label className="text-xs font-semibold text-text-muted">{t("runnerName")}</label>
               <input
                 type="text" required minLength={3} maxLength={24} value={username}
                 onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-                placeholder="z. B. Kaelthor"
+                placeholder={t("runnerNamePlaceholder")}
                 className="mt-1 w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text text-sm focus:outline-none focus:border-primary/50"
               />
             </div>
 
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-text-muted">Fraktion wählen</label>
+                <label className="text-xs font-semibold text-text-muted">{t("factionLabel")}</label>
                 <button type="button" onClick={() => setShowInfo(v => !v)} className="inline-flex items-center gap-1 text-xs text-primary">
-                  <Info className="w-3 h-3" />{showInfo ? "Schließen" : "Was ist das?"}
+                  <Info className="w-3 h-3" />{showInfo ? t("factionInfoClose") : t("factionInfo")}
                 </button>
               </div>
               {showInfo && (
                 <div className="absolute right-0 -top-2 -translate-y-full z-40 w-72 p-3 rounded-lg bg-bg-elevated border border-primary/60 text-[11px] text-text-muted leading-relaxed shadow-2xl">
-                  <b className="text-text">2 weltweite Teams</b>, die sich jede Saison duellieren. Deine km zählen für deine Fraktion — weltweit, pro Land, Stadt, PLZ. Trotzdem eigene Crew möglich.
-                  <span className="block mt-1 text-text-muted">Wechsel später gegen Edelsteine, nur alle 30 Tage.</span>
+                  {t.rich("factionInfoBody", { b: (c) => <b className="text-text">{c}</b> })}
+                  <span className="block mt-1 text-text-muted">{t("factionInfoSwitch")}</span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
@@ -187,7 +189,7 @@ export default function OnboardingPage() {
               <input type="checkbox" checked={newsletter} onChange={(e) => setNewsletter(e.target.checked)}
                 className="mt-0.5 w-3.5 h-3.5 rounded border-border accent-primary" />
               <span className="text-[11px] text-text-muted leading-relaxed">
-                Ja, ich will den <b className="text-text">Kiez-Newsletter</b> (max. 1× / Monat, jederzeit abbestellbar).
+                {t.rich("newsletterLabel", { b: (c) => <b className="text-text">{c}</b> })}
               </span>
             </label>
 
@@ -195,9 +197,10 @@ export default function OnboardingPage() {
               <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)}
                 className="mt-0.5 w-3.5 h-3.5 rounded border-border accent-primary" />
               <span className="text-[11px] text-text-muted leading-relaxed">
-                Ich akzeptiere die <Link href="/agb" className="text-primary hover:underline">AGB</Link>
-                {" und die "}
-                <Link href="/datenschutz" className="text-primary hover:underline">Datenschutzerklärung</Link>.
+                {t.rich("termsAccept", {
+                  a: (c) => <Link href="/agb" className="text-primary hover:underline">{c}</Link>,
+                  p: (c) => <Link href="/datenschutz" className="text-primary hover:underline">{c}</Link>,
+                })}
               </span>
             </label>
 
@@ -205,7 +208,7 @@ export default function OnboardingPage() {
 
             <button type="submit" disabled={loading || !faction || !acceptTerms || username.length < 3}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Weiter <ArrowRight className="w-4 h-4" /></>}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{t("next")} <ArrowRight className="w-4 h-4" /></>}
             </button>
           </form>
         )}
@@ -221,7 +224,7 @@ export default function OnboardingPage() {
                   background: roleFilter === "ALL" ? "#22D1C3" : "rgba(255,255,255,0.05)",
                   color: roleFilter === "ALL" ? "#0F1115" : "#a8b4cf",
                 }}
-              >Alle ({races.length})</button>
+              >{t("roleAll", { count: races.length })}</button>
               {Object.entries(ROLE_META).map(([id, meta]) => {
                 const count = races.filter((r) => r.role === id).length;
                 const active = roleFilter === id;
@@ -283,18 +286,18 @@ export default function OnboardingPage() {
                 type="button" onClick={() => setStep(1)}
                 className="inline-flex items-center gap-1 py-2.5 px-4 rounded-lg bg-bg-elevated border border-border text-text-muted text-sm font-bold hover:text-text"
               >
-                <ArrowLeft className="w-4 h-4" />Zurück
+                <ArrowLeft className="w-4 h-4" />{t("back")}
               </button>
               <button
                 onClick={handleStep2} disabled={loading || !pickedRace}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Wächter einsetzen <ArrowRight className="w-4 h-4" /></>}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{t("deployGuardian")} <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
 
             <div className="text-[10px] text-text-muted text-center pt-1">
-              Du kannst deinen Wächter später in den Einstellungen ändern.
+              {t("guardianSwitchHint")}
             </div>
           </div>
         )}

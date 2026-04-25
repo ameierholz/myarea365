@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -8,35 +9,31 @@ import { Mail, Lock, User, Loader2, AlertCircle, Users as UsersIcon, MapPin } fr
 import { HeroMap } from "@/components/hero-map-client";
 import { openLegalModal } from "@/components/legal-modal";
 
-const FACTIONS = [
-  {
-    id: "kronenwacht",
-    name: "Kronenwacht",
-    icon: "👑",
-    color: "#FFD700",
-    motto: "Halten · Pflegen · Bewahren",
-    buff_name: "Beständig",
-    buff_lines: [
-      "Bonus-Wegemünzen für lange gehaltene Straßen",
-      "Deine Gebiete verblassen langsamer",
-    ],
-  },
-  {
-    id: "gossenbund",
-    name: "Gossenbund",
-    icon: "🗝️",
-    color: "#22D1C3",
-    motto: "Erobern · Vorstoßen · Jagd",
-    buff_name: "Raubzug",
-    buff_lines: [
-      "Bonus-Wegemünzen beim Erobern neuer Straßen",
-      "Übermalst gegnerische Straßen schneller",
-    ],
-  },
-] as const;
-
 export default function RegisterPage() {
+  const t = useTranslations("Register");
   const router = useRouter();
+
+  const FACTIONS = useMemo(() => [
+    {
+      id: "kronenwacht" as const,
+      name: t("factionKronenwacht"),
+      icon: "👑",
+      color: "#FFD700",
+      motto: t("factionKronenwachtMotto"),
+      buff_name: t("factionKronenwachtBuff"),
+      buff_lines: [t("factionKronenwachtBuff1"), t("factionKronenwachtBuff2")],
+    },
+    {
+      id: "gossenbund" as const,
+      name: t("factionGossenbund"),
+      icon: "🗝️",
+      color: "#22D1C3",
+      motto: t("factionGossenbundMotto"),
+      buff_name: t("factionGossenbundBuff"),
+      buff_lines: [t("factionGossenbundBuff1"), t("factionGossenbundBuff2")],
+    },
+  ], [t]);
+
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,12 +50,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (username.length < 3) return setError("Runner-Name muss mindestens 3 Zeichen haben.");
-    if (password.length < 8) return setError("Passwort muss mindestens 8 Zeichen haben.");
-    if (!faction) return setError("Bitte wähle eine Fraktion.");
-    if (!acceptTerms) return setError("Bitte akzeptiere die Nutzungsbedingungen und Datenschutz.");
+    if (username.length < 3) return setError(t("runnerNameMin"));
+    if (password.length < 8) return setError(t("passwordMin"));
+    if (!faction) return setError(t("factionRequired"));
+    if (!acceptTerms) return setError(t("termsRequired"));
     if (heimatPlz && !/^[0-9]{5}$/.test(heimatPlz)) {
-      return setError("Heimat-PLZ muss 5-stellig sein (oder leer lassen).");
+      return setError(t("plzInvalid"));
     }
 
     setLoading(true);
@@ -67,7 +64,7 @@ export default function RegisterPage() {
     const { data: existing } = await supabase
       .from("users").select("id").eq("username", username.toLowerCase()).maybeSingle();
     if (existing) {
-      setError("Dieser Runner-Name ist bereits vergeben.");
+      setError(t("usernameTaken"));
       setLoading(false);
       return;
     }
@@ -110,7 +107,6 @@ export default function RegisterPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* Karte + Radar als Hintergrund (wie Landing) */}
       <div className="absolute inset-0 -z-10">
         <HeroMap />
       </div>
@@ -124,10 +120,8 @@ export default function RegisterPage() {
           </Link>
 
           <div className="p-6 sm:p-8 rounded-2xl bg-bg-card/90 border border-border backdrop-blur-md shadow-2xl">
-            <h1 className="text-2xl font-bold mb-1">Werde Runner</h1>
-            <p className="text-sm text-text-muted mb-6">
-              Erobere deine Stadt — gemeinsam. In 30 Sekunden bist du dabei.
-            </p>
+            <h1 className="text-2xl font-bold mb-1">{t("title")}</h1>
+            <p className="text-sm text-text-muted mb-6">{t("subtitle")}</p>
 
             {error && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm mb-5">
@@ -137,10 +131,9 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* Runner-Name (= öffentlicher Name auf Map/Leaderboard) */}
               <div>
                 <label htmlFor="username" className="block text-sm font-medium mb-1.5">
-                  Runner-Name <span className="text-text-muted font-normal">(so sehen dich andere)</span>
+                  {t("runnerNameLabel")} <span className="text-text-muted font-normal">{t("runnerNameHint")}</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
@@ -148,45 +141,42 @@ export default function RegisterPage() {
                     id="username" type="text" required minLength={3} maxLength={24}
                     value={username}
                     onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-                    placeholder="z. B. neon_fuchs"
+                    placeholder={t("runnerNamePlaceholder")}
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                 </div>
-                <p className="text-xs text-text-muted mt-1">3–24 Zeichen, a–z, 0–9, _ und -</p>
+                <p className="text-xs text-text-muted mt-1">{t("runnerNameRule")}</p>
               </div>
 
-              {/* E-Mail */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-1.5">E-Mail</label>
+                <label htmlFor="email" className="block text-sm font-medium mb-1.5">{t("emailLabel")}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
                     id="email" type="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="deine@mail.de"
+                    placeholder={t("emailPlaceholder")}
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                 </div>
               </div>
 
-              {/* Passwort */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-1.5">Passwort</label>
+                <label htmlFor="password" className="block text-sm font-medium mb-1.5">{t("passwordLabel")}</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
                     id="password" type="password" required minLength={8} value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mindestens 8 Zeichen"
+                    placeholder={t("passwordPlaceholder")}
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                 </div>
               </div>
 
-              {/* Heimat-PLZ (optional) */}
               <div>
                 <label htmlFor="plz" className="block text-sm font-medium mb-1.5">
-                  Heimat-PLZ <span className="text-text-muted font-normal">(optional)</span>
+                  {t("plzLabel")} <span className="text-text-muted font-normal">{t("plzOptional")}</span>
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
@@ -194,19 +184,16 @@ export default function RegisterPage() {
                     id="plz" type="text" inputMode="numeric" pattern="[0-9]{5}" maxLength={5}
                     value={heimatPlz}
                     onChange={(e) => setHeimatPlz(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                    placeholder="z. B. 10827"
+                    placeholder={t("plzPlaceholder")}
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                 </div>
-                <p className="text-xs text-text-muted mt-1">
-                  Für deinen Kiez-Badge. Deine wöchentliche Krone hängt davon ab, wo du läufst — nicht wo du wohnst.
-                </p>
+                <p className="text-xs text-text-muted mt-1">{t("plzHint")}</p>
               </div>
 
-              {/* Fraktion */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Fraktion wählen <span className="text-text-muted font-normal">(Wechsel später kostet Edelsteine, nur alle 30 Tage)</span>
+                  {t("factionLabel")} <span className="text-text-muted font-normal">{t("factionSwitchHint")}</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {FACTIONS.map((f) => {
@@ -241,23 +228,21 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Invite-Code */}
               <div>
                 <label htmlFor="invite" className="block text-sm font-medium mb-1.5">
-                  Crew-Einladungscode <span className="text-text-muted font-normal">(optional)</span>
+                  {t("inviteLabel")} <span className="text-text-muted font-normal">{t("plzOptional")}</span>
                 </label>
                 <div className="relative">
                   <UsersIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
                     id="invite" type="text" maxLength={20} value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    placeholder="z. B. KIEZ-42AB"
+                    placeholder={t("invitePlaceholder")}
                     className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors font-mono uppercase"
                   />
                 </div>
               </div>
 
-              {/* Newsletter */}
               <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-lg bg-bg-elevated border border-border hover:border-primary/30 transition-colors">
                 <input
                   type="checkbox" checked={newsletter}
@@ -265,14 +250,11 @@ export default function RegisterPage() {
                   className="mt-0.5 w-4 h-4 rounded border-border accent-primary"
                 />
                 <div className="text-sm">
-                  <div className="font-medium">📬 Kiez-Newsletter (max. 1× / Monat)</div>
-                  <div className="text-xs text-text-muted mt-0.5">
-                    Neue Deals in deiner Nähe, Events, Feature-Updates. Jederzeit abbestellbar.
-                  </div>
+                  <div className="font-medium">{t("newsletterTitle")}</div>
+                  <div className="text-xs text-text-muted mt-0.5">{t("newsletterDesc")}</div>
                 </div>
               </label>
 
-              {/* Terms — Modal-Buttons statt Navigation */}
               <label className="flex items-start gap-2.5 cursor-pointer">
                 <input
                   type="checkbox" checked={acceptTerms}
@@ -280,10 +262,10 @@ export default function RegisterPage() {
                   className="mt-0.5 w-4 h-4 rounded border-border accent-primary"
                 />
                 <div className="text-xs text-text-muted leading-relaxed">
-                  Ich akzeptiere die{" "}
-                  <button type="button" onClick={() => openLegalModal("datenschutz")} className="text-primary hover:underline">Datenschutzerklärung</button>
-                  {" und die "}
-                  <button type="button" onClick={() => openLegalModal("agb")} className="text-primary hover:underline">AGB</button>.
+                  {t.rich("termsAccept", {
+                    p: (c) => <button type="button" onClick={() => openLegalModal("datenschutz")} className="text-primary hover:underline">{c}</button>,
+                    a: (c) => <button type="button" onClick={() => openLegalModal("agb")} className="text-primary hover:underline">{c}</button>,
+                  })}
                 </div>
               </label>
 
@@ -292,25 +274,24 @@ export default function RegisterPage() {
                 disabled={loading || !acceptTerms || !faction}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "🚀 Account erstellen"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("createAccount")}
               </button>
             </form>
           </div>
 
           <p className="text-center text-sm text-text-muted mt-6 drop-shadow">
-            Schon dabei?{" "}
-            <Link href="/login" className="text-primary hover:text-primary-dim font-medium transition-colors">Anmelden</Link>
+            {t("alreadyMember")}{" "}
+            <Link href="/login" className="text-primary hover:text-primary-dim font-medium transition-colors">{t("signIn")}</Link>
           </p>
 
-          {/* Legal-Footer — alle Modals + Support */}
           <div className="flex flex-wrap justify-center gap-3 mt-5 text-[11px] text-text-muted">
-            <button onClick={() => openLegalModal("impressum")} className="hover:text-text transition-colors">Impressum</button>
+            <button onClick={() => openLegalModal("impressum")} className="hover:text-text transition-colors">{t("footerImprint")}</button>
             <span className="opacity-40">·</span>
-            <button onClick={() => openLegalModal("datenschutz")} className="hover:text-text transition-colors">Datenschutz</button>
+            <button onClick={() => openLegalModal("datenschutz")} className="hover:text-text transition-colors">{t("footerPrivacy")}</button>
             <span className="opacity-40">·</span>
-            <button onClick={() => openLegalModal("agb")} className="hover:text-text transition-colors">AGB</button>
+            <button onClick={() => openLegalModal("agb")} className="hover:text-text transition-colors">{t("footerTerms")}</button>
             <span className="opacity-40">·</span>
-            <Link href="/support" className="hover:text-text transition-colors">Support</Link>
+            <Link href="/support" className="hover:text-text transition-colors">{t("footerSupport")}</Link>
           </div>
         </div>
       </div>

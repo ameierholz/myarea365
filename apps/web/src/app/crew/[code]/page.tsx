@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { CrewJoinButton } from "./join-button";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
+  const t = await getTranslations("CrewInvite");
   const sb = await createClient();
   const { data: crew } = await sb
     .from("crews")
@@ -16,11 +18,11 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
     .maybeSingle<{ name: string; member_count: number | null }>();
 
   const title = crew
-    ? `Crew „${crew.name}" beitreten · MyArea365`
-    : `Einladung zur Crew ${code.toUpperCase()} · MyArea365`;
+    ? t("metaTitleNamed", { name: crew.name })
+    : t("metaTitleUnknown", { code: code.toUpperCase() });
   const desc = crew
-    ? `Tritt der Crew „${crew.name}" bei (${crew.member_count ?? 0} Mitglieder) und erobert gemeinsam euren Kiez.`
-    : "Tritt der Crew bei und erobert zusammen die Stadt.";
+    ? t("metaDescNamed", { name: crew.name, members: crew.member_count ?? 0 })
+    : t("metaDescDefault");
 
   return {
     title,
@@ -36,6 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 
 export default async function CrewInvitePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
+  const t = await getTranslations("CrewInvite");
   const sb = await createClient();
   const { data: crew } = await sb
     .from("crews")
@@ -46,14 +49,16 @@ export default async function CrewInvitePage({ params }: { params: Promise<{ cod
   if (!crew) notFound();
 
   const accent = crew.color || "#22D1C3";
-  const factionLabel = (crew.faction === "syndicate" || crew.faction === "gossenbund") ? "🗝️ Gossenbund" : (crew.faction === "vanguard" || crew.faction === "kronenwacht") ? "👑 Kronenwacht" : null;
+  const factionLabel = (crew.faction === "syndicate" || crew.faction === "gossenbund") ? t("factionGossenbund")
+                     : (crew.faction === "vanguard" || crew.faction === "kronenwacht") ? t("factionKronenwacht")
+                     : null;
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-6">
           <Image src="/logo.png" alt="MyArea365" width={56} height={56} className="mx-auto mb-3 rounded-full" />
-          <div className="text-xs font-bold tracking-widest text-text-muted">CREW-EINLADUNG</div>
+          <div className="text-xs font-bold tracking-widest text-text-muted">{t("kicker")}</div>
         </div>
 
         <div
@@ -72,12 +77,12 @@ export default async function CrewInvitePage({ params }: { params: Promise<{ cod
           <h1 className="text-2xl font-black text-white mb-2">{crew.name}</h1>
           <div className="text-sm text-text-muted mb-4">
             {factionLabel && <span>{factionLabel} · </span>}
-            {crew.zip && <span>PLZ {crew.zip} · </span>}
-            {crew.member_count ?? 0} Mitglieder
+            {crew.zip && <span>{t("zipPrefix", { zip: crew.zip })} · </span>}
+            {t("members", { count: crew.member_count ?? 0 })}
           </div>
 
           <div className="p-4 rounded-xl bg-black/30 mb-6">
-            <div className="text-xs text-text-muted">Einlade-Code</div>
+            <div className="text-xs text-text-muted">{t("inviteCodeLabel")}</div>
             <div className="text-2xl font-black tracking-widest" style={{ color: accent }}>{crew.invite_code}</div>
           </div>
 
@@ -85,12 +90,11 @@ export default async function CrewInvitePage({ params }: { params: Promise<{ cod
         </div>
 
         <div className="mt-6 p-4 rounded-2xl bg-bg-card border border-border">
-          <div className="text-sm font-bold text-white mb-2">Was ist MyArea365?</div>
+          <div className="text-sm font-bold text-white mb-2">{t("whatIsTitle")}</div>
           <p className="text-xs text-text-muted leading-relaxed">
-            Gamifizierte Lauf-Community: Geh Straßen ab, sammle 🪙 Wegemünzen, erobere Gebiete und löse Rabatte bei lokalen Shops ein.
-            Allein oder als Crew.
+            {t("whatIsBody")}
           </p>
-          <Link href="/" className="block text-xs text-primary mt-3 hover:underline">Mehr erfahren →</Link>
+          <Link href="/" className="block text-xs text-primary mt-3 hover:underline">{t("learnMore")}</Link>
         </div>
       </div>
     </main>

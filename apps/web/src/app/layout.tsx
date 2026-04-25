@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { LOCALES, LOCALE_BCP47 } from "@/i18n/config";
 import "@/styles/globals.css";
 import { PrefsBoot } from "@/components/prefs-boot";
 import { ReferralCapture } from "@/components/referral-capture";
@@ -28,9 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL("https://myarea365.de"),
     alternates: {
       canonical: "/",
+      // Dynamisch aus LOCALES — neue Sprachen erscheinen automatisch.
       languages: {
-        "de-DE": "https://myarea365.de",
-        "en-US": "https://myarea365.de",
+        ...Object.fromEntries(LOCALES.map((l) => [LOCALE_BCP47[l], "https://myarea365.de"])),
         "x-default": "https://myarea365.de",
       },
     },
@@ -39,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
     authors: [{ name: "MyArea365" }],
     openGraph: {
       type: "website",
-      locale: locale === "en" ? "en_US" : "de_DE",
+      locale: LOCALE_BCP47[locale as (typeof LOCALES)[number]]?.replace("-", "_") ?? "de_DE",
       siteName: "MyArea365",
       url: "https://myarea365.de",
       title: t("ogTitle"),
