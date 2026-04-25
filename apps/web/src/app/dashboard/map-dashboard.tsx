@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { getDateLocale } from "@/i18n/config";
+import { getDateLocale, getNumberLocale } from "@/i18n/config";
 import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
@@ -3431,6 +3431,7 @@ function RecordCard({ emoji, label, value, color }: { emoji: string; label: stri
 }
 
 function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
+  const tMP = useTranslations("MapPanels");
   const [expanded, setExpanded] = useState(false);
   const f = DEMO_FACTION_STATS;
   const total = f.nachtpuls.km_week + f.sonnenwacht.km_week;
@@ -3452,11 +3453,11 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
           padding: "6px 12px 6px 10px",
           display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
         }}
-        aria-label="Fraktion & Crews"
+        aria-label={tMP("fpExpandAria")}
       >
         <span style={{ fontSize: 14 }}>⚔️</span>
         <span style={{ color: leader === "nachtpuls" ? "#22D1C3" : "#FFD700", fontSize: 12, fontWeight: 900 }}>
-          {leader === "nachtpuls" ? "🗝️" : "👑"} führt · {f.city}
+          {tMP("fpLeaderHint", { icon: leader === "nachtpuls" ? "🗝️" : "👑", city: f.city })}
         </span>
         <span style={{ color: "#a8b4cf", fontSize: 12, fontWeight: 900, marginLeft: 2 }}>›</span>
       </button>
@@ -3475,8 +3476,8 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
       boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ color: "#FFF", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>⚔️ FRAKTION · {f.city.toUpperCase()}</span>
-        <button onClick={() => setExpanded(false)} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 14, cursor: "pointer" }}>✕</button>
+        <span style={{ color: "#FFF", fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>{tMP("fpHeader", { city: f.city.toUpperCase() })}</span>
+        <button onClick={() => setExpanded(false)} aria-label={tMP("fpCloseAria")} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 14, cursor: "pointer" }}>✕</button>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, fontSize: 11 }}>
@@ -3489,14 +3490,14 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
         <div style={{ flex: 1, background: "linear-gradient(90deg, #FFD70088, #FFD700)" }} />
       </div>
       <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 4, display: "flex", justifyContent: "space-between" }}>
-        <span>{f.nachtpuls.runners} Runner</span>
-        <span>diese Woche</span>
-        <span>{f.sonnenwacht.runners} Runner</span>
+        <span>{tMP("fpRunners", { count: f.nachtpuls.runners })}</span>
+        <span>{tMP("fpThisWeek")}</span>
+        <span>{tMP("fpRunners", { count: f.sonnenwacht.runners })}</span>
       </div>
 
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", margin: "10px 0 8px" }} />
 
-      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>👥 CREWS IN DER NÄHE</div>
+      <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>{tMP("fpCrewsNearby")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 180, overflowY: "auto" }}>
         {DEMO_NEARBY_CREWS_MAP.slice(0, 5).map((c) => (
           <button
@@ -3527,13 +3528,14 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
           borderRadius: 8, color: "#22D1C3", fontSize: 11, fontWeight: 800, cursor: "pointer",
         }}
       >
-        Alle Crews ansehen →
+        {tMP("fpAllCrewsBtn")}
       </button>
     </div>
   );
 }
 
 function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRunner: (username: string) => void }) {
+  const tMP = useTranslations("MapPanels");
   const live = DEMO_MAP_LIVE;
   const aa = live.active_attack;
   const ta = live.territory_attack;
@@ -3558,7 +3560,7 @@ function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRu
     return (
       <button
         onClick={() => setExpanded(true)}
-        aria-label="Live-Info erweitern"
+        aria-label={tMP("lpExpandAria")}
         style={{
           position: "absolute", top: 20, left: 20, zIndex: 40,
           background: "rgba(18, 26, 46, 0.55)",
@@ -3624,10 +3626,10 @@ function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRu
         }} />
         <span style={{
           color: "#4ade80", fontSize: 9, fontWeight: 800, letterSpacing: 1.5, flex: 1,
-        }}>LIVE</span>
+        }}>{tMP("lpLiveLabel")}</span>
         <button
           onClick={() => setExpanded(false)}
-          aria-label="Einklappen"
+          aria-label={tMP("lpCollapseAria")}
           style={{
             background: "transparent", border: "none", color: MUTED,
             cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 2,
@@ -3636,16 +3638,16 @@ function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRu
       </div>
       <style>{`@keyframes livePanelPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:0.5} }`}</style>
 
-      {row("👥", live.runners_in_zip, `in ${live.district}`, teamColor)}
-      {row("🏙️", live.runners_in_city, `in ${live.city}`, "#5ddaf0")}
+      {row("👥", live.runners_in_zip, tMP("lpInDistrict", { district: live.district }), teamColor)}
+      {row("🏙️", live.runners_in_city, tMP("lpInCity", { city: live.city }), "#5ddaf0")}
 
       <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "4px 0" }} />
 
       <AttackIndicator
         active={aa.active}
         icon="⚔️"
-        labelActive="ANGRIFF!"
-        labelInactive="Kein Angriff"
+        labelActive={tMP("lpAttackActive")}
+        labelInactive={tMP("lpAttackInactive")}
         street={aa.street_name}
         attacker={aa.attacker_username}
         attackerColor={aa.attacker_color}
@@ -3656,8 +3658,8 @@ function MapLivePanel({ teamColor, onViewRunner }: { teamColor: string; onViewRu
       <AttackIndicator
         active={ta.active}
         icon="🛡️"
-        labelActive="GEBIET!"
-        labelInactive="Gebiete sicher"
+        labelActive={tMP("lpTerritoryActive")}
+        labelInactive={tMP("lpTerritoryInactive")}
         street={ta.street_name}
         attacker={ta.attacker_username}
         attackerColor={ta.attacker_color}
@@ -3732,16 +3734,18 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
   myFaction: string;
   onClose: () => void;
 }) {
+  const tMP = useTranslations("MapPanels");
+  const locale = useLocale();
   const isEnemy = runner.faction !== myFaction;
   const relationColor = isEnemy ? "#FF2D78" : "#4ade80";
-  const memberSince = new Date(runner.member_since).toLocaleDateString("de-DE", {
+  const memberSince = new Date(runner.member_since).toLocaleDateString(getDateLocale(locale), {
     month: "short", year: "numeric",
   });
 
   return (
     <Modal
       title={runner.display_name}
-      subtitle={`@${runner.username} · ${runner.last_seen}`}
+      subtitle={tMP("rpSubtitle", { username: runner.username, lastSeen: runner.last_seen })}
       icon={runner.marker_icon}
       accent={runner.team_color}
       onClose={onClose}
@@ -3756,12 +3760,12 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
         <span style={{ fontSize: 18 }}>{isEnemy ? "⚔️" : "🤝"}</span>
         <div style={{ flex: 1 }}>
           <div style={{ color: relationColor, fontSize: 12, fontWeight: 900, letterSpacing: 0.5 }}>
-            {isEnemy ? "FEINDLICHE FRAKTION" : "VERBÜNDETE FRAKTION"}
+            {isEnemy ? tMP("rpFactionEnemy") : tMP("rpFactionAllied")}
           </div>
           <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 1 }}>
-            {normalizeFaction(runner.faction) === "kronenwacht" ? "👑 Kronenwacht" : "🗝️ Gossenbund"}
+            {normalizeFaction(runner.faction) === "kronenwacht" ? tMP("rpFactionKronenwacht") : tMP("rpFactionGossenbund")}
             {runner.crew_name && (
-              <> · Crew: <span style={{ color: runner.crew_color || "#FFF", fontWeight: 700 }}>{runner.crew_name}</span></>
+              <> · {tMP("rpCrewLabel")}<span style={{ color: runner.crew_color || "#FFF", fontWeight: 700 }}>{runner.crew_name}</span></>
             )}
           </div>
         </div>
@@ -3784,22 +3788,22 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
           <span style={{ fontSize: 22 }}>🏆</span>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>RANG</div>
+          <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>{tMP("rpRankLabel")}</div>
           <div style={{ color: runner.rank_color, fontSize: 16, fontWeight: 900 }}>
             {runner.rank_name}
           </div>
           <div style={{ color: "#FFD700", fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-            {runner.xp.toLocaleString()} 🪙
+            {runner.xp.toLocaleString(getNumberLocale(locale))} 🪙
           </div>
         </div>
       </div>
 
       {/* Stats-Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        <RunnerStat emoji="🏆" value={runner.territories.toString()} label="Gebiete" color={runner.team_color} />
-        <RunnerStat emoji="🌍" value={runner.total_km.toFixed(1)} label="KM gesamt" unit="km" color="#5ddaf0" />
-        <RunnerStat emoji="🔥" value={runner.streak_days.toString()} label="Akt. Serie" unit="Tage" color="#FFD700" />
-        <RunnerStat emoji="⭐" value={runner.streak_best.toString()} label="Beste Serie" unit="Tage" color="#FF6B4A" />
+        <RunnerStat emoji="🏆" value={runner.territories.toString()} label={tMP("rpStatTerritories")} color={runner.team_color} />
+        <RunnerStat emoji="🌍" value={runner.total_km.toFixed(1)} label={tMP("rpStatKmTotal")} unit={tMP("rpStatKmUnit")} color="#5ddaf0" />
+        <RunnerStat emoji="🔥" value={runner.streak_days.toString()} label={tMP("rpStatStreakActive")} unit={tMP("rpStatDays")} color="#FFD700" />
+        <RunnerStat emoji="⭐" value={runner.streak_best.toString()} label={tMP("rpStatStreakBest")} unit={tMP("rpStatDays")} color="#FF6B4A" />
       </div>
 
       {/* Equipment */}
@@ -3816,7 +3820,7 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
           }}>{runner.marker_icon}</div>
           <div>
-            <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>MAP-ICON</div>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>{tMP("rpMapIconLabel")}</div>
           </div>
         </div>
         <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
@@ -3827,7 +3831,7 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
             boxShadow: `0 0 12px ${runner.light_color}aa`,
           }} />
           <div>
-            <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>LIGHT</div>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>{tMP("rpLightLabel")}</div>
           </div>
         </div>
       </div>
@@ -3836,7 +3840,7 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
       <div style={{
         textAlign: "center", color: MUTED, fontSize: 11, fontStyle: "italic",
       }}>
-        Mitglied seit {memberSince}
+        {tMP("rpMemberSince", { date: memberSince })}
       </div>
     </Modal>
   );
@@ -4558,22 +4562,24 @@ function ShopDetailModal({ shop, userXp, onClose }: {
   );
 }
 
-const REPORT_REASONS: Array<{ id: "wrong_info" | "closed" | "spam" | "inappropriate" | "unfriendly" | "not_honored" | "other"; label: string; icon: string }> = [
-  { id: "wrong_info",    label: "Info stimmt nicht",       icon: "📝" },
-  { id: "closed",        label: "Shop ist geschlossen",     icon: "🚫" },
-  { id: "not_honored",   label: "Deal wurde nicht eingelöst", icon: "❌" },
-  { id: "unfriendly",    label: "Unhöflicher Umgang",        icon: "😠" },
-  { id: "inappropriate", label: "Unangemessener Inhalt",     icon: "⚠️" },
-  { id: "spam",          label: "Spam / Fake-Shop",          icon: "🗑️" },
-  { id: "other",         label: "Anderer Grund",             icon: "💬" },
+type ReportReasonId = "wrong_info" | "closed" | "spam" | "inappropriate" | "unfriendly" | "not_honored" | "other";
+const REPORT_REASON_DEFS: Array<{ id: ReportReasonId; labelKey: string; icon: string }> = [
+  { id: "wrong_info",    labelKey: "rsReasonWrongInfo",    icon: "📝" },
+  { id: "closed",        labelKey: "rsReasonClosed",       icon: "🚫" },
+  { id: "not_honored",   labelKey: "rsReasonNotHonored",   icon: "❌" },
+  { id: "unfriendly",    labelKey: "rsReasonUnfriendly",   icon: "😠" },
+  { id: "inappropriate", labelKey: "rsReasonInappropriate", icon: "⚠️" },
+  { id: "spam",          labelKey: "rsReasonSpam",         icon: "🗑️" },
+  { id: "other",         labelKey: "rsReasonOther",        icon: "💬" },
 ];
 
 function ReportShopModal({ shop, onClose }: {
   shop: { id: string; name: string };
   onClose: () => void;
 }) {
+  const tMP = useTranslations("MapPanels");
   const sb = createClient();
-  const [reason, setReason] = useState<typeof REPORT_REASONS[number]["id"] | null>(null);
+  const [reason, setReason] = useState<ReportReasonId | null>(null);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -4587,21 +4593,21 @@ function ReportShopModal({ shop, onClose }: {
   async function submit() {
     if (!reason) return;
     if (!commentValid) {
-      await appAlert(`Bitte beschreibe das Problem in mindestens ${MIN_COMMENT} Zeichen — sonst koennen wir dem Hinweis nicht nachgehen.`);
+      await appAlert(tMP("rsMinCommentAlert", { min: MIN_COMMENT }));
       return;
     }
     setBusy(true);
     try {
       const { data: { user } } = await sb.auth.getUser();
-      if (!user) { await appAlert("Bitte einloggen."); return; }
+      if (!user) { await appAlert(tMP("rsLoginRequired")); return; }
       const { error } = await sb.from("shop_reports").insert({
         business_id: shop.id,
         user_id: user.id,
         reason,
         comment: trimmedComment,
       });
-      if (error) { await appAlert(`Fehler: ${error.message}`); return; }
-      await appAlert("Danke! Wir schauen uns den Shop an.");
+      if (error) { await appAlert(tMP("rsErrorPrefix", { error: error.message })); return; }
+      await appAlert(tMP("rsThankYou"));
       onClose();
     } finally { setBusy(false); }
   }
@@ -4618,7 +4624,7 @@ function ReportShopModal({ shop, onClose }: {
         padding: 22, color: "#FFF",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <div style={{ fontSize: 9, letterSpacing: 2, color: "#FF2D78", fontWeight: 900 }}>⚠️ SHOP MELDEN</div>
+          <div style={{ fontSize: 9, letterSpacing: 2, color: "#FF2D78", fontWeight: 900 }}>{tMP("rsKicker")}</div>
           <button onClick={onClose} style={{
             width: 28, height: 28, borderRadius: "50%",
             background: "rgba(255,255,255,0.06)", border: "none",
@@ -4627,9 +4633,9 @@ function ReportShopModal({ shop, onClose }: {
         </div>
         <div style={{ fontSize: 17, fontWeight: 900, marginBottom: 16 }}>{shop.name}</div>
 
-        <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 10 }}>Was stimmt nicht?</div>
+        <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 10 }}>{tMP("rsQuestion")}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
-          {REPORT_REASONS.map((r) => (
+          {REPORT_REASON_DEFS.map((r) => (
             <button
               key={r.id}
               onClick={() => setReason(r.id)}
@@ -4643,7 +4649,7 @@ function ReportShopModal({ shop, onClose }: {
               }}
             >
               <span style={{ fontSize: 18 }}>{r.icon}</span>
-              <span>{r.label}</span>
+              <span>{tMP(r.labelKey as "rsReasonWrongInfo")}</span>
             </button>
           ))}
         </div>
@@ -4651,7 +4657,7 @@ function ReportShopModal({ shop, onClose }: {
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value.slice(0, 500))}
-          placeholder={`Details — was genau ist das Problem? (Pflicht, min. ${MIN_COMMENT} Zeichen, max. 500)`}
+          placeholder={tMP("rsPlaceholder", { min: MIN_COMMENT })}
           rows={3}
           style={{
             width: "100%", resize: "vertical",
@@ -4664,8 +4670,8 @@ function ReportShopModal({ shop, onClose }: {
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10 }}>
           <span style={{ color: reason && !commentValid ? "#FF2D78" : "#8B8FA3" }}>
             {reason && !commentValid
-              ? `Mindestens ${MIN_COMMENT} Zeichen — noch ${Math.max(0, MIN_COMMENT - trimmedComment.length)} fehlen.`
-              : "Hilft unserem Moderations-Team, dem Hinweis nachzugehen."}
+              ? tMP("rsCharsMissing", { min: MIN_COMMENT, missing: Math.max(0, MIN_COMMENT - trimmedComment.length) })
+              : tMP("rsModHint")}
           </span>
           <span style={{ color: "#8B8FA3" }}>{comment.length} / 500</span>
         </div>
@@ -4675,7 +4681,7 @@ function ReportShopModal({ shop, onClose }: {
             flex: 1, padding: "10px 14px", borderRadius: 10,
             background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
             color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer",
-          }}>Abbrechen</button>
+          }}>{tMP("rsCancel")}</button>
           <button
             onClick={submit}
             disabled={!canSubmit}
@@ -4686,7 +4692,7 @@ function ReportShopModal({ shop, onClose }: {
               fontSize: 13, fontWeight: 900, cursor: canSubmit ? "pointer" : "not-allowed",
               opacity: busy ? 0.6 : 1,
             }}
-          >{busy ? "Sende…" : "Melden"}</button>
+          >{busy ? tMP("rsSending") : tMP("rsSubmit")}</button>
         </div>
       </div>
     </div>
@@ -4698,21 +4704,23 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
   onClose: () => void;
   onViewRunner: (username: string) => void;
 }) {
+  const tMP = useTranslations("MapPanels");
+  const locale = useLocale();
   const ownerLabel: Record<string, string> = {
-    me: "Dein Gebiet",
-    crew: "Crew-Gebiet",
-    enemy_crew: "Feindliches Crew-Gebiet",
-    enemy_solo: "Feindlicher Solo-Läufer",
+    me: tMP("adOwnerMe"),
+    crew: tMP("adOwnerCrew"),
+    enemy_crew: tMP("adOwnerEnemyCrew"),
+    enemy_solo: tMP("adOwnerEnemySolo"),
   };
   const buffLabel: Record<string, string> = {
-    xp_multiplier: `${area.buff_value}× 🪙 in diesem Gebiet`,
-    shield:        `${area.buff_value}h Schild-Schutz`,
-    radar:         `${area.buff_value}% Radar-Reichweite`,
-    speed:         `${area.buff_value}× Bewegungs-Boost`,
-    none:          "Kein Buff",
+    xp_multiplier: tMP("adBuffXp", { value: area.buff_value }),
+    shield:        tMP("adBuffShield", { value: area.buff_value }),
+    radar:         tMP("adBuffRadar", { value: area.buff_value }),
+    speed:         tMP("adBuffSpeed", { value: area.buff_value }),
+    none:          tMP("adBuffNone"),
   };
   const isOwn = area.owner_type === "me" || area.owner_type === "crew";
-  const captured = new Date(area.captured_at).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" });
+  const captured = new Date(area.captured_at).toLocaleDateString(getDateLocale(locale), { day: "2-digit", month: "short", year: "numeric" });
 
   return (
     <Modal
@@ -4739,7 +4747,7 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
         <div style={{ flex: 1 }}>
           <div style={{ color: "#FFF", fontSize: 15, fontWeight: 800 }}>{area.owner_name}</div>
           <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-            {"★".repeat(area.level)}{"☆".repeat(3 - area.level)} · Level {area.level}
+            {"★".repeat(area.level)}{"☆".repeat(3 - area.level)} · {tMP("adLevelLabel", { n: area.level })}
           </div>
         </div>
       </div>
@@ -4751,15 +4759,15 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
         border: "1px solid rgba(255, 215, 0, 0.3)",
       }}>
         <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
-          ⚡ AKTIVER BUFF
+          {tMP("adActiveBuff")}
         </div>
         <div style={{ color: "#FFF", fontSize: 14, fontWeight: 700 }}>{buffLabel[area.buff_type]}</div>
       </div>
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-        <RunnerStat emoji="⚡" value={area.passive_power_per_day.toString()} label="Macht / Tag" color={PRIMARY} />
-        <RunnerStat emoji="👥" value={area.contributors.length.toString()} label="Beteiligte" color="#5ddaf0" />
+        <RunnerStat emoji="⚡" value={area.passive_power_per_day.toString()} label={tMP("adStatPower")} color={PRIMARY} />
+        <RunnerStat emoji="👥" value={area.contributors.length.toString()} label={tMP("adStatContributors")} color="#5ddaf0" />
       </div>
 
       {/* Contributors */}
@@ -4769,7 +4777,7 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
         border: "1px solid rgba(255,255,255,0.08)",
       }}>
         <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>
-          MITWIRKENDE
+          {tMP("adContributorsHeader")}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {area.contributors.map((c) => {
@@ -4804,23 +4812,27 @@ function AreaDetailModal({ area, onClose, onViewRunner }: {
       </div>
 
       <div style={{ textAlign: "center", color: MUTED, fontSize: 11, fontStyle: "italic" }}>
-        Erobert am {captured}
+        {tMP("adCapturedOn", { date: captured })}
       </div>
 
-      {isOwn && area.level < 3 && (
-        <button
-          onClick={() => appAlert(`Upgrade auf Level ${area.level + 1} für ${(area.level * 2000).toLocaleString()} 🪙 Wegemünzen – kommt bald`)}
-          style={{
-            width: "100%", marginTop: 16, padding: "12px 18px", borderRadius: 12,
-            background: `linear-gradient(135deg, ${area.owner_color}, ${PRIMARY})`,
-            border: "none", cursor: "pointer",
-            color: BG_DEEP, fontSize: 14, fontWeight: 900,
-            boxShadow: `0 4px 16px ${area.owner_color}66`,
-          }}
-        >
-          ⬆ UPGRADE AUF LEVEL {area.level + 1} ({(area.level * 2000).toLocaleString()} 🪙)
-        </button>
-      )}
+      {isOwn && area.level < 3 && (() => {
+        const next = area.level + 1;
+        const cost = (area.level * 2000).toLocaleString(getNumberLocale(locale));
+        return (
+          <button
+            onClick={() => appAlert(tMP("adUpgradeAlert", { next, cost }))}
+            style={{
+              width: "100%", marginTop: 16, padding: "12px 18px", borderRadius: 12,
+              background: `linear-gradient(135deg, ${area.owner_color}, ${PRIMARY})`,
+              border: "none", cursor: "pointer",
+              color: BG_DEEP, fontSize: 14, fontWeight: 900,
+              boxShadow: `0 4px 16px ${area.owner_color}66`,
+            }}
+          >
+            {tMP("adUpgradeBtn", { next, cost })}
+          </button>
+        );
+      })()}
     </Modal>
   );
 }
@@ -5359,8 +5371,16 @@ function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, 
   displayFmt: (v: number) => string;
   tier?: string;
 }) {
+  const tMP = useTranslations("MapPanels");
+  const locale = useLocale();
   const tierColors: Record<string, string> = { easy: "#CD7F32", medium: "#C0C0C0", hard: "#FFD700", epic: "#E5E4E2", legend: "#B9F2FF" };
-  const tierLabels: Record<string, string> = { easy: "BRONZE", medium: "SILBER", hard: "GOLD", epic: "PLATIN", legend: "DIAMANT" };
+  const tierLabels: Record<string, string> = {
+    easy: tMP("achTierBronze"),
+    medium: tMP("achTierSilber"),
+    hard: tMP("achTierGold"),
+    epic: tMP("achTierPlatin"),
+    legend: tMP("achTierDiamant"),
+  };
   const accent = unlocked ? "#FFD700" : PRIMARY;
   return (
     <div style={{
@@ -5442,7 +5462,7 @@ function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, 
           color: unlocked ? accent : MUTED,
           fontSize: 10, fontWeight: 800,
         }}>
-          {unlocked ? "✓ " : ""}+{xp.toLocaleString()} 🪙
+          {unlocked ? "✓ " : ""}+{xp.toLocaleString(getNumberLocale(locale))} 🪙
         </span>
       </div>
     </div>
@@ -5450,6 +5470,8 @@ function AchievementRow({ icon, name, xp, unlocked, current, target, unit, pct, 
 }
 
 function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) {
+  const tMP = useTranslations("MapPanels");
+  const locale = useLocale();
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -5486,8 +5508,8 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
     return `${color}${Math.round(alpha * 255).toString(16).padStart(2, "0")}`;
   };
 
-  const monthName = firstOfMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
-  const weekdays = ["M", "D", "M", "D", "F", "S", "S"];
+  const monthName = firstOfMonth.toLocaleDateString(getDateLocale(locale), { month: "long", year: "numeric" });
+  const weekdays = [tMP("calWeekday0"), tMP("calWeekday1"), tMP("calWeekday2"), tMP("calWeekday3"), tMP("calWeekday4"), tMP("calWeekday5"), tMP("calWeekday6")];
   const todayDay = today.getDate();
   const activeDays = Array.from(kmMap.values()).filter((v) => v > 0).length;
   const totalKm = Array.from(kmMap.values()).reduce((s, v) => s + v, 0) / 1000;
@@ -5505,7 +5527,7 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
           {monthName}
         </div>
         <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-          {activeDays} aktive Tage · {totalKm.toFixed(1)} km
+          {tMP("calActiveDays", { active: activeDays, km: totalKm.toFixed(1) })}
         </div>
       </div>
 
@@ -5534,7 +5556,7 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
                 key={i}
                 onClick={() => hasRuns && setSelectedDay(isSelected ? null : day)}
                 disabled={!hasRuns}
-                title={km > 0 ? `${day}.: ${km.toFixed(2)} km — klicken für Details` : `${day}.`}
+                title={km > 0 ? tMP("calDayTooltip", { day, km: km.toFixed(2) }) : tMP("calDayPlain", { day })}
                 style={{
                   width: 32, height: 32, borderRadius: 6,
                   background: isFuture ? "rgba(255,255,255,0.03)" : bgFor(intensity(km)),
@@ -5557,11 +5579,11 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
 
       {/* Legende */}
       <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: MUTED }}>
-        <span>Weniger</span>
+        <span>{tMP("calLess")}</span>
         {[0, 1, 2, 3, 4].map((lvl) => (
           <div key={lvl} style={{ width: 10, height: 10, borderRadius: 2, background: bgFor(lvl) }} />
         ))}
-        <span>Mehr</span>
+        <span>{tMP("calMore")}</span>
       </div>
 
       {/* Tages-Details bei Klick */}
@@ -5582,17 +5604,17 @@ function MonthlyCalendar({ runs, color }: { runs: Territory[]; color: string }) 
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-                📅 {selectedDay}. {firstOfMonth.toLocaleDateString("de-DE", { month: "long" })}
+                {tMP("calDayHeader", { day: selectedDay, month: firstOfMonth.toLocaleDateString(getDateLocale(locale), { month: "long" }) })}
               </div>
               <button onClick={() => setSelectedDay(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 16, cursor: "pointer", padding: 0 }}>×</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-              <DayStat label="km"      value={(totalM/1000).toFixed(2)} color={color} />
-              <DayStat label="min"     value={Math.round(totalS/60).toString()} color={color} />
-              <DayStat label="XP"      value={totalXp.toString()} color="#FFD700" />
-              <DayStat label="kcal"    value={kcal.toString()} color="#FF6B4A" />
-              <DayStat label="Läufe"   value={dayRuns.length.toString()} color={color} />
-              <DayStat label="Gebiete" value={(segs+streets+polys).toString()} color={color} />
+              <DayStat label={tMP("calStatKm")}      value={(totalM/1000).toFixed(2)} color={color} />
+              <DayStat label={tMP("calStatMin")}     value={Math.round(totalS/60).toString()} color={color} />
+              <DayStat label={tMP("calStatXp")}      value={totalXp.toString()} color="#FFD700" />
+              <DayStat label={tMP("calStatKcal")}    value={kcal.toString()} color="#FF6B4A" />
+              <DayStat label={tMP("calStatRuns")}    value={dayRuns.length.toString()} color={color} />
+              <DayStat label={tMP("calStatTerritories")} value={(segs+streets+polys).toString()} color={color} />
             </div>
           </div>
         );
