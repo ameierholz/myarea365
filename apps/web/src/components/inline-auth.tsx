@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -8,33 +9,6 @@ import { Loader2, ArrowRight, Info } from "lucide-react";
 import { getStoredReferralCode, clearStoredReferralCode } from "@/lib/referral";
 import { isCapacitorNative, APP_AUTH_CALLBACK } from "@/lib/capacitor";
 import { openLegalModal } from "@/components/legal-modal";
-
-const FACTIONS = [
-  {
-    id: "kronenwacht",
-    name: "Kronenwacht",
-    icon: "👑",
-    color: "#FFD700",
-    motto: "Halten · Pflegen",
-    buff_name: "Beständig",
-    buff_lines: [
-      "Bonus-Wegemünzen für lange gehaltene Straßen",
-      "Deine Gebiete verblassen langsamer",
-    ],
-  },
-  {
-    id: "gossenbund",
-    name: "Gossenbund",
-    icon: "🗝️",
-    color: "#22D1C3",
-    motto: "Erobern · Vorstoßen",
-    buff_name: "Raubzug",
-    buff_lines: [
-      "Bonus-Wegemünzen beim Erobern neuer Straßen",
-      "Übermalst gegnerische Straßen schneller",
-    ],
-  },
-] as const;
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -48,6 +22,27 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export function InlineAuth() {
+  const tA = useTranslations("InlineAuth");
+  const FACTIONS = useMemo(() => [
+    {
+      id: "kronenwacht" as const,
+      name: tA("factionKronenwachtName"),
+      icon: "👑",
+      color: "#FFD700",
+      motto: tA("factionKronenwachtMotto"),
+      buff_name: tA("factionKronenwachtBuffName"),
+      buff_lines: [tA("factionKronenwachtBuff1"), tA("factionKronenwachtBuff2")],
+    },
+    {
+      id: "gossenbund" as const,
+      name: tA("factionGossenbundName"),
+      icon: "🗝️",
+      color: "#22D1C3",
+      motto: tA("factionGossenbundMotto"),
+      buff_name: tA("factionGossenbundBuffName"),
+      buff_lines: [tA("factionGossenbundBuff1"), tA("factionGossenbundBuff2")],
+    },
+  ], [tA]);
   const router = useRouter();
   const [mode, setMode] = useState<"register" | "login">("register");
   const [username, setUsername] = useState("");
@@ -74,7 +69,7 @@ export function InlineAuth() {
         options: { redirectTo: APP_AUTH_CALLBACK, skipBrowserRedirect: true },
       });
       if (error || !data?.url) {
-        setError(error?.message ?? "Google-Login konnte nicht gestartet werden.");
+        setError(error?.message ?? tA("googleLoginFailed"));
         return;
       }
       const { Browser } = await import("@capacitor/browser");
@@ -94,10 +89,10 @@ export function InlineAuth() {
     setSuccess("");
 
     if (mode === "register") {
-      if (!faction) return setError("Bitte wähle eine Fraktion.");
-      if (!acceptTerms) return setError("Bitte akzeptiere AGB und Datenschutz.");
+      if (!faction) return setError(tA("needFaction"));
+      if (!acceptTerms) return setError(tA("needTerms"));
       if (heimatPlz && !/^[0-9]{5}$/.test(heimatPlz)) {
-        return setError("PLZ muss 5-stellig sein (oder leer lassen).");
+        return setError(tA("plzInvalid"));
       }
     }
 
@@ -107,7 +102,7 @@ export function InlineAuth() {
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setError(error.message === "Invalid login credentials" ? "E-Mail oder Passwort falsch." : error.message);
+        setError(error.message === "Invalid login credentials" ? tA("loginInvalid") : error.message);
         setLoading(false);
         return;
       }
@@ -116,11 +111,11 @@ export function InlineAuth() {
       return;
     }
 
-    if (username.length < 3) { setError("Runner-Name: mindestens 3 Zeichen."); setLoading(false); return; }
+    if (username.length < 3) { setError(tA("runnerNameTooShort")); setLoading(false); return; }
 
     const { data: existing } = await supabase
       .from("users").select("id").eq("username", username.toLowerCase()).maybeSingle();
-    if (existing) { setError("Dieser Runner-Name ist vergeben."); setLoading(false); return; }
+    if (existing) { setError(tA("runnerNameTaken")); setLoading(false); return; }
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email, password,
@@ -169,12 +164,12 @@ export function InlineAuth() {
         className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg bg-white text-gray-800 font-semibold text-sm hover:bg-gray-100 transition-colors mb-3"
       >
         <GoogleIcon className="w-4 h-4" />
-        Mit Google {mode === "register" ? "registrieren" : "anmelden"}
+        {mode === "register" ? tA("googleRegister") : tA("googleLogin")}
       </button>
 
       <div className="flex items-center gap-3 mb-3">
         <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-text-muted">oder per E-Mail</span>
+        <span className="text-xs text-text-muted">{tA("orEmail")}</span>
         <div className="flex-1 h-px bg-border" />
       </div>
 
@@ -184,7 +179,7 @@ export function InlineAuth() {
             type="text" required minLength={3} maxLength={24}
             value={username}
             onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-            placeholder="Runner-Name wählen"
+            placeholder={tA("phRunnerName")}
             className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
           />
         )}
@@ -192,13 +187,13 @@ export function InlineAuth() {
         <input
           type="email" required value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="E-Mail"
+          placeholder={tA("phEmail")}
           className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
         />
         <input
           type="password" required minLength={mode === "register" ? 8 : 6} value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder={mode === "register" ? "Passwort (min. 8 Zeichen)" : "Passwort"}
+          placeholder={mode === "register" ? tA("phPasswordRegister") : tA("phPassword")}
           className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
         />
 
@@ -207,21 +202,22 @@ export function InlineAuth() {
             {/* Fraktion */}
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-text-muted">Fraktion wählen</label>
+                <label className="text-xs font-semibold text-text-muted">{tA("factionLabel")}</label>
                 <button
                   type="button"
                   onClick={() => setShowFactionInfo((v) => !v)}
                   className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-dim"
                 >
                   <Info className="w-3 h-3" />
-                  {showFactionInfo ? "Schließen" : "Was ist das?"}
+                  {showFactionInfo ? tA("closeFactionInfo") : tA("whatIsThis")}
                 </button>
               </div>
               {showFactionInfo && (
                 <div className="absolute right-0 -top-2 -translate-y-full z-40 w-72 p-3 rounded-lg bg-bg-elevated border border-primary/60 text-[11px] text-text-muted leading-relaxed text-left shadow-2xl">
-                  <b className="text-text">2 weltweite Teams</b>, die sich jede Saison duellieren. Deine km zählen für
-                  deine Fraktion — weltweit, pro Land, Stadt, PLZ. Trotzdem eigene Crew möglich.
-                  <span className="block mt-1 text-danger font-semibold">Nicht änderbar nach Registrierung.</span>
+                  {tA.rich("factionInfoRich", {
+                    b: (chunks) => <b className="text-text">{chunks}</b>,
+                  })}
+                  <span className="block mt-1 text-danger font-semibold">{tA("factionNotChangeable")}</span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
@@ -265,7 +261,7 @@ export function InlineAuth() {
               maxLength={5}
               value={heimatPlz}
               onChange={(e) => setHeimatPlz(e.target.value.replace(/\D/g, "").slice(0, 5))}
-              placeholder="Heimat-PLZ (optional, z. B. 10827)"
+              placeholder={tA("phHeimatPlz")}
               className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
             />
 
@@ -277,7 +273,7 @@ export function InlineAuth() {
                 className="mt-0.5 w-3.5 h-3.5 rounded border-border accent-primary"
               />
               <span className="text-[11px] text-text-muted leading-relaxed">
-                Ja, ich will den <b className="text-text">Kiez-Newsletter</b> (max. 1× / Monat, jederzeit abbestellbar).
+                {tA.rich("newsletterRich", { b: (chunks) => <b className="text-text">{chunks}</b> })}
               </span>
             </label>
 
@@ -289,10 +285,10 @@ export function InlineAuth() {
                 className="mt-0.5 w-3.5 h-3.5 rounded border-border accent-primary"
               />
               <span className="text-[11px] text-text-muted leading-relaxed">
-                Ich akzeptiere die{" "}
-                <button type="button" onClick={() => openLegalModal("agb")} className="text-primary hover:underline">AGB</button>
-                {" und die "}
-                <button type="button" onClick={() => openLegalModal("datenschutz")} className="text-primary hover:underline">Datenschutzerklärung</button>.
+                {tA.rich("termsRich", {
+                  agb: (chunks) => <button type="button" onClick={() => openLegalModal("agb")} className="text-primary hover:underline">{chunks}</button>,
+                  ds: (chunks) => <button type="button" onClick={() => openLegalModal("datenschutz")} className="text-primary hover:underline">{chunks}</button>,
+                })}
               </span>
             </label>
           </>
@@ -307,28 +303,28 @@ export function InlineAuth() {
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-            <>{mode === "register" ? "Kostenlos starten" : "Anmelden"} <ArrowRight className="w-4 h-4" /></>
+            <>{mode === "register" ? tA("ctaRegister") : tA("ctaLogin")} <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
       </form>
 
       <p className="text-center text-xs text-text-muted mt-2.5">
         {mode === "register" ? (
-          <>Schon dabei? <button onClick={() => { setMode("login"); setError(""); setSuccess(""); }} className="text-primary hover:text-primary-dim font-medium transition-colors">Anmelden</button></>
+          <>{tA("altLogin")}<button onClick={() => { setMode("login"); setError(""); setSuccess(""); }} className="text-primary hover:text-primary-dim font-medium transition-colors">{tA("altLoginBtn")}</button></>
         ) : (
-          <>Neu hier? <button onClick={() => { setMode("register"); setError(""); setSuccess(""); }} className="text-primary hover:text-primary-dim font-medium transition-colors">Kostenlos registrieren</button></>
+          <>{tA("altRegister")}<button onClick={() => { setMode("register"); setError(""); setSuccess(""); }} className="text-primary hover:text-primary-dim font-medium transition-colors">{tA("altRegisterBtn")}</button></>
         )}
       </p>
 
       {/* Legal-Links — immer sichtbar, öffnen Modal statt Navigation */}
       <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-text-muted">
-        <button type="button" onClick={() => openLegalModal("agb")} className="hover:text-primary transition-colors">AGB</button>
+        <button type="button" onClick={() => openLegalModal("agb")} className="hover:text-primary transition-colors">{tA("linkAgb")}</button>
         <span>·</span>
-        <button type="button" onClick={() => openLegalModal("datenschutz")} className="hover:text-primary transition-colors">Datenschutz</button>
+        <button type="button" onClick={() => openLegalModal("datenschutz")} className="hover:text-primary transition-colors">{tA("linkDatenschutz")}</button>
         <span>·</span>
-        <button type="button" onClick={() => openLegalModal("impressum")} className="hover:text-primary transition-colors">Impressum</button>
+        <button type="button" onClick={() => openLegalModal("impressum")} className="hover:text-primary transition-colors">{tA("linkImpressum")}</button>
         <span>·</span>
-        <Link href="/support" className="hover:text-primary transition-colors">Support</Link>
+        <Link href="/support" className="hover:text-primary transition-colors">{tA("linkSupport")}</Link>
       </div>
     </div>
   );
