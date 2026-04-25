@@ -43,30 +43,30 @@ export const ARTWORK_RACES: Record<string, RaceLore> = {
   "Singularitäts-Seher":{ material: "schwebende Singularitäten und kosmischer Staub", style: "kosmisch, abstrakt",           energyColor: "#a855f7", role: "dps" },
 };
 
+// 8-Slot-System (Equipment-Rework, Migration 00078).
 export const ARTWORK_SLOTS = [
-  "Helm", "Halskette", "Schultern", "Brustplatte", "Gürtel",
-  "Hose", "Stiefel", "Armschienen", "Handschuhe", "Ring",
-  "Umhang", "Schmuckstück", "Haupthand-Waffe", "Nebenhand", "Rücken",
+  "Helm", "Brustplatte", "Hose", "Stiefel",
+  "Handschuhe", "Waffe", "Halskette", "Ring",
 ] as const;
 
 export type ArtworkSlot = typeof ARTWORK_SLOTS[number];
 
+// 4 Raritäten (passt zu DB-Constraint common/rare/epic/legend).
 export const ARTWORK_RARITIES = [
-  { level: "Ungewöhnlich", effect: "leichte Lichtreflexe",                                  power: 1.2, color: "#9ba8c7" },
-  { level: "Selten",        effect: "magisches Glimmen",                                     power: 1.5, color: "#1db682" },
-  { level: "Episch",        effect: "pulsierende Energie-Adern",                             power: 2.0, color: "#a855f7" },
-  { level: "Legendär",      effect: "schwebende Fragmente und Partikelsturm",                power: 3.0, color: "#FFD700" },
-  { level: "Artefakt",      effect: "reißt den Raum auf, göttliche Aura",                    power: 5.0, color: "#FF2D78" },
-  { level: "Transzendent",  effect: "kosmische Realitätsverzerrung, ultimatives Leuchten",   power: 8.0, color: "#FFFFFF" },
+  { level: "Gewöhnlich", effect: "matte Oberfläche, dezente Lichtreflexe",      power: 1.0, color: "#9aa3b8" },
+  { level: "Selten",     effect: "magisches Glimmen entlang der Kanten",        power: 1.7, color: "#22D1C3" },
+  { level: "Episch",     effect: "pulsierende Energie-Adern, sichtbarer Glanz", power: 2.8, color: "#a855f7" },
+  { level: "Legendär",   effect: "schwebende Fragmente, goldener Partikelsturm",power: 4.5, color: "#FFD700" },
 ] as const;
 
 export type ArtworkRarity = typeof ARTWORK_RARITIES[number]["level"];
 
+export type EquipmentClassId = "tank" | "support" | "ranged" | "melee";
+
 export type GeneratedPrompt = {
-  key: string;           // `race__slot__rarity` ASCII-Slug
+  key: string;           // `slot__class__rarity` ASCII-Slug
   itemName: string;
-  race: string;
-  role: RaceLore["role"];
+  classId: EquipmentClassId;
   slot: ArtworkSlot;
   rarity: ArtworkRarity;
   statValue: number;
@@ -80,24 +80,67 @@ function slug(s: string): string {
     .replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
 }
 
-export function buildPrompt(race: string, slot: ArtworkSlot, rarityLevel: ArtworkRarity): GeneratedPrompt {
-  const lore = ARTWORK_RACES[race];
-  const rarity = ARTWORK_RARITIES.find((r) => r.level === rarityLevel)!;
-  const prompt =
-    `Game Icon, ${rarityLevel} ${slot} of the ${race}, ` +
-    `made of ${lore.material}, style: ${lore.style}, ` +
-    `visual effect: ${rarity.effect}, ` +
-    `lighting: cinematic, glow color ${lore.energyColor}, ` +
-    `high-end UI asset, black background, 3D render, Unreal Engine 5 style, ` +
-    `accent colors #1db682 and #6991d8, 8k resolution.`;
+// Klassen-Material/Stil-Profil (4 Klassen statt 20 Rassen).
+type ClassProfile = { material: string; style: string; energyColor: string; theme: string };
+export const EQUIPMENT_CLASS_PROFILE: Record<EquipmentClassId, ClassProfile> = {
+  tank: {
+    material: "thick forged steel plates with riveted seams, leather straps, scarred dark iron",
+    style:    "imposing, heavy, fortress-like, sharp ridged edges, defensive posture",
+    energyColor: "#60a5fa",
+    theme:    "fortress / bulwark / oath-bound defender",
+  },
+  support: {
+    material: "polished pale gold metal with woven white silk, glowing inset gems, etched arcane sigils",
+    style:    "ornate, elegant, slightly ethereal, soft inner glow",
+    energyColor: "#a855f7",
+    theme:    "blessing / sanctified / arcane priestly",
+  },
+  ranged: {
+    material: "lightweight lacquered wood with dark green leather wraps, brass fittings, feather inlays",
+    style:    "aerodynamic, lean, hunter-coded, precise tooling marks",
+    energyColor: "#4ade80",
+    theme:    "hunter / sniper / sky-watcher",
+  },
+  melee: {
+    material: "blackened sharpened steel with crimson leather wraps, exposed cutting edges, predator details",
+    style:    "fast, sleek, aggressive, lots of edges, killing-tool aesthetic",
+    energyColor: "#FF6B4A",
+    theme:    "duelist / assassin / blade-dancer",
+  },
+};
+
+// Slot-Hint für den Bild-Prompt (was eigentlich gerendert wird).
+const SLOT_HINT: Record<ArtworkSlot, string> = {
+  "Helm":        "a single helmet / face-piece, centered, no body underneath",
+  "Brustplatte": "a single chest armor piece (cuirass / robe upper / breastplate), centered, mounted on an invisible torso",
+  "Hose":        "a single pair of armored greaves / robe legs, centered, mounted on invisible legs",
+  "Stiefel":     "a single pair of boots / sabatons, centered, side-by-side",
+  "Handschuhe":  "a single pair of gauntlets / gloves, centered, palms forward",
+  "Waffe":       "a single weapon (sword / staff / bow / dagger appropriate to the class), centered, vertical or diagonal",
+  "Halskette":   "a single ornate necklace / amulet on a chain, centered, hanging vertically",
+  "Ring":        "a single ornate ring with a gem or rune, centered, slightly tilted to show detail",
+};
+
+export function buildPrompt(slot: ArtworkSlot, classId: EquipmentClassId, rarityLevel: ArtworkRarity): GeneratedPrompt {
+  const profile = EQUIPMENT_CLASS_PROFILE[classId];
+  const rarity  = ARTWORK_RARITIES.find((r) => r.level === rarityLevel)!;
+  const slotHint = SLOT_HINT[slot];
+  const prompt = [
+    `Premium fantasy game item icon, square 1:1, 1024x1024, fully transparent background (PNG with alpha).`,
+    `Subject: ${slotHint}.`,
+    `Class theme: ${profile.theme}. Material: ${profile.material}. Style: ${profile.style}.`,
+    `Rarity: ${rarityLevel} — ${rarity.effect}. Accent glow color ${profile.energyColor}.`,
+    `Composition: item slightly tilted toward the viewer, centered, subtle drop shadow beneath. Item fills ~70% of frame width with a clean 10% margin on all sides — silhouette must NOT touch frame edges.`,
+    `Style: high-detail painterly game icon (Diablo / Path-of-Exile / Final-Fantasy quality), tight rim-light, readable at 64px in an inventory slot.`,
+    `No text, no labels, no characters, no body parts beyond what the item itself implies, no watermark, no environment, no scene — just the item on transparent background.`,
+  ].join(" ");
   return {
-    key: `${slug(race)}__${slug(slot)}__${slug(rarityLevel)}`,
-    itemName: `${rarityLevel}er ${slot} der ${race}`,
-    race,
-    role: lore.role,
+    key:        `${slug(slot)}__${classId}__${slug(rarityLevel)}`,
+    itemName:   `${rarityLevel}-${slot} (${classId})`,
+    classId,
     slot,
-    rarity: rarityLevel,
-    statValue: Math.floor(10 * rarity.power),
+    rarity:     rarityLevel,
+    statValue:  Math.floor(10 * rarity.power),
     prompt,
     accentColor: rarity.color,
   };
@@ -105,14 +148,15 @@ export function buildPrompt(race: string, slot: ArtworkSlot, rarityLevel: Artwor
 
 export function generateAllPrompts(): GeneratedPrompt[] {
   const out: GeneratedPrompt[] = [];
-  for (const race of Object.keys(ARTWORK_RACES)) {
-    for (const slot of ARTWORK_SLOTS) {
+  const classes: EquipmentClassId[] = ["tank", "support", "ranged", "melee"];
+  for (const slot of ARTWORK_SLOTS) {
+    for (const cls of classes) {
       for (const r of ARTWORK_RARITIES) {
-        out.push(buildPrompt(race, slot, r.level));
+        out.push(buildPrompt(slot, cls, r.level));
       }
     }
   }
-  return out;
+  return out;  // 8 × 4 × 4 = 128
 }
 
 /** Prompt für Wächter-Archetyp (Charakter-Illustration oder animiertes Video) */

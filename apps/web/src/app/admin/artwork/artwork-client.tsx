@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -85,6 +85,7 @@ type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme
 
 type Item = {
   id: string; name: string; emoji: string; slot: string; rarity: string;
+  class_id: "tank" | "support" | "ranged" | "melee" | null;
   image_url: string | null;
 };
 
@@ -344,7 +345,17 @@ function LoadingBox() {
 /*  Tab: Ausrüstung (Items)                                   */
 /* ═════════════════════════════════════════════════════════ */
 
-const SLOT_LABEL: Record<string, string> = { helm: "Helm", armor: "Rüstung", amulet: "Amulett" };
+const SLOT_LABEL: Record<string, string> = {
+  helm: "Helm", chest: "Brustplatte", legs: "Hose", boots: "Stiefel",
+  gloves: "Handschuhe", weapon: "Waffe", necklace: "Halskette", ring: "Ring",
+  // Legacy
+  armor: "Rüstung", amulet: "Amulett",
+};
+const SLOT_EMOJI: Record<string, string> = {
+  helm: "🪖", chest: "🛡️", legs: "👖", boots: "🥾",
+  gloves: "🧤", weapon: "⚔️", necklace: "📿", ring: "💍",
+  armor: "🛡️", amulet: "📿",
+};
 const ITEM_RARITY_META: Record<string, { label: string; color: string }> = {
   common: { label: "GEWÖHNLICH", color: "#8B8FA3" },
   rare:   { label: "SELTEN",     color: "#22D1C3" },
@@ -355,11 +366,13 @@ const ITEM_RARITY_META: Record<string, { label: string; color: string }> = {
 function ItemsTab({ items, onChange }: { items: Item[]; onChange: () => void }) {
   const [filterSlot, setFilterSlot] = useState<string>("ALL");
   const [filterRarity, setFilterRarity] = useState<string>("ALL");
+  const [filterClass, setFilterClass] = useState<string>("ALL");
   const [missingOnly, setMissingOnly] = useState(false);
 
   const filtered = items.filter((i) => {
     if (filterSlot !== "ALL" && i.slot !== filterSlot) return false;
     if (filterRarity !== "ALL" && i.rarity !== filterRarity) return false;
+    if (filterClass !== "ALL" && i.class_id !== filterClass) return false;
     if (missingOnly && i.image_url) return false;
     return true;
   });
@@ -370,21 +383,34 @@ function ItemsTab({ items, onChange }: { items: Item[]; onChange: () => void }) 
   return (
     <div>
       {/* Filter-Bar */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
         <select value={filterSlot} onChange={(e) => setFilterSlot(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Slots</option>
-          <option value="helm">⛑️ Helme</option>
-          <option value="armor">🛡️ Rüstungen</option>
-          <option value="amulet">📿 Amulette</option>
+          <option value="helm">🪖 Helm</option>
+          <option value="chest">🛡️ Brustplatte</option>
+          <option value="legs">👖 Hose</option>
+          <option value="boots">🥾 Stiefel</option>
+          <option value="gloves">🧤 Handschuhe</option>
+          <option value="weapon">⚔️ Waffe</option>
+          <option value="necklace">📿 Halskette</option>
+          <option value="ring">💍 Ring</option>
+        </select>
+        <select value={filterClass} onChange={(e) => setFilterClass(e.target.value)}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="ALL">Alle Klassen</option>
+          <option value="tank">🛡️ Tank</option>
+          <option value="support">✨ Support</option>
+          <option value="ranged">🏹 Fernkampf</option>
+          <option value="melee">⚔️ Nahkampf</option>
         </select>
         <select value={filterRarity} onChange={(e) => setFilterRarity(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Raritäten</option>
-          <option value="common">Common</option>
-          <option value="rare">Rare</option>
-          <option value="epic">Epic</option>
-          <option value="legend">Legend</option>
+          <option value="common">Gewöhnlich</option>
+          <option value="rare">Selten</option>
+          <option value="epic">Episch</option>
+          <option value="legend">Legendär</option>
         </select>
         <label className="flex items-center gap-2 bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer">
           <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
@@ -473,8 +499,15 @@ function ItemCard({ item, onChange }: { item: Item; onChange: () => void }) {
         )}
       </div>
       <div className="p-3">
-        <div className="font-black text-sm text-white">{item.emoji} {item.name}</div>
-        <div className="text-[10px] text-[#a8b4cf] mt-1">{SLOT_LABEL[item.slot] ?? item.slot} · {item.id}</div>
+        <div className="font-black text-sm text-white">{SLOT_EMOJI[item.slot] ?? item.emoji} {item.name}</div>
+        <div className="text-[10px] text-[#a8b4cf] mt-1 flex items-center gap-2 flex-wrap">
+          <span>{SLOT_LABEL[item.slot] ?? item.slot}</span>
+          {item.class_id && (
+            <span style={{ color: CLASS_LABEL[item.class_id]?.color ?? "#a8b4cf" }} className="font-bold">
+              · {CLASS_LABEL[item.class_id]?.icon} {CLASS_LABEL[item.class_id]?.label}
+            </span>
+          )}
+        </div>
 
         <button onClick={copy} className={`mt-2 w-full text-[11px] rounded-lg py-1.5 font-bold ${hasImage ? "bg-[#4ade80]/15 border border-[#4ade80]/50 text-[#4ade80]" : "bg-[#0F1115] border border-[#22D1C3]/40 text-[#22D1C3]"}`}>
           {copied ? "✓ Kopiert" : "📋 Bild-Prompt"}
@@ -496,20 +529,22 @@ function ItemCard({ item, onChange }: { item: Item; onChange: () => void }) {
 }
 
 function buildItemPrompt(item: Item): string {
-  const slotPrompt = item.slot === "helm" ? "fantasy helmet headpiece"
-                   : item.slot === "armor" ? "fantasy body armor chest plate"
-                   : "fantasy amulet pendant necklace";
-  const rarityPrompt = item.rarity === "legend" ? "legendary rare artifact, glowing golden energy, floating particles, ornate engravings, holy aura"
-                     : item.rarity === "epic"   ? "epic magical enchantment, purple arcane energy, pulsating runes, mystical glow"
-                     : item.rarity === "rare"   ? "rare quality, cyan glowing accents, crystal inlays, polished finish"
-                     : "common worn gear, battle-used, subtle details";
-  return [
-    `Game asset icon, square 1:1 1024x1024, ${slotPrompt} called "${item.name}".`,
-    `Quality tier: ${rarityPrompt}.`,
-    `Style: cyber-fantasy mobile-game icon, Hearthstone/Marvel Snap quality, centered composition, fully rendered and solidly filled.`,
-    `Lighting: warm-cool rim light, soft ambient glow.`,
-    `Fully transparent background (PNG with alpha). No text, no watermark, no frame, no pedestal.`,
-  ].join(" ");
+  // Item-Slot-IDs (DB) → ArtworkSlot-Labels (DE).
+  const slotMap: Record<string, "Helm" | "Brustplatte" | "Hose" | "Stiefel" | "Handschuhe" | "Waffe" | "Halskette" | "Ring"> = {
+    helm: "Helm", chest: "Brustplatte", legs: "Hose", boots: "Stiefel",
+    gloves: "Handschuhe", weapon: "Waffe", necklace: "Halskette", ring: "Ring",
+  };
+  const rarityMap: Record<string, "Gewöhnlich" | "Selten" | "Episch" | "Legendär"> = {
+    common: "Gewöhnlich", rare: "Selten", epic: "Episch", legend: "Legendär",
+  };
+  const slot   = slotMap[item.slot];
+  const rarity = rarityMap[item.rarity];
+  const cls    = item.class_id ?? "tank";
+  if (!slot || !rarity) {
+    // Legacy-Fallback (alte Items vor 8-Slot-Rework)
+    return `Game asset icon for "${item.name}", 1024x1024 transparent PNG, fantasy game UI item, painterly style.`;
+  }
+  return buildPrompt(slot, cls as "tank" | "support" | "ranged" | "melee", rarity).prompt;
 }
 
 /* ═════════════════════════════════════════════════════════ */
