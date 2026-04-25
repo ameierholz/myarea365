@@ -2,32 +2,35 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale, getDateLocale } from "@/i18n/config";
 
 type TabId = "runners" | "guardians" | "factions" | "crews" | "arena" | "arena-fights" | "kiez";
-
-const TABS: Array<{ id: TabId; label: string }> = [
-  { id: "runners",       label: "🏃 Runner" },
-  { id: "guardians",     label: "🛡️ Wächter" },
-  { id: "factions",      label: "🏛️ Fraktionen" },
-  { id: "crews",         label: "👥 Crews" },
-  { id: "arena-fights",  label: "⚔️ Arena" },
-  { id: "arena",         label: "🏆 Area-Liga" },
-  { id: "kiez",          label: "👑 Kiez-Kronen" },
-];
+type LBT = ReturnType<typeof useTranslations<"Leaderboard">>;
 
 export function LeaderboardTabs() {
+  const t = useTranslations("Leaderboard");
   const [tab, setTab] = useState<TabId>("runners");
+  const TABS: Array<{ id: TabId; label: string }> = [
+    { id: "runners",       label: t("tabRunners") },
+    { id: "guardians",     label: t("tabGuardians") },
+    { id: "factions",      label: t("tabFactions") },
+    { id: "crews",         label: t("tabCrews") },
+    { id: "arena-fights",  label: t("tabArenaFights") },
+    { id: "arena",         label: t("tabArena") },
+    { id: "kiez",          label: t("tabKiez") },
+  ];
   return (
     <div>
       <div className="flex gap-2 mb-5 flex-wrap justify-center">
-        {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+        {TABS.map((tt) => (
+          <button key={tt.id} onClick={() => setTab(tt.id)}
             className={`px-3 py-2 rounded-lg text-sm font-bold transition ${
-              tab === t.id
+              tab === tt.id
                 ? "bg-[#22D1C3] text-[#0F1115]"
                 : "bg-white/5 border border-white/10 text-[#a8b4cf] hover:text-white"
             }`}>
-            {t.label}
+            {tt.label}
           </button>
         ))}
       </div>
@@ -42,8 +45,6 @@ export function LeaderboardTabs() {
     </div>
   );
 }
-
-/* ═════════════════ RUNNERS ═════════════════ */
 
 type Runner = {
   username: string | null;
@@ -61,6 +62,9 @@ type Runner = {
 type RunnerMetric = "wegemuenzen" | "gebietsruf" | "sessionehre" | "km" | "walks" | "level";
 
 function RunnersTab() {
+  const t = useTranslations("Leaderboard");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [metric, setMetric] = useState<RunnerMetric>("wegemuenzen");
   const [faction, setFaction] = useState<"all"|"gossenbund"|"kronenwacht">("all");
   const [runners, setRunners] = useState<Runner[]>([]);
@@ -80,31 +84,31 @@ function RunnersTab() {
     <div>
       <div className="flex flex-wrap gap-2 mb-3 justify-between items-center">
         <div className="flex flex-wrap gap-1.5">
-          <Chip active={metric==="wegemuenzen"} onClick={() => setMetric("wegemuenzen")}>🪙 Wegemünzen</Chip>
-          <Chip active={metric==="gebietsruf"}  onClick={() => setMetric("gebietsruf")}>🏴 Gebietsruf</Chip>
-          <Chip active={metric==="sessionehre"} onClick={() => setMetric("sessionehre")}>⚔️ Sessionehre</Chip>
-          <Chip active={metric==="km"}    onClick={() => setMetric("km")}>🥾 Kilometer</Chip>
-          <Chip active={metric==="walks"} onClick={() => setMetric("walks")}>📍 Gebiete</Chip>
-          <Chip active={metric==="level"} onClick={() => setMetric("level")}>🎖️ Level</Chip>
+          <Chip active={metric==="wegemuenzen"} onClick={() => setMetric("wegemuenzen")}>{t("metricCoins")}</Chip>
+          <Chip active={metric==="gebietsruf"}  onClick={() => setMetric("gebietsruf")}>{t("metricRep")}</Chip>
+          <Chip active={metric==="sessionehre"} onClick={() => setMetric("sessionehre")}>{t("metricHonor")}</Chip>
+          <Chip active={metric==="km"}    onClick={() => setMetric("km")}>{t("metricKm")}</Chip>
+          <Chip active={metric==="walks"} onClick={() => setMetric("walks")}>{t("metricWalks")}</Chip>
+          <Chip active={metric==="level"} onClick={() => setMetric("level")}>{t("metricLevel")}</Chip>
         </div>
         <div className="flex gap-1.5">
-          <Chip active={faction==="all"}       onClick={() => setFaction("all")}>🌍 Alle</Chip>
-          <Chip active={faction==="gossenbund"} onClick={() => setFaction("gossenbund")}>🗝️ Gossenbund</Chip>
-          <Chip active={faction==="kronenwacht"} onClick={() => setFaction("kronenwacht")}>👑 Kronenwacht</Chip>
+          <Chip active={faction==="all"}       onClick={() => setFaction("all")}>{t("filterAll")}</Chip>
+          <Chip active={faction==="gossenbund"} onClick={() => setFaction("gossenbund")}>{t("filterGossen")}</Chip>
+          <Chip active={faction==="kronenwacht"} onClick={() => setFaction("kronenwacht")}>{t("filterKronen")}</Chip>
         </div>
       </div>
 
-      {loading ? <Loading /> : runners.length === 0 ? <Empty text="Noch keine Runner im Ranking." /> : (
+      {loading ? <Loading /> : runners.length === 0 ? <Empty text={t("emptyRunners")} /> : (
         <div className="bg-[#1A1D23] border border-white/10 rounded-2xl overflow-hidden">
           {runners.map((r, i) => {
             const km = ((r.total_distance_m ?? 0) / 1000).toFixed(1);
             const color = (r.faction === "syndicate" || r.faction === "gossenbund") ? "#22D1C3" : (r.faction === "vanguard" || r.faction === "kronenwacht") ? "#FFD700" : "#22D1C3";
             const primary = metric === "km" ? `${km} km`
-                          : metric === "walks" ? `${(r.total_walks ?? 0).toLocaleString("de-DE")} Walks`
-                          : metric === "level" ? `Lvl ${r.level ?? 1}`
-                          : metric === "gebietsruf"  ? `${(r.gebietsruf ?? 0).toLocaleString("de-DE")} 🏴`
-                          : metric === "sessionehre" ? `${(r.sessionehre ?? 0).toLocaleString("de-DE")} ⚔️`
-                          : `${(r.wegemuenzen ?? 0).toLocaleString("de-DE")} 🪙`;
+                          : metric === "walks" ? t("valueWalks", { n: (r.total_walks ?? 0).toLocaleString(numLocale) })
+                          : metric === "level" ? t("valueLevel", { n: r.level ?? 1 })
+                          : metric === "gebietsruf"  ? t("valueRep", { n: (r.gebietsruf ?? 0).toLocaleString(numLocale) })
+                          : metric === "sessionehre" ? t("valueHonor", { n: (r.sessionehre ?? 0).toLocaleString(numLocale) })
+                          : t("valueCoins", { n: (r.wegemuenzen ?? 0).toLocaleString(numLocale) });
             return (
               <Link key={r.username ?? i} href={`/u/${r.username}`}
                 className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition">
@@ -115,10 +119,10 @@ function RunnersTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-white font-bold truncate">{r.display_name ?? r.username}</span>
-                    {(r.faction === "syndicate" || r.faction === "gossenbund") && <FactionBadge icon="🗝️" label="Gossenbund" color="#22D1C3" />}
-                    {(r.faction === "vanguard"  || r.faction === "kronenwacht") && <FactionBadge icon="👑" label="Kronenwacht" color="#FFD700" />}
+                    {(r.faction === "syndicate" || r.faction === "gossenbund") && <FactionBadge icon="🗝️" label={t("factionGossen")} color="#22D1C3" />}
+                    {(r.faction === "vanguard"  || r.faction === "kronenwacht") && <FactionBadge icon="👑" label={t("factionKronen")} color="#FFD700" />}
                   </div>
-                  <div className="text-xs text-[#8B8FA3]">@{r.username} · Lvl {r.level ?? 1} · {km} km</div>
+                  <div className="text-xs text-[#8B8FA3]">{t("valueLvlKm", { username: r.username ?? "", level: r.level ?? 1, km })}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-black" style={{ color }}>{primary}</div>
@@ -132,8 +136,6 @@ function RunnersTab() {
   );
 }
 
-/* ═════════════════ GUARDIANS ═════════════════ */
-
 type GuardianRow = {
   id: string;
   user_id: string;
@@ -145,19 +147,20 @@ type GuardianRow = {
   users: { username: string; display_name: string | null };
 };
 
-const TYPE_META: Record<string, { label: string; icon: string; color: string }> = {
-  infantry: { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
-  cavalry:  { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
-  marksman: { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
-  mage:     { label: "Magier",        icon: "🔮", color: "#c084fc" },
+const TYPE_DEFS: Record<string, { labelKey: "typeInfantry"|"typeCavalry"|"typeMarksman"|"typeMage"; icon: string; color: string }> = {
+  infantry: { labelKey: "typeInfantry", icon: "🛡️", color: "#60a5fa" },
+  cavalry:  { labelKey: "typeCavalry",  icon: "🐎", color: "#fb923c" },
+  marksman: { labelKey: "typeMarksman", icon: "🏹", color: "#4ade80" },
+  mage:     { labelKey: "typeMage",     icon: "🔮", color: "#c084fc" },
 };
-const RARITY_META: Record<string, { label: string; color: string }> = {
-  elite:     { label: "ELITE",    color: "#22D1C3" },
-  epic:      { label: "EPISCH",   color: "#a855f7" },
-  legendary: { label: "LEGENDÄR", color: "#FFD700" },
+const RARITY_DEFS: Record<string, { labelKey: "rarityElite"|"rarityEpic"|"rarityLegendary"; color: string }> = {
+  elite:     { labelKey: "rarityElite",     color: "#22D1C3" },
+  epic:      { labelKey: "rarityEpic",      color: "#a855f7" },
+  legendary: { labelKey: "rarityLegendary", color: "#FFD700" },
 };
 
 function GuardiansTab() {
+  const t = useTranslations("Leaderboard");
   const [view, setView] = useState<"overall"|"by_type"|"by_rarity">("overall");
   const [overall, setOverall] = useState<{ top_level: GuardianRow[]; most_played: GuardianRow[]; top_win_rate: GuardianRow[] } | null>(null);
   const [byCat, setByCat] = useState<{ by_type: Array<{ type: string; rows: GuardianRow[] }>; by_rarity: Array<{ rarity: string; rows: GuardianRow[] }> } | null>(null);
@@ -175,16 +178,16 @@ function GuardiansTab() {
   return (
     <div>
       <div className="flex gap-1.5 mb-3 flex-wrap">
-        <Chip active={view==="overall"}   onClick={() => setView("overall")}>🏆 Gesamt</Chip>
-        <Chip active={view==="by_type"}   onClick={() => setView("by_type")}>⚔️ Nach Typ</Chip>
-        <Chip active={view==="by_rarity"} onClick={() => setView("by_rarity")}>💎 Nach Rarität</Chip>
+        <Chip active={view==="overall"}   onClick={() => setView("overall")}>{t("viewOverall")}</Chip>
+        <Chip active={view==="by_type"}   onClick={() => setView("by_type")}>{t("viewByType")}</Chip>
+        <Chip active={view==="by_rarity"} onClick={() => setView("by_rarity")}>{t("viewByRarity")}</Chip>
       </div>
 
       {view === "overall" && overall && (
         <div className="grid gap-4 md:grid-cols-3">
-          <GuardianList title="👑 Höchstes Level" rows={overall.top_level} metric={(g) => `Lvl ${g.level}`} />
-          <GuardianList title="⚔️ Meiste Kämpfe" rows={overall.most_played} metric={(g) => `${g.wins+g.losses} Kämpfe`} />
-          <GuardianList title="🏅 Beste Win-Rate" rows={overall.top_win_rate}
+          <GuardianList title={t("gTopLevel")} rows={overall.top_level} metric={(g) => t("valueLevel", { n: g.level })} />
+          <GuardianList title={t("gMostFights")} rows={overall.most_played} metric={(g) => t("fightsLabel", { n: g.wins+g.losses })} />
+          <GuardianList title={t("gBestWinrate")} rows={overall.top_win_rate}
             metric={(g) => {
               const total = g.wins + g.losses;
               return total > 0 ? `${Math.round((g.wins / total) * 100)}%` : "—";
@@ -195,8 +198,9 @@ function GuardiansTab() {
       {view === "by_type" && byCat && (
         <div className="grid gap-4 md:grid-cols-2">
           {byCat.by_type.map((bt) => {
-            const m = TYPE_META[bt.type];
-            return <GuardianList key={bt.type} title={`${m?.icon} ${m?.label ?? bt.type}`} rows={bt.rows} metric={(g) => `Lvl ${g.level}`} accent={m?.color} />;
+            const m = TYPE_DEFS[bt.type];
+            const label = m ? t(m.labelKey) : bt.type;
+            return <GuardianList key={bt.type} title={`${m?.icon ?? ""} ${label}`} rows={bt.rows} metric={(g) => t("valueLevel", { n: g.level })} accent={m?.color} />;
           })}
         </div>
       )}
@@ -204,8 +208,9 @@ function GuardiansTab() {
       {view === "by_rarity" && byCat && (
         <div className="grid gap-4 md:grid-cols-3">
           {byCat.by_rarity.map((br) => {
-            const m = RARITY_META[br.rarity];
-            return <GuardianList key={br.rarity} title={m?.label ?? br.rarity} rows={br.rows} metric={(g) => `Lvl ${g.level}`} accent={m?.color} />;
+            const m = RARITY_DEFS[br.rarity];
+            const label = m ? t(m.labelKey) : br.rarity;
+            return <GuardianList key={br.rarity} title={label} rows={br.rows} metric={(g) => t("valueLevel", { n: g.level })} accent={m?.color} />;
           })}
         </div>
       )}
@@ -214,6 +219,7 @@ function GuardiansTab() {
 }
 
 function GuardianList({ title, rows, metric, accent = "#22D1C3" }: { title: string; rows: GuardianRow[]; metric: (g: GuardianRow) => string; accent?: string }) {
+  const t = useTranslations("Leaderboard");
   return (
     <div className="bg-[#1A1D23] border border-white/10 rounded-xl overflow-hidden">
       <div className="px-3 py-2 text-xs font-black tracking-wider" style={{ background: `${accent}15`, color: accent }}>{title}</div>
@@ -227,7 +233,7 @@ function GuardianList({ title, rows, metric, accent = "#22D1C3" }: { title: stri
             <div className="text-xl">{g.guardian_archetypes?.emoji}</div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-bold text-white truncate">{g.guardian_archetypes?.name}</div>
-              <div className="text-[10px] text-[#8B8FA3] truncate">@{g.users?.username ?? "—"} · {g.wins}W/{g.losses}L</div>
+              <div className="text-[10px] text-[#8B8FA3] truncate">@{g.users?.username ?? "—"} · {t("winLossLabel", { w: g.wins, l: g.losses })}</div>
             </div>
             <div className="text-xs font-black" style={{ color: accent }}>{metric(g)}</div>
           </Link>
@@ -237,14 +243,15 @@ function GuardianList({ title, rows, metric, accent = "#22D1C3" }: { title: stri
   );
 }
 
-/* ═════════════════ FACTIONS ═════════════════ */
-
 type Faction = {
   id: string; name: string; emoji: string; color: string;
   runners: number; total_xp: number; total_km: number; avg_level: number;
 };
 
 function FactionsTab() {
+  const t = useTranslations("Leaderboard");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [factions, setFactions] = useState<Faction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -265,11 +272,11 @@ function FactionsTab() {
               <div className="text-4xl">{f.emoji}</div>
               <div className="flex-1">
                 <div className="text-xl font-black text-white">{f.name}</div>
-                <div className="text-xs text-[#8B8FA3]">{f.runners.toLocaleString("de-DE")} Runner · Ø Lvl {f.avg_level}</div>
+                <div className="text-xs text-[#8B8FA3]">{t("factionsRunnersLine", { n: f.runners.toLocaleString(numLocale), lvl: f.avg_level })}</div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-black" style={{ color: f.color }}>{share}%</div>
-                <div className="text-[10px] text-[#8B8FA3]">🪙-Anteil</div>
+                <div className="text-[10px] text-[#8B8FA3]">{t("coinShare")}</div>
               </div>
             </div>
             <div className="h-2 bg-[#0F1115] rounded overflow-hidden mb-3">
@@ -277,12 +284,12 @@ function FactionsTab() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <div className="text-xs text-[#8B8FA3]">Gesamt 🪙</div>
-                <div className="text-sm font-bold text-white">{f.total_xp.toLocaleString("de-DE")}</div>
+                <div className="text-xs text-[#8B8FA3]">{t("totalCoins")}</div>
+                <div className="text-sm font-bold text-white">{f.total_xp.toLocaleString(numLocale)}</div>
               </div>
               <div>
-                <div className="text-xs text-[#8B8FA3]">Gesamt-km</div>
-                <div className="text-sm font-bold text-white">{f.total_km.toLocaleString("de-DE")}</div>
+                <div className="text-xs text-[#8B8FA3]">{t("totalKm")}</div>
+                <div className="text-sm font-bold text-white">{f.total_km.toLocaleString(numLocale)}</div>
               </div>
             </div>
           </div>
@@ -292,14 +299,15 @@ function FactionsTab() {
   );
 }
 
-/* ═════════════════ CREWS ═════════════════ */
-
 type Crew = {
   id: string; name: string; color: string | null; custom_emblem_url: string | null;
   total_xp: number | null; member_count: number | null; territory_count: number | null;
 };
 
 function CrewsTab() {
+  const t = useTranslations("Leaderboard");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [crews, setCrews] = useState<Crew[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -308,7 +316,7 @@ function CrewsTab() {
   }, []);
 
   if (loading) return <Loading />;
-  if (crews.length === 0) return <Empty text="Noch keine Crews im Ranking." />;
+  if (crews.length === 0) return <Empty text={t("emptyCrews")} />;
 
   return (
     <div className="bg-[#1A1D23] border border-white/10 rounded-2xl overflow-hidden">
@@ -317,15 +325,16 @@ function CrewsTab() {
           <div className="w-8 text-center text-xs font-black" style={{ color: i < 3 ? "#FFD700" : "#8B8FA3" }}>#{i+1}</div>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center font-black" style={{ background: c.color ?? "#22D1C3" }}>
             {c.custom_emblem_url
+              /* eslint-disable-next-line @next/next/no-img-element */
               ? <img src={c.custom_emblem_url} alt={c.name} className="w-full h-full object-cover rounded-lg" />
               : <span className="text-[#0F1115]">{c.name?.charAt(0).toUpperCase() ?? "?"}</span>}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-white truncate">{c.name}</div>
-            <div className="text-xs text-[#8B8FA3]">👥 {c.member_count ?? 0} · 🗺️ {c.territory_count ?? 0} Gebiete</div>
+            <div className="text-xs text-[#8B8FA3]">{t("crewMeta", { members: c.member_count ?? 0, territories: c.territory_count ?? 0 })}</div>
           </div>
           <div className="text-right">
-            <div className="text-sm font-black" style={{ color: c.color ?? "#22D1C3" }}>{(c.total_xp ?? 0).toLocaleString("de-DE")} 🪙</div>
+            <div className="text-sm font-black" style={{ color: c.color ?? "#22D1C3" }}>{t("valueCoins", { n: (c.total_xp ?? 0).toLocaleString(numLocale) })}</div>
           </div>
         </div>
       ))}
@@ -333,9 +342,10 @@ function CrewsTab() {
   );
 }
 
-/* ═════════════════ ARENA (Wächter-PvP-Kämpfe) ═════════════════ */
-
 function ArenaFightsTab() {
+  const t = useTranslations("Leaderboard");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
   const [rows, setRows] = useState<HallOfHonorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"honor" | "wins" | "winrate">("honor");
@@ -370,17 +380,16 @@ function ArenaFightsTab() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">⚔️</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black tracking-widest text-[#FFD700]">KAMPFARENA</div>
-            <div className="text-lg font-black text-white">Rangliste der Gladiatoren</div>
-            <div className="text-xs text-[#a8b4cf]">Ehre = Siege × Level × 10</div>
+            <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("arenaKicker")}</div>
+            <div className="text-lg font-black text-white">{t("arenaTitle")}</div>
+            <div className="text-xs text-[#a8b4cf]">{t("arenaSubtitle")}</div>
           </div>
         </div>
       </div>
 
-      {/* Podium Top 3 */}
       {topThree.length > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-4">
-          {[topThree[1], topThree[0], topThree[2]].filter(Boolean).map((r, idx) => {
+          {[topThree[1], topThree[0], topThree[2]].filter(Boolean).map((r) => {
             const actualRank = r === topThree[0] ? 1 : r === topThree[1] ? 2 : 3;
             const medal = actualRank === 1 ? "🥇" : actualRank === 2 ? "🥈" : "🥉";
             const color = actualRank === 1 ? "#FFD700" : actualRank === 2 ? "#C0C0C0" : "#CD7F32";
@@ -391,7 +400,7 @@ function ArenaFightsTab() {
                 <div className="text-xs font-black text-white text-center truncate w-full px-1" title={r.display_name ?? r.username ?? ""}>
                   {r.display_name ?? r.username}
                 </div>
-                <div className="text-[10px] text-[#8B8FA3] mb-1">{r.wins}W · Lvl {r.level}</div>
+                <div className="text-[10px] text-[#8B8FA3] mb-1">{t("podiumWinsLevel", { w: r.wins, level: r.level })}</div>
                 <div style={{
                   width: "100%", height,
                   background: `linear-gradient(180deg, ${color}dd 0%, ${color}55 100%)`,
@@ -402,7 +411,7 @@ function ArenaFightsTab() {
                   boxShadow: `0 0 16px ${color}55`,
                 }}>
                   <div className="text-xs font-black" style={{ color: "#0F1115" }}>#{actualRank}</div>
-                  <div className="text-[10px] font-black" style={{ color: "#0F1115" }}>{r.honor.toLocaleString("de-DE")}</div>
+                  <div className="text-[10px] font-black" style={{ color: "#0F1115" }}>{r.honor.toLocaleString(numLocale)}</div>
                 </div>
               </div>
             );
@@ -411,21 +420,19 @@ function ArenaFightsTab() {
       )}
 
       <div className="flex gap-1.5 mb-3 flex-wrap">
-        <Chip active={sortBy==="honor"}   onClick={() => setSortBy("honor")}>🏆 Ehre</Chip>
-        <Chip active={sortBy==="wins"}    onClick={() => setSortBy("wins")}>⚔️ Siege</Chip>
-        <Chip active={sortBy==="winrate"} onClick={() => setSortBy("winrate")}>📊 Win-Rate</Chip>
+        <Chip active={sortBy==="honor"}   onClick={() => setSortBy("honor")}>{t("sortHonor")}</Chip>
+        <Chip active={sortBy==="wins"}    onClick={() => setSortBy("wins")}>{t("sortWins")}</Chip>
+        <Chip active={sortBy==="winrate"} onClick={() => setSortBy("winrate")}>{t("sortWinrate")}</Chip>
       </div>
 
       {sorted.length === 0 ? (
-        <Empty text="Noch keine Kämpfe ausgetragen. Sei der erste Gladiator!" />
+        <Empty text={t("emptyFights")} />
       ) : (
-        <HallOfHonorView rows={sorted} />
+        <HallOfHonorView rows={sorted} t={t} numLocale={numLocale} />
       )}
     </div>
   );
 }
-
-/* ═════════════════ ARENA (Area-Liga) ═════════════════ */
 
 type Session = { id: string; name: string; starts_at: string; ends_at: string; status: string };
 type ArenaRunnerScore = {
@@ -457,6 +464,10 @@ type HallOfHonorRow = {
 };
 
 function ArenaTab() {
+  const t = useTranslations("Leaderboard");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
+  const dateLocale = getDateLocale(locale);
   const [view, setView] = useState<"current"|"past"|"honor">("current");
   const [current, setCurrent] = useState<{ session: Session | null; runners: ArenaRunnerScore[]; crews: ArenaCrewScore[] } | null>(null);
   const [past, setPast] = useState<PastSession[]>([]);
@@ -477,46 +488,46 @@ function ArenaTab() {
   return (
     <div>
       <div className="flex gap-1.5 mb-3 flex-wrap">
-        <Chip active={view==="current"} onClick={() => setView("current")}>🔥 Aktuelle Session</Chip>
-        <Chip active={view==="honor"}   onClick={() => setView("honor")}>⚔️ Hall of Honor</Chip>
-        <Chip active={view==="past"}    onClick={() => setView("past")}>📜 Hall of Fame</Chip>
+        <Chip active={view==="current"} onClick={() => setView("current")}>{t("viewCurrent")}</Chip>
+        <Chip active={view==="honor"}   onClick={() => setView("honor")}>{t("viewHonor")}</Chip>
+        <Chip active={view==="past"}    onClick={() => setView("past")}>{t("viewPast")}</Chip>
       </div>
 
-      {view === "honor" && <HallOfHonorView rows={honor} />}
+      {view === "honor" && <HallOfHonorView rows={honor} t={t} numLocale={numLocale} />}
 
       {view === "current" && (
-        !current?.session ? <Empty text="Keine aktive Area-Liga-Session." /> : (
+        !current?.session ? <Empty text={t("emptyArenaSession")} /> : (
           <div>
             <div className="mb-3 p-3 rounded-xl bg-[#22D1C3]/10 border border-[#22D1C3]/30">
-              <div className="text-xs text-[#22D1C3] font-bold tracking-wider">AKTIVE SESSION</div>
+              <div className="text-xs text-[#22D1C3] font-bold tracking-wider">{t("activeSessionKicker")}</div>
               <div className="text-lg font-black text-white">{current.session.name}</div>
               <Countdown endsAt={current.session.ends_at} />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="bg-[#1A1D23] border border-white/10 rounded-xl overflow-hidden">
-                <div className="px-3 py-2 text-xs font-black tracking-wider text-[#22D1C3] bg-[#22D1C3]/10">🏃 TOP RUNNER</div>
+                <div className="px-3 py-2 text-xs font-black tracking-wider text-[#22D1C3] bg-[#22D1C3]/10">{t("topRunner")}</div>
                 {(current.runners ?? []).slice(0, 10).map((s, i) => (
                   <Link key={s.user_id} href={`/u/${s.users?.username ?? ""}`} className="flex items-center gap-2 px-3 py-2 border-b border-white/5 last:border-0 hover:bg-white/5">
                     <div className="w-5 text-center text-[10px] font-black" style={{ color: i < 3 ? "#FFD700" : "#8B8FA3" }}>#{i+1}</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold text-white truncate">{s.users?.display_name ?? s.users?.username}</div>
-                      <div className="text-[10px] text-[#8B8FA3]">{s.wins}W/{s.losses}L · {s.trophies}🏆 · {s.fusions}🔁</div>
+                      <div className="text-[10px] text-[#8B8FA3]">{t("arenaRunnerMeta", { w: s.wins, l: s.losses, trophies: s.trophies, fusions: s.fusions })}</div>
                     </div>
-                    <div className="text-xs font-black text-[#FFD700]">{s.points} P</div>
+                    <div className="text-xs font-black text-[#FFD700]">{t("pointsShort", { n: s.points })}</div>
                   </Link>
                 ))}
               </div>
               <div className="bg-[#1A1D23] border border-white/10 rounded-xl overflow-hidden">
-                <div className="px-3 py-2 text-xs font-black tracking-wider text-[#FF2D78] bg-[#FF2D78]/10">👥 TOP CREWS</div>
+                <div className="px-3 py-2 text-xs font-black tracking-wider text-[#FF2D78] bg-[#FF2D78]/10">{t("topCrews")}</div>
                 {(current.crews ?? []).slice(0, 10).map((s, i) => (
                   <div key={s.crew_id} className="flex items-center gap-2 px-3 py-2 border-b border-white/5 last:border-0">
                     <div className="w-5 text-center text-[10px] font-black" style={{ color: i < 3 ? "#FFD700" : "#8B8FA3" }}>#{i+1}</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold text-white truncate">{s.crews?.name}</div>
-                      <div className="text-[10px] text-[#8B8FA3]">{s.wins}W/{s.losses}L</div>
+                      <div className="text-[10px] text-[#8B8FA3]">{t("winLossLabel", { w: s.wins, l: s.losses })}</div>
                     </div>
-                    <div className="text-xs font-black text-[#FFD700]">{s.points} P</div>
+                    <div className="text-xs font-black text-[#FFD700]">{t("pointsShort", { n: s.points })}</div>
                   </div>
                 ))}
               </div>
@@ -526,7 +537,7 @@ function ArenaTab() {
       )}
 
       {view === "past" && (
-        past.length === 0 ? <Empty text="Noch keine abgeschlossenen Sessions." /> : (
+        past.length === 0 ? <Empty text={t("emptyPastSessions")} /> : (
           <div className="space-y-3">
             {past.map((s) => (
               <div key={s.id} className="bg-[#1A1D23] border border-white/10 rounded-xl p-3">
@@ -534,22 +545,25 @@ function ArenaTab() {
                   <div>
                     <div className="text-sm font-black text-white">{s.name}</div>
                     <div className="text-[10px] text-[#8B8FA3]">
-                      {new Date(s.starts_at).toLocaleDateString("de-DE")} – {new Date(s.ends_at).toLocaleDateString("de-DE")}
+                      {t("pastDateRange", {
+                        start: new Date(s.starts_at).toLocaleDateString(dateLocale),
+                        end: new Date(s.ends_at).toLocaleDateString(dateLocale),
+                      })}
                     </div>
                   </div>
-                  <div className="text-[10px] px-2 py-0.5 rounded-full bg-[#8B8FA3]/15 text-[#8B8FA3] font-bold">BEENDET</div>
+                  <div className="text-[10px] px-2 py-0.5 rounded-full bg-[#8B8FA3]/15 text-[#8B8FA3] font-bold">{t("pastEndedBadge")}</div>
                 </div>
                 {s.titles.length === 0 ? (
-                  <div className="text-[11px] text-[#8B8FA3]">Keine Titel vergeben.</div>
+                  <div className="text-[11px] text-[#8B8FA3]">{t("noTitles")}</div>
                 ) : (
                   <div className="grid gap-1.5 sm:grid-cols-3">
-                    {s.titles.slice(0, 6).map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#0F1115]">
-                        <div className="text-lg">{t.rank===1 ? "🥇" : t.rank===2 ? "🥈" : t.rank===3 ? "🥉" : "🎖️"}</div>
+                    {s.titles.slice(0, 6).map((tl) => (
+                      <div key={tl.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#0F1115]">
+                        <div className="text-lg">{tl.rank===1 ? "🥇" : tl.rank===2 ? "🥈" : tl.rank===3 ? "🥉" : "🎖️"}</div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-bold text-white truncate">{t.title}</div>
+                          <div className="text-[11px] font-bold text-white truncate">{tl.title}</div>
                           <div className="text-[10px] text-[#8B8FA3] truncate">
-                            {t.users?.display_name ?? t.users?.username ?? t.crews?.name ?? "—"}
+                            {tl.users?.display_name ?? tl.users?.username ?? tl.crews?.name ?? "—"}
                           </div>
                         </div>
                       </div>
@@ -565,17 +579,14 @@ function ArenaTab() {
   );
 }
 
-/* ═════════════════ HALL OF HONOR (S&F-Style) ═════════════════ */
-
-function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
+function HallOfHonorView({ rows, t, numLocale }: { rows: HallOfHonorRow[]; t: LBT; numLocale: string }) {
   if (rows.length === 0) {
-    return <Empty text="Noch keine Kämpfe ausgetragen. Sei der erste Gladiator!" />;
+    return <Empty text={t("emptyFights")} />;
   }
   return (
     <div className="rounded-xl overflow-hidden border border-[#FFD700]/30" style={{
       background: "linear-gradient(180deg, rgba(255,215,0,0.06) 0%, rgba(15,17,21,0.95) 100%)",
     }}>
-      {/* Header */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "48px 1fr 1.2fr 60px 100px",
@@ -584,14 +595,13 @@ function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
         borderBottom: "1px solid rgba(255,215,0,0.3)",
         fontSize: 10, fontWeight: 900, letterSpacing: 1.5, color: "#FFD700",
       }}>
-        <div>RANG</div>
-        <div>NAME</div>
-        <div>CREW</div>
-        <div className="text-right">STUFE</div>
-        <div className="text-right">EHRE</div>
+        <div>{t("thRank")}</div>
+        <div>{t("thName")}</div>
+        <div>{t("thCrew")}</div>
+        <div className="text-right">{t("thLevel")}</div>
+        <div className="text-right">{t("thHonor")}</div>
       </div>
 
-      {/* Rows */}
       {rows.map((r, i) => {
         const bgColor = i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)";
         const rankColor = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#8B8FA3";
@@ -616,7 +626,7 @@ function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
                 {r.display_name ?? r.username ?? "—"}
               </div>
               <div style={{ color: "#8B8FA3", fontSize: 10 }}>
-                {r.wins}W / {r.losses}L
+                {t("winLossLabel", { w: r.wins, l: r.losses })}
               </div>
             </div>
             <div style={{ minWidth: 0 }}>
@@ -635,7 +645,7 @@ function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
             </div>
             <div className="text-right" style={{ color: "#F0F0F0", fontWeight: 700 }}>{r.level}</div>
             <div className="text-right" style={{ color: "#FFD700", fontWeight: 900, fontSize: 13, fontFamily: "ui-monospace, monospace" }}>
-              {r.honor.toLocaleString("de-DE")}
+              {r.honor.toLocaleString(numLocale)}
             </div>
           </div>
         );
@@ -643,8 +653,6 @@ function HallOfHonorView({ rows }: { rows: HallOfHonorRow[] }) {
     </div>
   );
 }
-
-/* ═════════════════ SHARED ═════════════════ */
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -661,20 +669,22 @@ function FactionBadge({ icon, label, color }: { icon: string; label: string; col
   return <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${color}15`, color }}>{icon} {label}</span>;
 }
 
-function Loading() { return <div className="p-10 text-center text-sm text-[#8B8FA3]">Lade…</div>; }
+function Loading() {
+  const t = useTranslations("Leaderboard");
+  return <div className="p-10 text-center text-sm text-[#8B8FA3]">{t("loading")}</div>;
+}
 function Empty({ text }: { text: string }) { return <div className="p-10 text-center text-sm text-[#8B8FA3]">{text}</div>; }
 
 function Countdown({ endsAt }: { endsAt: string }) {
+  const t = useTranslations("Leaderboard");
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(id); }, []);
   const diff = new Date(endsAt).getTime() - now;
-  if (diff <= 0) return <div className="text-xs text-[#FF2D78] font-bold">Session beendet</div>;
+  if (diff <= 0) return <div className="text-xs text-[#FF2D78] font-bold">{t("sessionEnded")}</div>;
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
-  return <div className="text-xs text-[#FFD700] font-bold">⏳ Noch {d}d {h}h</div>;
+  return <div className="text-xs text-[#FFD700] font-bold">{t("sessionRemaining", { d, h })}</div>;
 }
-
-/* ═════════════════ KIEZ-KRONEN ═════════════════ */
 
 type KiezKing = {
   plz: string;
@@ -698,6 +708,7 @@ type KiezRankingRow = {
 };
 
 function KiezTab() {
+  const t = useTranslations("Leaderboard");
   const [kings, setKings] = useState<KiezKing[] | null>(null);
   const [selectedPlz, setSelectedPlz] = useState<string | null>(null);
   const [ranking, setRanking] = useState<KiezRankingRow[] | null>(null);
@@ -724,7 +735,7 @@ function KiezTab() {
     })();
   }, [selectedPlz]);
 
-  if (kings === null) return <Empty text="Lade Kiez-Kronen…" />;
+  if (kings === null) return <Empty text={t("kiezLoading")} />;
 
   const filtered = filter
     ? kings.filter((k) => k.plz.startsWith(filter) || (k.display_name ?? k.username ?? "").toLowerCase().includes(filter.toLowerCase()))
@@ -736,47 +747,44 @@ function KiezTab() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">👑</span>
           <div className="flex-1">
-            <div className="font-bold text-[#FFD700]">Kiez-Kronen der Woche</div>
+            <div className="font-bold text-[#FFD700]">{t("kiezTitle")}</div>
             <div className="text-xs text-[#a8b4cf] mt-0.5 leading-relaxed">
-              Wer in einer PLZ von Montag bis Sonntag die meisten km gelaufen ist, trägt die Krone bis zum nächsten Montag.
-              PLZ wird automatisch aus deinen GPS-Tracks abgeleitet — nicht aus deiner Wohnadresse.
+              {t("kiezBody")}
             </div>
           </div>
         </div>
       </div>
 
-      {/* PLZ-Filter */}
       <div className="flex gap-2">
         <input
           type="text" inputMode="numeric" maxLength={5}
           value={filter}
           onChange={(e) => setFilter(e.target.value.replace(/\D/g, "").slice(0, 5))}
-          placeholder="PLZ oder Name suchen…"
+          placeholder={t("kiezSearchPh")}
           className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:border-[#22D1C3]/50"
         />
         {selectedPlz && (
           <button onClick={() => setSelectedPlz(null)} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-[#a8b4cf] hover:text-white">
-            ← Zurück zur Übersicht
+            {t("kiezBack")}
           </button>
         )}
       </div>
 
-      {/* Detail-Ranking einer PLZ */}
       {selectedPlz && ranking !== null && (
         <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
           <div className="px-4 py-3 border-b border-white/10 flex items-baseline justify-between">
             <div>
               <span className="text-sm font-bold">📍 {selectedPlz}</span>
-              <span className="text-[11px] text-[#8B8FA3] ml-2">laufende Woche (ab {weekStart ?? "—"})</span>
+              <span className="text-[11px] text-[#8B8FA3] ml-2">{t("kiezRunningWeek", { date: weekStart ?? "—" })}</span>
             </div>
-            <span className="text-[10px] text-[#8B8FA3]">Top 10</span>
+            <span className="text-[10px] text-[#8B8FA3]">{t("kiezTop10")}</span>
           </div>
           {ranking.length === 0 ? (
-            <Empty text="Noch keine Aktivität in dieser Woche. Lauf los — die Krone ist frei!" />
+            <Empty text={t("kiezNoActivity")} />
           ) : (
             <div className="divide-y divide-white/5">
               {ranking.map((row) => {
-                const name = row.display_name ?? row.username ?? "Unbekannt";
+                const name = row.display_name ?? row.username ?? t("unknown");
                 const isKing = row.rank === 1;
                 return (
                   <div key={row.user_id} className="flex items-center gap-3 px-4 py-3">
@@ -785,9 +793,9 @@ function KiezTab() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold truncate">{name}{row.heimat_plz && <span className="ml-2 text-[10px] text-[#22D1C3]">📍{row.heimat_plz}</span>}</div>
-                      <div className="text-[11px] text-[#8B8FA3]">{row.segments} Segmente</div>
+                      <div className="text-[11px] text-[#8B8FA3]">{t("kiezSegments", { n: row.segments })}</div>
                     </div>
-                    <div className="text-sm font-bold text-[#22D1C3]">{row.total_km.toFixed(2)} km</div>
+                    <div className="text-sm font-bold text-[#22D1C3]">{t("kiezKm", { km: row.total_km.toFixed(2) })}</div>
                   </div>
                 );
               })}
@@ -796,14 +804,13 @@ function KiezTab() {
         </div>
       )}
 
-      {/* Übersicht aller aktuellen Könige */}
       {!selectedPlz && (
         filtered.length === 0 ? (
-          <Empty text={kings.length === 0 ? "Noch keine Kiez-Kronen vergeben. Die erste Woche läuft — nächsten Montag gibt's die ersten Gewinner." : "Keine Treffer für diesen Filter."} />
+          <Empty text={kings.length === 0 ? t("kiezNoCrowns") : t("kiezNoMatches")} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {filtered.map((k) => {
-              const name = k.display_name ?? k.username ?? "Unbekannt";
+              const name = k.display_name ?? k.username ?? t("unknown");
               return (
                 <button
                   key={k.plz}
@@ -816,8 +823,8 @@ function KiezTab() {
                   </div>
                   <div className="font-semibold truncate text-sm">{name}</div>
                   <div className="flex justify-between items-baseline mt-1">
-                    <span className="text-[11px] text-[#8B8FA3]">{k.segments} Segmente</span>
-                    <span className="text-sm font-bold text-[#FFD700]">{k.total_km.toFixed(2)} km</span>
+                    <span className="text-[11px] text-[#8B8FA3]">{t("kiezSegments", { n: k.segments })}</span>
+                    <span className="text-sm font-bold text-[#FFD700]">{t("kiezKm", { km: k.total_km.toFixed(2) })}</span>
                   </div>
                 </button>
               );
