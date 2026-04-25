@@ -2,10 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { SHOP_CATEGORY_GROUPS } from "@/lib/shop-categories";
 
+type RegT = ReturnType<typeof useTranslations<"ShopRegister">>;
+
+const ERR_KEYS: Record<string, "errMissingName" | "errMissingCategory" | "errMissingStreet" | "errMissingZip" | "errMissingCity" | "errMissingEmail" | "errInvalidEmail" | "errInvalidZip"> = {
+  missing_name: "errMissingName",
+  missing_category: "errMissingCategory",
+  missing_street: "errMissingStreet",
+  missing_zip: "errMissingZip",
+  missing_city: "errMissingCity",
+  missing_contact_email: "errMissingEmail",
+  invalid_email: "errInvalidEmail",
+  invalid_zip: "errInvalidZip",
+};
+
 export default function ShopRegisterPage() {
+  const t = useTranslations("ShopRegister");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,16 +53,17 @@ export default function ShopRegisterPage() {
       const j = await res.json();
       if (!j.ok) {
         if (j.error === "auth_required") {
-          setError("Bitte zuerst einloggen. Du wirst in 2 Sekunden weitergeleitet.");
+          setError(t("errAuth"));
           setTimeout(() => router.push("/login?next=/shop/anmelden"), 2000);
           return;
         }
-        setError(ERR_MSG[j.error as string] ?? j.error ?? "Unbekannter Fehler");
+        const errKey = ERR_KEYS[j.error as string];
+        setError(errKey ? t(errKey) : (j.error ?? t("errUnknown")));
         return;
       }
       setDone(j.shop_id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Netzwerkfehler");
+      setError(err instanceof Error ? err.message : t("errNetwork"));
     } finally {
       setBusy(false);
     }
@@ -58,16 +74,14 @@ export default function ShopRegisterPage() {
       <main style={{ minHeight: "100vh", background: "#0F1115", color: "#F0F0F0", padding: 40 }}>
         <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center", paddingTop: 60 }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 12 }}>Danke! Shop eingereicht.</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 900, marginBottom: 12 }}>{t("doneTitle")}</h1>
           <p style={{ color: "#a8b4cf", lineHeight: 1.6, marginBottom: 24 }}>
-            Wir prüfen deine Einreichung innerhalb von 48 Stunden und schicken dir
-            eine Bestätigung per E-Mail. Sobald dein Shop freigegeben ist, siehst
-            du ihn auf der Karte und kannst das Shop-Dashboard nutzen.
+            {t("doneBody")}
           </p>
           <button
             onClick={() => router.push("/shop-dashboard")}
             style={BTN_PRIMARY}
-          >Zum Shop-Dashboard</button>
+          >{t("doneCta")}</button>
         </div>
       </main>
     );
@@ -79,58 +93,56 @@ export default function ShopRegisterPage() {
         <button
           onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
           style={BTN_BACK}
-        >← Zurück</button>
+        >{t("back")}</button>
         <div style={{ fontSize: 10, letterSpacing: 2, color: "#22D1C3", fontWeight: 900, marginBottom: 8 }}>
-          MYAREA365 · PARTNER-SHOPS
+          {t("kicker")}
         </div>
         <h1 style={{ fontSize: 32, fontWeight: 900, lineHeight: 1.15, marginBottom: 12 }}>
-          Mach dein Geschäft zum Running-Point
+          {t("heroTitle")}
         </h1>
         <p style={{ color: "#a8b4cf", fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
-          Trag dein Café, deine Bäckerei oder dein Studio kostenlos ein. Runner scannen
-          deinen QR-Code beim Vorbeilaufen und bekommen Bewegungs-Boni — du bekommst
-          Laufkundschaft. Die ersten 30 Tage sind gratis.
+          {t("heroBody")}
         </p>
 
         <div style={{
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           gap: 10, marginBottom: 32,
         }}>
-          <BenefitCard icon="📍" text="Als POI auf der Laufkarte gepinnt" />
-          <BenefitCard icon="🪙" text="Wegemünzen-Belohnung lockt Runner" />
-          <BenefitCard icon="📊" text="Live-Dashboard mit Besuchen & Scans" />
-          <BenefitCard icon="⚡" text="Optional: Flash-Push in 1 km Radius" />
+          <BenefitCard icon="📍" text={t("benefit1")} />
+          <BenefitCard icon="🪙" text={t("benefit2")} />
+          <BenefitCard icon="📊" text={t("benefit3")} />
+          <BenefitCard icon="⚡" text={t("benefit4")} />
         </div>
 
         <form onSubmit={handleSubmit} style={{
           background: "#1A1D23", borderRadius: 16,
           border: "1px solid rgba(255,255,255,0.08)", padding: 24,
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>Shop-Daten</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 900, marginBottom: 16 }}>{t("sectionShopData")}</h2>
 
-          <Field name="name" label="Name des Geschäfts *" placeholder="Café Müller" required />
-          <Field name="category" label="Kategorie *" asCategorySelect required />
+          <Field name="name" label={t("fName")} placeholder={t("fNamePh")} required tt={t} />
+          <Field name="category" label={t("fCategory")} asCategorySelect required tt={t} />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-            <Field name="street" label="Straße + Hausnummer *" placeholder="Kreuzbergstr. 12" required />
+            <Field name="street" label={t("fStreet")} placeholder={t("fStreetPh")} required tt={t} />
             <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 12 }}>
-              <Field name="zip" label="PLZ *" placeholder="10965" required maxLength={5} />
-              <Field name="city" label="Stadt *" placeholder="Berlin" required />
+              <Field name="zip" label={t("fZip")} placeholder={t("fZipPh")} required maxLength={5} tt={t} />
+              <Field name="city" label={t("fCity")} placeholder={t("fCityPh")} required tt={t} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 12 }}>
-              <Field name="state" label="Bundesland / Kanton (optional)" placeholder="Berlin, Bayern, Wien …" />
-              <Field name="country" label="Land *" asSelect required options={["DE","AT","CH"]} />
+              <Field name="state" label={t("fState")} placeholder={t("fStatePh")} tt={t} />
+              <Field name="country" label={t("fCountry")} asSelect required options={["DE","AT","CH"]} tt={t} />
             </div>
           </div>
 
-          <h2 style={{ fontSize: 16, fontWeight: 900, margin: "20px 0 12px" }}>Kontakt</h2>
-          <Field name="contact_email" label="E-Mail *" placeholder="info@cafe-mueller.de" required type="email" />
-          <Field name="contact_phone" label="Telefon (optional)" placeholder="030 12345678" type="tel" />
-          <Field name="website" label="Website (optional)" placeholder="https://cafe-mueller.de" type="url" />
+          <h2 style={{ fontSize: 16, fontWeight: 900, margin: "20px 0 12px" }}>{t("sectionContact")}</h2>
+          <Field name="contact_email" label={t("fEmail")} placeholder={t("fEmailPh")} required type="email" tt={t} />
+          <Field name="contact_phone" label={t("fPhone")} placeholder={t("fPhonePh")} type="tel" tt={t} />
+          <Field name="website" label={t("fWebsite")} placeholder={t("fWebsitePh")} type="url" tt={t} />
 
-          <h2 style={{ fontSize: 16, fontWeight: 900, margin: "20px 0 12px" }}>Kurz-Beschreibung</h2>
-          <Field name="description" label="Was macht deinen Shop besonders? (optional)" asTextarea
-            placeholder="Third-Wave-Coffee mit eigener Röstung, Sauerteigbrot aus lokaler Produktion…" />
+          <h2 style={{ fontSize: 16, fontWeight: 900, margin: "20px 0 12px" }}>{t("sectionDescription")}</h2>
+          <Field name="description" label={t("fDesc")} asTextarea
+            placeholder={t("fDescPh")} tt={t} />
 
           {error && (
             <div style={{
@@ -141,29 +153,17 @@ export default function ShopRegisterPage() {
           )}
 
           <button type="submit" disabled={busy} style={{ ...BTN_PRIMARY, marginTop: 20, width: "100%", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Wird eingereicht…" : "Shop einreichen"}
+            {busy ? t("submitBusy") : t("submit")}
           </button>
 
           <p style={{ fontSize: 11, color: "#8B8FA3", marginTop: 14, lineHeight: 1.5 }}>
-            Nach dem Einreichen prüfen wir deine Angaben. Das dauert max. 48 h.
-            Du erhältst eine Bestätigung per E-Mail an die angegebene Adresse.
+            {t("submitFootnote")}
           </p>
         </form>
       </div>
     </main>
   );
 }
-
-const ERR_MSG: Record<string, string> = {
-  missing_name: "Bitte gib einen Shop-Namen an.",
-  missing_category: "Bitte wähle eine Kategorie.",
-  missing_street: "Bitte gib die Straße an.",
-  missing_zip: "Bitte gib eine PLZ an.",
-  missing_city: "Bitte gib die Stadt an.",
-  missing_contact_email: "Bitte gib eine Kontakt-E-Mail an.",
-  invalid_email: "E-Mail-Format ist ungültig.",
-  invalid_zip: "PLZ muss 4–5 Ziffern haben.",
-};
 
 const BTN_PRIMARY: React.CSSProperties = {
   padding: "12px 20px", borderRadius: 10, border: "none",
@@ -194,7 +194,7 @@ function BenefitCard({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-function Field({ name, label, placeholder, required, type = "text", maxLength, asTextarea, asSelect, asCategorySelect, options }: {
+function Field({ name, label, placeholder, required, type = "text", maxLength, asTextarea, asSelect, asCategorySelect, options, tt }: {
   name: string;
   label: string;
   placeholder?: string;
@@ -205,6 +205,7 @@ function Field({ name, label, placeholder, required, type = "text", maxLength, a
   asSelect?: boolean;
   asCategorySelect?: boolean;
   options?: string[];
+  tt: RegT;
 }) {
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "10px 12px", borderRadius: 8,
@@ -218,7 +219,7 @@ function Field({ name, label, placeholder, required, type = "text", maxLength, a
         <textarea name={name} placeholder={placeholder} rows={3} style={inputStyle} maxLength={500} />
       ) : asCategorySelect ? (
         <select name={name} required={required} defaultValue="" style={inputStyle}>
-          <option value="" disabled>Bitte wählen…</option>
+          <option value="" disabled>{tt("selectPlaceholder")}</option>
           {SHOP_CATEGORY_GROUPS.map((grp) => (
             <optgroup key={grp.label} label={grp.label}>
               {grp.items.map((it) => <option key={it} value={it}>{it}</option>)}
@@ -227,7 +228,7 @@ function Field({ name, label, placeholder, required, type = "text", maxLength, a
         </select>
       ) : asSelect ? (
         <select name={name} required={required} defaultValue="" style={inputStyle}>
-          <option value="" disabled>Bitte wählen…</option>
+          <option value="" disabled>{tt("selectPlaceholder")}</option>
           {(options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
       ) : (

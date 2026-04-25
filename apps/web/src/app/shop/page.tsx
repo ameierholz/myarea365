@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
+import { getDateLocale } from "@/i18n/config";
 
 type ShopItem = {
   id: string;
@@ -27,15 +29,18 @@ type Purchase = { id: string; shop_item_id: string; price_paid_gems: number; exp
 
 type CategoryKey = "arena_pass" | "booster" | "cosmetic" | "convenience" | "crew_emblem";
 
-const CATEGORY_META: Record<CategoryKey, { label: string; icon: string; accent: string }> = {
-  arena_pass:  { label: "Area-Liga-Pass",    icon: "🎫", accent: "#FFD700" },
-  booster:     { label: "Wegemünzen-Booster", icon: "⚡", accent: "#22D1C3" },
-  cosmetic:    { label: "Skins & Designs",   icon: "✨", accent: "#a855f7" },
-  convenience: { label: "Komfort",           icon: "🎯", accent: "#5ddaf0" },
-  crew_emblem: { label: "Crew-Anpassung",    icon: "🏳️", accent: "#FF6B4A" },
-};
+const CATEGORY_DEFS: Array<{ id: CategoryKey; icon: string; accent: string; labelKey: "catArenaPass" | "catBooster" | "catCosmetic" | "catConvenience" | "catCrewEmblem" }> = [
+  { id: "arena_pass",  icon: "🎫", accent: "#FFD700", labelKey: "catArenaPass" },
+  { id: "booster",     icon: "⚡", accent: "#22D1C3", labelKey: "catBooster" },
+  { id: "cosmetic",    icon: "✨", accent: "#a855f7", labelKey: "catCosmetic" },
+  { id: "convenience", icon: "🎯", accent: "#5ddaf0", labelKey: "catConvenience" },
+  { id: "crew_emblem", icon: "🏳️", accent: "#FF6B4A", labelKey: "catCrewEmblem" },
+];
 
 export default function ShopPage() {
+  const t = useTranslations("ShopGems");
+  const locale = useLocale();
+  const dateLocale = getDateLocale(locale);
   const router = useRouter();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [gems, setGems] = useState<Gems | null>(null);
@@ -75,8 +80,8 @@ export default function ShopPage() {
         body: JSON.stringify({ action: "purchase", item_id: itemId }),
       });
       const json = await res.json() as { ok?: boolean; error?: string; have?: number; need?: number };
-      if (json.ok) { setToast("Kauf erfolgreich!"); await load(); }
-      else setToast(json.error === "not_enough_gems" ? `Nicht genug Edelsteine (${json.have}/${json.need})` : (json.error ?? "Kauf fehlgeschlagen"));
+      if (json.ok) { setToast(t("toastSuccess")); await load(); }
+      else setToast(json.error === "not_enough_gems" ? t("toastNotEnough", { have: json.have ?? 0, need: json.need ?? 0 }) : (json.error ?? t("toastFailed")));
     } finally {
       setBusy(null);
       setTimeout(() => setToast(null), 3000);
@@ -93,7 +98,6 @@ export default function ShopPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0F1115", color: "#F0F0F0", paddingBottom: 40 }}>
-      {/* Header */}
       <div style={{
         padding: "12px 14px",
         display: "flex", alignItems: "center", gap: 10,
@@ -105,12 +109,11 @@ export default function ShopPage() {
           width: 34, height: 34, borderRadius: 999, cursor: "pointer", fontSize: 16,
         }}>←</button>
         <div style={{ flex: 1 }}>
-          <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>EDELSTEIN-SHOP</div>
-          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>Fair-Play · kein Pay-to-Win</div>
+          <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{t("headerKicker")}</div>
+          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{t("headerTitle")}</div>
         </div>
       </div>
 
-      {/* Edelstein-Stand */}
       <div style={{
         margin: 14, padding: 14, borderRadius: 14,
         background: "linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,107,74,0.08))",
@@ -119,38 +122,34 @@ export default function ShopPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ fontSize: 40 }}>💎</div>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>DEIN EDELSTEIN-STAND</div>
+            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{t("balanceLabel")}</div>
             <div style={{ color: "#FFF", fontSize: 28, fontWeight: 900 }}>{gems?.gems ?? 0}</div>
           </div>
           <button onClick={devTopup} style={{
             padding: "8px 12px", borderRadius: 10,
             background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
             color: "#FFF", fontSize: 11, fontWeight: 800, cursor: "pointer",
-          }}>+ 1000 (Dev)</button>
+          }}>{t("devTopup")}</button>
         </div>
         {gems?.arena_pass_expires_at && new Date(gems.arena_pass_expires_at) > new Date() && (
           <div style={{ marginTop: 8, padding: 8, borderRadius: 8, background: "rgba(34,209,195,0.12)", border: "1px solid rgba(34,209,195,0.4)", fontSize: 11 }}>
-            🎫 Area-Liga-Pass aktiv bis {new Date(gems.arena_pass_expires_at).toLocaleDateString("de-DE")}
+            {t("passActive", { date: new Date(gems.arena_pass_expires_at).toLocaleDateString(dateLocale) })}
           </div>
         )}
       </div>
 
-      {/* Principles */}
       <div style={{ margin: "0 14px 14px", padding: 10, borderRadius: 10, background: "rgba(34,209,195,0.08)", border: "1px dashed rgba(34,209,195,0.3)", fontSize: 11, color: "#a8b4cf", lineHeight: 1.5 }}>
-        <b style={{ color: "#22D1C3" }}>Fair-Play-Versprechen:</b> Edelsteine kaufen <b>nur</b> Skins, Booster und Komfort.
-        Siegel, Wächter und alle Währungen (🪙 Wegemünzen, 🏴 Gebietsruf, ⚔️ Sessionehre) bekommst du <b>ausschließlich durchs Gehen und Kämpfen</b>.
+        <b style={{ color: "#22D1C3" }}>{t("fairplayLead")}</b>{t("fairplayBody")}
       </div>
 
-      {/* Kategorien */}
-      {(Object.keys(CATEGORY_META) as CategoryKey[]).map((cat) => {
-        const meta = CATEGORY_META[cat];
-        const list = grouped[cat];
+      {CATEGORY_DEFS.map((cd) => {
+        const list = grouped[cd.id];
         if (list.length === 0) return null;
         return (
-          <section key={cat} style={{ margin: "0 14px 16px" }}>
+          <section key={cd.id} style={{ margin: "0 14px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 18 }}>{meta.icon}</span>
-              <div style={{ color: meta.accent, fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>{meta.label.toUpperCase()}</div>
+              <span style={{ fontSize: 18 }}>{cd.icon}</span>
+              <div style={{ color: cd.accent, fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>{t(cd.labelKey).toUpperCase()}</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {list.map((i) => {
@@ -160,11 +159,11 @@ export default function ShopPage() {
                   <div key={i.id} style={{
                     display: "flex", alignItems: "center", gap: 10, padding: 12, borderRadius: 12,
                     background: "rgba(26,29,35,0.9)",
-                    border: `1px solid ${owned ? meta.accent : "rgba(255,255,255,0.08)"}`,
+                    border: `1px solid ${owned ? cd.accent : "rgba(255,255,255,0.08)"}`,
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: 10,
-                      background: `${meta.accent}22`,
+                      background: `${cd.accent}22`,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 24,
                     }}>{i.icon}</div>
@@ -179,7 +178,7 @@ export default function ShopPage() {
                         padding: "8px 12px", borderRadius: 10,
                         background: owned ? "rgba(74,222,128,0.15)"
                           : cantAfford ? "rgba(255,255,255,0.06)"
-                          : `linear-gradient(135deg, ${meta.accent}, #FFD700)`,
+                          : `linear-gradient(135deg, ${cd.accent}, #FFD700)`,
                         color: owned ? "#4ade80" : cantAfford ? "#6c7590" : "#0F1115",
                         border: owned ? "1px solid rgba(74,222,128,0.4)" : "none",
                         fontSize: 11, fontWeight: 900,
@@ -187,7 +186,7 @@ export default function ShopPage() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {owned ? "✓ Aktiv" : `💎 ${i.price_gems}`}
+                      {owned ? t("btnOwned") : t("btnPrice", { price: i.price_gems })}
                     </button>
                   </div>
                 );
