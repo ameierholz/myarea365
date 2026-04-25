@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type Session = {
   id: string;
@@ -47,6 +48,7 @@ type Response = {
 type Tab = "runners" | "crews";
 
 export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: string | null; onClose: () => void }) {
+  const tA = useTranslations("ArenaSession");
   const [data, setData] = useState<Response | null>(null);
   const [tab, setTab] = useState<Tab>("runners");
   const [now, setNow] = useState(Date.now());
@@ -64,14 +66,14 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
   }, []);
 
   const countdown = useMemo(() => {
-    if (!data?.session) return "—";
+    if (!data?.session) return tA("countdownDash");
     const ms = new Date(data.session.ends_at).getTime() - now;
-    if (ms <= 0) return "Beendet";
+    if (ms <= 0) return tA("ended");
     const d = Math.floor(ms / 86400000);
     const h = Math.floor((ms % 86400000) / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
-    return `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m`;
-  }, [data?.session, now]);
+    return tA("countdown", { d, h: String(h).padStart(2, "0"), m: String(m).padStart(2, "0") });
+  }, [data?.session, now, tA]);
 
   const myTitles = data?.titles ?? [];
 
@@ -98,13 +100,13 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
         }}>
           <span style={{ fontSize: 26 }}>🏆</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#FF6B4A", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>ARENA</div>
+            <div style={{ color: "#FF6B4A", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tA("kicker")}</div>
             <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {data?.session?.name ?? "Keine aktive Session"}
+              {data?.session?.name ?? tA("noActiveSession")}
             </div>
             {data?.session && (
               <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                ⏱️ Endet in {countdown}
+                {tA("endsIn", { countdown })}
               </div>
             )}
           </div>
@@ -141,7 +143,7 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
                 fontSize: 12, fontWeight: 800,
                 borderBottom: active ? `2px solid ${color}` : "2px solid transparent",
               }}>
-                {t === "runners" ? "👤 Runner" : "👥 Crews"}
+                {t === "runners" ? tA("tabRunners") : tA("tabCrews")}
               </button>
             );
           })}
@@ -153,14 +155,14 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
             <LeaderList rows={(data?.runners ?? []).map((r, i) => ({
               key: r.user_id,
               rank: i + 1,
-              name: r.users.display_name || r.users.username || "Runner",
+              name: r.users.display_name || r.users.username || tA("runnerFallback"),
               avatar: r.users.avatar_url,
               wins: r.wins,
               losses: r.losses,
               points: r.points,
               extra: [
-                r.fusions > 0 ? `⚡${r.fusions} Fusion` : null,
-                r.trophies > 0 ? `🏆${r.trophies} Trophäe` : null,
+                r.fusions > 0 ? tA("fusion", { count: r.fusions }) : null,
+                r.trophies > 0 ? tA("trophy", { count: r.trophies }) : null,
               ].filter(Boolean).join(" · "),
               highlight: r.user_id === currentUserId,
               accentColor: "#22D1C3",
@@ -187,17 +189,17 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
             background: "rgba(255,107,74,0.08)", border: "1px dashed rgba(255,107,74,0.35)",
             fontSize: 11, lineHeight: 1.55, color: "#a8b4cf",
           }}>
-            <div style={{ color: "#FF6B4A", fontWeight: 900, marginBottom: 6, letterSpacing: 0.5 }}>🎁 BELOHNUNGEN AM SESSION-ENDE</div>
+            <div style={{ color: "#FF6B4A", fontWeight: 900, marginBottom: 6, letterSpacing: 0.5 }}>{tA("rewardsHeader")}</div>
             {tab === "runners" ? (
               <>
-                <div>🥇 <b style={{ color: "#FFD700" }}>Area-Liga-Champion</b> · 🥈 Herausforderer · 🥉 Finalist</div>
-                <div style={{ marginTop: 4 }}>Titel bleiben dauerhaft im Profil</div>
+                <div>{tA.rich("rewardsRunnersRich", { b: (chunks) => <b style={{ color: "#FFD700" }}>{chunks}</b> })}</div>
+                <div style={{ marginTop: 4 }}>{tA("rewardsRunnersHint")}</div>
               </>
             ) : (
               <>
-                <div>🥇 <b style={{ color: "#FFD700" }}>80 Universal-Siegel</b> an jedes Mitglied + Banner + 500 💎 Crew-Schatz</div>
-                <div>🥈 50 Siegel + Banner</div>
-                <div>🥉 25 Siegel</div>
+                <div>{tA.rich("rewardsCrewsGoldRich", { b: (chunks) => <b style={{ color: "#FFD700" }}>{chunks}</b> })}</div>
+                <div>{tA("rewardsCrewsSilver")}</div>
+                <div>{tA("rewardsCrewsBronze")}</div>
               </>
             )}
           </div>
@@ -213,7 +215,17 @@ function LeaderList({ rows }: {
     wins: number; losses: number; points: number; extra: string; highlight: boolean; accentColor: string;
   }>;
 }) {
-  if (rows.length === 0) return <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Noch keine Kämpfe in dieser Session.</div>;
+  return <LeaderListInner rows={rows} />;
+}
+
+function LeaderListInner({ rows }: {
+  rows: Array<{
+    key: string; rank: number; name: string; avatar: string | null;
+    wins: number; losses: number; points: number; extra: string; highlight: boolean; accentColor: string;
+  }>;
+}) {
+  const tA = useTranslations("ArenaSession");
+  if (rows.length === 0) return <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{tA("noFights")}</div>;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {rows.map((r) => {
@@ -240,11 +252,11 @@ function LeaderList({ rows }: {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
               <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 1 }}>
-                {r.wins}W / {r.losses}L{r.extra ? ` · ${r.extra}` : ""}
+                {tA("winLossShort", { wins: r.wins, losses: r.losses })}{r.extra ? ` · ${r.extra}` : ""}
               </div>
             </div>
             <div style={{ color: r.accentColor, fontSize: 14, fontWeight: 900, flexShrink: 0 }}>
-              {r.points} <span style={{ fontSize: 9, color: "#8B8FA3", fontWeight: 600 }}>Pkt</span>
+              {r.points} <span style={{ fontSize: 9, color: "#8B8FA3", fontWeight: 600 }}>{tA("points")}</span>
             </div>
           </div>
         );

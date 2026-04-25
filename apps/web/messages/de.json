@@ -1313,6 +1313,42 @@
     "themeChoose": "Wählen",
     "themeLockedShop": "🔒 Gem-Shop",
     "themeNoArtwork": "KEIN ARTWORK"
+  },
+  "Equipment": {
+    "loading": "Lade Ausrüstung…",
+    "slotEmpty": "leer",
+    "noEquipmentHint": "Noch keine Ausrüstung — gewinn Rare+ Loot bei Einlösungen oder aus Map-Kisten",
+    "pickerTitle": "{slot} wählen",
+    "inventoryCount": "{count} Items im Inventar",
+    "unequip": "Ausrüstung ablegen",
+    "noItemsInSlot": "Noch kein {slot}-Item im Inventar.",
+    "noItemsHint": "Lös Deals ein und hoff auf Rare+ Loot!",
+    "itemEquipped": "AUSGERÜSTET",
+    "itemCosmetic": "KOSMETISCH",
+    "cosmeticHint": "Nur optisch — keine Kampf-Boni (Anti-P2W)",
+    "closeAria": "Schließen"
+  },
+  "ArenaSession": {
+    "kicker": "ARENA",
+    "noActiveSession": "Keine aktive Session",
+    "ended": "Beendet",
+    "endsIn": "⏱️ Endet in {countdown}",
+    "countdownDash": "—",
+    "countdown": "{d}d {h}h {m}m",
+    "tabRunners": "👤 Runner",
+    "tabCrews": "👥 Crews",
+    "runnerFallback": "Runner",
+    "fusion": "⚡{count} Fusion",
+    "trophy": "🏆{count} Trophäe",
+    "noFights": "Noch keine Kämpfe in dieser Session.",
+    "winLossShort": "{wins}W / {losses}L",
+    "points": "Pkt",
+    "rewardsHeader": "🎁 BELOHNUNGEN AM SESSION-ENDE",
+    "rewardsRunnersRich": "🥇 <b>Area-Liga-Champion</b> · 🥈 Herausforderer · 🥉 Finalist",
+    "rewardsRunnersHint": "Titel bleiben dauerhaft im Profil",
+    "rewardsCrewsGoldRich": "🥇 <b>80 Universal-Siegel</b> an jedes Mitglied + Banner + 500 💎 Crew-Schatz",
+    "rewardsCrewsSilver": "🥈 50 Siegel + Banner",
+    "rewardsCrewsBronze": "🥉 25 Siegel"
   }
   "ShopQuests": {
     "title": "📋 Shop-Quests",

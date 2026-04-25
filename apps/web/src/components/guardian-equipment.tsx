@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { RARITY_META, type GuardianRarity } from "@/lib/guardian";
 import { SLOT_META, ALL_SLOTS, type ItemSlot } from "@/lib/items";
 
@@ -22,6 +23,7 @@ type InventoryResponse = {
 };
 
 export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) {
+  const tE = useTranslations("Equipment");
   const [inv, setInv] = useState<InventoryResponse | null>(null);
   const [pickerSlot, setPickerSlot] = useState<ItemSlot | null>(null);
   const [busy, setBusy] = useState(false);
@@ -59,7 +61,7 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
     } finally { setBusy(false); }
   }
 
-  if (!inv) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Ausrüstung…</div>;
+  if (!inv) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{tE("loading")}</div>;
 
   const totalBonus = { hp: 0, atk: 0, def: 0, spd: 0 };
   for (const s of ALL_SLOTS) {
@@ -102,7 +104,7 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
                 {it?.catalog.emoji ?? meta.icon}
               </div>
               <div style={{ color: rarityColor, fontSize: 9, fontWeight: 800, minHeight: 11, lineHeight: 1.2 }}>
-                {it?.catalog.name ?? "leer"}
+                {it?.catalog.name ?? tE("slotEmpty")}
               </div>
             </button>
           );
@@ -124,7 +126,7 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
         </div>
       ) : (
         <div style={{ padding: 10, borderRadius: 10, background: "rgba(70,82,122,0.2)", textAlign: "center", color: "#8B8FA3", fontSize: 11 }}>
-          Noch keine Ausrüstung — gewinn Rare+ Loot bei Einlösungen oder aus Map-Kisten
+          {tE("noEquipmentHint")}
         </div>
       )}
 
@@ -150,28 +152,29 @@ function ItemPickerModal({ slot, items, onEquip, onUnequip, hasEquipped, onClose
   hasEquipped: boolean;
   onClose: () => void;
 }) {
+  const tE = useTranslations("Equipment");
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3700, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, maxHeight: "85vh", overflowY: "auto", background: "#1A1D23", borderRadius: 18, padding: 20, border: "1px solid rgba(168,85,247,0.4)", color: "#F0F0F0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <span style={{ fontSize: 26 }}>{SLOT_META[slot].icon}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{SLOT_META[slot].label} wählen</div>
-            <div style={{ color: "#8B8FA3", fontSize: 10 }}>{items.length} Items im Inventar</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tE("pickerTitle", { slot: SLOT_META[slot].label })}</div>
+            <div style={{ color: "#8B8FA3", fontSize: 10 }}>{tE("inventoryCount", { count: items.length })}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
+          <button onClick={onClose} aria-label={tE("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
 
         {hasEquipped && (
           <button onClick={onUnequip} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "rgba(255,45,120,0.2)", border: "1px solid rgba(255,45,120,0.5)", color: "#FF2D78", fontSize: 12, fontWeight: 900, cursor: "pointer", marginBottom: 10 }}>
-            Ausrüstung ablegen
+            {tE("unequip")}
           </button>
         )}
 
         {items.length === 0 ? (
           <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>
-            Noch kein {SLOT_META[slot].label}-Item im Inventar.<br />
-            Lös Deals ein und hoff auf Rare+ Loot!
+            {tE("noItemsInSlot", { slot: SLOT_META[slot].label })}<br />
+            {tE("noItemsHint")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -194,8 +197,8 @@ function ItemPickerModal({ slot, items, onEquip, onUnequip, hasEquipped, onClose
                   <span style={{ fontSize: 26 }}>{it.catalog.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: rarity.color, fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>
-                      {rarity.label.toUpperCase()}{it.equipped && " · AUSGERÜSTET"}
-                      {it.catalog.cosmetic_only && " · KOSMETISCH"}
+                      {rarity.label.toUpperCase()}{it.equipped && ` · ${tE("itemEquipped")}`}
+                      {it.catalog.cosmetic_only && ` · ${tE("itemCosmetic")}`}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{it.catalog.name}</div>
                     {!it.catalog.cosmetic_only ? (
@@ -207,7 +210,7 @@ function ItemPickerModal({ slot, items, onEquip, onUnequip, hasEquipped, onClose
                       </div>
                     ) : (
                       <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2, fontStyle: "italic" }}>
-                        Nur optisch — keine Kampf-Boni (Anti-P2W)
+                        {tE("cosmeticHint")}
                       </div>
                     )}
                   </div>

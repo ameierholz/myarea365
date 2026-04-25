@@ -1313,6 +1313,42 @@
     "themeChoose": "Pick",
     "themeLockedShop": "🔒 Gem shop",
     "themeNoArtwork": "NO ARTWORK"
+  },
+  "Equipment": {
+    "loading": "Loading equipment…",
+    "slotEmpty": "empty",
+    "noEquipmentHint": "No equipment yet — win rare+ loot from redemptions or map chests",
+    "pickerTitle": "Pick {slot}",
+    "inventoryCount": "{count} items in inventory",
+    "unequip": "Unequip",
+    "noItemsInSlot": "No {slot} item in your inventory yet.",
+    "noItemsHint": "Redeem deals and hope for rare+ loot!",
+    "itemEquipped": "EQUIPPED",
+    "itemCosmetic": "COSMETIC",
+    "cosmeticHint": "Cosmetic only — no combat bonuses (anti-P2W)",
+    "closeAria": "Close"
+  },
+  "ArenaSession": {
+    "kicker": "ARENA",
+    "noActiveSession": "No active session",
+    "ended": "Ended",
+    "endsIn": "⏱️ Ends in {countdown}",
+    "countdownDash": "—",
+    "countdown": "{d}d {h}h {m}m",
+    "tabRunners": "👤 Runners",
+    "tabCrews": "👥 Crews",
+    "runnerFallback": "Runner",
+    "fusion": "⚡{count} fusion",
+    "trophy": "🏆{count} trophy",
+    "noFights": "No battles in this session yet.",
+    "winLossShort": "{wins}W / {losses}L",
+    "points": "pts",
+    "rewardsHeader": "🎁 REWARDS AT SESSION END",
+    "rewardsRunnersRich": "🥇 <b>Area League Champion</b> · 🥈 Challenger · 🥉 Finalist",
+    "rewardsRunnersHint": "Titles stay permanently on your profile",
+    "rewardsCrewsGoldRich": "🥇 <b>80 universal sigils</b> per member + banner + 500 💎 crew chest",
+    "rewardsCrewsSilver": "🥈 50 sigils + banner",
+    "rewardsCrewsBronze": "🥉 25 sigils"
   }
   "ShopQuests": {
     "title": "📋 Shop quests",
