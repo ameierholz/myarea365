@@ -10146,15 +10146,20 @@ function fmtRelTime(iso: string, t: CrewT): string {
  * ═══════════════════════════════════════════════════════ */
 
 function ShopsTab() {
+  const tD = useTranslations("Deals");
   const [view, setView] = useState<"b2c" | "b2b">("b2c");
+  const tabs = useMemo(() => ([
+    { id: "b2c" as const, label: tD("toggleB2c") },
+    { id: "b2b" as const, label: tD("toggleB2b") },
+  ]), [tD]);
   return (
     <div style={{ padding: "24px 20px 40px", width: "100%", maxWidth: 1100, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginBottom: 4 }}>
-        Kiez-Deals
+        {tD("tabHeader")}
       </div>
       <div style={{ color: MUTED, fontSize: 13, marginBottom: 16 }}>
-        Runner einlösen XP in lokalen Shops · Shops erreichen genau die Zielgruppe, die schon vor der Tür läuft.
+        {tD("tabSubtitle")}
       </div>
 
       {/* Toggle */}
@@ -10163,10 +10168,7 @@ function ShopsTab() {
         background: "rgba(30, 38, 60, 0.55)", border: `1px solid ${BORDER}`,
         marginBottom: 18,
       }}>
-        {([
-          { id: "b2c", label: "🎁 Für Runner" },
-          { id: "b2b", label: "🏪 Für Partner" },
-        ] as const).map((m) => {
+        {tabs.map((m) => {
           const active = view === m.id;
           return (
             <button key={m.id} onClick={() => setView(m.id)} style={{
@@ -10188,6 +10190,7 @@ function ShopsTab() {
 
 /* ═══ Runner-View — Filter+Liste der konkreten Kiez-Deals ═══ */
 function ShopsRunnerView() {
+  const tD = useTranslations("Deals");
   const [showHelp, setShowHelp] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -10203,7 +10206,7 @@ function ShopsRunnerView() {
           }}
         >
           <span>ℹ️</span>
-          <span>Was sind Kiez-Deals?</span>
+          <span>{tD("helpButton")}</span>
         </button>
       </div>
 
@@ -10216,6 +10219,7 @@ function ShopsRunnerView() {
 
 /* ═══ Help-Modal mit Marketing/Onboarding-Inhalt (frueher ShopsRunnerView) ═══ */
 function KiezDealsHelpModal({ onClose }: { onClose: () => void }) {
+  const tD = useTranslations("Deals");
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", onKey);
@@ -10254,11 +10258,11 @@ function KiezDealsHelpModal({ onClose }: { onClose: () => void }) {
         }}>
           <span style={{ fontSize: 22 }}>ℹ️</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#22D1C3" }}>ONBOARDING</div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>Was sind Kiez-Deals?</div>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: "#22D1C3" }}>{tD("helpKicker")}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>{tD("helpTitle")}</div>
           </div>
           <button
-            onClick={onClose} aria-label="Schließen"
+            onClick={onClose} aria-label={tD("closeAria")}
             style={{
               background: "rgba(255,255,255,0.08)", border: "none",
               color: "#a8b4cf", width: 34, height: 34, borderRadius: 999,
@@ -10276,16 +10280,68 @@ function KiezDealsHelpModal({ onClose }: { onClose: () => void }) {
 
 /* ═══ Marketing/Onboarding-Inhalt (frueher ShopsRunnerView-Body) ═══ */
 function KiezDealsHelpContent() {
-  const categories = [
-    { icon: "☕", name: "Café & Bäcker" },
-    { icon: "🛍️", name: "Sport & Mode" },
-    { icon: "🥗", name: "Gesundheit" },
-    { icon: "🍔", name: "Gastro" },
-    { icon: "🏋️", name: "Fitness" },
-    { icon: "💈", name: "Services" },
-    { icon: "🍦", name: "Eis & Dessert" },
-    { icon: "🐾", name: "Tier" },
-  ];
+  const tD = useTranslations("Deals");
+  const categories = useMemo(() => [
+    { icon: "☕", name: tD("catCafe") },
+    { icon: "🛍️", name: tD("catSport") },
+    { icon: "🥗", name: tD("catHealth") },
+    { icon: "🍔", name: tD("catGastro") },
+    { icon: "🏋️", name: tD("catFitness") },
+    { icon: "💈", name: tD("catServices") },
+    { icon: "🍦", name: tD("catIce") },
+    { icon: "🐾", name: tD("catPet") },
+  ], [tD]);
+  const pillars = useMemo(() => [
+    { icon: "💪", label: tD("pillarHealth"), color: "#4ade80" },
+    { icon: "🎉", label: tD("pillarFun"), color: "#FF2D78" },
+    { icon: "💸", label: tD("pillarSave"), color: "#FFD700" },
+    { icon: "🏘️", label: tD("pillarLocal"), color: "#22D1C3" },
+  ], [tD]);
+  const healthStats = useMemo(() => [
+    { icon: "🫀", stat: "+42%", title: tD("stat1Title"), desc: tD("stat1Desc") },
+    { icon: "🧠", stat: "+23%", title: tD("stat2Title"), desc: tD("stat2Desc") },
+    { icon: "🔥", stat: "+350", title: tD("stat3Title"), desc: tD("stat3Desc") },
+    { icon: "😴", stat: "+18%", title: tD("stat4Title"), desc: tD("stat4Desc") },
+  ], [tD]);
+  const whyLocal = useMemo(() => [
+    { icon: "🏘️", title: tD("wl1Title"), desc: tD("wl1Desc"), accent: "#22D1C3" },
+    { icon: "🧑‍🤝‍🧑", title: tD("wl2Title"), desc: tD("wl2Desc"), accent: "#FFD700" },
+    { icon: "🔎", title: tD("wl3Title"), desc: tD("wl3Desc"), accent: "#FF2D78" },
+    { icon: "🌳", title: tD("wl4Title"), desc: tD("wl4Desc"), accent: "#4ade80" },
+    { icon: "⚡", title: tD("wl5Title"), desc: tD("wl5Desc"), accent: "#F97316" },
+    { icon: "🤝", title: tD("wl6Title"), desc: tD("wl6Desc"), accent: "#a855f7" },
+    { icon: "🎉", title: tD("wl7Title"), desc: tD("wl7Desc"), accent: "#ef7169" },
+    { icon: "🔐", title: tD("wl8Title"), desc: tD("wl8Desc"), accent: "#5ddaf0" },
+  ], [tD]);
+  const exampleDeals = useMemo(() => [
+    { icon: "☕", shop: tD("ed1Shop"), deal: tD("ed1Deal"), xp: "300 🪙" },
+    { icon: "🥐", shop: tD("ed2Shop"), deal: tD("ed2Deal"), xp: "150 🪙" },
+    { icon: "🛍️", shop: tD("ed3Shop"), deal: tD("ed3Deal"), xp: "800 🪙" },
+    { icon: "🥗", shop: tD("ed4Shop"), deal: tD("ed4Deal"), xp: "400 🪙" },
+    { icon: "🏋️", shop: tD("ed5Shop"), deal: tD("ed5Deal"), xp: "1.500 🪙" },
+    { icon: "🍦", shop: tD("ed6Shop"), deal: tD("ed6Deal"), xp: "250 🪙" },
+    { icon: "💈", shop: tD("ed7Shop"), deal: tD("ed7Deal"), xp: "600 🪙" },
+    { icon: "🥐", shop: tD("ed8Shop"), deal: tD("ed8Deal"), xp: "350 🪙" },
+  ], [tD]);
+  const steps = useMemo(() => [
+    { num: "01", icon: "📍", title: tD("step1Title"), desc: tD("step1Desc") },
+    { num: "02", icon: "📷", title: tD("step2Title"), desc: tD("step2Desc") },
+    { num: "03", icon: "💸", title: tD("step3Title"), desc: tD("step3Desc") },
+  ], [tD]);
+  const earn = useMemo(() => [
+    { label: tD("earn1Label"), value: "+50 🪙", icon: "📏" },
+    { label: tD("earn2Label"), value: "+100 🪙", icon: "🏃" },
+    { label: tD("earn3Label"), value: "+250 🪙", icon: "🛣️" },
+    { label: tD("earn4Label"), value: "+500 🪙", icon: "🗺️" },
+    { label: tD("earn5Label"), value: "+bis 1.000 🪙", icon: "🔥" },
+    { label: tD("earn6Label"), value: "+2.500 🪙", icon: "🏆" },
+  ], [tD]);
+  const fairness = useMemo(() => [
+    { icon: "📡", title: tD("fair1Title"), desc: tD("fair1Desc") },
+    { icon: "🗓️", title: tD("fair2Title"), desc: tD("fair2Desc") },
+    { icon: "💾", title: tD("fair3Title"), desc: tD("fair3Desc") },
+    { icon: "💸", title: tD("fair4Title"), desc: tD("fair4Desc") },
+  ], [tD]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
@@ -10306,21 +10362,22 @@ function KiezDealsHelpContent() {
           color: "#FFF", fontSize: "clamp(22px, 3.5vw, 32px)", fontWeight: 900,
           margin: 0, lineHeight: 1.15,
         }}>
-          Deine Schritte sind echte{" "}
+          {tD("heroTitle1")}
           <span style={{
             background: `linear-gradient(90deg, ${PRIMARY}, #FFD700)`,
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-          }}>Währung</span>.
+          }}>{tD("heroTitleAccent")}</span>{tD("heroTitle2")}
         </h1>
         <p style={{
           color: TEXT_SOFT, fontSize: 14, lineHeight: 1.55,
           margin: "12px auto 0", maxWidth: 560,
         }}>
-          <b style={{ color: "#FFF" }}>Tu was für deine Gesundheit</b>, hab <b style={{ color: "#FFF" }}>Spaß</b>,
-          <b style={{ color: "#FFD700" }}> spare echtes Geld</b> in lokalen Shops und
-          <b style={{ color: "#4ade80" }}> unterstütze deinen Kiez</b> — alles mit einem Lauf.
-          Scanne den QR an der Theke, XP wird zu Rabatt. Kein Punkte-Zirkus.
+          {tD.rich("heroBodyRich", {
+            a: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b>,
+            b: (chunks) => <b style={{ color: "#FFD700" }}>{chunks}</b>,
+            c: (chunks) => <b style={{ color: "#4ade80" }}>{chunks}</b>,
+          })}
         </p>
 
         {/* 4-Pillars-Bar */}
@@ -10329,12 +10386,7 @@ function KiezDealsHelpContent() {
           gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
           gap: 10, marginTop: 20,
         }}>
-          {[
-            { icon: "💪", label: "Gesundheit",     color: "#4ade80" },
-            { icon: "🎉", label: "Spaß",           color: "#FF2D78" },
-            { icon: "💸", label: "Spare echtes Geld", color: "#FFD700" },
-            { icon: "🏘️", label: "Lokal stärken",  color: "#22D1C3" },
-          ].map((p) => (
+          {pillars.map((p) => (
             <div key={p.label} style={{
               background: `${p.color}18`, border: `1px solid ${p.color}55`,
               borderRadius: 12, padding: "10px 12px",
@@ -10352,7 +10404,7 @@ function KiezDealsHelpContent() {
       {/* Kategorien */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          SHOP-KATEGORIEN
+          {tD("shopCategoriesHeader")}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {categories.map((c) => (
@@ -10387,11 +10439,10 @@ function KiezDealsHelpContent() {
           }}>❤️</div>
           <div>
             <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>
-              Doppelter Gewinn: Gesundheit + Rabatt
+              {tD("doubleWinTitle")}
             </div>
             <div style={{ color: TEXT_SOFT, fontSize: 13, lineHeight: 1.55, marginTop: 4 }}>
-              Jeder km zum Partner-Shop ist ein km für deine <b style={{ color: "#4ade80" }}>Gesundheit</b> —
-              Studien zeigen messbare Effekte. Und an der Kasse bekommst du den Rabatt noch oben drauf.
+              {tD.rich("doubleWinBodyRich", { a: (chunks) => <b style={{ color: "#4ade80" }}>{chunks}</b> })}
             </div>
           </div>
         </div>
@@ -10400,12 +10451,7 @@ function KiezDealsHelpContent() {
           gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: 10, marginTop: 6,
         }}>
-          {[
-            { icon: "🫀", stat: "+42%", title: "Herz-Kreislauf", desc: "Regelmäßiges Gehen senkt Infarktrisiko spürbar." },
-            { icon: "🧠", stat: "+23%", title: "Mentale Stärke", desc: "30 Min. Bewegung/Tag gegen Stress + Angst." },
-            { icon: "🔥", stat: "+350", title: "kcal / Stunde",  desc: "Ein entspannter 6-km-Lauf — quasi nebenbei." },
-            { icon: "😴", stat: "+18%", title: "Schlafqualität", desc: "Tägliche Schritte verbessern Tiefschlaf." },
-          ].map((h) => (
+          {healthStats.map((h) => (
             <div key={h.title} style={{
               background: "rgba(0, 0, 0, 0.28)", borderRadius: 12,
               padding: "10px 12px", border: `1px solid ${BORDER}`,
@@ -10425,33 +10471,24 @@ function KiezDealsHelpContent() {
         <div style={{
           marginTop: 10, fontSize: 10, color: MUTED, fontStyle: "italic", textAlign: "center",
         }}>
-          Werte aus WHO/Cochrane/RKI-Studien zu täglicher Bewegung.
+          {tD("statSourceNote")}
         </div>
       </div>
 
       {/* WARUM LOKAL EINKAUFEN */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          WARUM LOKAL EINKAUFEN
+          {tD("whyLocalHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Deine Wegemünzen fließen direkt in deinen Kiez — nicht zu Amazon.
+          {tD("whyLocalIntro")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
           gap: 12,
         }}>
-          {[
-            { icon: "🏘️", title: "Dein Kiez bleibt lebendig", desc: "Jeder Euro bei lokalen Shops bleibt zu ~70% in der Region — bei Amazon 0%.", accent: "#22D1C3" },
-            { icon: "🧑‍🤝‍🧑", title: "Du lernst Menschen kennen", desc: "Der Bäcker, die Apothekerin, die Buchhändlerin — echte Gesichter statt Bewertungs-Sterne.", accent: "#FFD700" },
-            { icon: "🔎", title: "Du entdeckst Neues",          desc: "Läden, an denen du sonst vorbei­läufst. Plötzlich dein neues Lieblings-Café.", accent: "#FF2D78" },
-            { icon: "🌳", title: "Null CO₂ für den Einkauf",     desc: "Keine Lieferflotte, keine Verpackung, keine Retour-Logistik — du gehst einfach hin.", accent: "#4ade80" },
-            { icon: "⚡", title: "Sofort verfügbar",             desc: "Kein 2-Tage-Warten. Heute kaufen, heute nutzen, heute glücklich.", accent: "#F97316" },
-            { icon: "🤝", title: "Shops bezahlen fair",          desc: "Faire Kleinunternehmer-Preise statt Plattform-Gebühren, die Jobs killen.", accent: "#a855f7" },
-            { icon: "🎉", title: "Spaß statt Schleppen",          desc: "Ein kurzer Abstecher zum Café, Bäcker oder Blumenladen — viel netter als Amazon-Paket annehmen.", accent: "#ef7169" },
-            { icon: "🔐", title: "Echte Qualität",                desc: "Vor Ort ausprobieren, anfassen, beraten lassen. Keine Billig-Kopie im Karton, keine Rücksendung.", accent: "#5ddaf0" },
-          ].map((r) => (
+          {whyLocal.map((r) => (
             <div key={r.title} style={{
               background: "rgba(30, 38, 60, 0.55)",
               borderRadius: 14, padding: 14,
@@ -10469,26 +10506,17 @@ function KiezDealsHelpContent() {
       {/* BEISPIEL-DEALS */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          BEISPIEL-DEALS
+          {tD("exampleDealsHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          So sehen typische Rabatte aus — individuell je Shop.
+          {tD("exampleDealsIntro")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: 10,
         }}>
-          {[
-            { icon: "☕", shop: "Café Liebling",     deal: "Gratis Cappuccino ab 3 km Lauf", xp: "300 🪙" },
-            { icon: "🥐", shop: "Bäckerei Müller",    deal: "2 Brötchen 1 € (statt 1,60 €)",   xp: "150 🪙" },
-            { icon: "🛍️", shop: "Runners Point",     deal: "15 % auf den ganzen Einkauf",     xp: "800 🪙" },
-            { icon: "🥗", shop: "Bio-Bowl",          deal: "Gratis Smoothie zur Bowl",        xp: "400 🪙" },
-            { icon: "🏋️", shop: "MyCityFit",         deal: "Kostenlose Probe-Woche",          xp: "1.500 🪙" },
-            { icon: "🍦", shop: "Eiskultur Berlin",  deal: "Gratis Kugel Eis bei 5 km",       xp: "250 🪙" },
-            { icon: "💈", shop: "Barber Pankow",     deal: "10 % auf jeden Schnitt",          xp: "600 🪙" },
-            { icon: "🥐", shop: "Bio-Markt Ecke",    deal: "Gratis Kombucha zur Bowl",        xp: "350 🪙" },
-          ].map((d, i) => (
+          {exampleDeals.map((d, i) => (
             <div key={i} style={{
               background: "rgba(30, 38, 60, 0.55)", borderRadius: 14,
               padding: 14, border: `1px solid ${BORDER}`,
@@ -10519,25 +10547,21 @@ function KiezDealsHelpContent() {
         <div style={{
           marginTop: 8, fontSize: 10, color: MUTED, fontStyle: "italic", textAlign: "center",
         }}>
-          Platzhalter-Deals — echte Shops folgen beim Launch in deiner Stadt.
+          {tD("exampleDealsNote")}
         </div>
       </div>
 
       {/* WIE ES FUNKTIONIERT */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          IN 3 SCHRITTEN EINLÖSEN
+          {tD("redeemHeader")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: 10,
         }}>
-          {[
-            { num: "01", icon: "📍", title: "Lauf vorbei",        desc: "Komm in den 20m-Radius eines Partner-Shops — egal ob gezielt oder zufällig." },
-            { num: "02", icon: "📷", title: "QR scannen",         desc: "Kurz an der Theke abscannen. Dauer: 2 Sekunden. Anwesenheit bewiesen." },
-            { num: "03", icon: "💸", title: "Rabatt kassieren",   desc: "Deal auf Handy zeigen, Wegemünzen gehen auto ab, du sparst direkt an der Kasse." },
-          ].map((s) => (
+          {steps.map((s) => (
             <div key={s.num} style={{
               background: "rgba(30, 38, 60, 0.55)", padding: 16, borderRadius: 14,
               border: `1px solid ${BORDER}`, borderTop: `3px solid ${PRIMARY}`,
@@ -10554,10 +10578,10 @@ function KiezDealsHelpContent() {
       {/* WEGEMÜNZEN VERDIENEN */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          🪙 WEGEMÜNZEN VERDIENEN = DEALS FREISCHALTEN
+          {tD("earnHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Je aktiver du läufst, desto mehr Deals kannst du einlösen.
+          {tD("earnIntro")}
         </div>
         <div style={{
           background: "rgba(30, 38, 60, 0.55)", borderRadius: 14,
@@ -10568,14 +10592,7 @@ function KiezDealsHelpContent() {
             gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
             gap: 10,
           }}>
-            {[
-              { label: "Pro km",              value: "+50 🪙",      icon: "📏" },
-              { label: "Pro Lauf",            value: "+100 🪙",     icon: "🏃" },
-              { label: "Neuer Straßenzug",    value: "+250 🪙",     icon: "🛣️" },
-              { label: "Neues Gebiet",        value: "+500 🪙",     icon: "🗺️" },
-              { label: "Streak-Tag",          value: "+bis 1.000 🪙", icon: "🔥" },
-              { label: "Crew-Win",            value: "+2.500 🪙",   icon: "🏆" },
-            ].map((x) => (
+            {earn.map((x) => (
               <div key={x.label} style={{
                 background: "rgba(0,0,0,0.25)", padding: "10px 12px", borderRadius: 10,
                 border: `1px solid ${BORDER}`,
@@ -10595,19 +10612,14 @@ function KiezDealsHelpContent() {
       {/* FAIRNESS / SICHERHEIT */}
       <div>
         <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          🛡️ FAIR & TRANSPARENT
+          {tD("fairnessHeader")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: 10,
         }}>
-          {[
-            { icon: "📡", title: "Nur vor Ort einlösbar",     desc: "GPS-Check + rotierender QR. Kein Online-Missbrauch — der Shop hat was davon, nicht irgendein Bot." },
-            { icon: "🗓️", title: "Klare Einlöse-Regeln",     desc: "Jeder Deal zeigt offen: 1× / Woche, 1× / Monat oder unbegrenzt. Keine versteckten Klauseln." },
-            { icon: "💾", title: "Deine Daten bleiben bei dir", desc: "Shops sehen nur: anonymer Check-in + gelaufene km. Kein Profil-Tracking, keine Werbe-IDs." },
-            { icon: "💸", title: "Keine Ablauf-Währung",      desc: "Deine 🪙 Wegemünzen laufen nicht ab. Du tauschst sie ein, wenn du willst — nicht weil eine Zahl bald verfällt." },
-          ].map((s, i) => (
+          {fairness.map((s, i) => (
             <div key={i} style={{
               background: "rgba(30, 38, 60, 0.55)", borderRadius: 14,
               padding: 14, border: "1px solid #4ade8033",
@@ -10632,21 +10644,20 @@ function KiezDealsHelpContent() {
       }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>🎁</div>
         <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginBottom: 6 }}>
-          Noch keine Shops in deinem Kiez
+          {tD("comingSoonTitle")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 12, maxWidth: 480, lineHeight: 1.5 }}>
-          Kennst du einen Laden, der perfekt passt? Schreib uns — wir nehmen Kontakt auf
-          und du bekommst <b style={{ color: "#FFD700" }}>1.000 Bonus-XP</b>, sobald er live ist.
+          {tD.rich("comingSoonBodyRich", { b: (chunks) => <b style={{ color: "#FFD700" }}>{chunks}</b> })}
         </div>
         <button
-          onClick={() => appAlert("Shop-Empfehlung: partner@myarea365.de — Name + Stadt genügt.")}
+          onClick={() => appAlert(tD("comingSoonAlert"))}
           style={{
             marginTop: 14, padding: "10px 22px", borderRadius: 12,
             background: PRIMARY, color: BG_DEEP,
             fontSize: 13, fontWeight: 900, border: "none", cursor: "pointer",
           }}
         >
-          💡 Shop empfehlen (+1.000 🪙)
+          {tD("comingSoonBtn")}
         </button>
       </div>
     </div>
@@ -10655,6 +10666,100 @@ function KiezDealsHelpContent() {
 
 /* ═══ Partner-View (B2B-Landingpage) ═══ */
 function ShopsPartnerView() {
+  const tD = useTranslations("Deals");
+  const impact = useMemo(() => [
+    { icon: "🏃", stat: "+6 km", title: tD("imp1Title"), desc: tD("imp1Desc") },
+    { icon: "❤️", stat: "-23%",  title: tD("imp2Title"), desc: tD("imp2Desc") },
+    { icon: "🌿", stat: "+30%",  title: tD("imp3Title"), desc: tD("imp3Desc") },
+    { icon: "🧓", stat: "4×",    title: tD("imp4Title"), desc: tD("imp4Desc") },
+  ], [tD]);
+  const roiBig = useMemo(() => [
+    { icon: "🛒", value: "12,40 €", label: tD("roi1Label"), accent: "#FFD700" },
+    { icon: "🔁", value: "38 %",    label: tD("roi2Label"), accent: "#22D1C3" },
+    { icon: "📈", value: "+18 %",   label: tD("roi3Label"), accent: "#4ade80" },
+    { icon: "🎯", value: "1 : 6",   label: tD("roi4Label"), accent: "#FF6B4A" },
+  ], [tD]);
+  const benchmarks = useMemo(() => [
+    { icon: "☕", name: tD("bm1Name"), basket: "8,50 €",  margin: "65 %", roi: "×4" },
+    { icon: "🍔", name: tD("bm2Name"), basket: "18,20 €", margin: "58 %", roi: "×9" },
+    { icon: "🛍️", name: tD("bm3Name"), basket: "42,00 €", margin: "42 %", roi: "×21" },
+    { icon: "🥗", name: tD("bm4Name"), basket: "13,80 €", margin: "38 %", roi: "×7" },
+    { icon: "🏋️", name: tD("bm5Name"), basket: "29,90 €", margin: "80 %", roi: "×15" },
+    { icon: "💈", name: tD("bm6Name"), basket: "35,00 €", margin: "55 %", roi: "×18" },
+  ], [tD]);
+  const testimonials = useMemo(() => [
+    { name: tD("tt1Name"), loc: tD("tt1Loc"), quote: tD("tt1Quote"), stat: tD("tt1Stat") },
+    { name: tD("tt2Name"), loc: tD("tt2Loc"), quote: tD("tt2Quote"), stat: tD("tt2Stat") },
+    { name: tD("tt3Name"), loc: tD("tt3Loc"), quote: tD("tt3Quote"), stat: tD("tt3Stat") },
+  ], [tD]);
+  const usps = useMemo(() => [
+    { icon: "🎯", title: tD("usp1Title"), desc: tD("usp1Desc"), accent: "#22D1C3" },
+    { icon: "🧭", title: tD("usp2Title"), desc: tD("usp2Desc"), accent: "#FFD700" },
+    { icon: "🔐", title: tD("usp3Title"), desc: tD("usp3Desc"), accent: "#FF2D78" },
+    { icon: "📊", title: tD("usp4Title"), desc: tD("usp4Desc"), accent: "#F97316" },
+    { icon: "🏆", title: tD("usp5Title"), desc: tD("usp5Desc"), accent: "#a855f7" },
+    { icon: "🧾", title: tD("usp6Title"), desc: tD("usp6Desc"), accent: "#4ade80" },
+  ], [tD]);
+  const howSteps = useMemo(() => [
+    { num: "01", icon: "📝", title: tD("how1Title"), desc: tD("how1Desc") },
+    { num: "02", icon: "🎁", title: tD("how2Title"), desc: tD("how2Desc") },
+    { num: "03", icon: "🖨️", title: tD("how3Title"), desc: tD("how3Desc") },
+    { num: "04", icon: "📈", title: tD("how4Title"), desc: tD("how4Desc") },
+  ], [tD]);
+  const freqOptions = useMemo(() => [
+    { icon: "✨", label: tD("freqOnceLabel"),     hint: tD("freqOnceHint"),     accent: "#a855f7" },
+    { icon: "🔁", label: tD("freqWeekLabel"),     hint: tD("freqWeekHint"),     accent: "#22D1C3" },
+    { icon: "📅", label: tD("freqMonthLabel"),    hint: tD("freqMonthHint"),    accent: "#5ddaf0" },
+    { icon: "🍂", label: tD("freqQuarterLabel"),  hint: tD("freqQuarterHint"),  accent: "#FFD700" },
+    { icon: "🎯", label: tD("freqHalfLabel"),     hint: tD("freqHalfHint"),     accent: "#F97316" },
+    { icon: "🎂", label: tD("freqYearLabel"),     hint: tD("freqYearHint"),     accent: "#FF2D78" },
+    { icon: "♾️", label: tD("freqUnlimitedLabel"), hint: tD("freqUnlimitedHint"), accent: "#4ade80", highlight: true },
+  ], [tD]);
+  const abuseSteps = useMemo(() => [
+    { step: "01", icon: "📡", title: tD("abuse1Title"), desc: tD("abuse1Desc") },
+    { step: "02", icon: "🔄", title: tD("abuse2Title"), desc: tD("abuse2Desc") },
+    { step: "03", icon: "🗄️", title: tD("abuse3Title"), desc: tD("abuse3Desc") },
+    { step: "04", icon: "🔍", title: tD("abuse4Title"), desc: tD("abuse4Desc") },
+  ], [tD]);
+  const plans = useMemo(() => [
+    {
+      name: tD("planBasic"), color: "#5ddaf0", price: "1 €", per: tD("perCheckin"), tagline: tD("planBasicTagline"),
+      perks: [tD("planBasicPerk1"), tD("planBasicPerk2"), tD("planBasicPerk3"), tD("planBasicPerk4")],
+    },
+    {
+      name: tD("planPro"), color: "#FFD700", price: "2 €", per: tD("perCheckin"), tagline: tD("planProTagline"),
+      highlight: true, value: tD("planProValue"),
+      perks: [tD("planProPerk1"), tD("planProPerk2"), tD("planProPerk3"), tD("planProPerk4"), tD("planProPerk5"), tD("planProPerk6"), tD("planProPerk7"), tD("planProPerk8"), tD("planProPerk9"), tD("planProPerk10"), tD("planProPerk11")],
+    },
+    {
+      name: tD("planPremium"), color: "#FF2D78", price: tD("onRequest"), per: "", tagline: tD("planPremiumTagline"),
+      perks: [tD("planPremiumPerk1"), tD("planPremiumPerk2"), tD("planPremiumPerk3"), tD("planPremiumPerk4"), tD("planPremiumPerk5"), tD("planPremiumPerk6")],
+    },
+  ], [tD]);
+  const useCases = useMemo(() => [
+    { icon: "☕", text: tD("uc1") },
+    { icon: "🛍️", text: tD("uc2") },
+    { icon: "🥗", text: tD("uc3") },
+    { icon: "🏋️", text: tD("uc4") },
+    { icon: "💈", text: tD("uc5") },
+    { icon: "🥾", text: tD("uc6") },
+    { icon: "🥐", text: tD("uc7") },
+    { icon: "🧴", text: tD("uc8") },
+    { icon: "🍦", text: tD("uc9") },
+    { icon: "🍔", text: tD("uc10") },
+    { icon: "🌸", text: tD("uc11") },
+    { icon: "🍷", text: tD("uc12") },
+    { icon: "📚", text: tD("uc13") },
+    { icon: "🐾", text: tD("uc14") },
+  ], [tD]);
+  const faqs = useMemo(() => [
+    { q: tD("faq1Q"), a: tD("faq1A") },
+    { q: tD("faq2Q"), a: tD("faq2A") },
+    { q: tD("faq3Q"), a: tD("faq3A") },
+    { q: tD("faq4Q"), a: tD("faq4A") },
+    { q: tD("faq5Q"), a: tD("faq5A") },
+    { q: tD("faq6Q"), a: tD("faq6A") },
+  ], [tD]);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
       {/* HERO */}
@@ -10678,39 +10783,37 @@ function ShopsPartnerView() {
             color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1,
             marginBottom: 14,
           }}>
-            <span>🏪</span> FÜR LOKALE SHOPS
+            {tD("partnerBadge")}
           </div>
           <h1 style={{
             color: "#FFF", fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 900,
             margin: 0, lineHeight: 1.1, letterSpacing: -0.5,
           }}>
-            Laufkundschaft war noch nie so <span style={{
+            {tD("partnerHero1")}<span style={{
               background: `linear-gradient(90deg, ${PRIMARY}, ${ACCENT})`,
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               backgroundClip: "text",
-            }}>wörtlich</span>.
+            }}>{tD("partnerHeroAccent")}</span>{tD("partnerHero2")}
           </h1>
           <p style={{
             color: TEXT_SOFT, fontSize: 15, lineHeight: 1.55,
             margin: "14px auto 22px", maxWidth: 560,
           }}>
-            Tausende Menschen laufen täglich durch deinen Kiez. Mit MyArea365
-            werden sie zu Kund:innen — wenn sie eine <b style={{ color: "#FFF" }}>echte Belohnung</b> für den
-            Umweg zu dir bekommen.
+            {tD.rich("partnerHeroBodyRich", { b: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b> })}
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
             <button
-              onClick={() => appAlert("Partner-Anmeldung: Bitte kontaktiere partner@myarea365.de — Self-Service-Onboarding folgt.")}
+              onClick={() => appAlert(tD("partnerCtaSignupAlert"))}
               style={{
                 padding: "14px 26px", borderRadius: 14,
                 background: PRIMARY, color: BG_DEEP,
                 fontSize: 14, fontWeight: 900, border: "none", cursor: "pointer",
               }}
             >
-              🚀 Jetzt Shop anmelden
+              {tD("partnerCtaSignup")}
             </button>
             <button
-              onClick={() => appAlert("Demo-Termin: partner@myarea365.de")}
+              onClick={() => appAlert(tD("partnerCtaDemoAlert"))}
               style={{
                 padding: "14px 22px", borderRadius: 14,
                 background: "rgba(0,0,0,0.35)", color: "#FFF",
@@ -10718,7 +10821,7 @@ function ShopsPartnerView() {
                 border: `1px solid ${BORDER}`, cursor: "pointer",
               }}
             >
-              📅 Demo buchen
+              {tD("partnerCtaDemo")}
             </button>
           </div>
         </div>
@@ -10730,10 +10833,10 @@ function ShopsPartnerView() {
         gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
         gap: 10,
       }}>
-        <LiveStat icon="🏃" value="523" label="Runner in deinem Kiez" accent={PRIMARY} />
-        <LiveStat icon="📏" value="12.400" label="km/Woche gelaufen" accent="#FFD700" />
-        <LiveStat icon="🎯" value="72%" label="kommen wöchentlich" accent={ACCENT} />
-        <LiveStat icon="💳" value="ab 1 €" label="Pay-per-Visit · 0 € Fix-Kosten" accent="#4ade80" />
+        <LiveStat icon="🏃" value="523" label={tD("liveStatRunners")} accent={PRIMARY} />
+        <LiveStat icon="📏" value="12.400" label={tD("liveStatKm")} accent="#FFD700" />
+        <LiveStat icon="🎯" value="72%" label={tD("liveStatRetention")} accent={ACCENT} />
+        <LiveStat icon="💳" value={tD("liveStatPriceValue")} label={tD("liveStatPrice")} accent="#4ade80" />
       </div>
 
       {/* IMPACT — Gesundheit & Community */}
@@ -10755,12 +10858,13 @@ function ShopsPartnerView() {
           }}>❤️</div>
           <div>
             <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>
-              Dein Shop wird Teil der Bewegung
+              {tD("impactTitle")}
             </div>
             <div style={{ color: TEXT_SOFT, fontSize: 13, lineHeight: 1.55, marginTop: 4 }}>
-              Du verkaufst nicht nur Kaffee, Brot oder Schuhe — du motivierst Menschen in deinem Kiez,
-              aktiv zu werden. Jeder Check-in in deinem Shop ist ein <b style={{ color: "#4ade80" }}>km mehr</b>,
-              den jemand für seine Gesundheit gelaufen ist. <b style={{ color: "#FFF" }}>Umsatz + Community-Impact in einem.</b>
+              {tD.rich("impactBodyRich", {
+                a: (chunks) => <b style={{ color: "#4ade80" }}>{chunks}</b>,
+                b: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b>,
+              })}
             </div>
           </div>
         </div>
@@ -10769,12 +10873,7 @@ function ShopsPartnerView() {
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10, marginTop: 6,
         }}>
-          {[
-            { icon: "🏃", stat: "+6 km", title: "pro Einlösung",     desc: "Durchschnittliche Laufstrecke für einen Deal." },
-            { icon: "❤️", stat: "-23%",  title: "weniger Herzrisiko",desc: "Bei 150 Min. Bewegung pro Woche (WHO)." },
-            { icon: "🌿", stat: "+30%",  title: "mentale Gesundheit",desc: "Outdoor-Aktivität senkt Stress + Angst." },
-            { icon: "🧓", stat: "4×",    title: "Altersgruppen",     desc: "Vom Schüler bis zum Rentner — alle laufen mit." },
-          ].map((h) => (
+          {impact.map((h) => (
             <div key={h.title} style={{
               background: "rgba(0, 0, 0, 0.28)", borderRadius: 12,
               padding: "10px 12px", border: `1px solid ${BORDER}`,
@@ -10796,10 +10895,10 @@ function ShopsPartnerView() {
       {/* ROI — Was bringt's konkret */}
       <div>
         <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          💰 WAS BRINGT DIR DAS KONKRET
+          {tD("roiHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Zahlen aus unserer Pilot-Phase (60 Shops, 6 Monate in Berlin + München). Jeder Shop individuell — Richtwerte.
+          {tD("roiIntro")}
         </div>
 
         {/* Big numbers */}
@@ -10808,12 +10907,7 @@ function ShopsPartnerView() {
           gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 10, marginBottom: 14,
         }}>
-          {[
-            { icon: "🛒", value: "12,40 €",  label: "Ø Warenkorb pro Check-in",   accent: "#FFD700" },
-            { icon: "🔁", value: "38 %",      label: "kommen innerhalb 30 Tagen wieder", accent: "#22D1C3" },
-            { icon: "📈", value: "+18 %",    label: "Umsatz in der Woche nach Launch", accent: "#4ade80" },
-            { icon: "🎯", value: "1 : 6",    label: "Kosten-Umsatz-Verhältnis",   accent: "#FF6B4A" },
-          ].map((b) => (
+          {roiBig.map((b) => (
             <div key={b.label} style={{
               background: `linear-gradient(135deg, ${b.accent}14 0%, rgba(30, 38, 60, 0.55) 100%)`,
               borderRadius: 14, padding: 14,
@@ -10839,43 +10933,38 @@ function ShopsPartnerView() {
           border: `1px solid ${BORDER}`, marginBottom: 14,
         }}>
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 10 }}>
-            RECHENBEISPIEL · CAFÉ MIT 100 CHECK-INS / MONAT
+            {tD("calcKicker")}
           </div>
           <div style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr",
             gap: 10, alignItems: "stretch",
           }}>
-            <CalcBox label="Kosten"    value="200 €"    hint="100 × 2 € (Pro-Paket)"     color="#ef7169" />
-            <CalcBox label="Umsatz"    value="1.240 €"  hint="100 × 12,40 € Warenkorb"   color="#FFD700" />
-            <CalcBox label="Netto-Plus" value="+1.040 €" hint="nach MyArea-Kosten"       color="#4ade80" highlight />
+            <CalcBox label={tD("calcCostsLabel")} value="200 €"    hint={tD("calcCostsHint")} color="#ef7169" />
+            <CalcBox label={tD("calcRevenueLabel")} value="1.240 €"  hint={tD("calcRevenueHint")} color="#FFD700" />
+            <CalcBox label={tD("calcNetLabel")} value="+1.040 €" hint={tD("calcNetHint")} color="#4ade80" highlight />
           </div>
           <div style={{
             marginTop: 10, color: TEXT_SOFT, fontSize: 12, lineHeight: 1.5,
             padding: "10px 12px", background: "rgba(0,0,0,0.25)", borderRadius: 10,
           }}>
-            💡 <b style={{ color: "#FFF" }}>Realität ist besser:</b> 38 % der neuen Kund:innen kommen wieder.
-            Eine Einlösung bringt durchschnittlich <b style={{ color: "#4ade80" }}>3 weitere Besuche</b> im Folgequartal — ohne zusätzliche MyArea-Kosten.
+            {tD.rich("calcRealityRich", {
+              b: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b>,
+              a: (chunks) => <b style={{ color: "#4ade80" }}>{chunks}</b>,
+            })}
           </div>
         </div>
 
         {/* Branchen-Benchmarks */}
         <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 8 }}>
-          BRANCHEN-BENCHMARKS (Ø WARENKORB)
+          {tD("benchmarksHeader")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: 8,
         }}>
-          {[
-            { icon: "☕", name: "Café / Bäcker",    basket: "8,50 €",  margin: "65 %", roi: "×4" },
-            { icon: "🍔", name: "Gastro / Bistro",  basket: "18,20 €", margin: "58 %", roi: "×9" },
-            { icon: "🛍️", name: "Sportladen",       basket: "42,00 €", margin: "42 %", roi: "×21" },
-            { icon: "🥗", name: "Gesund / Bio",     basket: "13,80 €", margin: "38 %", roi: "×7" },
-            { icon: "🏋️", name: "Fitness-Studio",   basket: "29,90 €", margin: "80 %", roi: "×15" },
-            { icon: "💈", name: "Dienstleister",    basket: "35,00 €", margin: "55 %", roi: "×18" },
-          ].map((b) => (
+          {benchmarks.map((b) => (
             <div key={b.name} style={{
               background: "rgba(30, 38, 60, 0.55)", borderRadius: 12,
               padding: "10px 12px", border: `1px solid ${BORDER}`,
@@ -10886,15 +10975,15 @@ function ShopsPartnerView() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
                 <div>
-                  <div style={{ color: MUTED, fontSize: 9, fontWeight: 700 }}>Ø Korb</div>
+                  <div style={{ color: MUTED, fontSize: 9, fontWeight: 700 }}>{tD("bmBasket")}</div>
                   <div style={{ color: "#FFD700", fontWeight: 900 }}>{b.basket}</div>
                 </div>
                 <div>
-                  <div style={{ color: MUTED, fontSize: 9, fontWeight: 700 }}>Marge</div>
+                  <div style={{ color: MUTED, fontSize: 9, fontWeight: 700 }}>{tD("bmMargin")}</div>
                   <div style={{ color: "#FFF", fontWeight: 700 }}>{b.margin}</div>
                 </div>
                 <div>
-                  <div style={{ color: MUTED, fontSize: 9, fontWeight: 700 }}>ROI</div>
+                  <div style={{ color: MUTED, fontSize: 9, fontWeight: 700 }}>{tD("bmRoi")}</div>
                   <div style={{ color: "#4ade80", fontWeight: 900 }}>{b.roi}</div>
                 </div>
               </div>
@@ -10909,11 +10998,7 @@ function ShopsPartnerView() {
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
           gap: 10,
         }}>
-          {[
-            { name: "Café Liebling",  loc: "Prenzlauer Berg, Berlin", quote: "In den ersten 4 Wochen 142 Check-ins, ca. 1.700 € Zusatz-Umsatz. Beste Werbung die wir je gemacht haben — und günstiger als ein halber Instagram-Post.", stat: "+1.700 € / Monat" },
-            { name: "Runners Point",   loc: "Schwabing, München",       quote: "Die Laufgruppe aus dem Englischen Garten kommt jetzt regelmäßig rein. Drei haben neue Schuhe gekauft — ein Paar allein zahlt den ganzen Monat.", stat: "ROI ×21" },
-            { name: "Bio-Bowl Kreuzberg", loc: "Kreuzberg, Berlin",     quote: "Mittagszeit war tot. Mit MyArea365 haben wir eine feste Läufer-Crew die Dienstag + Donnerstag kommt. Tisch-Reservierung kommt bald.", stat: "+36 % Mittagsumsatz" },
-          ].map((t) => (
+          {testimonials.map((t) => (
             <div key={t.name} style={{
               background: "rgba(30, 38, 60, 0.55)", borderRadius: 14,
               padding: 14, border: `1px solid ${BORDER}`,
@@ -10938,28 +11023,21 @@ function ShopsPartnerView() {
         <div style={{
           marginTop: 8, fontSize: 10, color: MUTED, fontStyle: "italic", textAlign: "center",
         }}>
-          Zahlen aus der MyArea365-Pilot-Phase. Individuelle Ergebnisse können abweichen.
+          {tD("ttDisclaimer")}
         </div>
       </div>
 
       {/* USPs */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          WARUM MYAREA365
+          {tD("uspHeader")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
           gap: 12,
         }}>
-          {[
-            { icon: "🎯", title: "Pay-per-Visit",         desc: "Du zahlst nur wenn jemand wirklich bei dir ankommt. Keine Impressionen, keine Streuverluste.", accent: "#22D1C3" },
-            { icon: "🧭", title: "Hyper-lokal",           desc: "Erreiche nur Menschen, die in den letzten 7 Tagen in deinem Radius gelaufen sind.",             accent: "#FFD700" },
-            { icon: "🔐", title: "GPS-verifiziert",       desc: "Check-in nur im 20m-Radius + QR-Rotation — kein Fake, kein Missbrauch.",                        accent: "#FF2D78" },
-            { icon: "📊", title: "Live-Dashboard",        desc: "Siehst in Echtzeit wer einlöst, wann, von welcher Crew — mit Wochen-Trend & Heatmap.",           accent: "#F97316" },
-            { icon: "🏆", title: "Crew-Sponsoring",       desc: "Sponsor werden für lokale Crews = wöchentliche Stammkundschaft + Marketing-Content gratis.",    accent: "#a855f7" },
-            { icon: "🧾", title: "Steuer-safe",           desc: "Rabatte = keine MwSt-Stolperfalle wie Gutscheine. Alles DATEV-kompatibel exportierbar.",         accent: "#4ade80" },
-          ].map((u) => (
+          {usps.map((u) => (
             <div key={u.title} style={{
               background: "rgba(30, 38, 60, 0.55)",
               borderRadius: 14, padding: 14,
@@ -10977,19 +11055,14 @@ function ShopsPartnerView() {
       {/* HOW IT WORKS */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          SO STARTEST DU IN 10 MINUTEN
+          {tD("howHeader")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
           gap: 10,
         }}>
-          {[
-            { num: "01", icon: "📝", title: "Shop-Profil anlegen",    desc: "Name, Adresse, Öffnungszeiten — dauert 3 Min." },
-            { num: "02", icon: "🎁", title: "Deal designen",          desc: "10% Rabatt, Gratis-Kaffee, 2-für-1 — du entscheidest." },
-            { num: "03", icon: "🖨️", title: "QR-Sticker drucken",     desc: "Wir senden dir den Tresen-Sticker kostenlos zu." },
-            { num: "04", icon: "📈", title: "Runner kommen",          desc: "Deal geht live. Sobald Runner in deinem Kiez aktiv sind, erscheinst du auf ihrer Karte." },
-          ].map((s) => (
+          {howSteps.map((s) => (
             <div key={s.num} style={{
               background: "rgba(30, 38, 60, 0.55)",
               borderRadius: 14, padding: 14,
@@ -11007,7 +11080,7 @@ function ShopsPartnerView() {
       {/* REDEMPTION SAFETY */}
       <div>
         <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          EINLÖSE-SICHERHEIT
+          {tD("safetyHeader")}
         </div>
         <div style={{
           background: `linear-gradient(135deg, rgba(74, 222, 128, 0.08) 0%, rgba(30, 38, 60, 0.55) 60%)`,
@@ -11022,32 +11095,23 @@ function ShopsPartnerView() {
               fontSize: 24, flexShrink: 0,
             }}>🛡️</div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>Du bestimmst die Spielregeln</div>
+              <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>{tD("safetyTitle")}</div>
               <div style={{ color: TEXT_SOFT, fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
-                Pro Deal entscheidest du, wie oft ein Runner einlösen kann. Missbrauch wird durch
-                GPS + rotierende QR-Codes + DB-Limits <b style={{ color: "#FFF" }}>automatisch</b> verhindert.
+                {tD.rich("safetyBodyRich", { b: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b> })}
               </div>
             </div>
           </div>
 
           {/* Frequenz-Optionen als Timeline-Gruppe */}
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 8 }}>
-            WÄHLE DIE EINLÖSE-FREQUENZ
+            {tD("freqKicker")}
           </div>
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
             gap: 8, marginBottom: 20,
           }}>
-            {[
-              { icon: "✨", label: "1× einmalig",   hint: "Onboarding",       accent: "#a855f7" },
-              { icon: "🔁", label: "1× / Woche",    hint: "Stammkunden",      accent: "#22D1C3" },
-              { icon: "📅", label: "1× / Monat",    hint: "Regelmäßig",       accent: "#5ddaf0" },
-              { icon: "🍂", label: "1× / Quartal",  hint: "Saisonal",         accent: "#FFD700" },
-              { icon: "🎯", label: "1× / Halbjahr", hint: "Premium",          accent: "#F97316" },
-              { icon: "🎂", label: "1× / Jahr",     hint: "Geburtstag",       accent: "#FF2D78" },
-              { icon: "♾️", label: "Unbegrenzt",    hint: "Jeder Besuch",     accent: "#4ade80", highlight: true },
-            ].map((r) => (
+            {freqOptions.map((r) => (
               <div key={r.label} style={{
                 background: r.highlight
                   ? `linear-gradient(135deg, ${r.accent}26 0%, ${r.accent}0a 100%)`
@@ -11073,19 +11137,14 @@ function ShopsPartnerView() {
 
           {/* Anti-Abuse als 4 Karten */}
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 8 }}>
-            SO VERHINDERN WIR MISSBRAUCH
+            {tD("abuseKicker")}
           </div>
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 10,
           }}>
-            {[
-              { step: "01", icon: "📡", title: "GPS-Check",           desc: "Nur im 20m-Radius zum Shop einlösbar — kein Online-Shopping, nur vor Ort." },
-              { step: "02", icon: "🔄", title: "QR rotiert 60 s",     desc: "Screenshots und Video-Kopien werden nutzlos." },
-              { step: "03", icon: "🗄️", title: "DB-Hard-Limit",       desc: "Zähler pro Account + Zeitraum — kein Workaround." },
-              { step: "04", icon: "🔍", title: "Manuelle Prüfung",    desc: "Bei Verdacht: Lauf-Log + Check-in-Historie prüfbar." },
-            ].map((m) => (
+            {abuseSteps.map((m) => (
               <div key={m.step} style={{
                 background: "rgba(0, 0, 0, 0.28)", borderRadius: 12,
                 padding: "12px 14px", border: `1px solid ${BORDER}`,
@@ -11107,56 +11166,17 @@ function ShopsPartnerView() {
       {/* PRICING */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-          PREISE
+          {tD("pricingHeader")}
         </div>
         <div style={{ color: TEXT_SOFT, fontSize: 13, marginBottom: 12 }}>
-          Keine Fix-Kosten. Du zahlst nur, wenn Runner bei dir ankommen.
+          {tD("pricingIntro")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: 12,
         }}>
-          {[
-            {
-              name: "Basic", color: "#5ddaf0", price: "1 €", per: "pro Check-in", tagline: "Start-Paket",
-              perks: [
-                "Shop-Pin auf Karte",
-                "Ein aktiver Deal",
-                "GPS-Check-in",
-                "Basis-Statistik",
-              ],
-            },
-            {
-              name: "Pro", color: "#FFD700", price: "2 €", per: "pro Check-in", tagline: "Empfohlen",
-              highlight: true,
-              value: "Vergleichbarer Marktwert: 400–800 € / Monat",
-              perks: [
-                "Alles aus Basic",
-                "Unlimitierte Deals",
-                "⚡ Flash-Deals — 30-Min-Pushes an nahe Runner",
-                "🔁 Stammkunden-Bonus: Nach 3 Besuchen kriegt der Runner automatisch ein besseres Angebot",
-                "📩 Vorbei-Läufer zurückholen — Erinnerungs-Push an Runner, die nicht reinkamen",
-                "🎂 Geburtstags-Special an deine Stammkunden",
-                "📰 Kiez-Newsletter: Dein Shop im Monats-Mailing",
-                "📱 Social-Kit: Fertige Posts für Instagram & Facebook",
-                "🏆 Spotlight-Animation: 3 Tage / Monat — Pin leuchtet und pulsiert auf der Karte. Termine wählst du selbst im Dashboard (ideal vor Events, Wochenende, Launches).",
-                "📊 Monatlicher Performance-Report per E-Mail",
-                "Live-Dashboard + DATEV-Export",
-              ],
-            },
-            {
-              name: "Premium", color: "#FF2D78", price: "auf Anfrage", per: "", tagline: "Ketten & Crew-Sponsor",
-              perks: [
-                "Alles aus Pro",
-                "Mehrere Filialen zentral verwalten",
-                "Crew-Sponsoring (Stammpublikum)",
-                "Co-Branded Events",
-                "Custom-Integration (POS/Kasse)",
-                "Persönlicher Account-Manager",
-              ],
-            },
-          ].map((p) => (
+          {plans.map((p) => (
             <div key={p.name} style={{
               background: p.highlight ? `${p.color}14` : "rgba(30, 38, 60, 0.55)",
               borderRadius: 18, padding: 18,
@@ -11169,7 +11189,7 @@ function ShopsPartnerView() {
                   background: p.color, color: BG_DEEP,
                   padding: "3px 10px", borderRadius: 10,
                   fontSize: 10, fontWeight: 900,
-                }}>BELIEBT</div>
+                }}>{tD("popularBadge")}</div>
               )}
               <div style={{ color: p.color, fontSize: 12, fontWeight: 800, letterSpacing: 0.8 }}>
                 {p.tagline.toUpperCase()}
@@ -11206,13 +11226,13 @@ function ShopsPartnerView() {
                 </div>
               )}
               <button
-                onClick={() => appAlert(`${p.name}-Paket wählen — Kontakt: partner@myarea365.de`)}
+                onClick={() => appAlert(tD("planSelectAlert", { name: p.name }))}
                 style={{
                   ...primaryBtnStyle(p.color),
                   marginTop: 14, opacity: p.highlight ? 1 : 0.9,
                 }}
               >
-                {p.name === "Premium" ? "Angebot anfragen" : "Paket wählen"}
+                {p.name === tD("planPremium") ? tD("planRequestBtn") : tD("planSelectBtn")}
               </button>
             </div>
           ))}
@@ -11222,29 +11242,14 @@ function ShopsPartnerView() {
       {/* USE CASES */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          PASST ZU DIR, WENN
+          {tD("useCasesHeader")}
         </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
           gap: 10,
         }}>
-          {[
-            { icon: "☕", text: "du ein Café betreibst und mehr Morgen- oder After-Work-Gäste willst" },
-            { icon: "🛍️", text: "du einen Sportladen hast — perfekte Zielgruppe läuft schon vor der Tür" },
-            { icon: "🥗", text: "du gesunde Gastronomie machst (Salate, Smoothies, Bowls)" },
-            { icon: "🏋️", text: "du ein Studio/Fitness-Center bist — Probestunden gegen XP" },
-            { icon: "💈", text: "du Dienstleister bist (Friseur, Masseur) — Stammkundschaft aufbauen" },
-            { icon: "🥾", text: "du Outdoor-/Laufzubehör verkaufst" },
-            { icon: "🥐", text: "du eine Bäckerei führst — frisches Brötchen nach der Morgenrunde" },
-            { icon: "🧴", text: "du Apotheke/Drogerie bist — Elektrolyte, Magnesium, Blasenpflaster" },
-            { icon: "🍦", text: "du Eisdiele oder Konditorei hast — Belohnung nach dem Lauf" },
-            { icon: "🍔", text: "du Restaurant/Bistro bist — Läufer:innen haben Hunger" },
-            { icon: "🌸", text: "du Blumenladen hast — schöner Impulskauf auf dem Heimweg" },
-            { icon: "🍷", text: "du Wein- oder Feinkostladen führst — Premium-Publikum auf Erkundungstour" },
-            { icon: "📚", text: "du Buchhandlung bist — Läufer:innen sind auch Leser:innen" },
-            { icon: "🐾", text: "du Tierbedarf verkaufst — viele laufen mit ihrem Hund" },
-          ].map((u, i) => (
+          {useCases.map((u, i) => (
             <div key={i} style={{
               background: "rgba(30, 38, 60, 0.55)",
               borderRadius: 12, padding: 12,
@@ -11261,17 +11266,10 @@ function ShopsPartnerView() {
       {/* FAQ */}
       <div>
         <div style={{ color: PRIMARY, fontSize: 11, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-          HÄUFIGE FRAGEN
+          {tD("faqHeader")}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            { q: "Muss ich Technik installieren?", a: "Nein. Du brauchst nur einen ausgedruckten QR-Code (wir senden den Sticker kostenlos). Dein Kassensystem bleibt wie es ist." },
-            { q: "Was kostet es wirklich?",        a: "0 € Fixkosten. Pay-per-Visit ab 1 € (Basic) bzw. 2 € (Pro). Eine Einlösung bringt im Schnitt 8–18 € Umsatz — das lohnt sich ab Tag 1." },
-            { q: "Wie läuft Abrechnung?",          a: "Monatlich per Rechnung. DATEV-Export inklusive. MwSt-konform." },
-            { q: "Kann ich Rabatte limitieren?",    a: "Ja — pro Runner/Zeitraum (einmalig, wöchentlich, monatlich, quartalsweise, halbjährlich, jährlich oder unbegrenzt)." },
-            { q: "Was wenn jemand Missbrauch versucht?", a: "GPS + rotierender QR + Account-Historie machen's extrem schwer. Bei Verdacht sperren wir den Account auf deinen Hinweis." },
-            { q: "Kann ich jederzeit kündigen?",    a: "Ja, monatlich. Keine Mindestlaufzeit, keine Einrichtungsgebühr." },
-          ].map((f, i) => (
+          {faqs.map((f, i) => (
             <details key={i} style={{
               background: "rgba(30, 38, 60, 0.55)",
               borderRadius: 12, padding: "12px 14px",
@@ -11301,18 +11299,17 @@ function ShopsPartnerView() {
         justifyContent: "space-between",
       }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>Bereit, Runner zu dir zu bringen?</div>
+          <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>{tD("bottomCtaTitle")}</div>
           <div style={{ color: TEXT_SOFT, fontSize: 12, marginTop: 4, lineHeight: 1.5, maxWidth: 440 }}>
-            Anmeldung in 10 Min. Dein Shop ist am selben Tag live auf der Karte.
-            Keine Vertragsbindung, keine Fix-Kosten.
+            {tD("bottomCtaBody")}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
-            onClick={() => appAlert("Partner-Onboarding: partner@myarea365.de")}
+            onClick={() => appAlert(tD("bottomCtaSignupAlert"))}
             style={{ ...primaryBtnStyle(PRIMARY), width: "auto" }}
           >
-            🚀 Shop anmelden
+            {tD("bottomCtaSignup")}
           </button>
           <a
             href="/shop-dashboard/"
@@ -11324,13 +11321,13 @@ function ShopsPartnerView() {
               display: "inline-flex", alignItems: "center", gap: 6,
             }}
           >
-            👀 Demo-Dashboard ansehen
+            {tD("bottomCtaDemo")}
           </a>
           <button
-            onClick={() => appAlert("Kontakt: partner@myarea365.de · +49 …")}
+            onClick={() => appAlert(tD("bottomCtaCallbackAlert"))}
             style={{ ...outlineBtnStyle(), width: "auto" }}
           >
-            📞 Rückruf
+            {tD("bottomCtaCallback")}
           </button>
         </div>
       </div>
