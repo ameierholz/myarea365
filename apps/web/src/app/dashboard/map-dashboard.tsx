@@ -7465,6 +7465,7 @@ const GEO_ICON: Record<GeoLevel, string> = {
 };
 
 function DiscoverView({ onBack }: { onBack: () => void }) {
+  const tR = useTranslations("Ranking");
   const [filters, setFilters] = useState<Partial<Record<GeoLevel, string>>>({});
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<CrewTypeId | null>(null);
@@ -7626,7 +7627,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
                 color: ACCENT, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: 0,
               }}
             >
-              ✕ Alle Filter zurücksetzen ({activeFilterCount})
+              {tR("clearAllFilters", { count: activeFilterCount })}
             </button>
           )}
 
@@ -7634,7 +7635,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
           {nextLevel && buckets.length > 1 && (
             <div style={{ marginTop: 18, borderTop: `1px solid ${BORDER}`, paddingTop: 14 }}>
               <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 8, letterSpacing: 0.5 }}>
-                NACH {GEO_LABEL[nextLevel].toUpperCase()} FILTERN
+                {tR("filterByLevel", { level: GEO_LABEL[nextLevel].toUpperCase() })}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {buckets.map((b) => (
@@ -11492,6 +11493,7 @@ function FactionDuelView({ items, buckets, scopeLabel }: {
 }
 
 function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile | null; leaderboard: Profile[]; initialMode?: RankingMode }) {
+  const tR = useTranslations("Ranking");
   const [mode, setMode] = useState<RankingMode>(initialMode ?? "runners");
   const [filters, setFilters] = useState<Partial<Record<GeoLevel, string>>>({});
   const [search, setSearch] = useState("");
@@ -11584,7 +11586,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
     setFilters({}); setSearch(""); setLeagueFilter(null);
   }
 
-  const scopeLabel = trail.length ? trail[trail.length - 1].label : "Weltweit";
+  const scopeLabel = trail.length ? trail[trail.length - 1].label : tR("scopeWorld");
   const activeFilterCount =
     Object.values(filters).filter(Boolean).length +
     (leagueFilter ? 1 : 0) + (search ? 1 : 0);
@@ -11600,18 +11602,18 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
       {/* Kompakter Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 10, flexWrap: "wrap" }}>
         <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
-          🏆 Rangliste
+          {tR("title")}
           <span style={{
             padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 900, letterSpacing: 1.5,
             background: "rgba(168,85,247,0.2)", border: "1px solid rgba(168,85,247,0.5)", color: "#c084fc",
-          }}>🤖 DEMO-DATEN</span>
+          }}>{tR("demoBadge")}</span>
         </div>
-        {scopeLabel !== "Weltweit" && (
+        {scopeLabel !== tR("scopeWorld") && (
           <button onClick={clearAll} style={{
             padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 800,
             background: "rgba(255,45,120,0.15)", color: "#FF2D78", border: "1px solid rgba(255,45,120,0.3)",
             cursor: "pointer",
-          }}>✕ Filter: {scopeLabel}</button>
+          }}>{tR("filterChip", { scope: scopeLabel })}</button>
         )}
       </div>
 
@@ -11623,12 +11625,12 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
         scrollbarWidth: "none",
       }}>
         {([
-          { id: "runners",   label: "🏃 Runner" },
-          { id: "crews",     label: "👥 Crews" },
-          { id: "factions",  label: "⚔️ Fraktionen" },
-          { id: "guardians", label: "🛡️ Wächter" },
-          { id: "arena",     label: "🏟️ Arena" },
-          { id: "mmr",       label: "🎯 MMR" },
+          { id: "runners",   label: tR("modeRunners") },
+          { id: "crews",     label: tR("modeCrews") },
+          { id: "factions",  label: tR("modeFactions") },
+          { id: "guardians", label: tR("modeGuardians") },
+          { id: "arena",     label: tR("modeArena") },
+          { id: "mmr",       label: tR("modeMmr") },
         ] as const).map((m) => {
           const active = mode === m.id;
           return (
@@ -11661,15 +11663,18 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
             flexShrink: 0,
           }}>#{myPositionRunner + 1}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: PRIMARY }}>DEINE POSITION</div>
+            <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: PRIMARY }}>{tR("myPositionLabel")}</div>
             <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF" }}>
               {myRunnerRow.display_name} · {myRunnerRow[sortRunner].toLocaleString("de-DE")} {sortRunner === "weekly_km" ? "km" : "XP"}
             </div>
             <div style={{ fontSize: 11, color: MUTED }}>
-              {myPositionRunner === 0 ? "🥇 Du führst!" :
-               myPositionRunner <= 2 ? "🏅 Podium! Halte die Position." :
-               myPositionRunner <= 9 ? `Top 10 · Nur noch ${(filteredRunners[myPositionRunner - 1][sortRunner] - myRunnerRow[sortRunner]).toLocaleString("de-DE")} ${sortRunner === "weekly_km" ? "km" : "🪙"} zum nächsten Rang` :
-               `${filteredRunners.length - myPositionRunner - 1} Runner hinter dir`}
+              {myPositionRunner === 0 ? tR("youLead") :
+               myPositionRunner <= 2 ? tR("podium") :
+               myPositionRunner <= 9 ? tR("top10", {
+                 gap: (filteredRunners[myPositionRunner - 1][sortRunner] - myRunnerRow[sortRunner]).toLocaleString("de-DE"),
+                 unit: sortRunner === "weekly_km" ? "km" : "🪙"
+               }) :
+               tR("behindYou", { count: filteredRunners.length - myPositionRunner - 1 })}
             </div>
           </div>
         </div>
@@ -11688,7 +11693,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
           }}
         >
-          <span>🎛️ Filter & Sortierung{activeFilterCount > 0 ? ` (${activeFilterCount} aktiv)` : ""}</span>
+          <span>{tR("filtersToggle")}{activeFilterCount > 0 ? ` ${tR("filtersActive", { count: activeFilterCount })}` : ""}</span>
           <span style={{ color: MUTED, fontSize: 12 }}>{mobileFiltersOpen ? "▲" : "▼"}</span>
         </button>
       )}
@@ -11709,57 +11714,57 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
         }}>
           <input
             value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder={`🔎 ${mode === "runners" ? "Runner, Crew, Stadt…" : mode === "crews" ? "Crew, Motto, Stadt, PLZ…" : "Stadt, Region, Land…"}`}
+            placeholder={`🔎 ${mode === "runners" ? tR("searchRunners") : mode === "crews" ? tR("searchCrews") : tR("searchGeo")}`}
             style={{ ...inputStyle(), marginBottom: 14 }}
           />
 
           {mode === "factions" && (
             <details style={{ marginBottom: 14 }}>
               <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                ▸ Wie funktioniert das Duell?
+                {tR("factionDuelTitle")}
               </summary>
               <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, fontSize: 10, color: "#a8b4cf", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 4 }}>
-                <div><b style={{ color: "#FFD700" }}>👑 Kronenwacht</b> vs <b style={{ color: "#22D1C3" }}>🗝️ Gossenbund</b></div>
-                <div>Gewertet wird die <b style={{ color: "#FFF" }}>Summe der km beider Fraktionen</b> in den letzten 7 Tagen.</div>
-                <div>Jeder Lauf zählt für deine Fraktion. Fraktion wählst du bei der Registrierung, Wechsel ist kostenpflichtig.</div>
-                <div style={{ color: "#8B8FA3", marginTop: 2 }}>Unten siehst du in welcher Region welche Fraktion vorne liegt.</div>
+                <div><b style={{ color: "#FFD700" }}>{tR("factionDuelKronenwacht")}</b> vs <b style={{ color: "#22D1C3" }}>{tR("factionDuelGossenbund")}</b></div>
+                <div>{tR.rich("factionDuelDesc", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+                <div>{tR("factionDuelHowTo")}</div>
+                <div style={{ color: "#8B8FA3", marginTop: 2 }}>{tR("factionDuelRegion")}</div>
               </div>
             </details>
           )}
 
           {(mode === "runners" || mode === "crews") && <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
-            SORTIERUNG
+            {tR("sortLabel")}
           </div>}
           {mode === "runners" && <>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-              <FilterPill active={sortRunner === "weekly_xp"} onClick={() => setSortRunner("weekly_xp")}>Woche 🪙</FilterPill>
-              <FilterPill active={sortRunner === "weekly_km"} onClick={() => setSortRunner("weekly_km")}>Woche km</FilterPill>
-              <FilterPill active={sortRunner === "total_xp"}  onClick={() => setSortRunner("total_xp")}>Gesamt 🪙</FilterPill>
+              <FilterPill active={sortRunner === "weekly_xp"} onClick={() => setSortRunner("weekly_xp")}>{tR("sortWeeklyXp")}</FilterPill>
+              <FilterPill active={sortRunner === "weekly_km"} onClick={() => setSortRunner("weekly_km")}>{tR("sortWeeklyKm")}</FilterPill>
+              <FilterPill active={sortRunner === "total_xp"}  onClick={() => setSortRunner("total_xp")}>{tR("sortTotalXp")}</FilterPill>
             </div>
             <details style={{ marginBottom: 14 }}>
               <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                ▸ Was bedeuten die Werte?
+                {tR("valuesExpand")}
               </summary>
               <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, fontSize: 10, color: "#a8b4cf", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 4 }}>
-                <div><b style={{ color: "#FFF" }}>Woche 🪙</b> · Wegemünzen der letzten 7 Tage · Reset Mo 00:00 MEZ</div>
-                <div><b style={{ color: "#FFF" }}>Woche km</b> · Gelaufene Strecke der letzten 7 Tage</div>
-                <div><b style={{ color: "#FFF" }}>Gesamt 🪙</b> · Alle bisher gesammelten Wegemünzen (all-time)</div>
-                <div style={{ color: "#8B8FA3", marginTop: 2 }}>Wegemünzen bekommst du durch Läufe, eroberte Straßen/Gebiete, Streaks und Achievements.</div>
+                <div>{tR.rich("weeklyXpDesc", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+                <div>{tR.rich("weeklyKmDesc", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+                <div>{tR.rich("totalXpDesc", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+                <div style={{ color: "#8B8FA3", marginTop: 2 }}>{tR("xpHowTo")}</div>
               </div>
             </details>
           </>}
           {mode === "crews" && <>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-              <FilterPill active={sortCrew === "weekly_km"}    onClick={() => setSortCrew("weekly_km")}>Woche km</FilterPill>
-              <FilterPill active={sortCrew === "member_count"} onClick={() => setSortCrew("member_count")}>Mitglieder</FilterPill>
+              <FilterPill active={sortCrew === "weekly_km"}    onClick={() => setSortCrew("weekly_km")}>{tR("sortWeeklyKm")}</FilterPill>
+              <FilterPill active={sortCrew === "member_count"} onClick={() => setSortCrew("member_count")}>{tR("sortMembers")}</FilterPill>
             </div>
             <details style={{ marginBottom: 14 }}>
               <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                ▸ Was bedeuten die Werte?
+                {tR("valuesExpand")}
               </summary>
               <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, fontSize: 10, color: "#a8b4cf", lineHeight: 1.5, display: "flex", flexDirection: "column", gap: 4 }}>
-                <div><b style={{ color: "#FFF" }}>Woche km</b> · Summe der km aller Crew-Mitglieder der letzten 7 Tage</div>
-                <div><b style={{ color: "#FFF" }}>Mitglieder</b> · Aktuelle Crew-Größe</div>
+                <div>{tR.rich("weeklyKmCrewDesc", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
+                <div>{tR.rich("membersDesc", { b: (c: React.ReactNode) => <b style={{ color: "#FFF" }}>{c}</b> })}</div>
               </div>
             </details>
           </>}
@@ -11767,10 +11772,10 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
           {mode === "crews" && (
             <>
               <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>
-                LIGA
+                {tR("leagueLabel")}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                <FilterPill active={leagueFilter === null} onClick={() => setLeagueFilter(null)}>Alle</FilterPill>
+                <FilterPill active={leagueFilter === null} onClick={() => setLeagueFilter(null)}>{tR("leagueAll")}</FilterPill>
                 {LEAGUE_TIERS.map((t) => (
                   <FilterPill key={t.id} active={leagueFilter === t.id} onClick={() => setLeagueFilter(leagueFilter === t.id ? null : t.id)}>
                     {t.icon} {t.name}
@@ -11779,7 +11784,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
               </div>
               <details style={{ marginBottom: 14 }}>
                 <summary style={{ cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 800, listStyle: "none", userSelect: "none", padding: "6px 10px", background: "rgba(30,38,60,0.55)", borderRadius: 8, border: `1px solid ${BORDER}` }}>
-                  ▸ Wie komme ich in eine Liga?
+                  {tR("leagueExpand")}
                 </summary>
                 <div style={{ marginTop: 6, padding: 10, borderRadius: 8, background: "rgba(15,17,21,0.6)", border: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 3 }}>
                   {LEAGUE_TIERS.map((t, i) => {
@@ -11794,7 +11799,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
                     );
                   })}
                   <div style={{ marginTop: 4, fontSize: 9, color: "#8B8FA3", lineHeight: 1.5 }}>
-                    Liga = Summe der km aller Crew-Mitglieder in den letzten 7 Tagen. Wöchentlicher Reset Montag 00:00 MEZ.
+                    {tR("leagueExplain")}
                   </div>
                 </div>
               </details>
@@ -11810,7 +11815,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
                 marginBottom: 14,
               }}
             >
-              ✕ Alle Filter zurücksetzen ({activeFilterCount})
+              {tR("clearAllFilters", { count: activeFilterCount })}
             </button>
           )}
 
@@ -11818,7 +11823,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
           {nextLevel && buckets.length > 1 && (
             <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14 }}>
               <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 8, letterSpacing: 0.5 }}>
-                NACH {GEO_LABEL[nextLevel].toUpperCase()} FILTERN
+                {tR("filterByLevel", { level: GEO_LABEL[nextLevel].toUpperCase() })}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {buckets.map((b) => (
@@ -11861,7 +11866,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
             marginBottom: 14, border: `1px solid ${BORDER}`,
           }}>
             <button onClick={() => setFilters({})} style={{ ...breadcrumbStyle(trail.length === 0), display: "inline-flex", alignItems: "center", gap: 5 }}>
-              🌍 Alle
+              {tR("breadcrumbAll")}
             </button>
             {trail.map((t, i) => (
               <React.Fragment key={t.level}>
@@ -11898,10 +11903,10 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
           {/* Liste */}
           {mode !== "arena" && mode !== "mmr" && mode !== "guardians" && <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, margin: "10px 0 8px", letterSpacing: 0.5 }}>
             {mode === "runners"
-              ? `${filteredRunners.length} RUNNER · ${scopeLabel.toUpperCase()}`
+              ? tR("runnerCount", { count: filteredRunners.length, scope: scopeLabel.toUpperCase() })
               : mode === "crews"
-                ? `${filteredCrews.length} CREWS · ${scopeLabel.toUpperCase()}`
-                : `FRAKTIONS-DUELL · ${scopeLabel.toUpperCase()}`}
+                ? tR("crewCount", { count: filteredCrews.length, scope: scopeLabel.toUpperCase() })
+                : tR("factionCount", { scope: scopeLabel.toUpperCase() })}
           </div>}
 
           {mode === "runners" && (
@@ -11960,29 +11965,31 @@ function groupRunnersByLevel(runners: typeof DEMO_RANKING_RUNNERS, level: GeoLev
 }
 
 function EmptyHint({ onReset }: { onReset: () => void }) {
+  const tR = useTranslations("Ranking");
   return (
     <div style={{
       background: "rgba(30, 38, 60, 0.45)", padding: 30, borderRadius: 16,
       textAlign: "center", color: MUTED, border: `1px solid ${BORDER}`,
     }}>
-      Keine Ergebnisse mit diesen Filtern.<br />
+      {tR("emptyHint")}<br />
       <button onClick={onReset} style={{
         marginTop: 10, background: "transparent", border: "none",
         color: PRIMARY, cursor: "pointer", fontSize: 13, fontWeight: 700,
-      }}>Filter zurücksetzen</button>
+      }}>{tR("resetFilters")}</button>
     </div>
   );
 }
 
 /* Podium für Top 3 */
 function PodiumRunners({ scope, runners, myUsername }: { scope: string; runners: typeof DEMO_RANKING_RUNNERS; myUsername: string }) {
+  const tR = useTranslations("Ranking");
   return (
     <div style={{
       background: "rgba(30, 38, 60, 0.55)", border: `1px solid ${BORDER}`,
       borderRadius: 14, padding: 14, marginBottom: 12,
     }}>
       <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.5 }}>
-        🏆 PODIUM · {scope.toUpperCase()}
+        {tR("podiumLabel", { scope: scope.toUpperCase() })}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {runners.map((r, i) => {
