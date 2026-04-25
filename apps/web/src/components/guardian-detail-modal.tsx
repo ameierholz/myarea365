@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { getNumberLocale } from "@/i18n/config";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import { GuardianPaperDoll } from "@/components/guardian-paper-doll";
 import { GuardianTalentTree } from "@/components/guardian-talent-tree";
@@ -19,19 +21,20 @@ import { computeEffectiveStats } from "@/lib/guardian-effective";
 type Materials = { scrap: number; crystal: number; essence: number; relikt: number };
 type MaterialCatalogEntry = { id: string; name: string; emoji: string; image_url: string | null; video_url: string | null };
 
-const MATERIAL_META: Array<{ id: keyof Materials; name: string; emoji: string; color: string }> = [
-  { id: "scrap",   name: "Schrott",         emoji: "🔩", color: "#8B8FA3" },
-  { id: "crystal", name: "Stadtkristall",   emoji: "💎", color: "#22D1C3" },
-  { id: "essence", name: "Schatten-Essenz", emoji: "🔮", color: "#a855f7" },
-  { id: "relikt",  name: "Relikt-Splitter", emoji: "✨", color: "#FFD700" },
+// MATERIAL_META + SIEGEL_META werden i18n-fähig per Hook erstellt (s.u.).
+const MATERIAL_DEFS: Array<{ id: keyof Materials; nameKey: string; emoji: string; color: string }> = [
+  { id: "scrap",   nameKey: "materialScrap",   emoji: "🔩", color: "#8B8FA3" },
+  { id: "crystal", nameKey: "materialCrystal", emoji: "💎", color: "#22D1C3" },
+  { id: "essence", nameKey: "materialEssence", emoji: "🔮", color: "#a855f7" },
+  { id: "relikt",  nameKey: "materialRelikt",  emoji: "✨", color: "#FFD700" },
 ];
 
-const SIEGEL_META: Array<{ key: keyof UserSiegel; label: string; icon: string; color: string }> = [
-  { key: "siegel_infantry",  label: "Infanterie", icon: "🛡️", color: "#4ade80" },
-  { key: "siegel_cavalry",   label: "Kavallerie", icon: "🐎", color: "#FF6B4A" },
-  { key: "siegel_marksman",  label: "Schützen",   icon: "🏹", color: "#5ddaf0" },
-  { key: "siegel_mage",      label: "Magier",     icon: "🔮", color: "#a855f7" },
-  { key: "siegel_universal", label: "Universal",  icon: "⭐", color: "#FFD700" },
+const SIEGEL_DEFS: Array<{ key: keyof UserSiegel; labelKey: string; icon: string; color: string }> = [
+  { key: "siegel_infantry",  labelKey: "siegelInfantry",  icon: "🛡️", color: "#4ade80" },
+  { key: "siegel_cavalry",   labelKey: "siegelCavalry",   icon: "🐎", color: "#FF6B4A" },
+  { key: "siegel_marksman",  labelKey: "siegelMarksman",  icon: "🏹", color: "#5ddaf0" },
+  { key: "siegel_mage",      labelKey: "siegelMage",      icon: "🔮", color: "#a855f7" },
+  { key: "siegel_universal", labelKey: "siegelUniversal", icon: "⭐", color: "#FFD700" },
 ];
 
 type DetailResponse = {
@@ -62,6 +65,7 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
   onSwitch?: () => void;
   onOpenRanking?: () => void;
 }) {
+  const tGD = useTranslations("GuardianDetail");
   const [data, setData] = useState<DetailResponse | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +90,7 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/guardian/detail/${guardianId}`);
-    if (!res.ok) { setError("Laden fehlgeschlagen"); return; }
+    if (!res.ok) { setError(tGD("loadFailed")); return; }
     setData(await res.json());
   }, [guardianId]);
 
@@ -121,7 +125,7 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
   }, []);
 
   function openForge() {
-    if (!inventory) { alert("Inventar lädt noch …"); return; }
+    if (!inventory) { alert(tGD("inventoryLoading")); return; }
     setForgeOpen(true);
   }
 
@@ -151,7 +155,7 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
         {error ? (
           <div style={{ padding: 30, textAlign: "center", color: "#FF2D78" }}>{error}</div>
         ) : !data ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>Lade Wächter …</div>
+          <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>{tGD("loadingGuardian")}</div>
         ) : (
           <ModalContent
             data={data} tab={tab} setTab={setTab} onClose={onClose} action={action}
@@ -220,6 +224,11 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
   mmr: MmrInfo | null;
   equipped: Record<string, EquippedItem | null> | null;
 }) {
+  const tGD = useTranslations("GuardianDetail");
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
+  const MATERIAL_META = useMemo(() => MATERIAL_DEFS.map((m) => ({ ...m, name: tGD(m.nameKey as "materialScrap" | "materialCrystal" | "materialEssence" | "materialRelikt") })), [tGD]);
+  const SIEGEL_META = useMemo(() => SIEGEL_DEFS.map((s) => ({ ...s, label: tGD(s.labelKey as "siegelInfantry" | "siegelCavalry" | "siegelMarksman" | "siegelMage" | "siegelUniversal") })), [tGD]);
   const g = data.guardian;
   const a = g.archetype;
   const rarity = rarityMeta(a.rarity);
@@ -267,7 +276,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
             {g.custom_name ?? a.name}
           </div>
           <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span>Level {g.level}</span>
+            <span>{tGD("level", { level: g.level })}</span>
             <span>·</span>
             <span><span style={{ color: "#4ade80", fontWeight: 800 }}>{g.wins}W</span> / <span style={{ color: "#FF2D78", fontWeight: 800 }}>{g.losses}L</span></span>
             {(() => {
@@ -275,7 +284,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               const gsColor = gs.total >= 500 ? "#FFD700" : gs.total >= 250 ? "#a855f7" : gs.total >= 100 ? "#22D1C3" : "#8B8FA3";
               return (
                 <span
-                  title={`Gear Score · ${gs.slots}/9 Slots ausgerüstet · gewichtet nach Rarity (Epic ×1.5, Legendär ×2.25) und Upgrade-Tier (Grün ×1.25, Lila ×1.55, Gold ×2.0)`}
+                  title={tGD("gearScoreTooltip", { filled: gs.slots })}
                   style={{
                     marginLeft: "auto",
                     padding: "2px 8px", borderRadius: 999,
@@ -299,7 +308,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
           {(eff.bonusPct.crit > 0) && (
             <div style={{ fontSize: 9, color: "#a8b4cf", marginTop: 6 }}>
-              +{Math.round(eff.bonusPct.crit * 100)}% Krit-Chance durch Talente/Skills
+              {tGD("critBonus", { pct: Math.round(eff.bonusPct.crit * 100) })}
             </div>
           )}
 
@@ -324,7 +333,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
             border: "none", fontSize: 11, fontWeight: 900, letterSpacing: 1,
             cursor: "pointer",
           }}>
-            {t === "overview" ? "ÜBERSICHT" : t === "equipment" ? "⚔️ AUSRÜSTUNG" : t === "talents" ? `TALENTE${g.talent_points_available > 0 ? ` (${g.talent_points_available})` : ""}` : "FÄHIGKEITEN"}
+            {t === "overview" ? tGD("tabOverview") : t === "equipment" ? tGD("tabEquipment") : t === "talents" ? `${tGD("tabTalents")}${g.talent_points_available > 0 ? ` (${g.talent_points_available})` : ""}` : tGD("tabSkills")}
           </button>
         ))}
       </div>
@@ -370,8 +379,8 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                     }}>{mmr.tier.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: mmr.tier.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5, display: "flex", alignItems: "center", gap: 6 }}>
-                        🎯 RANKED · {mmr.tier.label.toUpperCase()}
-                        {onOpenRanking && <span style={{ color: "#8B8FA3", fontWeight: 700 }}>· Leaderboard ›</span>}
+                        {tGD("rankedHeader", { tier: mmr.tier.label.toUpperCase() })}
+                        {onOpenRanking && <span style={{ color: "#8B8FA3", fontWeight: 700 }}>{tGD("leaderboardLink")}</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 2 }}>
                         <span style={{ color: "#FFF", fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
@@ -389,20 +398,20 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                       </div>
                       <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 2 }}>
                         {mmr.games > 0 ? (
-                          <>Rang <b style={{ color: "#FFF" }}>#{mmr.rank}</b> von {mmr.total_players} · Top {mmr.percentile}%</>
+                          tGD.rich("rankPos", { rank: mmr.rank, total: mmr.total_players, percentile: mmr.percentile, b: (c) => <b style={{ color: "#FFF" }}>{c}</b> })
                         ) : (
-                          <>Noch ungerankt — gewinne deinen ersten Arena-Kampf</>
+                          tGD("unranked")
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ color: "#8B8FA3", fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>PEAK</div>
+                      <div style={{ color: "#8B8FA3", fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>{tGD("peakLabel")}</div>
                       <div style={{ color: "#FFD700", fontSize: 14, fontWeight: 900, lineHeight: 1 }}>{mmr.peak_mmr}</div>
                     </div>
                   </div>
                   {mmr.games < 30 && mmr.games > 0 && (
                     <div style={{ marginTop: 8, fontSize: 9, color: "#FFD700" }}>
-                      ⚡ Kalibrierungsphase · noch {30 - mmr.games} Kämpfe für stabiles Rating
+                      {tGD("calibrationHint", { fightsLeft: 30 - mmr.games })}
                     </div>
                   )}
 
@@ -412,7 +421,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                       cursor: "pointer", color: "#a8b4cf", fontSize: 10, fontWeight: 700,
                       listStyle: "none", userSelect: "none",
                     }}>
-                      ▸ Alle Ränge anzeigen
+                      {tGD("showAllRanks")}
                     </summary>
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
                       {MMR_TIERS.map((t) => {
@@ -429,7 +438,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                             <span style={{ fontSize: 14 }}>{t.icon}</span>
                             <span style={{ color: t.color, fontSize: 11, fontWeight: 900, flex: 1 }}>{t.label}</span>
                             <span style={{ color: "#8B8FA3", fontSize: 10, fontFamily: "monospace" }}>{range} MMR</span>
-                            {isMine && <span style={{ color: t.color, fontSize: 9, fontWeight: 900 }}>DU</span>}
+                            {isMine && <span style={{ color: t.color, fontSize: 9, fontWeight: 900 }}>{tGD("youBadge")}</span>}
                           </div>
                         );
                       })}
@@ -441,15 +450,15 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               {/* Kampf-Statistik */}
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,107,74,0.3)" }}>
                 <div style={{ color: "#FF6B4A", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>
-                  ⚔️ KAMPF-STATISTIK
+                  {tGD("battleStatsHeader")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-                  <StatBox label="SIEGE"       value={g.wins}         color="#4ade80" />
-                  <StatBox label="NIEDERLAGEN" value={g.losses}       color="#FF2D78" />
-                  <StatBox label="WIN-RATE"    value={totalBattles > 0 ? `${winRate}%` : "–"} color="#FFD700" />
-                  <StatBox label="GESAMT"      value={totalBattles}   color="#a855f7" />
-                  <StatBox label="TALENTE"     value={talentAvail > 0 ? `${talentSpent} (+${talentAvail})` : `${talentSpent}`} color="#5ddaf0" />
-                  <StatBox label="SKILLS"      value={skillPointsSpent} color="#22D1C3" />
+                  <StatBox label={tGD("statWins")}     value={g.wins}         color="#4ade80" />
+                  <StatBox label={tGD("statLosses")}   value={g.losses}       color="#FF2D78" />
+                  <StatBox label={tGD("statWinRate")}  value={totalBattles > 0 ? `${winRate}%` : "–"} color="#FFD700" />
+                  <StatBox label={tGD("statTotal")}    value={totalBattles}   color="#a855f7" />
+                  <StatBox label={tGD("statTalents")}  value={talentAvail > 0 ? `${talentSpent} (+${talentAvail})` : `${talentSpent}`} color="#5ddaf0" />
+                  <StatBox label={tGD("statSkills")}   value={skillPointsSpent} color="#22D1C3" />
                 </div>
               </div>
 
@@ -457,10 +466,10 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
-                    ❤️ ZUSTAND
+                    {tGD("conditionHeader")}
                   </div>
                   <div style={{ color: isWounded ? "#FF2D78" : hpColor, fontSize: 11, fontWeight: 900 }}>
-                    {isWounded ? "VERWUNDET" : hpPct >= 100 ? "VOLL FIT" : `${hpPct}% HP`}
+                    {isWounded ? tGD("wounded") : hpPct >= 100 ? tGD("fullFit") : `${hpPct}% HP`}
                   </div>
                 </div>
                 <div style={{ height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 4, overflow: "hidden" }}>
@@ -468,12 +477,12 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                 </div>
                 {isWounded && g.wounded_until && (
                   <div style={{ fontSize: 10, color: "#FF2D78", marginTop: 6 }}>
-                    Regeneration bis {new Date(g.wounded_until).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}
+                    {tGD("regenerationUntil", { time: new Date(g.wounded_until).toLocaleString(numLocale, { dateStyle: "short", timeStyle: "short" }) })}
                   </div>
                 )}
                 {daysOwned != null && (
                   <div style={{ fontSize: 10, color: "#6c7590", marginTop: 6 }}>
-                    Im Team seit {daysOwned} {daysOwned === 1 ? "Tag" : "Tagen"}
+                    {daysOwned === 1 ? tGD("inTeamSinceOne", { days: daysOwned }) : tGD("inTeamSinceMany", { days: daysOwned })}
                   </div>
                 )}
               </div>
@@ -491,11 +500,11 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 22 }}>{cls.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: cls.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }} title="Wirkt automatisch in jedem Kampf. Gilt für alle Wächter dieser Klasse.">KLASSEN-BUFF · {cls.label.toUpperCase()} · passiv</div>
+                        <div style={{ color: cls.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }} title={tGD("classBuffTitle")}>{tGD("classBuffLabel", { label: cls.label.toUpperCase() })}</div>
                         <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{cls.buff_name}</div>
                       </div>
                       <span
-                        title={`Stark gegen ${counter.label}`}
+                        title={tGD("strongAgainst", { label: counter.label })}
                         style={{
                           fontSize: 9, fontWeight: 900, color: counter.color,
                           padding: "2px 7px", borderRadius: 999,
@@ -520,7 +529,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ fontSize: 22 }}>{f.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: f.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }} title="Passiv beim Laufen. Wirkt auf deine Straßen/Gebiete — nicht auf Kampf-Stats.">FRAKTIONS-BUFF · {f.label.toUpperCase()} · beim Laufen</div>
+                        <div style={{ color: f.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }} title={tGD("factionBuffTitle")}>{tGD("factionBuffLabel", { label: f.label.toUpperCase() })}</div>
                         <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{f.buff_name}</div>
                       </div>
                       {data.user?.heimat_plz && (
@@ -542,18 +551,18 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,215,0,0.25)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                   <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>
-                    🧱 MATERIALIEN
+                    {tGD("materialsHeader")}
                   </div>
                   {onForge && (
                     <button onClick={onForge} style={{
                       padding: "4px 10px", borderRadius: 999, border: "1px solid rgba(255,107,74,0.55)",
                       background: "rgba(255,107,74,0.15)", color: "#FF6B4A",
                       fontSize: 10, fontWeight: 900, cursor: "pointer", letterSpacing: 0.5,
-                    }}>⚒️ Zur Schmiede</button>
+                    }}>{tGD("toForge")}</button>
                   )}
                 </div>
                 <div style={{ color: "#8B8FA3", fontSize: 10, lineHeight: 1.4, marginBottom: 10 }}>
-                  Drops nach jedem Kampf. In der Schmiede zu Items kombinieren oder Ausrüstung upgraden.
+                  {tGD("materialsHint")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
                   {MATERIAL_META.map((m) => {
@@ -587,10 +596,10 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               {/* Siegel-Übersicht */}
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(168,85,247,0.3)" }}>
                 <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 4 }}>
-                  🏅 SIEGEL-BESTAND
+                  {tGD("siegelHeader")}
                 </div>
                 <div style={{ color: "#8B8FA3", fontSize: 10, lineHeight: 1.4, marginBottom: 10 }}>
-                  Siegel = Levelup-Währung der Wächter. Drops aus Arena-Kämpfen. Eigener Typ hebt schneller, Universal-Siegel passen überall.
+                  {tGD("siegelHint")}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4 }}>
                   {SIEGEL_META.map((s) => {
@@ -612,15 +621,15 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                 </div>
                 {a.guardian_type && (
                   <div style={{ fontSize: 9, color: "#6c7590", marginTop: 8, textAlign: "center" }}>
-                    ★ Siegel vom eigenen Typ ({TYPE_META[a.guardian_type]?.label ?? "?"}) werden zum Levelup genutzt
+                    {tGD("siegelOwnTypeHint", { type: TYPE_META[a.guardian_type]?.label ?? "?" })}
                   </div>
                 )}
               </div>
 
               {/* Signatur-Fähigkeit */}
               <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: `1px solid ${rarity.color}44` }}>
-                <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }} title="Passive Fähigkeit — wirkt automatisch in jedem Kampf, wenn dieser Wächter aktiv ist.">
-                  ⚡ SIGNATUR-FÄHIGKEIT <span style={{ color: "#8B8FA3", fontWeight: 700 }}>· passiv im Kampf</span>
+                <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }} title={tGD("signatureTitle")}>
+                  {tGD("signatureHeader")} <span style={{ color: "#8B8FA3", fontWeight: 700 }}>{tGD("signatureSub")}</span>
                 </div>
                 <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{a.ability_name}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 2 }}>{a.ability_desc}</div>
@@ -671,7 +680,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               color: "#FFF", fontSize: 13, fontWeight: 900, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               boxShadow: "0 0 14px rgba(255,45,120,0.45)",
-            }}>⚔️ Kampfarena betreten</button>
+            }}>{tGD("actionEnterArena")}</button>
           )}
           <div style={{ display: "flex", gap: 8 }}>
             {onForge && (
@@ -680,7 +689,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                 background: "rgba(255,107,74,0.12)",
                 border: "1px solid rgba(255,107,74,0.55)",
                 color: "#FF6B4A", fontSize: 12, fontWeight: 900, cursor: "pointer",
-              }}>⚒️ Schmiede</button>
+              }}>{tGD("actionForge")}</button>
             )}
             {onSwitch && (
               <button onClick={onSwitch} style={{
@@ -688,7 +697,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                 background: "rgba(34,209,195,0.12)",
                 border: "1px solid rgba(34,209,195,0.5)",
                 color: "#22D1C3", fontSize: 12, fontWeight: 900, cursor: "pointer",
-              }}>🔄 Wechseln</button>
+              }}>{tGD("actionSwitch")}</button>
             )}
           </div>
         </div>
@@ -711,23 +720,23 @@ function StatBox({ label, value, color }: { label: string; value: number | strin
   );
 }
 
-const STAT_TOOLTIPS: Record<string, string> = {
-  HP:  "Lebenspunkte — wie viel Schaden dein Wächter einstecken kann. Bei 0 ist er verwundet.",
-  ATK: "Angriff — Basis-Schaden pro Treffer. Skaliert mit Waffe, Talenten und Klassen-Buff.",
-  DEF: "Verteidigung — reduziert eingehenden Schaden. Rüstung + Tank-Buff erhöhen sie.",
-  SPD: "Tempo — bestimmt wer zuerst angreift. Höchste SPD schlägt zuerst zu.",
-};
-
 function Stat({ label, value, color, delta }: { label: string; value: number; color: string; delta?: number }) {
+  const tGD = useTranslations("GuardianDetail");
+  const tooltips: Record<string, string> = {
+    HP:  tGD("tooltipHp"),
+    ATK: tGD("tooltipAtk"),
+    DEF: tGD("tooltipDef"),
+    SPD: tGD("tooltipSpd"),
+  };
   return (
     <div
-      title={STAT_TOOLTIPS[label] ?? undefined}
+      title={tooltips[label] ?? undefined}
       style={{
         padding: "8px 10px", borderRadius: 10,
         background: "rgba(15,17,21,0.65)",
         border: `1px solid ${color}33`,
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
-        cursor: STAT_TOOLTIPS[label] ? "help" : "default",
+        cursor: tooltips[label] ? "help" : "default",
       }}
     >
       <span style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{label}</span>
