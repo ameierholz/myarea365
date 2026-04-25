@@ -116,10 +116,10 @@ export default async function RootLayout({
         <PrefsBoot />
         <CapacitorAuthBridge />
         <ReferralCapture />
-        <AppDialogProvider />
         <PinThemeStyles />
         <GlobalSvgFilters />
         <NextIntlClientProvider locale={locale} messages={messages}>
+          <AppDialogProvider />
           {children}
           <LegalFooter />
           <LegalModal />
