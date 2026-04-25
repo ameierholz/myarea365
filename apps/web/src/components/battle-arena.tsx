@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { RoundEvent, SideStatus } from "@/lib/battle-engine";
 import type { GuardianArchetype } from "@/lib/guardian";
 import { GuardianAvatar, type AvatarAnimation } from "@/components/guardian-avatar";
+
+type BAT = ReturnType<typeof useTranslations<"BattleArena">>;
 
 export type SidePayload = {
   name: string;
@@ -30,6 +33,7 @@ export function CinematicBattleArena({
   rounds: RoundEvent[];
   onFinished?: () => void;
 }) {
+  const t = useTranslations("BattleArena");
   const [idx, setIdx] = useState(0);
   const [animA, setAnimA] = useState<AvatarAnimation>("idle");
   const [animB, setAnimB] = useState<AvatarAnimation>("idle");
@@ -109,7 +113,7 @@ export function CinematicBattleArena({
     }
 
     // Commentary — dramatic
-    const comment = buildCommentary(event, actor === "A" ? sideA.name : sideB.name, victim === "A" ? sideA.name : sideB.name);
+    const comment = buildCommentary(t, event, actor === "A" ? sideA.name : sideB.name, victim === "A" ? sideA.name : sideB.name);
     if (comment) {
       const c: Commentary = { id: ++commentId.current, text: comment.text, tone: comment.tone };
       setCommentary(c);
@@ -177,7 +181,7 @@ export function CinematicBattleArena({
           setKoFade(true);
           const koName = koSide === "A" ? sideA.name : sideB.name;
           const winName = koSide === "A" ? sideB.name : sideA.name;
-          setCommentary({ id: ++commentId.current, text: `🏆 ${winName.toUpperCase()} BEENDET ${koName.toUpperCase()}`, tone: "ko" });
+          setCommentary({ id: ++commentId.current, text: t("koLine", { winner: winName.toUpperCase(), loser: koName.toUpperCase() }), tone: "ko" });
           setShake("hard");
           setTimeout(() => setShake("none"), 600);
         }
@@ -615,32 +619,32 @@ export function CinematicBattleArena({
   );
 }
 
-/** Dramatische Commentary-Zeile erzeugen — statt "Runde 2 · Angriff (-1)". */
-function buildCommentary(event: RoundEvent, actorName: string, victimName: string): { text: string; tone: Commentary["tone"] } | null {
+/** Dramatische Commentary-Zeile erzeugen. */
+function buildCommentary(t: BAT, event: RoundEvent, actorName: string, victimName: string): { text: string; tone: Commentary["tone"] } | null {
   const dmg = event.damage;
   const an = actorName.toUpperCase();
   const vn = victimName.toUpperCase();
   switch (event.action) {
     case "crit":
     case "ult":
-      return { tone: "crit", text: `💥 KRITISCH! ${an} zerreißt ${vn} für ${dmg}!` };
+      return { tone: "crit", text: t("commCritical", { actor: an, victim: vn, dmg }) };
     case "attack":
-      if (dmg >= 50) return { tone: "normal", text: `⚔️ ${an} trifft hart — ${dmg} Schaden` };
-      return { tone: "normal", text: `${an} greift an · ${dmg}` };
+      if (dmg >= 50) return { tone: "normal", text: t("commHardHit", { actor: an, dmg }) };
+      return { tone: "normal", text: t("commAttack", { actor: an, dmg }) };
     case "miss":
-      return { tone: "miss", text: `💨 ${vn} weicht aus!` };
+      return { tone: "miss", text: t("commMiss", { victim: vn }) };
     case "flame":
-      return { tone: "crit", text: `🔥 Flamme verzehrt ${vn} · ${dmg}` };
+      return { tone: "crit", text: t("commFlame", { victim: vn, dmg }) };
     case "poison":
-      return { tone: "crit", text: `☠️ Gift frisst sich in ${vn} · ${dmg}` };
+      return { tone: "crit", text: t("commPoison", { victim: vn, dmg }) };
     case "heal":
-      return { tone: "heal", text: `💚 ${an} heilt sich · +${dmg}` };
+      return { tone: "heal", text: t("commHeal", { actor: an, dmg }) };
     case "revive":
-      return { tone: "heal", text: `🪽 ${vn} erhebt sich erneut!` };
+      return { tone: "heal", text: t("commRevive", { victim: vn }) };
     case "stunned":
-      return { tone: "miss", text: `😵 ${an} ist betäubt — kein Zug` };
+      return { tone: "miss", text: t("commStunned", { actor: an }) };
     case "special":
-      return { tone: "crit", text: event.note ? `✨ ${event.note}` : `✨ ${an} entfesselt Spezialangriff` };
+      return { tone: "crit", text: event.note ? t("commSpecialNoted", { note: event.note }) : t("commSpecial", { actor: an }) };
     default:
       return null;
   }
@@ -649,21 +653,22 @@ function buildCommentary(event: RoundEvent, actorName: string, victimName: strin
 function HpBar({ side, name, hp, max, pct, level, status }: {
   side: "left" | "right"; name: string; hp: number; max: number; pct: number; level: number; status?: SideStatus;
 }) {
+  const t = useTranslations("BattleArena");
   const align = side === "left" ? "flex-start" : "flex-end";
   const barColor = pct > 50 ? "linear-gradient(90deg, #4ade80, #22D1C3)" : pct > 25 ? "linear-gradient(90deg, #FFD700, #FF6B4A)" : "linear-gradient(90deg, #FF2D78, #FF6B4A)";
   const low = pct < 25;
   const critical = pct < 12;
 
-  const buffs: Array<{ icon: string; label: string; color: string; kind: "buff" | "debuff" }> = [];
+  const buffs: Array<{ id: string; icon: string; label: string; color: string; kind: "buff" | "debuff" }> = [];
   if (status) {
-    if (status.stunned) buffs.push({ icon: "😵", label: "Betäubt", color: "#FFD700", kind: "debuff" });
-    if (status.poisonStacks > 0) buffs.push({ icon: "☠️", label: `Gift ×${status.poisonStacks}`, color: "#a855f7", kind: "debuff" });
-    if (status.inBerserker) buffs.push({ icon: "🔥", label: "Berserker", color: "#FF2D78", kind: "buff" });
-    if (status.inSymbiose) buffs.push({ icon: "☯️", label: "Symbiose", color: "#4ade80", kind: "buff" });
-    if (status.bollwerkReady) buffs.push({ icon: "🛡️", label: "Bollwerk bereit", color: "#60a5fa", kind: "buff" });
-    if (status.awakenReady) buffs.push({ icon: "✨", label: "Erwachen bereit", color: "#a855f7", kind: "buff" });
-    if (status.phoenixReady) buffs.push({ icon: "🪽", label: "Wiedergeburt", color: "#FF6B4A", kind: "buff" });
-    if (status.nineLivesReady) buffs.push({ icon: "🐈", label: "Neun Leben", color: "#FFD700", kind: "buff" });
+    if (status.stunned) buffs.push({ id: "stunned", icon: "😵", label: t("buffStunned"), color: "#FFD700", kind: "debuff" });
+    if (status.poisonStacks > 0) buffs.push({ id: "poison", icon: "☠️", label: t("buffPoison", { n: status.poisonStacks }), color: "#a855f7", kind: "debuff" });
+    if (status.inBerserker) buffs.push({ id: "berserker", icon: "🔥", label: t("buffBerserker"), color: "#FF2D78", kind: "buff" });
+    if (status.inSymbiose) buffs.push({ id: "symbiose", icon: "☯️", label: t("buffSymbiose"), color: "#4ade80", kind: "buff" });
+    if (status.bollwerkReady) buffs.push({ id: "bollwerk", icon: "🛡️", label: t("buffBollwerk"), color: "#60a5fa", kind: "buff" });
+    if (status.awakenReady) buffs.push({ id: "awaken", icon: "✨", label: t("buffAwaken"), color: "#a855f7", kind: "buff" });
+    if (status.phoenixReady) buffs.push({ id: "phoenix", icon: "🪽", label: t("buffPhoenix"), color: "#FF6B4A", kind: "buff" });
+    if (status.nineLivesReady) buffs.push({ id: "ninelives", icon: "🐈", label: t("buffNineLives"), color: "#FFD700", kind: "buff" });
   }
 
   return (
@@ -712,7 +717,7 @@ function HpBar({ side, name, hp, max, pct, level, status }: {
               background: `${b.color}28`, border: `1px solid ${b.color}`,
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 12, lineHeight: 1,
-              animation: b.kind === "buff" && (b.label === "Berserker" || b.label === "Symbiose") ? "status-pulse 1.2s ease-in-out infinite" : undefined,
+              animation: b.kind === "buff" && (b.id === "berserker" || b.id === "symbiose") ? "status-pulse 1.2s ease-in-out infinite" : undefined,
             }}>
               {b.icon}
             </div>

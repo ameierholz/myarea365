@@ -3790,5 +3790,27 @@
     "openMany": "{n} Deals offen",
     "plusBundle": " + Bundle",
     "resetIn": "Reset in {countdown}"
+  },
+  "BattleArena": {
+    "koLine": "🏆 {winner} BEENDET {loser}",
+    "commCritical": "💥 KRITISCH! {actor} zerreißt {victim} für {dmg}!",
+    "commHardHit": "⚔️ {actor} trifft hart — {dmg} Schaden",
+    "commAttack": "{actor} greift an · {dmg}",
+    "commMiss": "💨 {victim} weicht aus!",
+    "commFlame": "🔥 Flamme verzehrt {victim} · {dmg}",
+    "commPoison": "☠️ Gift frisst sich in {victim} · {dmg}",
+    "commHeal": "💚 {actor} heilt sich · +{dmg}",
+    "commRevive": "🪽 {victim} erhebt sich erneut!",
+    "commStunned": "😵 {actor} ist betäubt — kein Zug",
+    "commSpecial": "✨ {actor} entfesselt Spezialangriff",
+    "commSpecialNoted": "✨ {note}",
+    "buffStunned": "Betäubt",
+    "buffPoison": "Gift ×{n}",
+    "buffBerserker": "Berserker",
+    "buffSymbiose": "Symbiose",
+    "buffBollwerk": "Bollwerk bereit",
+    "buffAwaken": "Erwachen bereit",
+    "buffPhoenix": "Wiedergeburt",
+    "buffNineLives": "Neun Leben"
   }
 }

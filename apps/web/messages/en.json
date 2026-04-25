@@ -3790,5 +3790,27 @@
     "openMany": "{n} deals open",
     "plusBundle": " + bundle",
     "resetIn": "Reset in {countdown}"
+  },
+  "BattleArena": {
+    "koLine": "🏆 {winner} ENDS {loser}",
+    "commCritical": "💥 CRITICAL! {actor} tears {victim} apart for {dmg}!",
+    "commHardHit": "⚔️ {actor} hits hard — {dmg} damage",
+    "commAttack": "{actor} attacks · {dmg}",
+    "commMiss": "💨 {victim} dodges!",
+    "commFlame": "🔥 Flames consume {victim} · {dmg}",
+    "commPoison": "☠️ Poison eats into {victim} · {dmg}",
+    "commHeal": "💚 {actor} heals · +{dmg}",
+    "commRevive": "🪽 {victim} rises again!",
+    "commStunned": "😵 {actor} is stunned — no turn",
+    "commSpecial": "✨ {actor} unleashes special attack",
+    "commSpecialNoted": "✨ {note}",
+    "buffStunned": "Stunned",
+    "buffPoison": "Poison ×{n}",
+    "buffBerserker": "Berserker",
+    "buffSymbiose": "Symbiosis",
+    "buffBollwerk": "Bulwark ready",
+    "buffAwaken": "Awakening ready",
+    "buffPhoenix": "Rebirth",
+    "buffNineLives": "Nine Lives"
   }
 }
