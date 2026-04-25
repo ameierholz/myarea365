@@ -10,17 +10,21 @@ import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 type Archetype = {
   id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
   guardian_type: "infantry" | "cavalry" | "marksman" | "mage" | null;
+  class_id: "tank" | "support" | "ranged" | "melee" | null;
   role: "dps" | "tank" | "support" | "balanced" | null;
+  species: string | null;
+  gender: "male" | "female" | "neutral" | null;
   ability_name: string | null; lore: string | null;
 };
 
 const RARITY_LABEL: Record<string, { label: string; color: string }> = {
-  elite:     { label: "ELITE",     color: "#22D1C3" },
-  epic:      { label: "EPISCH",    color: "#a855f7" },
-  legendary: { label: "LEGENDÄR",  color: "#FFD700" },
-  common:    { label: "ELITE",     color: "#22D1C3" },
-  rare:      { label: "ELITE",     color: "#22D1C3" },
-  legend:    { label: "LEGENDÄR",  color: "#FFD700" },
+  common:    { label: "GEWÖHNLICH", color: "#9aa3b8" },
+  elite:     { label: "ELITE",      color: "#22D1C3" },
+  epic:      { label: "EPISCH",     color: "#a855f7" },
+  legendary: { label: "LEGENDÄR",   color: "#FFD700" },
+  // Legacy-Fallback (vor 5x4-Rework)
+  rare:      { label: "ELITE",      color: "#22D1C3" },
+  legend:    { label: "LEGENDÄR",   color: "#FFD700" },
 };
 
 const TYPE_LABEL: Record<string, { label: string; icon: string; color: string }> = {
@@ -30,8 +34,41 @@ const TYPE_LABEL: Record<string, { label: string; icon: string; color: string }>
   mage:     { label: "Magier",        icon: "🔮", color: "#c084fc" },
 };
 
-const ROLE_LABEL: Record<string, string> = {
-  dps: "DPS", tank: "Tank", support: "Support", balanced: "Balanced",
+// Neue 4-Klassen-Anzeige (tank/support/ranged/melee).
+const CLASS_LABEL: Record<string, { label: string; icon: string; color: string }> = {
+  tank:    { label: "Tank",      icon: "🛡️", color: "#60a5fa" },
+  support: { label: "Support",   icon: "✨", color: "#a855f7" },
+  ranged:  { label: "Fernkampf", icon: "🏹", color: "#4ade80" },
+  melee:   { label: "Nahkampf",  icon: "⚔️", color: "#FF6B4A" },
+};
+
+// Sub-Rollen aus Migration 00073 (4 pro Klasse). Plus Legacy-Werte (dps/tank/support/balanced).
+const ROLE_LABEL: Record<string, { label: string; icon: string }> = {
+  // Tank
+  krieger:        { label: "Krieger",        icon: "🛡️" },
+  ritter:         { label: "Ritter",         icon: "🛡️" },
+  paladin:        { label: "Paladin",        icon: "🛡️" },
+  berserker:      { label: "Berserker",      icon: "🛡️" },
+  // Support
+  priester:       { label: "Priester",       icon: "✨" },
+  schamane:       { label: "Schamane",       icon: "✨" },
+  kleriker:       { label: "Kleriker",       icon: "✨" },
+  orakel:         { label: "Orakel",         icon: "✨" },
+  // Ranged
+  magier:         { label: "Magier",         icon: "🏹" },
+  bogenschuetze:  { label: "Bogenschütze",   icon: "🏹" },
+  hexer:          { label: "Hexer",          icon: "🏹" },
+  runenmeister:   { label: "Runenmeister",   icon: "🏹" },
+  // Melee
+  schurke:        { label: "Schurke",        icon: "⚔️" },
+  moench:         { label: "Mönch",          icon: "⚔️" },
+  samurai:        { label: "Samurai",        icon: "⚔️" },
+  ninja:          { label: "Ninja",          icon: "⚔️" },
+  // Legacy fallback
+  dps:            { label: "DPS",            icon: "·" },
+  tank:           { label: "Tank",           icon: "·" },
+  support:        { label: "Support",        icon: "·" },
+  balanced:       { label: "Balanced",       icon: "·" },
 };
 
 type Art = { image_url: string | null; video_url: string | null };
@@ -502,7 +539,7 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
     const rows = filtered.map((a) => [
       a.id, `"${a.name}"`, a.rarity, a.guardian_type ?? "", a.role ?? "",
       `"${a.ability_name ?? ""}"`, a.image_url ? "yes" : "no",
-      `"${buildArchetypePrompt({ name: a.name, rarity: a.rarity as "elite" | "epic" | "legendary", guardianType: a.guardian_type, role: a.role, abilityName: a.ability_name, lore: a.lore }).replace(/"/g, '""')}"`,
+      `"${buildArchetypePrompt({ name: a.name, rarity: a.rarity as "common" | "elite" | "epic" | "legendary", classId: a.class_id, guardianType: a.guardian_type, role: a.role, species: a.species, gender: a.gender, abilityName: a.ability_name, lore: a.lore }).replace(/"/g, '""')}"`,
     ].join(","));
     const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -570,11 +607,14 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         </button>
       </div>
 
-      {/* Progress-Bar */}
+      {/* Progress-Bar + Wipe-Button */}
       <div className="mb-4 p-3 rounded-xl bg-[#1A1D23] border border-white/10">
         <div className="flex items-center justify-between mb-2 text-xs text-[#a8b4cf]">
           <span><strong className="text-white">{filtered.length}</strong> gefiltert · {done}/{archetypes.length} mit Bild ({pct}%)</span>
-          <span className="text-[#4ade80] font-bold">{done === archetypes.length ? "🎉 Alle fertig!" : `${archetypes.length - done} offen`}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[#4ade80] font-bold">{done === archetypes.length ? "🎉 Alle fertig!" : `${archetypes.length - done} offen`}</span>
+            <WipeArchetypeArtworksButton onDone={onChange} />
+          </div>
         </div>
         <div className="h-2 bg-[#0F1115] rounded overflow-hidden">
           <div className="h-full bg-gradient-to-r from-[#22D1C3] to-[#FFD700] transition-all" style={{ width: `${pct}%` }} />
@@ -594,6 +634,33 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
   );
 }
 
+function WipeArchetypeArtworksButton({ onDone }: { onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg]   = useState<string | null>(null);
+  return (
+    <>
+      <button
+        onClick={async () => {
+          if (!confirm("ALLE Wächter-Artworks (Bild + Video) aus Storage und DB löschen? Nicht rückgängig zu machen.")) return;
+          setBusy(true); setMsg(null);
+          try {
+            const res = await fetch("/api/admin/artwork/wipe-archetypes", { method: "POST" });
+            const j = await res.json();
+            if (!res.ok) setMsg(`❌ ${j.error ?? "Fehler"}`);
+            else { setMsg(`✅ ${j.removed} Files entfernt`); onDone(); }
+          } finally { setBusy(false); }
+        }}
+        disabled={busy}
+        className="bg-[#FF2D78]/20 border border-[#FF2D78]/50 text-[#FF2D78] rounded-lg px-3 py-1 text-xs font-bold hover:bg-[#FF2D78]/30 disabled:opacity-50"
+        title="Löscht alle Wächter-Bilder/Videos für Re-Generierung mit neuen Prompts"
+      >
+        {busy ? "Lösche…" : "🗑️ Wipe Artworks"}
+      </button>
+      {msg && <span className="text-[10px] text-[#a8b4cf]">{msg}</span>}
+    </>
+  );
+}
+
 function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [copiedKind, setCopiedKind] = useState<"image" | "video" | null>(null);
@@ -601,9 +668,12 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
 
   const promptInputBase = {
     name: a.name,
-    rarity: a.rarity as "elite" | "epic" | "legendary",
+    rarity: a.rarity as "common" | "elite" | "epic" | "legendary",
+    classId: a.class_id,
     guardianType: a.guardian_type,
     role: a.role,
+    species: a.species,
+    gender: a.gender,
     abilityName: a.ability_name,
     lore: a.lore,
   };
@@ -611,7 +681,10 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const promptVideo = buildArchetypePrompt({ ...promptInputBase, mode: "video" });
 
   const rarityMeta = RARITY_LABEL[a.rarity] ?? RARITY_LABEL.epic;
-  const typeMeta = a.guardian_type ? TYPE_LABEL[a.guardian_type] : null;
+  const classMeta  = a.class_id ? CLASS_LABEL[a.class_id] : null;
+  const roleMeta   = a.role ? ROLE_LABEL[a.role] : null;
+  // Fallback auf legacy guardian_type, falls class_id leer ist
+  const typeFallback = !classMeta && a.guardian_type ? TYPE_LABEL[a.guardian_type] : null;
 
   const upload = async (file: File) => {
     setBusy(true); setErr(null);
@@ -700,15 +773,26 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
       {/* Info */}
       <div className="p-3">
         <div className="font-black text-sm">{a.name}</div>
-        <div className="text-[10px] text-[#8B8FA3] flex items-center gap-1 mt-1 flex-wrap">
-          {typeMeta && (
-            <span style={{ color: typeMeta.color }} className="font-bold">
-              {typeMeta.icon} {typeMeta.label}
+        <div className="text-[10px] text-[#8B8FA3] flex items-center gap-2 mt-1 flex-wrap">
+          {classMeta && (
+            <span style={{ color: classMeta.color }} className="font-bold">
+              {classMeta.icon} {classMeta.label}
             </span>
           )}
-          {a.role && <span>· {ROLE_LABEL[a.role]}</span>}
-          <span className="opacity-60">· {a.id}</span>
+          {roleMeta && (
+            <span style={{ color: classMeta?.color ?? "#a8b4cf" }} className="font-bold">
+              {roleMeta.icon} {roleMeta.label}
+            </span>
+          )}
+          {!classMeta && typeFallback && (
+            <span style={{ color: typeFallback.color }} className="font-bold">
+              {typeFallback.icon} {typeFallback.label}
+            </span>
+          )}
         </div>
+        {a.species && (
+          <div className="text-[9px] text-[#6c7590] mt-0.5 uppercase tracking-wider">{a.species}{a.gender && a.gender !== "neutral" ? ` · ${a.gender}` : ""}</div>
+        )}
         {a.ability_name && (
           <div className="text-[10px] text-[#FFD700] mt-1 truncate" title={a.ability_name}>
             ⚡ {a.ability_name}

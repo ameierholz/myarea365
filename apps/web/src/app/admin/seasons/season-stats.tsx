@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type TypeRow = { type: string; picks: number; wins: number; losses: number; win_pct: number };
+type ClassRow = { class_id: string; picks: number; wins: number; losses: number; win_pct: number };
 type DailyRow = { day: string; count: number };
 type TopFighter = {
   user_id: string; wins: number; losses: number; level: number;
@@ -14,16 +14,16 @@ type StatsResponse = {
   ok: boolean;
   season: { id: string; number: number; name: string; starts_at: string; ends_at: string } | null;
   kpis?: { total_fights: number; fights_24h: number; fights_7d: number; seasonal_pickers: number };
-  class_balance?: TypeRow[];
+  class_balance?: ClassRow[];
   top_fighters?: TopFighter[];
   daily?: DailyRow[];
 };
 
-const TYPE_META: Record<string, { label: string; icon: string; color: string }> = {
-  infantry: { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
-  cavalry:  { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
-  marksman: { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
-  mage:     { label: "Magier",        icon: "🔮", color: "#c084fc" },
+const CLASS_META: Record<string, { label: string; icon: string; color: string }> = {
+  tank:    { label: "Tank",      icon: "🛡️", color: "#60a5fa" },
+  support: { label: "Support",   icon: "✨", color: "#a855f7" },
+  ranged:  { label: "Fernkampf", icon: "🏹", color: "#4ade80" },
+  melee:   { label: "Nahkampf",  icon: "⚔️", color: "#FF6B4A" },
 };
 
 const DEMO_STATS: StatsResponse = {
@@ -37,10 +37,10 @@ const DEMO_STATS: StatsResponse = {
   },
   kpis: { total_fights: 14_823, fights_24h: 487, fights_7d: 3_241, seasonal_pickers: 1_847 },
   class_balance: [
-    { type: "cavalry",  picks: 624, wins: 1_823, losses: 1_401, win_pct: 57 },
-    { type: "mage",     picks: 489, wins: 1_512, losses: 1_388, win_pct: 52 },
-    { type: "marksman", picks: 441, wins: 1_204, losses: 1_296, win_pct: 48 },
-    { type: "infantry", picks: 293, wins:   892, losses: 1_107, win_pct: 45 },
+    { class_id: "melee",   picks: 624, wins: 1_823, losses: 1_401, win_pct: 57 },
+    { class_id: "ranged",  picks: 489, wins: 1_512, losses: 1_388, win_pct: 52 },
+    { class_id: "support", picks: 441, wins: 1_204, losses: 1_296, win_pct: 48 },
+    { class_id: "tank",    picks: 293, wins:   892, losses: 1_107, win_pct: 45 },
   ],
   top_fighters: [
     { user_id: "u1", wins: 127, losses: 32, level: 42, guardian_archetypes: { name: "Straßen-Gott", emoji: "⚔️" }, users: { username: "valkyr", display_name: "Valkyr" } },
@@ -107,7 +107,7 @@ export function SeasonStats() {
         </div>
         {imbalance >= 15 && bestWinRate && (
           <div className="px-3 py-1.5 rounded-lg bg-[#FF2D78]/15 border border-[#FF2D78]/40 text-[#FF2D78] text-xs font-black">
-            ⚠️ Klassen-Imbalance: {TYPE_META[bestWinRate.type]?.label ?? bestWinRate.type} @ {bestWinRate.win_pct}%
+            ⚠️ Klassen-Imbalance: {CLASS_META[bestWinRate.class_id]?.label ?? bestWinRate.class_id} @ {bestWinRate.win_pct}%
           </div>
         )}
       </div>
@@ -146,10 +146,10 @@ export function SeasonStats() {
           <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-2">KLASSEN-BALANCE</div>
           <div className="grid gap-2">
             {class_balance.map((c) => {
-              const meta = TYPE_META[c.type] ?? { label: c.type, icon: "❓", color: "#8B8FA3" };
+              const meta = CLASS_META[c.class_id] ?? { label: c.class_id, icon: "❓", color: "#8B8FA3" };
               const pickPct = Math.round((c.picks / totalPicks) * 100);
               return (
-                <div key={c.type} className="flex items-center gap-3 p-2 rounded-lg bg-[#0F1115] border border-white/5">
+                <div key={c.class_id} className="flex items-center gap-3 p-2 rounded-lg bg-[#0F1115] border border-white/5">
                   <div className="text-lg w-6 text-center">{meta.icon}</div>
                   <div className="w-24 text-xs font-black" style={{ color: meta.color }}>{meta.label}</div>
                   <div className="flex-1 flex items-center gap-2">

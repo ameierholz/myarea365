@@ -116,11 +116,19 @@ export function generateAllPrompts(): GeneratedPrompt[] {
 }
 
 /** Prompt für Wächter-Archetyp (Charakter-Illustration oder animiertes Video) */
+export type ArchetypeSpecies =
+  | "human" | "elf" | "orc" | "beast" | "construct" | "spirit"
+  | "undead" | "demon" | "celestial" | "dragonkin" | "cosmic"
+  | "bird" | "desert";
+
 export type ArchetypePromptInput = {
   name: string;
   rarity: "common" | "rare" | "legend" | "elite" | "epic" | "legendary";
+  classId?: "tank" | "support" | "ranged" | "melee" | null;
   guardianType?: "infantry" | "cavalry" | "marksman" | "mage" | null;
   role?: "dps" | "tank" | "support" | "balanced" | null;
+  species?: ArchetypeSpecies | string | null;
+  gender?: "male" | "female" | "neutral" | null;
   abilityName?: string | null;
   lore?: string | null;
   mode?: "image" | "video";  // "video" = Canva Magic Animate / Video-Generator Prompt
@@ -137,26 +145,91 @@ const RARITY_MOD: Record<string, string> = {
   legend:    "rich golden aura wrapping the silhouette, slow-floating ember and spark particles, faint halo of light behind the head, iconic centered heroic silhouette",
 };
 
-const TYPE_MOD: Record<string, string> = {
-  infantry: "heavy protective armor plating, sturdy shield and ceremonial implement, grounded stance, guardian posture",
-  cavalry:  "lightweight armor with flowing cloth, momentum-lines, dynamic mid-stride pose, confident forward lean",
-  marksman: "lean form with a stylized ranged implement, focused gaze, high-ground posture",
-  mage:     "robes with arcane sigils, floating orb or staff, glowing eyes, levitating accessories, ethereal aura",
+// Klassen-Mod (neue 4-Klassen-Logik) — ersetzt das alte TYPE_MOD/ROLE_MOD-Paar.
+const CLASS_MOD: Record<string, string> = {
+  tank:    "heavy protective armor plating, large shield or barrier, imposing bulky silhouette, grounded defensive stance, guardian posture",
+  melee:   "lean dynamic build, dual close-combat blades or weapon held mid-swing, mid-stride combat pose, sleek silhouette with momentum-lines, confident forward lean",
+  ranged:  "lean focused form holding a stylized ranged implement (bow / staff / arcane orb / firearm-analog), elevated grounded stance, eyes locked on a distant point",
+  support: "caring protective pose, one hand extended in a casting / blessing gesture, robe with arcane sigils, warm secondary light around the casting hand, ethereal aura around the head",
 };
 
-// Pro Typ die Idle-Animation beschreiben (subtle motion loop, Veo-freundlich mit Rhythmus)
-const TYPE_ANIM: Record<string, string> = {
-  infantry: "slow rhythmic breathing (about 4 seconds per cycle), chest rising and falling, shield held steady, armor plates catching the light with each breath, heavy cape swaying gently in a slow wind, weight solidly planted",
-  cavalry:  "shoulders rising and falling with steady breath, long cloth and hair flowing in a continuous steady breeze, weight shifting slowly from one leg to the other, ready-to-move tension in the stance",
-  marksman: "deep calm breathing, eyes slowly scanning left to right, fingers subtly adjusting grip, hood edge and hair fluttering gently, the ranged weapon lowering and raising a fraction as if tracking an unseen target",
-  mage:     "arcane particles orbiting slowly around the hands in a smooth loop, outer robe hem levitating and undulating softly, body glow pulsing gently in a 3-second rhythm, eyes faintly glimmering with each pulse",
+// Spezies-Profile — DAS ist der Hauptgrund warum Wächter unterschiedlich aussehen.
+// Jede Spezies hat eine eigene Silhouette / Hautton / Körperbau / Augen / Detail-Marker.
+// Wird deterministisch über die Spalte `species` aus der DB gewählt — KEIN Hash-Pick.
+const SPECIES_PROFILE: Record<string, { subject: string; signature: string; auraColor: { name: string; primary: string; secondary: string } }> = {
+  human: {
+    subject: "a stylized heroic human character with realistic anatomy, varied skin tones (warm tan to deep brown), expressive eyes, naturally proportioned body",
+    signature: "small visible scars or tattoos, weathered leather details, woven cloth elements with stitched edging",
+    auraColor: { name: "amber lightning", primary: "amber gold", secondary: "burnt orange" },
+  },
+  elf: {
+    subject: "a tall slender elven character with elongated pointed ears, almond-shaped luminous eyes, fair pale skin or sage-green skin, graceful otherworldly bone structure, slightly larger pupils",
+    signature: "delicate silver filigree etched into armor, woven leaf or vine motifs, faint leyline tattoos along the jaw or forearms",
+    auraColor: { name: "frost aurora", primary: "pale blue-white", secondary: "cold steel gray" },
+  },
+  orc: {
+    subject: "a massive muscular orc character with green-grey or dark olive skin, prominent lower tusks protruding from jaw, thick brow ridge, broad shoulders far wider than the hips, scarred knuckles, heavy bone structure",
+    signature: "tribal warpaint streaks across the face, bone or tooth jewelry, crude iron rings woven into hair, scars from old battles",
+    auraColor: { name: "crimson embers", primary: "blood red", secondary: "ember orange" },
+  },
+  beast: {
+    subject: "a humanoid beast-folk character — anthropomorphic with animal features (rat-like snout / amphibian skin / feline ears) — fur or scaled skin texture clearly visible, animal-shaped eyes, partially digitigrade legs, subtle non-human paw or claw hands",
+    signature: "tufted fur or moist amphibian skin, animal-pattern markings, totems and bone fetishes hanging from belt",
+    auraColor: { name: "magenta neon", primary: "hot magenta", secondary: "deep violet" },
+  },
+  construct: {
+    subject: "a stone or metal CONSTRUCT character — NOT human flesh, but a sculpted humanoid figure made of carved rock / weathered bronze / fused crystals. Visible mortar lines, glowing runes etched directly into the body, no eyes (just glowing sockets), no facial expression, golem-like presence",
+    signature: "cracked stone seams glowing from within, runic inscriptions all over the chest plate, no actual face — only an engraved mask with luminous slits",
+    auraColor: { name: "amber lightning", primary: "amber gold", secondary: "burnt orange" },
+  },
+  spirit: {
+    subject: "a SEMI-TRANSLUCENT spirit / ghost character — vaguely humanoid silhouette but with intangible flowing edges that dissipate into wisps, no solid feet (the lower body fades into mist), glowing hollow eye-sockets, no skin, no fabric — just light and vapor in a humanoid shape",
+    signature: "wisps of light trailing off the shoulders and lower body, hollow burning eye-sockets, the body itself emits the aura",
+    auraColor: { name: "void indigo", primary: "deep indigo", secondary: "pitch black" },
+  },
+  undead: {
+    subject: "a regal undead lich-king character — gaunt skeletal face with leathery grey skin pulled tight over the bones, sunken eye-sockets glowing from within, visible skull cheekbones, withered hands with prominent finger bones, long ragged ceremonial robes",
+    signature: "exposed jawbone visible at the corners of the mouth, a tattered cloak in deep purples and rotten gold, an iron crown set with cracked gemstones",
+    auraColor: { name: "void indigo", primary: "deep indigo", secondary: "pitch black" },
+  },
+  demon: {
+    subject: "a demonic infernal character — crimson or charcoal skin with cracked glowing magma-like fissures running across the body, two backwards-curving horns growing from the temples, slit pupils with glowing irises, prominent canine fangs, clawed fingers, optional bat-like wings folded behind",
+    signature: "glowing lava cracks across the chest and arms, soot-blackened skin around the horns, smoldering breath",
+    auraColor: { name: "crimson embers", primary: "blood red", secondary: "ember orange" },
+  },
+  celestial: {
+    subject: "a celestial angel-like character with luminous porcelain-white skin, faintly gold-glowing eyes without visible pupils, several pairs of feathered wings folded behind the back, a thin floating golden halo behind the head, serene expression",
+    signature: "feathered wings (two to six pairs) in soft white-gold, floating halo, golden sigils faintly lit on the breastplate",
+    auraColor: { name: "solar gold", primary: "warm sun-gold", secondary: "bronze" },
+  },
+  dragonkin: {
+    subject: "a half-dragon character — humanoid build but covered in iridescent scales (deep emerald / volcanic red / sapphire blue), draconic features: small ridged horns, vertical-slit reptilian pupils, clawed fingers, optional thick reptilian tail, often a single small folded wing or scaled cape",
+    signature: "iridescent scales catching the light, ridged spinal plates along the back, draconic claws, smoke wisps at the corners of the mouth",
+    auraColor: { name: "ruby plasma", primary: "ruby pink", secondary: "dark carmine" },
+  },
+  cosmic: {
+    subject: "a cosmic / star-touched character — deep midnight-blue or violet skin with constellations of softly glowing star-points scattered across it, hair appearing as a flowing nebula of stardust, eyes that look like tiny galaxies, the silhouette gently bending light around it",
+    signature: "constellations etched into skin glowing like points of light, hair made of slow-flowing nebula clouds, faint orbiting micro-stars near the head",
+    auraColor: { name: "arcane purple storm", primary: "royal violet", secondary: "midnight purple" },
+  },
+  bird: {
+    subject: "a humanoid avian character — feathered humanoid (kenku / aarakocra style) with a curved hard beak instead of a mouth, large round eyes on the sides of the head, feathers covering arms and shoulders, clawed bird-feet, often crested feathers on the head",
+    signature: "long primary feathers on forearms, crested head plume, sharp keratin beak, talon-shaped feet",
+    auraColor: { name: "frost aurora", primary: "pale blue-white", secondary: "cold steel gray" },
+  },
+  desert: {
+    subject: "a sun-weathered desert nomad — tan-bronze human skin tone deepened to leather by wind and sun, dark sun-squinted eyes, long flowing wraps and headscarves of sand-bleached fabric, partially exposed muscular forearms, a chest-mounted talisman of bone or turquoise",
+    signature: "long sand-colored linen wraps, leather amulets, kohl-marked eyes against weather-darkened skin, scars from desert raids",
+    auraColor: { name: "amber lightning", primary: "amber gold", secondary: "burnt orange" },
+  },
 };
 
-const ROLE_MOD: Record<string, string> = {
-  dps:      "dynamic action pose, sleek silhouette, implement held with confidence",
-  tank:     "solid defensive stance, shield or barrier, imposing bulky outline",
-  support:  "caring protective pose, one hand extended in support gesture, warm secondary light",
-  balanced: "versatile mid-action pose, tools of both offense and defense visible",
+// Pro KLASSE eigene Idle-Animation (subtle motion loop, Veo-freundlich mit Rhythmus)
+const CLASS_ANIM: Record<string, string> = {
+  tank:    "slow rhythmic breathing (about 4 seconds per cycle), chest rising and falling, shield held steady at the side, armor plates catching the light with each breath, heavy cape swaying gently in a slow wind, weight solidly planted",
+  melee:   "shoulders rising and falling with steady breath, long cloth and hair flowing in a continuous steady breeze, weight shifting slowly from one leg to the other, weapon hand subtly twitching as if eager, ready-to-move tension in the stance",
+  ranged:  "deep calm breathing, eyes slowly scanning left to right, fingers subtly adjusting grip on the ranged implement, hood edge and hair fluttering gently, the implement lowering and raising a fraction as if tracking an unseen target",
+  support: "arcane particles orbiting slowly around the casting hand in a smooth loop, outer robe hem levitating and undulating softly, body glow pulsing gently in a 3-second rhythm, eyes faintly glimmering with each pulse",
 };
 
 /** Heuristik: Geschlecht aus dem deutschen Titel ableiten. */
@@ -241,17 +314,45 @@ const EFFECT_MOTIFS = [
   "softly pulsing arcane sigils hovering near the hands",
 ];
 
-// Pool 5: Pose-Haltung (für Standbild mehr Abwechslung)
+// Pool 5: Pose-Haltung (für Standbild mehr Abwechslung) — erweitert
 const POSES = [
-  "grounded heroic stance, feet shoulder-width, one hand on hip",
+  "grounded heroic stance, feet shoulder-width, one hand on hip, chin raised",
   "half-turned 3/4 view, ceremonial implement resting across the shoulders",
-  "one knee bent, leaning forward over a grounded staff",
-  "arms crossed, chin slightly raised, calm confident stare",
-  "mid-stride forward, cloak catching the air behind",
-  "single hand raised as if channeling, other hand loose at the side",
-  "back-turned three-quarter view with head looking over shoulder",
-  "elegant ready-stance, implement held low along the side",
+  "one knee bent, leaning forward over a grounded staff or weapon",
+  "arms crossed in front of the chest, calm confident stare",
+  "mid-stride forward as if walking toward the camera, cloak catching the air behind",
+  "single hand raised as if channeling magic, other hand loose at the side, eyes glowing",
+  "back-turned three-quarter view with head looking over shoulder toward viewer",
+  "elegant ready-stance, implement held low along the side, slight lean forward",
+  "kneeling on one knee, head bowed, weapon planted point-down in front like an oath",
+  "arms wide open as if calling something forth, body lit from below by own aura",
+  "hovering / floating slightly off the ground, robes fluttering downward",
+  "shoulders dropped low, weapon held loose, predatory stalking stance",
+  "one foot on a small invisible ledge, leaning forward with elbow on raised knee",
 ];
+
+// Pool 6: Pro-Spezies eigene Pose-Hints (additiv, überschreibt nicht POSES)
+const SPECIES_POSE_HINT: Record<string, string> = {
+  construct: "the body never fully relaxes — it remains rigid and statue-like even between breaths",
+  spirit:    "the lower half does not have feet on the ground — it dissolves into trailing wisps",
+  celestial: "the wings are partially unfurled, feathers catching subtle airflow in the loop",
+  dragonkin: "the tail (if present) sways slowly behind for balance, scales subtly catching light",
+  bird:      "the head occasionally tilts in quick birdlike flicks between long still pauses",
+  cosmic:    "the body bends light gently around itself, stars on the skin pulse out of phase",
+  undead:    "the breath is shallow and uneven — sometimes the chest does not rise at all",
+  demon:     "the magma-cracks pulse out of phase with the breathing, smoke wisps from the nostrils",
+};
+
+// Legacy-Mapping: alter guardian_type → neue Klasse (für Aufrufer die noch nicht migriert sind).
+function legacyTypeToClass(t: string | null | undefined): "tank" | "support" | "ranged" | "melee" | null {
+  switch (t) {
+    case "infantry": return "tank";
+    case "cavalry":  return "melee";
+    case "marksman": return "ranged";
+    case "mage":     return "support";
+    default:         return null;
+  }
+}
 
 export function buildArchetypePrompt(input: ArchetypePromptInput | string, legacyRarity?: "common" | "rare" | "epic" | "legend"): string {
   const in_: ArchetypePromptInput = typeof input === "string"
@@ -259,60 +360,78 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
     : input;
 
   const rarityMod = RARITY_MOD[in_.rarity] ?? RARITY_MOD.epic;
-  const typeMod   = in_.guardianType ? TYPE_MOD[in_.guardianType] : "";
-  const roleMod   = in_.role         ? ROLE_MOD[in_.role]         : "";
-  const animMod   = in_.guardianType ? TYPE_ANIM[in_.guardianType] : "";
+  const classId   = (in_.classId ?? legacyTypeToClass(in_.guardianType ?? null));
+  const classMod  = classId ? CLASS_MOD[classId]  : "";
+  const animMod   = classId ? CLASS_ANIM[classId] : "";
   const abilityTheme = in_.abilityName ? in_.abilityName.replace(/['"]/g, "") : "";
 
-  // Deterministische Variation je Wächter-Name
-  const gender = detectGenderFromName(in_.name);
-  const hair   = nameHashPick(in_.name + ":hair",   gender === "female" ? HAIR_VARIANTS_FEMALE : HAIR_VARIANTS_MALE);
+  // Spezies-Profil bestimmt Hauptaussehen (deterministisch aus DB-Spalte).
+  const speciesKey = (in_.species && SPECIES_PROFILE[in_.species]) ? in_.species : "human";
+  const profile    = SPECIES_PROFILE[speciesKey];
+
+  // Gender: explizit aus DB, sonst aus dem Namen heuristisch ableiten.
+  const gender = in_.gender && in_.gender !== "neutral"
+    ? in_.gender
+    : in_.gender === "neutral" ? "neutral" : detectGenderFromName(in_.name);
+
+  // Variation je Wächter-Name (additive Details, nicht das Hauptmerkmal):
+  const hair   = gender === "neutral"
+    ? "no hair (or featureless headpiece appropriate to the species)"
+    : nameHashPick(in_.name + ":hair",   gender === "female" ? HAIR_VARIANTS_FEMALE : HAIR_VARIANTS_MALE);
   const armor  = nameHashPick(in_.name + ":armor",  ARMOR_MATERIALS);
-  const aura   = nameHashPick(in_.name + ":aura",   AURA_COLOR_POOL);
+  // Aura: erst die Spezies-Defaultfarbe, dann je Name eine Variation aus dem Pool.
+  const aura   = nameHashPick(in_.name + ":aura",   [profile.auraColor, ...AURA_COLOR_POOL]);
   const effect = nameHashPick(in_.name + ":effect", EFFECT_MOTIFS);
   const pose   = nameHashPick(in_.name + ":pose",   POSES);
+  const speciesPose = SPECIES_POSE_HINT[speciesKey] ?? "";
 
-  const subjectBase = gender === "female"
-    ? "a stylized heroic female guardian character with a clearly feminine silhouette, fictional game character"
-    : "a stylized heroic male guardian character with a clearly masculine silhouette, fictional game character";
+  // Subject: führt mit der Spezies, danach erst Geschlecht (so dass z.B. ein Konstrukt
+  // nicht erzwungen menschliche Gesichtszüge bekommt).
+  const genderClause =
+    gender === "neutral" ? "androgynous / genderless silhouette appropriate to the species"
+    : gender === "female" ? "clearly feminine read where appropriate to the species"
+    : "clearly masculine read where appropriate to the species";
 
-  const archetypeHint = [typeMod, roleMod].filter(Boolean).join(" ");
+  const subjectBase = `${profile.subject}, ${genderClause}, fully invented fictional character (not based on any existing franchise or celebrity)`;
 
   // ══════ VIDEO-PROMPT ══════
   // Strategie: Green-Screen-Background (#00FF00). Wird clientseitig per SVG-Chroma-Key
   // zu 100% transparent geschlüsselt — gleiche Technik wie Film/VFX. Viel zuverlässiger
   // als schwarzer Hintergrund, weil Grün im Charakter-Design nie vorkommt.
-  // WICHTIG: Charakter muss bis zum Bildrand reichen (Bleed), sonst zeigt object-fit:cover
-  // in der UI einen sichtbaren Rand. Keine Nebel-/Wolken-/Partikel-Effekte die das Frame füllen,
-  // da nur reines #00FF00 sauber weggekeyt werden kann.
+  // WICHTIG (NEU): Charakter ist VOLLSTÄNDIG IM FRAME mit Sicherheitsabstand zu allen
+  // 4 Kanten. KEIN Edge-Bleed mehr — die alte "fills the entire frame edge-to-edge"
+  // Strategie produziert harte Schnittkanten am Charakter, die im Final-Renderlauf
+  // sichtbar bleiben. Stattdessen: Charakter zentriert, ~5-10% Greenscreen-Margin
+  // an allen 4 Seiten, Silhouette berührt KEINE Frame-Kante.
   if (in_.mode === "video") {
     return [
       // 1) Shot-Spec
       `Shot: a 4-second perfectly seamless looping idle clip, square 1:1 composition, 1024x1024, 24 fps.`,
       // 2) Background — GREEN SCREEN (chroma-key)
-      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color, no gradients, no patterns, no texture, no shadows on the background, no environment, no scene, no atmospheric effects. Clean hard silhouette edge for chroma-key compositing.`,
-      // 3) Subject — FILLS FRAME
-      `Subject: ${subjectBase}, fully invented fictional character (not based on any existing franchise or celebrity). ${pose}.`,
-      // 4) Framing — edge bleed
-      `FRAMING (critical): the character fills the ENTIRE 1024x1024 frame edge-to-edge. Top of the head or helmet crop at or just beyond the top edge. Character's feet / base bleed past the bottom edge. Shoulders or cape span the full width — LEFT and RIGHT shoulders touch or slightly cross the left and right frame edges. NO empty green margin at top, bottom, left or right. Character silhouette must reach all four edges of the frame.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024x1024 frame including a clean margin around the character. No gradients, no patterns, no texture, no shadows on the background, no environment, no scene, no atmospheric effects. Clean hard silhouette edge between character and green for chroma-key compositing.`,
+      // 3) Subject — SPECIES-LED
+      `Subject: ${subjectBase}. Pose: ${pose}.${speciesPose ? " " + speciesPose + "." : ""}`,
+      // 4) Framing — CONTAINED (no bleed)
+      `FRAMING (critical): the character is FULLY CONTAINED inside the 1024x1024 frame. The character's silhouette must NOT touch ANY of the four frame edges. Leave a clean uniform green margin of approximately 60-100 pixels (5-10% of frame size) on the TOP, BOTTOM, LEFT and RIGHT — visible green screen on all four sides around the character. The full head, both shoulders, both arms, and the full base of the character (feet or robe hem or floating wisps) are visible inside the frame — nothing is cropped, nothing extends past the frame border.`,
       `Hair and head: ${hair}.`,
-      `Armor and outfit: ${armor} — unique to this specific character, distinct from other characters in the set.`,
-      archetypeHint && `Character archetype traits: ${archetypeHint}.`,
+      `Armor / outfit / body materials: ${armor} — adapted naturally to the species silhouette (e.g. construct stone is "carved into" the body, spirit "flows through" it), unique to this specific character.`,
+      `Species signature details: ${profile.signature}.`,
+      classMod && `Class traits (${classId}): ${classMod}.`,
       `Rarity and material feel: ${rarityMod}.`,
       // 5) Aura / Signature-FX — kept TIGHT
-      `Signature aura hugging the character's silhouette only (close rim glow), themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. Aura does NOT fill the frame — it wraps tightly to the body outline (max 40 pixels beyond silhouette).`,
+      `Signature aura hugging the character's silhouette only (close rim glow), themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. Aura wraps tightly to the body outline (max ~30 pixels beyond silhouette) — it does NOT fill the frame and does NOT reach the frame edges.`,
       abilityTheme && `The aura subtly references the character's signature ability "${abilityTheme}".`,
-      `Additional effect: ${effect} — but kept close to the character; no wide atmospheric smoke, fog, clouds, mist, sparkle dust, or particles that spread across the frame.`,
+      `Additional close-body effect: ${effect} — kept close to the character; no wide atmospheric smoke, fog, clouds, mist, sparkle dust, or particles spreading across the frame or touching frame edges.`,
       // 6) Motion
-      `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), cloth, hair, and aura reacting to a steady gentle wind, weight planted"}. Smooth, continuous, no sudden actions.`,
+      `Motion: ${animMod || "slow rhythmic breathing (about 4 seconds per cycle), cloth, hair, and aura reacting to a steady gentle wind, weight planted"}. Smooth, continuous, no sudden actions, no body translation past the contained framing area.`,
       // 7) Camera
-      `Camera: locked static shot, no pan, no tilt, no zoom, no dolly, character stays fully in frame touching all edges the entire clip.`,
-      // 8) Seamless-Loop
-      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first.`,
+      `Camera: locked static shot, no pan, no tilt, no zoom, no dolly. The character stays in the same contained position the entire clip — head never crosses the top edge, feet never cross the bottom edge.`,
+      // 8) Seamless-Loop — UNVERÄNDERT
+      `CRITICAL LOOP REQUIREMENT: the exact last frame (frame 96 at 24fps) must be pixel-identical to the first frame (frame 1). Pose, aura intensity, particle positions, hair position — everything resets exactly. No frozen hold, no fade to black, no fade in — just a pure mathematical loop where frame_last = frame_first, so the playback is buttery smooth without any hitch.`,
       // 9) Anti-Green-Bleed (wichtig für Chroma-Key)
       `CRITICAL: NO green tones ANYWHERE on the character, armor, hair, skin, aura or effects. NO green eyes, NO green accents, NO green glow. The ONLY green in the entire video is the pure #00FF00 background. Green in the character would be keyed out as transparent.`,
       // 10) Hard negatives — atmosphere + background bleed
-      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog, NO mist, NO smoke clouds filling the frame, NO volumetric haze, NO god-rays, NO wide particle storms, NO magic circles behind the character, NO sparkle dust clouds. NO colored backdrop behind the character — behind the character is ONLY pure #00FF00. Only the green screen + edge-to-edge character + tight silhouette aura.`,
+      `NO rooftop, NO city skyline, NO sky, NO moon, NO street, NO floor, NO environment objects. NO rain, NO snow, NO weather, NO clouds, NO fog, NO mist, NO smoke clouds filling the frame, NO volumetric haze, NO god-rays, NO wide particle storms, NO magic circles behind the character, NO sparkle dust clouds. NO colored backdrop behind the character — behind the character is ONLY pure #00FF00. Only: green screen + contained character (with safe margin) + tight silhouette aura.`,
       `No audio, no sound, no music, no voice. Silent video only.`,
       `No text, no captions, no subtitles, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
     ].filter(Boolean).join(" ");
@@ -321,20 +440,21 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
   // ══════ IMAGE-PROMPT ══════
   return [
     `Cinematic character key art, square 1:1, 1024x1024, single subject.`,
-    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color — no gradient, no pattern, no texture, no atmospheric effects. (Chroma-keyed to transparent in the app.)`,
-    `Subject: ${subjectBase}, fully invented fictional character (not based on any existing franchise or celebrity). ${pose}, confident heroic expression.`,
-    `FRAMING (critical): character fills the ENTIRE 1024x1024 frame edge-to-edge. Head/helmet crops at or just beyond the top edge, feet bleed past the bottom edge, shoulders or cape span the full width and touch the left and right edges. NO empty green margin at any edge.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame including a clean margin around the character — no gradient, no pattern, no texture, no atmospheric effects. (Chroma-keyed to transparent in the app.)`,
+    `Subject: ${subjectBase}. Pose: ${pose}, confident expression appropriate to the species.${speciesPose ? " " + speciesPose + "." : ""}`,
+    `FRAMING (critical): character is FULLY CONTAINED inside the 1024x1024 frame with a uniform green margin of approximately 60-100 pixels (5-10% of frame size) on TOP, BOTTOM, LEFT and RIGHT. Silhouette must NOT touch any frame edge. Full head, both shoulders, both arms and the full base of the character are visible — nothing cropped, nothing extending past the frame border.`,
     `Hair and head: ${hair}.`,
-    `Armor and outfit: ${armor} — unique and distinct, so this character does not look like any other character in the set.`,
-    archetypeHint && `Character archetype traits: ${archetypeHint}.`,
+    `Armor / outfit / body materials: ${armor} — adapted to the species silhouette, unique and distinct so this character does not look like any other character in the set.`,
+    `Species signature details: ${profile.signature}.`,
+    classMod && `Class traits (${classId}): ${classMod}.`,
     `Rarity and material feel: ${rarityMod}.`,
-    `Signature aura tight to the character silhouette (close rim glow, max ~40 px beyond outline), themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. Aura does NOT fill the frame.`,
+    `Signature aura tight to the character silhouette (close rim glow, max ~30 px beyond outline), themed as "${aura.name}" — dominant ${aura.primary} with ${aura.secondary} depth. Aura does NOT fill the frame and does NOT reach the frame edges.`,
     abilityTheme && `Aura subtly references the character's signature ability "${abilityTheme}".`,
-    `Additional effect close to the character: ${effect} — no wide smoke, fog, clouds, mist, sparkle dust, or atmospheric haze that covers the frame.`,
+    `Additional close-body effect: ${effect} — no wide smoke, fog, clouds, mist, sparkle dust, or atmospheric haze that covers the frame.`,
     `Lighting: ${aura.primary} rim light from the left, ${aura.secondary} rim light from the right, subtle top-light from above.`,
     `High detail on face and hands, sharp focus on character, tight silhouette.`,
     `CRITICAL: NO green tones on the character, armor, hair, skin, aura or effects. ONLY the background is #00FF00 — green on the character would be keyed transparent.`,
-    `NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor, NO clouds, NO fog, NO mist, NO smoke, NO magic circles or glyphs behind the character, NO sparkle dust clouds, NO colored backdrop. Only: pure #00FF00 + edge-to-edge character + tight silhouette aura.`,
+    `NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor, NO clouds, NO fog, NO mist, NO smoke, NO magic circles or glyphs behind the character, NO sparkle dust clouds, NO colored backdrop. Only: pure #00FF00 + contained character (safe margin all sides) + tight silhouette aura.`,
     `No text, no captions, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
   ].filter(Boolean).join(" ");
 }

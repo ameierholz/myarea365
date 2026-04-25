@@ -7,6 +7,7 @@ import { GuardianAvatar } from "@/components/guardian-avatar";
 import { GuardianPaperDoll } from "@/components/guardian-paper-doll";
 import { GuardianTalentTree } from "@/components/guardian-talent-tree";
 import { GuardianSkillsPanel } from "@/components/guardian-skills-panel";
+import { GuardianXpItemsPanel } from "@/components/guardian-xp-items-panel";
 import { ForgeModal } from "@/components/forge-modal";
 import { MMR_TIERS } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
@@ -647,14 +648,17 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
           />
         )}
         {tab === "talents" && (
-          <GuardianTalentTree
-            guardianId={g.id}
-            nodes={data.talent_nodes}
-            talents={data.guardian_talents}
-            pointsAvailable={g.talent_points_available}
-            onSpend={(nodeId) => action({ action: "spend_talent", node_id: nodeId })}
-            onRespec={() => action({ action: "respec", force: true })}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <GuardianXpItemsPanel guardianId={g.id} onApplied={() => { /* parent reload handled outside */ }} />
+            <GuardianTalentTree
+              guardianId={g.id}
+              nodes={data.talent_nodes}
+              talents={data.guardian_talents}
+              pointsAvailable={g.talent_points_available}
+              onSpend={(nodeId) => action({ action: "spend_talent", node_id: nodeId })}
+              onRespec={() => action({ action: "respec", force: true })}
+            />
+          </div>
         )}
         {tab === "skills" && (
           <GuardianSkillsPanel

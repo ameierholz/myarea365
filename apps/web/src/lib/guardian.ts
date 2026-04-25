@@ -11,6 +11,8 @@ export type AnyRarity = GuardianRarity | LegacyRarity;
 
 export type GuardianType = "infantry" | "cavalry" | "marksman" | "mage";
 export type GuardianRole = "dps" | "tank" | "support" | "balanced";
+export type GuardianClassId = "tank" | "support" | "ranged" | "melee";
+export type GuardianGender = "male" | "female" | "neutral";
 
 export type GuardianArchetype = {
   id: string;
@@ -18,7 +20,10 @@ export type GuardianArchetype = {
   emoji: string;
   rarity: AnyRarity;
   guardian_type: GuardianType | null;
+  class_id?: GuardianClassId | null;
   role: GuardianRole | null;
+  species?: string | null;
+  gender?: GuardianGender | null;
   base_hp: number;
   base_atk: number;
   base_def: number;

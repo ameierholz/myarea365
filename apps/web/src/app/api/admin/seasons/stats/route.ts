@@ -34,25 +34,25 @@ export async function GET() {
     sb.from("user_guardians").select("id", { count: "exact", head: true }).eq("kind", "seasonal").eq("season_id", (season as { id: string }).id),
   ]);
 
-  // Klassen-Balance: Pick + Win pro guardian_type
+  // Klassen-Balance: Pick + Win pro class_id (tank/support/ranged/melee)
   const { data: seasonalGuardians } = await sb.from("user_guardians")
-    .select("user_id, archetype_id, wins, losses, guardian_archetypes!inner(guardian_type)")
+    .select("user_id, archetype_id, wins, losses, guardian_archetypes!inner(class_id)")
     .eq("kind", "seasonal")
     .eq("season_id", (season as { id: string }).id);
 
-  type TypeStat = { picks: number; wins: number; losses: number };
-  const typeStats = new Map<string, TypeStat>();
-  type SGRow = { user_id: string; archetype_id: string; wins: number; losses: number; guardian_archetypes: { guardian_type: string | null } | { guardian_type: string | null }[] };
+  type ClassStat = { picks: number; wins: number; losses: number };
+  const classStats = new Map<string, ClassStat>();
+  type SGRow = { user_id: string; archetype_id: string; wins: number; losses: number; guardian_archetypes: { class_id: string | null } | { class_id: string | null }[] };
   for (const g of (seasonalGuardians ?? []) as SGRow[]) {
     const ga = Array.isArray(g.guardian_archetypes) ? g.guardian_archetypes[0] : g.guardian_archetypes;
-    const t = ga?.guardian_type ?? "unknown";
-    const cur = typeStats.get(t) ?? { picks: 0, wins: 0, losses: 0 };
+    const c = ga?.class_id ?? "unknown";
+    const cur = classStats.get(c) ?? { picks: 0, wins: 0, losses: 0 };
     cur.picks += 1; cur.wins += g.wins; cur.losses += g.losses;
-    typeStats.set(t, cur);
+    classStats.set(c, cur);
   }
 
-  const classBalance = Array.from(typeStats.entries()).map(([type, s]) => ({
-    type,
+  const classBalance = Array.from(classStats.entries()).map(([class_id, s]) => ({
+    class_id,
     picks: s.picks,
     wins: s.wins,
     losses: s.losses,

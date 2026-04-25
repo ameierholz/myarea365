@@ -159,9 +159,12 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
     setPromptMode(mode);
     const text = buildArchetypePrompt({
       name: a.name,
-      rarity: a.rarity as "elite" | "epic" | "legendary",
+      rarity: a.rarity as "common" | "elite" | "epic" | "legendary",
+      classId: a.class_id ?? null,
       guardianType: a.guardian_type,
       role: a.role,
+      species: a.species ?? null,
+      gender: a.gender ?? null,
       abilityName: a.ability_name,
       lore: a.lore,
       mode,
