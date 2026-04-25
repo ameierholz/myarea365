@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 type CatalogEntry = {
   id: string;
@@ -22,13 +23,19 @@ type InventoryEntry = {
   used_at: string | null;
 };
 
-const RARITY_META: Record<CatalogEntry["rarity"], { label: string; color: string; glow: string }> = {
-  common: { label: "GEWÖHNLICH", color: "#a8b4cf", glow: "rgba(168,180,207,0.25)" },
-  rare:   { label: "SELTEN",     color: "#5ddaf0", glow: "rgba(93,218,240,0.35)" },
-  epic:   { label: "EPISCH",     color: "#a855f7", glow: "rgba(168,85,247,0.45)" },
+const RARITY_COLOR: Record<CatalogEntry["rarity"], { color: string; glow: string }> = {
+  common: { color: "#a8b4cf", glow: "rgba(168,180,207,0.25)" },
+  rare:   { color: "#5ddaf0", glow: "rgba(93,218,240,0.35)" },
+  epic:   { color: "#a855f7", glow: "rgba(168,85,247,0.45)" },
 };
 
 export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
+  const tM = useTranslations("Modals");
+  const RARITY_META: Record<CatalogEntry["rarity"], { label: string; color: string; glow: string }> = useMemo(() => ({
+    common: { ...RARITY_COLOR.common, label: tM("potRarityCommon") },
+    rare:   { ...RARITY_COLOR.rare,   label: tM("potRarityRare") },
+    epic:   { ...RARITY_COLOR.epic,   label: tM("potRarityEpic") },
+  }), [tM]);
   const [catalog, setCatalog] = useState<Record<string, CatalogEntry>>({});
   const [inventory, setInventory] = useState<InventoryEntry[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -59,8 +66,8 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ action: "activate", instance_id: instanceId }),
       });
       const j = await r.json() as { ok?: boolean; error?: string };
-      if (j.ok) { setToast("🧪 Trank aktiviert — 1h Haltbarkeit"); await load(); }
-      else setToast(j.error ?? "Fehler");
+      if (j.ok) { setToast(tM("potActivatedToast")); await load(); }
+      else setToast(j.error ?? tM("potErrorToast"));
     } finally {
       setBusy(null);
       setTimeout(() => setToast(null), 2600);
@@ -86,10 +93,10 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
         <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <span style={{ fontSize: 24 }}>🧪</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#a855f7", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>ARENA</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>Trank-Inventar</div>
+            <div style={{ color: "#a855f7", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tM("potKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tM("potTitle")}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -98,16 +105,19 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
             background: "rgba(168,85,247,0.08)", border: "1px dashed rgba(168,85,247,0.3)",
             fontSize: 11, color: "#a8b4cf", lineHeight: 1.5,
           }}>
-            🧪 Tränke geben <b style={{ color: "#FFF" }}>1 Stunde</b> temporären Kampf-Bonus (Arena + Boss). Bei <b style={{ color: "#FF2D78" }}>verlorenem Kampf</b> werden aktive Tränke verbraucht.
+            {tM.rich("potIntroRich", {
+              a: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b>,
+              b: (chunks) => <b style={{ color: "#FF2D78" }}>{chunks}</b>,
+            })}
           </div>
 
           {/* Aktive Tränke */}
           <section>
             <div style={{ color: "#4ade80", fontSize: 10, fontWeight: 900, letterSpacing: 1.2, marginBottom: 6 }}>
-              ✅ AKTIV ({active.length})
+              {tM("potActiveHeader", { count: active.length })}
             </div>
             {active.length === 0 ? (
-              <div style={{ color: "#8B8FA3", fontSize: 11 }}>Keine aktiven Tränke.</div>
+              <div style={{ color: "#8B8FA3", fontSize: 11 }}>{tM("potNoActive")}</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {active.map((p) => {
@@ -120,7 +130,7 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
                   return (
                     <PotionCard key={p.id} potion={c} rarity={rm} action={
                       <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 800 }}>
-                        ⏱️ {remainMin}m {String(remainSec).padStart(2, "0")}s
+                        {tM("potRemain", { min: remainMin, sec: String(remainSec).padStart(2, "0") })}
                       </div>
                     } />
                   );
@@ -132,12 +142,12 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
           {/* Verfügbare Tränke */}
           <section>
             <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.2, marginBottom: 6 }}>
-              🎒 INVENTAR ({stored.length})
+              {tM("potInventoryHeader", { count: stored.length })}
             </div>
             {stored.length === 0 ? (
               <div style={{ color: "#8B8FA3", fontSize: 11 }}>
-                Keine Tränke im Inventar. <br/>
-                Erhältlich durch Tagesangebote, Loot-Drops oder Diamanten-Shop.
+                {tM("potNoInventory")} <br/>
+                {tM("potNoInventoryHint")}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -157,7 +167,7 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
                           opacity: busy === p.id ? 0.5 : 1,
                         }}
                       >
-                        Aktivieren
+                        {tM("potActivate")}
                       </button>
                     } />
                   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import type { RoundEvent } from "@/lib/battle-engine";
 import type { GuardianWithArchetype, GuardianArchetype } from "@/lib/guardian";
@@ -34,6 +35,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
   businessName: string;
   onClose: () => void;
 }) {
+  const tM = useTranslations("Modals");
   const sb = createClient();
   const [phase, setPhase] = useState<"pick" | "fighting" | "result">("pick");
   const [eligible, setEligible] = useState<EligibleRunner[]>([]);
@@ -47,7 +49,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
   useEffect(() => {
     (async () => {
       const { data: { user } } = await sb.auth.getUser();
-      if (!user) { setError("Nicht eingeloggt"); setLoading(false); return; }
+      if (!user) { setError(tM("acNotLoggedIn")); setLoading(false); return; }
       setMyUserId(user.id);
 
       // Mein Waechter
@@ -100,7 +102,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
         const arch = gr ? archMap.get((gr as { archetype_id: string }).archetype_id) : undefined;
         return {
           user_id: r.id,
-          display_name: r.display_name ?? r.username ?? "Runner",
+          display_name: r.display_name ?? r.username ?? "Runner", // proper noun fallback
           username: r.username,
           crew_name: r.current_crew_id ? (crewMap.get(r.current_crew_id) ?? null) : null,
           guardian: gr && arch ? { ...(gr as Omit<GuardianWithArchetype, "archetype">), archetype: arch } : null,
@@ -127,7 +129,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
         );
       });
       if (!pos) {
-        setError("GPS-Position wird benötigt für die Arena. Bitte Standort erlauben.");
+        setError(tM("acGpsRequired"));
         setPhase("pick");
         return;
       }
@@ -142,7 +144,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({ error: res.status }));
-        setError(`${j.error ?? "Kampf fehlgeschlagen"}${j.detail ? ` — ${j.detail}` : ""}`);
+        setError(`${j.error ?? tM("acFightFailed")}${j.detail ? ` — ${j.detail}` : ""}`);
         setPhase("pick");
         return;
       }
@@ -161,10 +163,10 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <span style={{ fontSize: 26 }}>⚔️</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>Arena · {businessName}</div>
-            <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>RUNNER VS RUNNER</div>
+            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{tM("acTitle", { name: businessName })}</div>
+            <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>{tM("acKicker")}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
 
         {error && (
@@ -174,23 +176,23 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
         )}
 
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3" }}>Lade Gegner…</div>
+          <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3" }}>{tM("acLoading")}</div>
         ) : phase === "pick" ? (
           <>
             {!myGuardian ? (
-              <div style={{ color: "#a8b4cf", padding: 20, textAlign: "center" }}>Du hast keinen aktiven Wächter.</div>
+              <div style={{ color: "#a8b4cf", padding: 20, textAlign: "center" }}>{tM("acNoGuardian")}</div>
             ) : (
               <>
                 <div style={{ marginBottom: 14 }}>
-                  <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>DEIN WÄCHTER</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>{tM("acYourGuardian")}</div>
                   <GuardianCard guardian={myGuardian} compact />
                 </div>
                 <div style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>
-                  GEGNER ({eligible.length})
+                  {tM("acOpponents", { count: eligible.length })}
                 </div>
                 {eligible.length === 0 ? (
                   <div style={{ padding: 16, borderRadius: 10, background: "rgba(70,82,122,0.3)", color: "#a8b4cf", fontSize: 12, textAlign: "center" }}>
-                    Keine Runner aus eligible Crews. Warte bis mehr Mitglieder hier einlösen!
+                    {tM("acNoOpponents")}
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -200,7 +202,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.display_name}</div>
                           <div style={{ color: RARITY_META[r.guardian?.archetype.rarity ?? "common"].color, fontSize: 10, fontWeight: 700 }}>
-                            {r.guardian ? `${r.guardian.archetype.name} · Lv ${r.guardian.level}` : "Kein Wächter"}
+                            {r.guardian ? tM("acGuardianMeta", { name: r.guardian.archetype.name, level: r.guardian.level }) : tM("acNoGuardianShort")}
                             {r.crew_name && <span style={{ color: "#8B8FA3", marginLeft: 6 }}>· {r.crew_name}</span>}
                           </div>
                         </div>
@@ -214,7 +216,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
                             fontSize: 11, fontWeight: 900, cursor: r.guardian ? "pointer" : "not-allowed",
                           }}
                         >
-                          ANGRIFF
+                          {tM("acAttack")}
                         </button>
                       </div>
                     ))}
@@ -231,7 +233,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
             onFinished={() => setPhase("result")}
           />
         ) : phase === "fighting" ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>Kampf wird vorbereitet…</div>
+          <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>{tM("acPreparing")}</div>
         ) : battle ? (
           <div>
             <div style={{
@@ -243,10 +245,10 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
                 {battle.winner === "A" ? "🏆" : battle.winner === "B" ? "💀" : "🤝"}
               </div>
               <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900 }}>
-                {battle.winner === "A" ? "SIEG!" : battle.winner === "B" ? "Niederlage" : "Unentschieden"}
+                {battle.winner === "A" ? tM("acWin") : battle.winner === "B" ? tM("acLoss") : tM("acDraw")}
               </div>
               <div style={{ color: "#FFD700", fontSize: 14, fontWeight: 800, marginTop: 4 }}>
-                +{battle.xp_awarded} Wächter-XP
+                {tM("acRewardXp", { xp: battle.xp_awarded })}
               </div>
               {typeof battle.sessionehre_winner_delta === "number" && battle.winner !== "draw" && (() => {
                 const isAttackerWin = battle.winner === "A";
@@ -254,18 +256,18 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
                 const positive = delta > 0;
                 return (
                   <div style={{ color: positive ? "#FFD700" : "#FF2D78", fontSize: 13, fontWeight: 800, marginTop: 2 }}>
-                    {positive ? "+" : ""}{delta} ⚔️ Sessionehre
+                    {tM("acSessionHonor", { sign: positive ? "+" : "", delta })}
                   </div>
                 );
               })()}
               {battle.fusion && (
                 <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.5)", color: "#FFD700", fontSize: 12, fontWeight: 800 }}>
-                  {battle.fusion.kind === "fusion" ? "⚡ " : "🏆 "}{battle.fusion.description}
+                  {battle.fusion.kind === "fusion" ? tM("acFusionPrefix") : tM("acTrophyPrefix")}{battle.fusion.description}
                 </div>
               )}
             </div>
             <button onClick={onClose} style={{ width: "100%", padding: 14, borderRadius: 12, background: "#22D1C3", color: "#0F1115", border: "none", fontSize: 14, fontWeight: 900, cursor: "pointer" }}>
-              Weiter
+              {tM("acContinue")}
             </button>
           </div>
         ) : null}
