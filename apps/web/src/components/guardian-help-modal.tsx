@@ -176,28 +176,33 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
 /* ═══════════════════════════════════════════════════════
    TAB: ÜBERSICHT — Der Haupt-Loop
    ═══════════════════════════════════════════════════════ */
+const richB = { b: (chunks: React.ReactNode) => <b>{chunks}</b> };
+const richAB = {
+  a: (chunks: React.ReactNode) => <b style={{ color: "#4ade80" }}>{chunks}</b>,
+  b: (chunks: React.ReactNode) => <b style={{ color: "#FF6B4A" }}>{chunks}</b>,
+};
+
 function OverviewTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        Dein <b>Wächter</b> ist dein persönlicher Kiez-Kämpfer. Er levelt mit jedem Lauf, wird stärker durch Ausrüstung und kämpft für dich & deine Crew.
-      </Hero>
+      <Hero>{tH.rich("ovHeroRich", richB)}</Hero>
 
       <StepLoop steps={[
-        { icon: "🏃", title: "1. Laufen",        text: "Erobere Straßen → 🪙 Wegemünzen für dich + Wächter-XP" },
-        { icon: "📈", title: "2. Level-Up",      text: "Jedes Level (max 60) = +1 Talentpunkt zum Vergeben" },
-        { icon: "⚔️", title: "3. Kämpfen",       text: "Arena-Shops (vor Ort) oder Area-Boss mit der Crew" },
-        { icon: "⚡", title: "4. Upgraden",      text: "Siegel aus Kämpfen → Fähigkeiten auf Stufe 5 maxen" },
+        { icon: "🏃", title: tH("ovStep1Title"), text: tH("ovStep1Text") },
+        { icon: "📈", title: tH("ovStep2Title"), text: tH("ovStep2Text") },
+        { icon: "⚔️", title: tH("ovStep3Title"), text: tH("ovStep3Text") },
+        { icon: "⚡", title: tH("ovStep4Title"), text: tH("ovStep4Text") },
       ]} />
 
-      <Card title="Was macht das System besonders?" color="#a855f7">
+      <Card title={tH("ovSpecialTitle")} color="#a855f7">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>60 Wächter</b> in <b>4 Typen</b> (🛡️ Infanterie · 🐎 Kavallerie · 🏹 Scharfschütze · 🔮 Magier)</li>
-          <li><b>Stein-Schere-Papier</b>: ±25% Schaden bei Typ-Vorteil/-Nachteil (Magier neutral)</li>
-          <li><b>Talentbaum</b> pro Wächter — 3 Äste × 5 Tiers = individueller Build</li>
-          <li><b>5 Fähigkeiten</b> pro Wächter (Aktiv/Passiv/Kampf/Rolle/Expertise) × 5 Stufen</li>
-          <li><b>Rage-Kampfsystem</b> — bei voll (1000) feuert der Aktiv-Skill automatisch</li>
-          <li><b>Kein Pay-to-Win</b> — Siegel, Wegemünzen & Wächter-XP nur durch Laufen + Kämpfen</li>
+          <li>{tH.rich("ovSpecial1Rich", richB)}</li>
+          <li>{tH.rich("ovSpecial2Rich", richB)}</li>
+          <li>{tH.rich("ovSpecial3Rich", richB)}</li>
+          <li>{tH.rich("ovSpecial4Rich", richB)}</li>
+          <li>{tH.rich("ovSpecial5Rich", richB)}</li>
+          <li>{tH.rich("ovSpecial6Rich", richB)}</li>
         </ul>
       </Card>
     </div>
@@ -208,6 +213,7 @@ function OverviewTab() {
    TAB: WÄCHTER — 60 Archetypen nach Typ
    ═══════════════════════════════════════════════════════ */
 function GuardiansTab() {
+  const tH = useTranslations("GuardianHelp");
   const [archetypes, setArchetypes] = useState<Array<GuardianArchetype & { guardian_type?: string | null; role?: string | null }>>([]);
   useEffect(() => {
     const sb = createClient();
@@ -227,22 +233,20 @@ function GuardiansTab() {
   }, [archetypes]);
 
   const typeMeta: Record<string, { label: string; color: string; emoji: string; desc: string }> = {
-    infantry: { label: "Infanterie",    color: "#60a5fa", emoji: "🛡️", desc: "Schild & Stahl — hält Treffer aus und kontert" },
-    cavalry:  { label: "Kavallerie",    color: "#fb923c", emoji: "🐎", desc: "Schnell & wendig — schlägt als erster zu" },
-    marksman: { label: "Scharfschütze", color: "#4ade80", emoji: "🏹", desc: "Präziser Fernkampf — hohe Krit-Chance" },
-    mage:     { label: "Magier",        color: "#c084fc", emoji: "🔮", desc: "Wildcard — neutral gegen alle Typen-Counter" },
+    infantry: { label: tH("gdInfantryLabel"), color: "#60a5fa", emoji: "🛡️", desc: tH("gdInfantryDesc") },
+    cavalry:  { label: tH("gdCavalryLabel"),  color: "#fb923c", emoji: "🐎", desc: tH("gdCavalryDesc") },
+    marksman: { label: tH("gdMarksmanLabel"), color: "#4ade80", emoji: "🏹", desc: tH("gdMarksmanDesc") },
+    mage:     { label: tH("gdMageLabel"),     color: "#c084fc", emoji: "🔮", desc: tH("gdMageDesc") },
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        <b>60 humanoide Wächter</b> in 4 Typen und 3 Raritäten (Elite / Episch / Legendär). Du beginnst mit einem Elite-Starter deiner Wahl und sammelst neue durch Kämpfe und Meilensteine.
-      </Hero>
+      <Hero>{tH.rich("gdHeroRich", richB)}</Hero>
 
-      <Card title="⚔️ Stein-Schere-Papier" color="#FFD700">
-        Jeder Typ hat einen natürlichen Gegner: <b>Infanterie schlägt Kavallerie</b>, <b>Kavallerie schlägt Scharfschützen</b>, <b>Scharfschützen schlagen Infanterie</b>. Magier ist neutral — er kann nicht gekontert werden.
+      <Card title={tH("gdRpsTitle")} color="#FFD700">
+        {tH.rich("gdRpsBodyRich", richB)}
         <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 6 }}>
-          Typ-Vorteil: <b style={{ color: "#4ade80" }}>+25% Schaden</b> · Typ-Nachteil: <b style={{ color: "#FF6B4A" }}>-25% Schaden</b>
+          {tH.rich("gdRpsAdvDmgRich", richAB)}
         </div>
       </Card>
 
@@ -251,7 +255,7 @@ function GuardiansTab() {
         const list = byType.get(type) ?? [];
         if (list.length === 0) return null;
         return (
-          <Card key={type} title={`${meta.emoji} ${meta.label} (${list.length})`} color={meta.color}>
+          <Card key={type} title={tH("gdTypeHeader", { emoji: meta.emoji, label: meta.label, count: list.length })} color={meta.color}>
             <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 8, fontStyle: "italic" }}>{meta.desc}</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 6 }}>
               {list.map((a) => {
@@ -284,26 +288,25 @@ function GuardiansTab() {
    TAB: TALENTE — Talentbaum erklären
    ═══════════════════════════════════════════════════════ */
 function TalentsTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        Jedes Level-Up bringt <b>1 Talentpunkt</b>. Du vergibst ihn im individuellen <b>Talentbaum</b> deines Wächters — bis Level 60 (Max) hast du 59 Punkte zum Investieren.
-      </Hero>
+      <Hero>{tH.rich("talHeroRich", richB)}</Hero>
 
-      <Card title="3 Äste pro Wächter" color="#22D1C3">
+      <Card title={tH("talBranchesTitle")} color="#22D1C3">
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
-          <BranchRow icon="⚔️" color="#FF2D78" label="Spezialisierung" desc="Rollen-basiert (DPS / Tank / Support) — endet in einem Keystone" />
-          <BranchRow icon="🔷" color="#22D1C3" label="Typ-Synergie"    desc="Typ-spezifische Buffs (Infanterie/Kavallerie/Scharfschütze/Magier)" />
-          <BranchRow icon="✨" color="#FFD700" label="Utility"         desc="Generische Stat-Boni (HP / ATK / DEF / SPD / Krit)" />
+          <BranchRow icon="⚔️" color="#FF2D78" label={tH("talBranchSpecLabel")} desc={tH("talBranchSpecDesc")} />
+          <BranchRow icon="🔷" color="#22D1C3" label={tH("talBranchSynergyLabel")} desc={tH("talBranchSynergyDesc")} />
+          <BranchRow icon="✨" color="#FFD700" label={tH("talBranchUtilityLabel")} desc={tH("talBranchUtilityDesc")} />
         </div>
       </Card>
 
-      <Card title="Nodes + Keystones" color="#a855f7">
+      <Card title={tH("talNodesTitle")} color="#a855f7">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
-          <li><b>Stat-Nodes</b> (5 Ränge): +3% HP/ATK/DEF/SPD pro Rang</li>
-          <li><b>Keystones</b> (Tier 5): einzigartige Buffs wie „Berserker" (bei HP&lt;30% +50% ATK) oder „Bollwerk" (absorbiert 1× tödlichen Treffer)</li>
-          <li><b>Prereq</b>: Tier N kann nur freigeschaltet werden, wenn Tier N-1 mindestens Rang 1 hat</li>
-          <li><b>Respec</b>: alle 7 Tage kostenlos — danach Universal-Siegel-Kosten</li>
+          <li>{tH.rich("talNode1Rich", richB)}</li>
+          <li>{tH.rich("talNode2Rich", richB)}</li>
+          <li>{tH.rich("talNode3Rich", richB)}</li>
+          <li>{tH.rich("talNode4Rich", richB)}</li>
         </ul>
       </Card>
     </div>
@@ -326,38 +329,37 @@ function BranchRow({ icon, color, label, desc }: { icon: string; color: string; 
    TAB: FÄHIGKEITEN — 5 Skills × 5 Stufen
    ═══════════════════════════════════════════════════════ */
 function SkillsTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        Jeder Wächter hat <b>5 Fähigkeiten</b>. Jede Fähigkeit muss mit <b>Siegeln</b> freigeschaltet werden. Stufe 5 (Expertise) öffnet sich erst, wenn die anderen 4 auf Max sind.
-      </Hero>
+      <Hero>{tH.rich("skHeroRich", richB)}</Hero>
 
-      <Card title="5 Slots pro Wächter" color="#22D1C3">
-        <SkillRow icon="⚡"  color="#FFD700" label="Aktiv"     desc="Feuert bei voller Rage (1000) automatisch — massive Wirkung" />
-        <SkillRow icon="🛡️" color="#60a5fa" label="Passiv"   desc="Immer aktiv: +Stat je nach Typ (DEF/SPD/Krit/Skill-Schaden)" />
-        <SkillRow icon="⚔️" color="#FF2D78" label="Kampf"     desc="Triggert bei Event: Krit-Treffer, erlittener Treffer, HP&lt;50% …" />
-        <SkillRow icon="🎭" color="#4ade80" label="Rolle"     desc="Typ-Counter-Bonus: +Schaden gegen den natürlichen Gegner" />
-        <SkillRow icon="💎" color="#c084fc" label="Expertise" desc="Endgame: Aktiv-Skill löst Zweitwirkung aus (freigeschaltet bei Skills 1-4 auf Max)" />
+      <Card title={tH("skSlotsTitle")} color="#22D1C3">
+        <SkillRow icon="⚡"  color="#FFD700" label={tH("skSlotActiveLabel")}    desc={tH("skSlotActiveDesc")} />
+        <SkillRow icon="🛡️" color="#60a5fa" label={tH("skSlotPassiveLabel")}   desc={tH("skSlotPassiveDesc")} />
+        <SkillRow icon="⚔️" color="#FF2D78" label={tH("skSlotCombatLabel")}    desc={tH("skSlotCombatDesc")} />
+        <SkillRow icon="🎭" color="#4ade80" label={tH("skSlotRoleLabel")}      desc={tH("skSlotRoleDesc")} />
+        <SkillRow icon="💎" color="#c084fc" label={tH("skSlotExpertiseLabel")} desc={tH("skSlotExpertiseDesc")} />
       </Card>
 
-      <Card title="Siegel — die Freischalt- & Upgrade-Währung" color="#FFD700">
+      <Card title={tH("skSiegelTitle")} color="#FFD700">
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Jede Skill-Stufe kostet <b>typ-spezifische Siegel</b>. Primär durchs Gehen, Kämpfen & Missionen verdienbar — Tagesangebote können Siegel zusätzlich boosten.
+          {tH.rich("skSiegelBodyRich", richB)}
         </div>
         <ul style={{ margin: "6px 0", paddingLeft: 18, fontSize: 11, lineHeight: 1.5, color: "#a8b4cf" }}>
-          <li><b>Arena-Siege</b>: 1–3 Siegel vom Typ des Gegners</li>
-          <li><b>Area-Boss-Loot</b>: 5–15 Siegel (Typ gemischt) + Universal-Siegel für Winner</li>
-          <li><b>Walking-Meilensteine</b>: 10/30/100 km → Siegel-Pakete</li>
-          <li><b>Tages-Missionen</b>: 1–2 Siegel pro Tag</li>
+          <li>{tH.rich("skSiegel1Rich", richB)}</li>
+          <li>{tH.rich("skSiegel2Rich", richB)}</li>
+          <li>{tH.rich("skSiegel3Rich", richB)}</li>
+          <li>{tH.rich("skSiegel4Rich", richB)}</li>
         </ul>
         <div style={{ fontSize: 10, color: "#22D1C3", fontStyle: "italic" }}>
-          Kosten pro Stufe: 5 → 10 → 20 → 40 → 80 Siegel (Expertise ×2)
+          {tH("skSiegelCost")}
         </div>
       </Card>
 
-      <Card title="Rage-System" color="#FF6B4A">
+      <Card title={tH("skRageTitle")} color="#FF6B4A">
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Im Kampf baut sich eine <b>Rage-Leiste</b> auf (0–1000). Jeder Angriff: +100 Rage · jeder erlittene Treffer: +50 Rage. Bei <b>voll</b> feuert deine Aktiv-Fähigkeit automatisch mit <b>massivem Schaden</b> und setzt Rage auf 0 zurück.
+          {tH.rich("skRageBodyRich", richB)}
         </div>
       </Card>
     </div>
@@ -381,49 +383,48 @@ function SkillRow({ icon, color, label, desc }: { icon: string; color: string; l
    TAB: ARENA
    ═══════════════════════════════════════════════════════ */
 function ArenaTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        <b>Arena-Shops</b> (⚔️-Symbol auf der Karte) sind Shops die regelmäßig Runner-Duelle hosten. Dein Wächter kämpft gegen den Wächter eines anderen Runners/einer anderen Crew.
-      </Hero>
+      <Hero>{tH.rich("arHeroRich", richB)}</Hero>
 
-      <Card title="Regeln" color="#FFD700">
+      <Card title={tH("arRulesTitle")} color="#FFD700">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>GPS-Nähe</b>: Du musst ≤ <b>2 km</b> vom Shop sein um zu kämpfen</li>
-          <li><b>Eligibility</b>: Du oder ein Crew-Mitglied muss in den letzten 3 Tagen dort eingelöst haben</li>
-          <li><b>1 Kampf pro Arena pro Tag</b></li>
-          <li><b>Level-Spread-Cap</b>: Max. ±5 Level zwischen Angreifer und Verteidiger</li>
-          <li><b>Revenge-Sperre 6h</b>: Wer gerade angegriffen wurde, kann erst nach 6h zurückschlagen</li>
-          <li><b>Weekly-Cap</b>: Max. 1 Kampf gegen denselben Runner pro Woche</li>
+          <li>{tH.rich("arRule1Rich", richB)}</li>
+          <li>{tH.rich("arRule2Rich", richB)}</li>
+          <li>{tH.rich("arRule3Rich", richB)}</li>
+          <li>{tH.rich("arRule4Rich", richB)}</li>
+          <li>{tH.rich("arRule5Rich", richB)}</li>
+          <li>{tH.rich("arRule6Rich", richB)}</li>
         </ul>
       </Card>
 
-      <Card title="Belohnungen" color="#4ade80">
+      <Card title={tH("arRewardsTitle")} color="#4ade80">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>Sieg</b>: +500 Wächter-XP</li>
-          <li><b>Niederlage</b>: +125 Wächter-XP (Trostpreis) · ⚔️ Sessionehre-Abzug</li>
-          <li><b>Glückstreffer</b>: +100 Wächter-XP bonus, wenn Verlierer unter 20% HP war</li>
-          <li><b>Underdog-Bonus</b>: +200 Wächter-XP, wenn der niedriger-levelierte Wächter gewinnt</li>
-          <li><b>3-Sieg-Streak</b>: Trophäe oder Fusion (wenn gleicher Archetyp)</li>
-          <li><b>Double-Down</b> (optional): Sieg +50% Wächter-XP, Niederlage = 48h Verwundung</li>
-          <li><b>Verwundung</b>: Verlierer-Wächter ist bis zu 24 h pausiert</li>
+          <li>{tH.rich("arReward1Rich", richB)}</li>
+          <li>{tH.rich("arReward2Rich", richB)}</li>
+          <li>{tH.rich("arReward3Rich", richB)}</li>
+          <li>{tH.rich("arReward4Rich", richB)}</li>
+          <li>{tH.rich("arReward5Rich", richB)}</li>
+          <li>{tH.rich("arReward6Rich", richB)}</li>
+          <li>{tH.rich("arReward7Rich", richB)}</li>
         </ul>
       </Card>
 
-      <Card title="🏆 Area-Liga (30 Tage)" color="#FF6B4A">
+      <Card title={tH("arLeagueTitle")} color="#FF6B4A">
         <div style={{ fontSize: 12, lineHeight: 1.55 }}>
-          Kämpfe zählen in laufende <b>30-Tage-Sessions</b> mit Punkten für Siege, Fusionen und Trophäen. Am Session-Ende:
+          {tH.rich("arLeagueBodyRich", richB)}
         </div>
         <ul style={{ margin: "6px 0 0 0", paddingLeft: 18, lineHeight: 1.7, fontSize: 12 }}>
-          <li><b>Runner-Titel</b> (historisch im Profil): 🥇 Area-Liga-Champion · 🥈 Herausforderer · 🥉 Finalist</li>
-          <li><b>Crew-Paket 1. Platz</b>: 80 Universal-Siegel + exklusives Banner + 500 💎 Crew-Schatz</li>
-          <li><b>Crew-Paket 2. Platz</b>: 50 Siegel + Banner</li>
-          <li><b>Crew-Paket 3. Platz</b>: 25 Siegel</li>
+          <li>{tH.rich("arLeague1Rich", richB)}</li>
+          <li>{tH.rich("arLeague2Rich", richB)}</li>
+          <li>{tH.rich("arLeague3Rich", richB)}</li>
+          <li>{tH.rich("arLeague4Rich", richB)}</li>
         </ul>
       </Card>
 
-      <Card title="Spezialkräfte" color="#a855f7">
-        Skills + Talente deines Wächters fließen ein: <b>Active-Ultimate</b> zündet bei Rage 1000, <b>Passive</b> gibt permanenten Stat-Bonus, <b>Combat</b> triggert bei Events (z.B. Krit), <b>Role</b> gibt Typ-Counter-Bonus, <b>Expertise</b> löst Zweitwirkung der Active aus.
+      <Card title={tH("arSpecialTitle")} color="#a855f7">
+        {tH.rich("arSpecialBodyRich", richB)}
       </Card>
     </div>
   );
@@ -433,60 +434,59 @@ function ArenaTab() {
    TAB: AREA-BOSS
    ═══════════════════════════════════════════════════════ */
 function BossTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        <b>Area-Bosses</b> sind riesige Gegner an Landmarks (z.B. Fernsehturm). <b>Winner-takes-all:</b> Nur die Crew mit dem meisten Gesamt-Schaden gewinnt den Loot.
-      </Hero>
+      <Hero>{tH.rich("bsHeroRich", richB)}</Hero>
 
-      <Card title="🏆 Gewinner-Crew" color="#FFD700">
+      <Card title={tH("bsWinnerTitle")} color="#FFD700">
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Am Ende zählt nur der <b>gesamte Schaden</b> pro Crew. Die Crew mit dem höchsten Wert räumt alles ab — die anderen gehen leer aus.
+          {tH.rich("bsWinnerBodyRich", richB)}
         </div>
         <ul style={{ margin: "6px 0 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-          <li>Wächter-<b>Level</b> und <b>Ausrüstung</b> entscheiden über Damage pro Schlag</li>
-          <li>Höhere Level + bessere Gear = mehr Damage</li>
-          <li>Strategie: Stark aufgestellte Crew mit vielen aktiven Mitgliedern dominiert</li>
+          <li>{tH.rich("bsWinner1Rich", richB)}</li>
+          <li>{tH("bsWinner2")}</li>
+          <li>{tH("bsWinner3")}</li>
         </ul>
       </Card>
 
-      <Card title="👥 Maximal 10 Teilnehmer pro Crew" color="#a855f7">
+      <Card title={tH("bsParticipantsTitle")} color="#a855f7">
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          Pro Area-Boss können sich höchstens 10 Mitglieder einer Crew anschließen. Wer zuerst kommt, bekommt einen Platz. Voraussetzung: GPS <b>≤ 500 m</b> vom Boss.
+          {tH.rich("bsParticipantsBodyRich", richB)}
         </div>
       </Card>
 
-      <Card title="🎁 Loot-Staffelung (nur Gewinner-Crew)" color="#FF2D78">
+      <Card title={tH("bsLootTitle")} color="#FF2D78">
         <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12 }}>
-          <LootRow participants="7–10 Teilnehmer" badges={[
-            { label: "Legend", color: "#FFD700" },
-            { label: "Epic",   color: "#a855f7" },
-            { label: "Rare",   color: "#22D1C3" },
+          <LootRow participants={tH("bsLootRowMany")} badges={[
+            { label: tH("bsLootBadgeLegend"), color: "#FFD700" },
+            { label: tH("bsLootBadgeEpic"),   color: "#a855f7" },
+            { label: tH("bsLootBadgeRare"),   color: "#22D1C3" },
           ]} />
-          <LootRow participants="4–6 Teilnehmer" badges={[
-            { label: "Legend", color: "#FFD700" },
-            { label: "Epic",   color: "#a855f7" },
+          <LootRow participants={tH("bsLootRowMid")} badges={[
+            { label: tH("bsLootBadgeLegend"), color: "#FFD700" },
+            { label: tH("bsLootBadgeEpic"),   color: "#a855f7" },
           ]} />
-          <LootRow participants="1–3 Teilnehmer" badges={[
-            { label: "Legend", color: "#FFD700" },
+          <LootRow participants={tH("bsLootRowFew")} badges={[
+            { label: tH("bsLootBadgeLegend"), color: "#FFD700" },
           ]} />
         </div>
         <div style={{ fontSize: 10, color: "#8B8FA3", marginTop: 8, fontStyle: "italic" }}>
-          Mehr Mitglieder → mehr Loot-Items mit gemischten Rarities. Der Kampfleader / Crew-Leader verteilt dann die Items innerhalb der Crew.
+          {tH("bsLootNote")}
         </div>
       </Card>
 
-      <Card title="Rollen in der Crew" color="#5ddaf0">
+      <Card title={tH("bsRolesTitle")} color="#5ddaf0">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>Leader</b> — gründet die Crew, darf Kampfleader ernennen, verteilt Loot</li>
-          <li><b>Co-Leader</b> — darf Loot verteilen</li>
-          <li><b>Kampfleader</b> — spezialisierte Rolle nur für Raid-Loot-Verteilung</li>
-          <li><b>Member</b> — kämpft mit, wartet auf Zuteilung</li>
+          <li>{tH.rich("bsRole1Rich", richB)}</li>
+          <li>{tH.rich("bsRole2Rich", richB)}</li>
+          <li>{tH.rich("bsRole3Rich", richB)}</li>
+          <li>{tH.rich("bsRole4Rich", richB)}</li>
         </ul>
       </Card>
 
-      <Card title="Wichtig" color="#FF6B4A">
-        Bosse haben oft <b>250k+ HP</b> und eine <b>48-h-Timer</b>. Koordiniert euch im Crew-Chat um früh vor Ort zu sein — wer zuletzt kommt, findet evtl. schon volle Slots. Einmal besiegt = ein Loot-Pool, nur für die Top-Damage-Crew.
+      <Card title={tH("bsImportantTitle")} color="#FF6B4A">
+        {tH.rich("bsImportantBodyRich", richB)}
       </Card>
     </div>
   );
@@ -520,52 +520,51 @@ function LootRow({ participants, badges }: { participants: string; badges: Array
    TAB: FAIR-PLAY
    ═══════════════════════════════════════════════════════ */
 function EffectsTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        Alle <b>Buffs, Debuffs & Kampf-Effekte</b>, die während eines Arena- oder Boss-Kampfs auftreten können. Aktive Effekte werden als <b>Icons unter der HP-Leiste</b> angezeigt.
-      </Hero>
+      <Hero>{tH.rich("efHeroRich", richB)}</Hero>
 
-      <Card title="☠️ Debuffs (negativ)" color="#FF2D78">
-        <EffectRow icon="😵" name="Betäubt" color="#FFD700" desc="Überspringt deinen nächsten Zug. Wird durch Sturzflug-Ability (30% Chance) ausgelöst. stun_resist-Talent kann dagegenhalten." />
-        <EffectRow icon="☠️" name="Gift ×N" color="#a855f7" desc="Verursacht 5% MaxHP Schaden pro Stack pro Runde. Stackt bis ×3. debuff_cleanse-Talent entfernt Stacks." />
-        <EffectRow icon="🔥" name="Flamme" color="#FF6B4A" desc="10% MaxHP Schaden pro Runde (DOT). dot_dmg-Talent verstärkt DOTs." />
+      <Card title={tH("efDebuffsTitle")} color="#FF2D78">
+        <EffectRow icon="😵" name={tH("efDebuffStunName")}   color="#FFD700" desc={tH("efDebuffStunDesc")} />
+        <EffectRow icon="☠️" name={tH("efDebuffPoisonName")} color="#a855f7" desc={tH("efDebuffPoisonDesc")} />
+        <EffectRow icon="🔥" name={tH("efDebuffFlameName")}  color="#FF6B4A" desc={tH("efDebuffFlameDesc")} />
       </Card>
 
-      <Card title="💚 Heilung & Survival" color="#4ade80">
-        <EffectRow icon="💚" name="Regen" color="#4ade80" desc="Regenerierst zu Rundenbeginn X% MaxHP (regen_pct-Talent)." />
-        <EffectRow icon="🩸" name="Lifesteal" color="#FF2D78" desc="Heilst X% des ausgeteilten Schadens (heal_on_hit-Talent)." />
-        <EffectRow icon="🪽" name="Wiedergeburt" color="#FF6B4A" desc="Phoenix-Ability: Bei 0 HP einmalig voll geheilt." />
-        <EffectRow icon="🐈" name="Neun Leben" color="#FFD700" desc="Katzen-Ability: Bei 0 HP einmalig mit 1 HP überlebt." />
-        <EffectRow icon="✨" name="Debuff abgeschüttelt" color="#a855f7" desc="debuff_cleanse-Talent triggert, entfernt Stun + 1 Gift-Stack." />
+      <Card title={tH("efSurvivalTitle")} color="#4ade80">
+        <EffectRow icon="💚" name={tH("efRegenName")}     color="#4ade80" desc={tH("efRegenDesc")} />
+        <EffectRow icon="🩸" name={tH("efLifestealName")} color="#FF2D78" desc={tH("efLifestealDesc")} />
+        <EffectRow icon="🪽" name={tH("efRebirthName")}   color="#FF6B4A" desc={tH("efRebirthDesc")} />
+        <EffectRow icon="🐈" name={tH("efNineLivesName")} color="#FFD700" desc={tH("efNineLivesDesc")} />
+        <EffectRow icon="✨" name={tH("efCleanseName")}   color="#a855f7" desc={tH("efCleanseDesc")} />
       </Card>
 
-      <Card title="⚔️ Offensiv-Buffs" color="#FFD700">
-        <EffectRow icon="💥" name="Krit" color="#FFD700" desc="1.5× Schaden + Bonus aus crit_dmg-Talent. Basis-Krit 10% + crit_pct-Talent." />
-        <EffectRow icon="🔥" name="Berserker (Keystone)" color="#FF2D78" desc="DPS-Keystone: HP<30% triggert +50% ATK. Leuchtet unter HP-Bar solange aktiv." />
-        <EffectRow icon="☯️" name="Symbiose (Keystone)" color="#4ade80" desc="Balanced-Keystone: HP 40–60% triggert +10% ATK/DEF. Leuchtet unter HP-Bar solange aktiv." />
-        <EffectRow icon="🌵" name="Dornen" color="#FFD700" desc="Angreifer bekommt X% des erlittenen Schadens zurück (thorns_pct-Talent)." />
-        <EffectRow icon="⚔️" name="Konter" color="#5ddaf0" desc="Chance auf Gegenangriff mit halbem Schaden (counter_pct-Talent)." />
-        <EffectRow icon="🎯" name="Erster Treffer" color="#FFD700" desc="vs_full_hp-Talent: +X% Schaden gegen Gegner auf ≥95% HP." />
-        <EffectRow icon="⚰️" name="Gnadenstoß" color="#FF2D78" desc="vs_weak-Talent: +X% Schaden gegen Gegner unter 50% HP." />
+      <Card title={tH("efOffensiveTitle")} color="#FFD700">
+        <EffectRow icon="💥" name={tH("efCritName")}        color="#FFD700" desc={tH("efCritDesc")} />
+        <EffectRow icon="🔥" name={tH("efBerserkerName")}   color="#FF2D78" desc={tH("efBerserkerDesc")} />
+        <EffectRow icon="☯️" name={tH("efSymbioseName")}    color="#4ade80" desc={tH("efSymbioseDesc")} />
+        <EffectRow icon="🌵" name={tH("efThornsName")}      color="#FFD700" desc={tH("efThornsDesc")} />
+        <EffectRow icon="⚔️" name={tH("efCounterName")}     color="#5ddaf0" desc={tH("efCounterDesc")} />
+        <EffectRow icon="🎯" name={tH("efFirstStrikeName")} color="#FFD700" desc={tH("efFirstStrikeDesc")} />
+        <EffectRow icon="⚰️" name={tH("efMercyStrikeName")} color="#FF2D78" desc={tH("efMercyStrikeDesc")} />
       </Card>
 
-      <Card title="🛡️ Defensiv-Buffs" color="#60a5fa">
-        <EffectRow icon="🛡️" name="Bollwerk (Keystone)" color="#60a5fa" desc="Tank-Keystone: 1× pro Kampf absorbiert tödlichen Treffer (HP → 1). Icon verschwindet wenn verbraucht." />
-        <EffectRow icon="🍃" name="Ausgewichen" color="#22D1C3" desc="evade_pct-Talent oder Evade-Ability vermeidet Schaden komplett." />
-        <EffectRow icon="💪" name="DMG-Reduktion" color="#60a5fa" desc="dmg_reduction-Talent: reduziert erlittenen Schaden um X% (dauerhaft)." />
+      <Card title={tH("efDefensiveTitle")} color="#60a5fa">
+        <EffectRow icon="🛡️" name={tH("efBulwarkName")} color="#60a5fa" desc={tH("efBulwarkDesc")} />
+        <EffectRow icon="🍃" name={tH("efDodgeName")}   color="#22D1C3" desc={tH("efDodgeDesc")} />
+        <EffectRow icon="💪" name={tH("efDmgRedName")}  color="#60a5fa" desc={tH("efDmgRedDesc")} />
       </Card>
 
-      <Card title="⚡ Rage & Ultimates" color="#a855f7">
-        <EffectRow icon="⚡" name="Rage" color="#a855f7" desc="0–1000. +100 pro Angriff, +50 pro erlittenem Treffer. Bei 1000 zündet Active-Ultimate." />
-        <EffectRow icon="✨" name="Erwachen (Keystone)" color="#a855f7" desc="Support-Keystone: 1× pro Kampf volle Rage zu Beginn Runde 3. Icon verschwindet wenn verbraucht." />
-        <EffectRow icon="💥" name="ULT" color="#FF2D78" desc="Active-Skill-Ultimate: Basis 3× ATK, pro Skill-Level +20%, +25% pro Expertise-Level." />
+      <Card title={tH("efRageTitle")} color="#a855f7">
+        <EffectRow icon="⚡" name={tH("efRageName")}      color="#a855f7" desc={tH("efRageDesc")} />
+        <EffectRow icon="✨" name={tH("efAwakeningName")} color="#a855f7" desc={tH("efAwakeningDesc")} />
+        <EffectRow icon="💥" name={tH("efUltName")}       color="#FF2D78" desc={tH("efUltDesc")} />
       </Card>
 
-      <Card title="🎭 Typ- & Rollen-Effekte" color="#22D1C3">
-        <EffectRow icon="⚔️" name="Typ-Vorteil" color="#4ade80" desc="Infanterie→Kavallerie→Scharfschütze→Infanterie: +25% Schaden. Magier neutral." />
-        <EffectRow icon="🎭" name="Rollen-Bonus" color="#22D1C3" desc="Role-Skill: +3% pro Stufe gegen natürlichen Typ-Gegner. Magier: +2% gegen alle." />
-        <EffectRow icon="🌍" name="Power-Zone-Buff" color="#22D1C3" desc="Parks/Landmarks: flat +HP/+ATK/+DEF/+SPD solange du in der Zone bist (nur Angreifer)." />
+      <Card title={tH("efTypeRoleTitle")} color="#22D1C3">
+        <EffectRow icon="⚔️" name={tH("efTypeAdvName")}    color="#4ade80" desc={tH("efTypeAdvDesc")} />
+        <EffectRow icon="🎭" name={tH("efRoleBonusName")}  color="#22D1C3" desc={tH("efRoleBonusDesc")} />
+        <EffectRow icon="🌍" name={tH("efPowerZoneName")}  color="#22D1C3" desc={tH("efPowerZoneDesc")} />
       </Card>
     </div>
   );
@@ -588,43 +587,42 @@ function EffectRow({ icon, name, color, desc }: { icon: string; name: string; co
 }
 
 function FairTab() {
+  const tH = useTranslations("GuardianHelp");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Hero>
-        MyArea365 ist <b>keine Pay-to-Win-App</b>. Fortschritt kommt durch <b>echtes Laufen</b>. Hier unsere Versprechen.
-      </Hero>
+      <Hero>{tH.rich("frHeroRich", richB)}</Hero>
 
-      <Card title="✓ Kein Pay-to-Win" color="#4ade80">
+      <Card title={tH("frP2WTitle")} color="#4ade80">
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li>Alle kaufbaren Items sind als <b>cosmetic_only</b> markiert — keine Kampf-Stats</li>
-          <li>Mystery-Box & Skins geben Style, <b>keine Vorteile</b> im Kampf</li>
-          <li>Wächter-XP + Ausrüstung mit Kampf-Stats kommen ausschließlich aus <b>Laufen / Einlösen / Kämpfen</b></li>
+          <li>{tH.rich("frP2W1Rich", richB)}</li>
+          <li>{tH.rich("frP2W2Rich", richB)}</li>
+          <li>{tH.rich("frP2W3Rich", richB)}</li>
         </ul>
       </Card>
 
-      <Card title="📊 Transparente Drop-Raten" color="#FFD700">
+      <Card title={tH("frDropsTitle")} color="#FFD700">
         <div style={{ fontSize: 12, lineHeight: 1.6, marginBottom: 8 }}>
-          Alle Zufalls-Drops sind öffentlich dokumentiert (EU Digital Fairness Act). Freiwillige Offenlegung auch für Gratis-Loot.
+          {tH("frDropsBody")}
         </div>
         <Link href="/loot-drops" style={{
           display: "inline-block", padding: "8px 12px", borderRadius: 8,
           background: "rgba(255,215,0,0.15)", border: "1px solid #FFD700",
           color: "#FFD700", fontSize: 11, fontWeight: 900, textDecoration: "none",
-        }}>🎲 /loot-drops ansehen →</Link>
+        }}>{tH("frDropsBtn")}</Link>
       </Card>
 
-      <Card title="🛡️ GPS-Pflicht für alles Kompetitive" color="#a855f7">
-        Damit Boni & Belohnungen echte Bewegung spiegeln, prüfen wir Position bei:
+      <Card title={tH("frGpsTitle")} color="#a855f7">
+        {tH("frGpsBody")}
         <ul style={{ margin: "4px 0 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-          <li><b>Arena-Challenge</b> ≤ 2 km vom Shop</li>
-          <li><b>Area-Boss-Damage</b> ≤ 500 m vom Boss</li>
-          <li><b>Sanctuary-Training</b> ≤ 50 m</li>
-          <li><b>Loot-Kisten</b> ≤ 20 m (Auto-Pickup)</li>
+          <li>{tH.rich("frGps1Rich", richB)}</li>
+          <li>{tH.rich("frGps2Rich", richB)}</li>
+          <li>{tH.rich("frGps3Rich", richB)}</li>
+          <li>{tH.rich("frGps4Rich", richB)}</li>
         </ul>
       </Card>
 
-      <Card title="💰 Monetarisierung" color="#5ddaf0">
-        Wir finanzieren uns über <b>Premium-Abos</b> (Skins/Boosts/Sichtbarkeit), <b>Shop-Pakete</b> (Arena-Hosting) und <b>Werbung</b> (Flash-Deals). Nie durch Kampf-Vorteile.
+      <Card title={tH("frMonetTitle")} color="#5ddaf0">
+        {tH.rich("frMonetBodyRich", richB)}
       </Card>
     </div>
   );
