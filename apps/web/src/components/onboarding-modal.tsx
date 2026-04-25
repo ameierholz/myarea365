@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 const LS_KEY = "ma365:onboardingSeenV1";
 
@@ -23,43 +24,33 @@ type Slide = {
   visual: React.ReactNode;
 };
 
-/**
- * Mini-SVG als Illustration eines Straßenabschnitts (fetter Liniensegment).
- */
-function SegmentVisual() {
+function SegmentVisual({ label }: { label: string }) {
   return (
     <svg viewBox="0 0 200 120" style={{ width: "100%", height: 120 }}>
       <line x1="20" y1="60" x2="180" y2="60" stroke="rgba(255,255,255,0.12)" strokeWidth="3" strokeDasharray="4 6" />
       <line x1="60" y1="60" x2="140" y2="60" stroke="#22D1C3" strokeWidth="6" strokeLinecap="round" />
       <circle cx="60" cy="60" r="6" fill="#22D1C3" />
       <circle cx="140" cy="60" r="6" fill="#22D1C3" />
-      <text x="100" y="92" fill="#22D1C3" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">1 ABSCHNITT</text>
+      <text x="100" y="92" fill="#22D1C3" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">{label}</text>
     </svg>
   );
 }
 
-/**
- * Straßenzug: mehrere verbundene Segmente in einer Reihe.
- */
-function StreetVisual() {
+function StreetVisual({ label }: { label: string }) {
   return (
     <svg viewBox="0 0 200 120" style={{ width: "100%", height: 120 }}>
       <line x1="20" y1="60" x2="180" y2="60" stroke="#FFD700" strokeWidth="8" strokeLinecap="round" />
       {[20, 60, 100, 140, 180].map((x) => (
         <circle key={x} cx={x} cy={60} r="5" fill="#FFD700" />
       ))}
-      <text x="100" y="92" fill="#FFD700" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">KOMPLETTER STRASSENZUG</text>
+      <text x="100" y="92" fill="#FFD700" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">{label}</text>
     </svg>
   );
 }
 
-/**
- * Gebiet: geschlossenes Polygon aus 4 Straßenzügen.
- */
-function TerritoryVisual() {
+function TerritoryVisual({ label }: { label: string }) {
   return (
     <svg viewBox="0 0 200 120" style={{ width: "100%", height: 120 }}>
-      {/* Polygon-Fill */}
       <polygon points="40,30 160,30 160,90 40,90"
         fill="#FF2D78" fillOpacity="0.18"
         stroke="#FF2D78" strokeWidth="4" strokeLinejoin="round" />
@@ -68,20 +59,17 @@ function TerritoryVisual() {
       {[[40, 30], [160, 30], [160, 90], [40, 90]].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="4" fill="#FFD700" />
       ))}
-      <text x="100" y="112" fill="#FF2D78" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">GESCHLOSSENES GEBIET</text>
+      <text x="100" y="112" fill="#FF2D78" fontSize="11" fontWeight="900" textAnchor="middle" letterSpacing="1.5">{label}</text>
     </svg>
   );
 }
 
-/**
- * Erste-Woche-Visual: 4 Icons mit Aktivitäten.
- */
-function FirstWeekVisual() {
+function FirstWeekVisual({ labels }: { labels: { run: string; crew: string; arena: string; shop: string } }) {
   const items: { icon: string; label: string; color: string }[] = [
-    { icon: "🏃", label: "Lauf",  color: "#22D1C3" },
-    { icon: "👥", label: "Crew",  color: "#FFD700" },
-    { icon: "⚔️", label: "Arena", color: "#FF2D78" },
-    { icon: "💎", label: "Shop",  color: "#5ddaf0" },
+    { icon: "🏃", label: labels.run,   color: "#22D1C3" },
+    { icon: "👥", label: labels.crew,  color: "#FFD700" },
+    { icon: "⚔️", label: labels.arena, color: "#FF2D78" },
+    { icon: "💎", label: labels.shop,  color: "#5ddaf0" },
   ];
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, padding: "8px 4px" }}>
@@ -99,49 +87,56 @@ function FirstWeekVisual() {
   );
 }
 
-const SLIDES: Slide[] = [
-  {
-    emoji: "🛤️",
-    title: "1. Straßenabschnitt",
-    color: "#22D1C3",
-    gradient: "radial-gradient(at 50% 0%, rgba(34,209,195,0.25), transparent 60%)",
-    xp: "+50 🪙",
-    body: "Der kleinste Baustein: ein einzelnes Straßenstück zwischen zwei Kreuzungen. Jeder Abschnitt den du als Erster abläufst, gehört dir — und bringt 50 Wegemünzen.",
-    visual: <SegmentVisual />,
-  },
-  {
-    emoji: "🛣️",
-    title: "2. Straßenzug",
-    color: "#FFD700",
-    gradient: "radial-gradient(at 50% 0%, rgba(255,215,0,0.28), transparent 60%)",
-    xp: "+250 🪙 Bonus",
-    body: "Hast du ALLE Abschnitte einer Straße gesammelt, wird sie als kompletter Straßenzug für dich freigeschaltet — plus einem satten 250-Wegemünzen-Bonus obendrauf.",
-    visual: <StreetVisual />,
-  },
-  {
-    emoji: "🏆",
-    title: "3. Gebiet (Crew-Sache)",
-    color: "#FF2D78",
-    gradient: "radial-gradient(at 50% 0%, rgba(255,45,120,0.28), transparent 60%)",
-    xp: "+500 🪙",
-    body: "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Gebiet. Wichtig: Gebiete sind Crew-Gebiet. Bist du Mitglied, kassierst du 500 Wegemünzen. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst.",
-    visual: <TerritoryVisual />,
-  },
-  {
-    emoji: "🚀",
-    title: "4. Deine erste Woche",
-    color: "#5ddaf0",
-    gradient: "radial-gradient(at 50% 0%, rgba(93,218,240,0.28), transparent 60%)",
-    xp: "Alles kostenlos spielbar",
-    body: "🏃 Lauf starten: GPS tracken, Straßen claimen, 🪙 Wegemünzen kassieren. 👥 Crew gründen/beitreten: +500 🪙 pro Gebiet & 🏴 Gebietsruf durch Crew-Wars. ⚔️ Arena: 5 Gratis-Kämpfe/Tag, Sieg bringt ⚔️ Sessionehre + Loot. 💎 Shop: mit Wegemünzen oder optional mit Echtgeld (Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win).",
-    visual: <FirstWeekVisual />,
-  },
-];
-
 export function OnboardingModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("Onboarding");
   const [idx, setIdx] = useState(0);
-  const slide = SLIDES[idx];
-  const isLast = idx === SLIDES.length - 1;
+
+  const slides = useMemo<Slide[]>(() => [
+    {
+      emoji: "🛤️",
+      title: t("Slide1.title"),
+      color: "#22D1C3",
+      gradient: "radial-gradient(at 50% 0%, rgba(34,209,195,0.25), transparent 60%)",
+      xp: t("Slide1.xp"),
+      body: t("Slide1.body"),
+      visual: <SegmentVisual label={t("labelSegment")} />,
+    },
+    {
+      emoji: "🛣️",
+      title: t("Slide2.title"),
+      color: "#FFD700",
+      gradient: "radial-gradient(at 50% 0%, rgba(255,215,0,0.28), transparent 60%)",
+      xp: t("Slide2.xp"),
+      body: t("Slide2.body"),
+      visual: <StreetVisual label={t("labelStreet")} />,
+    },
+    {
+      emoji: "🏆",
+      title: t("Slide3.title"),
+      color: "#FF2D78",
+      gradient: "radial-gradient(at 50% 0%, rgba(255,45,120,0.28), transparent 60%)",
+      xp: t("Slide3.xp"),
+      body: t("Slide3.body"),
+      visual: <TerritoryVisual label={t("labelTerritory")} />,
+    },
+    {
+      emoji: "🚀",
+      title: t("Slide4.title"),
+      color: "#5ddaf0",
+      gradient: "radial-gradient(at 50% 0%, rgba(93,218,240,0.28), transparent 60%)",
+      xp: t("Slide4.xp"),
+      body: t("Slide4.body"),
+      visual: <FirstWeekVisual labels={{
+        run: t("firstWeekLaufLabel"),
+        crew: t("firstWeekCrewLabel"),
+        arena: t("firstWeekArenaLabel"),
+        shop: t("firstWeekShopLabel"),
+      }} />,
+    },
+  ], [t]);
+
+  const slide = slides[idx];
+  const isLast = idx === slides.length - 1;
 
   return (
     <div onClick={onClose} style={{
@@ -162,7 +157,7 @@ export function OnboardingModal({ onClose }: { onClose: () => void }) {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>
-            WILLKOMMEN BEI MYAREA365
+            {t("header")}
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: "50%",
@@ -200,9 +195,8 @@ export function OnboardingModal({ onClose }: { onClose: () => void }) {
           {slide.body}
         </p>
 
-        {/* Progress-Dots */}
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 22 }}>
-          {SLIDES.map((_, i) => (
+          {slides.map((_, i) => (
             <button key={i} onClick={() => setIdx(i)} style={{
               width: i === idx ? 22 : 8, height: 8, borderRadius: 999,
               background: i === idx ? slide.color : "rgba(255,255,255,0.15)",
@@ -217,7 +211,7 @@ export function OnboardingModal({ onClose }: { onClose: () => void }) {
               flex: 1, padding: "12px", borderRadius: 12,
               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
               color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer",
-            }}>← Zurück</button>
+            }}>{t("back")}</button>
           )}
           <button onClick={() => isLast ? onClose() : setIdx((i) => i + 1)} style={{
             flex: 2, padding: "12px", borderRadius: 12, border: "none",
@@ -225,7 +219,7 @@ export function OnboardingModal({ onClose }: { onClose: () => void }) {
             color: "#0F1115", fontSize: 14, fontWeight: 900, cursor: "pointer",
             boxShadow: `0 4px 20px ${slide.color}55`,
           }}>
-            {isLast ? "Los geht's! 🏃" : "Weiter →"}
+            {isLast ? t("finish") : t("next")}
           </button>
         </div>
       </div>

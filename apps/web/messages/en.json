@@ -58,5 +58,176 @@
   "Language": {
     "title": "Choose language",
     "auto": "Automatic (browser)"
+  },
+  "Metadata": {
+    "titleDefault": "MyArea365 – Conquer Your City",
+    "titleTemplate": "%s | MyArea365",
+    "description": "Gamified walking & running community. Claim street blocks, collect Path Coins, and discover local businesses.",
+    "ogTitle": "MyArea365 – Conquer Your City",
+    "ogImageAlt": "MyArea365",
+    "twitterTitle": "MyArea365 – Conquer Your City",
+    "twitterDescription": "Gamified walking & running community. Your steps conquer your neighborhood.",
+    "keywords": "running, walking, jogging, gamification, crew, neighborhood, claim streets, community, fitness, local shops, deals"
+  },
+  "Currencies": {
+    "pathCoins": "Path Coins",
+    "territoryReputation": "Territory Rep",
+    "arenaHonor": "Arena Honor",
+    "pathCoinsShort": "🪙",
+    "territoryReputationShort": "🏴",
+    "arenaHonorShort": "⚔️"
+  },
+  "Faq": {
+    "header": "HELP & FAQ",
+    "subtitle": "How do I play MyArea365?",
+    "Sections": {
+      "ersteSchritte": {
+        "title": "Getting Started",
+        "q1": "What do I do right after signing up?",
+        "a1": "1) Pick a Guardian · 2) Open the dashboard · 3) <b>Start a run</b> (allow GPS) · 4) walk a few streets · 5) collect your first 🪙 Path Coins. Then: <b>join a crew</b> for territory bonuses.",
+        "q2": "How do I start a run?",
+        "a2": "Dashboard → \"Start run\" button. Allow GPS, then just walk or jog. Each new street segment = 50 🪙, complete street = +250 🪙 bonus.",
+        "q3": "Which features are completely free?",
+        "a3": "Everything gameplay-relevant: running, ranks, Guardians, crews, Arena (5 free fights/day), missions, achievements. The shop is purely optional — comfort, cosmetics, streak freezes. <b>No pay-to-win.</b>",
+        "q4": "When does a crew pay off?",
+        "a4": "Solo: max 250 🪙 per street. With crew: additional +500 🪙 per closed territory + 🏴 territory rep from crew wars (5,000 🏴 per win). Founding a crew is free.",
+        "q5": "What's the difference between Arena and Crew War?",
+        "a5": "<b>Arena</b> = 1v1 Guardian fight, personal, gives ⚔️ Arena Honor + loot. <b>Crew War</b> = your whole team vs. another crew, gives 🏴 territory rep. Both run separately and don't cannibalize each other.",
+        "q6": "Do I have to spend money to be good?",
+        "a6": "No. Top leaderboard spots are reached through real movement. Real money only buys <b>time</b> (streak freeze when sick), <b>comfort</b> (ad-free via MyArea+) and <b>style</b> (Runner Lights, themes). Path Coin boosts are limited and shorten — but never replace — actual movement."
+      },
+      "grundlagen": {
+        "title": "Basics",
+        "q1": "How do I play MyArea365?",
+        "a1": "Walk or jog through your city. Every street segment you cover gets marked on the map and belongs to you. The more you run, the more 🪙 <b>Path Coins</b> you earn and the higher you climb in rank.",
+        "q2": "What's the difference between segment, street and territory?",
+        "a2": "<b>Street segment</b> = smallest piece of street between two intersections (50 🪙 Path Coins).<br/><b>Complete street</b> = a full street, once you have all of its segments (+250 🪙 bonus).<br/><b>Territory</b> = the inside of a closed ring of multiple streets (+500 🪙, crew only).",
+        "q3": "How does a territory form?",
+        "a3": "When multiple streets connect into a closed polygon (block, square, circle), MyArea365 automatically marks the inside as a territory. All streets surrounding it must be complete streets owned by you or your crew.",
+        "q4": "Do I need a crew for territories?",
+        "a4": "Yes. Solo runners see the closed ring as a gray dashed outline (claim pending), but only collect the 500 Path Coin bonus once they join or found a crew. That's what makes crews valuable."
+      },
+      "waehrungen": {
+        "title": "Currencies & Ranks",
+        "q1": "What currencies exist?",
+        "a1": "Three separate reward streams, so an Arena loss doesn't destroy your runner progression:<br/><br/>🪙 <b>Path Coins</b> — running, territory claims, missions, shop XP packs.<br/>🏴 <b>Territory Rep</b> — crew war win, flag capture, crew duel, crew challenge.<br/>⚔️ <b>Arena Honor</b> — Arena win (+) / Arena loss (−, floor at 0).",
+        "q2": "What earns me 🪙 Path Coins?",
+        "a2": "• <b>New street segment</b>: 50 🪙<br/>• <b>Complete street</b>: +250 🪙 bonus<br/>• <b>Closed territory</b> (crew): +500 🪙<br/>• <b>Daily/weekly missions</b>: 200–500 🪙<br/>• <b>Milestones</b> (first 10 km, 30-day streak etc.): extra bonus",
+        "q3": "What earns me 🏴 Territory Rep?",
+        "a3": "• <b>Crew war won</b>: 5,000 🏴 to all active members<br/>• <b>Flag capture won</b>: 3,000 🏴<br/>• <b>Weekly duel won</b>: 2,000 🏴<br/>• <b>Crew challenge completed</b>: variable reward<br/><br/>Territory Rep is personal — you carry it with you when changing crews, but it's only earned in crew context.",
+        "q4": "What earns me ⚔️ Arena Honor?",
+        "a4": "Arena fights redistribute honor: winner gains ~+50 %, loser loses ~20 % of battle XP. Cannot go negative (floor at 0). Tracked per season — prestige-relevant, but does <b>not</b> affect your Path Coins or rank.",
+        "q5": "Do I get Path Coins for old streets I run again?",
+        "a5": "Yes — but throttled, so nobody can farm. 24 h after the first claim: 0 (cooldown). 1–7 days: 30 % of normal value. 7–30 days: 60 %. After 30 days: full value again. Shown transparently in your run summary.",
+        "q6": "How do I rank up?",
+        "a6": "Rank is based on total 🪙 Path Coins. From <b>Street Scout</b> (0) to <b>Street God</b> (250,000) there are 10 ranks with their own colors, mottos and rewards."
+      },
+      "crewTerritorien": {
+        "title": "Crew & Territories",
+        "q1": "How do I found a crew?",
+        "a1": "\"Crew\" tab → \"Found crew\". You need a name, a color and a ZIP code as your turf. Crew members can then claim and defend territories together.",
+        "q2": "Can a territory be stolen?",
+        "a2": "Yes. If an enemy crew runs the ring and re-claims more than 50 % of segments, the territory changes color. The old crew gets a notification — revenge is possible. Steal bonus: 1.5× Path Coins for the raider.",
+        "q3": "What happens if my crew is inactive?",
+        "a3": "Territories expire after 30 days of inactivity to \"unclaimed\" and can be re-conquered by other crews. A single crew run per week is enough to hold the turf."
+      },
+      "waechter": {
+        "title": "Guardians",
+        "q1": "What are Guardians?",
+        "a1": "Your personal companion with their own level, class (Infantry/Cavalry/Sniper/Mage) and unique ability. The more you run, the stronger they get.",
+        "q2": "How do I get new Guardians?",
+        "a2": "Via summoning stones (every 10 km run = +1 stone), Arena wins, the shop, or as territory loot. Collect them all — there are 30+ archetypes across 4 rarities.",
+        "q3": "Combat Arena — how does it work?",
+        "a3": "1v1 Guardian fights against other runners. 5 free fights per day, more for diamonds. Win = seals + gear + Guardian XP + ⚔️ Arena Honor. Loss = small Arena Honor deduction (floor 0), nothing destroyed."
+      },
+      "shop": {
+        "title": "Shop & Diamonds",
+        "q1": "Do I have to pay to be good?",
+        "a1": "No. All gameplay-relevant content (Guardians, territories, ranks) is fully playable without real money. The shop only offers comfort (streak freezes), cosmetics (map icons, Runner Lights) and time boosts.",
+        "q2": "What are the daily deals?",
+        "a2": "3 individual deals daily (Bronze/Silver/Gold) + optionally 1 Super Bundle. Each pack purchasable 1× per day. Reset at 00:00.",
+        "q3": "What does MyArea+ get me?",
+        "a3": "Premium subscription with streak-freeze stockpile, Path Coin boost, shop discount and exclusive map themes. Cancellable monthly."
+      },
+      "sonstiges": {
+        "title": "Other",
+        "q1": "Does MyArea365 run in the background?",
+        "a1": "Yes, as long as the browser is open and GPS permission is granted. For continuous tracking we recommend the upcoming mobile app.",
+        "q2": "What about my data?",
+        "a2": "We only store the minimum (routes, currency balances, profile). No sharing. Full GDPR info via the privacy link in the profile footer.",
+        "q3": "I found a bug / have a suggestion",
+        "a3": "Profile → Menu → 🎫 Support. We usually answer within 48 h."
+      }
+    }
+  },
+  "Onboarding": {
+    "header": "WELCOME TO MYAREA365",
+    "back": "← Back",
+    "next": "Next →",
+    "finish": "Let's go! 🏃",
+    "labelSegment": "1 SEGMENT",
+    "labelStreet": "COMPLETE STREET",
+    "labelTerritory": "CLOSED TERRITORY",
+    "firstWeekLaufLabel": "Run",
+    "firstWeekCrewLabel": "Crew",
+    "firstWeekArenaLabel": "Arena",
+    "firstWeekShopLabel": "Shop",
+    "Slide1": {
+      "title": "1. Street Segment",
+      "xp": "+50 🪙",
+      "body": "The smallest building block: a single piece of street between two intersections. Every segment you run first belongs to you — and earns 50 Path Coins."
+    },
+    "Slide2": {
+      "title": "2. Complete Street",
+      "xp": "+250 🪙 bonus",
+      "body": "Once you've collected ALL segments of a street, it's unlocked as a complete street for you — plus a hefty 250 Path Coin bonus on top."
+    },
+    "Slide3": {
+      "title": "3. Territory (Crew thing)",
+      "xp": "+500 🪙",
+      "body": "When multiple streets connect into a closed ring (block, square, circle), the inside becomes a territory. Important: territories are crew property. As a member you collect 500 Path Coins. Solo you can light up the ring — but the loot only starts flowing once you join a crew."
+    },
+    "Slide4": {
+      "title": "4. Your first week",
+      "xp": "Everything free to play",
+      "body": "🏃 Start a run: track GPS, claim streets, collect 🪙 Path Coins. 👥 Found/join a crew: +500 🪙 per territory & 🏴 territory rep through crew wars. ⚔️ Arena: 5 free fights/day, wins earn ⚔️ Arena Honor + loot. 💎 Shop: spend Path Coins or optionally real money (cosmetics, comfort, streak freezes — never pay-to-win)."
+    }
+  },
+  "Popups": {
+    "PreWalk": {
+      "title": "Want a starter bonus?",
+      "subtitle": "Optional before you start: a short video (~30 sec) gets you <b>+250 🪙</b> on top.",
+      "hint": "Not interested? Just hit <b>Skip</b> — your run starts immediately, no video.",
+      "skipButton": "Skip & start running",
+      "watchButton": "📺 Get bonus",
+      "footer": "This popup shows at most every 6 h — MyArea+ supporters never see it.",
+      "playingTitle": "Ad playing…",
+      "playingSubtitle": "Then you'll get <b>+250 🪙 Starter Bonus</b> and your run starts automatically.",
+      "secondsLeft": "{seconds} seconds remaining",
+      "skipDuringPlaying": "Cancel (no bonus)",
+      "claimedAlert": "🎁 +250 🪙 Starter Bonus claimed! Let's go."
+    },
+    "SupplyDrop": {
+      "title": "Loot Crate!",
+      "subtitle": "Grab it now — or optionally watch a 30-sec video for the 4× bonus.",
+      "hint": "Potion chance is the same either way.",
+      "skipButton": "Grab",
+      "skipReward": "+25 🪙",
+      "watchButton": "📺 Bonus",
+      "watchReward": "+100 🪙",
+      "playingTitle": "Ad playing…",
+      "playingSubtitle": "After this: <b>+100 🪙 + potion roll</b>",
+      "secondsLeft": "{seconds} seconds remaining"
+    },
+    "StreakSave": {
+      "title": "Your streak is expiring!",
+      "subtitle": "<b>{days}-day streak</b> is in danger. Watch a short video (~30 sec) and it stays alive — instead of resetting to 0.",
+      "hint": "Available once every 12 h.",
+      "skipButton": "No thanks",
+      "watchButton": "📺 Save streak",
+      "playingTitle": "Ad playing…",
+      "playingSubtitle": "Your <b>{days}-day streak</b> will stay alive.",
+      "secondsLeft": "{seconds} seconds remaining"
+    }
   }
 }

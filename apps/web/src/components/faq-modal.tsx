@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 type FaqSection = {
   id: string;
@@ -10,203 +11,39 @@ type FaqSection = {
   items: { q: string; a: React.ReactNode }[];
 };
 
-const B = ({ children, color = "#FFF" }: { children: React.ReactNode; color?: string }) =>
-  <b style={{ color }}>{children}</b>;
+// Helpers für rich-text Tags in den Übersetzungen.
+const richTags = {
+  b: (chunks: React.ReactNode) => <b style={{ color: "#FFF" }}>{chunks}</b>,
+  br: () => <br />,
+} as const;
 
-const SECTIONS: FaqSection[] = [
-  {
-    id: "erste-schritte",
-    icon: "🚀",
-    title: "Erste Schritte",
-    color: "#5ddaf0",
-    items: [
-      {
-        q: "Was mache ich direkt nach der Anmeldung?",
-        a: <>1) Wächter auswählen · 2) Dashboard öffnen · 3) <B color="#22D1C3">Lauf starten</B> (GPS erlauben) · 4) ein paar Straßen abgehen · 5) erste 🪙 Wegemünzen kassieren. Danach: <B>Crew beitreten</B> für Gebiets-Boni.</>,
-      },
-      {
-        q: "Wie starte ich einen Lauf?",
-        a: <>Dashboard → „Lauf starten"-Button. GPS-Berechtigung erlauben, dann einfach losgehen oder joggen. Jeder neue Straßenabschnitt = 50 🪙, kompletter Straßenzug = +250 🪙 Bonus.</>,
-      },
-      {
-        q: "Welche Features sind komplett kostenlos?",
-        a: <>Alles Gameplay-Relevante: Laufen, Ränge, Wächter, Crews, Arena (5 Gratis-Kämpfe/Tag), Missionen, Achievements. Der Shop ist rein optional — Komfort, Kosmetik, Streak-Freezes. <B color="#22D1C3">Kein Pay-to-Win.</B></>,
-      },
-      {
-        q: "Wann lohnt sich eine Crew?",
-        a: <>Solo: max. 250 🪙 pro Straßenzug. Mit Crew: zusätzlich +500 🪙 pro geschlossenem Gebiet + 🏴 Gebietsruf aus Crew-Wars (5 000 🏴 pro Sieg). Crew-Gründung ist kostenlos.</>,
-      },
-      {
-        q: "Was ist der Unterschied zwischen Arena und Crew-War?",
-        a: <><B color="#FF2D78">Arena</B> = 1v1 Wächter-Kampf, persönlich, gibt ⚔️ Sessionehre + Loot. <B color="#FFD700">Crew-War</B> = dein ganzes Team gegen eine andere Crew, gibt 🏴 Gebietsruf. Beides läuft getrennt und frisst sich nicht gegenseitig.</>,
-      },
-      {
-        q: "Muss ich Geld ausgeben, um gut zu sein?",
-        a: <>Nein. Die Top-Plätze in Leaderboards werden durch reale Bewegung erreicht. Echtgeld kauft nur <B>Zeit</B> (Streak-Freeze bei Krankheit), <B>Komfort</B> (Werbefrei via MyArea+) und <B>Style</B> (Runner-Lights, Themes). Wegemünzen-Boosts sind begrenzt und verkürzen, aber ersetzen keine Bewegung.</>,
-      },
-    ],
-  },
-  {
-    id: "grundlagen",
-    icon: "🏃",
-    title: "Grundlagen",
-    color: "#22D1C3",
-    items: [
-      {
-        q: "Wie spiele ich MyArea365?",
-        a: <>Geh oder jogge durch deine Stadt. Jeder Straßenabschnitt den du abläufst wird auf der Karte markiert und gehört dir. Je mehr du läufst, desto mehr 🪙 <B color="#22D1C3">Wegemünzen</B> kassierst du und desto höher steigst du im Rang.</>,
-      },
-      {
-        q: "Was ist der Unterschied zwischen Abschnitt, Straßenzug und Gebiet?",
-        a: <>
-          <B color="#22D1C3">Straßenabschnitt</B> = kleinstes Stück Straße zwischen zwei Kreuzungen (50 🪙 Wegemünzen).<br />
-          <B color="#FFD700">Straßenzug</B> = eine komplette Straße, wenn du alle ihre Abschnitte hast (+250 🪙 Bonus).<br />
-          <B color="#FF2D78">Gebiet</B> = das Innere eines geschlossenen Rings aus mehreren Straßenzügen (+500 🪙, nur mit Crew).
-        </>,
-      },
-      {
-        q: "Wie entsteht ein Gebiet?",
-        a: <>Wenn sich mehrere Straßenzüge zu einem geschlossenen Polygon (Block, Viereck, Kreis) treffen, markiert MyArea365 das Innere automatisch als Gebiet. Alle Straßen rundherum müssen als komplette Straßenzüge dir oder deiner Crew gehören.</>,
-      },
-      {
-        q: "Brauche ich eine Crew für Gebiete?",
-        a: <>Ja. Solo-Runner sehen den geschlossenen Ring zwar grau gestrichelt auf der Karte (Anwartschaft), kassieren den 500-Wegemünzen-Bonus aber erst, sobald sie einer Crew beitreten oder eine gründen. Das macht Crews wertvoll.</>,
-      },
-    ],
-  },
-  {
-    id: "waehrungen",
-    icon: "💰",
-    title: "Währungen & Ränge",
-    color: "#FFD700",
-    items: [
-      {
-        q: "Welche Währungen gibt es?",
-        a: <>Drei getrennte Belohnungsströme, damit eine Arena-Niederlage nicht deine Runner-Progression zerstört:<br /><br />
-          🪙 <B color="#22D1C3">Wegemünzen</B> — Laufen, Territory-Claim, Missionen, Shop-XP-Packs.<br />
-          🏴 <B color="#FF2D78">Gebietsruf</B> — Crew-War-Sieg, Flaggen-Capture, Crew-Duell, Crew-Challenge.<br />
-          ⚔️ <B color="#FFD700">Sessionehre</B> — Arena-Sieg (+) / Arena-Niederlage (−, Floor bei 0).
-        </>,
-      },
-      {
-        q: "Wofür gibt es 🪙 Wegemünzen?",
-        a: <>
-          • <B>Neuer Straßenabschnitt</B>: 50 🪙<br />
-          • <B>Kompletter Straßenzug</B>: +250 🪙 Bonus<br />
-          • <B>Geschlossenes Gebiet</B> (Crew): +500 🪙<br />
-          • <B>Tages-/Wochen-Missionen</B>: 200–500 🪙<br />
-          • <B>Meilensteine</B> (erste 10 km, 30 Tage Streak etc.): extra Bonus
-        </>,
-      },
-      {
-        q: "Wofür gibt es 🏴 Gebietsruf?",
-        a: <>
-          • <B>Crew-War gewonnen</B>: 5 000 🏴 an alle aktiven Mitglieder<br />
-          • <B>Flaggen-Capture gewonnen</B>: 3 000 🏴<br />
-          • <B>Wochen-Duell gewonnen</B>: 2 000 🏴<br />
-          • <B>Crew-Challenge abgeschlossen</B>: variabler Reward<br /><br />
-          Gebietsruf ist persönlich — du trägst ihn auch mit, wenn du die Crew wechselst, aber er wird nur im Crew-Kontext verdient.
-        </>,
-      },
-      {
-        q: "Wofür gibt es ⚔️ Sessionehre?",
-        a: <>Arena-Kämpfe verteilen Ehre um: Sieger gewinnt ca. +50 %, Verlierer verliert ca. 20 % vom Battle-XP. Kann nicht negativ werden (Floor bei 0). Wird saisonweise betrachtet — prestige-relevant, aber beeinflusst <B>nicht</B> deine Wegemünzen oder den Rang.</>,
-      },
-      {
-        q: "Gibt es Wegemünzen für alte Straßen, die ich nochmal laufe?",
-        a: <>Ja — aber gedrosselt, damit niemand farmt. 24 h nach dem ersten Claim: 0 (Cooldown). 1–7 Tage: 30 % des normalen Werts. 7–30 Tage: 60 %. Nach 30 Tagen: voller Wert wieder. Wird dir im Lauf-Summary transparent angezeigt.</>,
-      },
-      {
-        q: "Wie steige ich im Rang auf?",
-        a: <>Rang richtet sich nach Gesamt-🪙 Wegemünzen. Vom <B>Straßen-Scout</B> (0) bis zum <B color="#FFD700">Straßen-Gott</B> (250.000) gibt es 10 Ränge mit eigenen Farben, Mottos und Rewards.</>,
-      },
-    ],
-  },
-  {
-    id: "crew-territorien",
-    icon: "👥",
-    title: "Crew & Gebiete",
-    color: "#FF2D78",
-    items: [
-      {
-        q: "Wie gründe ich eine Crew?",
-        a: <>Tab „Crew" → „Crew gründen". Du brauchst einen Namen, eine Farbe und eine PLZ als Revier. Crew-Mitglieder können dann gemeinsam Gebiete erobern und verteidigen.</>,
-      },
-      {
-        q: "Kann ein Gebiet gestohlen werden?",
-        a: <>Ja. Wenn eine feindliche Crew den Ring nachläuft und dabei mehr als 50 % der Segmente neu claimt, wechselt das Gebiet die Farbe. Die alte Crew bekommt eine Benachrichtigung — Revanche ist möglich. Steal-Bonus: 1.5× Wegemünzen für den Räuber.</>,
-      },
-      {
-        q: "Was passiert wenn meine Crew inaktiv ist?",
-        a: <>Gebiete verfallen nach 30 Tagen ohne Aktivität auf „unbeansprucht" und können von anderen Crews zurückerobert werden. Ein einzelner Crew-Lauf pro Woche reicht, um das Revier zu halten.</>,
-      },
-    ],
-  },
-  {
-    id: "waechter",
-    icon: "🛡️",
-    title: "Wächter",
-    color: "#a855f7",
-    items: [
-      {
-        q: "Was sind Wächter?",
-        a: <>Dein persönlicher Gefährte mit eigenem Level, Klasse (Infanterie/Kavallerie/Scharfschütze/Magier) und einzigartiger Fähigkeit. Je mehr du läufst, desto stärker wird er.</>,
-      },
-      {
-        q: "Wie bekomme ich neue Wächter?",
-        a: <>Über Beschwörungssteine (alle 10 km gelaufen +1 Stein), Arena-Siege, Shop, oder durch Loot im Gebiet. Sammle sie alle — es gibt 30+ Archetypen in 4 Raritäten.</>,
-      },
-      {
-        q: "Kampfarena — wie funktioniert das?",
-        a: <>1v1 Wächter-Kämpfe gegen andere Runner. 5 Gratis-Kämpfe pro Tag, weitere gegen Diamanten. Gewinn = Siegel + Ausrüstung + Wächter-XP + ⚔️ Sessionehre. Verlust = leichter Sessionehre-Abzug (Floor 0), nichts wird zerstört.</>,
-      },
-    ],
-  },
-  {
-    id: "shop",
-    icon: "💎",
-    title: "Shop & Diamanten",
-    color: "#5ddaf0",
-    items: [
-      {
-        q: "Brauche ich zu bezahlen, um gut zu sein?",
-        a: <>Nein. Alle Gameplay-relevanten Inhalte (Wächter, Gebiete, Ränge) sind komplett spielbar ohne Echtgeld. Der Shop bietet nur Komfort (Streak-Freezes), Kosmetik (Map-Icons, Runner-Lights) und Zeit-Boosts.</>,
-      },
-      {
-        q: "Was sind die Tagesangebote?",
-        a: <>Täglich 3 individuelle Deals (Bronze/Silber/Gold) + optional 1 Super-Bundle. Jedes Pack 1× pro Tag kaufbar. Reset um 00:00.</>,
-      },
-      {
-        q: "Was bringt MyArea+?",
-        a: <>Premium-Abo mit Streak-Freeze-Vorrat, Wegemünzen-Boost, Shop-Rabatt und exklusiven Map-Themes. Kündbar monatlich.</>,
-      },
-    ],
-  },
-  {
-    id: "sonstiges",
-    icon: "❓",
-    title: "Sonstiges",
-    color: "#8B8FA3",
-    items: [
-      {
-        q: "Läuft MyArea365 im Hintergrund?",
-        a: <>Ja, solange der Browser offen ist und GPS-Berechtigung gegeben wurde. Für Dauer-Tracking empfehlen wir die kommende Mobile-App.</>,
-      },
-      {
-        q: "Was ist mit meinen Daten?",
-        a: <>Wir speichern nur den Minimalsatz (Strecken, Währungsstände, Profil). Keine Weitergabe. Vollständige DSGVO-Info im Datenschutz-Link im Profil-Footer.</>,
-      },
-      {
-        q: "Ich habe einen Bug / Vorschlag gefunden",
-        a: <>Profil → Menü → 🎫 Support. Wir antworten meistens binnen 48 h.</>,
-      },
-    ],
-  },
+const SECTION_DEFS: { id: string; key: string; icon: string; color: string; itemCount: number }[] = [
+  { id: "erste-schritte",  key: "ersteSchritte",   icon: "🚀", color: "#5ddaf0", itemCount: 6 },
+  { id: "grundlagen",      key: "grundlagen",      icon: "🏃", color: "#22D1C3", itemCount: 4 },
+  { id: "waehrungen",      key: "waehrungen",      icon: "💰", color: "#FFD700", itemCount: 6 },
+  { id: "crew-territorien",key: "crewTerritorien", icon: "👥", color: "#FF2D78", itemCount: 3 },
+  { id: "waechter",        key: "waechter",        icon: "🛡️", color: "#a855f7", itemCount: 3 },
+  { id: "shop",            key: "shop",            icon: "💎", color: "#5ddaf0", itemCount: 3 },
+  { id: "sonstiges",       key: "sonstiges",       icon: "❓", color: "#8B8FA3", itemCount: 3 },
 ];
 
 export function FaqModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("Faq");
   const [openSection, setOpenSection] = useState<string>("erste-schritte");
   const [openItem, setOpenItem] = useState<string | null>("erste-schritte:0");
+
+  const sections = useMemo<FaqSection[]>(() => {
+    return SECTION_DEFS.map((def) => ({
+      id: def.id,
+      icon: def.icon,
+      color: def.color,
+      title: t(`Sections.${def.key}.title`),
+      items: Array.from({ length: def.itemCount }, (_, i) => ({
+        q: t(`Sections.${def.key}.q${i + 1}`),
+        a: t.rich(`Sections.${def.key}.a${i + 1}`, richTags),
+      })),
+    }));
+  }, [t]);
 
   return (
     <div onClick={onClose} style={{
@@ -234,8 +71,8 @@ export function FaqModal({ onClose }: { onClose: () => void }) {
             fontSize: 22,
           }}>❓</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>HILFE & FAQ</div>
-            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 1 }}>Wie spiele ich MyArea365?</div>
+            <div style={{ fontSize: 9, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>{t("header")}</div>
+            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 1 }}>{t("subtitle")}</div>
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: "50%",
@@ -245,7 +82,7 @@ export function FaqModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div style={{ padding: 16 }}>
-          {SECTIONS.map((sec) => {
+          {sections.map((sec) => {
             const open = openSection === sec.id;
             return (
               <div key={sec.id} style={{ marginBottom: 8 }}>

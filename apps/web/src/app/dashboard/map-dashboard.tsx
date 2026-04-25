@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
@@ -193,6 +194,9 @@ const ACCENT = "#FF2D78";
 export function MapDashboard({ profile: initialProfile }: { profile: Profile | null }) {
   const router = useRouter();
   const supabase = createClient();
+  const tPre = useTranslations("Popups.PreWalk");
+  const tDrop = useTranslations("Popups.SupplyDrop");
+  const tStreak = useTranslations("Popups.StreakSave");
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
@@ -600,7 +604,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const cur = (u?.wegemuenzen ?? u?.xp ?? 0) as number;
       await supabase.from("users").update({ wegemuenzen: cur + xp, xp: cur + xp }).eq("id", profile.id);
       setProfile({ ...profile, wegemuenzen: cur + xp, xp: cur + xp });
-      appAlert("🎁 +250 🪙 Starter-Bonus kassiert! Los geht's.");
+      appAlert(tPre("claimedAlert"));
     } catch { /* noop */ }
     setPreWalkModal(null);
     startWalk();
@@ -1799,38 +1803,40 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {preWalkModal === "asking" ? (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 6 }}>🎁</div>
-                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Starter-Bonus gefällig?</div>
+                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>{tPre("title")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 13, lineHeight: 1.55, marginBottom: 18 }}>
-                  Optional vor dem Start: ein kurzes Video (~30 Sek) bringt dir <b style={{ color: "#FFD700" }}>+250 🪙</b> on top.<br/>
-                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>Kein Interesse? Einfach <b>Abbrechen</b> — dein Lauf startet sofort ohne Video.</span>
+                  {tPre.rich("subtitle", { b: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}<br/>
+                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>
+                    {tPre.rich("hint", { b: (c) => <b>{c}</b> })}
+                  </span>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={skipPreWalkAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-                    Abbrechen &amp; loslaufen
+                    {tPre("skipButton")}
                   </button>
                   <button onClick={playPreWalkAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg,#FFD700,#FF6B4A)", border: "none", color: "#0F1115", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
-                    📺 Bonus holen
+                    {tPre("watchButton")}
                   </button>
                 </div>
                 <div style={{ color: "#6c7590", fontSize: 10, marginTop: 10 }}>
-                  Dieses Popup kommt max. alle 6 h — MyArea+ Supporter sehen es nie.
+                  {tPre("footer")}
                 </div>
               </div>
             ) : (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 6 }}>📺</div>
-                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Werbung läuft…</div>
+                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{tPre("playingTitle")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
-                  Danach gibt&apos;s <b style={{ color: "#FFD700" }}>+250 🪙 Starter-Bonus</b> und der Lauf startet automatisch.
+                  {tPre.rich("playingSubtitle", { b: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
                 </div>
                 <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
                   <div style={{ width: `${preWalkAdProgress}%`, height: "100%", background: "linear-gradient(90deg,#22D1C3,#FFD700)", transition: "width 0.1s linear" }} />
                 </div>
                 <div style={{ color: "#22D1C3", fontSize: 11, fontWeight: 800, marginBottom: 14 }}>
-                  {Math.ceil((100 - preWalkAdProgress) * 0.3)} Sekunden verbleibend
+                  {tPre("secondsLeft", { seconds: Math.ceil((100 - preWalkAdProgress) * 0.3) })}
                 </div>
                 <button onClick={skipPreWalkAd} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", color: "#a8b4cf", padding: "6px 14px", borderRadius: 8, fontSize: 11, cursor: "pointer" }}>
-                  Abbrechen (kein Bonus)
+                  {tPre("skipDuringPlaying")}
                 </button>
               </div>
             )}
@@ -1847,32 +1853,32 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {supplyDropModal.phase === "asking" ? (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 6 }}>🎁</div>
-                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Beute-Kiste!</div>
+                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>{tDrop("title")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 13, lineHeight: 1.55, marginBottom: 18 }}>
-                  Direkt einsacken — oder optional ein 30-Sek-Video für den 4× Bonus.<br/>
-                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>Potion-Chance ist in beiden Fällen gleich.</span>
+                  {tDrop("subtitle")}<br/>
+                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>{tDrop("hint")}</span>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={skipSupplyDropAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-                    Einsacken <span style={{ color: "#FFD700" }}>+25 🪙</span>
+                    {tDrop("skipButton")} <span style={{ color: "#FFD700" }}>{tDrop("skipReward")}</span>
                   </button>
                   <button onClick={playSupplyDropAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg,#a855f7,#FFD700)", border: "none", color: "#0F1115", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
-                    📺 Bonus <span>+100 🪙</span>
+                    {tDrop("watchButton")} <span>{tDrop("watchReward")}</span>
                   </button>
                 </div>
               </div>
             ) : (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 6 }}>📺</div>
-                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Werbung läuft…</div>
+                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{tDrop("playingTitle")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
-                  Danach: <b style={{ color: "#FFD700" }}>+100 🪙 + Potion-Roll</b>
+                  {tDrop.rich("playingSubtitle", { b: (c) => <b style={{ color: "#FFD700" }}>{c}</b> })}
                 </div>
                 <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
                   <div style={{ width: `${supplyDropAdProgress}%`, height: "100%", background: "linear-gradient(90deg,#a855f7,#FFD700)", transition: "width 0.1s linear" }} />
                 </div>
                 <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800 }}>
-                  {Math.ceil((100 - supplyDropAdProgress) * 0.3)} Sekunden verbleibend
+                  {tDrop("secondsLeft", { seconds: Math.ceil((100 - supplyDropAdProgress) * 0.3) })}
                 </div>
               </div>
             )}
@@ -1889,32 +1895,32 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {streakSaveModal === "asking" ? (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 6 }}>🔥</div>
-                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>Deine Streak läuft aus!</div>
+                <div style={{ color: "#FFF", fontSize: 20, fontWeight: 900, marginBottom: 4 }}>{tStreak("title")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 13, lineHeight: 1.5, marginBottom: 18 }}>
-                  <b style={{ color: "#FF6B4A" }}>{profile.streak_days}-Tage-Serie</b> ist gefährdet. Schau ein kurzes Video (~30 Sek) und sie läuft weiter — statt bei 0 neu anzufangen.<br/>
-                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>Alle 12 h einmal möglich.</span>
+                  {tStreak.rich("subtitle", { days: profile.streak_days, b: (c) => <b style={{ color: "#FF6B4A" }}>{c}</b> })}<br/>
+                  <span style={{ color: "#8B8FA3", fontSize: 11 }}>{tStreak("hint")}</span>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={skipStreakSaveAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#a8b4cf", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-                    Nein danke
+                    {tStreak("skipButton")}
                   </button>
                   <button onClick={playStreakSaveAd} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, background: "linear-gradient(135deg,#FF6B4A,#FF2D78)", border: "none", color: "#FFF", fontSize: 13, fontWeight: 900, cursor: "pointer" }}>
-                    📺 Streak retten
+                    {tStreak("watchButton")}
                   </button>
                 </div>
               </div>
             ) : (
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 48, marginBottom: 6 }}>📺</div>
-                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Werbung läuft…</div>
+                <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{tStreak("playingTitle")}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 16 }}>
-                  Danach bleibt deine <b style={{ color: "#FF6B4A" }}>{profile.streak_days}-Tage-Streak</b> erhalten.
+                  {tStreak.rich("playingSubtitle", { days: profile.streak_days, b: (c) => <b style={{ color: "#FF6B4A" }}>{c}</b> })}
                 </div>
                 <div style={{ height: 8, background: "rgba(255,255,255,0.1)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
                   <div style={{ width: `${streakSaveAdProgress}%`, height: "100%", background: "linear-gradient(90deg,#FF6B4A,#FF2D78)", transition: "width 0.1s linear" }} />
                 </div>
                 <div style={{ color: "#FF6B4A", fontSize: 11, fontWeight: 800 }}>
-                  {Math.ceil((100 - streakSaveAdProgress) * 0.3)} Sekunden verbleibend
+                  {tStreak("secondsLeft", { seconds: Math.ceil((100 - streakSaveAdProgress) * 0.3) })}
                 </div>
               </div>
             )}

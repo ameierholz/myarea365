@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "@/styles/globals.css";
 import { PrefsBoot } from "@/components/prefs-boot";
 import { ReferralCapture } from "@/components/referral-capture";
@@ -16,50 +16,49 @@ import { CapacitorAuthBridge } from "@/components/capacitor-auth-bridge";
 import { UmpConsent } from "@/components/ump-consent";
 import Script from "next/script";
 
-export const metadata: Metadata = {
-  title: {
-    default: "MyArea365 – Erobere deine Stadt",
-    template: "%s | MyArea365",
-  },
-  description:
-    "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
-  metadataBase: new URL("https://myarea365.de"),
-  alternates: {
-    canonical: "/",
-    languages: {
-      "de-DE": "https://myarea365.de",
-      "x-default": "https://myarea365.de",
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const t = await getTranslations("Metadata");
+  return {
+    title: {
+      default: t("titleDefault"),
+      template: t("titleTemplate"),
     },
-  },
-  applicationName: "MyArea365",
-  keywords: [
-    "Laufen", "Gehen", "Running", "Walking", "Gamification",
-    "Crew", "Kiez", "Straße erobern", "Community", "Fitness",
-    "lokale Shops", "Rabatte",
-  ],
-  authors: [{ name: "MyArea365" }],
-  openGraph: {
-    type: "website",
-    locale: "de_DE",
-    siteName: "MyArea365",
-    url: "https://myarea365.de",
-    title: "MyArea365 – Erobere deine Stadt",
-    description:
-      "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
-    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "MyArea365" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "MyArea365 – Erobere deine Stadt",
-    description: "Gamifizierte Geh- und Lauf-Community. Deine Schritte erobern deinen Kiez.",
-    images: ["/og-default.png"],
-  },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/logo.png",
-  },
-  robots: { index: true, follow: true },
-};
+    description: t("description"),
+    metadataBase: new URL("https://myarea365.de"),
+    alternates: {
+      canonical: "/",
+      languages: {
+        "de-DE": "https://myarea365.de",
+        "en-US": "https://myarea365.de",
+        "x-default": "https://myarea365.de",
+      },
+    },
+    applicationName: "MyArea365",
+    keywords: t("keywords").split(",").map((k) => k.trim()),
+    authors: [{ name: "MyArea365" }],
+    openGraph: {
+      type: "website",
+      locale: locale === "en" ? "en_US" : "de_DE",
+      siteName: "MyArea365",
+      url: "https://myarea365.de",
+      title: t("ogTitle"),
+      description: t("description"),
+      images: [{ url: "/og-default.png", width: 1200, height: 630, alt: t("ogImageAlt") }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("twitterTitle"),
+      description: t("twitterDescription"),
+      images: ["/og-default.png"],
+    },
+    icons: {
+      icon: "/favicon.ico",
+      apple: "/logo.png",
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function RootLayout({
   children,

@@ -58,5 +58,176 @@
   "Language": {
     "title": "Sprache wählen",
     "auto": "Automatisch (Browser)"
+  },
+  "Metadata": {
+    "titleDefault": "MyArea365 – Erobere deine Stadt",
+    "titleTemplate": "%s | MyArea365",
+    "description": "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
+    "ogTitle": "MyArea365 – Erobere deine Stadt",
+    "ogImageAlt": "MyArea365",
+    "twitterTitle": "MyArea365 – Erobere deine Stadt",
+    "twitterDescription": "Gamifizierte Geh- und Lauf-Community. Deine Schritte erobern deinen Kiez.",
+    "keywords": "Laufen, Gehen, Running, Walking, Gamification, Crew, Kiez, Straße erobern, Community, Fitness, lokale Shops, Rabatte"
+  },
+  "Currencies": {
+    "pathCoins": "Wegemünzen",
+    "territoryReputation": "Gebietsruf",
+    "arenaHonor": "Sessionehre",
+    "pathCoinsShort": "🪙",
+    "territoryReputationShort": "🏴",
+    "arenaHonorShort": "⚔️"
+  },
+  "Faq": {
+    "header": "HILFE & FAQ",
+    "subtitle": "Wie spiele ich MyArea365?",
+    "Sections": {
+      "ersteSchritte": {
+        "title": "Erste Schritte",
+        "q1": "Was mache ich direkt nach der Anmeldung?",
+        "a1": "1) Wächter auswählen · 2) Dashboard öffnen · 3) <b>Lauf starten</b> (GPS erlauben) · 4) ein paar Straßen abgehen · 5) erste 🪙 Wegemünzen kassieren. Danach: <b>Crew beitreten</b> für Gebiets-Boni.",
+        "q2": "Wie starte ich einen Lauf?",
+        "a2": "Dashboard → „Lauf starten\"-Button. GPS-Berechtigung erlauben, dann einfach losgehen oder joggen. Jeder neue Straßenabschnitt = 50 🪙, kompletter Straßenzug = +250 🪙 Bonus.",
+        "q3": "Welche Features sind komplett kostenlos?",
+        "a3": "Alles Gameplay-Relevante: Laufen, Ränge, Wächter, Crews, Arena (5 Gratis-Kämpfe/Tag), Missionen, Achievements. Der Shop ist rein optional — Komfort, Kosmetik, Streak-Freezes. <b>Kein Pay-to-Win.</b>",
+        "q4": "Wann lohnt sich eine Crew?",
+        "a4": "Solo: max. 250 🪙 pro Straßenzug. Mit Crew: zusätzlich +500 🪙 pro geschlossenem Gebiet + 🏴 Gebietsruf aus Crew-Wars (5 000 🏴 pro Sieg). Crew-Gründung ist kostenlos.",
+        "q5": "Was ist der Unterschied zwischen Arena und Crew-War?",
+        "a5": "<b>Arena</b> = 1v1 Wächter-Kampf, persönlich, gibt ⚔️ Sessionehre + Loot. <b>Crew-War</b> = dein ganzes Team gegen eine andere Crew, gibt 🏴 Gebietsruf. Beides läuft getrennt und frisst sich nicht gegenseitig.",
+        "q6": "Muss ich Geld ausgeben, um gut zu sein?",
+        "a6": "Nein. Die Top-Plätze in Leaderboards werden durch reale Bewegung erreicht. Echtgeld kauft nur <b>Zeit</b> (Streak-Freeze bei Krankheit), <b>Komfort</b> (Werbefrei via MyArea+) und <b>Style</b> (Runner-Lights, Themes). Wegemünzen-Boosts sind begrenzt und verkürzen, aber ersetzen keine Bewegung."
+      },
+      "grundlagen": {
+        "title": "Grundlagen",
+        "q1": "Wie spiele ich MyArea365?",
+        "a1": "Geh oder jogge durch deine Stadt. Jeder Straßenabschnitt den du abläufst wird auf der Karte markiert und gehört dir. Je mehr du läufst, desto mehr 🪙 <b>Wegemünzen</b> kassierst du und desto höher steigst du im Rang.",
+        "q2": "Was ist der Unterschied zwischen Abschnitt, Straßenzug und Gebiet?",
+        "a2": "<b>Straßenabschnitt</b> = kleinstes Stück Straße zwischen zwei Kreuzungen (50 🪙 Wegemünzen).<br/><b>Straßenzug</b> = eine komplette Straße, wenn du alle ihre Abschnitte hast (+250 🪙 Bonus).<br/><b>Gebiet</b> = das Innere eines geschlossenen Rings aus mehreren Straßenzügen (+500 🪙, nur mit Crew).",
+        "q3": "Wie entsteht ein Gebiet?",
+        "a3": "Wenn sich mehrere Straßenzüge zu einem geschlossenen Polygon (Block, Viereck, Kreis) treffen, markiert MyArea365 das Innere automatisch als Gebiet. Alle Straßen rundherum müssen als komplette Straßenzüge dir oder deiner Crew gehören.",
+        "q4": "Brauche ich eine Crew für Gebiete?",
+        "a4": "Ja. Solo-Runner sehen den geschlossenen Ring zwar grau gestrichelt auf der Karte (Anwartschaft), kassieren den 500-Wegemünzen-Bonus aber erst, sobald sie einer Crew beitreten oder eine gründen. Das macht Crews wertvoll."
+      },
+      "waehrungen": {
+        "title": "Währungen & Ränge",
+        "q1": "Welche Währungen gibt es?",
+        "a1": "Drei getrennte Belohnungsströme, damit eine Arena-Niederlage nicht deine Runner-Progression zerstört:<br/><br/>🪙 <b>Wegemünzen</b> — Laufen, Territory-Claim, Missionen, Shop-XP-Packs.<br/>🏴 <b>Gebietsruf</b> — Crew-War-Sieg, Flaggen-Capture, Crew-Duell, Crew-Challenge.<br/>⚔️ <b>Sessionehre</b> — Arena-Sieg (+) / Arena-Niederlage (−, Floor bei 0).",
+        "q2": "Wofür gibt es 🪙 Wegemünzen?",
+        "a2": "• <b>Neuer Straßenabschnitt</b>: 50 🪙<br/>• <b>Kompletter Straßenzug</b>: +250 🪙 Bonus<br/>• <b>Geschlossenes Gebiet</b> (Crew): +500 🪙<br/>• <b>Tages-/Wochen-Missionen</b>: 200–500 🪙<br/>• <b>Meilensteine</b> (erste 10 km, 30 Tage Streak etc.): extra Bonus",
+        "q3": "Wofür gibt es 🏴 Gebietsruf?",
+        "a3": "• <b>Crew-War gewonnen</b>: 5 000 🏴 an alle aktiven Mitglieder<br/>• <b>Flaggen-Capture gewonnen</b>: 3 000 🏴<br/>• <b>Wochen-Duell gewonnen</b>: 2 000 🏴<br/>• <b>Crew-Challenge abgeschlossen</b>: variabler Reward<br/><br/>Gebietsruf ist persönlich — du trägst ihn auch mit, wenn du die Crew wechselst, aber er wird nur im Crew-Kontext verdient.",
+        "q4": "Wofür gibt es ⚔️ Sessionehre?",
+        "a4": "Arena-Kämpfe verteilen Ehre um: Sieger gewinnt ca. +50 %, Verlierer verliert ca. 20 % vom Battle-XP. Kann nicht negativ werden (Floor bei 0). Wird saisonweise betrachtet — prestige-relevant, aber beeinflusst <b>nicht</b> deine Wegemünzen oder den Rang.",
+        "q5": "Gibt es Wegemünzen für alte Straßen, die ich nochmal laufe?",
+        "a5": "Ja — aber gedrosselt, damit niemand farmt. 24 h nach dem ersten Claim: 0 (Cooldown). 1–7 Tage: 30 % des normalen Werts. 7–30 Tage: 60 %. Nach 30 Tagen: voller Wert wieder. Wird dir im Lauf-Summary transparent angezeigt.",
+        "q6": "Wie steige ich im Rang auf?",
+        "a6": "Rang richtet sich nach Gesamt-🪙 Wegemünzen. Vom <b>Straßen-Scout</b> (0) bis zum <b>Straßen-Gott</b> (250.000) gibt es 10 Ränge mit eigenen Farben, Mottos und Rewards."
+      },
+      "crewTerritorien": {
+        "title": "Crew & Gebiete",
+        "q1": "Wie gründe ich eine Crew?",
+        "a1": "Tab „Crew\" → „Crew gründen\". Du brauchst einen Namen, eine Farbe und eine PLZ als Revier. Crew-Mitglieder können dann gemeinsam Gebiete erobern und verteidigen.",
+        "q2": "Kann ein Gebiet gestohlen werden?",
+        "a2": "Ja. Wenn eine feindliche Crew den Ring nachläuft und dabei mehr als 50 % der Segmente neu claimt, wechselt das Gebiet die Farbe. Die alte Crew bekommt eine Benachrichtigung — Revanche ist möglich. Steal-Bonus: 1.5× Wegemünzen für den Räuber.",
+        "q3": "Was passiert wenn meine Crew inaktiv ist?",
+        "a3": "Gebiete verfallen nach 30 Tagen ohne Aktivität auf „unbeansprucht\" und können von anderen Crews zurückerobert werden. Ein einzelner Crew-Lauf pro Woche reicht, um das Revier zu halten."
+      },
+      "waechter": {
+        "title": "Wächter",
+        "q1": "Was sind Wächter?",
+        "a1": "Dein persönlicher Gefährte mit eigenem Level, Klasse (Infanterie/Kavallerie/Scharfschütze/Magier) und einzigartiger Fähigkeit. Je mehr du läufst, desto stärker wird er.",
+        "q2": "Wie bekomme ich neue Wächter?",
+        "a2": "Über Beschwörungssteine (alle 10 km gelaufen +1 Stein), Arena-Siege, Shop, oder durch Loot im Gebiet. Sammle sie alle — es gibt 30+ Archetypen in 4 Raritäten.",
+        "q3": "Kampfarena — wie funktioniert das?",
+        "a3": "1v1 Wächter-Kämpfe gegen andere Runner. 5 Gratis-Kämpfe pro Tag, weitere gegen Diamanten. Gewinn = Siegel + Ausrüstung + Wächter-XP + ⚔️ Sessionehre. Verlust = leichter Sessionehre-Abzug (Floor 0), nichts wird zerstört."
+      },
+      "shop": {
+        "title": "Shop & Diamanten",
+        "q1": "Brauche ich zu bezahlen, um gut zu sein?",
+        "a1": "Nein. Alle Gameplay-relevanten Inhalte (Wächter, Gebiete, Ränge) sind komplett spielbar ohne Echtgeld. Der Shop bietet nur Komfort (Streak-Freezes), Kosmetik (Map-Icons, Runner-Lights) und Zeit-Boosts.",
+        "q2": "Was sind die Tagesangebote?",
+        "a2": "Täglich 3 individuelle Deals (Bronze/Silber/Gold) + optional 1 Super-Bundle. Jedes Pack 1× pro Tag kaufbar. Reset um 00:00.",
+        "q3": "Was bringt MyArea+?",
+        "a3": "Premium-Abo mit Streak-Freeze-Vorrat, Wegemünzen-Boost, Shop-Rabatt und exklusiven Map-Themes. Kündbar monatlich."
+      },
+      "sonstiges": {
+        "title": "Sonstiges",
+        "q1": "Läuft MyArea365 im Hintergrund?",
+        "a1": "Ja, solange der Browser offen ist und GPS-Berechtigung gegeben wurde. Für Dauer-Tracking empfehlen wir die kommende Mobile-App.",
+        "q2": "Was ist mit meinen Daten?",
+        "a2": "Wir speichern nur den Minimalsatz (Strecken, Währungsstände, Profil). Keine Weitergabe. Vollständige DSGVO-Info im Datenschutz-Link im Profil-Footer.",
+        "q3": "Ich habe einen Bug / Vorschlag gefunden",
+        "a3": "Profil → Menü → 🎫 Support. Wir antworten meistens binnen 48 h."
+      }
+    }
+  },
+  "Onboarding": {
+    "header": "WILLKOMMEN BEI MYAREA365",
+    "back": "← Zurück",
+    "next": "Weiter →",
+    "finish": "Los geht's! 🏃",
+    "labelSegment": "1 ABSCHNITT",
+    "labelStreet": "KOMPLETTER STRASSENZUG",
+    "labelTerritory": "GESCHLOSSENES GEBIET",
+    "firstWeekLaufLabel": "Lauf",
+    "firstWeekCrewLabel": "Crew",
+    "firstWeekArenaLabel": "Arena",
+    "firstWeekShopLabel": "Shop",
+    "Slide1": {
+      "title": "1. Straßenabschnitt",
+      "xp": "+50 🪙",
+      "body": "Der kleinste Baustein: ein einzelnes Straßenstück zwischen zwei Kreuzungen. Jeder Abschnitt den du als Erster abläufst, gehört dir — und bringt 50 Wegemünzen."
+    },
+    "Slide2": {
+      "title": "2. Straßenzug",
+      "xp": "+250 🪙 Bonus",
+      "body": "Hast du ALLE Abschnitte einer Straße gesammelt, wird sie als kompletter Straßenzug für dich freigeschaltet — plus einem satten 250-Wegemünzen-Bonus obendrauf."
+    },
+    "Slide3": {
+      "title": "3. Gebiet (Crew-Sache)",
+      "xp": "+500 🪙",
+      "body": "Wenn sich mehrere Straßenzüge zu einem geschlossenen Ring treffen (Block, Viereck, Kreis), wird das Innere zum Gebiet. Wichtig: Gebiete sind Crew-Gebiet. Bist du Mitglied, kassierst du 500 Wegemünzen. Solo kannst du den Ring zwar sichtbar machen — der Loot geht aber erst los, sobald du einer Crew beitrittst."
+    },
+    "Slide4": {
+      "title": "4. Deine erste Woche",
+      "xp": "Alles kostenlos spielbar",
+      "body": "🏃 Lauf starten: GPS tracken, Straßen claimen, 🪙 Wegemünzen kassieren. 👥 Crew gründen/beitreten: +500 🪙 pro Gebiet & 🏴 Gebietsruf durch Crew-Wars. ⚔️ Arena: 5 Gratis-Kämpfe/Tag, Sieg bringt ⚔️ Sessionehre + Loot. 💎 Shop: mit Wegemünzen oder optional mit Echtgeld (Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win)."
+    }
+  },
+  "Popups": {
+    "PreWalk": {
+      "title": "Starter-Bonus gefällig?",
+      "subtitle": "Optional vor dem Start: ein kurzes Video (~30 Sek) bringt dir <b>+250 🪙</b> on top.",
+      "hint": "Kein Interesse? Einfach <b>Abbrechen</b> — dein Lauf startet sofort ohne Video.",
+      "skipButton": "Abbrechen & loslaufen",
+      "watchButton": "📺 Bonus holen",
+      "footer": "Dieses Popup kommt max. alle 6 h — MyArea+ Supporter sehen es nie.",
+      "playingTitle": "Werbung läuft…",
+      "playingSubtitle": "Danach gibt's <b>+250 🪙 Starter-Bonus</b> und der Lauf startet automatisch.",
+      "secondsLeft": "{seconds} Sekunden verbleibend",
+      "skipDuringPlaying": "Abbrechen (kein Bonus)",
+      "claimedAlert": "🎁 +250 🪙 Starter-Bonus kassiert! Los geht's."
+    },
+    "SupplyDrop": {
+      "title": "Beute-Kiste!",
+      "subtitle": "Direkt einsacken — oder optional ein 30-Sek-Video für den 4× Bonus.",
+      "hint": "Potion-Chance ist in beiden Fällen gleich.",
+      "skipButton": "Einsacken",
+      "skipReward": "+25 🪙",
+      "watchButton": "📺 Bonus",
+      "watchReward": "+100 🪙",
+      "playingTitle": "Werbung läuft…",
+      "playingSubtitle": "Danach: <b>+100 🪙 + Potion-Roll</b>",
+      "secondsLeft": "{seconds} Sekunden verbleibend"
+    },
+    "StreakSave": {
+      "title": "Deine Streak läuft aus!",
+      "subtitle": "<b>{days}-Tage-Serie</b> ist gefährdet. Schau ein kurzes Video (~30 Sek) und sie läuft weiter — statt bei 0 neu anzufangen.",
+      "hint": "Alle 12 h einmal möglich.",
+      "skipButton": "Nein danke",
+      "watchButton": "📺 Streak retten",
+      "playingTitle": "Werbung läuft…",
+      "playingSubtitle": "Danach bleibt deine <b>{days}-Tage-Streak</b> erhalten.",
+      "secondsLeft": "{seconds} Sekunden verbleibend"
+    }
   }
 }
