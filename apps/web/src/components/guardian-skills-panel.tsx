@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   SKILL_SLOT_META, SIEGEL_META, skillUpgradeCost, siegelForType,
   type ArchetypeSkill, type GuardianSkillLevel, type GuardianType, type UserSiegel,
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export function GuardianSkillsPanel(props: Props) {
+  const t = useTranslations("GuardianSkills");
   const { skills, skillLevels, guardianType, siegel, onUpgrade } = props;
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -43,7 +45,6 @@ export function GuardianSkillsPanel(props: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {/* Siegel-Stand */}
       <div style={{
         display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 10,
         background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,255,255,0.08)",
@@ -51,18 +52,17 @@ export function GuardianSkillsPanel(props: Props) {
         <div style={{ fontSize: 20 }}>{siegelMeta?.icon ?? "🔒"}</div>
         <div style={{ flex: 1 }}>
           <div style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>
-            {siegelMeta?.label ?? "Kein Typ"}
+            {siegelMeta?.label ?? t("noType")}
           </div>
           <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{availableSiegel}</div>
         </div>
         <div style={{ fontSize: 20 }}>{SIEGEL_META.universal.icon}</div>
         <div>
-          <div style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>UNIVERSAL</div>
+          <div style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>{t("universal")}</div>
           <div style={{ color: "#FFD700", fontSize: 16, fontWeight: 900 }}>{siegel?.siegel_universal ?? 0}</div>
         </div>
       </div>
 
-      {/* Skills */}
       {sorted.map((s) => {
         const level = levelMap.get(s.id) ?? 0;
         const maxed = level >= 5;
@@ -90,7 +90,6 @@ export function GuardianSkillsPanel(props: Props) {
             </div>
             <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{s.description}</div>
 
-            {/* Live-Effekt-Anzeige: aktueller Wert + Vorschau naechste Stufe */}
             {(() => {
               const base = Number(s.base_value ?? 0);
               const perLvl = Number(s.per_level_value ?? 0);
@@ -104,14 +103,14 @@ export function GuardianSkillsPanel(props: Props) {
                   background: "rgba(34,209,195,0.07)", border: "1px solid rgba(34,209,195,0.18)",
                   display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap",
                 }}>
-                  <span style={{ color: "#8B8FA3", fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>AKTUELL</span>
+                  <span style={{ color: "#8B8FA3", fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>{t("current")}</span>
                   <span style={{ color: level > 0 ? "#22D1C3" : "#6c7590", fontSize: 13, fontWeight: 900 }}>
                     {level > 0 ? fmt(currentEffect) : "—"}
                   </span>
                   {nextEffect !== null && (
                     <>
                       <span style={{ color: "#6c7590", fontSize: 11 }}>→</span>
-                      <span style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>STUFE {level + 1}</span>
+                      <span style={{ color: "#a8b4cf", fontSize: 9, fontWeight: 800, letterSpacing: 0.5 }}>{t("level", { n: level + 1 })}</span>
                       <span style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>
                         {fmt(nextEffect)} <span style={{ color: "#4ade80", fontSize: 10 }}>(+{fmt(nextEffect - currentEffect)})</span>
                       </span>
@@ -123,11 +122,10 @@ export function GuardianSkillsPanel(props: Props) {
 
             {s.rage_cost > 0 && (
               <div style={{ color: "#FF6B4A", fontSize: 10, marginTop: 4, fontWeight: 800 }}>
-                ⚡ Rage-Kosten: {s.rage_cost}
+                {t("rageCost", { n: s.rage_cost })}
               </div>
             )}
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-              {/* Progress */}
               <div style={{ flex: 1, height: 5, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
                 <div style={{
                   width: `${(level / 5) * 100}%`, height: "100%",
@@ -146,14 +144,14 @@ export function GuardianSkillsPanel(props: Props) {
                   whiteSpace: "nowrap",
                 }}
               >
-                {maxed ? "MAX"
-                  : locked ? "🔒 Expertise"
-                  : `+1 · ${cost}${siegelMeta?.icon ?? "⚡"}`}
+                {maxed ? t("max")
+                  : locked ? t("lockedExpertise")
+                  : t("upgradeBtn", { cost, icon: siegelMeta?.icon ?? "⚡" })}
               </button>
             </div>
             {!canAfford && !maxed && !locked && (
               <div style={{ color: "#FF2D78", fontSize: 10, marginTop: 4 }}>
-                Nicht genug Siegel ({availableSiegel}/{cost})
+                {t("notEnoughSiegel", { have: availableSiegel, need: cost })}
               </div>
             )}
           </div>

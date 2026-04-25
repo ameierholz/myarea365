@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BRANCH_META, type TalentBranch, type TalentNode, type GuardianTalent } from "@/lib/guardian";
 
 type Props = {
@@ -12,7 +13,10 @@ type Props = {
   onRespec: () => Promise<void>;
 };
 
+type TT = ReturnType<typeof useTranslations<"GuardianTalents">>;
+
 export function GuardianTalentTree(props: Props) {
+  const t = useTranslations("GuardianTalents");
   const { nodes, talents, pointsAvailable, onSpend, onRespec } = props;
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -25,7 +29,7 @@ export function GuardianTalentTree(props: Props) {
 
   const rankByNode = useMemo(() => {
     const m = new Map<string, number>();
-    for (const t of talents) m.set(t.node_id, t.rank);
+    for (const tn of talents) m.set(tn.node_id, tn.rank);
     return m;
   }, [talents]);
 
@@ -37,7 +41,6 @@ export function GuardianTalentTree(props: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Header */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: 10, borderRadius: 10,
@@ -45,7 +48,7 @@ export function GuardianTalentTree(props: Props) {
         border: "1px solid rgba(34,209,195,0.35)",
       }}>
         <div>
-          <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>TALENTPUNKTE</div>
+          <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{t("pointsHeader")}</div>
           <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>{pointsAvailable}</div>
         </div>
         <button
@@ -55,10 +58,9 @@ export function GuardianTalentTree(props: Props) {
             background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)",
             color: "#FF2D78", fontSize: 11, fontWeight: 900, cursor: "pointer",
           }}
-        >🔄 Respec</button>
+        >{t("respec")}</button>
       </div>
 
-      {/* Branches */}
       {(Object.keys(byBranch) as TalentBranch[]).map((branch) => {
         const meta = BRANCH_META[branch];
         const branchNodes = byBranch[branch];
@@ -105,7 +107,7 @@ export function GuardianTalentTree(props: Props) {
                           display: "inline-block", padding: "1px 6px", borderRadius: 999,
                           background: `${meta.color}18`, border: `1px solid ${meta.color}44`,
                         }}>
-                          Aktiv: {formatTotalEffect(n, rank)}
+                          {t("activePrefix", { effect: formatTotalEffect(t, n, rank) })}
                         </div>
                       )}
                     </div>
@@ -123,7 +125,7 @@ export function GuardianTalentTree(props: Props) {
                           border: "none", fontSize: 10, fontWeight: 900,
                           cursor: canSpend ? "pointer" : "not-allowed",
                         }}
-                      >{maxed ? "MAX" : locked ? "🔒" : "+1"}</button>
+                      >{maxed ? t("max") : locked ? "🔒" : "+1"}</button>
                     </div>
                   </div>
                 );
@@ -136,47 +138,49 @@ export function GuardianTalentTree(props: Props) {
   );
 }
 
-/** Gesamt-Effekt für investierte Ränge berechnen + menschenlesbar formatieren. */
-function formatTotalEffect(n: TalentNode, rank: number): string {
+const EFFECT_KEY_MAP: Record<string, { labelKey: string; pct?: boolean; flat?: boolean }> = {
+  hp_pct:          { labelKey: "lblHp",            pct: true },
+  atk_pct:         { labelKey: "lblAtk",           pct: true },
+  def_pct:         { labelKey: "lblDef",           pct: true },
+  spd_pct:         { labelKey: "lblSpd",           pct: true },
+  crit_pct:        { labelKey: "lblCritChance",    pct: true },
+  crit_dmg:        { labelKey: "lblCritDmg",       pct: true },
+  evade_pct:       { labelKey: "lblEvade",         pct: true },
+  counter_pct:     { labelKey: "lblCounter",       pct: true },
+  thorns_pct:      { labelKey: "lblThorns",        pct: true },
+  heal_on_hit:     { labelKey: "lblHealOnHit",     pct: true },
+  rage_gen:        { labelKey: "lblRageGen",       pct: true },
+  rage_cost:       { labelKey: "lblRageCost",      pct: true },
+  debuff_cleanse:  { labelKey: "lblCleanse",       pct: true },
+  regen_pct:       { labelKey: "lblRegen",         pct: true },
+  skill_dmg:       { labelKey: "lblSkillDmg",      pct: true },
+  dot_dmg:         { labelKey: "lblDotDmg",        pct: true },
+  dmg_reduction:   { labelKey: "lblDmgReduction",  pct: true },
+  stun_resist:     { labelKey: "lblStunResist",    pct: true },
+  r1_atk_pct:      { labelKey: "lblR1Atk",         pct: true },
+  pen_pct:         { labelKey: "lblPen",           pct: true },
+  late_atk:        { labelKey: "lblLateAtk",       pct: true },
+  vs_weak:         { labelKey: "lblVsWeak",        pct: true },
+  vs_full_hp:      { labelKey: "lblVsFullHp",      pct: true },
+  vs_infantry:     { labelKey: "lblVsInfantry",    pct: true },
+  vs_cavalry:      { labelKey: "lblVsCavalry",     pct: true },
+  vs_marksman:     { labelKey: "lblVsMarksman",    pct: true },
+  vs_mage:         { labelKey: "lblVsMage",        pct: true },
+  all_stats_pct:   { labelKey: "lblAllStats",      pct: true },
+  start_rage:      { labelKey: "lblStartRage",     flat: true },
+  berserker_key:   { labelKey: "lblBerserker" },
+  bollwerk_key:    { labelKey: "lblBollwerk" },
+  awaken_key:      { labelKey: "lblAwaken" },
+  symbiose_key:    { labelKey: "lblSymbiose" },
+};
+
+function formatTotalEffect(t: TT, n: TalentNode, rank: number): string {
   const total = n.effect_per_rank * rank;
-  const map: Record<string, { label: string; pct?: boolean; flat?: boolean }> = {
-    hp_pct:          { label: "HP",                    pct: true },
-    atk_pct:         { label: "ATK",                   pct: true },
-    def_pct:         { label: "DEF",                   pct: true },
-    spd_pct:         { label: "SPD",                   pct: true },
-    crit_pct:        { label: "Krit-Chance",           pct: true },
-    crit_dmg:        { label: "Krit-Schaden",          pct: true },
-    evade_pct:       { label: "Ausweichen",            pct: true },
-    counter_pct:     { label: "Konter-Chance",         pct: true },
-    thorns_pct:      { label: "Dornen-Reflektion",     pct: true },
-    heal_on_hit:     { label: "Heilung pro Treffer",   pct: true },
-    rage_gen:        { label: "Rage-Generation",       pct: true },
-    rage_cost:       { label: "Rage-Kosten",           pct: true },
-    debuff_cleanse:  { label: "Debuff-Bannung",        pct: true },
-    regen_pct:       { label: "HP-Regen",              pct: true },
-    skill_dmg:       { label: "Skill-Schaden",         pct: true },
-    dot_dmg:         { label: "DoT-Schaden",           pct: true },
-    dmg_reduction:   { label: "Schadens-Reduktion",    pct: true },
-    stun_resist:     { label: "Stun-Resistenz",        pct: true },
-    r1_atk_pct:      { label: "ATK in Runde 1",        pct: true },
-    pen_pct:         { label: "DEF-Durchbruch",        pct: true },
-    late_atk:        { label: "ATK ab Runde 6",        pct: true },
-    vs_weak:         { label: "Schaden vs. schwache",  pct: true },
-    vs_full_hp:      { label: "Schaden vs. volle HP",  pct: true },
-    vs_infantry:     { label: "Schaden vs. Infanterie",pct: true },
-    vs_cavalry:      { label: "Schaden vs. Kavallerie",pct: true },
-    vs_marksman:     { label: "Schaden vs. Scharfsch.",pct: true },
-    vs_mage:         { label: "Schaden vs. Magier",    pct: true },
-    all_stats_pct:   { label: "alle Stats",            pct: true },
-    start_rage:      { label: "Start-Rage",            flat: true },
-    berserker_key:   { label: "Keystone Berserker" },
-    bollwerk_key:    { label: "Keystone Bollwerk" },
-    awaken_key:      { label: "Keystone Erwachen" },
-    symbiose_key:    { label: "Keystone Symbiose" },
-  };
-  const e = map[n.effect_key];
-  if (!e) return `${total > 0 ? "+" : ""}${total} ${n.effect_key}`;
-  if (e.pct)  return `+${Math.round(total * 1000) / 10}% ${e.label}`;
-  if (e.flat) return `+${total} ${e.label}`;
-  return `${e.label} aktiv`;
+  const e = EFFECT_KEY_MAP[n.effect_key];
+  if (!e) return t("effectFallback", { sign: total > 0 ? "+" : "", total, key: n.effect_key });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const label = t(e.labelKey as any);
+  if (e.pct)  return t("effectPct", { pct: Math.round(total * 1000) / 10, label });
+  if (e.flat) return t("effectFlat", { total, label });
+  return t("effectKeystone", { label });
 }

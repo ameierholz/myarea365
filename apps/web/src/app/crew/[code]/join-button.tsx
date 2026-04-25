@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 const COOKIE = "myarea-pending-crew";
 
 export function CrewJoinButton({ crewId, code, accent }: { crewId: string; code: string; accent: string }) {
+  const t = useTranslations("CrewJoin");
   const router = useRouter();
   const sb = createClient();
   const [pending, start] = useTransition();
@@ -23,7 +25,6 @@ export function CrewJoinButton({ crewId, code, accent }: { crewId: string; code:
       }
       await sb.from("crew_members").upsert({ crew_id: crewId, user_id: user.id, role: "member" });
       await sb.from("users").update({ current_crew_id: crewId }).eq("id", user.id);
-      // Pending-Gebiete upgraden — Solo-Polygone werden jetzt mit Crew und XP aktiviert
       try { await sb.rpc("promote_pending_territories", { p_user_id: user.id }); } catch { /* stumm */ }
       setJoined(true);
       setTimeout(() => router.push("/dashboard"), 1200);
@@ -33,7 +34,7 @@ export function CrewJoinButton({ crewId, code, accent }: { crewId: string; code:
   if (joined) {
     return (
       <div className="w-full p-3 rounded-xl font-bold text-center" style={{ background: accent, color: "#0F1115" }}>
-        ✓ Beigetreten! Leite weiter…
+        {t("joined")}
       </div>
     );
   }
@@ -46,10 +47,10 @@ export function CrewJoinButton({ crewId, code, accent }: { crewId: string; code:
         className="w-full py-3 rounded-xl font-black text-base"
         style={{ background: accent, color: "#0F1115", opacity: pending ? 0.6 : 1 }}
       >
-        {pending ? "…" : "Crew beitreten"}
+        {pending ? "…" : t("btn")}
       </button>
       <Link href="/#start" className="block text-xs text-center text-text-muted hover:text-white">
-        Noch keinen Account? Kostenlos registrieren →
+        {t("noAccount")}
       </Link>
     </div>
   );

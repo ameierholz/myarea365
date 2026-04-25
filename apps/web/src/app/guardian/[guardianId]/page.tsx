@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import { GuardianTalentTree } from "@/components/guardian-talent-tree";
 import { GuardianSkillsPanel } from "@/components/guardian-skills-panel";
@@ -27,6 +28,7 @@ type DetailResponse = {
 type Tab = "overview" | "talents" | "skills";
 
 export default function GuardianDetailPage() {
+  const t = useTranslations("GuardianDetail");
   const params = useParams<{ guardianId: string }>();
   const router = useRouter();
   const [data, setData] = useState<DetailResponse | null>(null);
@@ -35,9 +37,9 @@ export default function GuardianDetailPage() {
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/guardian/detail/${params.guardianId}`);
-    if (!res.ok) { setError("Laden fehlgeschlagen"); return; }
+    if (!res.ok) { setError(t("errorLoad")); return; }
     setData(await res.json());
-  }, [params.guardianId]);
+  }, [params.guardianId, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -51,7 +53,7 @@ export default function GuardianDetailPage() {
   }
 
   if (error) return <div style={{ padding: 20, color: "#FF2D78" }}>{error}</div>;
-  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>Lade Wächter …</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: "center", color: "#a8b4cf" }}>{t("loading")}</div>;
 
   const g = data.guardian;
   const a = g.archetype;
@@ -87,7 +89,7 @@ export default function GuardianDetailPage() {
           <GuardianAvatar archetype={a} size={110} animation="idle" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#a8b4cf", fontSize: 11 }}>Level {g.level} · {g.wins}W / {g.losses}L</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11 }}>{t("levelLine", { level: g.level, wins: g.wins, losses: g.losses })}</div>
           <div style={{ marginTop: 6 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#a8b4cf" }}>
               <span>XP</span><span>{g.xp} / {xpNext}</span>
@@ -107,15 +109,19 @@ export default function GuardianDetailPage() {
 
       {/* Tabs */}
       <div style={{ padding: "0 14px", display: "flex", gap: 6, marginBottom: 10 }}>
-        {(["overview", "talents", "skills"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={{
+        {(["overview", "talents", "skills"] as Tab[]).map((tk) => (
+          <button key={tk} onClick={() => setTab(tk)} style={{
             flex: 1, padding: "8px 4px", borderRadius: 10,
-            background: tab === t ? "#22D1C3" : "rgba(255,255,255,0.06)",
-            color: tab === t ? "#0F1115" : "#a8b4cf",
+            background: tab === tk ? "#22D1C3" : "rgba(255,255,255,0.06)",
+            color: tab === tk ? "#0F1115" : "#a8b4cf",
             border: "none", fontSize: 11, fontWeight: 900, letterSpacing: 1,
             cursor: "pointer",
           }}>
-            {t === "overview" ? "ÜBERSICHT" : t === "talents" ? `TALENTE${g.talent_points_available > 0 ? ` (${g.talent_points_available})` : ""}` : "FÄHIGKEITEN"}
+            {tk === "overview"
+              ? t("tabOverview")
+              : tk === "talents"
+                ? (g.talent_points_available > 0 ? t("tabTalentsWithPoints", { n: g.talent_points_available }) : t("tabTalents"))
+                : t("tabSkills")}
           </button>
         ))}
       </div>
@@ -123,7 +129,7 @@ export default function GuardianDetailPage() {
       <div style={{ padding: "0 14px" }}>
         {tab === "overview" && (
           <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: `1px solid ${rarity.color}44` }}>
-            <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>⚡ SIGNATUR-FÄHIGKEIT</div>
+            <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1.5 }}>{t("signatureKicker")}</div>
             <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900, marginTop: 2 }}>{a.ability_name}</div>
             <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 2 }}>{a.ability_desc}</div>
             {a.lore && (
