@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type Shop = {
   id: string;
@@ -25,34 +26,33 @@ type Shop = {
 
 type DayHours = { day: string; open: string; close: string; closed: boolean };
 
-const DAYS: { key: string; label: string }[] = [
-  { key: "mon", label: "Montag" },
-  { key: "tue", label: "Dienstag" },
-  { key: "wed", label: "Mittwoch" },
-  { key: "thu", label: "Donnerstag" },
-  { key: "fri", label: "Freitag" },
-  { key: "sat", label: "Samstag" },
-  { key: "sun", label: "Sonntag" },
-];
+type SettT = ReturnType<typeof useTranslations<"ShopSettings">>;
+
+const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+type DayKey = typeof DAY_KEYS[number];
+const DAY_LABEL_KEYS: Record<DayKey, "dayMon" | "dayTue" | "dayWed" | "dayThu" | "dayFri" | "daySat" | "daySun"> = {
+  mon: "dayMon", tue: "dayTue", wed: "dayWed", thu: "dayThu", fri: "dayFri", sat: "daySat", sun: "daySun",
+};
 
 import { SHOP_CATEGORY_GROUPS } from "@/lib/shop-categories";
 
-const defaultHours: DayHours[] = DAYS.map((d) => ({
-  day: d.key, open: "09:00", close: "18:00", closed: d.key === "sun",
+const defaultHours: DayHours[] = DAY_KEYS.map((k) => ({
+  day: k, open: "09:00", close: "18:00", closed: k === "sun",
 }));
 
 export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; onBillingClick: () => void }) {
+  const t = useTranslations("ShopSettings");
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedHint, setSavedHint] = useState<string | null>(null);
+  const [hintIsError, setHintIsError] = useState(false);
 
   async function load() {
     setLoading(true);
     try {
       const res = await fetch(`/api/shop/my`, { cache: "no-store" });
       const j = await res.json() as { shops: Shop[] };
-      // Match auf übergebene shopId — fallback: erster Owner-Shop
       const match = j.shops?.find((x) => x.id === shopId);
       setShop(match ?? j.shops?.[0] ?? null);
     } finally {
@@ -61,7 +61,7 @@ export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; 
   }
   useEffect(() => { void load(); }, [shopId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function patch(body: Record<string, unknown>, hint = "Gespeichert") {
+  async function patch(body: Record<string, unknown>, hint?: string) {
     setSaving(true);
     const res = await fetch("/api/shop/profile", {
       method: "PATCH", headers: { "content-type": "application/json" },
@@ -70,16 +70,18 @@ export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; 
     const j = await res.json();
     setSaving(false);
     if (j.ok) {
-      setSavedHint(hint);
+      setHintIsError(false);
+      setSavedHint(hint ?? t("savedDefault"));
       setTimeout(() => setSavedHint(null), 2000);
       void load();
     } else {
-      setSavedHint("Fehler: " + (j.error ?? "unbekannt"));
+      setHintIsError(true);
+      setSavedHint(t("errorPrefix") + (j.error ?? t("errorUnknown")));
     }
   }
 
   if (loading) {
-    return <div style={{ padding: 20, color: "#a8b4cf" }}>Lade Einstellungen…</div>;
+    return <div style={{ padding: 20, color: "#a8b4cf" }}>{t("loading")}</div>;
   }
   if (!shop) {
     return (
@@ -90,17 +92,17 @@ export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; 
       }}>
         <div style={{ fontSize: 40, marginBottom: 10 }}>🏪</div>
         <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF", marginBottom: 6 }}>
-          Du hast noch keinen Shop
+          {t("noShopTitle")}
         </div>
         <div style={{ fontSize: 13, color: "#a8b4cf", marginBottom: 16, lineHeight: 1.5 }}>
-          Trag dein Geschäft kostenlos ein — in max. 48 h ist dein Shop live auf der Karte.
+          {t("noShopBody")}
         </div>
         <Link href="/shop/anmelden" style={{
           display: "inline-block",
           padding: "10px 18px", borderRadius: 10,
           background: "linear-gradient(135deg, #22D1C3, #5ddaf0)",
           color: "#0F1115", fontSize: 13, fontWeight: 900, textDecoration: "none",
-        }}>Shop jetzt eintragen →</Link>
+        }}>{t("noShopCta")}</Link>
       </div>
     );
   }
@@ -112,29 +114,29 @@ export function ShopSettingsPanel({ shopId, onBillingClick }: { shopId: string; 
           position: "sticky", top: 10, zIndex: 10,
           alignSelf: "flex-end",
           padding: "6px 12px", borderRadius: 8,
-          background: savedHint.startsWith("Fehler") ? "rgba(255,45,120,0.2)" : "rgba(74,222,128,0.2)",
-          color: savedHint.startsWith("Fehler") ? "#FF2D78" : "#4ade80",
+          background: hintIsError ? "rgba(255,45,120,0.2)" : "rgba(74,222,128,0.2)",
+          color: hintIsError ? "#FF2D78" : "#4ade80",
           fontSize: 12, fontWeight: 800,
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        }}>{savedHint.startsWith("Fehler") ? "⚠️" : "✓"} {savedHint}</div>
+        }}>{hintIsError ? "⚠️" : "✓"} {savedHint}</div>
       )}
 
-      <ProfileBlock shop={shop} onSave={patch} saving={saving} />
-      <HoursBlock shop={shop} onSave={patch} />
-      <GpsBlock shop={shop} onSave={patch} />
-      <NotificationsBlock shopId={shopId} />
-      <TeamBlock shopId={shopId} />
-      <BillingShortcut onClick={onBillingClick} />
-      <DangerZone shop={shop} onReload={load} onSave={patch} />
+      <ProfileBlock shop={shop} onSave={patch} saving={saving} t={t} />
+      <HoursBlock shop={shop} onSave={patch} t={t} />
+      <GpsBlock shop={shop} onSave={patch} t={t} />
+      <NotificationsBlock shopId={shopId} t={t} />
+      <TeamBlock shopId={shopId} t={t} />
+      <BillingShortcut onClick={onBillingClick} t={t} />
+      <DangerZone shop={shop} onReload={load} onSave={patch} t={t} />
     </div>
   );
 }
 
-/* ═════════ Profil ═════════ */
-function ProfileBlock({ shop, onSave, saving }: {
+function ProfileBlock({ shop, onSave, saving, t }: {
   shop: Shop;
   onSave: (body: Record<string, unknown>, hint?: string) => Promise<void>;
   saving: boolean;
+  t: SettT;
 }) {
   const [form, setForm] = useState({
     name: shop.name ?? "",
@@ -153,18 +155,18 @@ function ProfileBlock({ shop, onSave, saving }: {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    void onSave(form, "Profil gespeichert");
+    void onSave(form, t("savedProfile"));
   }
 
   return (
-    <Block title="🏪 Shop-Profil">
+    <Block title={t("blockProfile")}>
       <form onSubmit={handleSubmit} style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        <Field label="Shop-Name">
+        <Field label={t("fName")}>
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={INP} required />
         </Field>
-        <Field label="Kategorie">
+        <Field label={t("fCategory")}>
           <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} style={INP}>
-            <option value="">Bitte wählen…</option>
+            <option value="">{t("fSelectPh")}</option>
             {SHOP_CATEGORY_GROUPS.map((grp) => (
               <optgroup key={grp.label} label={grp.label}>
                 {grp.items.map((it) => <option key={it} value={it}>{it}</option>)}
@@ -172,67 +174,69 @@ function ProfileBlock({ shop, onSave, saving }: {
             ))}
           </select>
         </Field>
-        <Field label="Kurz-Beschreibung (wird Runnern auf Shop-POI angezeigt)">
+        <Field label={t("fDesc")}>
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={3} maxLength={500} style={INP} />
         </Field>
 
         <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10 }}>
-          <Field label="PLZ">
+          <Field label={t("fZip")}>
             <input value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} style={INP} maxLength={5} />
           </Field>
-          <Field label="Stadt">
+          <Field label={t("fCity")}>
             <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} style={INP} />
           </Field>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 10 }}>
-          <Field label="Bundesland / Kanton">
+          <Field label={t("fState")}>
             <input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} style={INP} />
           </Field>
-          <Field label="Land">
+          <Field label={t("fCountry")}>
             <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} style={INP}>
               <option value="DE">DE</option><option value="AT">AT</option><option value="CH">CH</option>
             </select>
           </Field>
         </div>
 
-        <Field label="Kontakt E-Mail">
+        <Field label={t("fEmail")}>
           <input type="email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} style={INP} />
         </Field>
-        <Field label="Telefon">
+        <Field label={t("fPhone")}>
           <input type="tel" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} style={INP} />
         </Field>
-        <Field label="Website">
+        <Field label={t("fWebsite")}>
           <input type="url" placeholder="https://…" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} style={INP} />
         </Field>
 
         <ImageUpload
-          label="Shop-Logo (quadratisch, min. 256px)"
+          label={t("fLogo")}
           shopId={shop.id}
           kind="logo"
           currentUrl={form.logo_url}
           onUploaded={(url) => setForm({ ...form, logo_url: url })}
+          t={t}
         />
         <ImageUpload
-          label="Cover-Bild (1200×400 empfohlen, optional)"
+          label={t("fCover")}
           shopId={shop.id}
           kind="cover"
           currentUrl={form.cover_url}
           onUploaded={(url) => setForm({ ...form, cover_url: url })}
+          t={t}
         />
 
         <button type="submit" disabled={saving} style={BTN_PRIMARY}>
-          {saving ? "Speichert…" : "Profil speichern"}
+          {saving ? t("saving") : t("btnSaveProfile")}
         </button>
       </form>
     </Block>
   );
 }
 
-/* ═════════ Öffnungszeiten ═════════ */
-function HoursBlock({ shop, onSave }: {
+function HoursBlock({ shop, onSave, t }: {
   shop: Shop;
   onSave: (body: Record<string, unknown>, hint?: string) => Promise<void>;
+  t: SettT;
 }) {
   const [hours, setHours] = useState<DayHours[]>(
     Array.isArray(shop.opening_hours) && shop.opening_hours.length === 7
@@ -245,11 +249,11 @@ function HoursBlock({ shop, onSave }: {
   }
 
   return (
-    <Block title="🕐 Öffnungszeiten">
+    <Block title={t("blockHours")}>
       <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-        {DAYS.map((d, i) => (
-          <div key={d.key} style={{ display: "grid", gridTemplateColumns: "110px 1fr 1fr 90px", gap: 8, alignItems: "center" }}>
-            <div style={{ fontSize: 13, color: "#FFF", fontWeight: 600 }}>{d.label}</div>
+        {DAY_KEYS.map((dk, i) => (
+          <div key={dk} style={{ display: "grid", gridTemplateColumns: "110px 1fr 1fr 90px", gap: 8, alignItems: "center" }}>
+            <div style={{ fontSize: 13, color: "#FFF", fontWeight: 600 }}>{t(DAY_LABEL_KEYS[dk])}</div>
             <input type="time" value={hours[i].open} disabled={hours[i].closed}
               onChange={(e) => update(i, "open", e.target.value)} style={{ ...INP, padding: "7px 10px" }} />
             <input type="time" value={hours[i].close} disabled={hours[i].closed}
@@ -257,23 +261,23 @@ function HoursBlock({ shop, onSave }: {
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#a8b4cf", cursor: "pointer" }}>
               <input type="checkbox" checked={hours[i].closed}
                 onChange={(e) => update(i, "closed", e.target.checked)} />
-              geschlossen
+              {t("closedLabel")}
             </label>
           </div>
         ))}
         <button
-          onClick={() => onSave({ opening_hours: hours }, "Öffnungszeiten gespeichert")}
+          onClick={() => onSave({ opening_hours: hours }, t("savedHours"))}
           style={{ ...BTN_PRIMARY, marginTop: 6 }}
-        >Zeiten speichern</button>
+        >{t("btnSaveHours")}</button>
       </div>
     </Block>
   );
 }
 
-/* ═════════ GPS-Koordinaten ═════════ */
-function GpsBlock({ shop, onSave }: {
+function GpsBlock({ shop, onSave, t }: {
   shop: Shop;
   onSave: (body: Record<string, unknown>, hint?: string) => Promise<void>;
+  t: SettT;
 }) {
   const [lat, setLat] = useState<string>("");
   const [lng, setLng] = useState<string>("");
@@ -285,34 +289,33 @@ function GpsBlock({ shop, onSave }: {
         setLat(p.coords.latitude.toFixed(6));
         setLng(p.coords.longitude.toFixed(6));
       },
-      () => alert("GPS nicht verfügbar. Bitte Koordinaten manuell eingeben."),
+      () => alert(t("alertGpsUnavail")),
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
   function save() {
     const la = Number(lat), ln = Number(lng);
-    if (!isFinite(la) || !isFinite(ln)) { alert("Ungültige Koordinaten."); return; }
-    if (la < -90 || la > 90 || ln < -180 || ln > 180) { alert("Koordinaten außerhalb gültiger Bereiche."); return; }
-    void onSave({ lat: la, lng: ln }, "GPS gespeichert");
+    if (!isFinite(la) || !isFinite(ln)) { alert(t("alertCoordsInvalid")); return; }
+    if (la < -90 || la > 90 || ln < -180 || ln > 180) { alert(t("alertCoordsRange")); return; }
+    void onSave({ lat: la, lng: ln }, t("savedGps"));
   }
 
   return (
-    <Block title="📍 GPS-Standort (wichtig!)">
+    <Block title={t("blockGps")}>
       <div style={{ padding: 16 }}>
         <p style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginTop: 0, marginBottom: 12 }}>
-          Ohne exakte Koordinaten funktioniert die <b style={{ color: "#FFD700" }}>GPS-Auto-Verify</b> beim Einlösen nicht.
-          Runner müssen dann einen 6-stelligen Code bei dir eintippen lassen.
+          {t("gpsBody1")} <b style={{ color: "#FFD700" }}>{t("gpsAutoVerify")}</b> {t("gpsBody2")}
           <br />
-          <b>Tipp:</b> Ruf die Seite im Shop auf und klick „Aktuellen Standort übernehmen".
+          <b>{t("gpsTipLead")}</b>{t("gpsTipBody")}
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <Field label="Breitengrad (lat)">
+          <Field label={t("fLat")}>
             <input type="number" step="any" placeholder="52.4865"
               value={lat} onChange={(e) => setLat(e.target.value)} style={INP} />
           </Field>
-          <Field label="Längengrad (lng)">
+          <Field label={t("fLng")}>
             <input type="number" step="any" placeholder="13.4450"
               value={lng} onChange={(e) => setLng(e.target.value)} style={INP} />
           </Field>
@@ -320,12 +323,12 @@ function GpsBlock({ shop, onSave }: {
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={fromGeolocation} style={BTN_SECONDARY}>
-            📍 Aktuellen Standort übernehmen
+            {t("btnUseGps")}
           </button>
-          <button onClick={save} style={BTN_PRIMARY}>Koordinaten speichern</button>
+          <button onClick={save} style={BTN_PRIMARY}>{t("btnSaveGps")}</button>
           <a href={`https://www.google.com/maps?q=${encodeURIComponent(shop.address ?? "")}`}
             target="_blank" rel="noopener noreferrer" style={{ ...BTN_SECONDARY, textDecoration: "none" }}>
-            🗺️ In Google Maps öffnen
+            {t("btnGoogleMaps")}
           </a>
         </div>
       </div>
@@ -333,14 +336,13 @@ function GpsBlock({ shop, onSave }: {
   );
 }
 
-/* ═════════ Notifications ═════════ */
 type Prefs = {
   email_on_checkin: boolean;
   email_daily_report: boolean;
   email_weekly_summary: boolean;
   kiez_newsletter: boolean;
 };
-function NotificationsBlock({ shopId }: { shopId: string }) {
+function NotificationsBlock({ shopId, t }: { shopId: string; t: SettT }) {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
 
   async function load() {
@@ -360,26 +362,25 @@ function NotificationsBlock({ shopId }: { shopId: string }) {
     });
   }
 
-  if (!prefs) return <Block title="🔔 Benachrichtigungen"><div style={{ padding: 16, color: "#a8b4cf" }}>Lade…</div></Block>;
+  if (!prefs) return <Block title={t("blockNotifications")}><div style={{ padding: 16, color: "#a8b4cf" }}>{t("loadingShort")}</div></Block>;
 
   return (
-    <Block title="🔔 Benachrichtigungen">
+    <Block title={t("blockNotifications")}>
       <div style={{ padding: 8 }}>
-        <Toggle label="E-Mail bei jedem Check-in" value={prefs.email_on_checkin} onChange={() => toggle("email_on_checkin")} />
-        <Toggle label="Täglicher Performance-Report per Mail" value={prefs.email_daily_report} onChange={() => toggle("email_daily_report")} />
-        <Toggle label="Wöchentliches Summary per Mail" value={prefs.email_weekly_summary} onChange={() => toggle("email_weekly_summary")} />
-        <Toggle label="Im monatlichen Kiez-Newsletter erscheinen" value={prefs.kiez_newsletter} onChange={() => toggle("kiez_newsletter")} />
+        <Toggle label={t("notifCheckin")} value={prefs.email_on_checkin} onChange={() => toggle("email_on_checkin")} />
+        <Toggle label={t("notifDaily")} value={prefs.email_daily_report} onChange={() => toggle("email_daily_report")} />
+        <Toggle label={t("notifWeekly")} value={prefs.email_weekly_summary} onChange={() => toggle("email_weekly_summary")} />
+        <Toggle label={t("notifNewsletter")} value={prefs.kiez_newsletter} onChange={() => toggle("kiez_newsletter")} />
       </div>
     </Block>
   );
 }
 
-/* ═════════ Team ═════════ */
 type TeamMember = {
   id: string; email: string; role: string;
   invited_at: string; accepted_at: string | null; user_id: string | null;
 };
-function TeamBlock({ shopId }: { shopId: string }) {
+function TeamBlock({ shopId, t }: { shopId: string; t: SettT }) {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"manager" | "staff">("manager");
@@ -402,36 +403,35 @@ function TeamBlock({ shopId }: { shopId: string }) {
     });
     setBusy(false);
     const j = await res.json();
-    if (!j.ok) { setError(j.error ?? "Fehler"); return; }
+    if (!j.ok) { setError(j.error ?? t("errorGeneric")); return; }
     setEmail("");
     void load();
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Team-Mitglied entfernen?")) return;
+    if (!window.confirm(t("teamConfirmRemove"))) return;
     await fetch(`/api/shop/team?id=${id}`, { method: "DELETE" });
     void load();
   }
 
   return (
-    <Block title="👥 Team-Zugang">
+    <Block title={t("blockTeam")}>
       <div style={{ padding: 16 }}>
         <p style={{ color: "#a8b4cf", fontSize: 12, lineHeight: 1.5, marginTop: 0, marginBottom: 12 }}>
-          Lade Mitarbeiter ein, damit sie Deals pflegen oder Einlösungen ansehen können.
-          Wer noch keinen MyArea365-Account hat, wird bei Anmeldung automatisch verknüpft.
+          {t("teamBody")}
         </p>
 
         <form onSubmit={invite} style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-          <input type="email" required placeholder="mitarbeiter@shop.de"
+          <input type="email" required placeholder={t("teamEmailPh")}
             value={email} onChange={(e) => setEmail(e.target.value)}
             style={{ ...INP, flex: "1 1 180px" }} />
           <select value={role} onChange={(e) => setRole(e.target.value as typeof role)}
             style={{ ...INP, width: 140 }}>
-            <option value="manager">Manager</option>
-            <option value="staff">Staff</option>
+            <option value="manager">{t("teamRoleManager")}</option>
+            <option value="staff">{t("teamRoleStaff")}</option>
           </select>
           <button type="submit" disabled={busy} style={BTN_PRIMARY}>
-            {busy ? "…" : "+ Einladen"}
+            {busy ? "…" : t("teamInviteBtn")}
           </button>
         </form>
 
@@ -439,7 +439,7 @@ function TeamBlock({ shopId }: { shopId: string }) {
 
         {members.length === 0 ? (
           <div style={{ padding: 14, background: "rgba(255,255,255,0.03)", borderRadius: 8, color: "#8B8FA3", fontSize: 12, textAlign: "center" }}>
-            Noch niemand eingeladen.
+            {t("teamEmpty")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -453,13 +453,13 @@ function TeamBlock({ shopId }: { shopId: string }) {
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#FFF" }}>{m.email}</div>
                   <div style={{ fontSize: 10, color: "#8B8FA3" }}>
                     {m.role.toUpperCase()} ·{" "}
-                    {m.accepted_at ? <span style={{ color: "#4ade80" }}>✓ aktiv</span> : <span style={{ color: "#FFD700" }}>⏳ eingeladen</span>}
+                    {m.accepted_at ? <span style={{ color: "#4ade80" }}>{t("teamStatusActive")}</span> : <span style={{ color: "#FFD700" }}>{t("teamStatusInvited")}</span>}
                   </div>
                 </div>
                 <button onClick={() => remove(m.id)} style={{
                   padding: "6px 10px", borderRadius: 6, border: "1px solid rgba(255,45,120,0.4)",
                   background: "transparent", color: "#FF2D78", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                }}>Entfernen</button>
+                }}>{t("teamRemove")}</button>
               </div>
             ))}
           </div>
@@ -469,19 +469,18 @@ function TeamBlock({ shopId }: { shopId: string }) {
   );
 }
 
-/* ═════════ Billing-Shortcut ═════════ */
-function BillingShortcut({ onClick }: { onClick: () => void }) {
+function BillingShortcut({ onClick, t }: { onClick: () => void; t: SettT }) {
   return (
-    <Block title="💳 Abrechnung & Paket">
+    <Block title={t("blockBilling")}>
       <button onClick={onClick} style={{
         width: "100%", padding: 16, textAlign: "left", cursor: "pointer",
         background: "transparent", border: "none", color: "#FFF",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Paket ansehen · Rechnungen · Stripe-Portal</div>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{t("billingTitle")}</div>
           <div style={{ fontSize: 11, color: "#a8b4cf", marginTop: 2 }}>
-            Aktuelles Paket, Add-ons, Rechnungshistorie und Self-Service-Kündigung.
+            {t("billingSub")}
           </div>
         </div>
         <span style={{ color: "#22D1C3", fontSize: 18 }}>›</span>
@@ -490,22 +489,23 @@ function BillingShortcut({ onClick }: { onClick: () => void }) {
   );
 }
 
-/* ═════════ Danger-Zone ═════════ */
-function DangerZone({ shop, onReload, onSave }: {
+function DangerZone({ shop, onReload, onSave, t }: {
   shop: Shop;
   onReload: () => Promise<void>;
   onSave: (body: Record<string, unknown>, hint?: string) => Promise<void>;
+  t: SettT;
 }) {
   const paused = !!shop.paused_at;
+  const deleteKeyword = t("deleteKeyword");
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   async function togglePause() {
-    await onSave({ paused: !paused }, paused ? "Shop aktiviert" : "Shop pausiert");
+    await onSave({ paused: !paused }, paused ? t("savedShopActive") : t("savedShopPaused"));
   }
 
   async function deleteShop() {
-    if (confirmText !== "LÖSCHEN") return;
+    if (confirmText !== deleteKeyword) return;
     setDeleting(true);
     const res = await fetch("/api/shop/delete", {
       method: "POST", headers: { "content-type": "application/json" },
@@ -516,13 +516,13 @@ function DangerZone({ shop, onReload, onSave }: {
     if (j.ok) {
       window.location.href = "/dashboard";
     } else {
-      alert("Fehler: " + (j.error ?? "unbekannt"));
+      alert(t("alertDeleteError") + (j.error ?? t("errorUnknown")));
     }
     await onReload();
   }
 
   return (
-    <Block title="⚠️ Account" danger>
+    <Block title={t("blockAccount")} danger>
       <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
         <Link href="/einstellungen" style={{
           padding: 12, borderRadius: 8,
@@ -530,7 +530,7 @@ function DangerZone({ shop, onReload, onSave }: {
           color: "#FFF", textDecoration: "none", fontSize: 13, fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          <span>🔒 Passwort ändern / Account-Einstellungen</span>
+          <span>{t("accountPasswordLink")}</span>
           <span style={{ color: "#a8b4cf" }}>›</span>
         </Link>
 
@@ -540,17 +540,17 @@ function DangerZone({ shop, onReload, onSave }: {
           border: `1px solid ${paused ? "#FFD700" : "rgba(74,222,128,0.3)"}`,
         }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: paused ? "#FFD700" : "#4ade80", marginBottom: 4 }}>
-            {paused ? "⏸️ Shop ist aktuell pausiert" : "✓ Shop ist live"}
+            {paused ? t("shopPausedTitle") : t("shopLiveTitle")}
           </div>
           <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 10 }}>
-            Pausierte Shops sind für Runner unsichtbar. Deals werden nicht mehr angezeigt. Du kannst jederzeit reaktivieren.
+            {t("pauseBody")}
           </div>
           <button onClick={togglePause} style={{
             padding: "8px 14px", borderRadius: 8, border: "none",
             background: paused ? "#4ade80" : "#FFD700", color: "#0F1115",
             fontSize: 12, fontWeight: 900, cursor: "pointer",
           }}>
-            {paused ? "▶ Shop reaktivieren" : "⏸ Shop pausieren"}
+            {paused ? t("pauseReactivate") : t("pausePause")}
           </button>
         </div>
 
@@ -560,21 +560,20 @@ function DangerZone({ shop, onReload, onSave }: {
           border: "1px solid rgba(255,45,120,0.35)",
         }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#FF2D78", marginBottom: 4 }}>
-            🗑️ Shop unwiderruflich löschen
+            {t("deleteTitle")}
           </div>
           <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 10 }}>
-            Alle Deals, Einlösungen, Crew-Stempel und Team-Mitglieder werden mitgelöscht. Keine Wiederherstellung.
-            Tippe <b style={{ color: "#FF2D78" }}>LÖSCHEN</b> in das Feld, um zu bestätigen.
+            {t("deleteBody1")} <b style={{ color: "#FF2D78" }}>{deleteKeyword}</b> {t("deleteBody2")}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="LÖSCHEN" style={{ ...INP, flex: 1 }} />
-            <button onClick={deleteShop} disabled={confirmText !== "LÖSCHEN" || deleting} style={{
+              placeholder={deleteKeyword} style={{ ...INP, flex: 1 }} />
+            <button onClick={deleteShop} disabled={confirmText !== deleteKeyword || deleting} style={{
               padding: "8px 14px", borderRadius: 8, border: "none",
-              background: confirmText === "LÖSCHEN" ? "#FF2D78" : "rgba(255,255,255,0.06)",
-              color: confirmText === "LÖSCHEN" ? "#FFF" : "#6c7590",
-              fontSize: 12, fontWeight: 900, cursor: confirmText === "LÖSCHEN" ? "pointer" : "not-allowed",
-            }}>{deleting ? "Lösche…" : "Löschen"}</button>
+              background: confirmText === deleteKeyword ? "#FF2D78" : "rgba(255,255,255,0.06)",
+              color: confirmText === deleteKeyword ? "#FFF" : "#6c7590",
+              fontSize: 12, fontWeight: 900, cursor: confirmText === deleteKeyword ? "pointer" : "not-allowed",
+            }}>{deleting ? t("deletingBtn") : t("deleteBtn")}</button>
           </div>
         </div>
       </div>
@@ -582,7 +581,6 @@ function DangerZone({ shop, onReload, onSave }: {
   );
 }
 
-/* ═════════ Building-Blocks ═════════ */
 function Block({ title, danger, children }: { title: string; danger?: boolean; children: React.ReactNode }) {
   return (
     <div>
@@ -610,12 +608,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function ImageUpload({ label, shopId, kind, currentUrl, onUploaded }: {
+function ImageUpload({ label, shopId, kind, currentUrl, onUploaded, t }: {
   label: string;
   shopId: string;
   kind: "logo" | "cover";
   currentUrl: string;
   onUploaded: (url: string) => void;
+  t: SettT;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -630,14 +629,14 @@ function ImageUpload({ label, shopId, kind, currentUrl, onUploaded }: {
       const res = await fetch("/api/shop/upload", { method: "POST", body: fd });
       const j = await res.json();
       if (!j.ok) {
-        setError(j.error === "file_too_large" ? "Datei zu groß (max. 5 MB)" :
-                 j.error === "invalid_mime" ? "Nur JPG / PNG / WEBP / GIF erlaubt" :
-                 j.error ?? "Upload fehlgeschlagen");
+        setError(j.error === "file_too_large" ? t("uploadTooLarge") :
+                 j.error === "invalid_mime" ? t("uploadInvalidMime") :
+                 j.error ?? t("uploadFailed"));
         return;
       }
       onUploaded(j.url as string);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Netzwerkfehler");
+      setError(e instanceof Error ? e.message : t("uploadNetworkErr"));
     } finally {
       setUploading(false);
     }
@@ -664,11 +663,11 @@ function ImageUpload({ label, shopId, kind, currentUrl, onUploaded }: {
             border: "1px dashed rgba(255,255,255,0.15)",
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#8B8FA3", fontSize: 10,
-          }}>kein Bild</div>
+          }}>{t("noImage")}</div>
         )}
         <div style={{ flex: 1 }}>
           <label style={{ ...BTN_SECONDARY, display: "inline-block", cursor: uploading ? "wait" : "pointer" }}>
-            {uploading ? "⏳ Lade hoch…" : currentUrl ? "🔁 Ersetzen" : "📤 Hochladen"}
+            {uploading ? t("imgUploading") : currentUrl ? t("imgReplace") : t("imgUpload")}
             <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
               style={{ display: "none" }} />
@@ -678,7 +677,7 @@ function ImageUpload({ label, shopId, kind, currentUrl, onUploaded }: {
               marginLeft: 8, padding: "8px 12px", borderRadius: 8,
               background: "transparent", border: "1px solid rgba(255,45,120,0.3)",
               color: "#FF2D78", fontSize: 11, fontWeight: 700, cursor: "pointer",
-            }}>Entfernen</button>
+            }}>{t("imgRemove")}</button>
           )}
           {error && <div style={{ fontSize: 11, color: "#FF2D78", marginTop: 6 }}>⚠️ {error}</div>}
         </div>
