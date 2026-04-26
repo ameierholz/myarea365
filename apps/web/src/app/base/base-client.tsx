@@ -4,11 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-const BaseScene = dynamic(() => import("@/components/base-3d/base-scene").then((m) => m.BaseScene), {
+const IsoScene = dynamic(() => import("@/components/base-iso/iso-scene").then((m) => m.IsoScene), {
   ssr: false,
   loading: () => (
-    <div className="h-[320px] flex items-center justify-center bg-gradient-to-b from-[#0e1a2c] to-[#0F1115]">
-      <div className="text-center text-[#a8b4cf]"><div className="text-4xl animate-pulse">🏰</div><div className="text-xs mt-2">Lade 3D-Base …</div></div>
+    <div className="h-[480px] flex items-center justify-center bg-gradient-to-b from-[#0e1a2c] to-[#0F1115]">
+      <div className="text-center text-[#a8b4cf]"><div className="text-4xl animate-pulse">🏰</div><div className="text-xs mt-2">Lade Base …</div></div>
     </div>
   ),
 });
@@ -186,7 +186,7 @@ export function BaseClient() {
               CREW-BASE →
             </Link>
           </div>
-          <BaseScene
+          <IsoScene
             variant="solo"
             buildings={buildings.map((b) => ({
               building_id: b.building_id,
@@ -204,7 +204,7 @@ export function BaseClient() {
               }))}
             onSlotTap={(id) => { void build(id); }}
             onBuildingTap={(id) => { void build(id); }}
-            height={320}
+            height={480}
           />
         </section>
 
