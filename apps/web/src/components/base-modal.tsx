@@ -508,7 +508,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
               <div className="rounded-xl bg-[#FFD700]/8 border border-[#FFD700]/30 p-3 flex items-center gap-3">
-                <ResourceIcon kind="speed_token" size={52} fallback="⚡" art={resourceArt} />
+                <ResourceIcon kind="speed_token" size={72} fallback="⚡" art={resourceArt} />
                 <div className="flex-1">
                   <div className="text-[10px] font-black tracking-wider text-[#FFD700]">SPEED-TOKENS</div>
                   <div className="text-lg font-black text-[#FFD700]">{resources.speed_tokens}</div>
@@ -963,9 +963,9 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-[1000] bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+    <div className="fixed inset-0 z-[1000] bg-black/75 backdrop-blur-md flex items-stretch justify-center p-3 sm:p-6"
          onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] flex flex-col min-h-0">{children}</div>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl flex flex-col min-h-0">{children}</div>
     </div>
   );
 }
