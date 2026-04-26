@@ -20,6 +20,7 @@ import { RunRouteModal } from "@/components/run-route-modal";
 import { OwnershipModal } from "@/components/ownership-modal";
 import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
+import { GuardianAvatar } from "@/components/guardian-avatar";
 import { GuardianDetailModal } from "@/components/guardian-detail-modal";
 import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
 import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
@@ -30,6 +31,7 @@ import { GemShopModal } from "@/components/gem-shop-modal";
 import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
+import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
@@ -54,6 +56,7 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
+import { BaseModal } from "@/components/base-modal";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
@@ -103,6 +106,7 @@ import {
   DEMO_NEARBY_CREWS,
   DEMO_CREW_STATS,
   DEMO_RANKING_RUNNERS,
+  getRunnerGuardian,
   groupCrewsByLevel,
   isoForCountry,
   emojiForContinent,
@@ -1048,7 +1052,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     deal_text: string; address: string; hours: string; phone: string; spotlight?: boolean; arena?: boolean;
   }>>([
     // Start: grobe Koordinaten Märkisches Viertel (werden gleich per Geocoding präzisiert)
-    { id: "aaaaaaaa-1111-1111-1111-111111111111",   name: "Café Kaelthor",  lat: 52.5421, lng: 13.5653, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 91, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
+    { id: "aaaaaaaa-1111-1111-1111-111111111111",   name: "Café Kaelthor",  lat: 52.6030378, lng: 13.3535441, icon: "☕", color: "#FFD700", deal_text: "Gratis Cappuccino ab 3 km", address: "Senftenberger Ring 81, 13435 Berlin", hours: "Mo–Fr 07–19, Sa–So 08–18", phone: "030 12345678", spotlight: true },
     { id: "shop-bio-bowl",   name: "Bio-Bowl",       lat: 52.5965, lng: 13.3480, icon: "🥗", color: "#4ade80", deal_text: "Gratis Smoothie zur Bowl", address: "Königshorster Straße 8, 13435 Berlin", hours: "Mo–Sa 11–21, So Ruhetag", phone: "030 98765432" },
     { id: "shop-runners-pt", name: "Runners Point",  lat: 52.5920, lng: 13.3465, icon: "🛍️", color: "#22D1C3", deal_text: "15% auf den Einkauf",       address: "Wilhelmsruher Damm 117, 13439 Berlin", hours: "Mo–Sa 10–20",              phone: "030 55512345" },
   ]);
@@ -1094,6 +1098,93 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   }, []);
 
   const [viewingShop, setViewingShop] = useState<string | null>(null);
+
+  // ── Base-System: Pins auf der Karte + Click-Modal ──
+  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean };
+  const [basePins, setBasePins] = useState<BasePin[]>([]);
+  const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
+  const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
+  const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
+  const [placeBaseMode, setPlaceBaseMode] = useState<null | "runner" | "crew">(null);
+
+  // Theme-Lookup für Pin-Rendering (cache als Map id → { emoji, color })
+  type ThemeMeta = { pin_emoji: string; pin_color: string };
+  const [themeMeta, setThemeMeta] = useState<Map<string, ThemeMeta>>(new Map());
+  useEffect(() => {
+    void (async () => {
+      const r = await fetch("/api/base/me", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json() as {
+        ok: boolean;
+        base: { id: string; lat: number | null; lng: number | null; theme_id: string } | null;
+        themes: Array<{ id: string; pin_emoji: string; pin_color: string }>;
+      };
+      if (j.base) {
+        setOwnBaseId(j.base.id);
+        setOwnBaseHasPos(j.base.lat != null && j.base.lng != null);
+      }
+      const map = new Map<string, ThemeMeta>();
+      (j.themes ?? []).forEach((t) => map.set(t.id, { pin_emoji: t.pin_emoji, pin_color: t.pin_color }));
+      setThemeMeta(map);
+    })();
+  }, []);
+
+  // Nearby-Bases laden (5km bbox um userCenter, alle 30s)
+  useEffect(() => {
+    if (!userCenter) return;
+    let cancelled = false;
+    const load = async () => {
+      const dLat = 0.045;  // ≈ 5 km
+      const dLng = 0.07;
+      const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
+      const r = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
+      if (!r.ok || cancelled) return;
+      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }> };
+      const merged: BasePin[] = [];
+      const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
+      (j.runner ?? []).forEach((b) => {
+        const t = themeMeta.get(b.theme_id) ?? fb;
+        merged.push({ kind: "runner", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, ...t });
+      });
+      (j.crew ?? []).forEach((b) => {
+        const t = themeMeta.get(b.theme_id) ?? fb;
+        merged.push({ kind: "crew", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, ...t });
+      });
+      setBasePins(merged);
+    };
+    void load();
+    const iv = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [userCenter, themeMeta]);
+
+  const onPlaceBaseClick = useCallback(async (lng: number, lat: number, kind: "runner" | "crew") => {
+    const url = kind === "runner" ? "/api/base/position" : "/api/crew/base/position";
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lat, lng }) });
+    setPlaceBaseMode(null);
+    if (r.ok) {
+      if (kind === "runner") setOwnBaseHasPos(true);
+      // refetch pins
+      if (userCenter) {
+        const dLat = 0.045, dLng = 0.07;
+        const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
+        const rr = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
+        if (rr.ok) {
+          const j = await rr.json() as { runner: BasePin[]; crew: BasePin[] };
+          const merged: BasePin[] = [];
+          const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
+          (j.runner ?? []).forEach((b: BasePin & { theme_id?: string }) => {
+            const t = themeMeta.get(b.theme_id ?? "") ?? fb;
+            merged.push({ ...b, kind: "runner", ...t });
+          });
+          (j.crew ?? []).forEach((b: BasePin & { theme_id?: string }) => {
+            const t = themeMeta.get(b.theme_id ?? "") ?? fb;
+            merged.push({ ...b, kind: "crew", ...t });
+          });
+          setBasePins(merged);
+        }
+      }
+    }
+  }, [userCenter, themeMeta]);
 
   // Live-Loot-Drops: demo-spawn alle 90-120s auf zufaelliger Position nahe User
   // Kisten werden auf das Gehwegnetz gesnappt (Mapbox Directions walking-Profile),
@@ -1257,6 +1348,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 // Ad-Gate-Modal öffnen — User entscheidet: direkt oder Video für Extra-Loot
                 setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
+              basePins={basePins}
+              onBasePinTap={(pin) => setBaseModalTarget(pin)}
+              placeBaseMode={placeBaseMode}
+              onPlaceBaseClick={onPlaceBaseClick}
             />
             <LivePaceHud
               distance={distance}
@@ -1347,6 +1442,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
+                  <MapIconButton
+                    icon="🏰"
+                    label={ownBaseHasPos ? "Meine Base" : "Base setzen"}
+                    onClick={() => {
+                      if (ownBaseHasPos && ownBaseId) {
+                        setBaseModalTarget({ kind: "runner", id: ownBaseId, is_own: true });
+                      } else {
+                        setPlaceBaseMode("runner");
+                      }
+                    }}
+                    accent="#22D1C3"
+                  />
+                  {myCrew && (
+                    <MapIconButton
+                      icon="⚔️"
+                      label="Crew-Base"
+                      onClick={() => {
+                        const own = basePins.find((p) => p.kind === "crew" && p.is_own);
+                        if (own) setBaseModalTarget({ kind: "crew", id: own.id, is_own: true });
+                        else setPlaceBaseMode("crew");
+                      }}
+                      accent="#FF6B4A"
+                    />
+                  )}
                   {!walking && process.env.NODE_ENV !== "production" && (
                     <button
                       onClick={clearMap}
@@ -1542,6 +1661,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onLogout={handleLogout}
               onSwitchToMap={() => setActiveTab("map")}
               distance={distance}
+              onOpenBase={(id) => { setActiveTab("map"); setBaseModalTarget({ kind: "runner", id, is_own: true }); }}
+              onPlaceBase={() => { setActiveTab("map"); setPlaceBaseMode("runner"); }}
             />
           </div>
         )}
@@ -1670,6 +1791,32 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             setViewingRunner(username);
           }}
         />
+      )}
+
+      {/* Base-Modal (eigenes oder fremdes Pin) */}
+      {baseModalTarget && (
+        <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
+      )}
+
+      {/* Place-Base Prompt — nur wenn eigene Base noch keine Position hat */}
+      {!ownBaseHasPos && ownBaseId && !placeBaseMode && !baseModalTarget && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[900] px-4 py-3 rounded-2xl bg-[#0F1115]/95 backdrop-blur border-2 border-[#22D1C3] shadow-2xl flex items-center gap-3 max-w-sm">
+          <div className="text-3xl">🏰</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-black text-white">Setze deine Base</div>
+            <div className="text-[10px] text-[#a8b4cf]">Tippe auf der Karte, wo dein Versteck stehen soll.</div>
+          </div>
+          <button onClick={() => setPlaceBaseMode("runner")}
+            className="px-3 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115] text-[11px] font-black">
+            📍 PLATZIEREN
+          </button>
+        </div>
+      )}
+      {placeBaseMode && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[900] px-4 py-2 rounded-full bg-[#22D1C3] text-[#0F1115] text-xs font-black shadow-2xl flex items-center gap-3">
+          <span>👆 Tippe auf der Karte, um deine Base zu setzen</span>
+          <button onClick={() => setPlaceBaseMode(null)} className="opacity-70 hover:opacity-100">✕</button>
+        </div>
       )}
 
       {/* Shop-Detail-Modal */}
@@ -1982,6 +2129,8 @@ function ProfilTab({
   onLogout,
   onSwitchToMap,
   distance,
+  onOpenBase,
+  onPlaceBase,
 }: {
   profile: Profile | null;
   setProfile: (p: Profile) => void;
@@ -2003,10 +2152,44 @@ function ProfilTab({
   onLogout: () => void;
   onSwitchToMap: () => void;
   distance: number;
+  onOpenBase: (baseId: string) => void;
+  onPlaceBase: () => void;
 }) {
   const supabase = createClient();
   const tMD = useTranslations("MapDashboard");
   const tXG = useTranslations("XpGuide");
+
+  // ═══ Base-Banner-State (eigene Base-Daten für Hero-Banner) ═══
+  const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
+  const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
+  const [ownBaseInfo, setOwnBaseInfo] = useState<{ level: number; plz: string; theme_name: string; pin_emoji: string; accent: string; resources: { wood: number; stone: number; gold: number; mana: number; speed_tokens: number }; queue_count: number; chest_count: number } | null>(null);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetch("/api/base/me", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as {
+          base: { id: string; level: number; plz: string; lat: number | null; lng: number | null; theme_id: string } | null;
+          resources: { wood: number; stone: number; gold: number; mana: number; speed_tokens: number };
+          queue: unknown[]; chests: unknown[];
+          themes: Array<{ id: string; name: string; pin_emoji: string; accent_color: string }>;
+        };
+        if (!j.base) return;
+        setOwnBaseId(j.base.id);
+        setOwnBaseHasPos(j.base.lat != null && j.base.lng != null);
+        const t = (j.themes ?? []).find((x) => x.id === j.base!.theme_id);
+        setOwnBaseInfo({
+          level: j.base.level, plz: j.base.plz,
+          theme_name: t?.name ?? "Mittelalter",
+          pin_emoji: t?.pin_emoji ?? "🏰",
+          accent: t?.accent_color ?? "#22D1C3",
+          resources: j.resources ?? { wood: 0, stone: 0, gold: 0, mana: 0, speed_tokens: 0 },
+          queue_count: (j.queue ?? []).length,
+          chest_count: (j.chests ?? []).length,
+        });
+      } catch {}
+    })();
+  }, []);
 
   // ═══ DEMO-OVERLAY ═══
   // Aktiv wenn entweder DEMO_MODE global und Profil leer ODER User hat Demo-Overlay manuell aktiviert
@@ -2063,6 +2246,7 @@ function ProfilTab({
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
   const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support" | "arena" | "faq" | "onboarding">(null);
+  const rankArt = useRankArt();
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [showGemShop, setShowGemShop] = useState(false);
@@ -2301,14 +2485,18 @@ function ProfilTab({
               onClick={() => setOpenModal("ranks")}
               title="🪙 Wegemünzen: deine Runner-Währung. Laufe Straßen (50), Straßenzüge (+250) oder Gebiete mit Crew (+500) und steige im Rang auf. Tippen für alle Ränge."
               style={{
-                paddingLeft: 18, paddingRight: 28, paddingTop: 8, paddingBottom: 8,
-                borderRadius: 22, border: "none",
+                paddingLeft: 6, paddingRight: 28, paddingTop: 4, paddingBottom: 4,
+                borderRadius: 999, border: "none",
                 background: currentRankLive.color,
                 position: "relative", overflow: "hidden", cursor: "pointer",
                 boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
+                display: "inline-flex", alignItems: "center", gap: 8,
               }}
               aria-label="Alle Ränge anzeigen"
             >
+              <span style={{ position: "relative", zIndex: 1 }}>
+                <RankBadge rankId={currentRankLive.id} color={currentRankLive.color} size={32} rankArt={rankArt} />
+              </span>
               <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
                 {currentRankLive.name} · {userXp.toLocaleString()} 🪙
               </span>
@@ -2440,38 +2628,99 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
-        {/* ═══ QUICK ACTIONS — 7 Kacheln: Base · Arena · Deals · Crew · Shop · Shop-Deals · Inbox ═══ */}
+        {/* ═══ QUICK ACTIONS — 6 Kacheln: Arena · Angebote · Crew · Shop · Deals · Inbox ═══ */}
         <div style={{
-          display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 6, marginTop: 14,
+          display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
+          gap: 8, marginTop: 14, width: "100%",
         }}>
           {[
-            { key: "base",       icon: "🏰", label: "Base",       color: "#22D1C3", title: "🏰 Deine 3D-Base: Resourcen aus deinen Läufen, Gebäude bauen, VIP-Tier, Truhen öffnen.", onClick: () => { window.location.href = "/base"; } },
-            { key: "arena",      icon: "⚔️", label: "Arena",      color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
-            { key: "deals",      icon: "🔥", label: "Deals",      color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
-            { key: "crew",       icon: "👥", label: "Crew",       color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
-            { key: "shop",       icon: "💎", label: "Shop",       color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
-            { key: "shop-deals", icon: "🏪", label: "Shop-Deals", color: "#4ade80", title: "🏪 Lokale Angebote: alle Shop-Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => setShowShopDeals(true) },
-            { key: "inbox",      icon: "📬", label: "Inbox",      color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
+            { key: "arena",      icon: "⚔️", label: "Arena",    color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
+            { key: "deals",      icon: "🔥", label: "Angebote", color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
+            { key: "crew",       icon: "👥", label: "Crew",     color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
+            { key: "shop",       icon: "💎", label: "Shop",     color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
+            { key: "shop-deals", icon: "🏪", label: "Deals",    color: "#4ade80", title: "🏪 Lokale Shop-Deals: alle Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => setShowShopDeals(true) },
+            { key: "inbox",      icon: "📬", label: "Inbox",    color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
           ].map((a) => (
             <button key={a.key} onClick={a.onClick} title={a.title} style={{
-              padding: "10px 4px", borderRadius: 12,
+              width: "100%", padding: "12px 6px", borderRadius: 12,
               background: `linear-gradient(135deg, ${a.color}22 0%, rgba(15,17,21,0.7) 100%)`,
               border: `1px solid ${a.color}55`,
               color: "#FFF", cursor: "pointer",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
               boxShadow: `0 2px 10px ${a.color}22`,
               minWidth: 0,
             }}>
-              <span style={{ fontSize: 22, filter: `drop-shadow(0 0 8px ${a.color}88)`, lineHeight: 1 }}>{a.icon}</span>
+              <span style={{ fontSize: 24, filter: `drop-shadow(0 0 8px ${a.color}88)`, lineHeight: 1 }}>{a.icon}</span>
               <span style={{
-                fontSize: 10, fontWeight: 900, color: a.color, letterSpacing: 0.3,
+                fontSize: 11, fontWeight: 900, color: a.color, letterSpacing: 0.3,
                 textAlign: "center", lineHeight: 1.1, maxWidth: "100%",
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>{a.label}</span>
             </button>
           ))}
         </div>
+
+        {/* ═══ DEINE BASE — Banner mit Theme, Resourcen-HUD, Bau-Status ═══ */}
+        {ownBaseInfo && ownBaseId && (
+          <button
+            onClick={() => {
+              if (ownBaseHasPos) onOpenBase(ownBaseId);
+              else onPlaceBase();
+            }}
+            style={{
+              marginTop: 12, width: "100%", padding: 14, borderRadius: 16,
+              background: `linear-gradient(135deg, ${ownBaseInfo.accent}1f 0%, rgba(15,17,21,0.4) 60%, rgba(15,17,21,0.6) 100%)`,
+              border: `1px solid ${ownBaseInfo.accent}55`,
+              display: "flex", alignItems: "center", gap: 12,
+              cursor: "pointer", textAlign: "left",
+              boxShadow: `0 2px 16px ${ownBaseInfo.accent}22`,
+            }}
+            aria-label="Base öffnen"
+          >
+            {/* Theme-Icon */}
+            <div style={{
+              width: 76, height: 84, borderRadius: 12, flexShrink: 0,
+              background: `radial-gradient(circle at 50% 30%, ${ownBaseInfo.accent}55 0%, ${ownBaseInfo.accent}22 45%, rgba(15,17,21,0.55) 100%)`,
+              border: `1px solid ${ownBaseInfo.accent}77`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 0 14px ${ownBaseInfo.accent}44, inset 0 0 18px ${ownBaseInfo.accent}22`,
+              fontSize: 44, lineHeight: 1,
+            }}>{ownBaseInfo.pin_emoji}</div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: ownBaseInfo.accent }}>🏰 DEINE BASE</div>
+              <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {ownBaseInfo.theme_name} · Stufe {ownBaseInfo.level}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap" }}>
+                <span style={{ color: "#a16f32", fontWeight: 800 }}>🪵 {ownBaseInfo.resources.wood.toLocaleString("de-DE")}</span>
+                <span style={{ color: "#8B8FA3", fontWeight: 800 }}>🪨 {ownBaseInfo.resources.stone.toLocaleString("de-DE")}</span>
+                <span style={{ color: "#FFD700", fontWeight: 800 }}>🪙 {ownBaseInfo.resources.gold.toLocaleString("de-DE")}</span>
+                <span style={{ color: "#22D1C3", fontWeight: 800 }}>💧 {ownBaseInfo.resources.mana.toLocaleString("de-DE")}</span>
+                <span style={{ color: "#FFD700", fontWeight: 800 }}>⚡ {ownBaseInfo.resources.speed_tokens}</span>
+              </div>
+              {(ownBaseInfo.queue_count > 0 || ownBaseInfo.chest_count > 0 || !ownBaseHasPos) && (
+                <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 10, fontWeight: 900 }}>
+                  {!ownBaseHasPos && <span style={{ color: "#22D1C3" }}>📍 Noch nicht platziert — Tippen zum Setzen</span>}
+                  {ownBaseInfo.queue_count > 0 && <span style={{ color: "#FF6B4A" }}>🔨 {ownBaseInfo.queue_count} in Bau</span>}
+                  {ownBaseInfo.chest_count > 0 && <span style={{ color: "#FFD700" }}>🗝️ {ownBaseInfo.chest_count} Truhen</span>}
+                </div>
+              )}
+            </div>
+            <span style={{
+              flexShrink: 0,
+              padding: "8px 14px", borderRadius: 10,
+              background: `linear-gradient(135deg, ${ownBaseInfo.accent}, ${ownBaseInfo.accent}cc)`,
+              color: "#0F1115", fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
+              boxShadow: `0 0 14px ${ownBaseInfo.accent}66`,
+              display: "inline-flex", alignItems: "center", gap: 6,
+              whiteSpace: "nowrap",
+            }}>
+              <span>{ownBaseHasPos ? "Öffnen" : "Setzen"}</span>
+              <span style={{ fontSize: 14 }}>›</span>
+            </span>
+          </button>
+        )}
 
         {/* ═══ AKTIVER WÄCHTER — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
         {activeGuardian && activeGuardian.archetype && (
@@ -3076,14 +3325,10 @@ function ProfilTab({
                   boxShadow: current ? `0 0 18px ${r.color}55` : "none",
                   opacity: achieved ? 1 : 0.7,
                 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 18,
-                    background: achieved ? r.color : "rgba(255,255,255,0.1)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 14, fontWeight: 900, color: achieved ? BG_DEEP : MUTED,
-                    flexShrink: 0,
-                    boxShadow: current ? `0 0 10px ${r.color}88` : "none",
-                  }}>{r.id}</div>
+                  <div style={{ filter: achieved ? "none" : "grayscale(0.6) brightness(0.8)" }}>
+                    <RankBadge rankId={r.id} color={r.color} size={48} rankArt={rankArt}
+                      fallbackEmoji="🏅" showNumberOverlay />
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       color: achieved ? "#FFF" : TEXT_SOFT,
@@ -3735,6 +3980,8 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
   myFaction: string;
   onClose: () => void;
 }) {
+  const rankArt = useRankArt();
+  const rId = rankIdByName(runner.rank_name);
   const tMP = useTranslations("MapPanels");
   const locale = useLocale();
   const isEnemy = runner.faction !== myFaction;
@@ -3779,15 +4026,19 @@ function RunnerProfileModal({ runner, myFaction, onClose }: {
         background: "rgba(70, 82, 122, 0.45)",
         border: "1px solid rgba(255,255,255,0.08)",
       }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 12,
-          background: `linear-gradient(135deg, ${runner.rank_color}44, ${runner.rank_color}18)`,
-          border: `1px solid ${runner.rank_color}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: `0 0 14px ${runner.rank_color}55`,
-        }}>
-          <span style={{ fontSize: 22 }}>🏆</span>
-        </div>
+        {rId ? (
+          <RankBadge rankId={rId} color={runner.rank_color} size={56} rankArt={rankArt} fallbackEmoji="🏆" showNumberOverlay />
+        ) : (
+          <div style={{
+            width: 56, height: 56, borderRadius: 12,
+            background: `linear-gradient(135deg, ${runner.rank_color}44, ${runner.rank_color}18)`,
+            border: `1px solid ${runner.rank_color}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 0 14px ${runner.rank_color}55`,
+          }}>
+            <span style={{ fontSize: 22 }}>🏆</span>
+          </div>
+        )}
         <div style={{ flex: 1 }}>
           <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>{tMP("rpRankLabel")}</div>
           <div style={{ color: runner.rank_color, fontSize: 16, fontWeight: 900 }}>
@@ -9539,6 +9790,7 @@ function MiniKpi({ label, value, color }: { label: string; value: string; color:
 
 function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
   const tCrew = useTranslations("Crew");
+  const rankArt = useRankArt();
   const inactive = DEMO_CREW_MEMBERS.filter((m) => m.weekly_km < 5);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -9599,8 +9851,13 @@ function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
               {idx === 0 && <Badge color="#FFD700">{tCrew("memBadgeWeekChamp")}</Badge>}
               {m.weekly_km < 5 && <Badge color="#ef7169">{tCrew("memBadgeInactive")}</Badge>}
             </div>
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-              {m.rank_name} · @{m.username}
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+              {(() => {
+                const rId = rankIdByName(m.rank_name);
+                const rColor = RUNNER_RANKS.find((x) => x.id === rId)?.color ?? color;
+                return rId ? <RankBadge rankId={rId} color={rColor} size={16} rankArt={rankArt} /> : null;
+              })()}
+              <span>{m.rank_name} · @{m.username}</span>
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -11537,9 +11794,31 @@ function FactionDuelView({ items, buckets, scopeLabel }: {
   );
 }
 
+type GuardianArt = { id: string; emoji: string; image_url: string | null; video_url: string | null };
 function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile | null; leaderboard: Profile[]; initialMode?: RankingMode }) {
   const tR = useTranslations("Ranking");
   const [mode, setMode] = useState<RankingMode>(initialMode ?? "runners");
+  const [guardianArt, setGuardianArt] = useState<Record<string, GuardianArt>>({});
+  useEffect(() => {
+    const ids = Array.from(new Set(
+      DEMO_RANKING_RUNNERS.map((r) => getRunnerGuardian(r.id)?.id).filter((x): x is string => !!x),
+    ));
+    if (ids.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/guardian/archetypes-public?ids=${ids.join(",")}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json() as { archetypes?: GuardianArt[] };
+        if (!cancelled && j.archetypes) {
+          const map: Record<string, GuardianArt> = {};
+          for (const a of j.archetypes) map[a.id] = a;
+          setGuardianArt(map);
+        }
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [filters, setFilters] = useState<Partial<Record<GeoLevel, string>>>({});
   const [search, setSearch] = useState("");
   const [leagueFilter, setLeagueFilter] = useState<string | null>(null);
@@ -11939,7 +12218,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
 
           {/* Podium (Top 3) */}
           {mode === "runners" && filteredRunners.length >= 3 && (
-            <PodiumRunners scope={scopeLabel} runners={filteredRunners.slice(0, 3)} myUsername={p?.username || ""} />
+            <PodiumRunners scope={scopeLabel} runners={filteredRunners.slice(0, 3)} myUsername={p?.username || ""} guardianArt={guardianArt} />
           )}
           {mode === "crews" && filteredCrews.length >= 3 && (
             <PodiumCrews scope={scopeLabel} crews={filteredCrews.slice(0, 3)} />
@@ -11961,7 +12240,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {filteredRunners.map((r, i) => (
                   <React.Fragment key={r.id}>
-                    <RunnerRankRow runner={r} rank={i + 1} isMe={r.username === p?.username} sortBy={sortRunner} />
+                    <RunnerRankRow runner={r} rank={i + 1} isMe={r.username === p?.username} sortBy={sortRunner} guardianArt={guardianArt} />
                     {i === 4 && <AdSenseSlot placement="ranking_list" />}
                   </React.Fragment>
                 ))}
@@ -12026,7 +12305,12 @@ function EmptyHint({ onReset }: { onReset: () => void }) {
 }
 
 /* Podium für Top 3 */
-function PodiumRunners({ scope, runners, myUsername }: { scope: string; runners: typeof DEMO_RANKING_RUNNERS; myUsername: string }) {
+function PodiumRunners({ scope, runners, myUsername, guardianArt }: {
+  scope: string;
+  runners: typeof DEMO_RANKING_RUNNERS;
+  myUsername: string;
+  guardianArt: Record<string, GuardianArt>;
+}) {
   const tR = useTranslations("Ranking");
   return (
     <div style={{
@@ -12039,6 +12323,8 @@ function PodiumRunners({ scope, runners, myUsername }: { scope: string; runners:
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {runners.map((r, i) => {
           const isMe = r.username === myUsername;
+          const g = getRunnerGuardian(r.id);
+          const art = g ? guardianArt[g.id] : null;
           return (
             <div key={r.id} style={{
               display: "flex", alignItems: "center", gap: 10,
@@ -12047,7 +12333,18 @@ function PodiumRunners({ scope, runners, myUsername }: { scope: string; runners:
               border: `1px solid ${isMe ? PRIMARY : BORDER}`,
             }}>
               <span style={{ fontSize: 20, width: 26, textAlign: "center" }}>{MEDALS[i]}</span>
-              <span style={{ fontSize: 20 }}>{r.avatar_emoji}</span>
+              {g ? (
+                <div style={{ width: 32, height: 40, flexShrink: 0 }}>
+                  <GuardianAvatar
+                    archetype={{ id: g.id, emoji: art?.emoji ?? r.avatar_emoji, rarity: g.rarity, image_url: art?.image_url ?? null, video_url: art?.video_url ?? null }}
+                    size={32}
+                    animation="idle"
+                    fillMode="contain"
+                  />
+                </div>
+              ) : (
+                <span style={{ fontSize: 20 }}>{r.avatar_emoji}</span>
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
                   {r.display_name} {isMe && <span style={{ color: PRIMARY, fontSize: 10 }}>· Du</span>}
@@ -12109,9 +12406,15 @@ function PodiumCrews({ scope, crews }: { scope: string; crews: NearbyCrew[] }) {
 }
 
 /* Listen-Zeile Runner */
-function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
+function RunnerRankRow({ runner: r, rank, isMe, sortBy, guardianArt }: {
   runner: typeof DEMO_RANKING_RUNNERS[number]; rank: number; isMe: boolean; sortBy: RankingSortRunner;
+  guardianArt: Record<string, GuardianArt>;
 }) {
+  const rankArt = useRankArt();
+  const rId = rankIdByName(r.rank_name);
+  const g = getRunnerGuardian(r.id);
+  const gArt = g ? guardianArt[g.id] : null;
+  const rankColor = RUNNER_RANKS.find((x) => x.id === rId)?.color ?? "#FFD700";
   const primaryValue = sortBy === "weekly_km"
     ? `${r.weekly_km} km`
     : sortBy === "total_xp"
@@ -12131,7 +12434,18 @@ function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
         color: rank <= 3 ? "#FFD700" : rank <= 10 ? "#FFD700cc" : MUTED,
         fontWeight: 900, fontSize: medal ? 18 : 14, width: 34, textAlign: "right",
       }}>{medal ?? `#${rank}`}</span>
-      <span style={{ fontSize: 20 }}>{r.avatar_emoji}</span>
+      {g ? (
+        <div style={{ width: 32, height: 40, flexShrink: 0 }}>
+          <GuardianAvatar
+            archetype={{ id: g.id, emoji: gArt?.emoji ?? r.avatar_emoji, rarity: g.rarity, image_url: gArt?.image_url ?? null, video_url: gArt?.video_url ?? null }}
+            size={32}
+            animation="idle"
+            fillMode="contain"
+          />
+        </div>
+      ) : (
+        <span style={{ fontSize: 20 }}>{r.avatar_emoji}</span>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{r.display_name}</span>
@@ -12140,6 +12454,7 @@ function RunnerRankRow({ runner: r, rank, isMe, sortBy }: {
         </div>
         <div style={{ color: MUTED, fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           <CountryFlag country={r.country} size={18} />
+          {rId && <RankBadge rankId={rId} color={rankColor} size={18} rankArt={rankArt} />}
           <span>{r.city} · {r.rank_name}{r.crew_name ? ` · ${r.crew_name}` : ""}</span>
         </div>
       </div>
@@ -13375,3 +13690,4 @@ function FooterLink({ onClick, children }: { onClick: () => void; children: Reac
     </button>
   );
 }
+

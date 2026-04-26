@@ -1457,7 +1457,22 @@
     "bossTip1": "Talente, Skills, Equipment und Tränke zählen wie in normalen Kämpfen.",
     "bossTip2": "Power-Zone-Buffs addieren sich auf deine Stats.",
     "bossTip3": "HP-Regen pro Runde — hält dich auch bei starken Bossen am Leben.",
-    "bossReward": "Universal-Siegel · Rare/Epic-Items · Crew-XP · Trophäen"
+    "bossReward": "Universal-Siegel · Rare/Epic-Items · Crew-XP · Trophäen",
+
+    "baseTitle": "Deine Base",
+    "baseHook": "Bauen, sammeln, Boni freischalten.",
+    "baseSubtitle": "Dein Heimat-Hub auf der Karte — passive Resourcen + permanente Boni.",
+    "baseStep1": "Base auf der Karte platzieren (einmalig). Tippe „Setzen\" im Banner unter den Quick-Actions.",
+    "baseStep2": "Resourcen sammeln: 🪵 Holz · 🪨 Stein · 🪙 Gold · 💧 Mana — durch Laufen (100/km), Quests, Ads, Crew-Spenden, Schritte oder Pakete.",
+    "baseStep3": "Gebäude bauen & upgraden — jede Stufe gibt einen permanenten %-Bonus oder passive Resource pro Stunde. Mauer & Wachposten erhöhen die Base-HP (Grundwert + Boni).",
+    "baseStep4": "Truppen ausbilden in Kaserne/Stall/Schießstand — Infanterie, Kavallerie, Schützen & Belagerung. Kosten Resourcen + Trainingszeit.",
+    "baseStep5": "Crew-vs-Crew: gegnerische Base scouten → Truppen-Stack schicken → Marsch läuft → Resolve. Sieg = Loot, Niederlage = Truppenverluste. Defender-HP + Mauer-Bonus schützen.",
+    "baseStep6": "Truhen öffnen für Items & Siegel. VIP/Theme freischalten für extra Slot- und Bauzeit-Boni.",
+    "baseTip1": "Bonus-Gebäude an Wasser-/Park-/Shop-km platzieren — sie geben dort Extra-Effekt.",
+    "baseTip2": "Crew-Base = Team-Boni + gemeinsamer Truppen-Pool: jeder Bau hilft allen Mit-Mitgliedern.",
+    "baseTip3": "Hohe HP + Mauer = günstige Verteidigung. Atk-Truppen = teurer aber Loot beim Sieg.",
+    "baseTip4": "Tageslimit Schritte: 50.000. Spenden im Crew-Modus: max 1.000/Tx, 5.000 empfangen/Tag.",
+    "baseReward": "Passive Resourcen pro Stunde · permanente %-Boni · Truhen-Drops · Speed-Tokens · Loot aus Crew-Kämpfen"
   },
   "Redeem": {
     "kicker": "EINLÖSEN",
@@ -3790,16 +3805,6 @@
     "openMany": "{n} Deals offen",
     "plusBundle": " + Bundle",
     "resetIn": "Reset in {countdown}"
-  },
-  "GuardianDetail": {
-    "errorLoad": "Laden fehlgeschlagen",
-    "loading": "Lade Wächter …",
-    "tabOverview": "ÜBERSICHT",
-    "tabTalents": "TALENTE",
-    "tabTalentsWithPoints": "TALENTE ({n})",
-    "tabSkills": "FÄHIGKEITEN",
-    "levelLine": "Level {level} · {wins}W / {losses}L",
-    "signatureKicker": "⚡ SIGNATUR-FÄHIGKEIT"
   },
   "CrewJoin": {
     "joined": "✓ Beigetreten! Leite weiter…",

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 
-type ActivityId = "walk" | "shop" | "runner_fight" | "arena" | "area_boss";
+type ActivityId = "walk" | "shop" | "runner_fight" | "arena" | "area_boss" | "base";
 
 type Activity = {
   id: ActivityId;
@@ -35,6 +35,7 @@ export function RunnerActivityCards() {
     { id: "runner_fight", icon: "⚔️", title: tA("fightTitle"), hook: tA("fightHook"), gradient: ["#FF2D78", "#a855f7"], accent: "#FF2D78" },
     { id: "arena",        icon: "🏛️", title: tA("ligaTitle"),  hook: tA("ligaHook"),  gradient: ["#a855f7", "#5ddaf0"], accent: "#a855f7" },
     { id: "area_boss",    icon: "👹", title: tA("bossTitle"),  hook: tA("bossHook"),  gradient: ["#FF6B4A", "#FF2D78"], accent: "#FF6B4A" },
+    { id: "base",         icon: "🏰", title: tA("baseTitle"),  hook: tA("baseHook"),  gradient: ["#FFD700", "#22D1C3"], accent: "#FFD700" },
   ], [tA]);
   const [open, setOpen] = useState<ActivityId | null>(null);
   const [showArena, setShowArena] = useState(false);
@@ -168,6 +169,19 @@ function ActivityModal({ id, onClose, onOpenArena }: { id: ActivityId; onClose: 
       ],
       tips: [tA("bossTip1"), tA("bossTip2"), tA("bossTip3")],
       reward: tA("bossReward"),
+    },
+    base: {
+      icon: "🏰", title: tA("baseTitle"), subtitle: tA("baseSubtitle"), accent: "#FFD700",
+      how: [
+        { step: 1, text: tA("baseStep1") },
+        { step: 2, text: tA("baseStep2") },
+        { step: 3, text: tA("baseStep3") },
+        { step: 4, text: tA("baseStep4") },
+        { step: 5, text: tA("baseStep5") },
+        { step: 6, text: tA("baseStep6") },
+      ],
+      tips: [tA("baseTip1"), tA("baseTip2"), tA("baseTip3"), tA("baseTip4")],
+      reward: tA("baseReward"),
     },
   }), [tA]);
   const c = CONTENT[id];

@@ -479,6 +479,28 @@ interface AppMapProps {
   onSanctuaryClick?: (sanctuaryId: string) => void;
   onPowerZoneClick?: (zoneId: string) => void;
   onLootClick?: (dropId: string) => void;
+  // ── Base-Pins (Runner + Crew) ──
+  basePins?: Array<{
+    kind: "runner" | "crew";
+    id: string;
+    lat: number;
+    lng: number;
+    level: number;
+    pin_emoji: string;
+    pin_color: string;
+    pin_label: string;
+    is_own: boolean;
+  }>;
+  onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => void;
+  /** Wenn aktiv, fängt der nächste Map-Klick die Lat/Lng ab statt normaler Click-Logik. */
+  placeBaseMode?: null | "runner" | "crew";
+  onPlaceBaseClick?: (lng: number, lat: number, kind: "runner" | "crew") => void;
+}
+
+// Helper: escape user-provided text for innerHTML usage.
+function escapeHtml(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 }
 
 // Helper: Zoom-responsive line-width.
@@ -522,7 +544,10 @@ function buildSelfMarkerEl(
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
   const el = document.createElement("div");
-  el.className = "ma365-runner-pin";
+  // Klasse NICHT auf el — sonst kleben Theme-Pseudoelemente (::before/::after) am
+  // OUTER-el und skalieren nicht mit dem Zoom-Wrap. wrapForZoomScale verschiebt
+  // die Klasse auf den inner-Wrap (siehe dort).
+  el.dataset.runnerPinHost = "1";
   el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 20}px;height:${size + 20}px;pointer-events:none`;
   const tierCfg = supporterTier === "gold"
     ? { bg: "linear-gradient(135deg,#FFD700,#B8860B)", border: "#FFD700", icon: "★", shadow: "0 0 10px #FFD700cc" }
@@ -654,10 +679,17 @@ function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
  */
 function wrapForZoomScale(el: HTMLElement): void {
   if (el.querySelector(':scope > [data-zoom-scale="1"]')) return;
+  if (!el.style.position) el.style.position = "relative";
   const inner = document.createElement("div");
   inner.dataset.zoomScale = "1";
-  // inline-flex hält Inhalt zentriert, Origin auf center center damit scale3d die Figur mittig skaliert
-  inner.style.cssText = "display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
+  // position:absolute + inset:0 → wrap überdeckt el exakt. Alle absolute-Kinder
+  // im wrap nehmen den wrap als Containing Block und skalieren mit.
+  inner.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
+  // Falls das host-el ein Runner-Pin ist: Klasse auf den Wrap verschieben, damit
+  // theme-spezifische ::before/::after Pseudoelemente im Scale-Container hängen.
+  if (el.dataset.runnerPinHost === "1") {
+    inner.classList.add("ma365-runner-pin");
+  }
   while (el.firstChild) inner.appendChild(el.firstChild);
   el.appendChild(inner);
 }
@@ -709,6 +741,10 @@ export function AppMap({
   onPowerZoneClick,
   onLootClick,
   routeGeometry = null,
+  basePins = [],
+  onBasePinTap,
+  placeBaseMode = null,
+  onPlaceBaseClick,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -1003,6 +1039,40 @@ export function AppMap({
       selfMarkerRef.current = null;
     };
   }, []);
+
+  // Self-Marker: expliziter Zoom-Scale-Handler.
+  // Das globale data-zoom-scale-System greift via MutationObserver, kann aber
+  // bei Marker-Rebuilds (Tier-/Crew-/Theme-Wechsel) einen Frame zu spät sein.
+  // Hier setzen wir scale3d direkt auf den inner-Wrap.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const computeSelfScale = (z: number): number => {
+      if (z < 11) return 0.32;
+      if (z < 13) return 0.35 + ((z - 11) / 2) * 0.2;
+      if (z < 15) return 0.55 + ((z - 13) / 2) * 0.25;
+      if (z < 17) return 0.8  + ((z - 15) / 2) * 0.2;
+      return 1;
+    };
+    const apply = () => {
+      const m = selfMarkerRef.current;
+      if (!m) return;
+      const e = m.getElement();
+      const wrap = e.querySelector<HTMLElement>('[data-zoom-scale="1"]');
+      if (!wrap) return;
+      const s = computeSelfScale(map.getZoom());
+      wrap.style.transform = `scale3d(${s.toFixed(3)}, ${s.toFixed(3)}, 1)`;
+      wrap.style.transformOrigin = "center center";
+    };
+    apply();
+    map.on("zoom", apply);
+    // Marker-Rebuilds werden vom globalen MutationObserver in der applyZoomScale-Effect
+    // abgefangen — kein zusätzliches Polling mehr nötig.
+    return () => {
+      map.off("zoom", apply);
+    };
+  }, [mapReady]);
 
   // Runner
   useEffect(() => {
@@ -1343,7 +1413,10 @@ export function AppMap({
     if (!map) return;
     const container = map.getContainer();
 
-    const applyZoomScale = () => {
+    let lastScale = -1;
+    let lastShowLabel: boolean | null = null;
+    let rafQueued = false;
+    const applyZoomScale = (force = false) => {
       const zoom = map.getZoom();
       let scale = 1;
       if (zoom < 11)      scale = 0.32;
@@ -1351,8 +1424,10 @@ export function AppMap({
       else if (zoom < 15) scale = 0.55 + ((zoom - 13) / 2) * 0.25;
       else if (zoom < 17) scale = 0.8  + ((zoom - 15) / 2) * 0.2;
       const showLabel = zoom >= 14;
-      // Marker mit 2x-Source (Shop): nochmal × 0.5 → End-Skala identisch zum 1x-Marker,
-      // aber immer Downscale → schaerfer dargestellt
+      // Short-circuit: keine Style-Writes wenn Werte unverändert (Pan ohne Zoom).
+      if (!force && Math.abs(scale - lastScale) < 0.0005 && showLabel === lastShowLabel) return;
+      lastScale = scale;
+      lastShowLabel = showLabel;
       container.querySelectorAll<HTMLElement>('[data-zoom-scale="1"]').forEach((el) => {
         el.style.transform = `scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, 1)`;
       });
@@ -1364,15 +1439,24 @@ export function AppMap({
         el.style.opacity = showLabel ? "1" : "0";
       });
     };
+    // MO-Callback via rAF coalesce — bei DOM-Bursts (neue Marker) max 1 Run pro Frame.
+    const onMutation = () => {
+      if (rafQueued) return;
+      rafQueued = true;
+      requestAnimationFrame(() => {
+        rafQueued = false;
+        applyZoomScale(true); // force: neue Marker brauchen initial scale-attr
+      });
+    };
 
-    applyZoomScale();
-    map.on("zoom", applyZoomScale);
-    map.on("moveend", applyZoomScale);
-    const mo = new MutationObserver(() => applyZoomScale());
+    applyZoomScale(true);
+    const onZoom = () => applyZoomScale(false);
+    map.on("zoom", onZoom);
+    // moveend NICHT mehr: Pan ändert Zoom nicht, alle Style-Writes wären umsonst.
+    const mo = new MutationObserver(onMutation);
     mo.observe(container, { childList: true, subtree: true });
     return () => {
-      map.off("zoom", applyZoomScale);
-      map.off("moveend", applyZoomScale);
+      map.off("zoom", onZoom);
       mo.disconnect();
     };
   }, [mapReady]);
@@ -2306,6 +2390,126 @@ export function AppMap({
     });
     return () => { reviewMarkersRef.current.forEach((m) => m.remove()); reviewMarkersRef.current = []; };
   }, [mapReady, shopReviews, shops]);
+
+  // ── Base-Pins (Runner + Crew) als DOM-Marker ──
+  const basePinMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const onBasePinTapRef = useRef(onBasePinTap);
+  useEffect(() => { onBasePinTapRef.current = onBasePinTap; }, [onBasePinTap]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    basePinMarkersRef.current.forEach((m) => m.remove());
+    basePinMarkersRef.current = [];
+
+    basePins.forEach((pin) => {
+      // Layer-Stack:
+      //   root  → Mapbox schreibt translate3d (Positionierung) — kein Transform-Override hier!
+      //   zoomWrap → globales Zoom-Scale-System schreibt scale3d via [data-zoom-scale="1"]
+      //   inner → Hover-Scale + Drop-Shadow
+      const el = document.createElement("div");
+      el.className = "ma365-base-pin";
+      el.setAttribute("data-kind", pin.kind);
+      el.setAttribute("data-own", pin.is_own ? "1" : "0");
+      el.style.cssText = "pointer-events:auto;will-change:transform;";
+
+      const zoomWrap = document.createElement("div");
+      zoomWrap.dataset.zoomScale = "1";
+      zoomWrap.style.cssText = "display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden";
+
+      // Innerer Wrapper trägt Hover-Scale + Drop-Shadow.
+      const inner = document.createElement("div");
+      inner.style.cssText = [
+        "display:flex","flex-direction:column","align-items:center","gap:3px",
+        "cursor:pointer","user-select:none",
+        "filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))",
+        "transition:transform 0.15s",
+        "transform-origin:center center",
+      ].join(";");
+      inner.innerHTML = `
+        <div style="
+          padding:2px 8px;border-radius:999px;
+          background:linear-gradient(135deg, ${pin.pin_color}, ${pin.pin_color}cc);
+          color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;
+          border:1px solid rgba(255,255,255,0.4);
+          box-shadow:0 0 8px ${pin.pin_color}aa, inset 0 1px 0 rgba(255,255,255,0.35);
+          text-shadow:0 1px 0 rgba(255,255,255,0.25);
+          line-height:1.1;
+        ">LV ${pin.level}</div>
+        <div style="
+          width:56px;height:56px;
+          display:flex;align-items:center;justify-content:center;
+          font-size:48px;line-height:1;
+          filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};
+        ">${pin.pin_emoji}</div>
+        <div style="
+          padding:2px 8px;border-radius:8px;
+          background:rgba(15,17,21,0.92);color:#fff;
+          font-size:10px;font-weight:900;letter-spacing:0.3px;
+          border:1px solid ${pin.pin_color}aa;
+          box-shadow:0 2px 6px rgba(0,0,0,0.35);
+          max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+          line-height:1.2;
+        ">${pin.kind === "crew" ? "⚔️ " : ""}${escapeHtml(pin.pin_label)}</div>
+      `;
+      zoomWrap.appendChild(inner);
+      el.appendChild(zoomWrap);
+
+      inner.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
+      });
+      inner.addEventListener("mouseenter", () => { inner.style.transform = "scale(1.08)"; });
+      inner.addEventListener("mouseleave", () => { inner.style.transform = "scale(1.0)"; });
+
+      // anchor:"center" → das Icon (mittleres Element) sitzt exakt auf lat/lng,
+      // LV-Chip schwebt darüber, Name-Chip darunter. Wir korrigieren den Offset
+      // so dass das Icon-Zentrum am Punkt sitzt (LV-Chip ~16px hoch + 3px gap).
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center", offset: [0, 0] })
+        .setLngLat([pin.lng, pin.lat])
+        .addTo(map);
+      basePinMarkersRef.current.push(marker);
+    });
+
+    // Hide-Handler: Base-Pins ausblenden bei zoom < 13 (gleiche Schwelle wie Shop-Badges).
+    // Scale wird vom globalen data-zoom-scale-System erledigt — hier nur visibility.
+    let lastHide: boolean | null = null;
+    const updateBasePinVisibility = () => {
+      const hide = map.getZoom() < 13;
+      if (hide === lastHide) return;
+      lastHide = hide;
+      basePinMarkersRef.current.forEach((m) => {
+        const e = m.getElement();
+        e.style.opacity = hide ? "0" : "1";
+        e.style.visibility = hide ? "hidden" : "visible";
+        e.style.transition = "opacity 0.25s";
+        e.style.pointerEvents = hide ? "none" : "auto";
+      });
+    };
+    updateBasePinVisibility();
+    map.on("zoom", updateBasePinVisibility);
+
+    return () => {
+      map.off("zoom", updateBasePinVisibility);
+      basePinMarkersRef.current.forEach((m) => m.remove());
+      basePinMarkersRef.current = [];
+    };
+  }, [mapReady, basePins]);
+
+  // ── Place-Base-Mode: nächster Map-Klick liefert Lat/Lng ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !placeBaseMode || !onPlaceBaseClick) return;
+    const map = mapRef.current;
+    const canvas = map.getCanvas();
+    canvas.style.cursor = "crosshair";
+    const handler = (e: mapboxgl.MapMouseEvent) => {
+      onPlaceBaseClick(e.lngLat.lng, e.lngLat.lat, placeBaseMode);
+    };
+    map.once("click", handler);
+    return () => {
+      canvas.style.cursor = "";
+      map.off("click", handler);
+    };
+  }, [mapReady, placeBaseMode, onPlaceBaseClick]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>

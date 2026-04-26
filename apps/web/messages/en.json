@@ -1457,7 +1457,22 @@
     "bossTip1": "Talents, skills, equipment and potions count like in normal battles.",
     "bossTip2": "Power-zone buffs add up to your stats.",
     "bossTip3": "HP regen per round — keeps you alive even against strong bosses.",
-    "bossReward": "Universal sigils · rare/epic items · crew XP · trophies"
+    "bossReward": "Universal sigils · rare/epic items · crew XP · trophies",
+
+    "baseTitle": "Your base",
+    "baseHook": "Build, harvest, unlock bonuses.",
+    "baseSubtitle": "Your home hub on the map — passive resources + permanent bonuses.",
+    "baseStep1": "Place your base on the map (one-time). Tap “Set” in the banner under the quick actions.",
+    "baseStep2": "Gather resources: 🪵 wood · 🪨 stone · 🪙 gold · 💧 mana — via walking (100/km), quests, ads, crew donations, steps or packages.",
+    "baseStep3": "Build & upgrade structures — each level gives a permanent % bonus or passive resource per hour. Walls & watchtowers raise base HP (base value + bonuses).",
+    "baseStep4": "Train troops in barracks/stables/range — infantry, cavalry, marksmen & siege. Cost resources + training time.",
+    "baseStep5": "Crew vs crew: scout an enemy base → send a troop stack → march timer → resolve. Win = loot, loss = troop casualties. Defender HP + wall bonus give protection.",
+    "baseStep6": "Open chests for items & sigils. Unlock VIP/themes for extra slots and build-time bonuses.",
+    "baseTip1": "Place bonus buildings on water/park/shop km tiles — they get extra effect there.",
+    "baseTip2": "Crew base = team bonuses + shared troop pool: every build helps all crew members.",
+    "baseTip3": "High HP + wall = cheap defense. Attack troops = pricier but unlock loot on win.",
+    "baseTip4": "Daily step cap: 50,000. Crew donations: max 1,000/tx, 5,000 received/day.",
+    "baseReward": "Passive resources per hour · permanent % bonuses · chest drops · speed tokens · loot from crew battles"
   },
   "Redeem": {
     "kicker": "REDEEM",
@@ -3790,16 +3805,6 @@
     "openMany": "{n} deals open",
     "plusBundle": " + bundle",
     "resetIn": "Reset in {countdown}"
-  },
-  "GuardianDetail": {
-    "errorLoad": "Loading failed",
-    "loading": "Loading guardian …",
-    "tabOverview": "OVERVIEW",
-    "tabTalents": "TALENTS",
-    "tabTalentsWithPoints": "TALENTS ({n})",
-    "tabSkills": "SKILLS",
-    "levelLine": "Level {level} · {wins}W / {losses}L",
-    "signatureKicker": "⚡ SIGNATURE ABILITY"
   },
   "CrewJoin": {
     "joined": "✓ Joined! Redirecting…",

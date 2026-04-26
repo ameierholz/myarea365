@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -79,9 +79,13 @@ type CosmeticArt = {
   siegel:    Record<string, Art>;
   potion:    Record<string, Art>;
   rank:      Record<string, Art>;
+  base_theme: Record<string, Art>;  // slot_id = "{theme}_{scope}_{asset}", e.g. "medieval_runner_pin"
+  building:   Record<string, Art>;  // slot_id = building_id (z.B. "wegekasse")
+  resource:   Record<string, Art>;  // slot_id = wood/stone/gold/mana/speed_token
+  chest:      Record<string, Art>;  // slot_id = silver/gold/event
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest";
 
 type Item = {
   id: string; name: string; emoji: string; slot: string; rarity: string;
@@ -98,7 +102,7 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {} });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
 
@@ -132,6 +136,10 @@ export function ArtworkAdminClient() {
         siegel:    bustMap(raw.siegel    ?? {}),
         potion:    bustMap(raw.potion    ?? {}),
         rank:      bustMap(raw.rank      ?? {}),
+        base_theme: bustMap(raw.base_theme ?? {}),
+        building:   bustMap(raw.building   ?? {}),
+        resource:   bustMap(raw.resource   ?? {}),
+        chest:      bustMap(raw.chest      ?? {}),
       });
     }
     setLoading(false);
@@ -147,6 +155,11 @@ export function ArtworkAdminClient() {
   const doneSiegel = Object.values(cosmetic.siegel ?? {}).filter(a => a.image_url || a.video_url).length;
   const donePotion = Object.values(cosmetic.potion ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneRank   = Object.values(cosmetic.rank ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneBaseTheme = Object.values(cosmetic.base_theme ?? {}).filter(a => a.image_url || a.video_url).length;
+  const baseThemeTotal = BASE_THEMES_ART.length * 4;
+  const doneBuilding = Object.values(cosmetic.building ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneResource = Object.values(cosmetic.resource ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneChest    = Object.values(cosmetic.chest    ?? {}).filter(a => a.image_url || a.video_url).length; // 4 Assets pro Theme (runner_pin + runner_banner + crew_pin + crew_banner)
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
@@ -158,6 +171,10 @@ export function ArtworkAdminClient() {
     { id: "marker",    label: "📍 Map-Icons",       done: doneMark,   total: UNLOCKABLE_MARKERS.length },
     { id: "light",     label: "✨ Runner-Lights",   done: doneLight,  total: RUNNER_LIGHTS.length },
     { id: "pin_theme", label: "🎨 Pin-Themes",      done: doneTheme,  total: ALL_PIN_THEMES.length },
+    { id: "base_theme",label: "🏰 Base-Themes",     done: doneBaseTheme, total: baseThemeTotal },
+    { id: "building",  label: "🧱 Gebäude",         done: doneBuilding,  total: BUILDINGS_ART.length },
+    { id: "resource",  label: "💰 Resourcen",       done: doneResource,  total: RESOURCES_ART.length },
+    { id: "chest",     label: "🗝️ Truhen",          done: doneChest,     total: CHESTS_ART.length },
   ];
 
   return (
@@ -196,7 +213,11 @@ export function ArtworkAdminClient() {
         : tab === "rank"      ? <RankTab      artMap={cosmetic.rank   ?? {}} onChange={reload} />
         : tab === "marker"    ? <MarkerTab    artMap={cosmetic.marker}    onChange={reload} />
         : tab === "light"     ? <LightTab     artMap={cosmetic.light}     onChange={reload} />
-        : <PinThemeTab artMap={cosmetic.pin_theme} onChange={reload} />
+        : tab === "pin_theme" ? <PinThemeTab artMap={cosmetic.pin_theme} onChange={reload} />
+        : tab === "base_theme"? <BaseThemeTab artMap={cosmetic.base_theme} onChange={reload} />
+        : tab === "building"  ? <BuildingArtTab artMap={cosmetic.building} onChange={reload} />
+        : tab === "resource"  ? <ResourceArtTab artMap={cosmetic.resource} onChange={reload} />
+        : <ChestArtTab artMap={cosmetic.chest} onChange={reload} />
       )}
     </div>
   );
@@ -1109,6 +1130,255 @@ function MaterialTab({ materials, onChange }: { materials: Material[]; onChange:
                 hasImage={!!m.image_url}
                 hasVideo={!!m.video_url}
                 buildPrompt={(mode) => buildMaterialPrompt({ id: m.id, name: m.name, tier: m.tier, hint: m.description ?? m.emoji, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Base-Themes (Runner + Crew, jeweils Pin + Banner)    */
+/* ═════════════════════════════════════════════════════════ */
+
+function BaseThemeTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  const [scope, setScope] = useState<BaseThemeScope>("runner");
+  const [asset, setAsset] = useState<BaseThemeAsset>("pin");
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap gap-3 items-center">
+        <div className="flex gap-1 p-1 rounded-lg bg-[#1A1D23] border border-white/10">
+          {(["runner","crew"] as const).map((s) => (
+            <button key={s} onClick={() => setScope(s)}
+              className={`px-3 py-1.5 rounded text-xs font-black transition ${scope === s ? "bg-[#22D1C3] text-[#0F1115]" : "text-[#a8b4cf] hover:text-white"}`}>
+              {s === "runner" ? "🏰 Runner-Base" : "⚔️ Crew-Base"}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 p-1 rounded-lg bg-[#1A1D23] border border-white/10">
+          {(["pin","banner"] as const).map((a) => (
+            <button key={a} onClick={() => setAsset(a)}
+              className={`px-3 py-1.5 rounded text-xs font-black transition ${asset === a ? "bg-[#FFD700] text-[#0F1115]" : "text-[#a8b4cf] hover:text-white"}`}>
+              {a === "pin" ? "📍 Pin (1024×1024)" : "🖼️ Banner (1600×600)"}
+            </button>
+          ))}
+        </div>
+        <div className="text-[10px] text-[#a8b4cf]">
+          {scope === "runner" ? "Solo-Hideout, kompakte Hero-Struktur" : "Gilden-Festung, befestigtes Compound"} ·{" "}
+          {asset === "pin" ? "transparente PNG-Tile für Map-Marker" : "cinematischer Hintergrund für Modal-Header"}
+        </div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {BASE_THEMES_ART.map((theme) => {
+          const slotId = buildBaseThemeId(theme.id, scope, asset);
+          const art = artMap[slotId];
+          return (
+            <div key={slotId} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 72, height: 72,
+                  background: `radial-gradient(circle at 50% 30%, ${theme.accent}55, ${theme.accent}22 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${theme.accent}`,
+                  boxShadow: `0 0 12px ${theme.glow}`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    : art?.image_url ? <img src={art.image_url} alt={theme.name} className="w-full h-full object-cover" />
+                    : <span style={{ fontSize: 32 }}>🏰</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">
+                    {scope === "runner" ? "RUNNER" : "CREW"} · {asset.toUpperCase()}
+                  </div>
+                  <div className="text-sm font-black text-white truncate" style={{ color: theme.accent }}>{theme.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{theme.description}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="base_theme"
+                targetId={slotId}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildBaseThemePrompt({ theme, scope, asset, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Gebäude (RoK/CoD-Style isometrische Building-Tiles)  */
+/* ═════════════════════════════════════════════════════════ */
+
+const BUILDING_CAT_LABEL: Record<string, { label: string; color: string }> = {
+  production: { label: "PRODUKTION", color: "#4ade80" },
+  storage:    { label: "LAGER",      color: "#a16f32" },
+  combat:     { label: "KAMPF",      color: "#FF6B4A" },
+  utility:    { label: "AUSBAU",     color: "#22D1C3" },
+  cosmetic:   { label: "DEKO",       color: "#a855f7" },
+};
+
+function BuildingArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  const [filter, setFilter] = useState<string>("ALL");
+  const filtered = filter === "ALL" ? BUILDINGS_ART : BUILDINGS_ART.filter((b) => b.category === filter);
+  const cats = Array.from(new Set(BUILDINGS_ART.map((b) => b.category)));
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
+        <button onClick={() => setFilter("ALL")}
+          className={`px-3 py-1.5 rounded text-xs font-black ${filter === "ALL" ? "bg-[#22D1C3] text-[#0F1115]" : "bg-[#1A1D23] border border-white/10 text-[#a8b4cf]"}`}>
+          ALLE ({BUILDINGS_ART.length})
+        </button>
+        {cats.map((c) => {
+          const meta = BUILDING_CAT_LABEL[c] ?? { label: c.toUpperCase(), color: "#a8b4cf" };
+          const count = BUILDINGS_ART.filter((b) => b.category === c).length;
+          return (
+            <button key={c} onClick={() => setFilter(c)}
+              className={`px-3 py-1.5 rounded text-xs font-black ${filter === c ? "text-[#0F1115]" : "bg-[#1A1D23] border border-white/10 text-[#a8b4cf]"}`}
+              style={filter === c ? { background: meta.color } : undefined}>
+              {meta.label} ({count})
+            </button>
+          );
+        })}
+        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: isometrisches RoK/CoD-Asset auf schwebender Gras-Stein-Plinte, transparenter PNG-Hintergrund.</div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {filtered.map((b) => {
+          const meta = BUILDING_CAT_LABEL[b.category] ?? { label: b.category.toUpperCase(), color: "#a8b4cf" };
+          const art = artMap[b.id];
+          return (
+            <div key={b.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 80, height: 80,
+                  background: `radial-gradient(circle at 50% 30%, ${meta.color}33, ${meta.color}11 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${meta.color}66`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    : art?.image_url ? <img src={art.image_url} alt={b.name} className="w-full h-full object-cover" />
+                    : <span style={{ fontSize: 36 }}>{b.emoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: meta.color }}>{meta.label}</div>
+                  <div className="text-sm font-black text-white truncate">{b.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{b.signature}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="building"
+                targetId={b.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildBuildingPrompt({ building: b, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Resourcen-Icons (Holz/Stein/Gold/Mana/Speed-Token)   */
+/* ═════════════════════════════════════════════════════════ */
+
+function ResourceArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Stil: stylized 3D-Icon, transparenter Hintergrund, lesbar als 32×32 Thumbnail. Werden im Base-Modal HUD + Resource-Cards angezeigt.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+        {RESOURCES_ART.map((r) => {
+          const art = artMap[r.id];
+          return (
+            <div key={r.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 72, height: 72,
+                  background: `radial-gradient(circle at 50% 30%, ${r.accent}55, ${r.accent}22 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${r.accent}`,
+                  boxShadow: `0 0 12px ${r.accent}66`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    : art?.image_url ? <img src={art.image_url} alt={r.name} className="w-full h-full object-cover" />
+                    : <span style={{ fontSize: 32 }}>{r.fallbackEmoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">RESOURCE</div>
+                  <div className="text-sm font-black text-white truncate" style={{ color: r.accent }}>{r.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{r.subject.slice(0, 80)}…</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="resource"
+                targetId={r.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildResourcePrompt({ resource: r, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Truhen-Grafiken (Silber / Gold / Event)              */
+/* ═════════════════════════════════════════════════════════ */
+
+function ChestArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Truhen erscheinen im Base-Modal-Tab "🗝️ TRUHEN" und in der Übersicht. Sollten als geschlossene Truhe gerendert werden — der "geöffnet"-Zustand kommt später.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {CHESTS_ART.map((c) => {
+          const art = artMap[c.id];
+          return (
+            <div key={c.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 80, height: 80,
+                  background: `radial-gradient(circle at 50% 30%, ${c.accent}55, ${c.accent}22 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${c.accent}`,
+                  boxShadow: `0 0 14px ${c.accent}66`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    : art?.image_url ? <img src={art.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    : <span style={{ fontSize: 36 }}>{c.fallbackEmoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: c.accent }}>{c.rarity.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white truncate">{c.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{c.subject.slice(0, 90)}…</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="chest"
+                targetId={c.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildChestPrompt({ chest: c, mode })}
                 onUploaded={onChange}
               />
             </div>

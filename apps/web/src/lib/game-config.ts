@@ -534,6 +534,9 @@ export type RankingRunner = {
   city: string;
   zip: string;
   supporter_tier?: "bronze" | "silver" | "gold" | null;
+  /** Aktiver Wächter-Archetype des Runners — wird im Ranking als Avatar gerendert. */
+  guardian_id?: string;
+  guardian_rarity?: "common" | "rare" | "epic" | "legendary";
 };
 
 export const DEMO_RANKING_RUNNERS: RankingRunner[] = [
@@ -562,6 +565,37 @@ export const DEMO_RANKING_RUNNERS: RankingRunner[] = [
   { id: "r23", username: "LumpiniLap",  display_name: "Somchai P.",avatar_emoji: "🥭", crew_name: "Bangkok Lumphini",  crew_color: "#F97316", rank_name: "Stadt-Pionier",     weekly_km: 29.4, weekly_xp: 1780, total_xp: 92_400,  continent: "Asien", country: "Thailand",       state: "Bangkok", region: "Bangkok",   city: "Pathum Wan",      zip: "10330" },
   { id: "r24", username: "PhuketPace",  display_name: "Niran K.",  avatar_emoji: "🌊", crew_name: "Phuket Morning Run",crew_color: "#22D1C3", rank_name: "Kiez-Wanderer",     weekly_km: 16.4, weekly_xp: 1010, total_xp: 34_200,  continent: "Asien", country: "Thailand",       state: "Phuket",  region: "Phuket",    city: "Patong",          zip: "83150" },
 ];
+
+// Demo: Wächter-Zuordnung pro Runner-ID. Production-DB liefert das via JOIN.
+const _DEMO_RUNNER_GUARDIANS: Record<string, { id: string; rarity: "common" | "rare" | "epic" | "legendary" }> = {
+  r1:  { id: "stadtfuchs",  rarity: "legendary" },
+  r2:  { id: "falke",       rarity: "epic" },
+  r3:  { id: "drache",      rarity: "legendary" },
+  r4:  { id: "stadtkatze",  rarity: "rare" },
+  r5:  { id: "strassenhund",rarity: "common" },
+  r6:  { id: "spatz",       rarity: "common" },
+  r7:  { id: "eber",        rarity: "legendary" },
+  r8:  { id: "moewe",       rarity: "rare" },
+  r9:  { id: "wolf",        rarity: "epic" },
+  r10: { id: "waschbaer",   rarity: "rare" },
+  r11: { id: "falke",       rarity: "epic" },
+  r12: { id: "eule",        rarity: "rare" },
+  r13: { id: "baer",        rarity: "epic" },
+  r14: { id: "taube",       rarity: "common" },
+  r15: { id: "fledermaus",  rarity: "rare" },
+  r16: { id: "wyvern",      rarity: "legendary" },
+  r17: { id: "rudelalpha",  rarity: "epic" },
+  r18: { id: "stadtkatze",  rarity: "rare" },
+  r19: { id: "phoenix",     rarity: "legendary" },
+  r20: { id: "drache",      rarity: "legendary" },
+  r21: { id: "moewe",       rarity: "epic" },
+  r22: { id: "drache",      rarity: "legendary" },
+  r23: { id: "eber",        rarity: "rare" },
+  r24: { id: "moewe",       rarity: "common" },
+};
+export function getRunnerGuardian(runnerId: string): { id: string; rarity: "common" | "rare" | "epic" | "legendary" } | null {
+  return _DEMO_RUNNER_GUARDIANS[runnerId] ?? null;
+}
 
 // ═══ FACTION-POWER-AGGREGATION ═══
 export type FactionPower = { syndicate: number; vanguard: number };

@@ -635,6 +635,496 @@ export function buildPinThemePrompt(input: {
   ].filter(Boolean).join(" ");
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// BASE-THEMES (Runner-Base + Crew-Base) — für Map-Pin + Modal-Header
+// ═══════════════════════════════════════════════════════════════════════
+//
+// Pro Theme erzeugen wir 4 Assets:
+//   {theme}_runner_pin     — 1024×1024 transparent, kleine Burg/Outpost (1 Hero-Struktur)
+//   {theme}_runner_banner  — 1600×600   Header-Image für Modal (Solo-Atmosphäre)
+//   {theme}_crew_pin       — 1024×1024 transparent, Festung mit Mauern + Bannern (Compound)
+//   {theme}_crew_banner    — 1600×600   Header-Image (große Crew-Halle, Faction-Vibes)
+
+export type BaseThemeId = "medieval" | "scifi" | "pirate" | "viking" | "ninja" | "halloween";
+export type BaseThemeScope = "runner" | "crew";
+export type BaseThemeAsset = "pin" | "banner";
+
+export type BaseThemeArt = {
+  id: BaseThemeId;
+  name: string;
+  description: string;
+  // Visual hooks
+  palette: string;                    // dominant colors as natural-language hint
+  accent: string;                     // hex
+  glow: string;                       // hex with alpha or rgba()
+  ambient: string;                    // mood / atmosphere keywords
+  runnerSubject: string;              // small Solo-Base description
+  crewSubject: string;                // large Crew-Compound description
+  bannerScene: string;                // wide cinematic scene reference
+  negative?: string;                  // optional anti-prompt notes
+};
+
+export const BASE_THEMES_ART: BaseThemeArt[] = [
+  {
+    id: "medieval",
+    name: "Mittelalter",
+    description: "Klassische Burg-Ästhetik mit Steintürmen, Wimpel-Bannern und warmen Fackel-Akzenten.",
+    palette: "warm stone gray, slate-blue tile rooftops, teal banners, soft golden torchlight",
+    accent: "#22D1C3", glow: "rgba(34,209,195,0.55)",
+    ambient: "fairy-tale fortress, golden hour sun, distant mountains, mist in valleys",
+    runnerSubject: "a single small stone watchtower-keep with a teal pennant flag, wooden gate, surrounded by pine trees on a low grass mound",
+    crewSubject: "a large fortified medieval castle compound: high stone walls, four corner towers, central great hall with steep tiled roofs, teal heraldic banners along the walls, drawbridge and gatehouse",
+    bannerScene: "epic cinematic establishing shot of a medieval kingdom keep at sunset, wide vista, banners snapping in wind, soft volumetric light",
+  },
+  {
+    id: "scifi",
+    name: "Sci-Fi-Outpost",
+    description: "Futuristischer Plasma-Outpost mit Holo-Glyphen, weißem Beton und violett-cyanem Neon.",
+    palette: "matte white concrete, dark obsidian panels, vivid magenta-violet neon, cyan holo-grid",
+    accent: "#7C3AED", glow: "rgba(124,58,237,0.6)",
+    ambient: "near-future, hard-sci-fi, clean panel seams, holographic UI floating around the structure, scan-lines",
+    runnerSubject: "a single sleek hexagonal sci-fi outpost module with a glowing magenta plasma core dome on top, antenna mast, tiny holo-display projecting energy stats, set on a dark glass platform",
+    crewSubject: "a massive sci-fi fortress: multi-tiered hex-modules linked by glowing walkways, central plasma reactor spire, defensive turret pylons at corners, holo-shield projectors emitting violet hexagonal grid, anti-grav landing pad",
+    bannerScene: "cinematic wide shot of a futuristic mountain-top outpost at twilight, atmospheric haze, distant city lights, glowing energy beams shooting into the sky",
+  },
+  {
+    id: "pirate",
+    name: "Pirat-Versteck",
+    description: "Versteckte Bucht mit Holzbastionen, Schiffsplanken-Plattformen und gold-warmem Laternenlicht.",
+    palette: "weathered oak planks, rusted iron, deep teal sea, sun-bleached canvas sails, gold lantern glow",
+    accent: "#FFD700", glow: "rgba(255,215,0,0.55)",
+    ambient: "tropical hidden cove, palms, salt spray, foggy morning, hand-painted treasure-map vibe",
+    runnerSubject: "a single small wooden pirate watch-shack on stilts above shallow water, oak planks, a single Jolly-Roger flag on top, treasure chest beside the entrance, a rowboat tied to a post",
+    crewSubject: "a large pirate stronghold built into a rocky cove: multi-level wooden bastion with cannon ports, anchored galleon visible behind, palm-trees, treasure pile glittering in front, multiple Jolly-Roger flags, hanging lanterns",
+    bannerScene: "cinematic wide shot of a hidden tropical pirate cove at golden hour, anchored ships, mist over water, parrots flying, painterly fantasy-adventure style",
+  },
+  {
+    id: "viking",
+    name: "Wikinger-Halle",
+    description: "Massiver Holz-Mead-Hall mit geschnitzten Drachenköpfen, Pelz-Drapierungen und Feuer-Akzenten.",
+    palette: "rich cedar wood, dark iron, ember-orange fires, fur-white drapes, dark snow-grey stone",
+    accent: "#FF6B4A", glow: "rgba(255,107,74,0.55)",
+    ambient: "Nordic winter, crisp snowy fjord backdrop, smoke from chimneys, runic carvings, harsh beautiful low sun",
+    runnerSubject: "a single small Norse longhouse with steep wooden shingle roof, carved dragon-head gable, two crossed wooden axes above the door, a smoking chimney, fur draped over the entrance, a single rune-stone outside",
+    crewSubject: "a great Viking mead-hall compound: long timber hall with massive carved dragon prows on either gable, surrounded by a wooden palisade, fire-pits burning in front, longships in a frozen fjord behind, totem poles with runes, snow drifts",
+    bannerScene: "cinematic wide shot of a Norse village at dusk, snow-covered mountains, aurora borealis above, longships at the shore, smoke rising from longhouses, painterly fantasy",
+  },
+  {
+    id: "ninja",
+    name: "Ninja-Dojo",
+    description: "Verstecktes Dojo im Bambushain — dunkles Holz, Tatami, rote Tor-Akzente und Mond-Atmosphäre.",
+    palette: "deep black-stained timber, white shoji paper screens, blood-red torii lacquer, jade-bamboo green, cyan moonlight",
+    accent: "#22D1C3", glow: "rgba(34,209,195,0.5)",
+    ambient: "moonlit Edo-period Japan, dense bamboo forest, mist drifting, ink-painting aesthetic, tranquility with hidden danger",
+    runnerSubject: "a single small dark-wood ninja dojo with curved pagoda roof, a small red torii gate at the entrance, paper lanterns glowing, a koi pond in front, surrounded by dense bamboo",
+    crewSubject: "a hidden ninja stronghold: multi-tier pagoda with sweeping curved roofs, surrounding wooden training platforms, a large red torii arch entrance, watch-platforms in the trees, two stone foo-dog statues, mist rolling through the bamboo grove",
+    bannerScene: "cinematic wide shot of a moonlit hidden mountain temple in Japan, mist, cherry blossoms, distant pagoda silhouettes, ink-wash painterly style",
+  },
+  {
+    id: "halloween",
+    name: "Halloween (saisonal)",
+    description: "Saisonal: spukige Burgruine mit Kürbissen, lila Nebel und gespenstischer Grün-Aura.",
+    palette: "bone-white stone, pumpkin orange, deep purple sky, sickly bio-luminescent green, crow black",
+    accent: "#FF8C00", glow: "rgba(255,140,0,0.6)",
+    ambient: "spooky autumn night, full blood-moon, swirling purple fog, jack-o-lanterns flickering, ravens circling",
+    runnerSubject: "a single small haunted gothic crypt-shrine with crooked stone walls, a glowing jack-o-lantern at the door, twisted dead tree behind, purple fog, a single raven on the roof",
+    crewSubject: "a sprawling haunted castle ruin under a blood-moon: collapsed turrets, glowing jack-o-lanterns lining the path, ghostly purple mist, hanging skeletal banners, swirling green spirit-energy at the gate",
+    bannerScene: "cinematic wide shot of a haunted castle on a hill at midnight, blood-moon, ravens flying, purple fog, autumn-orange leaves blowing, gothic horror atmosphere",
+  },
+];
+
+export function buildBaseThemeId(theme: BaseThemeId, scope: BaseThemeScope, asset: BaseThemeAsset): string {
+  return `${theme}_${scope}_${asset}`;
+}
+
+/**
+ * Prompt für Base-Theme Asset (Map-Pin oder Modal-Banner, jeweils Runner oder Crew).
+ * Gibt einen Detail-reichen Prompt zurück der mit Midjourney v6, Flux, Gemini Imagen
+ * oder Veo 2 (für Video-Variante) gut funktioniert.
+ */
+export function buildBaseThemePrompt(input: {
+  theme: BaseThemeArt;
+  scope: BaseThemeScope;
+  asset: BaseThemeAsset;
+  mode: "image" | "video";
+}): string {
+  const { theme, scope, asset, mode } = input;
+  const subject = scope === "runner" ? theme.runnerSubject : theme.crewSubject;
+  const sizeLine = asset === "pin"
+    ? `Square 1:1, 1024×1024, centered, fully transparent background outside the structure (PNG with alpha), structure perfectly framed with ~10% padding.`
+    : `Wide cinematic 8:3 banner, 1600×600, structure occupies center-left, atmospheric depth visible to the right (sky, mountains, etc). No transparency — full painterly background.`;
+
+  const styleLine = asset === "pin"
+    ? `Style: stylized 3D game-map-pin asset, slight isometric 30° angle, thick clean readable silhouette, soft inner glow on accent details, readable at 64×64 thumbnail size, no microscopic detail.`
+    : `Style: cinematic concept-art splash banner, painterly, dramatic key-light, atmospheric perspective, foreground subject in clear focus, background dissolves into mood-light.`;
+
+  const scopeLine = scope === "crew"
+    ? `Scale cue: this is a CREW base — clearly larger and more fortified than a single-runner base. Multiple structures, walls, banners. Reads as "guild-hall / stronghold".`
+    : `Scale cue: this is a single-runner base — intimate, cozy hero structure. Reads as "personal hideout".`;
+
+  const paletteLine = `Color palette: ${theme.palette}. Primary accent ${theme.accent} with gentle glow ${theme.glow}.`;
+  const ambientLine = `Atmosphere: ${theme.ambient}.`;
+  const negative = `No text, no labels, no watermark, no logos, no UI overlays, no people in foreground${theme.negative ? `, ${theme.negative}` : ""}.`;
+
+  if (mode === "video") {
+    const motionLine = asset === "pin"
+      ? `Motion: 3-second seamlessly looping subtle ambient — flag/banner gently waving, soft particle drift (sparks/leaves/mist depending on theme), small pulse on the accent glow. Camera fully static. First and last frame identical.`
+      : `Motion: 3-second seamlessly looping cinematic ambient — slow parallax of background mist/clouds, banners waving, lights flickering, distant particles drifting across the scene. Camera fully static. First and last frame identical.`;
+    return [
+      `Shot: ${asset === "pin" ? "a 3-second loop of a stylized map-pin base tile" : "a 3-second cinematic banner loop"} representing the "${theme.name}" base theme — ${theme.description}`,
+      `Subject: ${subject}.`,
+      scopeLine,
+      paletteLine, ambientLine,
+      motionLine, styleLine,
+      sizeLine,
+      `30 fps. No audio. ${negative}`,
+    ].join(" ");
+  }
+
+  return [
+    `${asset === "pin" ? "A stylized map-pin base tile" : "A cinematic concept-art banner"} representing the "${theme.name}" base theme — ${theme.description}`,
+    `Subject: ${subject}.`,
+    scopeLine,
+    paletteLine, ambientLine,
+    styleLine,
+    sizeLine,
+    negative,
+  ].join(" ");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BUILDINGS — pro Gebäude ein isometrisches Tile-Asset im RoK/CoD-Style
+// ═══════════════════════════════════════════════════════════════════════
+//
+// Ziel: jedes Gebäude bekommt ein eigenes Sprite, das auf einer Floating-
+// Tile-Plattform sitzt (wie in Rise of Kingdoms). Kompatibel mit beliebigen
+// Base-Themes — die Theme-Skin-Variation kommt später separat.
+//
+// Konvention: Slot-ID = `building_{building_id}`. Variant = "neutral".
+
+export type BuildingArt = {
+  id: string;             // matched die buildings_catalog.id (z.B. "wegekasse")
+  name: string;           // Anzeigename
+  category: string;       // production / storage / combat / utility / cosmetic
+  emoji: string;          // Fallback-Icon
+  silhouette: string;     // 1-2 Sätze: physische Form / Material / charakteristische Elemente
+  details: string;        // 2-3 Sätze: thematische Details, Animationshinweise
+  signature: string;      // 1 Satz: Was macht dieses Gebäude visuell unverwechselbar?
+};
+
+export const BUILDINGS_ART: BuildingArt[] = [
+  // ─── Phase 1 + Starter (00079 + 00082) ───
+  { id: "wegekasse",      name: "Wegekasse",        category: "storage",    emoji: "🏦",
+    silhouette: "small fortified treasury vault on a stone base, iron-banded oak door, gold coin pile spilling from a half-open chest in front",
+    details: "soft golden glow from inside the vault, brass keyhole, two crossed gold-trimmed guard pikes, a single torch flickering",
+    signature: "open chest of glittering gold coins is the unmistakable hero element" },
+  { id: "wald_pfad",      name: "Wald-Pfad",        category: "production", emoji: "🌲",
+    silhouette: "small wooden lumberjack camp with a thatched-roof shed, axe stuck in a tree-stump chopping block, stack of fresh-cut logs",
+    details: "lush moss-covered ground, two pine saplings, sawdust scattered around, a small hand-cart with logs",
+    signature: "vibrant pine-tree backdrop and the chopping-axe-in-stump composition" },
+  { id: "waechter_halle", name: "Wächter-Halle",    category: "combat",     emoji: "⚔️",
+    silhouette: "fortified guardian hall with steep peaked tile roof, two crossed swords mounted above the gate, banner-pillars on either side",
+    details: "purple-magenta heraldic banners with a sword sigil, two stone gargoyle statues, glowing rune-stones at the entrance",
+    signature: "crossed-swords emblem above the gate, glowing magenta rune accents" },
+  { id: "laufturm",       name: "Lauftürme",        category: "utility",    emoji: "🗼",
+    silhouette: "tall slender stone watchtower with a spiral wooden staircase visible, conical teal-tile roof, lookout balcony at the top",
+    details: "spyglass leaning against the railing, a small flag fluttering, glowing teal-cyan beacon at the top floor",
+    signature: "spinning beacon-light at the very top, casting cyan rays" },
+  { id: "lagerhalle",     name: "Lauf-Lager",       category: "storage",    emoji: "📦",
+    silhouette: "wide low warehouse with double sliding wooden doors, stacks of crates and barrels visible inside through one open door",
+    details: "weathered timber framing, an inventory chalkboard on the side wall, hanging lantern, a hand-cart parked outside",
+    signature: "open warehouse door revealing a treasure-trove of stacked crates and glinting items" },
+  { id: "schmiede",       name: "Schmiede",         category: "utility",    emoji: "⚒️",
+    silhouette: "stone-walled blacksmith forge with a chimney belching warm smoke, glowing red-orange furnace visible through the front opening",
+    details: "anvil with hammer and tongs in front, finished sword leaning against the wall, sparks flying from the forge, leather apron hung outside",
+    signature: "intense glowing forge interior — the heat-light should pulse softly in motion mode" },
+  { id: "gasthaus",       name: "Wegerast",         category: "production", emoji: "🍻",
+    silhouette: "two-story half-timbered tavern with a swinging signboard depicting a foaming mug, warm windows glowing yellow",
+    details: "wooden barrels stacked beside the door, a fiddle resting on a bench, lantern hanging from the eaves, hops vines growing up the wall",
+    signature: "the swinging mug signboard and the warm golden window-light spill" },
+  { id: "wachturm",       name: "Posten-Turm",         category: "combat",     emoji: "🏯",
+    silhouette: "robust square stone watchtower with crenelated battlements, narrow arrow-slits, single heavy iron-bound door at base",
+    details: "hot-orange torch on each corner of the battlement, defensive ballista visible on top, banners with a shield sigil",
+    signature: "crenelated top + defensive ballista silhouette and the four corner torches" },
+
+  // ─── Expansion 00085 — Produktion ───
+  { id: "saegewerk",      name: "Reisig-Bündler",         category: "production", emoji: "🪓",
+    silhouette: "open-walled timber sawmill with a large vertical sawblade powered by a wooden water-wheel, conveyor of fresh planks",
+    details: "splashing water from the wheel, sawdust drifting through sunbeams, neat stacks of cut planks beside the building, lumberjack tools",
+    signature: "spinning wooden water-wheel splashing — animate slowly in motion mode" },
+  { id: "steinbruch",     name: "Pflaster-Brecher",       category: "production", emoji: "⛏️",
+    silhouette: "small open-pit stone quarry with carved-out terraces, pickaxe stuck in a half-cut block, mine-cart on rails",
+    details: "stone dust in the air, scaffolding for higher cuts, a small forge for tool-sharpening, raw boulders and chiseled blocks",
+    signature: "the cut-out tiered quarry pit + the loaded mine-cart on rails" },
+  { id: "goldmine",       name: "Zoll-Schacht",         category: "production", emoji: "💰",
+    silhouette: "stone-arched mine entrance with wooden support beams, glittering gold veins visible inside, mine-cart loaded with gold ore",
+    details: "warm yellow light spilling from inside the shaft, a heap of gold nuggets in front, wooden pickaxe and lantern leaning at the entrance",
+    signature: "the glowing-yellow mine-shaft interior and the gold-nugget heap" },
+  { id: "mana_quelle",    name: "Quellbrunnen",      category: "production", emoji: "🌊",
+    silhouette: "stone basin filled with luminous turquoise liquid, runic stone arch above, mana-mist drifting upward",
+    details: "carved arcane runes glowing on the basin rim, floating crystal shards above the water, lush blue-green ferns surrounding it",
+    signature: "the glowing turquoise mana-water with floating crystal shards above" },
+
+  // ─── Expansion 00085 — Lager ───
+  { id: "tresorraum",     name: "Geheim-Tresor",       category: "storage",    emoji: "🏛️",
+    silhouette: "fortified vault with a massive round iron door (combination dial visible), thick stone walls, two stone columns flanking the entrance",
+    details: "a single guardian statue holding a key, security runes glowing faintly on the door frame, polished marble floor visible",
+    signature: "the round iron vault-door with prominent dial — heavy and impenetrable looking" },
+  { id: "kornkammer",     name: "Vorrats-Schober",       category: "storage",    emoji: "🌾",
+    silhouette: "tall conical wooden granary with a thatched roof, ladder against the side, sacks of grain piled at the base",
+    details: "wheat-bundles tied to the wall, a wooden scoop in front, mice scampering away, golden-wheat fields hint visible in background",
+    signature: "the iconic conical granary silhouette with grain sacks piled around" },
+  { id: "mauerwerk",      name: "Stein-Speicher",        category: "storage",    emoji: "🧱",
+    silhouette: "stonemason workshop with a low half-built wall, mortar-trough, neat stacks of cut stone bricks",
+    details: "a wooden scaffolding, mason's tools (hammer, chisel, plumb-line) on a workbench, fresh-cut limestone blocks",
+    signature: "the half-built stone wall in-progress shows craftsmanship in action" },
+
+  // ─── Expansion 00085 — Kampf ───
+  { id: "hospital",       name: "Heil-Stube",         category: "combat",     emoji: "🏥",
+    silhouette: "white-walled chapel-style infirmary with a red cross banner above the door, herbal garden plot in front, smoking incense bowl",
+    details: "stained-glass window with a healing-symbol, white draped curtains visible inside, a wooden cot, jars of potions on a shelf",
+    signature: "the red cross banner and stained-glass healing window" },
+  { id: "trainingsplatz", name: "Übungs-Hof",  category: "combat",     emoji: "🥋",
+    silhouette: "open martial training ground: wooden practice dummies in a row, weapon rack, sparring circle outlined by stones",
+    details: "rolling thunder-clouds painted on a wall behind, three different weapons (sword, staff, bow) in the rack, a coach's whistle on a hook",
+    signature: "the row of wooden practice dummies and the central sparring circle" },
+  { id: "ballistenwerk",  name: "Wurfgeschütz-Werk",category: "combat",   emoji: "🎯",
+    silhouette: "open-air engineering workshop with a large mounted ballista, blueprint scrolls on a workbench, stacks of giant arrows",
+    details: "a half-assembled siege engine in the corner, gear-mechanisms visible, an engineer's apron and blueprint compass on the bench",
+    signature: "the prominently mounted ballista pointing skyward dominates the composition" },
+  { id: "schwertkampflager",name: "Klingen-Kaserne",category: "combat",emoji: "⚔️",
+    silhouette: "armed-camp tent compound with two wooden practice posts, a weapon rack of various swords, banners with a sword crest",
+    details: "leather armor stands, a small forge for sword-edge sharpening, a heap of polished helmets, campfire in the center",
+    signature: "the heroic weapon rack of crossed swords and the central campfire" },
+  { id: "bogenschuetzenstand",name: "Pfeil-Kaserne",category: "combat",emoji: "🏹",
+    silhouette: "elevated archery range with three target dummies at varied distances, wooden bow racks, quivers of arrows",
+    details: "a watchtower-style elevated platform on the left, hay-bale targets with painted bullseyes, scattered arrows in the ground",
+    signature: "the three targets in perspective at varied distances and the hero bow-rack" },
+
+  // ─── Expansion 00085 — Utility ───
+  { id: "akademie",       name: "Gelehrten-Halle",         category: "utility",    emoji: "📚",
+    silhouette: "two-story scholar academy with arched windows, large telescope on the roof, stack of huge tomes by the entrance",
+    details: "alchemy bottles and rolled scrolls on an outdoor desk, a single owl on the roof, ivy climbing the walls, magnifying glass",
+    signature: "the rooftop telescope pointing skyward + glowing arched library windows" },
+  { id: "kloster",        name: "Mond-Kapelle",          category: "utility",    emoji: "⛪",
+    silhouette: "small stone monastery with bell-tower, arched gothic windows, a meditation garden with a koi pond",
+    details: "stained-glass mana-symbol window glowing turquoise, a single monk-statue, hanging incense braziers, lavender and herb garden",
+    signature: "the bell-tower silhouette and the glowing turquoise stained-glass window" },
+  { id: "augurstein",     name: "Sternendeuter-Stein",       category: "utility",    emoji: "🔮",
+    silhouette: "free-standing megalithic stone monolith covered in carved astrological runes, levitating crystal orb hovering above",
+    details: "swirling cosmic mist around the orb, faint star-projection on the stone, a small ritual altar at the base with candles",
+    signature: "the levitating crystal orb projecting starlight onto the ancient runestone" },
+  { id: "schwarzes_brett",name: "Quest-Tafel",  category: "utility",    emoji: "📋",
+    silhouette: "wooden bulletin board on a sturdy post, multiple paper notices pinned with daggers, a small awning above for rain",
+    details: "wax-sealed scrolls hanging, a lantern, an inkwell and quill on a small shelf, a bench in front",
+    signature: "the multiple pinned notices fluttering on the bulletin board (animate gently in motion mode)" },
+  { id: "halbling_haus",  name: "Bau-Kontor",    category: "utility",    emoji: "🏚️",
+    silhouette: "round hobbit-style hill-house with a circular green door, smoke from the chimney, garden of vegetables in front",
+    details: "round porthole windows with warm golden light inside, a flower-box of red blooms, mushroom decorations, a tiny clothesline",
+    signature: "the iconic round green door + circular windows of the cozy hill-house" },
+  { id: "basar",          name: "Tausch-Stand",            category: "utility",    emoji: "🛒",
+    silhouette: "open-air bazaar tent with colorful striped fabric awnings, market stalls with fruits/spices/silks displayed",
+    details: "hanging brass scales, woven rugs as floor mat, exotic pots and lamps, a small monkey on a perch, baskets overflowing with goods",
+    signature: "the colorful striped awnings + the lavish display of trade goods" },
+
+  // ─── Expansion 00085 — Kosmetisch ───
+  { id: "shop",           name: "Kosmetik-Stand",             category: "cosmetic",   emoji: "🏪",
+    silhouette: "small wooden shop-front with a hanging painted sign, glass display window showing items, awning over the entrance",
+    details: "a chalkboard 'Open' sign, a barrel with rolled-up scrolls outside, a small bell above the door, potted plants flanking the entrance",
+    signature: "the glass display window with glowing items and the painted hanging sign" },
+  { id: "brunnen",        name: "Brunnen",          category: "cosmetic",   emoji: "⛲",
+    silhouette: "ornate stone fountain with a central spire, water cascading from three tiers, koi swimming in the lower basin",
+    details: "ivy and roses growing around the base, scattered coins gleaming on the basin floor, two stone benches nearby",
+    signature: "the cascading three-tier water flow and the koi-fish in the basin" },
+  { id: "statue",         name: "Heldenstatue",     category: "cosmetic",   emoji: "🗿",
+    silhouette: "heroic stone statue of a warrior holding a sword aloft, on a tall plinth, surrounded by a flagstone plaza",
+    details: "polished marble plinth with engraved name plaque, two tribute braziers burning at the base, a wreath of laurel at the warrior's feet",
+    signature: "the dramatically lit hero-statue silhouette with sword raised toward the sky" },
+
+  // ─── Crew (00079 + 00080 + 00085) ───
+  { id: "crew_treffpunkt",name: "Crew-Treffpunkt",  category: "production", emoji: "🏛️",
+    silhouette: "large neoclassical alliance hall with marble columns, wide stone steps, banners hanging between the columns",
+    details: "a great central brazier burning teal flame, two heroic stone statues flanking the entrance, intricate teal-and-gold mosaic floor",
+    signature: "the teal-flame brazier on the steps and the marble-columned facade" },
+  { id: "truhenkammer",   name: "Truhenkammer",     category: "storage",    emoji: "🗝️",
+    silhouette: "vault chamber with rows of wooden treasure-chests bound in iron, hanging skeleton-key collection on the wall",
+    details: "an ornate centerpiece chest with overflow of jewels and gold, brass lanterns illuminating each row, dust motes in beams of light",
+    signature: "the centerpiece overflowing treasure-chest with cascading gems" },
+  { id: "arena_halle",    name: "Arena-Halle",      category: "combat",     emoji: "🏟️",
+    silhouette: "miniature colosseum-style arena with stepped stone seating, sand-floor combat pit visible at center, weapon racks on the walls",
+    details: "two crossed-spear banners, a victory-podium with a laurel wreath, torches lining the entrance, painted gladiator murals",
+    signature: "the visible sand combat pit + the colosseum-stepped seating silhouette" },
+  { id: "mana_quell",     name: "Mana-Spring",       category: "production", emoji: "💧",
+    silhouette: "large pillared crew-scale mana spring with a multi-tier carved basin, glowing-blue water cascading downward",
+    details: "four runic monoliths surrounding the basin, glowing wisps of mana-energy rising into the air, lush bioluminescent plants",
+    signature: "the four-monolith circle around a glowing-blue cascading mana basin" },
+  { id: "allianz_zentrum",name: "Bund-Halle",  category: "utility",    emoji: "🏛️",
+    silhouette: "imposing diplomatic alliance hall with a domed roof and a banner-pole crowned with a crew-flag, wide marble entrance",
+    details: "five smaller flag-poles with allied banners flanking the entrance, a circular meeting-table visible through the open doors",
+    signature: "the central crew-flag flying highest among five allied flags" },
+  { id: "spaeher_wachposten",name: "Kundschafter-Lager",category: "combat",  emoji: "👁️",
+    silhouette: "elevated wooden scout outpost on stilts with a spotting platform on top, rope-ladder access, signal-fire bowl",
+    details: "spyglass on a tripod, a tactical map pinned to the wall, falconer's perch with a bird, signal-flag rolled on a stand",
+    signature: "the elevated stilted lookout platform + the spyglass-on-tripod" },
+  { id: "sammel_leuchtfeuer",name: "Versammlungs-Feuer",category: "combat", emoji: "🔥",
+    silhouette: "tall iron beacon-tower with a massive flaming brazier on top, spiral stairs winding up the exterior",
+    details: "the brazier flames roaring tall and bright, smoke drifting upward, war-banners along the spiral stair, ember sparks in the air",
+    signature: "the towering flame-brazier silhouette visible from anywhere in the base" },
+  { id: "crew_taverne",   name: "Crew-Schenke",     category: "production", emoji: "🍻",
+    silhouette: "large two-story timber alliance tavern with a grand swinging signboard, balcony on the second floor, multiple windows aglow",
+    details: "kegs being delivered by a wagon, hero-portraits hung outside, lively warm light spilling from every window, smoke from the chimney",
+    signature: "the multi-window glow + the upper balcony with hero-portraits of legendary recruits" },
+  { id: "crew_hospital",  name: "Crew-Heilstation",    category: "combat",     emoji: "🏥",
+    silhouette: "large white-stone alliance infirmary with a domed roof, multiple healing-cots visible through arched windows",
+    details: "a healing-fountain in front courtyard, herb gardens flanking the path, healers' robes drying on a line, a giant red cross banner",
+    signature: "the domed roof + the central healing-fountain in the courtyard" },
+  { id: "crew_akademie",  name: "Crew-Studienhalle",    category: "utility",    emoji: "🎓",
+    silhouette: "imposing alliance academy with multiple turret-spires, a giant clock-face above the entrance, telescope dome on the roof",
+    details: "students depicted on banners, a giant compass-rose mosaic on the courtyard, scrolls and books piled on outdoor reading benches",
+    signature: "the giant clock-face above the entrance and the turreted academy silhouette" },
+  { id: "tempel_himmlisch",name: "Sphären-Heiligtum",category: "combat",emoji: "✨",
+    silhouette: "ethereal floating-stone temple with golden filigree, levitating slightly above its tile, beams of holy light shining down",
+    details: "celestial constellations visible behind it, a glowing celestial sigil on the roof, two seraphim statues, particles of golden light",
+    signature: "the temple LEVITATES slightly above its base — beams of light hold it up" },
+  { id: "goblin_markt",   name: "Trödel-Tausch",     category: "utility",    emoji: "👺",
+    silhouette: "ramshackle bazaar tent run by goblin merchants, mismatched wooden stalls, a junk-heap of items being sorted",
+    details: "a goblin scale weighing scrap, hanging mystery-bags, a 'one-eyed-deal' sign, dim greenish lanterns, mischievous shadows",
+    signature: "the patched-together stall + the junk-heap of mismatched items being appraised" },
+];
+
+/**
+ * Prompt-Builder für Building-Sprite (Image oder Video).
+ * Stil-Vorgabe: isometrisches RoK/CoD-Asset auf einer schwebenden Stein-/Gras-Plinte,
+ * transparenter Hintergrund, gut lesbar bei kleiner Größe.
+ */
+export function buildBuildingPrompt(input: { building: BuildingArt; mode: "image" | "video" }): string {
+  const { building, mode } = input;
+
+  const baseLines = [
+    `An isometric stylized 3D-render game-asset of "${building.name}" — a ${building.category} building.`,
+    `Subject: ${building.silhouette}.`,
+    `Details: ${building.details}.`,
+    `Signature element: ${building.signature}.`,
+    `Setting: the building sits on a small floating square iso-tile platform — grass-topped stone block with mossy edges and a few flowers, hovering slightly with a soft shadow underneath.`,
+    `Style: matches "Rise of Kingdoms" / "Call of Dragons" art-direction — clean stylized hand-painted textures, slight cel-shading, vibrant saturated colors, soft warm-cool color contrast, readable silhouette at thumbnail size.`,
+    `Camera: locked isometric 30° angle, square 1:1, building centered with ~10% padding around the silhouette.`,
+    `Lighting: bright key light from upper-left at 45°, soft ambient fill from upper-right, gentle warm rim-light, soft contact shadow under the floating tile.`,
+    `Output: 1024×1024 PNG with FULLY TRANSPARENT background outside the floating tile.`,
+    `No text, no labels, no UI overlays, no watermark, no people in foreground, no border frames.`,
+  ];
+
+  if (mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated isometric game-asset, square 1:1, 1024×1024, 30 fps, fully transparent background outside the floating tile.`,
+      ...baseLines.slice(1),
+      `Motion: gentle ambient — slow vertical bob of the floating tile (±2 px), subtle particle drift (sparks/leaves/mist depending on theme), key signature element animates softly (flag waves, water flows, fire pulses, etc). No camera movement. First and last frame identical.`,
+      `No audio.`,
+    ].join(" ");
+  }
+
+  return baseLines.join(" ");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// RESOURCES — die 4 Resource-Icons + Speed-Token im Base-Modal & HUD
+// ═══════════════════════════════════════════════════════════════════════
+
+export type ResourceArt = {
+  id: string;            // wood / stone / gold / mana / speed_token
+  name: string;
+  fallbackEmoji: string;
+  accent: string;        // dominant color
+  subject: string;       // hauptmotiv
+  style: string;         // 1-2 Sätze visueller Stil
+};
+
+export const RESOURCES_ART: ResourceArt[] = [
+  { id: "wood",         name: "Holz",         fallbackEmoji: "🪵", accent: "#a16f32",
+    subject: "a small bundle of three freshly chopped oak logs stacked, fresh bark visible, with a single green leaf sprig and a few wood chips around the base",
+    style: "stylized 3D-render, hand-painted texture, warm earthy browns, soft saturation, slight cel-shading, gentle drop-shadow underneath" },
+  { id: "stone",        name: "Stein",        fallbackEmoji: "🪨", accent: "#8B8FA3",
+    subject: "a chunk of light-grey rough granite stone, multifaceted geometric form with flat chiseled planes, small mica sparkles on the surface, tiny moss patch on one corner",
+    style: "stylized 3D-render, cool grey palette, crisp specular highlights, soft cel-shading, mossy green accents for life, subtle inner glow" },
+  { id: "gold",         name: "Gold",         fallbackEmoji: "🪙", accent: "#FFD700",
+    subject: "a single ancient gold coin standing on edge with a stamped sun-rune, a small pile of 2-3 additional coins beside it half-buried in soft dust, subtle glittering sparkles",
+    style: "stylized 3D-render, polished gold with bright orange-yellow rim-light, slight sparkle particles, painterly highlights, premium-feel glow" },
+  { id: "mana",         name: "Mana",         fallbackEmoji: "💧", accent: "#22D1C3",
+    subject: "a luminous teal-cyan magical liquid droplet floating in a frozen splash, with smaller satellite droplets orbiting around it, internal swirl visible",
+    style: "stylized 3D-render, glowing translucent fluid, internal light source, cyan-to-pale-mint gradient, soft bioluminescent particles, ethereal feel" },
+  { id: "speed_token",  name: "Speed-Token",  fallbackEmoji: "⚡", accent: "#FFD700",
+    subject: "a hexagonal energy token coin with an embossed lightning-bolt rune in the center, golden metal rim, electric-yellow glowing core",
+    style: "stylized 3D-render, premium currency-token feel, electric-yellow inner glow, polished gold rim, lightning sparks emanating, slight float-bob" },
+];
+
+export function buildResourcePrompt(input: { resource: ResourceArt; mode: "image" | "video" }): string {
+  const { resource, mode } = input;
+  const baseLines = [
+    `A stylized 3D game-icon of "${resource.name}".`,
+    `Subject: ${resource.subject}.`,
+    `Style: ${resource.style}.`,
+    `Composition: subject perfectly centered with ~15% padding, no perspective extremes — easily readable when displayed as a small 32×32 thumbnail.`,
+    `Lighting: bright key light from upper-left at 45°, soft ambient fill, gentle warm rim, subtle contact shadow on a transparent floor.`,
+    `Accent color glow: ${resource.accent}.`,
+    `Output: 1024×1024 PNG with FULLY TRANSPARENT background. Square 1:1.`,
+    `No text, no labels, no UI overlays, no watermark, no border frames.`,
+  ];
+  if (mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024×1024, 30 fps, fully transparent background.`,
+      ...baseLines.slice(1),
+      `Motion: gentle bob (±3 px vertical), soft particle drift around the subject, subtle accent-glow pulse. Camera fully static. First and last frame identical. No audio.`,
+    ].join(" ");
+  }
+  return baseLines.join(" ");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CHESTS — Truhen für tägliche Drops
+// ═══════════════════════════════════════════════════════════════════════
+
+export type ChestArt = {
+  id: string;            // silver / gold / event
+  name: string;
+  fallbackEmoji: string;
+  accent: string;
+  subject: string;
+  style: string;
+  rarity: string;        // narrative tier
+};
+
+export const CHESTS_ART: ChestArt[] = [
+  { id: "silver", name: "Silber-Truhe", fallbackEmoji: "🥈", accent: "#C0C0D8", rarity: "common",
+    subject: "a sturdy oak wooden treasure chest with polished silver iron banding, small silver lock with a glowing keyhole, slightly tilted lid showing a hint of contents inside",
+    style: "stylized 3D-render, warm wood grain, cool silver metallic accents, soft cel-shading, gentle inner glow from keyhole, hand-painted feel" },
+  { id: "gold",   name: "Gold-Truhe",   fallbackEmoji: "🥇", accent: "#FFD700", rarity: "epic",
+    subject: "an ornate medieval treasure chest with rich oak wood and lavish gold-filigree banding, intricate engraved dragon emblem on the front, golden lock with brilliant glow, lid slightly ajar revealing cascading gold coins and a single gem",
+    style: "stylized 3D-render, premium fantasy-loot vibe, polished gold with strong rim-light, magical golden particles drifting upward, painterly highlights, hint of light rays from inside" },
+  { id: "event",  name: "Event-Truhe",  fallbackEmoji: "🎁", accent: "#FF2D78", rarity: "legendary",
+    subject: "a magical limited-event chest with crimson-magenta lacquered wood, iridescent rainbow-prismatic banding that shifts colors, ornate star-shaped clasp glowing with magenta light, swirling event-particles (sparkles, runes) around it",
+    style: "stylized 3D-render, ultra-premium event aesthetic, prismatic shifting reflections, swirling magenta-pink particles, dramatic key-light, magical glow halo" },
+];
+
+export function buildChestPrompt(input: { chest: ChestArt; mode: "image" | "video" }): string {
+  const { chest, mode } = input;
+  const baseLines = [
+    `A stylized 3D game-icon of a "${chest.name}" (${chest.rarity} rarity treasure chest).`,
+    `Subject: ${chest.subject}.`,
+    `Style: ${chest.style}.`,
+    `Composition: chest perfectly centered with ~10% padding, viewed from a slight 3/4 front-angle so both the lid and front-face are visible, on a transparent floor with a soft contact shadow.`,
+    `Lighting: bright key light from upper-left at 45°, warm rim-light from upper-right, ambient fill, subtle ${chest.accent} glow emanating from inside the lid crack.`,
+    `Output: 1024×1024 PNG with FULLY TRANSPARENT background. Square 1:1.`,
+    `No text, no labels, no UI overlays, no watermark, no border frames.`,
+  ];
+  if (mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated chest icon, square 1:1, 1024×1024, 30 fps, fully transparent background.`,
+      ...baseLines.slice(1),
+      `Motion: gentle bob (±2 px), soft glow pulse from the keyhole, occasional ${chest.accent} particle sparks drifting upward, lid stays closed (this is the "ready to open" state). Camera fully static. First and last frame identical. No audio.`,
+    ].join(" ");
+  }
+  return baseLines.join(" ");
+}
+
 export function buildLightPrompt(input: { name: string; colors: string[]; mode: "image" | "video" }): string {
   const colorStr = input.colors.join(", ");
   if (input.mode === "video") {

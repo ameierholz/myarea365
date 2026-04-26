@@ -8,6 +8,8 @@ import {
   type GuardianArchetype,
 } from "@/lib/guardian";
 import { CREW_FACTIONS, type CrewFactionId } from "@/lib/crew-factions";
+import { useRankArt, RankBadge, rankIdByXp, rankColorById } from "@/components/rank-badge";
+import { RUNNER_RANKS } from "@/lib/game-config";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -56,6 +58,7 @@ type ArenaTitle = { id: string; rank: number; title: string; awarded_at: string;
 
 export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { userId: string; onClose: () => void; canEditBanner?: boolean }) {
   const tRS = useTranslations("RunnerStats");
+  const rankArt = useRankArt();
   const [data, setData] = useState<RunnerProfileData | null>(null);
   const [titles, setTitles] = useState<ArenaTitle[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -296,6 +299,28 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                 {data.xp > 0 && <Dot />}
                 {data.xp > 0 && <span style={{ color: GOLD, fontWeight: 800 }}>{data.xp.toLocaleString("de-DE")} 🪙</span>}
               </div>
+
+              {/* Rang-Block (Artwork-Medaille + Name) */}
+              {data.xp > 0 && (() => {
+                const rId = rankIdByXp(data.xp);
+                if (!rId) return null;
+                const rankRow = RUNNER_RANKS.find((r) => r.id === rId);
+                const rColor = rankColorById(rId);
+                return (
+                  <div style={{
+                    marginTop: 12, display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 14px", borderRadius: 12,
+                    background: `linear-gradient(135deg, ${rColor}1f, ${rColor}08)`,
+                    border: `1px solid ${rColor}55`,
+                  }}>
+                    <RankBadge rankId={rId} color={rColor} size={48} rankArt={rankArt} fallbackEmoji="🏅" showNumberOverlay />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: MUTED, fontSize: 9, fontWeight: 900, letterSpacing: 1.2 }}>RANG</div>
+                      <div style={{ color: rColor, fontSize: 15, fontWeight: 900 }}>{rankRow?.name ?? `Rang ${rId}`}</div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ══ SUPPORTER-CTA ══ */}
               <div style={{ marginTop: 8 }}>

@@ -89,9 +89,18 @@ export function GuardianAvatar({ archetype, size = 140, animation = "idle", faci
       if (metaReady) {
         const d = a.duration || 4;
         const fade = FADE_SECONDS;
-        const edge = (t: number) => (t < fade ? t / fade : t > d - fade ? Math.max(0, (d - t) / fade) : 1);
-        a.style.opacity = String(edge(a.currentTime));
-        b.style.opacity = String(edge(b.currentTime));
+        // Halb-Loop-Maske: jedes Video ist NUR in seiner eigenen ersten Hälfte
+        // sichtbar (0 → d/2). Da B um d/2 versetzt startet, deckt B die zweite
+        // Hälfte ab. Beide Videos haben somit nie gleichzeitig opacity = 1.
+        // Crossfade an den Grenzen (0±fade und d/2±fade) glättet die Übergänge.
+        const mask = (t: number): number => {
+          if (t < fade)             return t / fade;                // Fade-in nach Wrap
+          if (t < d / 2 - fade)     return 1;                        // Voll sichtbar
+          if (t < d / 2)            return (d / 2 - t) / fade;       // Fade-out bei Halb-Loop
+          return 0;                                                  // Zweite Hälfte: unsichtbar
+        };
+        a.style.opacity = Math.max(0, Math.min(1, mask(a.currentTime))).toFixed(3);
+        b.style.opacity = Math.max(0, Math.min(1, mask(b.currentTime))).toFixed(3);
       }
       raf = requestAnimationFrame(tick);
     };
