@@ -367,7 +367,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     accent="#FFD700" progress={vipProgress}
                   />
                   <StatCard
-                    icon="⚡" label="Speed-Tokens" value={resources.speed_tokens.toLocaleString("de-DE")}
+                    icon={<ResourceIcon kind="speed_token" size={28} fallback="⚡" art={resourceArt} />}
+                    label="Speed-Tokens" value={resources.speed_tokens.toLocaleString("de-DE")}
                     sub="1 km Lauf = 1 Token"
                     accent="#22D1C3"
                   />
@@ -1586,12 +1587,14 @@ function ReportLabelButton({ baseId, crewBaseId, kind }: { baseId?: string; crew
 }
 
 function StatCard({ icon, label, value, sub, accent, progress }: {
-  icon: string; label: string; value: string; sub?: string; accent: string; progress?: number;
+  icon: React.ReactNode; label: string; value: string; sub?: string; accent: string; progress?: number;
 }) {
   return (
     <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
       <div className="flex items-center gap-2">
-        <span className="text-2xl">{icon}</span>
+        {typeof icon === "string"
+          ? <span className="text-2xl">{icon}</span>
+          : <span className="flex items-center justify-center" style={{ width: 32, height: 32 }}>{icon}</span>}
         <div className="flex-1 min-w-0">
           <div className="text-[9px] font-black tracking-wider text-[#a8b4cf] uppercase truncate">{label}</div>
           <div className="text-lg font-black truncate" style={{ color: accent }}>{value}</div>
