@@ -276,15 +276,15 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             <div className="px-3 pb-3" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
               {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                 <div key={k} className="rounded-lg bg-black/30 backdrop-blur px-2 py-1.5 text-center" style={{ minWidth: 0 }}>
-                  <div className="leading-none flex items-center justify-center" style={{ height: 18 }}>
-                    <ResourceIcon kind={k} size={18} fallback={RES[k].icon} art={resourceArt} />
+                  <div className="leading-none flex items-center justify-center" style={{ height: 28 }}>
+                    <ResourceIcon kind={k} size={28} fallback={RES[k].icon} art={resourceArt} />
                   </div>
                   <div className="text-[10px] font-black mt-0.5" style={{ color: RES[k].color }}>{compactNum(resources[k])}</div>
                 </div>
               ))}
               <div className="rounded-lg bg-[#FFD700]/15 border border-[#FFD700]/40 px-2 py-1.5 text-center" style={{ minWidth: 0 }}>
-                <div className="leading-none flex items-center justify-center" style={{ height: 18 }}>
-                  <ResourceIcon kind="speed_token" size={18} fallback="⚡" art={resourceArt} />
+                <div className="leading-none flex items-center justify-center" style={{ height: 28 }}>
+                  <ResourceIcon kind="speed_token" size={28} fallback="⚡" art={resourceArt} />
                 </div>
                 <div className="text-[10px] font-black mt-0.5 text-[#FFD700]">{resources.speed_tokens}</div>
               </div>
