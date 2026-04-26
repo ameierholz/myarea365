@@ -488,7 +488,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                   <div key={k} className="rounded-xl bg-[#1A1D23] border border-white/5 p-3">
                     <div className="flex items-center gap-3">
-                      <ResourceIcon kind={k} size={56} fallback={RES[k].icon} art={resourceArt} />
+                      <ResourceIcon kind={k} size={42} fallback={RES[k].icon} art={resourceArt} />
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] text-[#a8b4cf] font-black uppercase tracking-wider">{RES[k].label}</div>
                         <div className="text-xl font-black" style={{ color: RES[k].color }}>{resources[k].toLocaleString("de-DE")}</div>
@@ -508,7 +508,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
               <div className="rounded-xl bg-[#FFD700]/8 border border-[#FFD700]/30 p-3 flex items-center gap-3">
-                <ResourceIcon kind="speed_token" size={64} fallback="⚡" art={resourceArt} />
+                <ResourceIcon kind="speed_token" size={44} fallback="⚡" art={resourceArt} />
                 <div className="flex-1">
                   <div className="text-[10px] font-black tracking-wider text-[#FFD700]">SPEED-TOKENS</div>
                   <div className="text-lg font-black text-[#FFD700]">{resources.speed_tokens}</div>
