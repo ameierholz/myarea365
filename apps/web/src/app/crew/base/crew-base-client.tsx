@@ -44,12 +44,12 @@ const RES_META = {
   mana:  { icon: "💧", color: "#22D1C3" },
 } as const;
 
-// 2x2 Grid für die 4 Crew-Buildings
+// 3x3 Grid mit Crew-Buildings auf 4 Ecken — Kreuz-Slots frei für Deko
 const CREW_SLOT_LAYOUT: Record<string, { x: number; y: number }> = {
   crew_treffpunkt: { x: 0, y: 0 },
-  truhenkammer:    { x: 1, y: 0 },
-  arena_halle:     { x: 0, y: 1 },
-  mana_quell:      { x: 1, y: 1 },
+  truhenkammer:    { x: 2, y: 0 },
+  arena_halle:     { x: 0, y: 2 },
+  mana_quell:      { x: 2, y: 2 },
 };
 
 export function CrewBaseClient() {

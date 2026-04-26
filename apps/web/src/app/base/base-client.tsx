@@ -13,12 +13,20 @@ const BaseScene = dynamic(() => import("@/components/base-3d/base-scene").then((
   ),
 });
 
-// 4 Solo-Slots in 2x2-Grid für die 4 Phase-1-Buildings
+// 8 Solo-Slots in 3x3-Grid (Center frei für Lagerfeuer)
+//
+//   wegekasse | wald_pfad   | waechter_halle
+//   lagerhalle|     🔥      | schmiede
+//   laufturm  | gasthaus    | wachturm
 const SOLO_SLOT_LAYOUT: Record<string, { x: number; y: number }> = {
   wegekasse:      { x: 0, y: 0 },
   wald_pfad:      { x: 1, y: 0 },
-  waechter_halle: { x: 0, y: 1 },
-  laufturm:       { x: 1, y: 1 },
+  waechter_halle: { x: 2, y: 0 },
+  lagerhalle:     { x: 0, y: 1 },
+  schmiede:       { x: 2, y: 1 },
+  laufturm:       { x: 0, y: 2 },
+  gasthaus:       { x: 1, y: 2 },
+  wachturm:       { x: 2, y: 2 },
 };
 
 type BuildingCatalog = {

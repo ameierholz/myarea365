@@ -35,11 +35,11 @@ type Props = {
   height?: number;
 };
 
-/** Hex/Grid → world-coords */
+/** Grid → world-coords. 3x3-Slot-Grid mit Center frei (für Lagerfeuer). */
 function gridToWorld(x: number, y: number): [number, number, number] {
-  // 4-Slot-Grid 2x2 zentriert. Spacing 4.5
-  const spacing = 4.5;
-  return [(x - 0.5) * spacing, 0, (y - 0.5) * spacing];
+  // 3x3-Grid (x,y in [0,2]) zentriert. Spacing 4.0
+  const spacing = 4.0;
+  return [(x - 1) * spacing, 0, (y - 1) * spacing];
 }
 
 function GroundPlate({ variant }: { variant: "solo" | "crew" }) {
@@ -49,28 +49,268 @@ function GroundPlate({ variant }: { variant: "solo" | "crew" }) {
     <group>
       {/* Bodenplatte */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[14, 64]} />
+        <circleGeometry args={[15, 64]} />
         <meshStandardMaterial color={color} roughness={0.85} metalness={0.1} />
       </mesh>
       {/* Glow-Ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[12.5, 13.5, 64]} />
+        <ringGeometry args={[14, 14.8, 64]} />
         <meshBasicMaterial color={accent} transparent opacity={0.5} />
       </mesh>
-      {/* Innerer Pfad */}
+      {/* Innerer Pfad-Ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-        <ringGeometry args={[2.5, 2.7, 64]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.3} />
+        <ringGeometry args={[1.6, 1.75, 64]} />
+        <meshBasicMaterial color={accent} transparent opacity={0.25} />
       </mesh>
-      {/* Center-Plate (Base-Core) */}
-      <mesh position={[0, 0.05, 0]} castShadow>
-        <cylinderGeometry args={[2.3, 2.5, 0.3, 8]} />
-        <meshStandardMaterial color="#2a2d3a" roughness={0.6} metalness={0.4} />
+    </group>
+  );
+}
+
+/** Mauer-Ring um die Base — 16 Steinblöcke + 4 Türmchen + 1 Tor */
+function WallRing({ variant }: { variant: "solo" | "crew" }) {
+  const wallColor = variant === "crew" ? "#3a4a5a" : "#4a4d56";
+  const accent = variant === "crew" ? "#22D1C3" : "#4ade80";
+  const radius = 12.5;
+  const segments = 16;
+  return (
+    <group>
+      {Array.from({ length: segments }).map((_, i) => {
+        // Vorne (i=0,1,15) ist das Tor — keine Wand
+        if (i === 0 || i === 15) return null;
+        const a = (i / segments) * Math.PI * 2;
+        const x = Math.cos(a) * radius;
+        const z = Math.sin(a) * radius;
+        return (
+          <group key={i} position={[x, 0, z]} rotation={[0, -a + Math.PI / 2, 0]}>
+            <mesh position={[0, 0.6, 0]} castShadow>
+              <boxGeometry args={[2.4, 1.2, 0.5]} />
+              <meshStandardMaterial color={wallColor} roughness={0.9} />
+            </mesh>
+            {/* Zinnen */}
+            {[-0.8, 0, 0.8].map((zx, k) => (
+              <mesh key={k} position={[zx, 1.35, 0]} castShadow>
+                <boxGeometry args={[0.4, 0.3, 0.5]} />
+                <meshStandardMaterial color={wallColor} roughness={0.9} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+      {/* 4 Eck-Türmchen */}
+      {[0, 0.25, 0.5, 0.75].map((p, i) => {
+        const a = p * Math.PI * 2 + Math.PI / 8;
+        const x = Math.cos(a) * radius;
+        const z = Math.sin(a) * radius;
+        return (
+          <group key={i} position={[x, 0, z]}>
+            <mesh position={[0, 1.1, 0]} castShadow>
+              <cylinderGeometry args={[0.55, 0.7, 2.2, 8]} />
+              <meshStandardMaterial color={wallColor} roughness={0.85} />
+            </mesh>
+            {/* Spitzdach */}
+            <mesh position={[0, 2.5, 0]} castShadow>
+              <coneGeometry args={[0.7, 0.8, 8]} />
+              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.15} metalness={0.3} />
+            </mesh>
+            {/* Glow oben */}
+            <mesh position={[0, 3.0, 0]}>
+              <sphereGeometry args={[0.12, 8, 8]} />
+              <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1} />
+            </mesh>
+          </group>
+        );
+      })}
+      {/* Tor — vorne (positive X/Z) */}
+      <group position={[radius, 0, 0]}>
+        {/* Linker Pfeiler */}
+        <mesh position={[0, 0.9, -0.9]} castShadow>
+          <boxGeometry args={[0.7, 1.8, 0.7]} />
+          <meshStandardMaterial color={wallColor} />
+        </mesh>
+        {/* Rechter Pfeiler */}
+        <mesh position={[0, 0.9, 0.9]} castShadow>
+          <boxGeometry args={[0.7, 1.8, 0.7]} />
+          <meshStandardMaterial color={wallColor} />
+        </mesh>
+        {/* Querbalken */}
+        <mesh position={[0, 1.9, 0]} castShadow>
+          <boxGeometry args={[0.7, 0.3, 2.5]} />
+          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.3} />
+        </mesh>
+        {/* Zwei Banner an Pfeilern */}
+        {[-0.9, 0.9].map((zb) => (
+          <group key={zb} position={[0, 1.4, zb]}>
+            <mesh position={[0.4, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+              <planeGeometry args={[0.5, 0.8]} />
+              <meshStandardMaterial color={accent} side={THREE.DoubleSide} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+/** Pfad-Kreuz von Center nach 8 Richtungen (verbindet Buildings) */
+function PathCross() {
+  const color = "#8b8074";
+  return (
+    <group>
+      {/* 8 radiale Pfade */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return (
+          <mesh
+            key={i}
+            position={[Math.cos(a) * 5.2, 0.04, Math.sin(a) * 5.2]}
+            rotation={[-Math.PI / 2, 0, -a]}
+          >
+            <planeGeometry args={[8, 0.7]} />
+            <meshStandardMaterial color={color} roughness={1} transparent opacity={0.7} />
+          </mesh>
+        );
+      })}
+      {/* Center-Plaza */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+        <circleGeometry args={[1.8, 16]} />
+        <meshStandardMaterial color={color} roughness={1} transparent opacity={0.85} />
       </mesh>
-      <mesh position={[0, 0.25, 0]}>
-        <cylinderGeometry args={[1.5, 1.5, 0.1, 32]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.5} />
+    </group>
+  );
+}
+
+/** Lagerfeuer in der Mitte mit animiertem Flammen-Cluster */
+function Campfire({ variant }: { variant: "solo" | "crew" }) {
+  const fireRef = useRef<THREE.Group>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
+  const accent = variant === "crew" ? PALETTE_TEAL : PALETTE_EMBER;
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    if (fireRef.current) {
+      fireRef.current.children.forEach((c, i) => {
+        const phase = t * 3 + i * 1.7;
+        c.scale.y = 0.7 + Math.sin(phase) * 0.3;
+        c.position.y = 0.4 + Math.sin(phase * 0.5) * 0.05;
+      });
+    }
+    if (lightRef.current) {
+      lightRef.current.intensity = 1.5 + Math.sin(t * 5) * 0.5;
+    }
+  });
+  return (
+    <group position={[0, 0, 0]}>
+      {/* Holzscheite kreuzweise */}
+      <mesh position={[0, 0.1, 0]} castShadow rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.7, 6]} />
+        <meshStandardMaterial color="#5a3a1c" />
       </mesh>
+      <mesh position={[0, 0.1, 0]} castShadow rotation={[Math.PI / 2, 0, Math.PI / 3]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.7, 6]} />
+        <meshStandardMaterial color="#5a3a1c" />
+      </mesh>
+      <mesh position={[0, 0.1, 0]} castShadow rotation={[Math.PI / 2, 0, -Math.PI / 3]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.7, 6]} />
+        <meshStandardMaterial color="#5a3a1c" />
+      </mesh>
+      {/* Steinring */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return (
+          <mesh key={i} position={[Math.cos(a) * 0.45, 0.05, Math.sin(a) * 0.45]} castShadow>
+            <boxGeometry args={[0.15, 0.1, 0.15]} />
+            <meshStandardMaterial color="#4a4d56" />
+          </mesh>
+        );
+      })}
+      {/* Flammen */}
+      <group ref={fireRef}>
+        {[0, 1, 2].map((i) => (
+          <mesh key={i} position={[Math.cos(i) * 0.1, 0.4, Math.sin(i) * 0.1]}>
+            <coneGeometry args={[0.15 - i * 0.02, 0.5, 6]} />
+            <meshStandardMaterial color={i === 0 ? "#FFE066" : i === 1 ? PALETTE_EMBER : PALETTE_PINK} emissive={i === 0 ? "#FFE066" : i === 1 ? PALETTE_EMBER : PALETTE_PINK} emissiveIntensity={1.5} transparent opacity={0.85} />
+          </mesh>
+        ))}
+      </group>
+      <pointLight ref={lightRef} position={[0, 0.6, 0]} color={accent} intensity={1.5} distance={6} />
+    </group>
+  );
+}
+
+const PALETTE_EMBER = "#FF6B4A";
+const PALETTE_PINK  = "#FF2D78";
+const PALETTE_TEAL  = "#22D1C3";
+
+/** Bäume außerhalb der Mauer */
+function ForestRing({ variant }: { variant: "solo" | "crew" }) {
+  const treeColor = variant === "crew" ? "#3aa890" : "#4ade80";
+  const trunkColor = "#5a3a1c";
+  const trees = useMemo(() => {
+    const arr: Array<{ x: number; z: number; h: number }> = [];
+    const radius = 14.5;
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2 + (Math.random() * 0.2 - 0.1);
+      const r = radius + Math.random() * 1.0;
+      arr.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h: 0.7 + Math.random() * 0.7 });
+    }
+    return arr;
+  }, []);
+  return (
+    <group>
+      {trees.map((t, i) => (
+        <group key={i} position={[t.x, 0, t.z]}>
+          <mesh position={[0, t.h / 2, 0]} castShadow>
+            <cylinderGeometry args={[0.08, 0.1, t.h, 5]} />
+            <meshStandardMaterial color={trunkColor} />
+          </mesh>
+          <mesh position={[0, t.h + 0.4, 0]} castShadow>
+            <coneGeometry args={[0.45, 0.9, 6]} />
+            <meshStandardMaterial color={treeColor} />
+          </mesh>
+          <mesh position={[0, t.h + 0.95, 0]} castShadow>
+            <coneGeometry args={[0.32, 0.6, 6]} />
+            <meshStandardMaterial color={treeColor} />
+          </mesh>
+        </group>
+      ))}
+      {/* Felsen vereinzelt */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const a = (i / 8) * Math.PI * 2 + Math.PI / 16;
+        const r = 14;
+        return (
+          <mesh key={i} position={[Math.cos(a) * r, 0.2, Math.sin(a) * r]} castShadow rotation={[0, Math.random() * Math.PI, 0]}>
+            <dodecahedronGeometry args={[0.4 + Math.random() * 0.2]} />
+            <meshStandardMaterial color="#5a5d68" roughness={1} flatShading />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+/** Schwebende NPC-Lichter (kleine Bewohner, friedlich kreisend) */
+function VillagerLights({ accent }: { accent: string }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const t = clock.getElapsedTime();
+    ref.current.children.forEach((c, i) => {
+      const phase = t * 0.4 + (i / ref.current!.children.length) * Math.PI * 2;
+      const r = 6 + (i % 3) * 1.5;
+      c.position.x = Math.cos(phase) * r;
+      c.position.z = Math.sin(phase) * r;
+      c.position.y = 0.6 + Math.sin(t * 2 + i) * 0.2;
+    });
+  });
+  return (
+    <group ref={ref}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <pointLight key={i} color={accent} intensity={0.5} distance={2}>
+          <mesh>
+            <sphereGeometry args={[0.06, 8, 8]} />
+            <meshBasicMaterial color={accent} />
+          </mesh>
+        </pointLight>
+      ))}
     </group>
   );
 }
@@ -165,29 +405,34 @@ export function BaseScene({
     <div style={{ width: "100%", height, position: "relative" }}>
       <Canvas
         shadows
-        camera={{ position: [10, 12, 10], fov: 35 }}
+        camera={{ position: [16, 18, 16], fov: 35 }}
         style={{ background: `linear-gradient(180deg, ${skyColor} 0%, #0F1115 100%)` }}
         dpr={[1, 2]}
       >
         <Suspense fallback={null}>
           {/* Lighting */}
-          <ambientLight intensity={0.6} />
+          <ambientLight intensity={0.55} />
           <directionalLight
-            position={[10, 14, 8]}
-            intensity={1.1}
+            position={[12, 18, 10]}
+            intensity={1.2}
             castShadow
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
-            shadow-camera-left={-15}
-            shadow-camera-right={15}
-            shadow-camera-top={15}
-            shadow-camera-bottom={-15}
+            shadow-mapSize-width={1536}
+            shadow-mapSize-height={1536}
+            shadow-camera-left={-18}
+            shadow-camera-right={18}
+            shadow-camera-top={18}
+            shadow-camera-bottom={-18}
           />
           <hemisphereLight args={[accent, "#0F1115", 0.4]} />
           <Environment preset="city" />
 
           <GroundPlate variant={variant} />
+          <PathCross />
+          <WallRing variant={variant} />
+          <ForestRing variant={variant} />
+          <Campfire variant={variant} />
           <FloatingParticles accent={accent} />
+          <VillagerLights accent={accent} />
 
           {buildings.map((b, i) => (
             <BuildingSlot key={`${b.building_id}-${i}`} b={b} onTap={() => onBuildingTap?.(b.building_id)} />
@@ -208,7 +453,7 @@ export function BaseScene({
             minPolarAngle={Math.PI / 4.5}
             maxPolarAngle={Math.PI / 3}
             autoRotate
-            autoRotateSpeed={0.4}
+            autoRotateSpeed={0.3}
           />
         </Suspense>
       </Canvas>
