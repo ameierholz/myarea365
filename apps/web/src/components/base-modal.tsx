@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 
 type Theme = {
   id: string; name: string; description: string;
@@ -326,6 +327,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
         <div className="p-4 overflow-y-auto flex-1 ma365-no-scrollbar" style={{ scrollbarWidth: "none" }}>
           <style>{`.ma365-no-scrollbar::-webkit-scrollbar{display:none}`}</style>
+          <div className="mb-4">
+            <DailyDealTeaser />
+          </div>
           {/* ÜBERSICHT — alles auf einen Blick */}
           {tab === "overview" && (() => {
             const totalBuildings = catalog.length;
