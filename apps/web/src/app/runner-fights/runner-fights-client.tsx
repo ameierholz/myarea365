@@ -463,15 +463,14 @@ function ArenaHeader({ onClose, myGuardian, freeLeft, used, totalLimit, gemsAvai
 }
 
 const SLOT_ORDER: Array<{ key: string; icon: string; labelKey: string }> = [
-  { key: "helm",      icon: "⛑️", labelKey: "slotHelm" },
-  { key: "shoulders", icon: "🦾", labelKey: "slotShoulders" },
-  { key: "chest",     icon: "🛡️", labelKey: "slotChest" },
-  { key: "hands",     icon: "🧤", labelKey: "slotHands" },
-  { key: "wrist",     icon: "🔗", labelKey: "slotWrist" },
-  { key: "boots",     icon: "🥾", labelKey: "slotBoots" },
-  { key: "neck",      icon: "📿", labelKey: "slotNeck" },
-  { key: "ring",      icon: "💍", labelKey: "slotRing" },
-  { key: "weapon",    icon: "⚔️", labelKey: "slotWeapon" },
+  { key: "helm",     icon: "⛑️",  labelKey: "slotHelm" },
+  { key: "chest",    icon: "🛡️", labelKey: "slotChest" },
+  { key: "legs",     icon: "👖",  labelKey: "slotLegs" },
+  { key: "gloves",   icon: "🧤",  labelKey: "slotHands" },
+  { key: "boots",    icon: "🥾",  labelKey: "slotBoots" },
+  { key: "weapon",   icon: "⚔️", labelKey: "slotWeapon" },
+  { key: "necklace", icon: "📿",  labelKey: "slotNeck" },
+  { key: "ring",     icon: "💍",  labelKey: "slotRing" },
 ];
 
 const TIER_COLORS = ["#8B8FA3", "#4ade80", "#a855f7", "#FFD700"];

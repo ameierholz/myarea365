@@ -240,7 +240,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
         {/* Filter */}
         <div style={{ padding: "10px 16px", display: "flex", gap: 4, flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
           <FilterChip label={tF("filterAll")} active={filterSlot === "ALL"} onClick={() => setFilterSlot("ALL")} />
-          {(["helm","chest","shoulders","hands","boots","wrist","neck","ring","weapon"] as ItemSlot[]).map((s) => (
+          {(["helm","chest","legs","gloves","boots","weapon","necklace","ring"] as ItemSlot[]).map((s) => (
             <FilterChip key={s} label={`${SLOT_META[s].icon} ${SLOT_META[s].label}`} active={filterSlot === s} onClick={() => setFilterSlot(s)} />
           ))}
         </div>

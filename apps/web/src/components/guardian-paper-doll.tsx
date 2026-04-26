@@ -95,29 +95,29 @@ export function GuardianPaperDoll({
 
   return (
     <div>
-      {/* Paper-Doll Layout */}
+      {/* Paper-Doll Layout — kompakter, Avatar deutlich größer (Slots auf 60px). */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: "70px 1fr 70px",
-        gap: 10, alignItems: "start",
-        padding: "16px 12px",
+        gridTemplateColumns: "62px 1fr 62px",
+        gap: 8, alignItems: "center",
+        padding: "8px 8px 4px",
       }}>
         {/* Linke Spalte */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {LEFT_COLUMN.map((slot) => (
             <SlotButton key={slot} slot={slot} item={inv.equipped[slot]} onClick={() => setPickerSlot(slot)} disabled={busy} />
           ))}
         </div>
 
-        {/* Mitte: Avatar (Helm ist jetzt in LEFT_COLUMN, keine doppelte Anzeige) */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <div style={{ position: "relative" }}>
+        {/* Mitte: Avatar (Helm ist in LEFT_COLUMN). Größer + zentriert. */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "relative", transform: "scale(1.55)", transformOrigin: "center", margin: "32px 0" }}>
             {avatar}
           </div>
         </div>
 
         {/* Rechte Spalte */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {RIGHT_COLUMN.map((slot) => (
             <SlotButton key={slot} slot={slot} item={inv.equipped[slot]} onClick={() => setPickerSlot(slot)} disabled={busy} />
           ))}
@@ -145,17 +145,16 @@ export function GuardianPaperDoll({
         </div>
       )}
 
-      {/* Schmiede-Button */}
+      {/* Schmiede-Button — kompakter (8px Padding statt 14px) damit immer sichtbar */}
       <button
         onClick={() => setShowForge(true)}
         style={{
-          display: "block", width: "calc(100% - 24px)", margin: "12px",
-          padding: "14px 16px", borderRadius: 12,
+          display: "block", width: "calc(100% - 16px)", margin: "8px",
+          padding: "10px 14px", borderRadius: 10,
           background: "linear-gradient(135deg, #FF6B4A 0%, #a855f7 50%, #FFD700 100%)",
           color: "#0F1115", border: "none", cursor: "pointer",
-          fontSize: 14, fontWeight: 900, letterSpacing: 2,
-          textShadow: "none",
-          boxShadow: "0 4px 20px rgba(255,107,74,0.35), inset 0 1px 0 rgba(255,255,255,0.3)",
+          fontSize: 13, fontWeight: 900, letterSpacing: 1.5,
+          boxShadow: "0 3px 14px rgba(255,107,74,0.35), inset 0 1px 0 rgba(255,255,255,0.3)",
         }}
       >
         🔨 ZUR SCHMIEDE
