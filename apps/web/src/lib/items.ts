@@ -2,21 +2,19 @@ import type { AnyRarity } from "@/lib/guardian";
 // Items können noch Legacy-Raritäten haben (common/rare/legend) — akzeptiere alle.
 type GuardianRarity = AnyRarity;
 
-// 9 Slots total (Legacy helm/armor/amulet + 6 neue)
-// DB hat armor -> chest, amulet -> neck ge-migrated. TS ist schon am neuen Stand.
+// 8 Slots — synchron mit DB-Migration 00078 (helm/chest/legs/boots/gloves/weapon/necklace/ring).
 export type ItemSlot =
-  | "helm"       // Kopf
-  | "chest"      // Brust
-  | "hands"      // Hände
-  | "shoulders"  // Schulter
-  | "boots"      // Schuhe
-  | "wrist"      // Handgelenk
-  | "neck"       // Kette
-  | "ring"       // Ring
-  | "weapon";    // Waffe
+  | "helm"      // Kopf
+  | "chest"     // Brust
+  | "legs"      // Beine
+  | "boots"     // Schuhe
+  | "gloves"    // Hände
+  | "weapon"    // Waffe
+  | "necklace"  // Kette
+  | "ring";     // Ring
 
 export const ALL_SLOTS: ItemSlot[] = [
-  "helm", "chest", "hands", "shoulders", "boots", "wrist", "neck", "ring", "weapon",
+  "helm", "chest", "legs", "gloves", "boots", "weapon", "necklace", "ring",
 ];
 
 export type ItemCatalogRow = {
@@ -60,13 +58,12 @@ export function sumEquipmentBonus(eq: EquippedItems): { hp: number; atk: number;
 }
 
 export const SLOT_META: Record<ItemSlot, { label: string; icon: string; order: number }> = {
-  helm:      { label: "Kopf",       icon: "⛑️", order: 1 },
-  shoulders: { label: "Schulter",   icon: "🎽", order: 2 },
-  chest:     { label: "Brust",      icon: "🛡️", order: 3 },
-  hands:     { label: "Hände",      icon: "🧤", order: 4 },
-  wrist:     { label: "Handgelenk", icon: "⌚", order: 5 },
-  neck:      { label: "Kette",      icon: "📿", order: 6 },
-  ring:      { label: "Ring",       icon: "💍", order: 7 },
-  boots:     { label: "Schuhe",     icon: "👟", order: 8 },
-  weapon:    { label: "Waffe",      icon: "⚔️", order: 9 },
+  helm:     { label: "Kopf",   icon: "⛑️",  order: 1 },
+  chest:    { label: "Brust",  icon: "🛡️", order: 2 },
+  legs:     { label: "Beine",  icon: "👖",  order: 3 },
+  gloves:   { label: "Hände",  icon: "🧤",  order: 4 },
+  boots:    { label: "Schuhe", icon: "👟",  order: 5 },
+  weapon:   { label: "Waffe",  icon: "⚔️",  order: 6 },
+  necklace: { label: "Kette",  icon: "📿",  order: 7 },
+  ring:     { label: "Ring",   icon: "💍",  order: 8 },
 };

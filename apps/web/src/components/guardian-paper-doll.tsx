@@ -30,9 +30,9 @@ const TIER_META: Array<{ color: string; name: string; glow: string }> = [
   { color: "#FFD700", name: "Gold", glow: "rgba(255,215,0,0.6)"    },
 ];
 
-// Paper-doll Layout: links + rechts vom Avatar
-const LEFT_COLUMN: ItemSlot[]  = ["shoulders", "chest", "hands", "boots"];
-const RIGHT_COLUMN: ItemSlot[] = ["neck",      "wrist", "ring",  "weapon"];
+// Paper-doll Layout: 4 links + 4 rechts vom Avatar (8 Slots total)
+const LEFT_COLUMN: ItemSlot[]  = ["helm",     "chest",    "legs", "gloves"];
+const RIGHT_COLUMN: ItemSlot[] = ["necklace", "weapon",   "ring", "boots"];
 
 export function GuardianPaperDoll({
   avatar,
@@ -83,7 +83,7 @@ export function GuardianPaperDoll({
   if (!inv) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{tPD("loading")}</div>;
 
   const totalBonus = { hp: 0, atk: 0, def: 0, spd: 0 };
-  for (const s of [...LEFT_COLUMN, ...RIGHT_COLUMN, "helm"] as ItemSlot[]) {
+  for (const s of [...LEFT_COLUMN, ...RIGHT_COLUMN] as ItemSlot[]) {
     const it = inv.equipped[s];
     if (!it || it.catalog.cosmetic_only) continue;
     const tierMult = [1.0, 1.5, 2.25, 3.5][it.upgrade_tier ?? 0];
@@ -109,14 +109,9 @@ export function GuardianPaperDoll({
           ))}
         </div>
 
-        {/* Mitte: Helm oben + Avatar + Boots-Label */}
+        {/* Mitte: Avatar (Helm ist jetzt in LEFT_COLUMN, keine doppelte Anzeige) */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          {/* Helm */}
-          <div style={{ width: 70 }}>
-            <SlotButton slot="helm" item={inv.equipped.helm} onClick={() => setPickerSlot("helm")} disabled={busy} />
-          </div>
-          {/* Avatar */}
-          <div style={{ position: "relative", marginTop: 4 }}>
+          <div style={{ position: "relative" }}>
             {avatar}
           </div>
         </div>
