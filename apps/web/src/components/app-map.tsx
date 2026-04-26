@@ -2511,6 +2511,125 @@ export function AppMap({
     };
   }, [mapReady, placeBaseMode, onPlaceBaseClick]);
 
+  // ── Relocate-Mode: Custom-Event → nächster Map-Klick verlegt die Base ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const onTrigger = () => {
+      const canvas = map.getCanvas();
+      canvas.style.cursor = "crosshair";
+      const handler = async (e: mapboxgl.MapMouseEvent) => {
+        canvas.style.cursor = "";
+        try {
+          const r = await fetch("/api/base/relocate", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lat: e.lngLat.lat, lng: e.lngLat.lng }),
+          });
+          const j = await r.json() as { ok?: boolean; error?: string; tokens_left?: number };
+          if (j.ok) {
+            window.alert(`✓ Base verlegt. Tokens übrig: ${j.tokens_left}`);
+            window.location.reload();
+          } else {
+            window.alert("Fehler: " + (j.error ?? "unbekannt"));
+          }
+        } catch (e) {
+          window.alert("Netzwerkfehler beim Verlegen.");
+          void e;
+        }
+      };
+      map.once("click", handler);
+    };
+    window.addEventListener("ma365:relocate-base-mode", onTrigger);
+    return () => { window.removeEventListener("ma365:relocate-base-mode", onTrigger); };
+  }, [mapReady]);
+
+  // ── March-Lines: laufende Crew-Angriffe als animierte Linie auf der Map ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    let cancelled = false;
+    const SRC = "ma365-marches";
+    const LYR_LINE = "ma365-marches-line";
+    const LYR_GLOW = "ma365-marches-glow";
+    type March = {
+      id: string; is_attacker: boolean;
+      attacker_lat: number; attacker_lng: number;
+      defender_lat: number; defender_lng: number;
+      started_at: string; ends_at: string;
+    };
+    let marchMarkers: mapboxgl.Marker[] = [];
+
+    const ensureLayers = () => {
+      if (!map.getSource(SRC)) {
+        map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: LYR_GLOW, type: "line", source: SRC,
+          paint: {
+            "line-color": ["case", ["get", "is_attacker"], "#FF2D78", "#FF6B4A"],
+            "line-width": 6, "line-opacity": 0.35, "line-blur": 6,
+          },
+        });
+        map.addLayer({
+          id: LYR_LINE, type: "line", source: SRC,
+          paint: {
+            "line-color": ["case", ["get", "is_attacker"], "#FF2D78", "#FF6B4A"],
+            "line-width": 2, "line-opacity": 0.95, "line-dasharray": [2, 2],
+          },
+        });
+      }
+    };
+
+    const setData = (marches: March[]) => {
+      ensureLayers();
+      const features = marches.map((m) => ({
+        type: "Feature" as const,
+        properties: { id: m.id, is_attacker: m.is_attacker },
+        geometry: { type: "LineString" as const, coordinates: [
+          [m.attacker_lng, m.attacker_lat], [m.defender_lng, m.defender_lat],
+        ]},
+      }));
+      const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
+      if (src) src.setData({ type: "FeatureCollection", features });
+
+      // Truppen-Marker (animiert) — t = elapsed/duration. Position interpoliert.
+      marchMarkers.forEach((mk) => mk.remove());
+      marchMarkers = marches.map((m) => {
+        const start = new Date(m.started_at).getTime();
+        const end = new Date(m.ends_at).getTime();
+        const t = Math.max(0, Math.min(1, (Date.now() - start) / Math.max(1, end - start)));
+        const lat = m.attacker_lat + (m.defender_lat - m.attacker_lat) * t;
+        const lng = m.attacker_lng + (m.defender_lng - m.attacker_lng) * t;
+        const el = document.createElement("div");
+        el.style.cssText = "font-size:22px;line-height:1;filter:drop-shadow(0 0 6px " + (m.is_attacker ? "#FF2D78" : "#FF6B4A") + ")";
+        el.textContent = "⚔️";
+        return new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]).addTo(map);
+      });
+    };
+
+    const fetchMarches = async () => {
+      try {
+        const r = await fetch("/api/base/marches", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { ok?: boolean; marches?: March[] };
+        if (cancelled || !j.marches) return;
+        setData(j.marches);
+      } catch { /* silent */ }
+    };
+
+    void fetchMarches();
+    const id = window.setInterval(fetchMarches, 5000); // alle 5s neu fetchen
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      marchMarkers.forEach((mk) => mk.remove());
+      try {
+        if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
+        if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
+        if (map.getSource(SRC)) map.removeSource(SRC);
+      } catch { /* cleanup race */ }
+    };
+  }, [mapReady]);
+
   return (
     <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />

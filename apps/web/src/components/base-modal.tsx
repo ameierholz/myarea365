@@ -34,7 +34,7 @@ type QueueItem = {
   id: string; building_id: string; action: "build" | "upgrade"; target_level: number;
   started_at: string; ends_at: string; finished: boolean;
 };
-type Resources = { wood: number; stone: number; gold: number; mana: number; speed_tokens: number };
+type Resources = { wood: number; stone: number; gold: number; mana: number; speed_tokens: number; vip_tickets?: number; guardian_xp?: number };
 type VipProgress = { vip_level: number; vip_points: number; daily_login_streak: number };
 type Chest = { id: string; kind: "silver" | "gold" | "event"; source: string; obtained_at: string; opens_at: string };
 
@@ -76,7 +76,7 @@ export function BaseModal({ target, onClose }: Props) {
 
 function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<OwnBaseData | null>(null);
-  const [tab, setTab]   = useState<"overview" | "res" | "build" | "chest" | "vip" | "settings">("overview");
+  const [tab, setTab]   = useState<"overview" | "res" | "build" | "troops" | "research" | "chest" | "vip" | "settings">("overview");
   const [now, setNow]   = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr]   = useState<string | null>(null);
@@ -281,18 +281,34 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
+          {tab !== "res" && tab !== "overview" && ((resources.vip_tickets ?? 0) > 0 || (resources.guardian_xp ?? 0) > 0) && (
+            <div className="px-3 pb-3 flex gap-2">
+              {(resources.vip_tickets ?? 0) > 0 && (
+                <div className="flex-1 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 px-2 py-1.5 text-center">
+                  <div className="text-[9px] text-[#a8b4cf]">⭐ VIP-Tickets</div>
+                  <div className="text-[11px] font-black text-[#a855f7]">{resources.vip_tickets}</div>
+                </div>
+              )}
+              {(resources.guardian_xp ?? 0) > 0 && (
+                <div className="flex-1 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 px-2 py-1.5 text-center">
+                  <div className="text-[9px] text-[#a8b4cf]">⚔️ Wächter-XP</div>
+                  <div className="text-[11px] font-black text-[#22D1C3]">{compactNum(resources.guardian_xp ?? 0)}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tabs (Settings ist als ⚙️ im Header) */}
         <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]"
              style={{ scrollbarWidth: "none" }}>
           <style>{`.ma365-tabbar::-webkit-scrollbar{display:none}`}</style>
-          {(["overview","res","build","chest","vip"] as const).map((t) => (
+          {(["overview","res","build","troops","research","chest","vip"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className={`flex-1 py-2.5 px-2 whitespace-nowrap transition-colors ${tab === t ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
               style={tab === t ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
             >
-              {{overview:"📊 ÜBERSICHT", res:"💰 RESSOURCEN", build:"🏗️ BAU", chest:"🗝️ TRUHEN", vip:"⭐ VIP"}[t]}
+              {{overview:"📊 ÜBERSICHT", res:"💰 RES", build:"🏗️ BAU", troops:"⚔️ TRUPPEN", research:"🔬 FORSCHUNG", chest:"🗝️ TRUHEN", vip:"⭐ VIP"}[t]}
               {t === "build" && queue.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FF6B4A] text-white">{queue.length}</span>}
               {t === "chest" && chests.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FFD700] text-[#0F1115]">{chests.length}</span>}
             </button>
@@ -667,6 +683,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
+          {/* TRUPPEN */}
+          {tab === "troops" && <TroopsTab accent={accent} reload={reload} />}
+
+          {/* FORSCHUNG */}
+          {tab === "research" && <ResearchTab accent={accent} reload={reload} />}
+
           {/* TRUHEN */}
           {tab === "chest" && (
             <div className="space-y-2">
@@ -800,6 +822,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
               <BaseShieldPanel accent={accent} reload={reload} />
 
+              <BaseRelocatePanel accent={accent} reload={reload} tokenCount={(base as { relocate_tokens?: number }).relocate_tokens ?? 0} />
 
               <div>
                 <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">THEME</div>
@@ -1127,6 +1150,288 @@ function BaseLabelEditor({ accent, currentLabel, onSaved }: {
  * Report-Button für unangemessene Base-Namen. Öffnet kleinen Confirm-Dialog,
  * sendet Report an /api/base/report-label. User kann nur 1× pro 24h pro Base reporten.
  */
+// ───────────────────────── TRUPPEN-TAB ─────────────────────────────
+function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  type Troop = {
+    id: string; name: string; emoji: string; troop_class: string; tier: number;
+    base_atk: number; base_def: number; base_hp: number;
+    cost_wood: number; cost_stone: number; cost_gold: number; cost_mana: number;
+    train_time_seconds: number; required_building_level: number; description: string;
+  };
+  type Owned = { troop_id: string; count: number };
+  type QueueRow = { id: string; troop_id: string; count: number; ends_at: string };
+  type Data = { catalog: Troop[]; owned: Owned[]; queue: QueueRow[] };
+  const [data, setData] = useState<Data | null>(null);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [openClass, setOpenClass] = useState<string | null>("infantry");
+
+  const load = useCallback(async () => {
+    const r = await fetch("/api/base/troops");
+    setData(await r.json());
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  async function train(troopId: string) {
+    const c = counts[troopId] ?? 1;
+    setBusy(troopId); setMsg(null);
+    try {
+      const r = await fetch("/api/base/troops", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ troop_id: troopId, count: c }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string; seconds?: number; max_at_once?: number };
+      if (j.ok) { setMsg(`✓ ${c} Truppen werden trainiert (${Math.round((j.seconds ?? 0) / 60)} min)`); await Promise.all([load(), reload()]); }
+      else if (j.error === "building_level_too_low") setMsg("Trainings-Gebäude zu niedrig — erst ausbauen.");
+      else if (j.error === "too_many_at_once") setMsg(`Max ${j.max_at_once} pro Auftrag — Gebäude weiter ausbauen.`);
+      else if (j.error === "not_enough_resources") setMsg("Nicht genug Resourcen.");
+      else setMsg(j.error ?? "Fehler");
+    } finally { setBusy(null); }
+  }
+
+  if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
+  const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
+  const classes: Array<{ id: string; label: string; building: string }> = [
+    { id: "infantry",  label: "🛡️ Infanterie",   building: "Kaserne" },
+    { id: "cavalry",   label: "🐎 Kavallerie",   building: "Stall" },
+    { id: "marksman",  label: "🏹 Schützen",     building: "Schießstand" },
+    { id: "siege",     label: "⚙️ Belagerung",   building: "Belagerungs-Schuppen" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <IntroBox accent={accent} title="⚔️ TRUPPEN AUSBILDEN">
+        Trainiere Truppen in <b className="text-white">Kaserne / Stall / Schießstand / Belagerungs-Schuppen</b>.
+        Tier 1-5 wird mit Gebäude-Level freigeschaltet (T1 = Lv 1 · T2 = Lv 5 · T3 = Lv 10 · T4 = Lv 15 · T5 = Lv 20).
+        <span className="block mt-1 text-[#6c7590]">Trainings-Cap pro Auftrag = Gebäude-Level × 10.</span>
+      </IntroBox>
+
+      {data.queue.length > 0 && (
+        <div className="rounded-lg p-2 bg-[#FF6B4A]/10 border border-[#FF6B4A]/40 text-[11px]">
+          <div className="font-black text-[#FF6B4A] mb-1">⏱ IM TRAINING</div>
+          {data.queue.map((q) => {
+            const t = data.catalog.find((x) => x.id === q.troop_id);
+            const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
+            return (
+              <div key={q.id} className="flex justify-between text-[10px] text-white">
+                <span>{t?.emoji} {t?.name} × {q.count}</span>
+                <span className="text-[#a8b4cf]">{remain} min</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {classes.map((c) => {
+        const troops = data.catalog.filter((t) => t.troop_class === c.id);
+        const open = openClass === c.id;
+        return (
+          <div key={c.id} className="rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <button onClick={() => setOpenClass(open ? null : c.id)} className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white">
+              <span>{c.label}</span><span className="text-[#a8b4cf] text-[10px]">{c.building} · {open ? "▾" : "▸"}</span>
+            </button>
+            {open && (
+              <div className="p-2 space-y-1.5">
+                {troops.map((t) => {
+                  const count = counts[t.id] ?? 1;
+                  const have = ownedMap.get(t.id) ?? 0;
+                  return (
+                    <div key={t.id} className="rounded p-2 flex items-center gap-2 bg-[#0F1115]/60 border border-white/5">
+                      <span className="text-2xl">{t.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-black text-white truncate">
+                          {t.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">T{t.tier} · Lv {t.required_building_level}+</span>
+                        </div>
+                        <div className="text-[9px] text-[#a8b4cf]">⚔️ {t.base_atk} · 🛡 {t.base_def} · ❤️ {t.base_hp} · ⏱ {t.train_time_seconds}s</div>
+                        <div className="text-[9px] text-[#a8b4cf]">🪵 {t.cost_wood} · 🪨 {t.cost_stone} · 🪙 {t.cost_gold} · 💧 {t.cost_mana}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="text-[10px] text-[#FFD700] font-black">×{have}</div>
+                        <div className="flex items-center gap-1">
+                          <input type="number" min={1} value={count}
+                            onChange={(e) => setCounts({ ...counts, [t.id]: Math.max(1, parseInt(e.target.value) || 1) })}
+                            className="w-12 text-[10px] px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white text-right" />
+                          <button onClick={() => train(t.id)} disabled={busy === t.id}
+                            className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40"
+                            style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
+                            {busy === t.id ? "…" : "Trainieren"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {msg && <div className="text-[11px] text-center font-black" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
+    </div>
+  );
+}
+
+// ───────────────────────── FORSCHUNG-TAB ─────────────────────────────
+function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  type Def = {
+    id: string; name: string; emoji: string; description: string; branch: string; tier: number;
+    prereq_id: string | null; max_level: number;
+    base_cost_wood: number; base_cost_stone: number; base_cost_gold: number; base_cost_mana: number;
+    base_time_minutes: number; effect_key: string | null; effect_per_level: number;
+    required_burg_level: number;
+  };
+  type Progress = { research_id: string; level: number };
+  type QueueRow = { id: string; research_id: string; target_level: number; ends_at: string };
+  type Data = { ok: boolean; definitions: Def[]; progress: Progress[]; queue: QueueRow[] };
+  const [data, setData] = useState<Data | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [openBranch, setOpenBranch] = useState<string | null>("economy");
+
+  const load = useCallback(async () => {
+    const r = await fetch("/api/base/research");
+    setData(await r.json());
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  async function start(researchId: string) {
+    setBusy(researchId); setMsg(null);
+    try {
+      const r = await fetch("/api/base/research", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ research_id: researchId }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string; minutes?: number };
+      if (j.ok) { setMsg(`✓ Forschung gestartet (${j.minutes} min)`); await Promise.all([load(), reload()]); }
+      else if (j.error === "prereq_missing") setMsg("Vorgänger-Forschung fehlt.");
+      else if (j.error === "burg_level_too_low") setMsg("Burg muss höher sein.");
+      else if (j.error === "queue_full") setMsg("Forschungs-Slots voll (mehr ab VIP 4 / 7).");
+      else if (j.error === "not_enough_resources") setMsg("Nicht genug Resourcen.");
+      else setMsg(j.error ?? "Fehler");
+    } finally { setBusy(null); }
+  }
+
+  if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
+  const progressMap = new Map(data.progress.map((p) => [p.research_id, p.level]));
+  const branches: Array<{ id: string; label: string; color: string }> = [
+    { id: "economy",        label: "💰 Wirtschaft",     color: "#FFD700" },
+    { id: "military",       label: "⚔️ Militär",        color: "#FF2D78" },
+    { id: "infrastructure", label: "🏗️ Infrastruktur",  color: "#22D1C3" },
+    { id: "social",         label: "🤝 Sozial",         color: "#a855f7" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <IntroBox accent={accent} title="🔬 FORSCHUNG">
+        Forschungen geben permanente <b className="text-white">%-Boni</b> (Resourcen, Truppen, Bauzeit).
+        Höhere Tiers brauchen Vorgänger-Forschung + entsprechendes Burg-Level.
+        <span className="block mt-1 text-[#6c7590]">Forschungs-Slots: 1 (VIP 4 → 2 · VIP 7 → 3).</span>
+      </IntroBox>
+
+      {data.queue.length > 0 && (
+        <div className="rounded-lg p-2 bg-[#22D1C3]/10 border border-[#22D1C3]/40 text-[11px]">
+          <div className="font-black text-[#22D1C3] mb-1">⏱ IN FORSCHUNG</div>
+          {data.queue.map((q) => {
+            const d = data.definitions.find((x) => x.id === q.research_id);
+            const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
+            return (
+              <div key={q.id} className="flex justify-between text-[10px] text-white">
+                <span>{d?.emoji} {d?.name} → Lv {q.target_level}</span>
+                <span className="text-[#a8b4cf]">{remain} min</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {branches.map((b) => {
+        const items = data.definitions.filter((d) => d.branch === b.id).sort((a, c) => a.tier - c.tier);
+        const open = openBranch === b.id;
+        return (
+          <div key={b.id} className="rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${b.color}33` }}>
+            <button onClick={() => setOpenBranch(open ? null : b.id)} className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black" style={{ color: b.color }}>
+              <span>{b.label}</span><span className="text-[10px]">{open ? "▾" : "▸"}</span>
+            </button>
+            {open && (
+              <div className="p-2 space-y-1.5">
+                {items.map((d) => {
+                  const lvl = progressMap.get(d.id) ?? 0;
+                  const prereqLvl = d.prereq_id ? (progressMap.get(d.prereq_id) ?? 0) : 1;
+                  const locked = d.prereq_id !== null && prereqLvl < 1;
+                  const maxed = lvl >= d.max_level;
+                  return (
+                    <div key={d.id} className="rounded p-2 bg-[#0F1115]/60 border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{d.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-black text-white">
+                            {d.name} <span className="text-[9px] text-[#a8b4cf] ml-1">T{d.tier} · Lv {lvl}/{d.max_level} · Burg {d.required_burg_level}+</span>
+                          </div>
+                          <div className="text-[9px] text-[#a8b4cf]">{d.description}</div>
+                          {locked && <div className="text-[9px] text-[#FF6B4A]">🔒 Vorgänger nötig</div>}
+                        </div>
+                        <button onClick={() => start(d.id)} disabled={busy === d.id || locked || maxed}
+                          className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40"
+                          style={{ background: `${b.color}26`, border: `1px solid ${b.color}66`, color: b.color }}>
+                          {maxed ? "MAX" : busy === d.id ? "…" : `→ Lv ${lvl + 1}`}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {msg && <div className="text-[11px] text-center font-black" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
+    </div>
+  );
+}
+
+function BaseRelocatePanel({ accent, reload, tokenCount }: { accent: string; reload: () => Promise<void>; tokenCount: number }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function relocate() {
+    if (tokenCount < 1) {
+      setMsg("Du brauchst einen Verlege-Token (Drop aus Truhen).");
+      return;
+    }
+    if (!window.confirm("Base verlegen? Klicke nach OK auf den neuen Punkt auf der Karte.")) return;
+    setBusy(true); setMsg(null);
+    try {
+      // Trigger Place-Mode via globaler Event — der Map-Layer fängt den nächsten Klick.
+      window.dispatchEvent(new CustomEvent("ma365:relocate-base-mode"));
+      setMsg("Tippe auf der Karte den neuen Standort.");
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="rounded-xl p-3" style={{ background: "rgba(34,209,195,0.06)", border: "1px solid rgba(34,209,195,0.3)" }}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-base">📍</span>
+        <div className="text-[10px] font-black tracking-widest" style={{ color: "#22D1C3" }}>BASE VERLEGEN</div>
+      </div>
+      <div className="text-[10px] text-[#a8b4cf] mb-2">
+        Verlege deine Base auf einen neuen Standort. Kostet <b style={{ color: "#22D1C3" }}>1 Verlege-Token</b>.
+        Tokens droppen aus Gold/Epic-Truhen.
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] text-white font-black">Tokens: {tokenCount}</span>
+        <button onClick={relocate} disabled={busy || tokenCount < 1}
+          className="text-[10px] font-black px-3 py-1.5 rounded disabled:opacity-40"
+          style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
+          {busy ? "…" : "Standort wählen"}
+        </button>
+      </div>
+      {msg && <div className="text-[10px] text-center font-black mt-1" style={{ color: msg.startsWith("✓") || msg.startsWith("Tippe") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
+      <button onClick={() => void reload()} className="hidden" />
+    </div>
+  );
+}
+
 function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
   type Status = {
     ok?: boolean; active?: boolean;
