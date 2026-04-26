@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
-type DailyContent = { type: string; amount?: number; min?: number; max?: number; label: string };
+type DailyContent = { type: string; amount?: number; min?: number; max?: number; label: string; kind?: string; rarity?: string };
 type DailyPack = {
   id: string; sort: number; tier: "bronze" | "silver" | "gold";
   name: string; subtitle: string; icon: string;
@@ -32,8 +32,13 @@ const CONTENT_ICON: Record<string, string> = {
   random_potion:    "🧪",
   random_materials: "🧱",
   arena_pass_days:  "⚔️",
+  speed_token:      "⚡",
+  treasure_chest:   "🗝️",
 };
-function iconFor(type: string): string {
+function iconFor(type: string, entry?: { kind?: string }): string {
+  if (type === "treasure_chest") {
+    return entry?.kind === "gold" ? "🥇" : entry?.kind === "event" ? "🎉" : "🥈";
+  }
   return CONTENT_ICON[type] ?? "✨";
 }
 
@@ -302,7 +307,7 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
                   <ul style={{ margin: "6px 0", padding: 0, listStyle: "none", color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>
                     {p.contents.map((c, i) => (
                       <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
-                        <span style={{ fontSize: 12, lineHeight: 1, flexShrink: 0 }}>{iconFor(c.type)}</span>
+                        <span style={{ fontSize: 12, lineHeight: 1, flexShrink: 0 }}>{iconFor(c.type, c as { kind?: string })}</span>
                         <span>{c.label}</span>
                       </li>
                     ))}
