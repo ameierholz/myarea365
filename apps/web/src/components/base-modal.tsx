@@ -227,7 +227,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
   return (
     <Backdrop onClose={onClose}>
-      <div className="bg-[#0F1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-[#0F1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col flex-1 min-h-0">
 
         {/* ─── Hero-Header mit Theme-Banner + XP ─── */}
         <div style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 50%, transparent 100%)` }}>
@@ -965,7 +965,7 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
   return (
     <div className="fixed inset-0 z-[1000] bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
          onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl max-h-[94vh]">{children}</div>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] flex flex-col min-h-0">{children}</div>
     </div>
   );
 }
