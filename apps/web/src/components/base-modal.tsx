@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
+import { useResourceArt, ResourceIcon } from "@/components/resource-icon";
 
 type Theme = {
   id: string; name: string; description: string;
@@ -2106,49 +2107,3 @@ function PackagesCard({ accent }: { accent: string }) {
   );
 }
 
-// ───────────────────── Resource-Artwork Hook + Icon ─────────────────────
-type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
-let _resourceArtCache: ResourceArtMap | null = null;
-const _resourceArtListeners = new Set<(m: ResourceArtMap) => void>();
-let _resourceArtFetching = false;
-
-function useResourceArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_resourceArtCache ?? {});
-  useEffect(() => {
-    if (_resourceArtCache) { setArt(_resourceArtCache); return; }
-    _resourceArtListeners.add(setArt);
-    if (!_resourceArtFetching) {
-      _resourceArtFetching = true;
-      void (async () => {
-        try {
-          const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
-          if (!r.ok) return;
-          const j = await r.json() as { resource?: ResourceArtMap };
-          _resourceArtCache = j.resource ?? {};
-          _resourceArtListeners.forEach((l) => l(_resourceArtCache!));
-        } catch { /* silent */ } finally { _resourceArtFetching = false; }
-      })();
-    }
-    return () => { _resourceArtListeners.delete(setArt); };
-  }, []);
-  return art;
-}
-
-function ResourceIcon({ kind, size = 20, fallback, art }: {
-  kind: "wood" | "stone" | "gold" | "mana" | "speed_token";
-  size?: number;
-  fallback: string;
-  art: ResourceArtMap;
-}) {
-  const a = art[kind];
-  if (a?.video_url) {
-    return <video src={a.video_url} autoPlay loop muted playsInline
-      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
-  }
-  if (a?.image_url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={a.image_url} alt={kind}
-      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
-  }
-  return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
-}

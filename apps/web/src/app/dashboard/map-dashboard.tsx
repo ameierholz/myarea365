@@ -32,6 +32,7 @@ import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
+import { useResourceArt, ResourceIcon } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
@@ -2158,6 +2159,7 @@ function ProfilTab({
   const supabase = createClient();
   const tMD = useTranslations("MapDashboard");
   const tXG = useTranslations("XpGuide");
+  const resourceArt = useResourceArt();
 
   // ═══ Base-Banner-State (eigene Base-Daten für Hero-Banner) ═══
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
@@ -2692,12 +2694,22 @@ function ProfilTab({
               <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {ownBaseInfo.theme_name} · Stufe {ownBaseInfo.level}
               </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap" }}>
-                <span style={{ color: "#a16f32", fontWeight: 800 }}>🪵 {ownBaseInfo.resources.wood.toLocaleString("de-DE")}</span>
-                <span style={{ color: "#8B8FA3", fontWeight: 800 }}>🪨 {ownBaseInfo.resources.stone.toLocaleString("de-DE")}</span>
-                <span style={{ color: "#FFD700", fontWeight: 800 }}>🪙 {ownBaseInfo.resources.gold.toLocaleString("de-DE")}</span>
-                <span style={{ color: "#22D1C3", fontWeight: 800 }}>💧 {ownBaseInfo.resources.mana.toLocaleString("de-DE")}</span>
-                <span style={{ color: "#FFD700", fontWeight: 800 }}>⚡ {ownBaseInfo.resources.speed_tokens}</span>
+              <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ color: "#a16f32", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <ResourceIcon kind="wood" size={14} fallback="🪵" art={resourceArt} /> {ownBaseInfo.resources.wood.toLocaleString("de-DE")}
+                </span>
+                <span style={{ color: "#8B8FA3", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <ResourceIcon kind="stone" size={14} fallback="🪨" art={resourceArt} /> {ownBaseInfo.resources.stone.toLocaleString("de-DE")}
+                </span>
+                <span style={{ color: "#FFD700", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <ResourceIcon kind="gold" size={14} fallback="🪙" art={resourceArt} /> {ownBaseInfo.resources.gold.toLocaleString("de-DE")}
+                </span>
+                <span style={{ color: "#22D1C3", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <ResourceIcon kind="mana" size={14} fallback="💧" art={resourceArt} /> {ownBaseInfo.resources.mana.toLocaleString("de-DE")}
+                </span>
+                <span style={{ color: "#FFD700", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <ResourceIcon kind="speed_token" size={14} fallback="⚡" art={resourceArt} /> {ownBaseInfo.resources.speed_tokens}
+                </span>
               </div>
               {(ownBaseInfo.queue_count > 0 || ownBaseInfo.chest_count > 0 || !ownBaseHasPos) && (
                 <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 10, fontWeight: 900 }}>
