@@ -2696,19 +2696,19 @@ function ProfilTab({
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ color: "#a16f32", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="wood" size={14} fallback="🪵" art={resourceArt} /> {ownBaseInfo.resources.wood.toLocaleString("de-DE")}
+                  <ResourceIcon kind="wood" size={20} fallback="🪵" art={resourceArt} /> {ownBaseInfo.resources.wood.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#8B8FA3", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="stone" size={14} fallback="🪨" art={resourceArt} /> {ownBaseInfo.resources.stone.toLocaleString("de-DE")}
+                  <ResourceIcon kind="stone" size={20} fallback="🪨" art={resourceArt} /> {ownBaseInfo.resources.stone.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#FFD700", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="gold" size={14} fallback="🪙" art={resourceArt} /> {ownBaseInfo.resources.gold.toLocaleString("de-DE")}
+                  <ResourceIcon kind="gold" size={20} fallback="🪙" art={resourceArt} /> {ownBaseInfo.resources.gold.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#22D1C3", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="mana" size={14} fallback="💧" art={resourceArt} /> {ownBaseInfo.resources.mana.toLocaleString("de-DE")}
+                  <ResourceIcon kind="mana" size={20} fallback="💧" art={resourceArt} /> {ownBaseInfo.resources.mana.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#FFD700", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="speed_token" size={14} fallback="⚡" art={resourceArt} /> {ownBaseInfo.resources.speed_tokens}
+                  <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} /> {ownBaseInfo.resources.speed_tokens}
                 </span>
               </div>
               {(ownBaseInfo.queue_count > 0 || ownBaseInfo.chest_count > 0 || !ownBaseHasPos) && (
@@ -7987,7 +7987,7 @@ function DiscoverView({ onBack }: { onBack: () => void }) {
               }}
               style={{ ...breadcrumbStyle(i === trail.length - 1), display: "inline-flex", alignItems: "center", gap: 5 }}
             >
-              {t.level === "country"   && <CountryFlag country={t.label} size={14} />}
+              {t.level === "country"   && <CountryFlag country={t.label} size={20} />}
               {t.level === "continent" && <span>{emojiForContinent(t.label)}</span>}
               {t.level !== "country" && t.level !== "continent" && <span>{GEO_ICON[t.level]}</span>}
               <span>{t.label}</span>
@@ -8565,7 +8565,7 @@ function NearbyCrewCard({ crew: c }: { crew: typeof DEMO_NEARBY_CREWS[number] })
             {t.name} · {FACTIONS.find((f) => f.id === c.faction)?.icon} {FACTIONS.find((f) => f.id === c.faction)?.name}
           </div>
           <div style={{ color: MUTED, fontSize: 11, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
-            <CountryFlag country={c.country} size={14} />
+            <CountryFlag country={c.country} size={20} />
             <span>{c.city} · {c.zip}{c.distance_km < 1000 ? ` · ${c.distance_km.toFixed(1)} km weg` : ""}</span>
           </div>
         </div>
@@ -12219,7 +12219,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
                   }}
                   style={{ ...breadcrumbStyle(i === trail.length - 1), display: "inline-flex", alignItems: "center", gap: 5 }}
                 >
-                  {t.level === "country"   && <CountryFlag country={t.label} size={14} />}
+                  {t.level === "country"   && <CountryFlag country={t.label} size={20} />}
                   {t.level === "continent" && <span>{emojiForContinent(t.label)}</span>}
                   {t.level !== "country" && t.level !== "continent" && <span>{GEO_ICON[t.level]}</span>}
                   <span>{t.label}</span>
@@ -13394,7 +13394,7 @@ function ArenaLeaderboardView() {
                 {avatar}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {r.country && <CountryFlag country={r.country} size={14} />}
+                    {r.country && <CountryFlag country={r.country} size={20} />}
                     <div style={{ color: factionColor, fontWeight: 900, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                       {r.display_name ?? r.username}
                     </div>
