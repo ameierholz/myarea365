@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useDailyDismiss } from "@/lib/use-daily-dismiss";
 
 type DailyContent = { type: string; amount?: number; min?: number; max?: number; label: string; kind?: string; rarity?: string };
 type DailyPack = {
@@ -50,6 +51,7 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const { dismissed, dismiss } = useDailyDismiss("daily-deals-banner");
 
   function formatPrice(p: DailyPack): string {
     if (p.price_cents != null) return t("priceEur", { price: (p.price_cents / 100).toFixed(2).replace(".", ",") });
@@ -153,9 +155,12 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
         @keyframes daily-shimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(340%); } }
       `}</style>
 
-      {!bannerHidden && (
-      <button
+      {!bannerHidden && !dismissed && (
+      <div
         onClick={() => setExpanded(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setExpanded(true); }}
         style={{
           position: "relative", overflow: "hidden",
           padding: "14px 14px",
@@ -201,6 +206,11 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
             {openLabel}
             {hasBundleOpen && <span style={{ color: "#FFD700" }}>{t("plusBundle")}</span>}
           </div>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: "#FFD700",
+            marginTop: 3, letterSpacing: 0.3,
+            textShadow: "0 0 8px rgba(255,215,0,0.4)",
+          }}>{t("lootTeaser")}</div>
           <div style={{ display: "flex", gap: 4, marginTop: 5, alignItems: "center", flexWrap: "wrap" }}>
             {standardPacks.map((p) => {
               const owned = data.purchased_today.includes(p.id);
@@ -235,7 +245,20 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
           </div>
         )}
         <span style={{ color: "#FFD700", fontSize: 18, fontWeight: 900, flexShrink: 0 }}>›</span>
-      </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); dismiss(); }}
+          aria-label={t("ariaDismiss")}
+          title={t("ariaDismiss")}
+          style={{
+            position: "absolute", top: 4, right: 4,
+            width: 22, height: 22, borderRadius: 999,
+            background: "rgba(15,17,21,0.55)", border: "1px solid rgba(255,255,255,0.12)",
+            color: "#a8b4cf", fontSize: 12, lineHeight: 1, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            zIndex: 2,
+          }}
+        >×</button>
+      </div>
       )}
 
       {expanded && (
@@ -332,32 +355,82 @@ export function DailyDealTeaser({ bannerHidden = false }: { onOpen?: () => void;
 
           {bundlePack && (() => {
             const owned = data.purchased_today.includes(bundlePack.id);
+            const usesEur = bundlePack.price_cents != null;
+            const sumCents = standardPacks.reduce((acc, p) => acc + (p.price_cents ?? 0), 0);
+            const sumGems = standardPacks.reduce((acc, p) => acc + (p.price_gems ?? 0), 0);
+            const bundleVal = usesEur ? (bundlePack.price_cents ?? 0) : (bundlePack.price_gems ?? 0);
+            const fullVal = usesEur ? sumCents : sumGems;
+            const canShowSaving = fullVal > 0 && bundleVal > 0 && fullVal > bundleVal;
+            const savePct = canShowSaving ? Math.round((1 - bundleVal / fullVal) * 100) : 0;
+            const fullLabel = usesEur
+              ? t("priceEur", { price: (fullVal / 100).toFixed(2).replace(".", ",") })
+              : t("priceGems", { gems: fullVal });
             return (
               <button
                 onClick={() => !owned && buy(bundlePack.id)}
                 disabled={owned || busy === bundlePack.id}
                 style={{
-                  width: "100%", padding: "10px 12px", borderRadius: 12,
+                  width: "100%", padding: "12px 14px", borderRadius: 14,
                   background: owned
                     ? "rgba(74,222,128,0.12)"
-                    : "linear-gradient(135deg, rgba(255,45,120,0.22), rgba(255,215,0,0.22), rgba(34,209,195,0.22))",
-                  border: owned ? "1px solid rgba(74,222,128,0.4)" : "1px solid rgba(255,215,0,0.55)",
-                  boxShadow: owned ? "none" : "0 0 12px rgba(255,215,0,0.3)",
+                    : "linear-gradient(135deg, rgba(255,45,120,0.28), rgba(255,215,0,0.26), rgba(34,209,195,0.26))",
+                  border: owned ? "1px solid rgba(74,222,128,0.4)" : "1px solid rgba(255,215,0,0.7)",
+                  boxShadow: owned ? "none" : "0 0 18px rgba(255,215,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1)",
                   cursor: owned ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", gap: 10,
+                  display: "flex", alignItems: "center", gap: 12,
                   textAlign: "left", color: "#FFF",
+                  position: "relative", overflow: "hidden",
                 }}>
-                <span style={{ fontSize: 22 }}>{bundlePack.icon}</span>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>{bundlePack.icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 900, color: "#FFD700", letterSpacing: 0.4 }}>{bundlePack.name}</div>
-                  <div style={{ fontSize: 9, color: "#a8b4cf", marginTop: 1 }}>{t("bundleCombo")}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{
+                      fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                      padding: "2px 6px", borderRadius: 4,
+                      background: "linear-gradient(135deg, #FFD700, #FF6B4A)",
+                      color: "#0F1115",
+                    }}>{t("bestPrice")}</span>
+                    <span style={{
+                      fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                      padding: "2px 6px", borderRadius: 4,
+                      background: "rgba(255,215,0,0.15)",
+                      border: "1px solid rgba(255,215,0,0.5)",
+                      color: "#FFD700",
+                    }}>{t("allPacks")}</span>
+                    {!owned && canShowSaving && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
+                        padding: "2px 7px", borderRadius: 999,
+                        background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
+                        color: "#FFF",
+                        boxShadow: "0 0 10px rgba(255,45,120,0.5)",
+                      }}>−{savePct}%</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#FFD700", letterSpacing: 0.4, marginTop: 3 }}>{bundlePack.name}</div>
+                  <div style={{ fontSize: 10, color: "#FFF", marginTop: 1, fontWeight: 700 }}>🥉 Bronze + 🥈 Silber + 🥇 Gold</div>
                 </div>
-                <div style={{
-                  padding: "6px 12px", borderRadius: 8,
-                  background: owned ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg, #FFD700, #FF6B4A)",
-                  color: owned ? "#4ade80" : "#0F1115",
-                  fontSize: 12, fontWeight: 900, flexShrink: 0,
-                }}>{owned ? t("ownedShort") : formatPrice(bundlePack)}</div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                  {!owned && canShowSaving && (
+                    <div style={{ fontSize: 14, fontWeight: 900, lineHeight: 1 }}>
+                      <span style={{ color: "#a8b4cf", fontSize: 11 }}>{t("insteadOf")} </span>
+                      <span style={{
+                        textDecoration: "line-through",
+                        textDecorationColor: "#FF2D78",
+                        textDecorationThickness: 2.5,
+                        color: "#FFF",
+                      }}>{fullLabel}</span>
+                    </div>
+                  )}
+                  <div style={{
+                    padding: "10px 16px", borderRadius: 10,
+                    background: owned ? "rgba(74,222,128,0.2)" : "linear-gradient(135deg, #FFD700, #FF6B4A)",
+                    color: owned ? "#4ade80" : "#0F1115",
+                    fontSize: 16, fontWeight: 900,
+                    boxShadow: owned ? "none" : "0 0 14px rgba(255,215,0,0.55)",
+                    textAlign: "center", lineHeight: 1.1,
+                  }}>{owned ? t("ownedShort") : formatPrice(bundlePack)}</div>
+                </div>
               </button>
             );
           })()}

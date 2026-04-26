@@ -2630,6 +2630,13 @@ function ProfilTab({
           onSwitchToMap={onSwitchToMap}
         />
 
+        {/* ═══ TAGES-DEALS — Promo-Banner direkt unter dem Hero ═══ */}
+        {p && (
+          <div style={{ marginTop: 14 }}>
+            <DailyDealTeaser />
+          </div>
+        )}
+
         {/* ═══ QUICK ACTIONS — 6 Kacheln: Arena · Angebote · Crew · Shop · Deals · Inbox ═══ */}
         <div style={{
           display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
@@ -3041,12 +3048,6 @@ function ProfilTab({
             referralCode={(p as unknown as { referral_code?: string }).referral_code ?? null}
             displayName={p.display_name || p.username || "Runner"}
           />
-        )}
-
-        {p && (
-          <div style={{ marginTop: 14 }}>
-            <DailyDealTeaser />
-          </div>
         )}
 
         {/* Demo-Zone nur für Admins/Super-Admins */}
