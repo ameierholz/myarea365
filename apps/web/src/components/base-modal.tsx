@@ -80,6 +80,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [now, setNow]   = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr]   = useState<string | null>(null);
+  const resourceArt = useResourceArt();
 
   const reload = useCallback(async () => {
     const r = await fetch("/api/base/me", { cache: "no-store" });
@@ -181,6 +182,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const builtMap = new Map(buildings.map((b) => [b.building_id, b]));
   const queueMap = new Map(queue.map((q) => [q.building_id, q]));
 
+  // Resource-Icon-Fallback (Theme-Override > Default-Emoji). Artwork-Image wird
+  // separat via <ResourceIcon> gerendert wenn ein Bild im cosmetic_artwork-Slot liegt.
   const RES = {
     wood:  { icon: theme?.resource_icon_wood  ?? "🪵", color: "#a16f32", label: "Holz",  hint: "🌳 Park-km",                  rate: 100 },
     stone: { icon: theme?.resource_icon_stone ?? "🪨", color: "#8B8FA3", label: "Stein", hint: "🏘 Wohngebiet-km",            rate: 100 },
@@ -271,12 +274,16 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             <div className="px-3 pb-3" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
               {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                 <div key={k} className="rounded-lg bg-black/30 backdrop-blur px-2 py-1.5 text-center" style={{ minWidth: 0 }}>
-                  <div className="text-base leading-none">{RES[k].icon}</div>
+                  <div className="leading-none flex items-center justify-center" style={{ height: 18 }}>
+                    <ResourceIcon kind={k} size={18} fallback={RES[k].icon} art={resourceArt} />
+                  </div>
                   <div className="text-[10px] font-black mt-0.5" style={{ color: RES[k].color }}>{compactNum(resources[k])}</div>
                 </div>
               ))}
               <div className="rounded-lg bg-[#FFD700]/15 border border-[#FFD700]/40 px-2 py-1.5 text-center" style={{ minWidth: 0 }}>
-                <div className="text-base leading-none">⚡</div>
+                <div className="leading-none flex items-center justify-center" style={{ height: 18 }}>
+                  <ResourceIcon kind="speed_token" size={18} fallback="⚡" art={resourceArt} />
+                </div>
                 <div className="text-[10px] font-black mt-0.5 text-[#FFD700]">{resources.speed_tokens}</div>
               </div>
             </div>
@@ -372,7 +379,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
                     {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                       <div key={k} className="rounded-lg bg-[#1A1D23] border border-white/10 p-2 text-center">
-                        <div className="text-2xl leading-none">{RES[k].icon}</div>
+                        <div className="leading-none flex items-center justify-center" style={{ height: 26 }}>
+                          <ResourceIcon kind={k} size={26} fallback={RES[k].icon} art={resourceArt} />
+                        </div>
                         <div className="text-sm font-black mt-1" style={{ color: RES[k].color }}>{compactNum(resources[k])}</div>
                         <div className="text-[8px] text-[#6c7590] mt-0.5">{RES[k].label}</div>
                       </div>
@@ -479,7 +488,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                   <div key={k} className="rounded-xl bg-[#1A1D23] border border-white/5 p-3">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">{RES[k].icon}</span>
+                      <ResourceIcon kind={k} size={36} fallback={RES[k].icon} art={resourceArt} />
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] text-[#a8b4cf] font-black uppercase tracking-wider">{RES[k].label}</div>
                         <div className="text-xl font-black" style={{ color: RES[k].color }}>{resources[k].toLocaleString("de-DE")}</div>
@@ -499,7 +508,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
               <div className="rounded-xl bg-[#FFD700]/8 border border-[#FFD700]/30 p-3 flex items-center gap-3">
-                <span className="text-3xl">⚡</span>
+                <ResourceIcon kind="speed_token" size={36} fallback="⚡" art={resourceArt} />
                 <div className="flex-1">
                   <div className="text-[10px] font-black tracking-wider text-[#FFD700]">SPEED-TOKENS</div>
                   <div className="text-lg font-black text-[#FFD700]">{resources.speed_tokens}</div>
@@ -2088,4 +2097,51 @@ function PackagesCard({ accent }: { accent: string }) {
       <div className="text-[9px] text-[#6c7590] text-center">Käufe laufen über den Shop. Resourcen werden nach Zahlungsbestätigung sofort gutgeschrieben.</div>
     </div>
   );
+}
+
+// ───────────────────── Resource-Artwork Hook + Icon ─────────────────────
+type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
+let _resourceArtCache: ResourceArtMap | null = null;
+const _resourceArtListeners = new Set<(m: ResourceArtMap) => void>();
+let _resourceArtFetching = false;
+
+function useResourceArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_resourceArtCache ?? {});
+  useEffect(() => {
+    if (_resourceArtCache) { setArt(_resourceArtCache); return; }
+    _resourceArtListeners.add(setArt);
+    if (!_resourceArtFetching) {
+      _resourceArtFetching = true;
+      void (async () => {
+        try {
+          const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
+          if (!r.ok) return;
+          const j = await r.json() as { resource?: ResourceArtMap };
+          _resourceArtCache = j.resource ?? {};
+          _resourceArtListeners.forEach((l) => l(_resourceArtCache!));
+        } catch { /* silent */ } finally { _resourceArtFetching = false; }
+      })();
+    }
+    return () => { _resourceArtListeners.delete(setArt); };
+  }, []);
+  return art;
+}
+
+function ResourceIcon({ kind, size = 20, fallback, art }: {
+  kind: "wood" | "stone" | "gold" | "mana" | "speed_token";
+  size?: number;
+  fallback: string;
+  art: ResourceArtMap;
+}) {
+  const a = art[kind];
+  if (a?.video_url) {
+    return <video src={a.video_url} autoPlay loop muted playsInline
+      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
+  }
+  if (a?.image_url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={a.image_url} alt={kind}
+      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
+  }
+  return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
 }
