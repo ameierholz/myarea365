@@ -3,6 +3,10 @@
 -- Plus zugehörige Trainings-Gebäude (Kaserne/Stall/Schießstand/Belagerung)
 -- ══════════════════════════════════════════════════════════════════════════
 
+-- Safety-Net: Falls 00095 noch nicht lief — Column idempotent ergänzen.
+alter table public.buildings_catalog
+  add column if not exists buildtime_growth numeric not null default 1.40;
+
 alter table public.troops_catalog
   drop constraint if exists troops_catalog_tier_check;
 alter table public.troops_catalog
