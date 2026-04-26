@@ -141,8 +141,25 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
     setBusy(buildingId); setErr(null);
     try {
       const r = await fetch("/api/base/build", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ building_id: buildingId }) });
-      const j = await r.json();
-      if (!r.ok || j?.ok === false) setErr(j?.error ?? "Fehler"); else await reload();
+      const j = await r.json() as { ok?: boolean; error?: string;
+        target_level?: number; burg_level?: number; needed?: number;
+        unmet?: Array<{ name: string; required_level: number; have_level: number }> };
+      if (!r.ok || j?.ok === false) {
+        if (j.error === "burg_requirements_unmet" && j.unmet?.length) {
+          const list = j.unmet.map((u) => `${u.name} ${u.have_level}/${u.required_level}`).join(", ");
+          setErr(`Burg-Voraussetzungen fehlen: ${list}`);
+        } else if (j.error === "burg_level_too_low") {
+          setErr(`Burg-Level zu niedrig: brauchst Lv ${j.needed}, hast Lv ${j.burg_level}.`);
+        } else if (j.error === "queue_full") {
+          setErr("Bauslots voll — höhere Burg oder VIP erhöht Slots.");
+        } else if (j.error === "max_level_reached") {
+          setErr("Maximales Level erreicht.");
+        } else if (j.error === "not_enough_resources") {
+          setErr("Nicht genug Resourcen.");
+        } else {
+          setErr(j?.error ?? "Fehler");
+        }
+      } else { await reload(); }
     } finally { setBusy(null); }
   }
   async function speedUp(queueId: string, tokens: number) {
@@ -206,9 +223,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
     if (target) passivePerHour[target] += c.effect_per_level * b.level;
   }
 
-  // Base-XP-Progression: linear (1000 × Stufe) — Anzeige-Approximation, Server entscheidet
-  const xpForNext = base.level * 1000;
-  const xpPct = Math.min(100, Math.max(0, (base.exp / xpForNext) * 100));
+  // Burg-Level = Maß für Base-Stufe (XP-System ist deprecated). 0 wenn Burg noch nicht gebaut.
+  const burgLevel = buildings.find((b) => b.building_id === "burg")?.level ?? 0;
+  // Progress-Bar-Approximation: Anteil Burg-Level an Maximum 25.
+  const xpPct = Math.min(100, (burgLevel / 25) * 100);
 
   // Effekte aller gebauten Buildings als Zusammenfassung
   const activeEffects = buildings
@@ -243,12 +261,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 🏰 {base.pin_label ?? "RUNNER-BASE"} · PLZ {base.plz}
               </div>
               <div className="text-xl font-black text-white truncate mt-0.5">
-                {theme?.name ?? "Mittelalter"} · Stufe {base.level}
+                {theme?.name ?? "Mittelalter"} · Burg Stufe {burgLevel}
               </div>
               <div className="mt-2">
                 <div className="flex justify-between text-[9px] text-[#a8b4cf] font-black mb-1">
-                  <span>EXP {base.exp.toLocaleString("de-DE")} / {xpForNext.toLocaleString("de-DE")}</span>
-                  <span>→ Lv {base.level + 1}</span>
+                  <span>BURG-LEVEL {burgLevel}/25</span>
+                  <span>{burgLevel < 25 ? `→ Lv ${burgLevel + 1}` : "MAX"}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${xpPct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}cc)`, boxShadow: `0 0 8px ${accent}` }} />
@@ -357,8 +375,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {/* Quick-Stats Grid */}
                 <div className="grid grid-cols-2 gap-2">
                   <StatCard
-                    icon="🏰" label="Base-Stufe" value={String(base.level)}
-                    sub={`EXP ${base.exp.toLocaleString("de-DE")}/${xpForNext.toLocaleString("de-DE")}`}
+                    icon="🏰" label="Burg-Stufe" value={`${burgLevel}/25`}
+                    sub={burgLevel < 25 ? "Bauen via Bau-Tab → Burg" : "Maximum erreicht"}
                     accent={accent} progress={xpPct}
                   />
                   <StatCard
@@ -1198,6 +1216,8 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
       });
       const j = await r.json() as { ok?: boolean; error?: string; seconds?: number; max_at_once?: number };
       if (j.ok) { setMsg(`✓ ${c} Truppen werden trainiert (${Math.round((j.seconds ?? 0) / 60)} min)`); await Promise.all([load(), reload()]); }
+      else if (j.error === "tier_locked") setMsg("Tier noch nicht erforscht — siehe Forschung-Tab → Militär.");
+      else if (j.error === "building_required") setMsg("Trainings-Gebäude fehlt — erst Kaserne/Stall/Schießstand/Belagerung bauen.");
       else if (j.error === "building_level_too_low") setMsg("Trainings-Gebäude zu niedrig — erst ausbauen.");
       else if (j.error === "too_many_at_once") setMsg(`Max ${j.max_at_once} pro Auftrag — Gebäude weiter ausbauen.`);
       else if (j.error === "not_enough_resources") setMsg("Nicht genug Resourcen.");
@@ -1218,7 +1238,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
     <div className="space-y-3">
       <IntroBox accent={accent} title="⚔️ TRUPPEN AUSBILDEN">
         Trainiere Truppen in <b className="text-white">Kaserne / Stall / Schießstand / Belagerungs-Schuppen</b>.
-        Tier 1-5 wird mit Gebäude-Level freigeschaltet (T1 = Lv 1 · T2 = Lv 5 · T3 = Lv 10 · T4 = Lv 15 · T5 = Lv 20).
+        <b className="text-white">T1</b> ist sofort verfügbar. <b className="text-white">T2-T5</b> müssen erst erforscht werden — siehe <b className="text-white">🔬 FORSCHUNG-Tab → Militär</b>. T5-Forschungen dauern mehrere Tage.
         <span className="block mt-1 text-[#6c7590]">Trainings-Cap pro Auftrag = Gebäude-Level × 10.</span>
       </IntroBox>
 
@@ -1256,7 +1276,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
                       <span className="text-2xl">{t.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-black text-white truncate">
-                          {t.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">T{t.tier} · Lv {t.required_building_level}+</span>
+                          {t.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">T{t.tier}{t.tier > 1 ? " · 🔬 Forschung" : ""}</span>
                         </div>
                         <div className="text-[9px] text-[#a8b4cf]">⚔️ {t.base_atk} · 🛡 {t.base_def} · ❤️ {t.base_hp} · ⏱ {t.train_time_seconds}s</div>
                         <div className="text-[9px] text-[#a8b4cf]">🪵 {t.cost_wood} · 🪨 {t.cost_stone} · 🪙 {t.cost_gold} · 💧 {t.cost_mana}</div>
