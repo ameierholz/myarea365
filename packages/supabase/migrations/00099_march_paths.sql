@@ -17,6 +17,7 @@ alter table public.base_attacks
 
 -- Bei attack_crew_base() automatisch die Crew-Base-Koordinaten persistieren,
 -- damit der Client später ohne Extra-Joins eine Lauflinie zeichnen kann.
+drop function if exists public.attack_crew_base(uuid, jsonb);
 create or replace function public.attack_crew_base(p_target_crew_id uuid, p_troops jsonb)
 returns jsonb language plpgsql security definer as $$
 declare

@@ -90,6 +90,7 @@ alter table public.user_resources
 -- ─── 2/10) start_building: neue Bauzeit-Kurve + Queue-Slot-Check ───────────
 -- Bauzeit-Formel: minutes = base * pow(growth, target_level-1), capped 1440 min.
 -- Queue-Slots: 1 Basis-Slot + extra_build_slots aus VIP. Burg-Build belegt einen Slot.
+drop function if exists public.start_building(text, int, int);
 create or replace function public.start_building(p_building_id text, p_position_x int, p_position_y int)
 returns jsonb language plpgsql security definer as $$
 declare
@@ -207,6 +208,7 @@ grant execute on function public.start_building(text, int, int) to authenticated
 -- ─── 5) train_troop: Cap nach Gebäude-Level (10× pro Stufe) ────────────────
 -- Mappt troop_class → Building-ID und prüft level. T1=Lv1 ... T5=Lv20.
 -- Ohne benötigtes Building → kann nicht trainiert werden.
+drop function if exists public.train_troop(text, int, uuid);
 create or replace function public.train_troop(p_troop_id text, p_count int, p_for_crew uuid default null)
 returns jsonb language plpgsql security definer as $$
 declare
@@ -310,6 +312,7 @@ revoke all on function public.train_troop(text, int, uuid) from public;
 grant execute on function public.train_troop(text, int, uuid) to authenticated;
 
 -- ─── 11) open_chest erweitert: VIP-Tickets + Guardian-XP gutschreiben ──────
+drop function if exists public.open_chest(uuid);
 create or replace function public.open_chest(p_chest_id uuid)
 returns jsonb language plpgsql security definer as $$
 declare
