@@ -32,7 +32,7 @@ import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
-import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
@@ -317,7 +317,28 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [distance, setDistance] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [currentStreet, setCurrentStreet] = useState<string | null>(null);
-  const [activeRoute, setActiveRoute] = useState<Coord[]>([]);
+  // ── activeRoute mit sessionStorage-Persistenz ──
+  // Damit die Walk-Linie bei Tab-Wechsel + Reload nicht verloren geht.
+  const ROUTE_STORAGE_KEY = "ma365.activeRoute.v1";
+  const [activeRoute, setActiveRoute] = useState<Coord[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = sessionStorage.getItem(ROUTE_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as { route: Coord[]; ts: number };
+      // Stale-Schutz: nur Routen aus den letzten 6 h wiederherstellen
+      if (!parsed?.route || Date.now() - (parsed.ts ?? 0) > 6 * 3600_000) return [];
+      return parsed.route;
+    } catch { return []; }
+  });
+  // Persist bei jeder Änderung (außer leer → komplett löschen)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (activeRoute.length === 0) sessionStorage.removeItem(ROUTE_STORAGE_KEY);
+      else sessionStorage.setItem(ROUTE_STORAGE_KEY, JSON.stringify({ route: activeRoute, ts: Date.now() }));
+    } catch { /* quota */ }
+  }, [activeRoute]);
   const [savedTerritories, setSavedTerritories] = useState<Coord[][]>([]);
   const [territoryCount, setTerritoryCount] = useState(0);
   const [viewingRunner, setViewingRunner] = useState<string | null>(null);
@@ -1031,7 +1052,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           lastPosTimeRef.current = now;
         }
       } else {
-        setActiveRoute([{ lat, lng }]);
+        // lastPosRef leer (z. B. nach Reload mitten im Walk) → neuen Punkt anhängen
+        // statt Route komplett zu überschreiben, damit wiederhergestellte Route erhalten bleibt
+        setActiveRoute((prev) => prev.length === 0 ? [{ lat, lng }] : [...prev, { lat, lng }]);
         lastPosRef.current = { lat, lng };
         lastPosTimeRef.current = now;
       }
@@ -1117,6 +1140,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [strongholdModalTarget, setStrongholdModalTarget] = useState<Stronghold | null>(null);
   const strongholdArt = useStrongholdArt();
   const dashboardBaseThemeArt = useBaseThemeArt();
+  const nameplateArt = useNameplateArt();
   const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
     try {
       const r = await fetch(`/api/strongholds/nearby?lat=${lat}&lng=${lng}&radius_km=30`, { cache: "no-store" });
@@ -1443,6 +1467,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               lightPreset={lightPreset}
               supporterTier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier ?? null}
               equippedTrail={(p as unknown as { equipped_trail?: string | null })?.equipped_trail ?? null}
+              nameplateArt={(() => {
+                const npId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id;
+                return npId ? (nameplateArt[npId] ?? null) : null;
+              })()}
               auraActive={(() => {
                 const until = (p as unknown as { aura_until?: string | null })?.aura_until;
                 return !!(until && new Date(until).getTime() > Date.now());
@@ -1600,7 +1628,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
-                  <MapIconButton icon="🗺️" label="Legende" onClick={() => setLegendOpen(true)} accent="#22D1C3" />
                   <MapIconButton
                     icon="🏰"
                     label={ownBaseHasPos ? "Meine Base" : "Base setzen"}

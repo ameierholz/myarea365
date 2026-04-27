@@ -768,11 +768,11 @@ export function buildBaseThemePrompt(input: {
   const subject = asset === "pin" ? stripEnvironment(rawSubject) : rawSubject;
 
   const sizeLine = asset === "pin"
-    ? `Square 1:1, 1024×1024. CRITICAL: pure transparent background (PNG alpha) — NO ground, NO terrain, NO sky, NO trees, NO water, NO surrounding objects. ONLY the architectural structure itself, isolated like a game sprite. Structure centered, ~12% padding around it.`
+    ? `Square 1:1, 1024×1024. Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~8% margin around the building. No gradients, no patterns, no texture, no shadows on the green, no environment, no scene, no atmospheric effects. Clean hard silhouette edge between structure and green for chroma-key compositing. Building centered with safe margin — must not touch frame edges.`
     : `Wide cinematic 8:3 banner, 1600×600, structure occupies center-left, atmospheric depth visible to the right (sky, mountains, etc). No transparency — full painterly background.`;
 
   const styleLine = asset === "pin"
-    ? `Style: stylized 3D game-asset sprite (RoK/Clash-of-Clans/Call-of-Dragons aesthetic), slight isometric 30° angle, thick clean readable silhouette, soft inner glow on accent details, readable at 64×64 thumbnail size, no microscopic detail. Render as a single isolated building/structure on transparent background, like a Clash-of-Clans town-hall icon.`
+    ? `Style: a single isolated 3D game-building sprite in the exact aesthetic of Rise of Kingdoms / Call of Dragons / Clash of Clans town-hall icons. Slight isometric ~30° three-quarter view. Thick clean readable silhouette, vibrant saturated colors, soft inner accent glow, gentle rim-light. Looks like a polished mobile-game building-icon ripped straight from the game UI — NOT a concept-art scene. Readable as a 56×56 pixel thumbnail. Compact footprint — the building sits on its own minimal stone-tile base (max 5% larger than the structure footprint), no extending grass or terrain.`
     : `Style: cinematic concept-art splash banner, painterly, dramatic key-light, atmospheric perspective, foreground subject in clear focus, background dissolves into mood-light.`;
 
   const scopeLine = scope === "crew"
@@ -785,15 +785,64 @@ export function buildBaseThemePrompt(input: {
     : `Atmosphere: ${theme.ambient}.`;
 
   const baseNegative = `No text, no labels, no watermark, no logos, no UI overlays, no people, no characters, no animals${theme.negative ? `, ${theme.negative}` : ""}.`;
-  const pinNegative = ` STRICT: no ground plane, no terrain tiles, no sky, no trees, no plants, no water, no rocks around the building, no scenery — pure transparent void around the isolated structure.`;
+  const pinNegative = ` STRICT NEGATIVE for chroma-key: no ground plane, no extending terrain, no grass, no sky, no clouds, no trees, no plants, no flowers, no bushes, no water, no mountains, no hills, no scattered rocks, no scenery, no environment, no atmospheric perspective, no fog, no mist, no smoke clouds, no rain, no snow, no green-tinted aura/glow on the building (would be keyed out), no green flags/banners/lights/gemstones (would be keyed out — use teal/blue/cyan/yellow/red/purple/orange/white instead). Behind and around the building is ONLY pure #00FF00 — nothing else.`;
   const negative = baseNegative + (asset === "pin" ? pinNegative : "");
 
-  if (mode === "video") {
-    const motionLine = asset === "pin"
-      ? `Motion: 3-second seamlessly looping subtle micro-ambient ON THE STRUCTURE ITSELF only — flag/banner gently waving, small accent-glow pulse, small flame/spark flicker on the structure. NO environmental motion. NO particles drifting through empty space. Camera fully static. First and last frame identical.`
-      : `Motion: 3-second seamlessly looping cinematic ambient — slow parallax of background mist/clouds, banners waving, lights flickering, distant particles drifting across the scene. Camera fully static. First and last frame identical.`;
+  // ════════════════════════════════════════════════════════════════════
+  // PIN-MODE: Greenscreen-Pipeline wie bei Wächter-Prompts
+  // (Background-Anweisung muss als ZWEITE Zeile direkt hinter Shot-Spec
+  //  stehen, sonst ignoriert Veo sie und produziert dunkle Szenen.)
+  // ════════════════════════════════════════════════════════════════════
+  if (asset === "pin") {
+    if (mode === "video") {
+      return [
+        // 1) Shot-Spec
+        `Shot: a 3-second perfectly seamless looping clip of a single isolated 3D game-building sprite, square 1:1 composition, 1024×1024, 30 fps.`,
+        // 2) Background — GREEN SCREEN (chroma-key) — MUSS hier stehen
+        `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~8% margin around the building. No gradients, no patterns, no texture, no shadows on the green, no environment, no scene, no atmospheric effects. Clean hard silhouette edge between structure and green for chroma-key compositing.`,
+        // 3) Subject + Theme
+        `Subject: ${subject}. This is the "${theme.name}" base theme — ${theme.description}`,
+        scopeLine,
+        // 4) Framing — CONTAINED (no bleed)
+        `FRAMING (critical): the building is FULLY CONTAINED inside the 1024×1024 frame. The structure's silhouette must NOT touch ANY of the four frame edges. Leave a clean uniform green margin of ~80 pixels (~8% of frame) on TOP, BOTTOM, LEFT and RIGHT — visible green screen on all four sides. The full roof, both side towers, the full base of the structure are visible inside the frame — nothing cropped, nothing extending past the frame border.`,
+        // 5) Style
+        `Style: a single isolated 3D game-building sprite in the exact aesthetic of Rise of Kingdoms / Call of Dragons / Clash of Clans town-hall icons. Slight isometric ~30° three-quarter view. Thick clean readable silhouette, vibrant saturated colors, soft inner accent glow, gentle rim-light. Looks like a polished mobile-game building-icon ripped straight from the game UI — NOT a concept-art scene. Compact footprint — the building sits on its own minimal stone-tile base (max 5% larger than structure footprint).`,
+        // 6) Palette
+        paletteLine,
+        // 7) Motion
+        `Motion: subtle micro-ambient ON THE STRUCTURE ITSELF only — flag/banner gently waving, small accent-glow pulse, small flame/spark flicker on torches. NO environmental motion. NO particles drifting through empty space. Camera fully static — locked, no pan/tilt/zoom/dolly. The building stays in the same contained position the entire clip.`,
+        // 8) Seamless-Loop
+        `CRITICAL LOOP REQUIREMENT: the exact last frame must be pixel-identical to the first frame — pose, glow intensity, flag position, particle positions all reset exactly. No frozen hold, no fade to black, no fade in — pure mathematical loop.`,
+        // 9) Anti-Green-Bleed
+        `CRITICAL: NO green tones ANYWHERE on the building, walls, roof, banners, flags, gems, lights, glows or accents. NO green flags, NO green banners, NO green gemstones, NO green torch flames, NO green moss. The ONLY green in the entire video is the pure #00FF00 background. Use teal/cyan/blue/yellow/red/orange/purple/white instead.`,
+        // 10) Hard negatives
+        `NO ground plane, NO extending terrain, NO grass, NO sky, NO clouds, NO trees, NO plants, NO water, NO mountains, NO scattered rocks, NO scenery, NO environment, NO atmospheric perspective, NO fog, NO mist, NO smoke clouds, NO weather, NO god-rays, NO wide particle storms, NO magic circles behind the building. Behind and around the building is ONLY pure #00FF00.`,
+        `No audio, no sound, no music. Silent video only.`,
+        baseNegative,
+      ].filter(Boolean).join(" ");
+    }
+    // PIN IMAGE
     return [
-      `Shot: ${asset === "pin" ? "a 3-second loop of a single isolated game-asset sprite" : "a 3-second cinematic banner loop"} representing the "${theme.name}" base theme — ${theme.description}`,
+      `Single isolated 3D game-building sprite, square 1:1, 1024×1024.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame including a clean ~8% margin around the building — no gradient, no pattern, no texture, no atmospheric effects. (Chroma-keyed to transparent in the app.)`,
+      `Subject: ${subject}. This is the "${theme.name}" base theme — ${theme.description}`,
+      scopeLine,
+      `FRAMING (critical): building FULLY CONTAINED inside the 1024×1024 frame with a uniform green margin of ~80 pixels on TOP, BOTTOM, LEFT and RIGHT. Silhouette must NOT touch any frame edge.`,
+      `Style: a single isolated 3D game-building sprite in the exact aesthetic of Rise of Kingdoms / Call of Dragons / Clash of Clans town-hall icons. Slight isometric ~30° three-quarter view. Thick clean readable silhouette, vibrant saturated colors. Looks like a polished mobile-game building-icon ripped straight from the game UI. Compact footprint — sits on its own minimal stone-tile base (max 5% larger than structure footprint).`,
+      paletteLine,
+      `CRITICAL: NO green tones ANYWHERE on the building. NO green flags, banners, gems, lights or accents. The ONLY green is the #00FF00 background. Use teal/cyan/blue/yellow/red/orange/purple/white instead.`,
+      `NO ground plane, NO terrain, NO grass, NO sky, NO trees, NO water, NO mountains, NO scenery, NO environment, NO atmospheric effects. Behind and around the building is ONLY pure #00FF00.`,
+      baseNegative,
+    ].filter(Boolean).join(" ");
+  }
+
+  // ════════════════════════════════════════════════════════════════════
+  // BANNER-MODE: cineastische Szene mit Hintergrund (kein Greenscreen)
+  // ════════════════════════════════════════════════════════════════════
+  if (mode === "video") {
+    const motionLine = `Motion: 3-second seamlessly looping cinematic ambient — slow parallax of background mist/clouds, banners waving, lights flickering, distant particles drifting across the scene. Camera fully static. First and last frame identical.`;
+    return [
+      `Shot: a 3-second cinematic banner loop representing the "${theme.name}" base theme — ${theme.description}`,
       `Subject: ${subject}.`,
       scopeLine,
       paletteLine, ambientLine,
@@ -802,9 +851,8 @@ export function buildBaseThemePrompt(input: {
       `30 fps. No audio. ${negative}`,
     ].join(" ");
   }
-
   return [
-    `${asset === "pin" ? "An isolated 3D game-asset sprite" : "A cinematic concept-art banner"} representing the "${theme.name}" base theme — ${theme.description}`,
+    `A cinematic concept-art banner representing the "${theme.name}" base theme — ${theme.description}`,
     `Subject: ${subject}.`,
     scopeLine,
     paletteLine, ambientLine,

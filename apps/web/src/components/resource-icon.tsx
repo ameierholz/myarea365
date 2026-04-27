@@ -6,7 +6,7 @@ export type ResourceKind = "wood" | "stone" | "gold" | "mana" | "speed_token";
 export type ChestKind = "silver" | "gold" | "event";
 export type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
 
-type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap };
+type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap };
 
 let _cache: AllArt | null = null;
 const _listeners = new Set<(m: AllArt) => void>();
@@ -19,8 +19,8 @@ function ensureFetch() {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (!r.ok) return;
-      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap };
-      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {} };
+      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap };
+      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {} };
       _listeners.forEach((l) => l(_cache!));
     } catch { /* silent */ } finally { _fetching = false; }
   })();
@@ -79,6 +79,18 @@ export function useBuildingArt(): ResourceArtMap {
   useEffect(() => {
     if (_cache) { setArt(_cache.building); return; }
     const sub = (m: AllArt) => setArt(m.building);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
+export function useNameplateArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_cache?.nameplate ?? {});
+  useEffect(() => {
+    if (_cache) { setArt(_cache.nameplate); return; }
+    const sub = (m: AllArt) => setArt(m.nameplate);
     _listeners.add(sub);
     ensureFetch();
     return () => { _listeners.delete(sub); };

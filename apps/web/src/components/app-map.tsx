@@ -490,6 +490,8 @@ interface AppMapProps {
   crewColor?: string | null;
   crewName?: string | null;
   displayName?: string | null;
+  /** Aktives Namensschild-Artwork (greenscreen-PNG) wird hinter den Namens-Chip gelegt. */
+  nameplateArt?: { image_url: string | null; video_url: string | null } | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Gebiet) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean; intensity?: number }>;
@@ -577,6 +579,7 @@ function buildSelfMarkerEl(
   crewColor?: string | null, crewName?: string | null,
   displayName?: string | null,
   markerArt?: { image_url: string | null; video_url: string | null } | null,
+  nameplateArt?: { image_url: string | null; video_url: string | null } | null,
 ): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
@@ -600,16 +603,26 @@ function buildSelfMarkerEl(
   // Name-Badge (frosted glass, crew-color border glow, Speech-Bubble-Pfeil, klickbar)
   const cleanName = (displayName ?? "").trim();
   const badgeColor = crewColor ?? "#22D1C3";
+  // Nameplate-Banner hinter dem Namens-Chip (greenscreen-PNG, chroma-keyed)
+  const npSrc = nameplateArt?.image_url || nameplateArt?.video_url;
+  const nameplateLayer = npSrc && cleanName
+    ? (nameplateArt?.image_url
+        ? `<img src="${nameplateArt.image_url}" alt="" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160%;max-width:240px;height:auto;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0" />`
+        : `<video src="${nameplateArt!.video_url}" autoplay loop muted playsinline style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160%;max-width:240px;height:auto;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0"></video>`)
+    : "";
   const nameLabel = cleanName
-    ? `<div class="ma365-runner-badge" data-action="open-runner-profile"
+    ? `<div class="ma365-runner-badge-wrap" style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-top:6px">
+        ${nameplateLayer}
+        <div class="ma365-runner-badge" data-action="open-runner-profile"
             title="${crewName ? "Crew: " + crewName + " · Klick öffnet dein Runner-Profil" : "Klick öffnet dein Runner-Profil"}"
-            style="--badge-color:${badgeColor}"
+            style="--badge-color:${badgeColor};position:relative;z-index:1"
             onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('ma365:open-runner-profile'));"
             onmousedown="event.stopPropagation();"
             ontouchstart="event.stopPropagation();"
-       >
-        ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
-        <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
+        >
+          ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
+          <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
+        </div>
        </div>`
     : "";
   const auraLayer = auraActive
@@ -760,6 +773,7 @@ export function AppMap({
   crewColor = null,
   crewName = null,
   displayName = null,
+  nameplateArt = null,
   walkedSegments = [],
   claimedStreets = [],
   ownedTerritories = [],
@@ -1048,7 +1062,7 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt, nameplateArt);
       wrapForZoomScale(el);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
@@ -1061,7 +1075,7 @@ export function AppMap({
   // Tier-/Crew-Wechsel: Marker neu bauen
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt, nameplateArt);
     wrapForZoomScale(el);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
@@ -1071,7 +1085,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive, markerArt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive, markerArt, nameplateArt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {
@@ -2540,11 +2554,15 @@ export function AppMap({
       const artPin = pin.theme_id ? baseThemeArt[`${pin.theme_id}_${scope}_pin`] : null;
       const artFallback = pin.theme_id ? baseThemeArt[`${pin.theme_id}_${scope}_banner`] : null;
       const art = artPin?.image_url || artPin?.video_url ? artPin : (artFallback?.image_url || artFallback?.video_url ? artFallback : null);
-      const visualHtml = art?.video_url
-        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};"></video>`
-        : art?.image_url
-        ? `<img src="${art.image_url}" alt="" style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};" />`
-        : `<div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1;filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};">${pin.pin_emoji}</div>`;
+      // Bild bevorzugen (sauberer); Video nur als Fallback.
+      // Chroma-Key-Filter (ma365-chroma-black) entfernt Greenscreen-Hintergrund (#00FF00)
+      // bei neu generierten Videos — wie bei Wächter-Markern.
+      const dropShadow = `drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""}`;
+      const visualHtml = art?.image_url
+        ? `<img src="${art.image_url}" alt="" style="width:56px;height:56px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
+        : art?.video_url
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="width:56px;height:56px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
+        : `<div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
       inner.innerHTML = `
         <div style="
