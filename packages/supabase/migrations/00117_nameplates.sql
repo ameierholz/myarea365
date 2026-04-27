@@ -46,7 +46,7 @@ end $$;
 grant select, insert on public.user_nameplates to authenticated;
 
 -- ─── Equip-Slot auf profiles ────────────────────────────────────────────
-alter table public.profiles
+alter table public.users
   add column if not exists equipped_nameplate_id text references public.nameplates(id) on update cascade on delete set null;
 
 -- ─── cosmetic_artwork.kind erweitern um 'nameplate' ─────────────────────
@@ -95,13 +95,13 @@ declare v_user uuid := auth.uid(); v_owned boolean;
 begin
   if v_user is null then return jsonb_build_object('error','unauthenticated'); end if;
   if p_nameplate_id is null then
-    update public.profiles set equipped_nameplate_id = null where id = v_user;
+    update public.users set equipped_nameplate_id = null where id = v_user;
     return jsonb_build_object('ok', true, 'nameplate_id', null);
   end if;
   select exists(select 1 from public.user_nameplates where user_id = v_user and nameplate_id = p_nameplate_id)
     into v_owned;
   if not v_owned then return jsonb_build_object('error','not_owned'); end if;
-  update public.profiles set equipped_nameplate_id = p_nameplate_id where id = v_user;
+  update public.users set equipped_nameplate_id = p_nameplate_id where id = v_user;
   return jsonb_build_object('ok', true, 'nameplate_id', p_nameplate_id);
 end $$;
 revoke all on function public.equip_nameplate(text) from public;

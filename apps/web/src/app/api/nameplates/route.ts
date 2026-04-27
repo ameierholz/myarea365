@@ -13,7 +13,7 @@ export async function GET() {
   const [catalog, owned, prof] = await Promise.all([
     sb.from("nameplates").select("*").eq("is_active", true).order("sort"),
     userId ? sb.from("user_nameplates").select("nameplate_id").eq("user_id", userId) : Promise.resolve({ data: [] }),
-    userId ? sb.from("profiles").select("equipped_nameplate_id").eq("id", userId).maybeSingle() : Promise.resolve({ data: null }),
+    userId ? sb.from("users").select("equipped_nameplate_id").eq("id", userId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
   const ownedIds = new Set<string>(((owned.data ?? []) as Array<{ nameplate_id: string }>).map((r) => r.nameplate_id));
