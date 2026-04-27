@@ -2893,12 +2893,18 @@ function ProfilTab({
           <button
             onClick={() => {
               if (ownBaseHasPos) {
-                if (ownBaseInfo.lat != null && ownBaseInfo.lng != null) {
-                  window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
-                    detail: { lat: ownBaseInfo.lat, lng: ownBaseInfo.lng, zoom: 17 },
-                  }));
-                }
                 onOpenBase(ownBaseId);
+                // Fly-to NACH Tab-Wechsel dispatchen — AppMap muss erst gemountet
+                // sein, sonst registriert der Event-Listener noch nicht und der
+                // Map zentriert auf den Runner statt auf die Base.
+                if (ownBaseInfo.lat != null && ownBaseInfo.lng != null) {
+                  const lat = ownBaseInfo.lat, lng = ownBaseInfo.lng;
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                      detail: { lat, lng, zoom: 17 },
+                    }));
+                  }, 400);
+                }
               } else onPlaceBase();
             }}
             style={{
@@ -2925,8 +2931,10 @@ function ProfilTab({
                 const slotPin = `${ownBaseInfo.theme_id}_runner_pin`;
                 const slotBanner = `${ownBaseInfo.theme_id}_runner_banner`;
                 const a = baseThemeArt[slotPin] ?? baseThemeArt[slotBanner] ?? baseThemeArt[ownBaseInfo.theme_id];
-                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 72, objectFit: "contain" }} />;
-                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 64, height: 72, objectFit: "contain" }} />;
+                // Chroma-Key entfernt Greenscreen-Hintergrund (wie Wächter/Map-Pin)
+                const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 72, objectFit: "contain", filter: f }} />;
+                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 64, height: 72, objectFit: "contain", filter: f }} />;
                 return <span style={{ fontSize: 44, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
               })()}
             </div>
