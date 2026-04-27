@@ -33,7 +33,7 @@ function fmtTime(seconds: number): string {
 }
 
 export function TroopDetailModal({
-  catalog, owned, initialTroopId, onClose, onTrained, gemsAvailable,
+  catalog, owned, initialTroopId, onClose, onTrained, gemsAvailable, caps,
 }: {
   catalog: TroopDef[];
   owned: Map<string, number>;
@@ -41,6 +41,8 @@ export function TroopDetailModal({
   onClose: () => void;
   onTrained: () => void | Promise<void>;
   gemsAvailable: number;
+  /** Trainings-Cap pro Klasse: Gebäude-Level × 10 */
+  caps: Record<string, number>;
 }) {
   // Aktuelle Klasse aus initial-Troop ableiten, dann Tier-Switching innerhalb der Klasse
   const initial = catalog.find((t) => t.id === initialTroopId);
@@ -59,11 +61,13 @@ export function TroopDetailModal({
 
   if (!troop) return null;
 
-  const totalSeconds = troop.train_time_seconds * count;
-  const costWood  = troop.cost_wood  * count;
-  const costStone = troop.cost_stone * count;
-  const costGold  = troop.cost_gold  * count;
-  const costMana  = troop.cost_mana  * count;
+  const maxAtOnce = Math.max(1, caps[troopClass] ?? 0);
+  const safeCount = Math.min(count, maxAtOnce);
+  const totalSeconds = troop.train_time_seconds * safeCount;
+  const costWood  = troop.cost_wood  * safeCount;
+  const costStone = troop.cost_stone * safeCount;
+  const costGold  = troop.cost_gold  * safeCount;
+  const costMana  = troop.cost_mana  * safeCount;
   const gemCost   = Math.max(1, Math.ceil(totalSeconds / 60));
   const enoughGems = gemsAvailable >= gemCost;
 
@@ -74,13 +78,13 @@ export function TroopDetailModal({
     try {
       const r = await fetch("/api/base/troops", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ troop_id: troop!.id, count, instant }),
+        body: JSON.stringify({ troop_id: troop!.id, count: safeCount, instant }),
       });
       const j = await r.json() as { ok?: boolean; error?: string; seconds?: number; training_seconds?: number; gem_cost?: number; max_at_once?: number };
       if (j.ok) {
         await onTrained();
-        if (instant) setMsg(`✓ ${count}× ${troop!.name} sofort trainiert (-${j.gem_cost} 💎)`);
-        else setMsg(`✓ ${count}× ${troop!.name} im Training (${fmtTime(j.training_seconds ?? j.seconds ?? totalSeconds)})`);
+        if (instant) setMsg(`✓ ${safeCount}× ${troop!.name} sofort trainiert (-${j.gem_cost} 💎)`);
+        else setMsg(`✓ ${safeCount}× ${troop!.name} im Training (${fmtTime(j.training_seconds ?? j.seconds ?? totalSeconds)})`);
       } else if (j.error === "not_enough_gems") setMsg(`💎 Nicht genug Edelsteine.`);
       else if (j.error === "tier_locked") setMsg("Tier noch nicht erforscht — siehe Forschung-Tab.");
       else if (j.error === "building_required") setMsg("Trainings-Gebäude fehlt.");
@@ -130,21 +134,32 @@ export function TroopDetailModal({
             {/* Quantity-Slider + Live-Cost */}
             <div className="mt-3 rounded-xl bg-black/35 border border-white/10 p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black tracking-widest text-white/70">ANZAHL</span>
-                <input type="number" min={1} value={count}
-                  onChange={(e) => setCount(Math.max(1, parseInt(e.target.value) || 1))}
+                <span className="text-[10px] font-black tracking-widest text-white/70">
+                  ANZAHL <span className="text-white/40 ml-1">max {maxAtOnce.toLocaleString("de-DE")}</span>
+                </span>
+                <input type="number" min={1} max={maxAtOnce} value={safeCount}
+                  onChange={(e) => setCount(Math.max(1, Math.min(maxAtOnce, parseInt(e.target.value) || 1)))}
                   className="w-24 text-right px-2 py-1 rounded bg-black/50 border border-white/15 text-white text-[14px] font-black" />
               </div>
-              <input type="range" min={1} max={5000} value={Math.min(5000, count)}
+              <input type="range" min={1} max={maxAtOnce} value={safeCount}
                 onChange={(e) => setCount(parseInt(e.target.value))}
                 className="w-full accent-[#FFD700]" />
               <div className="flex justify-between text-[9px] text-white/50 mt-1">
-                <button onClick={() => setCount(10)}>10</button>
-                <button onClick={() => setCount(100)}>100</button>
-                <button onClick={() => setCount(500)}>500</button>
-                <button onClick={() => setCount(1000)}>1.000</button>
-                <button onClick={() => setCount(5000)}>5.000</button>
+                {[
+                  Math.max(1, Math.floor(maxAtOnce * 0.05)),
+                  Math.max(1, Math.floor(maxAtOnce * 0.25)),
+                  Math.max(1, Math.floor(maxAtOnce * 0.50)),
+                  Math.max(1, Math.floor(maxAtOnce * 0.75)),
+                  maxAtOnce,
+                ].map((v, i) => (
+                  <button key={i} onClick={() => setCount(v)}>{v.toLocaleString("de-DE")}</button>
+                ))}
               </div>
+              {maxAtOnce <= 10 && (
+                <div className="text-[9px] text-[#FF6B9A] mt-2 text-center">
+                  ⓘ Cap = Gebäude-Lv × 10. Baue {troop.troop_class === "infantry" ? "Kaserne" : troop.troop_class === "cavalry" ? "Stall" : troop.troop_class === "marksman" ? "Schießstand" : "Belagerungs-Schuppen"} aus für mehr.
+                </div>
+              )}
 
               {/* Cost */}
               <div className="grid grid-cols-4 gap-1.5 mt-3">

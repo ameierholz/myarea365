@@ -1310,7 +1310,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
   };
   type Owned = { troop_id: string; count: number };
   type QueueRow = { id: string; troop_id: string; count: number; ends_at: string };
-  type Data = { catalog: Troop[]; owned: Owned[]; queue: QueueRow[] };
+  type Data = { catalog: Troop[]; owned: Owned[]; queue: QueueRow[]; caps?: Record<string, number> };
   const [data, setData] = useState<Data | null>(null);
   const [openClass, setOpenClass] = useState<string | null>("infantry");
   const [selectedTroopId, setSelectedTroopId] = useState<string | null>(null);
@@ -1403,6 +1403,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
           owned={ownedMap}
           initialTroopId={selectedTroopId}
           gemsAvailable={gemsAvailable}
+          caps={data.caps ?? { infantry: 0, cavalry: 0, marksman: 0, siege: 0 }}
           onClose={() => setSelectedTroopId(null)}
           onTrained={async () => { await Promise.all([load(), reload()]); }}
         />
