@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
-import { useResourceArt, ResourceIcon } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, type ResourceArtMap } from "@/components/resource-icon";
 import { createClient } from "@/lib/supabase/client";
 
 type Theme = {
@@ -49,7 +49,8 @@ type OwnBaseData = {
   queue: QueueItem[];
   resources: Resources;
   vip: VipProgress;
-  vip_thresholds: Array<{ vip_level: number; required_points: number; daily_chest_silver: number; daily_chest_gold: number; resource_bonus_pct: number; buildtime_bonus_pct: number; extra_build_slots?: number; extra_research_slots?: number; training_speed_pct?: number; research_speed_pct?: number }>;
+  vip_thresholds: Array<{ vip_level: number; required_points: number; daily_chest_silver: number; daily_chest_gold: number; resource_bonus_pct: number; buildtime_bonus_pct: number; extra_build_slots?: number; extra_research_slots?: number; training_speed_pct?: number; research_speed_pct?: number; march_speed_pct?: number; gather_speed_pct?: number; troop_atk_pct?: number; troop_def_pct?: number; troop_hp_pct?: number; daily_speed_tokens?: number; daily_vip_tickets?: number }>;
+  vip_daily_claim?: { claimed_today: boolean; last_claim_date: string | null };
   catalog: Catalog[];
   chests: Chest[];
   themes: Theme[];
@@ -80,10 +81,12 @@ export function BaseModal({ target, onClose }: Props) {
 function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<OwnBaseData | null>(null);
   const [tab, setTab]   = useState<"overview" | "res" | "build" | "troops" | "research" | "chest" | "vip" | "settings">("overview");
+  const [vipSection, setVipSection] = useState<"status" | "shop" | "tiers">("status");
   const [now, setNow]   = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr]   = useState<string | null>(null);
   const resourceArt = useResourceArt();
+  const chestArt = useChestArt();
 
   const reload = useCallback(async () => {
     const r = await fetch("/api/base/me", { cache: "no-store" });
@@ -194,6 +197,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
     return <Backdrop onClose={onClose}><Spinner label="Lade Base …" /></Backdrop>;
   }
   const { base, buildings, queue, resources, vip, chests, themes, vip_thresholds } = data;
+  const vipDailyClaimed = data.vip_daily_claim?.claimed_today ?? false;
   // Wenn Server-Catalog leer ist (z.B. Migration noch nicht gepusht), zeige Fallback
   // damit User trotzdem sieht was kommt — Build-Buttons sind dann disabled.
   const catalogFromServer = data.catalog ?? [];
@@ -327,16 +331,15 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* Tabs (Settings ist als ⚙️ im Header) */}
-        <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]"
-             style={{ scrollbarWidth: "none" }}>
-          <style>{`.ma365-tabbar::-webkit-scrollbar{display:none}`}</style>
+        {/* Tabs (Settings ist als ⚙️ im Header) — kompakte Labels, alle 7 immer sichtbar */}
+        <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]">
           {(["overview","res","build","troops","research","chest","vip"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 px-2 whitespace-nowrap transition-colors ${tab === t ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
+              title={{overview:"Übersicht", res:"Resourcen", build:"Bau", troops:"Truppen", research:"Forschung", chest:"Truhen", vip:"VIP"}[t]}
+              className={`flex-1 min-w-0 py-2.5 px-1 whitespace-nowrap transition-colors ${tab === t ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
               style={tab === t ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
             >
-              {{overview:"📊 ÜBERSICHT", res:"💰 RES", build:"🏗️ BAU", troops:"⚔️ TRUPPEN", research:"🔬 FORSCHUNG", chest:"🗝️ TRUHEN", vip:"⭐ VIP"}[t]}
+              {{overview:"📊 Info", res:"💰 Res", build:"🏗 Bau", troops:"⚔ Heer", research:"🔬 Tech", chest:"🗝 Loot", vip:"⭐ VIP"}[t]}
               {t === "build" && queue.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FF6B4A] text-white">{queue.length}</span>}
               {t === "chest" && chests.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FFD700] text-[#0F1115]">{chests.length}</span>}
             </button>
@@ -393,7 +396,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                   <StatCard
                     icon={<ResourceIcon kind="speed_token" size={40} fallback="⚡" art={resourceArt} />}
                     label="Speed-Tokens" value={resources.speed_tokens.toLocaleString("de-DE")}
-                    sub="1 km Lauf = 1 Token"
+                    sub="1 km laufen = 1 Token. Skippt Bauzeit (5 Min/Token)."
+                    subInline
                     accent="#22D1C3"
                   />
                 </div>
@@ -433,7 +437,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                       )}
                       {nextChestReady && (
                         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30">
-                          <span className="text-2xl">🗝️</span>
+                          <ChestIcon kind={nextChestReady.kind} size={28} fallback="🗝️" art={chestArt} />
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-black text-white">{chests.filter((c) => new Date(c.opens_at).getTime() <= now).length} Truhen bereit!</div>
                             <div className="text-[10px] text-[#a8b4cf]">Tippen zum Öffnen.</div>
@@ -443,7 +447,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                       )}
                       {!nextChestReady && nextChestPending && (
                         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#1A1D23] border border-white/10">
-                          <span className="text-2xl">🔒</span>
+                          <div className="relative">
+                            <ChestIcon kind={nextChestPending.kind} size={28} fallback="📦" art={chestArt} />
+                            <span className="absolute -bottom-1 -right-1 text-[10px]">🔒</span>
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-black text-white">{chests.length} Truhen wartend</div>
                             <div className="text-[10px] text-[#a8b4cf]">
@@ -724,41 +731,115 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           {tab === "research" && <ResearchTab accent={accent} reload={reload} />}
 
           {/* TRUHEN */}
-          {tab === "chest" && (
-            <div className="space-y-2">
-              <IntroBox accent={accent} title="🗝️ WO KOMMEN TRUHEN HER?">
-                Truhen droppen aus <b className="text-white">Arena-Kämpfen</b>, <b className="text-white">Boss-Raids</b>, <b className="text-white">VIP-Daily-Rewards</b> und Crew-Aktivitäten.
-                <span className="block mt-1">🥈 <b>Silber</b>: 24h Wartezeit, häufige Items + Resourcen.</span>
-                <span className="block">🥇 <b>Gold</b>: 24h, seltene Items, Wächter-Splitter, große Resource-Drops.</span>
-                <span className="block mt-1 text-[#6c7590]">Pity-Garantie: alle 10 Truhen mind. 1 Episch, alle 30 mind. 1 Legendär.</span>
-              </IntroBox>
-              {chests.length === 0 && <div className="text-center text-[#6c7590] text-xs py-6">Keine offenen Truhen. Lauf mehr! 🚶</div>}
-              {chests.map((c) => {
-                const ms = new Date(c.opens_at).getTime() - now;
-                const ready = ms <= 0;
-                const min = Math.max(0, Math.floor(ms / 60000));
-                const hr  = Math.floor(min / 60); const restMin = min % 60;
-                return (
-                  <div key={c.id} className="flex items-center gap-2 p-2 rounded-xl bg-[#1A1D23] border border-white/10">
-                    <span className="text-3xl">{c.kind === "gold" ? "🥇" : c.kind === "silver" ? "🥈" : "🎁"}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-black capitalize">{c.kind}-Truhe</div>
-                      <div className="text-[10px] text-[#a8b4cf]">{ready ? "Bereit zum Öffnen" : `Öffnet in ${hr}h ${restMin}min`}</div>
-                    </div>
-                    <button onClick={() => openChest(c.id)} disabled={!ready || busy === c.id}
-                      className="text-[10px] font-black px-3 py-1.5 rounded-lg disabled:opacity-40"
-                      style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-                      {ready ? "Öffnen" : "🔒"}
-                    </button>
+          {tab === "chest" && (() => {
+            const KINDS: Array<{ k: Chest["kind"]; emoji: string; label: string; tint: string }> = [
+              { k: "silver", emoji: "🥈", label: "Silber", tint: "#d8d8d8" },
+              { k: "gold",   emoji: "🥇", label: "Gold",   tint: "#FFD700" },
+              { k: "event",  emoji: "🎉", label: "Event",  tint: "#FF2D78" },
+            ];
+            const byKind = (k: Chest["kind"]) => chests.filter((c) => c.kind === k);
+            const nextReady = (k: Chest["kind"]) => byKind(k).find((c) => new Date(c.opens_at).getTime() <= now);
+            const nextChest = (k: Chest["kind"]) => byKind(k).slice().sort((a, b) => new Date(a.opens_at).getTime() - new Date(b.opens_at).getTime())[0];
+
+            return (
+              <div className="space-y-3">
+                <IntroBox accent={accent} title="🗝️ WO KOMMEN TRUHEN HER?">
+                  Truhen droppen aus <b className="text-white">Arena-Kämpfen</b>, <b className="text-white">Boss-Raids</b>, <b className="text-white">VIP-Daily-Rewards</b> und Crew-Aktivitäten.
+                  <span className="block mt-1">🥈 <b>Silber</b>: 24h Wartezeit, häufige Items + Resourcen.</span>
+                  <span className="block">🥇 <b>Gold</b>: 24h, seltene Items, Wächter-Splitter, große Resource-Drops.</span>
+                  <span className="block mt-1 text-[#6c7590]">Pity-Garantie: alle 10 Truhen mind. 1 Episch, alle 30 mind. 1 Legendär.</span>
+                </IntroBox>
+
+                {/* Kategorie-Übersicht: immer sichtbar, mit Counter + Öffne-Button */}
+                <div className="grid grid-cols-3 gap-2">
+                  {KINDS.map(({ k, emoji, label, tint }) => {
+                    const total = byKind(k).length;
+                    const ready = byKind(k).filter((c) => new Date(c.opens_at).getTime() <= now).length;
+                    const nextR = nextReady(k);
+                    const upcoming = nextChest(k);
+                    const ms = upcoming ? new Date(upcoming.opens_at).getTime() - now : 0;
+                    const min = Math.max(0, Math.floor(ms / 60000));
+                    const hr = Math.floor(min / 60); const restMin = min % 60;
+                    return (
+                      <div key={k} className="rounded-xl p-3 flex flex-col items-center gap-2"
+                        style={{ background: `linear-gradient(180deg, ${tint}22, rgba(15,17,21,0.6))`, border: `1px solid ${tint}55` }}>
+                        <ChestIcon kind={k} size={88} fallback={emoji} art={chestArt} />
+                        <div className="text-[9px] font-black tracking-wider" style={{ color: tint }}>{label.toUpperCase()}</div>
+                        <div className="text-xl font-black text-white leading-none">{total}</div>
+                        {ready > 0 && (
+                          <div className="text-[9px] font-black text-[#4ade80]">{ready} bereit</div>
+                        )}
+                        {nextR ? (
+                          <button
+                            onClick={() => openChest(nextR.id)}
+                            disabled={busy === nextR.id}
+                            className="w-full text-[10px] font-black px-2 py-1.5 rounded-lg disabled:opacity-40"
+                            style={{ background: tint, color: "#0F1115" }}
+                          >
+                            {busy === nextR.id ? "…" : "Öffnen"}
+                          </button>
+                        ) : upcoming ? (
+                          <div className="w-full text-[9px] font-black text-center py-1 rounded-lg bg-white/5 text-[#a8b4cf]">
+                            {hr > 0 ? `${hr}h ${restMin}m` : `${restMin}m`}
+                          </div>
+                        ) : (
+                          <div className="w-full text-[9px] text-center py-1 text-[#6c7590]">leer</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Detail-Liste aller Truhen (wenn vorhanden) */}
+                {chests.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf]">DEINE TRUHEN</div>
+                    {chests.map((c) => {
+                      const ms = new Date(c.opens_at).getTime() - now;
+                      const ready = ms <= 0;
+                      const min = Math.max(0, Math.floor(ms / 60000));
+                      const hr  = Math.floor(min / 60); const restMin = min % 60;
+                      return (
+                        <div key={c.id} className="flex items-center gap-2 p-2 rounded-xl bg-[#1A1D23] border border-white/10">
+                          <ChestIcon kind={c.kind} size={36} fallback={c.kind === "gold" ? "🥇" : c.kind === "silver" ? "🥈" : "🎉"} art={chestArt} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-black capitalize">{c.kind}-Truhe</div>
+                            <div className="text-[10px] text-[#a8b4cf]">{ready ? "Bereit zum Öffnen" : `Öffnet in ${hr}h ${restMin}min`}</div>
+                          </div>
+                          <button onClick={() => openChest(c.id)} disabled={!ready || busy === c.id}
+                            className="text-[10px] font-black px-3 py-1.5 rounded-lg disabled:opacity-40"
+                            style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
+                            {ready ? "Öffnen" : "🔒"}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                )}
+
+                {chests.length === 0 && (
+                  <div className="text-center text-[#6c7590] text-xs py-2">
+                    Noch keine Truhen — kämpfe in der Arena, geh laufen oder check VIP-Daily!
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* VIP */}
           {tab === "vip" && (
             <div className="space-y-3">
+              {/* Sub-Tab-Leiste */}
+              <div className="flex border border-[#FFD700]/30 rounded-lg overflow-hidden text-[12px] font-black">
+                {(["status","shop","tiers"] as const).map((s) => (
+                  <button key={s} onClick={() => setVipSection(s)}
+                    className={`flex-1 py-2 transition-colors ${vipSection === s ? "bg-[#FFD700]/20 text-[#FFD700]" : "bg-transparent text-[#a8b4cf] hover:text-white"}`}>
+                    {{ status: "📊 Status", shop: "🛒 Shop", tiers: "📈 Stufen" }[s]}
+                  </button>
+                ))}
+              </div>
+
+              {vipSection === "status" && <>
               <IntroBox accent="#FFD700" title="⭐ WAS IST VIP?">
                 VIP-Punkte sammelst du durch <b className="text-white">tägliche Logins</b>, <b className="text-white">erfüllte Quests</b>, <b className="text-white">Premium-Käufe</b> und <b className="text-white">Events</b>.
                 Höheres VIP-Tier = mehr tägliche <b>🥈/🥇 Truhen</b>, <b>+% Resourcen-Drops</b>, <b>−% Bauzeit</b> und exklusive Themes.
@@ -792,8 +873,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
                   <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">🎁 DEINE TÄGLICHEN BENEFITS</div>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <Benefit label="🥈 Silber-Truhen" value={`${currentTier.daily_chest_silver}/Tag`} />
-                    <Benefit label="🥇 Gold-Truhen" value={`${currentTier.daily_chest_gold}/Tag`} />
+                    <Benefit label={<><ChestIcon kind="silver" size={16} fallback="🥈" art={chestArt} />Silber-Truhen</>} value={`${currentTier.daily_chest_silver}/Tag`} />
+                    <Benefit label={<><ChestIcon kind="gold"   size={16} fallback="🥇" art={chestArt} />Gold-Truhen</>} value={`${currentTier.daily_chest_gold}/Tag`} />
                     <Benefit label="📦 Resourcen" value={`+${Math.round(currentTier.resource_bonus_pct*100)}%`} />
                     <Benefit label="⏱ Bauzeit" value={`-${Math.round(currentTier.buildtime_bonus_pct*100)}%`} />
                     {(currentTier.extra_build_slots ?? 0) > 0 && (
@@ -808,36 +889,50 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     {(currentTier.research_speed_pct ?? 0) > 0 && (
                       <Benefit label="📚 Forschung" value={`+${Math.round((currentTier.research_speed_pct ?? 0)*100)}%`} />
                     )}
+                    {(currentTier.gather_speed_pct ?? 0) > 0 && (
+                      <Benefit label="🌾 Sammeln" value={`+${Math.round((currentTier.gather_speed_pct ?? 0)*100)}%`} />
+                    )}
+                    {(currentTier.march_speed_pct ?? 0) > 0 && (
+                      <Benefit label="🐎 March-Speed" value={`+${Math.round((currentTier.march_speed_pct ?? 0)*100)}%`} />
+                    )}
+                    {(currentTier.troop_atk_pct ?? 0) > 0 && (
+                      <Benefit label="⚔ Truppen-ATK" value={`+${Math.round((currentTier.troop_atk_pct ?? 0)*100)}%`} />
+                    )}
+                    {(currentTier.troop_def_pct ?? 0) > 0 && (
+                      <Benefit label="🛡 Truppen-DEF" value={`+${Math.round((currentTier.troop_def_pct ?? 0)*100)}%`} />
+                    )}
+                    {(currentTier.troop_hp_pct ?? 0) > 0 && (
+                      <Benefit label="❤ Truppen-HP" value={`+${Math.round((currentTier.troop_hp_pct ?? 0)*100)}%`} />
+                    )}
                   </div>
                 </div>
+              )}
+
+              {currentTier && currentTier.vip_level > 0 && (
+                <VipDailyClaim
+                  tier={currentTier}
+                  alreadyClaimed={vipDailyClaimed}
+                  reload={reload}
+                />
               )}
 
               {(resources.vip_tickets ?? 0) > 0 && (
                 <VipTicketRedeem available={resources.vip_tickets ?? 0} reload={reload} />
               )}
+              </>}
 
-              <div>
-                <div className="text-[10px] font-black text-[#a8b4cf] tracking-widest mb-2">TIER-PROGRESSION</div>
-                <div className="space-y-1">
-                  {vip_thresholds.filter((t) => t.vip_level > 0 && t.vip_level <= Math.min(15, vip.vip_level + 4)).map((t) => {
-                    const reached = t.vip_level <= vip.vip_level;
-                    const isNext  = t.vip_level === vip.vip_level + 1;
-                    return (
-                      <div key={t.vip_level} className={`flex items-center gap-2 p-2 rounded-lg ${reached ? "bg-[#FFD700]/10 border border-[#FFD700]/30" : isNext ? "bg-white/5 border border-[#FFD700]/20" : "bg-white/5"}`}>
-                        <span className={`text-xs font-black w-8 ${reached ? "text-[#FFD700]" : "text-[#6c7590]"}`}>{reached ? "✓" : ""} Lv{t.vip_level}</span>
-                        <div className="flex-1 text-[10px] text-[#a8b4cf]">
-                          🥈{t.daily_chest_silver} · 🥇{t.daily_chest_gold} · +{Math.round(t.resource_bonus_pct*100)}% Res · -{Math.round(t.buildtime_bonus_pct*100)}% Zeit
-                          {(t.extra_build_slots ?? 0) > 0 && ` · +${t.extra_build_slots}🔨`}
-                          {(t.extra_research_slots ?? 0) > 0 && ` · +${t.extra_research_slots}🔬`}
-                          {(t.training_speed_pct ?? 0) > 0 && ` · +${Math.round((t.training_speed_pct ?? 0)*100)}%⚔️`}
-                          {(t.research_speed_pct ?? 0) > 0 && ` · +${Math.round((t.research_speed_pct ?? 0)*100)}%📚`}
-                        </div>
-                        <span className="text-[10px] text-[#6c7590]">{compactNum(t.required_points)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              {vipSection === "shop" && (
+                <VipShopSection vipLevel={vip.vip_level} reload={reload} defaultOpen />
+              )}
+
+              {vipSection === "tiers" && (
+                <VipTierProgression
+                  thresholds={vip_thresholds}
+                  currentLevel={vip.vip_level}
+                  chestArt={chestArt}
+                  resourceArt={resourceArt}
+                />
+              )}
             </div>
           )}
 
@@ -1402,16 +1497,21 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
       )}
 
       {branches.map((b) => {
-        const items = data.definitions.filter((d) => d.branch === b.id).sort((a, c) => a.tier - c.tier);
+        const items = data.definitions.filter((d) => d.branch === b.id).sort((a, c) => (a.tier - c.tier) || a.name.localeCompare(c.name));
         const open = openBranch === b.id;
+        const tiers = Array.from(new Set(items.map((d) => d.tier))).sort((a, c) => a - c);
+        const totalProgress = items.filter((d) => (progressMap.get(d.id) ?? 0) > 0).length;
         return (
           <div key={b.id} className="rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${b.color}33` }}>
             <button onClick={() => setOpenBranch(open ? null : b.id)} className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black" style={{ color: b.color }}>
-              <span>{b.label}</span><span className="text-[10px]">{open ? "▾" : "▸"}</span>
+              <span>{b.label} <span className="text-[9px] text-[#a8b4cf] ml-1 font-normal">{totalProgress}/{items.length}</span></span><span className="text-[10px]">{open ? "▾" : "▸"}</span>
             </button>
             {open && (
-              <div className="p-2 space-y-1.5">
-                {items.map((d) => {
+              <div className="p-2 space-y-3">
+                {tiers.map((tier) => (
+                <div key={tier} className="space-y-1.5">
+                  <div className="text-[9px] font-black tracking-widest text-[#6c7590] px-1">TIER {tier}</div>
+                {items.filter((d) => d.tier === tier).map((d) => {
                   const lvl = progressMap.get(d.id) ?? 0;
                   const prereqLvl = d.prereq_id ? (progressMap.get(d.prereq_id) ?? 0) : 1;
                   const locked = d.prereq_id !== null && prereqLvl < 1;
@@ -1436,6 +1536,8 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
                     </div>
                   );
                 })}
+                </div>
+                ))}
               </div>
             )}
           </div>
@@ -1632,8 +1734,8 @@ function ReportLabelButton({ baseId, crewBaseId, kind }: { baseId?: string; crew
   );
 }
 
-function StatCard({ icon, label, value, sub, accent, progress }: {
-  icon: React.ReactNode; label: string; value: string; sub?: string; accent: string; progress?: number;
+function StatCard({ icon, label, value, sub, subInline, accent, progress }: {
+  icon: React.ReactNode; label: string; value: string; sub?: string; subInline?: boolean; accent: string; progress?: number;
 }) {
   return (
     <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
@@ -1644,9 +1746,10 @@ function StatCard({ icon, label, value, sub, accent, progress }: {
         <div className="flex-1 min-w-0">
           <div className="text-[9px] font-black tracking-wider text-[#a8b4cf] uppercase truncate">{label}</div>
           <div className="text-lg font-black truncate" style={{ color: accent }}>{value}</div>
+          {sub && subInline && <div className="text-[9px] text-[#a8b4cf] leading-tight mt-0.5">{sub}</div>}
         </div>
       </div>
-      {sub && <div className="text-[9px] text-[#a8b4cf] mt-1 truncate">{sub}</div>}
+      {sub && !subInline && <div className="text-[9px] text-[#a8b4cf] mt-1 truncate">{sub}</div>}
       {typeof progress === "number" && (
         <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
           <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, progress))}%`, background: accent }} />
@@ -1656,11 +1759,246 @@ function StatCard({ icon, label, value, sub, accent, progress }: {
   );
 }
 
-function Benefit({ label, value }: { label: string; value: string }) {
+function Benefit({ label, value }: { label: React.ReactNode; value: string }) {
   return (
     <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-black/30">
-      <span className="text-[#a8b4cf]">{label}</span>
-      <span className="font-black text-white">{value}</span>
+      <span className="text-[#a8b4cf] inline-flex items-center gap-1 min-w-0">{label}</span>
+      <span className="font-black text-white shrink-0">{value}</span>
+    </div>
+  );
+}
+
+function VipTierProgression({ thresholds, currentLevel, chestArt, resourceArt }: {
+  thresholds: Array<{ vip_level: number; required_points: number; daily_chest_silver: number; daily_chest_gold: number; resource_bonus_pct: number; buildtime_bonus_pct: number; extra_build_slots?: number; extra_research_slots?: number; training_speed_pct?: number; research_speed_pct?: number; march_speed_pct?: number; gather_speed_pct?: number; troop_atk_pct?: number; troop_def_pct?: number; troop_hp_pct?: number; daily_speed_tokens?: number; daily_vip_tickets?: number }>;
+  currentLevel: number;
+  chestArt: ResourceArtMap;
+  resourceArt: ResourceArtMap;
+}) {
+  const [expanded, setExpanded] = useState<number | null>(currentLevel + 1);
+  const tiers = thresholds.filter((t) => t.vip_level > 0);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-[10px] font-black text-[#a8b4cf] tracking-widest mb-2">ALLE 15 STUFEN — TIPP FÜR DETAILS</div>
+      {tiers.map((t) => {
+        const reached = t.vip_level <= currentLevel;
+        const isNext = t.vip_level === currentLevel + 1;
+        const open = expanded === t.vip_level;
+
+        // Top-3 Highlights für Compact-Row
+        const highlights: React.ReactNode[] = [];
+        if (t.daily_chest_gold > 0) highlights.push(<span key="g" className="inline-flex items-center gap-0.5"><ChestIcon kind="gold" size={20} fallback="🥇" art={chestArt} />×{t.daily_chest_gold}</span>);
+        else if (t.daily_chest_silver > 0) highlights.push(<span key="s" className="inline-flex items-center gap-0.5"><ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />×{t.daily_chest_silver}</span>);
+        if ((t.daily_speed_tokens ?? 0) > 0) highlights.push(<span key="sp" className="inline-flex items-center gap-0.5"><ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />×{t.daily_speed_tokens}</span>);
+        if (t.resource_bonus_pct > 0) highlights.push(<span key="r" className="text-[#FFD700] font-black">+{Math.round(t.resource_bonus_pct*100)}% Res</span>);
+        if (highlights.length < 3 && t.buildtime_bonus_pct > 0) highlights.push(<span key="b" className="text-[#22D1C3] font-black">−{Math.round(t.buildtime_bonus_pct*100)}% Zeit</span>);
+
+        return (
+          <div key={t.vip_level} className={`rounded-lg overflow-hidden ${reached ? "bg-[#FFD700]/10 border border-[#FFD700]/30" : isNext ? "bg-white/5 border border-[#FFD700]/40" : "bg-white/5 border border-white/5"}`}>
+            <button
+              onClick={() => setExpanded(open ? null : t.vip_level)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left"
+            >
+              <span className={`text-sm font-black w-16 shrink-0 ${reached ? "text-[#FFD700]" : isNext ? "text-[#FFD700]" : "text-[#6c7590]"}`}>
+                {reached ? "✓ " : ""}Lv{t.vip_level}
+              </span>
+              <div className="flex-1 min-w-0 flex items-center gap-2 text-[12px] text-white">
+                {highlights.slice(0, 3)}
+              </div>
+              <span className="text-[10px] font-black text-[#a8b4cf] shrink-0">{t.required_points.toLocaleString("de-DE")}</span>
+              <span className="text-[#6c7590] text-[10px] shrink-0 w-3 text-right">{open ? "▾" : "▸"}</span>
+            </button>
+            {open && (
+              <div className="px-3 pb-3 pt-1 border-t border-white/10 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-white">
+                {t.daily_chest_silver > 0 && <span className="inline-flex items-center gap-1"><ChestIcon kind="silver" size={28} fallback="🥈" art={chestArt} /><span className="font-black">×{t.daily_chest_silver}/d</span></span>}
+                {t.daily_chest_gold > 0 && <span className="inline-flex items-center gap-1"><ChestIcon kind="gold" size={28} fallback="🥇" art={chestArt} /><span className="font-black">×{t.daily_chest_gold}/d</span></span>}
+                {(t.daily_speed_tokens ?? 0) > 0 && <span className="inline-flex items-center gap-1"><ResourceIcon kind="speed_token" size={28} fallback="⚡" art={resourceArt} /><span className="font-black">×{t.daily_speed_tokens}/d</span></span>}
+                {(t.daily_vip_tickets ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[24px]">🎟</span><span className="font-black">×{t.daily_vip_tickets}/d</span></span>}
+                {t.resource_bonus_pct > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">📦</span><span className="font-black text-[#FFD700]">+{Math.round(t.resource_bonus_pct*100)}%</span></span>}
+                {t.buildtime_bonus_pct > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🏗</span><span className="font-black text-[#22D1C3]">−{Math.round(t.buildtime_bonus_pct*100)}%</span></span>}
+                {(t.gather_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🌾</span><span className="font-black">+{Math.round((t.gather_speed_pct ?? 0)*100)}%</span></span>}
+                {(t.training_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">⚔️</span><span className="font-black">+{Math.round((t.training_speed_pct ?? 0)*100)}%</span></span>}
+                {(t.research_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🔬</span><span className="font-black">+{Math.round((t.research_speed_pct ?? 0)*100)}%</span></span>}
+                {(t.march_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🐎</span><span className="font-black">+{Math.round((t.march_speed_pct ?? 0)*100)}%</span></span>}
+                {(t.troop_atk_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">⚔</span><span className="font-black text-[#FF6B4A]">+{Math.round((t.troop_atk_pct ?? 0)*100)}%</span></span>}
+                {(t.troop_def_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🛡</span><span className="font-black text-[#22D1C3]">+{Math.round((t.troop_def_pct ?? 0)*100)}%</span></span>}
+                {(t.troop_hp_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">❤</span><span className="font-black text-[#FF2D78]">+{Math.round((t.troop_hp_pct ?? 0)*100)}%</span></span>}
+                {(t.extra_build_slots ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🔨</span><span className="font-black">+{t.extra_build_slots} Slot</span></span>}
+                {(t.extra_research_slots ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🔬</span><span className="font-black">+{t.extra_research_slots} Slot</span></span>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: number; reload: () => Promise<void>; defaultOpen?: boolean }) {
+  type Offer = { id: string; name: string; description: string; emoji: string; required_vip: number; reward_kind: string; reward_amount: number; price_gems: number; original_gems: number | null; daily_limit: number; sort: number };
+  type Data = { ok: boolean; offers: Offer[]; purchased_today: Record<string, number> };
+  const [data, setData] = useState<Data | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [open, setOpen] = useState(defaultOpen);
+  const sb = createClient();
+  const chestArt = useChestArt();
+  const resourceArt = useResourceArt();
+
+  const load = useCallback(async () => {
+    const { data: d } = await sb.rpc("get_vip_shop_state");
+    setData(d as Data);
+  }, [sb]);
+  useEffect(() => { if (open && !data) void load(); }, [open, data, load]);
+
+  async function buy(offerId: string) {
+    setBusy(offerId); setMsg(null);
+    const { data: res, error } = await sb.rpc("purchase_vip_shop_offer", { p_offer_id: offerId });
+    setBusy(null);
+    type Res = { ok?: boolean; error?: string; reward_kind?: string; reward_amount?: number };
+    const r = (res ?? null) as Res | null;
+    if (error || !r?.ok) {
+      const errMap: Record<string, string> = {
+        vip_level_too_low: "VIP-Stufe zu niedrig",
+        daily_limit_reached: "Tageslimit erreicht",
+        not_enough_gems: "Nicht genug Edelsteine",
+      };
+      setMsg(`❌ ${errMap[r?.error ?? ""] ?? r?.error ?? error?.message ?? "Fehler"}`);
+    } else {
+      setMsg(`✅ +${r.reward_amount} ${r.reward_kind}`);
+      await Promise.all([load(), reload()]);
+    }
+    setTimeout(() => setMsg(null), 2800);
+  }
+
+  return (
+    <div className="rounded-xl bg-[#1A1D23] border border-[#FFD700]/30 overflow-hidden">
+      {!defaultOpen && (
+        <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-3 py-3 text-[13px] font-black text-[#FFD700]">
+          <span>🛒 VIP-SHOP <span className="text-[10px] text-[#a8b4cf] font-normal ml-1">(Rabatt-Angebote)</span></span>
+          <span>{open ? "▾" : "▸"}</span>
+        </button>
+      )}
+      {open && (
+        <div className="p-2 space-y-2">
+          {!data && <div className="text-[11px] text-[#a8b4cf] text-center py-3">Lade Angebote …</div>}
+          {data && data.offers.filter((o) => o.required_vip <= 15).sort((a, b) => a.sort - b.sort).map((o) => {
+            const purchasedToday = data.purchased_today[o.id] ?? 0;
+            const remaining = Math.max(0, o.daily_limit - purchasedToday);
+            const locked = vipLevel < o.required_vip;
+            const soldOut = remaining === 0;
+            const disabled = locked || soldOut || busy === o.id;
+            const discount = o.original_gems && o.original_gems > o.price_gems
+              ? Math.round((1 - o.price_gems / o.original_gems) * 100) : 0;
+
+            // Icon pick
+            const icon = o.reward_kind === "silver_chest"
+              ? <ChestIcon kind="silver" size={36} fallback="🥈" art={chestArt} />
+              : o.reward_kind === "gold_chest"
+              ? <ChestIcon kind="gold" size={36} fallback="🥇" art={chestArt} />
+              : ["wood","stone","gold","mana","speed_token"].includes(o.reward_kind)
+              ? <ResourceIcon kind={o.reward_kind as "wood"|"stone"|"gold"|"mana"|"speed_token"} size={36} fallback={o.emoji} art={resourceArt} />
+              : <span className="text-[28px]">{o.emoji}</span>;
+
+            return (
+              <div key={o.id} className={`flex items-center gap-3 p-2 rounded-lg ${locked ? "bg-white/[0.02] opacity-50" : "bg-black/30 border border-white/5"}`}>
+                <div className="relative shrink-0">
+                  {icon}
+                  {discount > 0 && !locked && (
+                    <span className="absolute -top-1 -right-2 px-1 rounded text-[8px] font-black bg-[#FF2D78] text-white">−{discount}%</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-black text-white">{o.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf]">{o.description}</div>
+                  <div className="text-[9px] text-[#6c7590] mt-0.5">
+                    {locked ? `🔒 Ab VIP ${o.required_vip}` : `${remaining}/${o.daily_limit} verfügbar heute`}
+                  </div>
+                </div>
+                <button onClick={() => buy(o.id)} disabled={disabled}
+                  className="text-[11px] font-black px-3 py-2 rounded-lg disabled:opacity-40 shrink-0"
+                  style={{ background: disabled ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FF6B4A)", color: disabled ? "#6c7590" : "#0F1115" }}>
+                  {busy === o.id ? "…" : soldOut ? "✓ Aus" : (
+                    <span className="flex flex-col items-center leading-tight">
+                      {discount > 0 && <span className="text-[8px] line-through opacity-60">💎{o.original_gems}</span>}
+                      <span>💎{o.price_gems}</span>
+                    </span>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+          {msg && <div className="text-[11px] text-center font-black text-white">{msg}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VipDailyClaim({ tier, alreadyClaimed, reload }: {
+  tier: { vip_level: number; daily_chest_silver: number; daily_chest_gold: number; daily_speed_tokens?: number; daily_vip_tickets?: number };
+  alreadyClaimed: boolean;
+  reload: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const sb = createClient();
+  const chestArt = useChestArt();
+  const resourceArt = useResourceArt();
+
+  type GiftItem = { node: React.ReactNode; label: string; n: number };
+  const items: GiftItem[] = [
+    { node: <ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />, label: "Silber-Truhe", n: tier.daily_chest_silver },
+    { node: <ChestIcon kind="gold"   size={20} fallback="🥇" art={chestArt} />, label: "Gold-Truhe",   n: tier.daily_chest_gold },
+    { node: <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />, label: "Speed-Token", n: tier.daily_speed_tokens ?? 0 },
+    { node: <span className="text-[16px]">🎟</span>, label: "VIP-Ticket", n: tier.daily_vip_tickets ?? 0 },
+  ].filter((i) => i.n > 0);
+
+  if (items.length === 0) return null;
+
+  async function claim() {
+    if (busy || alreadyClaimed) return;
+    setBusy(true); setMsg(null);
+    const { data, error } = await sb.rpc("claim_vip_daily_rewards");
+    setBusy(false);
+    type Res = { ok?: boolean; error?: string; silver_chests?: number; gold_chests?: number; speed_tokens?: number; vip_tickets?: number };
+    const res = (data ?? null) as Res | null;
+    if (error || !res?.ok) {
+      setMsg(`❌ ${res?.error ?? error?.message ?? "Fehler"}`);
+    } else {
+      const parts: string[] = [];
+      if ((res.silver_chests ?? 0) > 0) parts.push(`🥈×${res.silver_chests}`);
+      if ((res.gold_chests ?? 0) > 0)   parts.push(`🥇×${res.gold_chests}`);
+      if ((res.speed_tokens ?? 0) > 0)  parts.push(`⚡×${res.speed_tokens}`);
+      if ((res.vip_tickets ?? 0) > 0)   parts.push(`🎟×${res.vip_tickets}`);
+      setMsg(`✅ ${parts.join(" · ")}`);
+      await reload();
+    }
+    setTimeout(() => setMsg(null), 3000);
+  }
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-[#FF6B4A]/10 border border-[#FFD700]/40 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎁 TÄGLICHE VIP-BELOHNUNG</div>
+          <div className="text-[10px] text-[#a8b4cf] mt-0.5">
+            {alreadyClaimed ? "Heute schon abgeholt — kommt morgen wieder." : `Stufe ${tier.vip_level} · einmal pro Tag`}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {items.map((i, idx) => (
+          <div key={idx} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-black/40 border border-white/10 text-[11px] font-black text-white">
+            {i.node}<span>×{i.n}</span><span className="text-[#a8b4cf] font-normal">{i.label}</span>
+          </div>
+        ))}
+        <button onClick={claim} disabled={busy || alreadyClaimed}
+          className="ml-auto px-3 h-9 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-xs disabled:opacity-40">
+          {busy ? "…" : alreadyClaimed ? "✓ Abgeholt" : "Abholen"}
+        </button>
+      </div>
+      {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
     </div>
   );
 }

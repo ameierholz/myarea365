@@ -32,12 +32,13 @@ import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
-import { useResourceArt, ResourceIcon } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
 import { MapHelpButton } from "@/components/map-help-button";
+import { MapLegendModal } from "@/components/map-legend-modal";
 import { CrewLiveHub } from "@/components/crew-live-hub";
 import { OnboardingModal, markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
 import { FaqModal } from "@/components/faq-modal";
@@ -58,6 +59,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
 import { BaseModal } from "@/components/base-modal";
+import { StrongholdModal, ActiveRallyBanner } from "@/components/stronghold-modal";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
@@ -323,6 +325,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [overviewMode, setOverviewMode] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [controlsExpanded, setControlsExpanded] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   const [snapping, setSnapping] = useState(false);
   const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
 
@@ -1101,12 +1104,92 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean };
+  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
   const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
   const [placeBaseMode, setPlaceBaseMode] = useState<null | "runner" | "crew">(null);
+
+  // ── Wegelager (Strongholds) + Rally-State ──
+  type Stronghold = { id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number };
+  const [strongholds, setStrongholds] = useState<Stronghold[]>([]);
+  const [strongholdModalTarget, setStrongholdModalTarget] = useState<Stronghold | null>(null);
+  const strongholdArt = useStrongholdArt();
+  const dashboardBaseThemeArt = useBaseThemeArt();
+  const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
+    try {
+      const r = await fetch(`/api/strongholds/nearby?lat=${lat}&lng=${lng}&radius_km=30`, { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json() as { strongholds: Stronghold[] };
+        const next = j.strongholds ?? [];
+        // Stabiles Update: nur setzen wenn sich IDs/HP geändert haben (verhindert Flackern)
+        setStrongholds((prev) => {
+          if (prev.length !== next.length) return next;
+          for (let i = 0; i < prev.length; i++) {
+            if (prev[i].id !== next[i].id || prev[i].current_hp !== next[i].current_hp) return next;
+          }
+          return prev;
+        });
+      }
+    } catch { /* silent */ }
+  }, []);
+  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; status: "preparing" | "marching" | "fighting" | "done" | "aborted"; total_atk: number } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold };
+  const [rallyData, setRallyData] = useState<RallyData | null>(null);
+  const refreshRally = useCallback(async () => {
+    try {
+      const r = await fetch("/api/rally", { cache: "no-store" });
+      if (r.ok) setRallyData(await r.json() as RallyData);
+    } catch { /* silent */ }
+  }, []);
+  useEffect(() => {
+    void refreshRally();
+    const id = setInterval(refreshRally, 15000);
+    return () => clearInterval(id);
+  }, [refreshRally]);
+  // Strongholds: bei initialem Mount fetchen + spawnen, dann nur bei
+  // signifikanter Bewegung (>500m) erneut spawnen. Fetch alle 60s pro Position.
+  const lastSpawnPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  const userCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  useEffect(() => { userCenterRef.current = userCenter ?? null; }, [userCenter]);
+  useEffect(() => {
+    // Berlin-Mitte als Fallback für User ohne GPS — Wegelager bleiben so überall sichtbar
+    const center = userCenter ?? { lat: 52.520, lng: 13.405 };
+    const last = lastSpawnPosRef.current;
+    const movedMeters = last
+      ? (() => {
+          const R = 6371000;
+          const dLat = ((center.lat - last.lat) * Math.PI) / 180;
+          const dLng = ((center.lng - last.lng) * Math.PI) / 180;
+          const a = Math.sin(dLat / 2) ** 2 + Math.cos((last.lat * Math.PI) / 180) * Math.cos((center.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+          return 2 * R * Math.asin(Math.sqrt(a));
+        })()
+      : Infinity;
+
+    // Fetch immer (zeigt aktuelle DB-Daten — pin verschwindet erst wenn defeated_at gesetzt)
+    void fetchStrongholds(center.lat, center.lng);
+
+    // Spawn nur wenn ECHTER Standort vorhanden + >500m Bewegung
+    if (userCenter && movedMeters > 500) {
+      lastSpawnPosRef.current = { lat: userCenter.lat, lng: userCenter.lng };
+      void (async () => {
+        const plzKey = `grid_${userCenter.lat.toFixed(2)}_${userCenter.lng.toFixed(2)}`;
+        try {
+          await fetch("/api/strongholds/spawn", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plz: plzKey, lat: userCenter.lat, lng: userCenter.lng }),
+          });
+          await fetchStrongholds(userCenter.lat, userCenter.lng);
+        } catch { /* silent */ }
+      })();
+    }
+
+    // Periodisch DB-Stand syncen (für HP-Updates / fremde Crew besiegt etc.)
+    const id = setInterval(() => void fetchStrongholds(center.lat, center.lng), 60000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCenter?.lat, userCenter?.lng]);
 
   // Theme-Lookup für Pin-Rendering (cache als Map id → { emoji, color })
   type ThemeMeta = { pin_emoji: string; pin_color: string };
@@ -1145,11 +1228,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
       (j.runner ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "runner", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, ...t });
+        merged.push({ kind: "runner", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, theme_id: b.theme_id, ...t });
       });
       (j.crew ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "crew", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, ...t });
+        merged.push({ kind: "crew", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, theme_id: b.theme_id, ...t });
       });
       setBasePins(merged);
     };
@@ -1187,11 +1270,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     }
   }, [userCenter, themeMeta]);
 
-  // Live-Loot-Drops: demo-spawn alle 90-120s auf zufaelliger Position nahe User
+  // Live-Loot-Drops: Berlin-weite Verteilung (~60 Drops gleichzeitig).
   // Kisten werden auf das Gehwegnetz gesnappt (Mapbox Directions walking-Profile),
   // damit sie nicht in Gebaeuden/Hinterhoefen landen.
   useEffect(() => {
-    if (!userCenter) return;
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
     async function snapToWalk(lat: number, lng: number): Promise<{ lat: number; lng: number } | null> {
@@ -1199,39 +1281,95 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       try {
         const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${lng},${lat};${lng + 0.0001},${lat + 0.0001}?access_token=${token}&overview=false`;
         const res = await fetch(url);
-        if (!res.ok) return null;
+        if (!res.ok) return { lat, lng }; // Fallback: Original-Koords
         const data = await res.json() as { waypoints?: Array<{ location: [number, number]; distance?: number }> };
         const wp = data.waypoints?.[0];
-        if (!wp) return null;
-        // Verwerfen wenn Snap-Distanz > 40m (kein Weg in der Naehe)
-        if (typeof wp.distance === "number" && wp.distance > 40) return null;
+        if (!wp) return { lat, lng };
+        // Bei sehr großer Snap-Distanz (>500m) Original-Koords nehmen statt zu verwerfen
+        if (typeof wp.distance === "number" && wp.distance > 500) return { lat, lng };
         return { lng: wp.location[0], lat: wp.location[1] };
-      } catch { return null; }
+      } catch { return { lat, lng }; }
     }
 
-    const spawn = async () => {
-      const rarities = ["common", "common", "common", "rare", "rare", "epic", "legendary"];
-      const kinds: Array<"xp_pack" | "speed_boost" | "mystery_ticket"> = ["xp_pack", "speed_boost", "mystery_ticket"];
-      let snapped: { lat: number; lng: number } | null = null;
-      for (let i = 0; i < 5 && !snapped; i++) {
-        const offsetLat = (Math.random() - 0.5) * 0.008;
-        const offsetLng = (Math.random() - 0.5) * 0.012;
-        snapped = await snapToWalk(userCenter.lat + offsetLat, userCenter.lng + offsetLng);
+    // Berlin-BBox: Drops über die ganze Stadt verteilen (nicht nur um den User).
+    const BERLIN = { south: 52.340, north: 52.680, west: 13.090, east: 13.760 };
+    const TARGET_DROPS = 200; // hohe Dichte, damit immer was in der Nähe ist
+
+    // Gewichtung: ~63% common, 25% rare, 10% epic, 2% legendary (= "mega selten")
+    const rarities = [
+      ...Array(63).fill("common"),
+      ...Array(25).fill("rare"),
+      ...Array(10).fill("epic"),
+      ...Array(2).fill("legendary"),
+    ];
+    const kinds: Array<"xp_pack" | "speed_boost" | "mystery_ticket"> = ["xp_pack", "speed_boost", "mystery_ticket"];
+
+    const makeDrop = (lat: number, lng: number) => ({
+      id: `loot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      lat, lng,
+      rarity: rarities[Math.floor(Math.random() * rarities.length)],
+      kind: kinds[Math.floor(Math.random() * kinds.length)],
+    });
+
+    const spawnAt = async (lat: number, lng: number, jitterDeg = 0) => {
+      for (let i = 0; i < 4; i++) {
+        const jLat = lat + (Math.random() - 0.5) * jitterDeg;
+        const jLng = lng + (Math.random() - 0.5) * jitterDeg;
+        const snapped = await snapToWalk(jLat, jLng);
+        if (snapped) {
+          const drop = makeDrop(snapped.lat, snapped.lng);
+          setLootDrops((prev) => prev.length >= TARGET_DROPS ? [...prev.slice(1), drop] : [...prev, drop]);
+          return true;
+        }
       }
-      if (!snapped) return; // Kein Weg gefunden — kein Spawn
-      const drop = {
-        id: `loot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        lat: snapped.lat,
-        lng: snapped.lng,
-        rarity: rarities[Math.floor(Math.random() * rarities.length)],
-        kind: kinds[Math.floor(Math.random() * kinds.length)],
-      };
-      setLootDrops((prev) => [...prev.slice(-4), drop]);
+      return false;
     };
-    spawn();
-    const int = setInterval(spawn, 90_000 + Math.random() * 30_000);
-    return () => clearInterval(int);
-  }, [userCenter]);
+
+    const spawnRandomBerlin = async () => {
+      const lat = BERLIN.south + Math.random() * (BERLIN.north - BERLIN.south);
+      const lng = BERLIN.west  + Math.random() * (BERLIN.east  - BERLIN.west);
+      return spawnAt(lat, lng, 0);
+    };
+
+    // Initialer Bulk-Fill Berlin-weit (läuft sofort beim Mount).
+    let cancelled = false;
+    (async () => {
+      for (let i = 0; i < TARGET_DROPS; i++) {
+        if (cancelled) return;
+        await spawnRandomBerlin();
+        await new Promise((r) => setTimeout(r, 60));
+      }
+    })();
+
+    // Sobald GPS verfügbar wird: zusätzliche 15 Drops eng um den User streuen.
+    // Pollt alle 500 ms bis userCenter da ist (max 30 s warten).
+    let userBoostDone = false;
+    const userBoostInt = setInterval(async () => {
+      if (cancelled || userBoostDone) { clearInterval(userBoostInt); return; }
+      const u = userCenterRef.current;
+      if (!u) return;
+      userBoostDone = true;
+      clearInterval(userBoostInt);
+      for (let i = 0; i < 15; i++) {
+        if (cancelled) return;
+        await spawnAt(u.lat, u.lng, 0.020); // ±~1.1 km
+        await new Promise((r) => setTimeout(r, 80));
+      }
+    }, 500);
+    setTimeout(() => clearInterval(userBoostInt), 30_000);
+
+    // Periodisch nachfüllen falls Drops eingesammelt wurden
+    const int = setInterval(() => {
+      setLootDrops((prev) => {
+        if (prev.length >= TARGET_DROPS) return prev;
+        void spawnRandomBerlin();
+        return prev;
+      });
+    }, 20_000);
+    return () => { cancelled = true; clearInterval(int); clearInterval(userBoostInt); };
+    // userCenter wird absichtlich nicht observed — Pool ist Berlin-weit, unabhängig vom Standort
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Arena-Countdowns aus demoShops ableiten (2h in der Zukunft fuer Kaelthor-Demo)
   const arenaCountdowns = useMemo(() => {
@@ -1330,6 +1468,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
               onPowerZoneClick={setViewingPowerZone}
+              strongholds={strongholds}
+              strongholdArt={strongholdArt}
+              onStrongholdClick={(id) => {
+                const s = strongholds.find((x) => x.id === id);
+                if (s) setStrongholdModalTarget(s);
+              }}
               onLootClick={async (id) => {
                 const drop = lootDrops.find((d) => d.id === id);
                 if (!drop) return;
@@ -1350,6 +1494,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
               basePins={basePins}
+              baseThemeArt={dashboardBaseThemeArt}
               onBasePinTap={(pin) => setBaseModalTarget(pin)}
               placeBaseMode={placeBaseMode}
               onPlaceBaseClick={onPlaceBaseClick}
@@ -1363,8 +1508,20 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               xpBoost={1}
             />
 
-            {/* Floating Badge für Tagesangebote (dismissible, pro Tag) — während Walking ausgeblendet, um Kollision mit LivePaceHud zu vermeiden */}
-            <DailyDealMapBadge userId={p?.id} hidden={walking} />
+            {/* Floating Badge für Tagesangebote — versteckt wenn walking oder ein Modal offen ist */}
+            <DailyDealMapBadge userId={p?.id} hidden={walking || !!baseModalTarget || !!viewingShop || !!viewingArea || !!viewingBoss || !!viewingSanctuary || !!viewingPowerZone || !!ownershipQuery || !!strongholdModalTarget} />
+
+            {/* Active-Rally-Banner — oben auf der Karte wenn Crew eine Versammlung laufen hat */}
+            {rallyData?.rally && !strongholdModalTarget && !baseModalTarget && (
+              <div style={{ position: "absolute", top: 14, left: 12, right: 12, zIndex: 56 }}>
+                <ActiveRallyBanner
+                  rally={rallyData.rally}
+                  onOpen={async () => {
+                    if (rallyData.stronghold) setStrongholdModalTarget(rallyData.stronghold);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Help/FAQ-Button oben links */}
             <MapHelpButton />
@@ -1443,6 +1600,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
+                  <MapIconButton icon="🗺️" label="Legende" onClick={() => setLegendOpen(true)} accent="#22D1C3" />
                   <MapIconButton
                     icon="🏰"
                     label={ownBaseHasPos ? "Meine Base" : "Base setzen"}
@@ -1522,8 +1680,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               </div>
             )}
 
-            {/* mapActionOverlay: bottom 30 */}
-            <div style={{ position: "absolute", bottom: 30, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", zIndex: 50, pointerEvents: "none" }}>
+            {/* mapActionOverlay: bottom 30 — versteckt wenn ein Modal offen ist (Losgehen darf nicht durchs Modal stechen) */}
+            <div style={{
+              position: "absolute", bottom: 30, left: 0, right: 0,
+              display: (baseModalTarget || viewingShop || viewingArea || viewingBoss || viewingSanctuary || viewingPowerZone || ownershipQuery || strongholdModalTarget) ? "none" : "flex",
+              flexDirection: "column", alignItems: "center", zIndex: 50, pointerEvents: "none",
+            }}>
               {walking && currentStreet && (
                 <div style={{
                   display: "flex",
@@ -1799,6 +1961,19 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
       )}
 
+      {/* Stronghold-Modal (Wegelager-Pin auf der Map) */}
+      {strongholdModalTarget && (
+        <StrongholdModal
+          stronghold={strongholdModalTarget}
+          onClose={() => setStrongholdModalTarget(null)}
+          activeRally={rallyData?.rally ?? null}
+          refreshRally={async () => {
+            await refreshRally();
+            if (userCenter) await fetchStrongholds(userCenter.lat, userCenter.lng);
+          }}
+        />
+      )}
+
       {/* Place-Base Prompt — nur wenn eigene Base noch keine Position hat */}
       {!ownBaseHasPos && ownBaseId && !placeBaseMode && !baseModalTarget && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[900] px-4 py-3 rounded-2xl bg-[#0F1115]/95 backdrop-blur border-2 border-[#22D1C3] shadow-2xl flex items-center gap-3 max-w-sm">
@@ -1833,6 +2008,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {missionsOpen && (
         <MissionsModal onClose={() => setMissionsOpen(false)} />
       )}
+      {legendOpen && <MapLegendModal onClose={() => setLegendOpen(false)} />}
 
       {/* Area-Boss Modal */}
       {viewingBoss && (() => {
@@ -2160,11 +2336,12 @@ function ProfilTab({
   const tMD = useTranslations("MapDashboard");
   const tXG = useTranslations("XpGuide");
   const resourceArt = useResourceArt();
+  const baseThemeArt = useBaseThemeArt();
 
   // ═══ Base-Banner-State (eigene Base-Daten für Hero-Banner) ═══
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
-  const [ownBaseInfo, setOwnBaseInfo] = useState<{ level: number; plz: string; theme_name: string; pin_emoji: string; accent: string; resources: { wood: number; stone: number; gold: number; mana: number; speed_tokens: number }; queue_count: number; chest_count: number } | null>(null);
+  const [ownBaseInfo, setOwnBaseInfo] = useState<{ level: number; plz: string; lat: number | null; lng: number | null; theme_id: string; theme_name: string; pin_emoji: string; accent: string; resources: { wood: number; stone: number; gold: number; mana: number; speed_tokens: number }; queue_count: number; chest_count: number } | null>(null);
   useEffect(() => {
     void (async () => {
       try {
@@ -2182,6 +2359,8 @@ function ProfilTab({
         const t = (j.themes ?? []).find((x) => x.id === j.base!.theme_id);
         setOwnBaseInfo({
           level: j.base.level, plz: j.base.plz,
+          lat: j.base.lat, lng: j.base.lng,
+          theme_id: j.base.theme_id,
           theme_name: t?.name ?? "Mittelalter",
           pin_emoji: t?.pin_emoji ?? "🏰",
           accent: t?.accent_color ?? "#22D1C3",
@@ -2465,13 +2644,17 @@ function ProfilTab({
           </div>
 
           <div style={{ fontSize: 10, color: MUTED, fontWeight: "bold", letterSpacing: 2, marginTop: 10 }}>LÄUFER</div>
+          {(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier && (
+            <div style={{ marginTop: 6, display: "flex", justifyContent: "center" }}>
+              <SupporterBadge tier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier} size="md" showLabel />
+            </div>
+          )}
           <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF", marginTop: 4, textAlign: "center", display: "flex", alignItems: "center", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <RainbowName
               name={p?.display_name || p?.username || "Eroberer"}
               active={isRainbowActive((p as unknown as { rainbow_name_until?: string | null })?.rainbow_name_until)}
               size={32}
             />
-            <SupporterBadge tier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier} size="md" showLabel />
           </div>
           <div style={{ color: MUTED, fontSize: 13, marginTop: 2 }}>@{p?.username}</div>
 
@@ -2673,8 +2856,14 @@ function ProfilTab({
         {ownBaseInfo && ownBaseId && (
           <button
             onClick={() => {
-              if (ownBaseHasPos) onOpenBase(ownBaseId);
-              else onPlaceBase();
+              if (ownBaseHasPos) {
+                if (ownBaseInfo.lat != null && ownBaseInfo.lng != null) {
+                  window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                    detail: { lat: ownBaseInfo.lat, lng: ownBaseInfo.lng, zoom: 17 },
+                  }));
+                }
+                onOpenBase(ownBaseId);
+              } else onPlaceBase();
             }}
             style={{
               marginTop: 12, width: "100%", padding: 14, borderRadius: 16,
@@ -2686,15 +2875,25 @@ function ProfilTab({
             }}
             aria-label="Base öffnen"
           >
-            {/* Theme-Icon */}
+            {/* Theme-Icon (Artwork aus cosmetic_artwork.kind=base_theme) */}
             <div style={{
               width: 76, height: 84, borderRadius: 12, flexShrink: 0,
               background: `radial-gradient(circle at 50% 30%, ${ownBaseInfo.accent}55 0%, ${ownBaseInfo.accent}22 45%, rgba(15,17,21,0.55) 100%)`,
               border: `1px solid ${ownBaseInfo.accent}77`,
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: `0 0 14px ${ownBaseInfo.accent}44, inset 0 0 18px ${ownBaseInfo.accent}22`,
-              fontSize: 44, lineHeight: 1,
-            }}>{ownBaseInfo.pin_emoji}</div>
+              overflow: "hidden",
+            }}>
+              {(() => {
+                // Slot-Pattern: "{theme}_runner_pin" (siehe artwork-prompts.ts)
+                const slotPin = `${ownBaseInfo.theme_id}_runner_pin`;
+                const slotBanner = `${ownBaseInfo.theme_id}_runner_banner`;
+                const a = baseThemeArt[slotPin] ?? baseThemeArt[slotBanner] ?? baseThemeArt[ownBaseInfo.theme_id];
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 72, objectFit: "contain" }} />;
+                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 64, height: 72, objectFit: "contain" }} />;
+                return <span style={{ fontSize: 44, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
+              })()}
+            </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: ownBaseInfo.accent }}>🏰 DEINE BASE</div>

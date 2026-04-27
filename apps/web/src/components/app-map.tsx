@@ -143,21 +143,26 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-boss-marker {
       position: relative;
-      min-width: 110px;
-      padding: 8px 10px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(120,0,40,0.95) 0%, rgba(40,0,20,0.95) 100%);
-      border: 2px solid rgba(255,45,120,0.8);
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer;
+    }
+    .ma365-boss-circle {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 40%, rgba(120,0,40,0.95) 0%, rgba(20,0,10,0.95) 100%);
+      border: 2px solid rgba(255,45,120,0.85);
+      animation: ma365BossPulse 1.8s ease-in-out infinite;
+      display: flex; align-items: center; justify-content: center;
       color: #FFF;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-      animation: ma365BossPulse 1.8s ease-in-out infinite;
-      text-align: center;
     }
-    .ma365-boss-emoji { font-size: 28px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-    .ma365-boss-name { font-size: 10px; font-weight: 900; letter-spacing: 0.3px; margin-bottom: 5px; text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+    .ma365-boss-emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+    .ma365-boss-name { display: none; }
     .ma365-boss-hpbar {
-      height: 5px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.2);
+      width: 48px;
+      margin-top: 3px;
+      height: 4px; background: rgba(0,0,0,0.7); border-radius: 3px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.18);
     }
     .ma365-boss-hpfill {
       height: 100%;
@@ -191,6 +196,33 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       font-size: 11px; font-weight: 900; color: #4ade80;
       background: rgba(15,17,21,0.85); border: 1.5px solid #4ade80;
       border-radius: 999px; padding: 1px 6px;
+    }
+
+    /* Wegelager (Strongholds) */
+    @keyframes ma365StrongholdGlow {
+      0%,100% { filter: drop-shadow(0 2px 6px rgba(255,45,120,0.6)) drop-shadow(0 0 8px rgba(255,107,74,0.4)); }
+      50%     { filter: drop-shadow(0 2px 8px rgba(255,45,120,0.95)) drop-shadow(0 0 14px rgba(255,107,74,0.7)); }
+    }
+    .ma365-stronghold-marker {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      animation: ma365StrongholdGlow 2.4s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    .ma365-stronghold-emoji { font-size: 30px; line-height: 1; }
+    .ma365-stronghold-level {
+      font-size: 10px; font-weight: 900;
+      padding: 2px 7px; border-radius: 999px;
+      background: linear-gradient(135deg, #FF2D78, #FF6B4A); color: #FFF;
+      border: 1.5px solid rgba(255,255,255,0.9);
+      box-shadow: 0 2px 6px rgba(255,45,120,0.4);
+    }
+    .ma365-stronghold-hp {
+      width: 36px; height: 4px; background: rgba(15,17,21,0.7);
+      border-radius: 999px; overflow: hidden; margin-top: 1px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .ma365-stronghold-hp-fill {
+      height: 100%; background: linear-gradient(90deg, #4ade80, #FFD700, #FF6B4A);
     }
 
     @keyframes ma365CrateBob {
@@ -478,6 +510,9 @@ interface AppMapProps {
   onBossClick?: (raidId: string) => void;
   onSanctuaryClick?: (sanctuaryId: string) => void;
   onPowerZoneClick?: (zoneId: string) => void;
+  strongholds?: Array<{ id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number }>;
+  onStrongholdClick?: (strongholdId: string) => void;
+  strongholdArt?: Record<string, { image_url: string | null; video_url: string | null }>;
   onLootClick?: (dropId: string) => void;
   // ── Base-Pins (Runner + Crew) ──
   basePins?: Array<{
@@ -490,8 +525,10 @@ interface AppMapProps {
     pin_color: string;
     pin_label: string;
     is_own: boolean;
+    theme_id?: string;
   }>;
   onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => void;
+  baseThemeArt?: Record<string, { image_url: string | null; video_url: string | null }>;
   /** Wenn aktiv, fängt der nächste Map-Klick die Lat/Lng ab statt normaler Click-Logik. */
   placeBaseMode?: null | "runner" | "crew";
   onPlaceBaseClick?: (lng: number, lat: number, kind: "runner" | "crew") => void;
@@ -738,11 +775,15 @@ export function AppMap({
   arenaCountdowns = [],
   onBossClick,
   onSanctuaryClick,
+  strongholds = [],
+  onStrongholdClick,
+  strongholdArt = {},
   onPowerZoneClick,
   onLootClick,
   routeGeometry = null,
   basePins = [],
   onBasePinTap,
+  baseThemeArt = {},
   placeBaseMode = null,
   onPlaceBaseClick,
 }: AppMapProps) {
@@ -1369,8 +1410,14 @@ export function AppMap({
       // Loot-Kisten skalieren mit Zoom (aggressiver schrumpfen beim Rauszoomen)
       // Basis 64px, Faktor 0.22 (far) bis 0.85 (close)
       const lootScale = Math.max(0.22, Math.min(0.85, (zoom - 12) / 6 * 0.65 + 0.25));
+      const hideLoot = zoom < 13;
       lootMarkersRef.current.forEach(({ el }) => {
-        if (el) el.style.setProperty("--loot-scale", lootScale.toFixed(2));
+        if (el) {
+          el.style.setProperty("--loot-scale", lootScale.toFixed(2));
+          el.style.opacity = hideLoot ? "0" : "1";
+          el.style.transition = "opacity 0.25s";
+          el.style.pointerEvents = hideLoot ? "none" : "auto";
+        }
       });
       // Beam: anchor "bottom" sitzt an Badge-Bottom, extends NACH OBEN in den Himmel.
       const beamOffY = -pinHeight;
@@ -2166,9 +2213,9 @@ export function AppMap({
       inner.className = "ma365-boss-marker";
       inner.style.transformOrigin = "center bottom";
       inner.innerHTML = `
-          <div class="ma365-boss-emoji">${b.emoji}</div>
-          <div class="ma365-boss-name">${b.name}</div>
+          <div class="ma365-boss-circle"><span class="ma365-boss-emoji">${b.emoji}</span></div>
           <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>`;
+      inner.title = b.name;
       outer.appendChild(inner);
       outer.addEventListener("click", () => onBossClick?.(b.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
@@ -2178,7 +2225,7 @@ export function AppMap({
 
     const applyScale = () => {
       const zoom = map.getZoom();
-      const hide = zoom < 11;
+      const hide = zoom < 13;
       const scale = Math.max(0.35, Math.min(1.0, (zoom - 11) / 6 + 0.4));
       bossMarkersRef.current.forEach(({ el }) => {
         el.style.transform = `scale(${scale.toFixed(2)})`;
@@ -2241,27 +2288,90 @@ export function AppMap({
     };
   }, [mapReady, sanctuaries, onSanctuaryClick]);
 
+  // ── Wegelager (Strongholds) DOM-Marker ──
+  const strongholdMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
+    strongholdMarkersRef.current = [];
+
+    strongholds.forEach((s) => {
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "auto";
+      outer.style.cursor = "pointer";
+      const inner = document.createElement("div");
+      inner.className = "ma365-stronghold-marker";
+
+      // Artwork-Lookup: level_<N> → default → Emoji-Fallback
+      const art = strongholdArt[`level_${s.level}`] ?? strongholdArt.default ?? null;
+      let visualHtml: string;
+      if (art?.video_url) {
+        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;"></video>`;
+      } else if (art?.image_url) {
+        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;" />`;
+      } else {
+        visualHtml = `<div class="ma365-stronghold-emoji">🏰</div>`;
+      }
+
+      inner.innerHTML = `
+        ${visualHtml}
+        <div class="ma365-stronghold-level">Lv${s.level}</div>
+        <div class="ma365-stronghold-hp"><div class="ma365-stronghold-hp-fill" style="width:${Math.max(0, Math.min(100, s.hp_pct))}%"></div></div>`;
+      outer.appendChild(inner);
+      outer.addEventListener("click", () => onStrongholdClick?.(s.id));
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
+        .setLngLat([s.lng, s.lat]).addTo(map);
+      strongholdMarkersRef.current.push({ marker, el: inner });
+    });
+
+    const applyScale = () => {
+      const zoom = map.getZoom();
+      const hide = zoom < 13;
+      const scale = Math.max(0.4, Math.min(1.0, (zoom - 11) / 6 + 0.45));
+      strongholdMarkersRef.current.forEach(({ el }) => {
+        el.style.transform = `scale(${scale.toFixed(2)})`;
+        el.style.opacity = hide ? "0" : "1";
+        el.style.transition = "opacity 0.25s";
+      });
+    };
+    applyScale();
+    map.on("zoom", applyScale);
+    return () => {
+      map.off("zoom", applyScale);
+      strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
+      strongholdMarkersRef.current = [];
+    };
+  }, [mapReady, strongholds, onStrongholdClick, strongholdArt]);
+
   // ── Loot-Drops: animierte Kisten mit Proximity-Pickup ──
+  // Diff-basiert: bestehende Marker bleiben stehen, nur neue/entfernte werden geändert
+  // (verhindert Flackern/Reload beim Spawn neuer Drops).
   const lootMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; drop: typeof lootDrops[0] }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    lootMarkersRef.current.forEach(({ marker }) => marker.remove());
-    lootMarkersRef.current = [];
 
     const rarityColor: Record<string, string> = {
       common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legendary: "#FFD700",
     };
-    // Rarity -> Kiste/Emoji: Legendary = Krone, Epic = Gem, Rare = Geschenk, Common = Kiste
     const crateByRarity: Record<string, string> = {
       common: "📦", rare: "🎁", epic: "💎", legendary: "👑",
     };
-    // Aktuelle Zoom-Skalierung sofort anwenden, damit neue Drops nicht riesig spawnen
-    // und erst beim nächsten Zoom-Event schrumpfen.
     const zoom = map.getZoom();
     const initialLootScale = Math.max(0.22, Math.min(0.85, (zoom - 12) / 6 * 0.65 + 0.25));
 
+    const wantIds = new Set(lootDrops.map((d) => d.id));
+    // Entfernen: Marker, deren Drop nicht mehr existiert
+    lootMarkersRef.current = lootMarkersRef.current.filter((m) => {
+      if (wantIds.has(m.drop.id)) return true;
+      m.marker.remove();
+      return false;
+    });
+    const haveIds = new Set(lootMarkersRef.current.map((m) => m.drop.id));
+    // Hinzufügen: neue Drops
     lootDrops.forEach((d) => {
+      if (haveIds.has(d.id)) return;
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       const color = rarityColor[d.rarity] || "#5ddaf0";
@@ -2277,7 +2387,7 @@ export function AppMap({
         .setLngLat([d.lng, d.lat]).addTo(map);
       lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d });
     });
-    return () => { lootMarkersRef.current.forEach(({ marker }) => marker.remove()); lootMarkersRef.current = []; };
+    return () => { /* Cleanup nur beim Unmount via mapReady=false-Reset */ };
   }, [mapReady, lootDrops, onLootClick]);
 
   // Proximity-Check: User-Position vs Loot-Drops. 30m = auto-pickup, 100m = "ready"-Glow
@@ -2425,6 +2535,17 @@ export function AppMap({
         "transition:transform 0.15s",
         "transform-origin:center center",
       ].join(";");
+      // Base-Theme-Artwork-Lookup: <theme>_<scope>_pin → <theme>_<scope>_banner → emoji
+      const scope = pin.kind === "runner" ? "runner" : "crew";
+      const artPin = pin.theme_id ? baseThemeArt[`${pin.theme_id}_${scope}_pin`] : null;
+      const artFallback = pin.theme_id ? baseThemeArt[`${pin.theme_id}_${scope}_banner`] : null;
+      const art = artPin?.image_url || artPin?.video_url ? artPin : (artFallback?.image_url || artFallback?.video_url ? artFallback : null);
+      const visualHtml = art?.video_url
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};"></video>`
+        : art?.image_url
+        ? `<img src="${art.image_url}" alt="" style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};" />`
+        : `<div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1;filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};">${pin.pin_emoji}</div>`;
+
       inner.innerHTML = `
         <div style="
           padding:2px 8px;border-radius:999px;
@@ -2435,12 +2556,7 @@ export function AppMap({
           text-shadow:0 1px 0 rgba(255,255,255,0.25);
           line-height:1.1;
         ">LV ${pin.level}</div>
-        <div style="
-          width:56px;height:56px;
-          display:flex;align-items:center;justify-content:center;
-          font-size:48px;line-height:1;
-          filter:drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""};
-        ">${pin.pin_emoji}</div>
+        ${visualHtml}
         <div style="
           padding:2px 8px;border-radius:8px;
           background:rgba(15,17,21,0.92);color:#fff;
@@ -2493,7 +2609,7 @@ export function AppMap({
       basePinMarkersRef.current.forEach((m) => m.remove());
       basePinMarkersRef.current = [];
     };
-  }, [mapReady, basePins]);
+  }, [mapReady, basePins, baseThemeArt]);
 
   // ── Place-Base-Mode: nächster Map-Klick liefert Lat/Lng ──
   useEffect(() => {
@@ -2541,6 +2657,20 @@ export function AppMap({
     };
     window.addEventListener("ma365:relocate-base-mode", onTrigger);
     return () => { window.removeEventListener("ma365:relocate-base-mode", onTrigger); };
+  }, [mapReady]);
+
+  // ── Fly-to-coords: Listener für externe Navigation (z.B. "Öffnen" auf Base-Banner) ──
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const onFly = (e: Event) => {
+      const detail = (e as CustomEvent<{ lat: number; lng: number; zoom?: number }>).detail;
+      if (!detail || typeof detail.lat !== "number" || typeof detail.lng !== "number") return;
+      map.flyTo({ center: [detail.lng, detail.lat], zoom: detail.zoom ?? 17, pitch: 50, duration: 900 });
+    };
+    window.addEventListener("ma365:fly-to-coords", onFly);
+    return () => { window.removeEventListener("ma365:fly-to-coords", onFly); };
   }, [mapReady]);
 
   // ── March-Lines: laufende Crew-Angriffe als animierte Linie auf der Map ──

@@ -60,8 +60,8 @@ export const EQUIPMENT_DROP_NOTE =
  * 3️⃣ Map-Loot-Drops (Kisten auf der Karte)
  * Client-Spawn alle 90-120s in 450m Radius um User.
  * Rarity-Verteilung durch gewichtetes Array:
- *   common × 3 + rare × 2 + epic × 1 + legendary × 1
- * => 3/7, 2/7, 1/7, 1/7 ≈ 42.9% / 28.6% / 14.3% / 14.3%
+ *   common × 63 + rare × 25 + epic × 10 + legendary × 2
+ * => 63% / 25% / 10% / 2%  (Legendary "mega selten")
  * Auto-Pickup bei ≤30m Entfernung. Rewards sind zur Zeit rein
  * visuell (Demo, +25 XP flat). Produktive Rewards in der nächsten
  * Version: per Rarity staged, identisch zur Redemption-Tabelle.
@@ -72,10 +72,10 @@ export const MAP_LOOT_CRATE_TABLE: Array<{
   reward: string;
   kinds: string[];
 }> = [
-  { rarity: "common", chance_pct: 42.9, reward: "+25 🪙 (Demo)", kinds: ["📦 Wegemünzen-Pack"] },
-  { rarity: "rare",   chance_pct: 28.6, reward: "+25 🪙 (Demo)", kinds: ["🎁 Speed-Boost", "🎁 Mystery-Ticket"] },
-  { rarity: "epic",   chance_pct: 14.3, reward: "+25 🪙 (Demo)", kinds: ["💎 Wegemünzen-Pack", "💎 Mystery-Ticket"] },
-  { rarity: "legend", chance_pct: 14.3, reward: "+25 🪙 (Demo)", kinds: ["👑 Mystery-Ticket"] },
+  { rarity: "common", chance_pct: 63.0, reward: "+25 🪙 (Demo)", kinds: ["📦 Wegemünzen-Pack"] },
+  { rarity: "rare",   chance_pct: 25.0, reward: "+25 🪙 (Demo)", kinds: ["🎁 Speed-Boost", "🎁 Mystery-Ticket"] },
+  { rarity: "epic",   chance_pct: 10.0, reward: "+25 🪙 (Demo)", kinds: ["💎 Wegemünzen-Pack", "💎 Mystery-Ticket"] },
+  { rarity: "legend", chance_pct:  2.0, reward: "+25 🪙 (Demo)", kinds: ["👑 Mystery-Ticket"] },
 ];
 
 /**

@@ -742,6 +742,20 @@ export function buildBaseThemeId(theme: BaseThemeId, scope: BaseThemeScope, asse
  * Gibt einen Detail-reichen Prompt zurück der mit Midjourney v6, Flux, Gemini Imagen
  * oder Veo 2 (für Video-Variante) gut funktioniert.
  */
+/** Strippt Umgebungs-Kontext aus dem Subject-Text (für Pin-Mode) — entfernt
+ * "surrounded by …", "in front of …", "behind …" etc. damit nur die Struktur bleibt. */
+function stripEnvironment(subject: string): string {
+  return subject
+    .replace(/,\s*surrounded by[^,.;]*/gi, "")
+    .replace(/,\s*set on [^,.;]*/gi, "")
+    .replace(/,\s*on a [^,.;]*\bmound\b[^,.;]*/gi, "")
+    .replace(/,\s*standing on [^,.;]*/gi, "")
+    .replace(/,\s*in (front|behind|the middle) of [^,.;]*/gi, "")
+    .replace(/,\s*with [^,.;]*\b(trees|forest|cove|valley|fjord|water|sea|sky|background|mist|fog)\b[^,.;]*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function buildBaseThemePrompt(input: {
   theme: BaseThemeArt;
   scope: BaseThemeScope;
@@ -749,29 +763,37 @@ export function buildBaseThemePrompt(input: {
   mode: "image" | "video";
 }): string {
   const { theme, scope, asset, mode } = input;
-  const subject = scope === "runner" ? theme.runnerSubject : theme.crewSubject;
+  const rawSubject = scope === "runner" ? theme.runnerSubject : theme.crewSubject;
+  // Im Pin-Modus brauchen wir ein isoliertes Asset ohne Umgebungs-Kontext
+  const subject = asset === "pin" ? stripEnvironment(rawSubject) : rawSubject;
+
   const sizeLine = asset === "pin"
-    ? `Square 1:1, 1024×1024, centered, fully transparent background outside the structure (PNG with alpha), structure perfectly framed with ~10% padding.`
+    ? `Square 1:1, 1024×1024. CRITICAL: pure transparent background (PNG alpha) — NO ground, NO terrain, NO sky, NO trees, NO water, NO surrounding objects. ONLY the architectural structure itself, isolated like a game sprite. Structure centered, ~12% padding around it.`
     : `Wide cinematic 8:3 banner, 1600×600, structure occupies center-left, atmospheric depth visible to the right (sky, mountains, etc). No transparency — full painterly background.`;
 
   const styleLine = asset === "pin"
-    ? `Style: stylized 3D game-map-pin asset, slight isometric 30° angle, thick clean readable silhouette, soft inner glow on accent details, readable at 64×64 thumbnail size, no microscopic detail.`
+    ? `Style: stylized 3D game-asset sprite (RoK/Clash-of-Clans/Call-of-Dragons aesthetic), slight isometric 30° angle, thick clean readable silhouette, soft inner glow on accent details, readable at 64×64 thumbnail size, no microscopic detail. Render as a single isolated building/structure on transparent background, like a Clash-of-Clans town-hall icon.`
     : `Style: cinematic concept-art splash banner, painterly, dramatic key-light, atmospheric perspective, foreground subject in clear focus, background dissolves into mood-light.`;
 
   const scopeLine = scope === "crew"
-    ? `Scale cue: this is a CREW base — clearly larger and more fortified than a single-runner base. Multiple structures, walls, banners. Reads as "guild-hall / stronghold".`
-    : `Scale cue: this is a single-runner base — intimate, cozy hero structure. Reads as "personal hideout".`;
+    ? `Scale cue: this is a CREW base — clearly larger and more fortified than a single-runner base. Multiple connected structures forming one compound silhouette. Reads as "guild-hall / stronghold".`
+    : `Scale cue: this is a single-runner base — compact hero structure. Reads as "personal hideout".`;
 
   const paletteLine = `Color palette: ${theme.palette}. Primary accent ${theme.accent} with gentle glow ${theme.glow}.`;
-  const ambientLine = `Atmosphere: ${theme.ambient}.`;
-  const negative = `No text, no labels, no watermark, no logos, no UI overlays, no people in foreground${theme.negative ? `, ${theme.negative}` : ""}.`;
+  const ambientLine = asset === "pin"
+    ? `Lighting: clean studio-style 3D-render lighting, soft top-key, gentle accent glow. NO ambient scene effects (no fog/snow/leaves drifting around the asset).`
+    : `Atmosphere: ${theme.ambient}.`;
+
+  const baseNegative = `No text, no labels, no watermark, no logos, no UI overlays, no people, no characters, no animals${theme.negative ? `, ${theme.negative}` : ""}.`;
+  const pinNegative = ` STRICT: no ground plane, no terrain tiles, no sky, no trees, no plants, no water, no rocks around the building, no scenery — pure transparent void around the isolated structure.`;
+  const negative = baseNegative + (asset === "pin" ? pinNegative : "");
 
   if (mode === "video") {
     const motionLine = asset === "pin"
-      ? `Motion: 3-second seamlessly looping subtle ambient — flag/banner gently waving, soft particle drift (sparks/leaves/mist depending on theme), small pulse on the accent glow. Camera fully static. First and last frame identical.`
+      ? `Motion: 3-second seamlessly looping subtle micro-ambient ON THE STRUCTURE ITSELF only — flag/banner gently waving, small accent-glow pulse, small flame/spark flicker on the structure. NO environmental motion. NO particles drifting through empty space. Camera fully static. First and last frame identical.`
       : `Motion: 3-second seamlessly looping cinematic ambient — slow parallax of background mist/clouds, banners waving, lights flickering, distant particles drifting across the scene. Camera fully static. First and last frame identical.`;
     return [
-      `Shot: ${asset === "pin" ? "a 3-second loop of a stylized map-pin base tile" : "a 3-second cinematic banner loop"} representing the "${theme.name}" base theme — ${theme.description}`,
+      `Shot: ${asset === "pin" ? "a 3-second loop of a single isolated game-asset sprite" : "a 3-second cinematic banner loop"} representing the "${theme.name}" base theme — ${theme.description}`,
       `Subject: ${subject}.`,
       scopeLine,
       paletteLine, ambientLine,
@@ -782,7 +804,7 @@ export function buildBaseThemePrompt(input: {
   }
 
   return [
-    `${asset === "pin" ? "A stylized map-pin base tile" : "A cinematic concept-art banner"} representing the "${theme.name}" base theme — ${theme.description}`,
+    `${asset === "pin" ? "An isolated 3D game-asset sprite" : "A cinematic concept-art banner"} representing the "${theme.name}" base theme — ${theme.description}`,
     `Subject: ${subject}.`,
     scopeLine,
     paletteLine, ambientLine,

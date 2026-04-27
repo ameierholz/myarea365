@@ -101,7 +101,8 @@ export function DailyDealMapBadge({ userId, hidden = false }: { userId: string |
         aria-label={t("ariaOpen")}
         style={{
           position: "absolute",
-          top: 14, left: "50%", transform: "translateX(-50%)", zIndex: 55,
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 110px)",
+          left: "50%", transform: "translateX(-50%)", zIndex: 55,
           padding: "8px 14px 8px 10px",
           borderRadius: 999,
           background: bundleOpen
