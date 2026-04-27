@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, type ResourceArtMap } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
+import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
 import { createClient } from "@/lib/supabase/client";
 
 type Theme = {
@@ -83,6 +84,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<OwnBaseData | null>(null);
   const [tab, setTab]   = useState<"overview" | "res" | "build" | "troops" | "research" | "chest" | "vip" | "settings">("overview");
   const [vipSection, setVipSection] = useState<"status" | "shop" | "tiers">("status");
+  const [themeShopOpen, setThemeShopOpen] = useState(false);
   const [now, setNow]   = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr]   = useState<string | null>(null);
@@ -977,37 +979,29 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
               <div>
                 <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">THEME</div>
-                <div className="grid grid-cols-2 gap-2">
-                  {themes.map((t) => {
-                    const active = base.theme_id === t.id;
-                    const locked = t.unlock_kind === "vip" && vip.vip_level < t.unlock_value
-                                || t.unlock_kind !== "free" && t.unlock_kind !== "vip";
-                    return (
-                      <button key={t.id} onClick={() => !active && !locked && setTheme(t.id)} disabled={active || locked}
-                        className={`p-2 rounded-xl text-left ${active ? "" : "bg-[#1A1D23]"} ${locked ? "opacity-50" : ""}`}
-                        style={active ? { background: `${t.accent_color}26`, border: `1.5px solid ${t.accent_color}` } : { border: "1px solid rgba(255,255,255,0.08)" }}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{t.pin_emoji}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black truncate" style={{ color: t.accent_color }}>{t.name}</div>
-                            <div className="text-[9px] text-[#a8b4cf] truncate">{t.description}</div>
-                          </div>
-                        </div>
-                        {locked && (
-                          <div className="text-[9px] text-[#FF2D78] mt-1 font-black">
-                            {t.unlock_kind === "vip" ? `🔒 VIP ${t.unlock_value}+` : `🔒 ${t.unlock_kind}`}
-                          </div>
-                        )}
-                        {active && <div className="text-[9px] text-[#4ade80] mt-1 font-black">✓ aktiv</div>}
-                      </button>
-                    );
-                  })}
-                </div>
+                <button onClick={() => setThemeShopOpen(true)}
+                  className="w-full p-3 rounded-xl flex items-center gap-3 text-left transition hover:scale-[1.01]"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(255,215,0,0.18) 0%, rgba(168,85,247,0.18) 60%, rgba(34,209,195,0.16) 100%)",
+                    border: "1.5px solid rgba(255,215,0,0.45)",
+                    boxShadow: "0 0 14px rgba(255,215,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  }}>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFD700] via-[#a855f7] to-[#22D1C3] flex items-center justify-center text-2xl shadow-lg shrink-0">🏰</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] font-black tracking-[2px] text-[#FFD700]">SAAL DER ORDNUNG</div>
+                    <div className="text-[13px] font-black text-white truncate">Base-Themes ansehen →</div>
+                    <div className="text-[10px] text-white/70 mt-0.5">Aktiv: <b>{themes.find((t) => t.id === base.theme_id)?.name ?? "—"}</b> · {themes.length} verfügbar</div>
+                  </div>
+                  <span className="text-white/60 text-xl">›</span>
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+      {themeShopOpen && (
+        <BaseThemeShopModal onClose={() => setThemeShopOpen(false)} onChanged={() => void reload()} />
+      )}
     </Backdrop>
   );
 }

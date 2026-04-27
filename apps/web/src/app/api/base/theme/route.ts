@@ -4,6 +4,25 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** GET /api/base/theme → Theme-Katalog inkl. aktuell aktiviertes Theme + VIP-Level */
+export async function GET() {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+  const [themes, base, vip] = await Promise.all([
+    sb.from("base_themes").select("*").order("sort"),
+    sb.from("bases").select("theme_id").eq("owner_user_id", user.id).maybeSingle(),
+    sb.from("vip_progress").select("vip_level").eq("user_id", user.id).maybeSingle(),
+  ]);
+
+  return NextResponse.json({
+    themes: themes.data ?? [],
+    active_theme_id: (base.data as { theme_id: string } | null)?.theme_id ?? "medieval",
+    vip_level: (vip.data as { vip_level: number } | null)?.vip_level ?? 0,
+  });
+}
+
 /**
  * POST /api/base/theme
  * Body: { theme_id: string }

@@ -1127,7 +1127,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
+  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
@@ -1518,10 +1518,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
               basePins={basePins.map((b) => {
-                if (!b.is_own) return b;
+                // Theme-Rarity-Lookup (Seed-IDs aus Migration 00116) für Aura-Effekt
+                const themeRarity: Record<string, "advanced" | "epic" | "legendary"> = {
+                  medieval: "advanced",
+                  scifi: "epic", pirate: "epic", viking: "epic", halloween: "epic",
+                  scarlet_palace: "epic", hall_of_order: "epic", frost_keep: "epic",
+                  ninja: "legendary", eternal_garden: "legendary", night_rose: "legendary", volcanic_forge: "legendary",
+                };
+                const rar = b.theme_id ? themeRarity[b.theme_id] : undefined;
+                if (!b.is_own) return { ...b, theme_rarity: rar };
                 const npId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id;
                 const np = npId ? (nameplateArt[npId] ?? null) : null;
-                return { ...b, nameplate_art: np };
+                return { ...b, theme_rarity: rar, nameplate_art: np };
               })}
               baseThemeArt={dashboardBaseThemeArt}
               onBasePinTap={(pin) => setBaseModalTarget(pin)}

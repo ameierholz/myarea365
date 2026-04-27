@@ -38,6 +38,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     .mapboxgl-ctrl-attrib.mapboxgl-compact { opacity: 0.55; }
     .mapboxgl-ctrl-attrib.mapboxgl-compact:hover { opacity: 1; }
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
+    @keyframes basePinShimmer { 0%,100% { transform: translate(-50%,-45%) scale(1); opacity: 0.7; } 50% { transform: translate(-50%,-45%) scale(1.15); opacity: 1; } }
+    @keyframes basePinAuraSpin { to { transform: translate(-50%,-45%) rotate(360deg); } }
     @keyframes runnerRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
     @keyframes runnerBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
     @keyframes dropPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
@@ -526,6 +528,8 @@ interface AppMapProps {
     pin_label: string;
     is_own: boolean;
     theme_id?: string;
+    /** Rarity des aktiven Themes — steuert Aura/Schimmer-Layer (advanced/epic/legendary) */
+    theme_rarity?: "advanced" | "epic" | "legendary";
     /** Optional: equippiertes Nameplate-Artwork (nur für eigene Bases relevant) */
     nameplate_art?: { image_url: string | null; video_url: string | null } | null;
   }>;
@@ -2531,7 +2535,7 @@ export function AppMap({
       // Innerer Wrapper trägt Hover-Scale + Drop-Shadow.
       const inner = document.createElement("div");
       inner.style.cssText = [
-        "display:flex","flex-direction:column","align-items:center","gap:3px",
+        "display:flex","flex-direction:column","align-items:center","gap:0px",
         "cursor:pointer","user-select:none",
         "filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))",
         "transition:transform 0.15s",
@@ -2546,16 +2550,29 @@ export function AppMap({
       // Chroma-Key-Filter (ma365-chroma-black) entfernt Greenscreen-Hintergrund (#00FF00)
       // bei neu generierten Videos — wie bei Wächter-Markern.
       const dropShadow = `drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""}`;
-      const visualHtml = art?.image_url
-        ? `<img src="${art.image_url}" alt="" style="width:56px;height:56px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
+      const visualBase = art?.image_url
+        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:125px;height:125px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
         : art?.video_url
-        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="width:56px;height:56px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
-        : `<div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:125px;height:125px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
+        : `<div style="position:relative;z-index:1;width:125px;height:125px;display:flex;align-items:center;justify-content:center;font-size:104px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
+
+      // Schimmer-Aura hinter der Burg — pro Rarity unterschiedlich aufwendig
+      const auraColors: Record<string, { primary: string; secondary: string; ring: string; speed: string }> = {
+        advanced:  { primary: "#5ddaf0", secondary: "#22D1C3", ring: "rgba(93,218,240,0.35)", speed: "5s" },
+        epic:      { primary: "#a855f7", secondary: "#FF2D78", ring: "rgba(168,85,247,0.5)",  speed: "4s" },
+        legendary: { primary: "#FFD700", secondary: "#FF6B4A", ring: "rgba(255,215,0,0.6)",   speed: "3s" },
+      };
+      const aura = pin.theme_rarity ? auraColors[pin.theme_rarity] : null;
+      const auraHtml = aura
+        ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:160px;height:160px;border-radius:50%;background:radial-gradient(circle, ${aura.ring} 0%, transparent 65%);animation:basePinShimmer ${aura.speed} ease-in-out infinite;pointer-events:none;z-index:0"></div>
+           ${pin.theme_rarity === "legendary" ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:180px;height:180px;border-radius:50%;background:conic-gradient(from 0deg, ${aura.primary}55, transparent 30%, ${aura.secondary}55 60%, transparent 90%, ${aura.primary}55);opacity:0.45;animation:basePinAuraSpin 8s linear infinite;pointer-events:none;z-index:0"></div>` : ""}`
+        : "";
+      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:125px;height:125px">${auraHtml}${visualBase}</div>`;
 
       // Nameplate-Banner HINTER dem pin_label-Chip (nur bei eigenen Bases),
       // chroma-keyed, auf Chip-Höhe (32 px) geclamppt.
       const npArt = pin.nameplate_art;
-      const npStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200%;height:32px;max-width:220px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
+      const npStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:170%;height:28px;max-width:200px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
       const npLayer = npArt?.image_url
         ? `<img src="${npArt.image_url}" alt="" style="${npStyle}" />`
         : npArt?.video_url
@@ -2573,7 +2590,7 @@ export function AppMap({
           line-height:1.1;
         ">LV ${pin.level}</div>
         ${visualHtml}
-        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:32px;min-width:80px">
+        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:28px;min-width:70px;margin-top:-12px">
           ${npLayer}
           <div style="
             position:relative;z-index:1;
@@ -2606,22 +2623,10 @@ export function AppMap({
       basePinMarkersRef.current.push(marker);
     });
 
-    // Hide-Handler: Base-Pins ausblenden bei zoom < 13 (gleiche Schwelle wie Shop-Badges).
-    // Scale wird vom globalen data-zoom-scale-System erledigt — hier nur visibility.
-    let lastHide: boolean | null = null;
-    const updateBasePinVisibility = () => {
-      const hide = map.getZoom() < 13;
-      if (hide === lastHide) return;
-      lastHide = hide;
-      basePinMarkersRef.current.forEach((m) => {
-        const e = m.getElement();
-        e.style.opacity = hide ? "0" : "1";
-        e.style.visibility = hide ? "hidden" : "visible";
-        e.style.transition = "opacity 0.25s";
-        e.style.pointerEvents = hide ? "none" : "auto";
-      });
-    };
-    updateBasePinVisibility();
+    // Base-Pins werden NICHT zoom-abhängig ausgeblendet — sie sind das Herzstück
+    // und sollen aus jedem Zoom-Level erkennbar sein. Skalierung übernimmt das
+    // globale data-zoom-scale-System.
+    const updateBasePinVisibility = () => { /* no-op */ };
     map.on("zoom", updateBasePinVisibility);
 
     return () => {
