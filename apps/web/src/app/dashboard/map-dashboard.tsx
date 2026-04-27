@@ -1127,7 +1127,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string };
+  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
@@ -1467,10 +1467,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               lightPreset={lightPreset}
               supporterTier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier ?? null}
               equippedTrail={(p as unknown as { equipped_trail?: string | null })?.equipped_trail ?? null}
-              nameplateArt={(() => {
-                const npId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id;
-                return npId ? (nameplateArt[npId] ?? null) : null;
-              })()}
               auraActive={(() => {
                 const until = (p as unknown as { aura_until?: string | null })?.aura_until;
                 return !!(until && new Date(until).getTime() > Date.now());
@@ -1521,7 +1517,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 // Ad-Gate-Modal öffnen — User entscheidet: direkt oder Video für Extra-Loot
                 setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
-              basePins={basePins}
+              basePins={basePins.map((b) => {
+                if (!b.is_own) return b;
+                const npId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id;
+                const np = npId ? (nameplateArt[npId] ?? null) : null;
+                return { ...b, nameplate_art: np };
+              })}
               baseThemeArt={dashboardBaseThemeArt}
               onBasePinTap={(pin) => setBaseModalTarget(pin)}
               placeBaseMode={placeBaseMode}

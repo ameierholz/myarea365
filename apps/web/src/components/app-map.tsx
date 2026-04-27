@@ -490,8 +490,6 @@ interface AppMapProps {
   crewColor?: string | null;
   crewName?: string | null;
   displayName?: string | null;
-  /** Aktives Namensschild-Artwork (greenscreen-PNG) wird hinter den Namens-Chip gelegt. */
-  nameplateArt?: { image_url: string | null; video_url: string | null } | null;
   // 3-Ebenen-Modell (Abschnitt/Zug/Gebiet) aus DB
   walkedSegments?: Array<{ id: string; geom: Array<{ lat: number; lng: number }>; is_mine: boolean; is_crew: boolean }>;
   claimedStreets?: Array<{ id: string; geoms: Array<Array<{ lat: number; lng: number }>>; is_mine: boolean; is_crew: boolean; intensity?: number }>;
@@ -528,6 +526,8 @@ interface AppMapProps {
     pin_label: string;
     is_own: boolean;
     theme_id?: string;
+    /** Optional: equippiertes Nameplate-Artwork (nur für eigene Bases relevant) */
+    nameplate_art?: { image_url: string | null; video_url: string | null } | null;
   }>;
   onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => void;
   baseThemeArt?: Record<string, { image_url: string | null; video_url: string | null }>;
@@ -579,7 +579,6 @@ function buildSelfMarkerEl(
   crewColor?: string | null, crewName?: string | null,
   displayName?: string | null,
   markerArt?: { image_url: string | null; video_url: string | null } | null,
-  nameplateArt?: { image_url: string | null; video_url: string | null } | null,
 ): HTMLDivElement {
   const size = isRunning ? 52 : 44;
   const glow = isRunning ? 30 : 18;
@@ -603,29 +602,16 @@ function buildSelfMarkerEl(
   // Name-Badge (frosted glass, crew-color border glow, Speech-Bubble-Pfeil, klickbar)
   const cleanName = (displayName ?? "").trim();
   const badgeColor = crewColor ?? "#22D1C3";
-  // Nameplate-Banner HINTER dem Namens-Chip — auf Pillen-Höhe clamppen, damit
-  // Deko-Elemente (Sterne, Ranken) nicht über den Runner hinausragen.
-  // Pillen-Höhe ist ~24px → Nameplate ~36px hoch, ~190% breit (Aspect-Ratio crop via object-cover).
-  const npSrc = nameplateArt?.image_url || nameplateArt?.video_url;
-  const npImgStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:190%;height:36px;max-width:200px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
-  const nameplateLayer = npSrc && cleanName
-    ? (nameplateArt?.image_url
-        ? `<img src="${nameplateArt.image_url}" alt="" style="${npImgStyle}" />`
-        : `<video src="${nameplateArt!.video_url}" autoplay loop muted playsinline style="${npImgStyle}"></video>`)
-    : "";
   const nameLabel = cleanName
-    ? `<div class="ma365-runner-badge-wrap" style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-top:6px;height:36px">
-        ${nameplateLayer}
-        <div class="ma365-runner-badge" data-action="open-runner-profile"
+    ? `<div class="ma365-runner-badge" data-action="open-runner-profile"
             title="${crewName ? "Crew: " + crewName + " · Klick öffnet dein Runner-Profil" : "Klick öffnet dein Runner-Profil"}"
-            style="--badge-color:${badgeColor};position:relative;z-index:1"
+            style="--badge-color:${badgeColor}"
             onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('ma365:open-runner-profile'));"
             onmousedown="event.stopPropagation();"
             ontouchstart="event.stopPropagation();"
-        >
-          ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
-          <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
-        </div>
+       >
+        ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
+        <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
        </div>`
     : "";
   const auraLayer = auraActive
@@ -776,7 +762,6 @@ export function AppMap({
   crewColor = null,
   crewName = null,
   displayName = null,
-  nameplateArt = null,
   walkedSegments = [],
   claimedStreets = [],
   ownedTerritories = [],
@@ -1065,7 +1050,7 @@ export function AppMap({
     if (!map) return;
 
     if (!selfMarkerRef.current) {
-      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt, nameplateArt);
+      const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
       wrapForZoomScale(el);
       selfMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([pos.lng, pos.lat])
@@ -1078,7 +1063,7 @@ export function AppMap({
   // Tier-/Crew-Wechsel: Marker neu bauen
   useEffect(() => {
     if (!selfMarkerRef.current || !pos) return;
-    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt, nameplateArt);
+    const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
     wrapForZoomScale(el);
     selfMarkerRef.current.getElement().replaceWith(el);
     const map = mapRef.current;
@@ -1088,7 +1073,7 @@ export function AppMap({
         .setLngLat([pos.lng, pos.lat])
         .addTo(map);
     }
-  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive, markerArt, nameplateArt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supporterTier, auraActive, crewColor, crewName, displayName, myEmoji, teamColor, trackingActive, markerArt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup beim Unmount
   useEffect(() => {
@@ -2567,6 +2552,16 @@ export function AppMap({
         ? `<video src="${art.video_url}" autoplay loop muted playsinline style="width:56px;height:56px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
         : `<div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:48px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
+      // Nameplate-Banner HINTER dem pin_label-Chip (nur bei eigenen Bases),
+      // chroma-keyed, auf Chip-Höhe (32 px) geclamppt.
+      const npArt = pin.nameplate_art;
+      const npStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200%;height:32px;max-width:220px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
+      const npLayer = npArt?.image_url
+        ? `<img src="${npArt.image_url}" alt="" style="${npStyle}" />`
+        : npArt?.video_url
+        ? `<video src="${npArt.video_url}" autoplay loop muted playsinline style="${npStyle}"></video>`
+        : "";
+
       inner.innerHTML = `
         <div style="
           padding:2px 8px;border-radius:999px;
@@ -2578,15 +2573,19 @@ export function AppMap({
           line-height:1.1;
         ">LV ${pin.level}</div>
         ${visualHtml}
-        <div style="
-          padding:2px 8px;border-radius:8px;
-          background:rgba(15,17,21,0.92);color:#fff;
-          font-size:10px;font-weight:900;letter-spacing:0.3px;
-          border:1px solid ${pin.pin_color}aa;
-          box-shadow:0 2px 6px rgba(0,0,0,0.35);
-          max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-          line-height:1.2;
-        ">${pin.kind === "crew" ? "⚔️ " : ""}${escapeHtml(pin.pin_label)}</div>
+        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:32px;min-width:80px">
+          ${npLayer}
+          <div style="
+            position:relative;z-index:1;
+            padding:2px 8px;border-radius:8px;
+            background:rgba(15,17,21,0.92);color:#fff;
+            font-size:10px;font-weight:900;letter-spacing:0.3px;
+            border:1px solid ${pin.pin_color}aa;
+            box-shadow:0 2px 6px rgba(0,0,0,0.35);
+            max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+            line-height:1.2;
+          ">${pin.kind === "crew" ? "⚔️ " : ""}${escapeHtml(pin.pin_label)}</div>
+        </div>
       `;
       zoomWrap.appendChild(inner);
       el.appendChild(zoomWrap);
