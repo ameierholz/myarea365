@@ -958,6 +958,7 @@
   "GuardianHelp": {
     "buttonAria": "Wächter-Hilfe",
     "buttonTitle": "Wie funktioniert der Wächter?",
+    "dismissAria": "Für heute ausblenden",
     "guideHeader": "Kompletter Wächter-Guide",
     "chipPlay": "So spielst du",
     "chipGuardians": "60 Wächter · 4 Typen",
@@ -3291,6 +3292,7 @@
     "errorGeneric": "Fehler"
   },
   "ShopPanels": {
+    "dismissAria": "Für heute ausblenden",
     "loadingShort": "Lade…",
     "errorGeneric": "Fehler",
     "abort": "Abbrechen",

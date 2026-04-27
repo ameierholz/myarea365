@@ -958,6 +958,7 @@
   "GuardianHelp": {
     "buttonAria": "Guardian help",
     "buttonTitle": "How does the guardian work?",
+    "dismissAria": "Hide for today",
     "guideHeader": "Complete guardian guide",
     "chipPlay": "How to play",
     "chipGuardians": "60 guardians · 4 types",
@@ -3291,6 +3292,7 @@
     "errorGeneric": "Error"
   },
   "ShopPanels": {
+    "dismissAria": "Hide for today",
     "loadingShort": "Loading…",
     "errorGeneric": "Error",
     "abort": "Cancel",

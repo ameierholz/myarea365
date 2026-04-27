@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { RARITY_META, type GuardianArchetype } from "@/lib/guardian";
 import { createClient } from "@/lib/supabase/client";
+import { useDailyDismiss } from "@/lib/use-daily-dismiss";
 
 type Tab = "overview" | "guardians" | "talents" | "skills" | "arena" | "boss" | "effects" | "fair";
 
@@ -34,6 +35,8 @@ export function GuardianGuideBanner() {
   const tH = useTranslations("GuardianHelp");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
+  const { dismissed, dismiss } = useDailyDismiss("guardian-guide-banner");
+  if (dismissed) return null;
   const chips: Array<{ icon: string; label: string; tab: Tab }> = [
     { icon: "⚔️", label: tH("chipPlay"),      tab: "overview" },
     { icon: "🛡️", label: tH("chipGuardians"), tab: "guardians" },
@@ -49,7 +52,21 @@ export function GuardianGuideBanner() {
         background: "linear-gradient(135deg, rgba(168,85,247,0.2), rgba(34,209,195,0.1))",
         border: "1px solid rgba(168,85,247,0.4)",
         marginBottom: 14,
+        position: "relative",
       }}>
+        <button
+          onClick={dismiss}
+          aria-label={tH("dismissAria")}
+          title={tH("dismissAria")}
+          style={{
+            position: "absolute", top: 6, right: 6,
+            width: 22, height: 22, borderRadius: 999,
+            background: "rgba(15,17,21,0.55)", border: "1px solid rgba(255,255,255,0.12)",
+            color: "#a8b4cf", fontSize: 12, lineHeight: 1, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            zIndex: 2,
+          }}
+        >×</button>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 22 }}>📖</span>
           <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{tH("guideHeader")}</div>

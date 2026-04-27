@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { useResourceArt, ResourceIcon } from "@/components/resource-icon";
+import { createClient } from "@/lib/supabase/client";
 
 type Theme = {
   id: string; name: string; description: string;
@@ -48,7 +49,7 @@ type OwnBaseData = {
   queue: QueueItem[];
   resources: Resources;
   vip: VipProgress;
-  vip_thresholds: Array<{ vip_level: number; required_points: number; daily_chest_silver: number; daily_chest_gold: number; resource_bonus_pct: number; buildtime_bonus_pct: number }>;
+  vip_thresholds: Array<{ vip_level: number; required_points: number; daily_chest_silver: number; daily_chest_gold: number; resource_bonus_pct: number; buildtime_bonus_pct: number; extra_build_slots?: number; extra_research_slots?: number; training_speed_pct?: number; research_speed_pct?: number }>;
   catalog: Catalog[];
   chests: Chest[];
   themes: Theme[];
@@ -795,8 +796,24 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     <Benefit label="🥇 Gold-Truhen" value={`${currentTier.daily_chest_gold}/Tag`} />
                     <Benefit label="📦 Resourcen" value={`+${Math.round(currentTier.resource_bonus_pct*100)}%`} />
                     <Benefit label="⏱ Bauzeit" value={`-${Math.round(currentTier.buildtime_bonus_pct*100)}%`} />
+                    {(currentTier.extra_build_slots ?? 0) > 0 && (
+                      <Benefit label="🔨 Bau-Slots" value={`+${currentTier.extra_build_slots}`} />
+                    )}
+                    {(currentTier.extra_research_slots ?? 0) > 0 && (
+                      <Benefit label="🔬 Forsch.-Slots" value={`+${currentTier.extra_research_slots}`} />
+                    )}
+                    {(currentTier.training_speed_pct ?? 0) > 0 && (
+                      <Benefit label="⚔️ Training" value={`+${Math.round((currentTier.training_speed_pct ?? 0)*100)}%`} />
+                    )}
+                    {(currentTier.research_speed_pct ?? 0) > 0 && (
+                      <Benefit label="📚 Forschung" value={`+${Math.round((currentTier.research_speed_pct ?? 0)*100)}%`} />
+                    )}
                   </div>
                 </div>
+              )}
+
+              {(resources.vip_tickets ?? 0) > 0 && (
+                <VipTicketRedeem available={resources.vip_tickets ?? 0} reload={reload} />
               )}
 
               <div>
@@ -810,6 +827,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                         <span className={`text-xs font-black w-8 ${reached ? "text-[#FFD700]" : "text-[#6c7590]"}`}>{reached ? "✓" : ""} Lv{t.vip_level}</span>
                         <div className="flex-1 text-[10px] text-[#a8b4cf]">
                           🥈{t.daily_chest_silver} · 🥇{t.daily_chest_gold} · +{Math.round(t.resource_bonus_pct*100)}% Res · -{Math.round(t.buildtime_bonus_pct*100)}% Zeit
+                          {(t.extra_build_slots ?? 0) > 0 && ` · +${t.extra_build_slots}🔨`}
+                          {(t.extra_research_slots ?? 0) > 0 && ` · +${t.extra_research_slots}🔬`}
+                          {(t.training_speed_pct ?? 0) > 0 && ` · +${Math.round((t.training_speed_pct ?? 0)*100)}%⚔️`}
+                          {(t.research_speed_pct ?? 0) > 0 && ` · +${Math.round((t.research_speed_pct ?? 0)*100)}%📚`}
                         </div>
                         <span className="text-[10px] text-[#6c7590]">{compactNum(t.required_points)}</span>
                       </div>
@@ -1640,6 +1661,56 @@ function Benefit({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-black/30">
       <span className="text-[#a8b4cf]">{label}</span>
       <span className="font-black text-white">{value}</span>
+    </div>
+  );
+}
+
+function VipTicketRedeem({ available, reload }: { available: number; reload: () => Promise<void> }) {
+  const [count, setCount] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const sb = createClient();
+
+  async function redeem() {
+    if (busy || count < 1 || count > available) return;
+    setBusy(true); setMsg(null);
+    const { data, error } = await sb.rpc("redeem_vip_ticket", { p_count: count });
+    setBusy(false);
+    type RedeemResult = { ok?: boolean; error?: string; points_added?: number };
+    const res = (data ?? null) as RedeemResult | null;
+    if (error || !res?.ok) {
+      setMsg(`❌ ${res?.error ?? error?.message ?? "Fehler"}`);
+    } else {
+      setMsg(`✅ +${res.points_added ?? 0} VIP-Punkte`);
+      await reload();
+    }
+    setTimeout(() => setMsg(null), 2600);
+  }
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/40 p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎟 VIP-TICKETS EINLÖSEN</div>
+          <div className="text-[10px] text-[#a8b4cf] mt-0.5">1 Ticket = 50 VIP-Punkte · {available} verfügbar</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={() => setCount((c) => Math.max(1, c - 1))} disabled={count <= 1}
+          className="w-8 h-8 rounded-lg bg-white/5 text-white font-black disabled:opacity-30">−</button>
+        <input type="number" min={1} max={available} value={count}
+          onChange={(e) => setCount(Math.max(1, Math.min(available, parseInt(e.target.value || "1", 10))))}
+          className="w-16 text-center bg-black/40 border border-white/10 rounded-lg py-1.5 text-white font-black text-sm" />
+        <button onClick={() => setCount((c) => Math.min(available, c + 1))} disabled={count >= available}
+          className="w-8 h-8 rounded-lg bg-white/5 text-white font-black disabled:opacity-30">+</button>
+        <button onClick={() => setCount(available)} disabled={count === available}
+          className="px-2 h-8 rounded-lg bg-white/5 text-[#a8b4cf] text-[10px] font-black disabled:opacity-30">MAX</button>
+        <button onClick={redeem} disabled={busy || count < 1 || count > available}
+          className="ml-auto px-3 h-8 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-xs disabled:opacity-40">
+          {busy ? "…" : `+${count * 50} Pkt`}
+        </button>
+      </div>
+      {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
     </div>
   );
 }

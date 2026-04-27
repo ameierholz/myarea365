@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useDailyDismiss } from "@/lib/use-daily-dismiss";
 
 type MyShop = {
   id: string;
@@ -17,6 +18,8 @@ type MyShop = {
 export function ShopOnboardingBanner() {
   const t = useTranslations("ShopPanels");
   const [shops, setShops] = useState<MyShop[] | null>(null);
+  const noShopDismiss = useDailyDismiss("shop-onboarding-no-shop");
+  const approvedDismiss = useDailyDismiss("shop-onboarding-approved");
 
   useEffect(() => {
     fetch("/api/shop/my").then((r) => r.json()).then((d) => setShops(d.shops ?? []));
@@ -25,11 +28,14 @@ export function ShopOnboardingBanner() {
   if (!shops) return null;
 
   if (shops.length === 0) {
+    if (noShopDismiss.dismissed) return null;
     return (
       <Banner tone="primary" icon="🏪"
         title={t("onbNoShopTitle")}
         body={t("onbNoShopBody")}
         cta={{ label: t("onbNoShopCta"), href: "/shop/anmelden" }}
+        onDismiss={noShopDismiss.dismiss}
+        dismissLabel={t("dismissAria")}
       />
     );
   }
@@ -61,6 +67,7 @@ export function ShopOnboardingBanner() {
       ? Math.floor((Date.now() - new Date(approved.approved_at).getTime()) / 86400000)
       : 99;
     if (daysSince < 7 && (approved.total_checkins ?? 0) < 10) {
+      if (approvedDismiss.dismissed) return null;
       return (
         <Banner tone="success" icon="✓"
           title={t("onbApprovedTitle", { name: approved.name })}
@@ -72,6 +79,8 @@ export function ShopOnboardingBanner() {
             { done: false, text: t("onbCheck4") },
             { done: false, text: t("onbCheck5"), href: "/shop/billing" },
           ]}
+          onDismiss={approvedDismiss.dismiss}
+          dismissLabel={t("dismissAria")}
         />
       );
     }
@@ -80,13 +89,15 @@ export function ShopOnboardingBanner() {
   return null;
 }
 
-function Banner({ tone, icon, title, body, cta, checklist }: {
+function Banner({ tone, icon, title, body, cta, checklist, onDismiss, dismissLabel }: {
   tone: "primary" | "warning" | "danger" | "success";
   icon: string;
   title: string;
   body: string;
   cta?: { label: string; href: string };
   checklist?: { done: boolean; text: string; href?: string }[];
+  onDismiss?: () => void;
+  dismissLabel?: string;
 }) {
   const colors = {
     primary: { bg: "rgba(34,209,195,0.1)",  border: "#22D1C3", text: "#22D1C3" },
@@ -101,7 +112,23 @@ function Banner({ tone, icon, title, body, cta, checklist }: {
       padding: 16, borderRadius: 14,
       background: colors.bg, border: `1px solid ${colors.border}55`,
       display: "flex", gap: 12, alignItems: "flex-start",
+      position: "relative",
     }}>
+      {onDismiss && (
+        <button
+          onClick={onDismiss}
+          aria-label={dismissLabel}
+          title={dismissLabel}
+          style={{
+            position: "absolute", top: 6, right: 6,
+            width: 22, height: 22, borderRadius: 999,
+            background: "rgba(15,17,21,0.55)", border: "1px solid rgba(255,255,255,0.12)",
+            color: "#a8b4cf", fontSize: 12, lineHeight: 1, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            zIndex: 2,
+          }}
+        >×</button>
+      )}
       <div style={{ fontSize: 28 }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 900, color: colors.text, marginBottom: 2 }}>{title}</div>
