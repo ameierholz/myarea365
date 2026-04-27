@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useResourceArt, ResourceIcon, type ResourceKind } from "@/components/resource-icon";
 
 export type TroopDef = {
   id: string; name: string; emoji: string; troop_class: string; tier: number;
@@ -44,6 +45,7 @@ export function TroopDetailModal({
   /** Trainings-Cap pro Klasse: Gebäude-Level × 10 */
   caps: Record<string, number>;
 }) {
+  const resourceArt = useResourceArt();
   // Aktuelle Klasse aus initial-Troop ableiten, dann Tier-Switching innerhalb der Klasse
   const initial = catalog.find((t) => t.id === initialTroopId);
   const [troopClass] = useState<string>(initial?.troop_class ?? "infantry");
@@ -163,10 +165,10 @@ export function TroopDetailModal({
 
               {/* Cost */}
               <div className="grid grid-cols-4 gap-1.5 mt-3">
-                <CostChip emoji="🪙" value={costGold} label="Gold" />
-                <CostChip emoji="🪵" value={costWood} label="Holz" />
-                <CostChip emoji="🪨" value={costStone} label="Stein" />
-                <CostChip emoji="💧" value={costMana} label="Mana" />
+                <CostChip kind="gold"  fallback="🪙" value={costGold}  label="Gold"  art={resourceArt} />
+                <CostChip kind="wood"  fallback="🪵" value={costWood}  label="Holz"  art={resourceArt} />
+                <CostChip kind="stone" fallback="🪨" value={costStone} label="Stein" art={resourceArt} />
+                <CostChip kind="mana"  fallback="💧" value={costMana}  label="Mana"  art={resourceArt} />
               </div>
               <div className="text-[10px] text-white/60 mt-2 text-center">
                 Vorrat: <b className="text-[#FFD700]">{(owned.get(troop.id) ?? 0).toLocaleString("de-DE")}</b>
@@ -235,10 +237,13 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
     </div>
   );
 }
-function CostChip({ emoji, value, label }: { emoji: string; value: number; label: string }) {
+function CostChip({ kind, fallback, value, label, art }: {
+  kind: ResourceKind; fallback: string; value: number; label: string;
+  art: ReturnType<typeof useResourceArt>;
+}) {
   return (
     <div className="rounded-lg bg-black/40 border border-white/10 p-1.5 text-center">
-      <div className="text-base leading-none">{emoji}</div>
+      <ResourceIcon kind={kind} size={20} fallback={fallback} art={art} />
       <div className="text-[11px] font-black text-white mt-0.5">{value >= 1000 ? `${Math.floor(value/1000)}K` : value.toLocaleString("de-DE")}</div>
       <div className="text-[8px] text-white/50">{label}</div>
     </div>

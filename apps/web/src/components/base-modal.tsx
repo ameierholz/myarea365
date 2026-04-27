@@ -1315,6 +1315,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
   const [openClass, setOpenClass] = useState<string | null>("infantry");
   const [selectedTroopId, setSelectedTroopId] = useState<string | null>(null);
   const [gemsAvailable, setGemsAvailable] = useState<number>(0);
+  const resourceArt = useResourceArt();
 
   const load = useCallback(async () => {
     const r = await fetch("/api/base/troops");
@@ -1383,7 +1384,12 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
                           {t.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">T{t.tier}{t.tier > 1 ? " · 🔬 Forschung" : ""}</span>
                         </div>
                         <div className="text-[9px] text-[#a8b4cf]">⚔️ {t.base_atk} · 🛡 {t.base_def} · ❤️ {t.base_hp} · ⏱ {t.train_time_seconds}s</div>
-                        <div className="text-[9px] text-[#a8b4cf]">🪵 {t.cost_wood} · 🪨 {t.cost_stone} · 🪙 {t.cost_gold} · 💧 {t.cost_mana}</div>
+                        <div className="text-[9px] text-[#a8b4cf] flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={11} fallback="🪵" art={resourceArt} />{t.cost_wood}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={11} fallback="🪨" art={resourceArt} />{t.cost_stone}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={11} fallback="🪙" art={resourceArt} />{t.cost_gold}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={11} fallback="💧" art={resourceArt} />{t.cost_mana}</span>
+                        </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <div className="text-[10px] text-[#FFD700] font-black">×{have}</div>
@@ -1590,6 +1596,7 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [, tick] = useState(0);
+  const resourceArt = useResourceArt();
 
   const load = useCallback(async () => {
     try {
@@ -1655,13 +1662,18 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
         </>
       ) : (
         <>
-          <div className="text-[10px] text-[#a8b4cf] mb-2">
-            {status.duration_hours ?? 24}h unsichtbar + unangreifbar. Kostet <b style={{ color: "#FFD700" }}>{status.cost_gold ?? 500} 🪙</b>. Cooldown: 7 Tage.
+          <div className="text-[10px] text-[#a8b4cf] mb-2 inline-flex items-center gap-1 flex-wrap">
+            <span>{status.duration_hours ?? 24}h unsichtbar + unangreifbar. Kostet</span>
+            <b style={{ color: "#FFD700" }} className="inline-flex items-center gap-0.5">
+              {status.cost_gold ?? 500}<ResourceIcon kind="gold" size={12} fallback="🪙" art={resourceArt} />
+            </b>
+            <span>. Cooldown: 7 Tage.</span>
           </div>
           <button onClick={activate} disabled={busy}
-            className="w-full px-3 py-2 rounded-lg text-[11px] font-black disabled:opacity-40"
+            className="w-full px-3 py-2 rounded-lg text-[11px] font-black disabled:opacity-40 inline-flex items-center justify-center gap-1.5"
             style={{ background: "linear-gradient(135deg, #FF6B4A, #FF6B4Acc)", color: "#0F1115" }}>
-            {busy ? "Aktiviere…" : `🛡️ Schild aktivieren · ${status.cost_gold ?? 500} 🪙`}
+            🛡️ {busy ? "Aktiviere…" : `Schild aktivieren · ${status.cost_gold ?? 500}`}
+            {!busy && <ResourceIcon kind="gold" size={14} fallback="🪙" art={resourceArt} />}
           </button>
         </>
       )}
@@ -2326,6 +2338,7 @@ function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promis
 function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
   const [data, setData] = useState<{ quests: QuestRow[]; definitions: QuestDef[] } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const resourceArt = useResourceArt();
 
   const load = useCallback(async () => {
     const r = await fetch("/api/base/quests");
@@ -2350,11 +2363,10 @@ function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<
         const def = defMap.get(q.quest_id);
         if (!def) return null;
         const done = q.progress >= q.target;
-        const rewardStr = (["wood","stone","gold","mana"] as const)
+        const rewards = (["wood","stone","gold","mana"] as const)
           .map((k) => ({ k, v: def[`reward_${k}` as const] }))
-          .filter((x) => x.v > 0)
-          .map((x) => `${({ wood: "🪵", stone: "🪨", gold: "🪙", mana: "💧" } as const)[x.k]}${x.v}`)
-          .join(" ");
+          .filter((x) => x.v > 0);
+        const fbMap = { wood: "🪵", stone: "🪨", gold: "🪙", mana: "💧" } as const;
         return (
           <div key={q.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#1A1D23] border border-white/10">
             <span className="text-xl">{def.emoji}</span>
@@ -2367,7 +2379,14 @@ function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<
                 </div>
                 <span className="text-[9px] text-[#a8b4cf]">{q.progress}/{q.target}</span>
               </div>
-              <div className="text-[9px] text-[#a8b4cf] mt-1">Belohnung: {rewardStr}</div>
+              <div className="text-[9px] text-[#a8b4cf] mt-1 inline-flex flex-wrap items-center gap-1">
+                <span>Belohnung:</span>
+                {rewards.map((x) => (
+                  <span key={x.k} className="inline-flex items-center gap-0.5">
+                    <ResourceIcon kind={x.k} size={11} fallback={fbMap[x.k]} art={resourceArt} />{x.v}
+                  </span>
+                ))}
+              </div>
             </div>
             {q.claimed ? <span className="text-[10px] text-[#4ade80] font-black px-2">✓</span>
               : done ? <button onClick={() => claim(q.id)} disabled={busy === q.id} className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40" style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>{busy === q.id ? "…" : "Holen"}</button>
@@ -2388,6 +2407,7 @@ function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Prom
   const [amount, setAmount] = useState<number>(100);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const resourceArt = useResourceArt();
 
   useEffect(() => {
     void (async () => {
@@ -2424,13 +2444,17 @@ function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Prom
         {mates.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}
       </select>
       <div className="flex gap-1">
-        {(["wood","stone","gold","mana"] as const).map((k) => (
-          <button key={k} onClick={() => setResType(k)}
-            className={`flex-1 py-1.5 rounded text-[10px] font-black ${resType === k ? "text-[#0F1115]" : "bg-white/5 text-[#a8b4cf]"}`}
-            style={resType === k ? { background: accent } : undefined}>
-            {({ wood: "🪵 Holz", stone: "🪨 Stein", gold: "🪙 Gold", mana: "💧 Mana" } as const)[k]}
-          </button>
-        ))}
+        {(["wood","stone","gold","mana"] as const).map((k) => {
+          const labels = { wood: "Holz", stone: "Stein", gold: "Gold", mana: "Mana" } as const;
+          const fbs = { wood: "🪵", stone: "🪨", gold: "🪙", mana: "💧" } as const;
+          return (
+            <button key={k} onClick={() => setResType(k)}
+              className={`flex-1 py-1.5 rounded text-[10px] font-black inline-flex items-center justify-center gap-1 ${resType === k ? "text-[#0F1115]" : "bg-white/5 text-[#a8b4cf]"}`}
+              style={resType === k ? { background: accent } : undefined}>
+              <ResourceIcon kind={k} size={14} fallback={fbs[k]} art={resourceArt} />{labels[k]}
+            </button>
+          );
+        })}
       </div>
       <input type="number" min={1} max={1000} value={amount} onChange={(e) => setAmount(Math.max(1, Math.min(1000, Number(e.target.value) || 0)))}
         className="w-full px-3 py-2 rounded bg-black/40 border border-white/10 text-sm text-white" placeholder="Menge (1-1000)" />
@@ -2489,6 +2513,7 @@ function StepsCard({ accent, reload }: { accent: string; reload: () => Promise<v
 
 function PackagesCard({ accent }: { accent: string }) {
   const [pkgs, setPkgs] = useState<ResourcePackage[] | null>(null);
+  const resourceArt = useResourceArt();
   useEffect(() => {
     void (async () => {
       const r = await fetch("/api/base/packages");
@@ -2509,9 +2534,12 @@ function PackagesCard({ accent }: { accent: string }) {
               <span className="text-sm font-black text-white">{p.name}</span>
               {p.bonus_label && <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: accent, color: "#0F1115" }}>{p.bonus_label}</span>}
             </div>
-            <div className="text-[10px] text-[#a8b4cf] mt-1">
-              🪵{p.reward_wood.toLocaleString("de-DE")} · 🪨{p.reward_stone.toLocaleString("de-DE")} · 🪙{p.reward_gold.toLocaleString("de-DE")} · 💧{p.reward_mana.toLocaleString("de-DE")}
-              {p.reward_speed_tokens > 0 && ` · ⚡${p.reward_speed_tokens}`}
+            <div className="text-[10px] text-[#a8b4cf] mt-1 inline-flex flex-wrap items-center gap-1">
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={12} fallback="🪵" art={resourceArt} />{p.reward_wood.toLocaleString("de-DE")}</span>·
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={12} fallback="🪨" art={resourceArt} />{p.reward_stone.toLocaleString("de-DE")}</span>·
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={12} fallback="🪙" art={resourceArt} />{p.reward_gold.toLocaleString("de-DE")}</span>·
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={12} fallback="💧" art={resourceArt} />{p.reward_mana.toLocaleString("de-DE")}</span>
+              {p.reward_speed_tokens > 0 && <span className="inline-flex items-center gap-0.5">·<ResourceIcon kind="speed_token" size={12} fallback="⚡" art={resourceArt} />{p.reward_speed_tokens}</span>}
             </div>
           </div>
           <a href="/shop" className="text-xs font-black px-3 py-2 rounded-lg whitespace-nowrap"
