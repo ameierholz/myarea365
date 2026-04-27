@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
-import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, type ResourceArtMap } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, type ResourceArtMap } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
 import { createClient } from "@/lib/supabase/client";
 
@@ -88,6 +88,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [err, setErr]   = useState<string | null>(null);
   const resourceArt = useResourceArt();
   const chestArt = useChestArt();
+  const buildingArt = useBuildingArt();
 
   const reload = useCallback(async () => {
     const r = await fetch("/api/base/me", { cache: "no-store" });
@@ -607,7 +608,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     const ready = ms <= 0;
                     return (
                       <div key={q.id} className="flex items-center gap-2">
-                        <span className="text-xl">{cat?.emoji ?? "🏗️"}</span>
+                        <BuildingThumb id={q.building_id} fallback={cat?.emoji ?? "🏗️"} art={buildingArt} size={28} />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-black">{cat?.name ?? q.building_id} → Lv {q.target_level}</div>
                           <div className="text-[10px] text-[#a8b4cf]">{ready ? <span className="text-[#4ade80] font-black">FERTIG …</span> : `Noch ${min}:${String(restSec).padStart(2,"0")}`}</div>
@@ -661,7 +662,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                             <div key={cat.id} className="rounded-lg bg-[#1A1D23] border border-white/10 p-2 flex flex-col gap-1.5" style={{ minHeight: 0 }}>
                               {/* Header-Zeile: Icon + Name + Level kompakt */}
                               <div className="flex items-center gap-2">
-                                <span className="text-xl shrink-0">{cat.emoji}</span>
+                                <BuildingThumb id={cat.id} fallback={cat.emoji} art={buildingArt} size={28} />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-xs font-black text-white truncate">{cat.name}</div>
                                   <div className="text-[9px] text-[#a8b4cf]">Lv {lvl}/{cat.max_level} {cat.effect_key && !isMax && (() => {
@@ -682,12 +683,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                                   {(["wood","stone","gold","mana"] as const).filter((k) => cost[k] > 0).map((k) => (
                                     <span key={k}
-                                      className="text-[10px] font-black px-1.5 py-0.5 rounded"
+                                      className="text-[10px] font-black px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"
                                       style={{
                                         background: resources[k] >= cost[k] ? "rgba(255,255,255,0.06)" : "rgba(255,45,120,0.12)",
                                         color: resources[k] >= cost[k] ? "#fff" : "#FF2D78",
                                       }}>
-                                      {RES[k].icon}{compactNum(cost[k])}
+                                      <ResourceIcon kind={k} size={12} fallback={RES[k].icon} art={resourceArt} />{compactNum(cost[k])}
                                     </span>
                                   ))}
                                 </div>
@@ -2052,6 +2053,23 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
       {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
     </div>
   );
+}
+
+/** Building-Thumb: zieht Artwork aus cosmetic_artwork (slot_id = `building_<id>`),
+ * mit Chroma-Key-Filter (Greenscreen-PNGs werden freigestellt). Emoji als Fallback. */
+function BuildingThumb({ id, fallback, art, size = 28 }: {
+  id: string; fallback: string; art: ResourceArtMap; size?: number;
+}) {
+  const a = art[`building_${id}`];
+  const filterCss: React.CSSProperties = { filter: "url(#ma365-chroma-black) drop-shadow(0 1px 2px rgba(0,0,0,0.4))" };
+  if (a?.image_url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={a.image_url} alt={id} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, ...filterCss }} />;
+  }
+  if (a?.video_url) {
+    return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, ...filterCss }} />;
+  }
+  return <span style={{ fontSize: size - 4, lineHeight: 1, flexShrink: 0 }}>{fallback}</span>;
 }
 
 function compactNum(n: number): string {

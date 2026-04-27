@@ -1070,29 +1070,46 @@ export const BUILDINGS_ART: BuildingArt[] = [
 export function buildBuildingPrompt(input: { building: BuildingArt; mode: "image" | "video" }): string {
   const { building, mode } = input;
 
-  const baseLines = [
-    `An isometric stylized 3D-render game-asset of "${building.name}" — a ${building.category} building.`,
+  // ════════════════════════════════════════════════════════════════════
+  // GREENSCREEN-Pipeline (wie Wächter & Base-Themes):
+  // Background = #00FF00, im Frontend chroma-keyed zu transparent.
+  // Background-Anweisung MUSS Zeile 2 sein, sonst ignoriert Veo sie.
+  // ════════════════════════════════════════════════════════════════════
+  const subjectBlock = [
     `Subject: ${building.silhouette}.`,
     `Details: ${building.details}.`,
     `Signature element: ${building.signature}.`,
-    `Setting: the building sits on a small floating square iso-tile platform — grass-topped stone block with mossy edges and a few flowers, hovering slightly with a soft shadow underneath.`,
-    `Style: matches "Rise of Kingdoms" / "Call of Dragons" art-direction — clean stylized hand-painted textures, slight cel-shading, vibrant saturated colors, soft warm-cool color contrast, readable silhouette at thumbnail size.`,
+    `The building sits on a small square iso-tile platform — grass-topped stone block with mossy edges and a few flowers, with a soft shadow underneath. Tile fits within the building's footprint (max +5% padding).`,
+    `Style: matches "Rise of Kingdoms" / "Call of Dragons" art-direction — clean stylized hand-painted textures, slight cel-shading, vibrant saturated colors, soft warm-cool color contrast, readable silhouette at thumbnail size, like a polished mobile-game building-icon ripped straight from the game UI.`,
     `Camera: locked isometric 30° angle, square 1:1, building centered with ~10% padding around the silhouette.`,
-    `Lighting: bright key light from upper-left at 45°, soft ambient fill from upper-right, gentle warm rim-light, soft contact shadow under the floating tile.`,
-    `Output: 1024×1024 PNG with FULLY TRANSPARENT background outside the floating tile.`,
-    `No text, no labels, no UI overlays, no watermark, no people in foreground, no border frames.`,
+    `Lighting: bright key light from upper-left at 45°, soft ambient fill from upper-right, gentle warm rim-light.`,
   ];
+
+  const greenscreenNegative = `CRITICAL: NO green tones ANYWHERE on the building, walls, roof, banners, flags, gems, lights or accents. NO green moss-tinted glow, NO green flames, NO green liquids, NO bright lime accents. Use teal/cyan/blue/yellow/red/orange/purple/white instead. The ONLY green is the pure #00FF00 background. No text, no labels, no UI overlays, no watermark, no people, no border frames. NO ground extending past the tile, NO sky, NO trees beyond the small grass topping, NO water/mountains/scenery, NO atmospheric effects.`;
 
   if (mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated isometric game-asset, square 1:1, 1024×1024, 30 fps, fully transparent background outside the floating tile.`,
-      ...baseLines.slice(1),
-      `Motion: gentle ambient — slow vertical bob of the floating tile (±2 px), subtle particle drift (sparks/leaves/mist depending on theme), key signature element animates softly (flag waves, water flows, fire pulses, etc). No camera movement. First and last frame identical.`,
-      `No audio.`,
+      // 1) Shot-Spec
+      `Shot: a 3-second seamlessly looping animated isometric game-asset of "${building.name}" — a ${building.category} building, square 1:1 composition, 1024×1024, 30 fps.`,
+      // 2) Background — GREEN SCREEN
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~8% margin around the floating tile. No gradients, no patterns, no texture, no shadows on the green, no environment, no scene.`,
+      ...subjectBlock,
+      // Framing
+      `FRAMING (critical): the building + tile is FULLY CONTAINED inside the 1024×1024 frame. Silhouette must NOT touch ANY of the four frame edges. Visible green margin on all four sides.`,
+      // Motion
+      `Motion: gentle ambient — slow vertical bob of the floating tile (±2 px), subtle on-structure animation only (flag waves, water flows, fire pulses, glow pulses on the signature element). NO environmental particle drift through empty green space. Camera fully static. First and last frame pixel-identical for seamless loop.`,
+      `No audio. Silent video only.`,
+      greenscreenNegative,
     ].join(" ");
   }
 
-  return baseLines.join(" ");
+  return [
+    `Single isolated isometric stylized 3D-render game-asset of "${building.name}" — a ${building.category} building. Square 1:1, 1024×1024.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame including a clean ~8% margin around the floating tile — no gradient, no pattern, no texture. (Chroma-keyed to transparent in the app.)`,
+    ...subjectBlock,
+    `FRAMING (critical): building + tile FULLY CONTAINED inside the frame with uniform green margin on all four sides. Silhouette must NOT touch any frame edge.`,
+    greenscreenNegative,
+  ].join(" ");
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1128,24 +1145,31 @@ export const RESOURCES_ART: ResourceArt[] = [
 
 export function buildResourcePrompt(input: { resource: ResourceArt; mode: "image" | "video" }): string {
   const { resource, mode } = input;
-  const baseLines = [
-    `A stylized 3D game-icon of "${resource.name}".`,
-    `Subject: ${resource.subject}.`,
-    `Style: ${resource.style}.`,
-    `Composition: subject perfectly centered with ~15% padding, no perspective extremes — easily readable when displayed as a small 32×32 thumbnail.`,
-    `Lighting: bright key light from upper-left at 45°, soft ambient fill, gentle warm rim, subtle contact shadow on a transparent floor.`,
-    `Accent color glow: ${resource.accent}.`,
-    `Output: 1024×1024 PNG with FULLY TRANSPARENT background. Square 1:1.`,
-    `No text, no labels, no UI overlays, no watermark, no border frames.`,
-  ];
+  // Greenscreen-Pipeline (chroma-key zu transparent im Frontend).
+  // Mana ist cyan/teal — kein Konflikt mit #00FF00. Speed-Token ist gelb. Alle anderen sicher.
+  const greenscreenNegative = `CRITICAL: NO green tones on the subject — no green leaves, no green moss, no green glow, no green sparkles, no lime accents. Use only the resource's natural colors. The ONLY green is the pure #00FF00 background. No text, no labels, no UI overlays, no watermark, no border frames, no environment, no scene.`;
   if (mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024×1024, 30 fps, fully transparent background.`,
-      ...baseLines.slice(1),
-      `Motion: gentle bob (±3 px vertical), soft particle drift around the subject, subtle accent-glow pulse. Camera fully static. First and last frame identical. No audio.`,
+      `Shot: a 3-second seamlessly looping animated game-icon of "${resource.name}", square 1:1, 1024×1024, 30 fps.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~15% margin around the subject. No gradients, no patterns, no shadows on the green.`,
+      `Subject: ${resource.subject}.`,
+      `Style: ${resource.style}.`,
+      `Composition: subject perfectly centered with ~15% padding, easily readable as a 32×32 thumbnail. Subject silhouette must NOT touch any frame edge.`,
+      `Accent color glow: ${resource.accent}.`,
+      `Motion: gentle bob (±3 px vertical), subtle accent-glow pulse on the subject only. NO particle drift through empty green space. Camera fully static. First and last frame identical.`,
+      `No audio.`,
+      greenscreenNegative,
     ].join(" ");
   }
-  return baseLines.join(" ");
+  return [
+    `A stylized 3D game-icon of "${resource.name}", square 1:1, 1024×1024.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame with a clean ~15% margin around the subject — no gradient, no pattern, no texture. (Chroma-keyed to transparent in the app.)`,
+    `Subject: ${resource.subject}.`,
+    `Style: ${resource.style}.`,
+    `Composition: subject perfectly centered, readable as a 32×32 thumbnail.`,
+    `Accent color glow: ${resource.accent}.`,
+    greenscreenNegative,
+  ].join(" ");
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1176,23 +1200,29 @@ export const CHESTS_ART: ChestArt[] = [
 
 export function buildChestPrompt(input: { chest: ChestArt; mode: "image" | "video" }): string {
   const { chest, mode } = input;
-  const baseLines = [
-    `A stylized 3D game-icon of a "${chest.name}" (${chest.rarity} rarity treasure chest).`,
-    `Subject: ${chest.subject}.`,
-    `Style: ${chest.style}.`,
-    `Composition: chest perfectly centered with ~10% padding, viewed from a slight 3/4 front-angle so both the lid and front-face are visible, on a transparent floor with a soft contact shadow.`,
-    `Lighting: bright key light from upper-left at 45°, warm rim-light from upper-right, ambient fill, subtle ${chest.accent} glow emanating from inside the lid crack.`,
-    `Output: 1024×1024 PNG with FULLY TRANSPARENT background. Square 1:1.`,
-    `No text, no labels, no UI overlays, no watermark, no border frames.`,
-  ];
+  const greenscreenNegative = `CRITICAL: NO green tones on the chest, wood, banding, gems, lock or glow. Use only the chest's natural colors. The ONLY green is the pure #00FF00 background. No text, no labels, no UI overlays, no watermark, no border frames, no environment.`;
   if (mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated chest icon, square 1:1, 1024×1024, 30 fps, fully transparent background.`,
-      ...baseLines.slice(1),
-      `Motion: gentle bob (±2 px), soft glow pulse from the keyhole, occasional ${chest.accent} particle sparks drifting upward, lid stays closed (this is the "ready to open" state). Camera fully static. First and last frame identical. No audio.`,
+      `Shot: a 3-second seamlessly looping animated game-icon of a "${chest.name}" (${chest.rarity} rarity treasure chest), square 1:1, 1024×1024, 30 fps.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform color filling the ENTIRE 1024×1024 frame including a clean ~10% margin around the chest. No gradients, no patterns, no shadows on the green.`,
+      `Subject: ${chest.subject}.`,
+      `Style: ${chest.style}.`,
+      `Composition: chest perfectly centered, slight 3/4 front-angle showing lid + front-face. Silhouette must NOT touch any frame edge.`,
+      `Lighting: bright key light from upper-left, warm rim-light from upper-right, subtle ${chest.accent} glow from inside the lid crack.`,
+      `Motion: gentle bob (±2 px), soft glow pulse from the keyhole, occasional ${chest.accent} particle sparks drifting upward CLOSE to the chest only — NO particles drifting through empty green space. Lid stays closed (ready-to-open state). Camera fully static. First and last frame identical.`,
+      `No audio.`,
+      greenscreenNegative,
     ].join(" ");
   }
-  return baseLines.join(" ");
+  return [
+    `A stylized 3D game-icon of a "${chest.name}" (${chest.rarity} rarity treasure chest), square 1:1, 1024×1024.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame with ~10% margin around the chest — no gradient, no pattern. (Chroma-keyed to transparent in the app.)`,
+    `Subject: ${chest.subject}.`,
+    `Style: ${chest.style}.`,
+    `Composition: chest perfectly centered, slight 3/4 front-angle. Silhouette must NOT touch any frame edge.`,
+    `Lighting: bright key light from upper-left, warm rim-light from upper-right, subtle ${chest.accent} glow from inside the lid crack.`,
+    greenscreenNegative,
+  ].join(" ");
 }
 
 export function buildLightPrompt(input: { name: string; colors: string[]; mode: "image" | "video" }): string {

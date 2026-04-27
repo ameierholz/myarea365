@@ -110,18 +110,23 @@ export function pickStrongholdArt(art: ResourceArtMap, level: number): { image_u
   return null;
 }
 
+// Chroma-Key-Filter (Greenscreen #00FF00 → transparent), gleiche Pipeline wie Wächter.
+const CHROMA = "url(#ma365-chroma-black)";
+
 export function ChestIcon({ kind, size = 32, fallback, art }: {
   kind: ChestKind; size?: number; fallback: string; art: ResourceArtMap;
 }) {
   const a = art[kind];
+  const baseStyle: React.CSSProperties = {
+    width: size, height: size, objectFit: "contain",
+    display: "inline-block", verticalAlign: "middle", filter: CHROMA,
+  };
   if (a?.video_url) {
-    return <video src={a.video_url} autoPlay loop muted playsInline
-      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
+    return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
   }
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={a.image_url} alt={`${kind}-chest`}
-      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
+    return <img src={a.image_url} alt={`${kind}-chest`} style={baseStyle} />;
   }
   return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
 }
@@ -135,14 +140,16 @@ export function ResourceIcon({
   art: ResourceArtMap;
 }) {
   const a = art[kind];
+  const baseStyle: React.CSSProperties = {
+    width: size, height: size, objectFit: "contain",
+    display: "inline-block", verticalAlign: "middle", filter: CHROMA,
+  };
   if (a?.video_url) {
-    return <video src={a.video_url} autoPlay loop muted playsInline
-      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
+    return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
   }
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={a.image_url} alt={kind}
-      style={{ width: size, height: size, objectFit: "contain", display: "inline-block", verticalAlign: "middle" }} />;
+    return <img src={a.image_url} alt={kind} style={baseStyle} />;
   }
   return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
 }
