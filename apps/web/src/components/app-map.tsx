@@ -2581,18 +2581,23 @@ export function AppMap({
         ? `<video src="${npArt.video_url}" autoplay loop muted playsinline style="${npStyle}"></video>`
         : "";
 
+      // LV-Badge übernimmt die Aura-Farbe (rarity-driven), damit Badge + Schimmer
+      // visuell zusammengehören. Fallback auf pin_color wenn keine Aura existiert.
+      const lvColor = aura?.primary ?? pin.pin_color;
+      const lvSecondary = aura?.secondary ?? pin.pin_color;
       inner.innerHTML = `
+        ${visualHtml}
         <div style="
           padding:2px 8px;border-radius:999px;
-          background:linear-gradient(135deg, ${pin.pin_color}, ${pin.pin_color}cc);
+          background:linear-gradient(135deg, ${lvColor}, ${lvSecondary}cc);
           color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;
           border:1px solid rgba(255,255,255,0.4);
-          box-shadow:0 0 8px ${pin.pin_color}aa, inset 0 1px 0 rgba(255,255,255,0.35);
+          box-shadow:0 0 8px ${lvColor}aa, inset 0 1px 0 rgba(255,255,255,0.35);
           text-shadow:0 1px 0 rgba(255,255,255,0.25);
           line-height:1.1;
+          margin-top:-16px;position:relative;z-index:2;
         ">LV ${pin.level}</div>
-        ${visualHtml}
-        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:28px;min-width:70px;margin-top:-12px">
+        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:28px;min-width:70px;margin-top:2px">
           ${npLayer}
           <div style="
             position:relative;z-index:1;

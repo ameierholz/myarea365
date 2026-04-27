@@ -2893,10 +2893,8 @@ function ProfilTab({
           <button
             onClick={() => {
               if (ownBaseHasPos) {
-                onOpenBase(ownBaseId);
-                // Fly-to NACH Tab-Wechsel dispatchen — AppMap muss erst gemountet
-                // sein, sonst registriert der Event-Listener noch nicht und der
-                // Map zentriert auf den Runner statt auf die Base.
+                // Nur zur Karte wechseln + zur Base fliegen — KEIN Modal öffnen
+                onSwitchToMap();
                 if (ownBaseInfo.lat != null && ownBaseInfo.lng != null) {
                   const lat = ownBaseInfo.lat, lng = ownBaseInfo.lng;
                   setTimeout(() => {
@@ -2919,23 +2917,25 @@ function ProfilTab({
           >
             {/* Theme-Icon (Artwork aus cosmetic_artwork.kind=base_theme) */}
             <div style={{
-              width: 76, height: 84, borderRadius: 12, flexShrink: 0,
+              width: 96, height: 96, borderRadius: 14, flexShrink: 0,
               background: `radial-gradient(circle at 50% 30%, ${ownBaseInfo.accent}55 0%, ${ownBaseInfo.accent}22 45%, rgba(15,17,21,0.55) 100%)`,
               border: `1px solid ${ownBaseInfo.accent}77`,
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: `0 0 14px ${ownBaseInfo.accent}44, inset 0 0 18px ${ownBaseInfo.accent}22`,
-              overflow: "hidden",
+              overflow: "visible", position: "relative",
             }}>
               {(() => {
                 // Slot-Pattern: "{theme}_runner_pin" (siehe artwork-prompts.ts)
                 const slotPin = `${ownBaseInfo.theme_id}_runner_pin`;
                 const slotBanner = `${ownBaseInfo.theme_id}_runner_banner`;
                 const a = baseThemeArt[slotPin] ?? baseThemeArt[slotBanner] ?? baseThemeArt[ownBaseInfo.theme_id];
-                // Chroma-Key entfernt Greenscreen-Hintergrund (wie Wächter/Map-Pin)
+                // Chroma-Key entfernt Greenscreen-Hintergrund (wie Wächter/Map-Pin).
+                // Bild größer gerendert (130%) und mit overflow:visible, weil die
+                // Greenscreen-PNGs ~8% Padding rundum haben → Burg sonst zu klein.
                 const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
-                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 72, objectFit: "contain", filter: f }} />;
-                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 64, height: 72, objectFit: "contain", filter: f }} />;
-                return <span style={{ fontSize: 44, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 124, height: 124, objectFit: "contain", filter: f }} />;
+                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 124, height: 124, objectFit: "contain", filter: f }} />;
+                return <span style={{ fontSize: 56, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
               })()}
             </div>
 
