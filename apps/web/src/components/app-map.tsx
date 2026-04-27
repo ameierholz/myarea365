@@ -2528,8 +2528,10 @@ export function AppMap({
       el.setAttribute("data-own", pin.is_own ? "1" : "0");
       el.style.cssText = "pointer-events:auto;will-change:transform;";
 
+      // Bewusst NICHT am globalen [data-zoom-scale]-System angemeldet —
+      // die Base soll beim Reinzoomen NICHT weiter wachsen, sondern in
+      // konstanter Pixel-Größe (250 px) bleiben. Zoom-Out-Hide bei <15.5.
       const zoomWrap = document.createElement("div");
-      zoomWrap.dataset.zoomScale = "1";
       zoomWrap.style.cssText = "display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden";
 
       // Innerer Wrapper trägt Hover-Scale + Drop-Shadow.
@@ -2551,10 +2553,10 @@ export function AppMap({
       // bei neu generierten Videos — wie bei Wächter-Markern.
       const dropShadow = `drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""}`;
       const visualBase = art?.image_url
-        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:125px;height:125px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
+        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:250px;height:250px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
         : art?.video_url
-        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:125px;height:125px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
-        : `<div style="position:relative;z-index:1;width:125px;height:125px;display:flex;align-items:center;justify-content:center;font-size:104px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:250px;height:250px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
+        : `<div style="position:relative;z-index:1;width:250px;height:250px;display:flex;align-items:center;justify-content:center;font-size:208px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
       // Schimmer-Aura hinter der Burg — pro Rarity unterschiedlich aufwendig
       const auraColors: Record<string, { primary: string; secondary: string; ring: string; speed: string }> = {
@@ -2567,7 +2569,7 @@ export function AppMap({
         ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:160px;height:160px;border-radius:50%;background:radial-gradient(circle, ${aura.ring} 0%, transparent 65%);animation:basePinShimmer ${aura.speed} ease-in-out infinite;pointer-events:none;z-index:0"></div>
            ${pin.theme_rarity === "legendary" ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:180px;height:180px;border-radius:50%;background:conic-gradient(from 0deg, ${aura.primary}55, transparent 30%, ${aura.secondary}55 60%, transparent 90%, ${aura.primary}55);opacity:0.45;animation:basePinAuraSpin 8s linear infinite;pointer-events:none;z-index:0"></div>` : ""}`
         : "";
-      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:125px;height:125px">${auraHtml}${visualBase}</div>`;
+      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:250px;height:250px">${auraHtml}${visualBase}</div>`;
 
       // Nameplate-Banner HINTER dem pin_label-Chip (nur bei eigenen Bases),
       // chroma-keyed, auf Chip-Höhe (32 px) geclamppt.
@@ -2623,10 +2625,22 @@ export function AppMap({
       basePinMarkersRef.current.push(marker);
     });
 
-    // Base-Pins werden NICHT zoom-abhängig ausgeblendet — sie sind das Herzstück
-    // und sollen aus jedem Zoom-Level erkennbar sein. Skalierung übernimmt das
-    // globale data-zoom-scale-System.
-    const updateBasePinVisibility = () => { /* no-op */ };
+    // Base-Pins ausblenden bei zoom < 7. Skalierung übernimmt das globale
+    // data-zoom-scale-System.
+    let lastHide: boolean | null = null;
+    const updateBasePinVisibility = () => {
+      const hide = map.getZoom() < 15.5;
+      if (hide === lastHide) return;
+      lastHide = hide;
+      basePinMarkersRef.current.forEach((m) => {
+        const e = m.getElement();
+        e.style.opacity = hide ? "0" : "1";
+        e.style.visibility = hide ? "hidden" : "visible";
+        e.style.transition = "opacity 0.25s";
+        e.style.pointerEvents = hide ? "none" : "auto";
+      });
+    };
+    updateBasePinVisibility();
     map.on("zoom", updateBasePinVisibility);
 
     return () => {
