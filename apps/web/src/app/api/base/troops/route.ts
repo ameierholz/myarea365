@@ -28,9 +28,10 @@ export async function POST(req: Request) {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  const body = (await req.json()) as { troop_id?: string; count?: number; for_crew?: string };
+  const body = (await req.json()) as { troop_id?: string; count?: number; for_crew?: string; instant?: boolean };
   if (!body.troop_id || !body.count) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-  const { data, error } = await sb.rpc("train_troop", {
+  const rpc = body.instant ? "instant_train_troop" : "train_troop";
+  const { data, error } = await sb.rpc(rpc, {
     p_troop_id: body.troop_id, p_count: body.count, p_for_crew: body.for_crew ?? null,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

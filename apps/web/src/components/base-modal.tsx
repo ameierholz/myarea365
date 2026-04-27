@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, type ResourceArtMap } from "@/components/resource-icon";
+import { TroopDetailModal } from "@/components/troop-detail-modal";
 import { createClient } from "@/lib/supabase/client";
 
 type Theme = {
@@ -1311,35 +1312,22 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
   type QueueRow = { id: string; troop_id: string; count: number; ends_at: string };
   type Data = { catalog: Troop[]; owned: Owned[]; queue: QueueRow[] };
   const [data, setData] = useState<Data | null>(null);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [openClass, setOpenClass] = useState<string | null>("infantry");
+  const [selectedTroopId, setSelectedTroopId] = useState<string | null>(null);
+  const [gemsAvailable, setGemsAvailable] = useState<number>(0);
 
   const load = useCallback(async () => {
     const r = await fetch("/api/base/troops");
     setData(await r.json());
+    try {
+      const g = await fetch("/api/base/me", { cache: "no-store" });
+      if (g.ok) {
+        const j = await g.json() as { user_resources?: { gems?: number } };
+        setGemsAvailable(j.user_resources?.gems ?? 0);
+      }
+    } catch { /* ignore */ }
   }, []);
   useEffect(() => { void load(); }, [load]);
-
-  async function train(troopId: string) {
-    const c = counts[troopId] ?? 1;
-    setBusy(troopId); setMsg(null);
-    try {
-      const r = await fetch("/api/base/troops", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ troop_id: troopId, count: c }),
-      });
-      const j = await r.json() as { ok?: boolean; error?: string; seconds?: number; max_at_once?: number };
-      if (j.ok) { setMsg(`✓ ${c} Truppen werden trainiert (${Math.round((j.seconds ?? 0) / 60)} min)`); await Promise.all([load(), reload()]); }
-      else if (j.error === "tier_locked") setMsg("Tier noch nicht erforscht — siehe Forschung-Tab → Militär.");
-      else if (j.error === "building_required") setMsg("Trainings-Gebäude fehlt — erst Kaserne/Stall/Schießstand/Belagerung bauen.");
-      else if (j.error === "building_level_too_low") setMsg("Trainings-Gebäude zu niedrig — erst ausbauen.");
-      else if (j.error === "too_many_at_once") setMsg(`Max ${j.max_at_once} pro Auftrag — Gebäude weiter ausbauen.`);
-      else if (j.error === "not_enough_resources") setMsg("Nicht genug Resourcen.");
-      else setMsg(j.error ?? "Fehler");
-    } finally { setBusy(null); }
-  }
 
   if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
   const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
@@ -1385,10 +1373,10 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
             {open && (
               <div className="p-2 space-y-1.5">
                 {troops.map((t) => {
-                  const count = counts[t.id] ?? 1;
                   const have = ownedMap.get(t.id) ?? 0;
                   return (
-                    <div key={t.id} className="rounded p-2 flex items-center gap-2 bg-[#0F1115]/60 border border-white/5">
+                    <button key={t.id} onClick={() => setSelectedTroopId(t.id)}
+                      className="w-full text-left rounded p-2 flex items-center gap-2 bg-[#0F1115]/60 border border-white/5 hover:bg-[#0F1115]/80 hover:border-white/15 transition">
                       <span className="text-2xl">{t.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-black text-white truncate">
@@ -1399,18 +1387,9 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <div className="text-[10px] text-[#FFD700] font-black">×{have}</div>
-                        <div className="flex items-center gap-1">
-                          <input type="number" min={1} value={count}
-                            onChange={(e) => setCounts({ ...counts, [t.id]: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="w-12 text-[10px] px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white text-right" />
-                          <button onClick={() => train(t.id)} disabled={busy === t.id}
-                            className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40"
-                            style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-                            {busy === t.id ? "…" : "Trainieren"}
-                          </button>
-                        </div>
+                        <div className="text-[9px] text-[#a8b4cf]">tippen ›</div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1418,7 +1397,16 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
           </div>
         );
       })}
-      {msg && <div className="text-[11px] text-center font-black" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
+      {selectedTroopId && (
+        <TroopDetailModal
+          catalog={data.catalog}
+          owned={ownedMap}
+          initialTroopId={selectedTroopId}
+          gemsAvailable={gemsAvailable}
+          onClose={() => setSelectedTroopId(null)}
+          onTrained={async () => { await Promise.all([load(), reload()]); }}
+        />
+      )}
     </div>
   );
 }
