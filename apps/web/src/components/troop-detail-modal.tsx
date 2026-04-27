@@ -11,8 +11,8 @@ export type TroopDef = {
 };
 
 const CLASS_LABEL: Record<string, string> = {
-  infantry: "🛡 Infanterie", cavalry: "🐎 Kavallerie",
-  marksman: "🏹 Schützen",   siege:    "⚙ Belagerung",
+  infantry: "🛡 Türsteher", cavalry: "🏍 Kuriere",
+  marksman: "🎯 Schleuderer", siege:   "🔨 Brecher",
 };
 const CLASS_KIND: Record<string, string> = {
   infantry: "Nahkampf", cavalry: "Reiter", marksman: "Fernkampf", siege: "Schwer",
@@ -159,7 +159,7 @@ export function TroopDetailModal({
               </div>
               {maxAtOnce <= 10 && (
                 <div className="text-[9px] text-[#FF6B9A] mt-2 text-center">
-                  ⓘ Cap = Gebäude-Lv × 10. Baue {troop.troop_class === "infantry" ? "Kaserne" : troop.troop_class === "cavalry" ? "Stall" : troop.troop_class === "marksman" ? "Schießstand" : "Belagerungs-Schuppen"} aus für mehr.
+                  ⓘ Cap = Gebäude-Lv × 10. Baue {troop.troop_class === "infantry" ? "Bar" : troop.troop_class === "cavalry" ? "Garage" : troop.troop_class === "marksman" ? "Gym" : "Werkhof"} aus für mehr.
                 </div>
               )}
 

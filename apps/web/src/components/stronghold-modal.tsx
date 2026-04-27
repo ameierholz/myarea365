@@ -91,23 +91,23 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
 
           {sameTarget && activeRally && (
             <div className="rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/40 p-3">
-              <div className="text-[11px] font-black text-[#FFD700] mb-1">⚡ AKTIVES AUFGEBOT</div>
-              <div className="text-[12px] text-white">Status: <b>{activeRally.status}</b> · Gesamt-ATK: <b>{activeRally.total_atk.toLocaleString("de-DE")}</b></div>
+              <div className="text-[11px] font-black text-[#FFD700] mb-1">⚡ AKTIVER CREW-ANGRIFF</div>
+              <div className="text-[12px] text-white">Status: <b>{activeRally.status}</b> · Gesamt-Angriff: <b>{activeRally.total_atk.toLocaleString("de-DE")}</b></div>
               <button onClick={() => setSetup("join")} className="mt-3 w-full py-2.5 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-sm">
-                Aufgebot beitreten
+                Crew-Angriff beitreten
               </button>
             </div>
           )}
 
           {!sameTarget && activeRally && (
             <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-[11px] text-[#a8b4cf]">
-              ⚠️ Deine Crew hat bereits ein aktives Aufgebot an einem anderen Wegelager. Erst das abschließen.
+              ⚠️ Deine Crew hat bereits einen aktiven Crew-Angriff an einem anderen Wegelager. Erst das abschließen.
             </div>
           )}
 
           {canStart && (
             <button onClick={() => setSetup("setup")} className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF2D78] to-[#FF6B4A] text-white font-black text-sm shadow-lg">
-              ⚔️ Aufgebot starten
+              ⚔️ Crew-Angriff starten
             </button>
           )}
         </div>
@@ -279,7 +279,7 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
         <div className="p-4 border-t border-white/10">
           <button onClick={submit} disabled={busy || totalCount === 0}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-sm disabled:opacity-40">
-            {busy ? "…" : (mode === "setup" ? "⚔️ Aufgebot starten" : "⚔️ Beitreten")}
+            {busy ? "…" : (mode === "setup" ? "⚔️ Crew-Angriff starten" : "⚔️ Beitreten")}
           </button>
         </div>
       </div>

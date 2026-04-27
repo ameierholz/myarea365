@@ -6,7 +6,7 @@ export type ResourceKind = "wood" | "stone" | "gold" | "mana" | "speed_token";
 export type ChestKind = "silver" | "gold" | "event";
 export type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
 
-type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap };
+type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap };
 
 let _cache: AllArt | null = null;
 const _listeners = new Set<(m: AllArt) => void>();
@@ -19,8 +19,8 @@ function ensureFetch() {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (!r.ok) return;
-      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap };
-      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {} };
+      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap };
+      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {} };
       _listeners.forEach((l) => l(_cache!));
     } catch { /* silent */ } finally { _fetching = false; }
   })();
@@ -96,6 +96,38 @@ export function useNameplateArt(): ResourceArtMap {
     return () => { _listeners.delete(sub); };
   }, []);
   return art;
+}
+
+export function useUiIconArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_cache?.ui_icon ?? {});
+  useEffect(() => {
+    if (_cache) { setArt(_cache.ui_icon); return; }
+    const sub = (m: AllArt) => setArt(m.ui_icon);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
+/** Generischer UI-Icon — fällt auf Emoji zurück, wenn kein Artwork hochgeladen ist. */
+export function UiIcon({ slot, size = 24, fallback, art }: {
+  slot: string;
+  size?: number;
+  fallback: string;
+  art: ResourceArtMap;
+}) {
+  const a = art[slot];
+  const baseStyle: React.CSSProperties = {
+    width: size, height: size, objectFit: "contain",
+    display: "inline-block", verticalAlign: "middle", filter: CHROMA,
+  };
+  if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
+  if (a?.image_url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={a.image_url} alt={slot} style={baseStyle} />;
+  }
+  return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
 }
 
 /**

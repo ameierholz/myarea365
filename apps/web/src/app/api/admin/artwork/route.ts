@@ -52,14 +52,14 @@ export async function POST(req: Request) {
   // Body: { target_type, target_id, path, is_video }
   if (contentType.includes("application/json")) {
     const body = await req.json() as {
-      target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest";
+      target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon";
       target_id: string;
       path: string;
       is_video: boolean;
       variant?: "neutral" | "male" | "female";
     };
     if (!body.target_id || !body.path) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-    if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+    if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
 
     const { data: pub } = sb.storage.from("artwork").getPublicUrl(body.path);
     const publicUrl = pub.publicUrl;
@@ -158,7 +158,32 @@ export async function DELETE(req: Request) {
   const url = new URL(req.url);
   const targetType = url.searchParams.get("target_type") || "";
   const targetId   = url.searchParams.get("target_id") || "";
-  if (!["archetype", "item", "material"].includes(targetType) || !targetId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  const variant    = url.searchParams.get("variant") || "neutral";
+  const clear      = url.searchParams.get("clear") || "all"; // "image" | "video" | "all"
+  if (!targetId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+
+  // ─── cosmetic_artwork-Kinds ───
+  const cosmeticKinds = ["marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon"];
+  if (cosmeticKinds.includes(targetType)) {
+    const { data: row } = await adminSb().from("cosmetic_artwork")
+      .select("image_url, video_url")
+      .eq("kind", targetType).eq("slot_id", targetId).eq("variant", variant)
+      .maybeSingle<{ image_url: string | null; video_url: string | null }>();
+    const urlsToRemove: string[] = [];
+    if ((clear === "all" || clear === "image") && row?.image_url) urlsToRemove.push(row.image_url);
+    if ((clear === "all" || clear === "video") && row?.video_url) urlsToRemove.push(row.video_url);
+    for (const u of urlsToRemove) {
+      const m = u.match(/\/artwork\/(.+)$/);
+      if (m) await sb.storage.from("artwork").remove([m[1]]);
+    }
+    const payload: Record<string, null | string> = { updated_at: new Date().toISOString() };
+    if (clear === "all" || clear === "image") payload.image_url = null;
+    if (clear === "all" || clear === "video") payload.video_url = null;
+    await adminSb().from("cosmetic_artwork").update(payload).eq("kind", targetType).eq("slot_id", targetId).eq("variant", variant);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (!["archetype", "item", "material"].includes(targetType)) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
   const table = targetType === "archetype"
     ? "guardian_archetypes"
@@ -169,13 +194,15 @@ export async function DELETE(req: Request) {
   const selectCols = allowsVideo ? "image_url, video_url" : "image_url";
   const { data: row } = await sb.from(table).select(selectCols).eq("id", targetId).maybeSingle<{ image_url: string | null; video_url?: string | null }>();
   const urlsToRemove: string[] = [];
-  if (row?.image_url) urlsToRemove.push(row.image_url);
-  if (row?.video_url) urlsToRemove.push(row.video_url);
-  for (const url of urlsToRemove) {
-    const m = url.match(/\/artwork\/(.+)$/);
+  if ((clear === "all" || clear === "image") && row?.image_url) urlsToRemove.push(row.image_url);
+  if ((clear === "all" || clear === "video") && allowsVideo && row?.video_url) urlsToRemove.push(row.video_url);
+  for (const u of urlsToRemove) {
+    const m = u.match(/\/artwork\/(.+)$/);
     if (m) await sb.storage.from("artwork").remove([m[1]]);
   }
-  const clearPayload = allowsVideo ? { image_url: null, video_url: null } : { image_url: null };
-  await adminSb().from(table).update(clearPayload).eq("id", targetId);
+  const payload: Record<string, null> = {};
+  if (clear === "all" || clear === "image") payload.image_url = null;
+  if (allowsVideo && (clear === "all" || clear === "video")) payload.video_url = null;
+  await adminSb().from(table).update(payload).eq("id", targetId);
   return NextResponse.json({ ok: true });
 }

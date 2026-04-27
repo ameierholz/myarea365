@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
-import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, type ResourceArtMap } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
 import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
 import { createClient } from "@/lib/supabase/client";
@@ -91,6 +91,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const resourceArt = useResourceArt();
   const chestArt = useChestArt();
   const buildingArt = useBuildingArt();
+  const baseThemeArt = useBaseThemeArt();
 
   const reload = useCallback(async () => {
     const r = await fetch("/api/base/me", { cache: "no-store" });
@@ -261,9 +262,16 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
         {/* ─── Hero-Header mit Theme-Banner + XP ─── */}
         <div style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 50%, transparent 100%)` }}>
           <div className="px-5 pt-5 pb-5 flex items-start gap-4">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-5xl shrink-0"
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-5xl shrink-0 overflow-hidden"
                  style={{ background: `radial-gradient(circle at 50% 30%, ${accent}66, ${accent}22 50%, rgba(15,17,21,0.6))`, border: `2px solid ${accent}99`, boxShadow: `0 0 20px ${accent}55` }}>
-              {theme?.pin_emoji ?? "🏰"}
+              {(() => {
+                const tid = theme?.id ?? base.theme_id ?? "medieval";
+                const a = baseThemeArt[`${tid}_runner_pin`] ?? baseThemeArt[`${tid}_runner_banner`] ?? baseThemeArt[tid];
+                const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
+                if (a?.image_url) return <img src={a.image_url} alt={theme?.name ?? "Base"} style={{ width: 72, height: 72, objectFit: "contain", filter: f }} />;
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", filter: f }} />;
+                return <span>{theme?.pin_emoji ?? "🏰"}</span>;
+              })()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[10px] font-black tracking-widest" style={{ color: accent }}>
@@ -1328,16 +1336,16 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
   if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
   const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
   const classes: Array<{ id: string; label: string; building: string }> = [
-    { id: "infantry",  label: "🛡️ Infanterie",   building: "Kaserne" },
-    { id: "cavalry",   label: "🐎 Kavallerie",   building: "Stall" },
-    { id: "marksman",  label: "🏹 Schützen",     building: "Schießstand" },
-    { id: "siege",     label: "⚙️ Belagerung",   building: "Belagerungs-Schuppen" },
+    { id: "infantry",  label: "🛡️ Türsteher",    building: "Bar" },
+    { id: "cavalry",   label: "🏍️ Kuriere",      building: "Garage" },
+    { id: "marksman",  label: "🎯 Schleuderer",  building: "Gym" },
+    { id: "siege",     label: "🔨 Brecher",      building: "Werkhof" },
   ];
 
   return (
     <div className="space-y-3">
       <IntroBox accent={accent} title="⚔️ TRUPPEN AUSBILDEN">
-        Trainiere Truppen in <b className="text-white">Kaserne / Stall / Schießstand / Belagerungs-Schuppen</b>.
+        Heuere deine Crew in <b className="text-white">Bar / Garage / Gym / Werkhof</b> an.
         <b className="text-white">T1</b> ist sofort verfügbar. <b className="text-white">T2-T5</b> müssen erst erforscht werden — siehe <b className="text-white">🔬 FORSCHUNG-Tab → Militär</b>. T5-Forschungen dauern mehrere Tage.
         <span className="block mt-1 text-[#6c7590]">Trainings-Cap pro Auftrag = Gebäude-Level × 10.</span>
       </IntroBox>

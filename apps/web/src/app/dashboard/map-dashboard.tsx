@@ -7,6 +7,7 @@ import Link from "next/link";
 import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
 import { InboxContent } from "./inbox-content";
+import { InboxClient } from "../inbox/inbox-client";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -59,6 +60,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppMap } from "@/components/app-map";
 import { BaseModal } from "@/components/base-modal";
+import { AttackBaseModal } from "@/components/attack-base-modal";
+import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
 import { StrongholdModal, ActiveRallyBanner } from "@/components/stronghold-modal";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
@@ -170,6 +173,17 @@ interface Territory {
   segments_claimed?: number;
   streets_claimed?: number;
   polygons_claimed?: number;
+  // Walk-Details (aus get_recent_walks_with_summary)
+  start_address?: string | null;
+  end_address?: string | null;
+  wood_dropped?: number;
+  stone_dropped?: number;
+  gold_dropped?: number;
+  mana_dropped?: number;
+  tokens_dropped?: number;
+  xp_bonuses?: Array<{ kind: string; label: string; pct?: number; extra_amount?: number; unit?: string; amount?: number }>;
+  achievements_unlocked?: Array<{ id?: string; name?: string; emoji?: string; xp?: number }>;
+  chests_collected?: Array<{ id?: string; name?: string; rarity?: string }>;
 }
 
 interface Crew {
@@ -404,6 +418,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   useEffect(() => {
     if (!profile) return;
     (async () => {
+      // Bevorzugt: enriched walks-Endpoint (mit Adressen + RSS-Drops + Tokens + Boni).
+      // Fallback: territories-Direkt-Query falls API noch nicht deployed.
+      const r = await fetch("/api/runs/recent?limit=5", { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json() as { runs?: Territory[] };
+        if (j.runs) { setRecentRuns(j.runs); return; }
+      }
       const { data } = await supabase
         .from("territories")
         .select("id, street_name, distance_m, duration_s, xp_earned, created_at, segments_claimed, streets_claimed, polygons_claimed")
@@ -1127,11 +1148,35 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
+  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
   const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
+  const [attackTarget, setAttackTarget] = useState<string | null>(null);
+  const [pbRally, setPbRally] = useState<PlayerBaseRallyState | null>(null);
+  const [showJoinPbRally, setShowJoinPbRally] = useState<boolean>(false);
+
+  // Player-Base-Rally polling alle 20 s (nur State updaten wenn sich was
+  // wirklich ändert, sonst flackert das ganze Dashboard).
+  useEffect(() => {
+    let cancelled = false;
+    let last: string | null = null;
+    const poll = async () => {
+      try {
+        const r = await fetch("/api/base/rally", { cache: "no-store" });
+        if (!r.ok || cancelled) return;
+        const j = await r.json() as { rally: PlayerBaseRallyState | null };
+        const sig = JSON.stringify(j.rally);
+        if (sig === last) return;
+        last = sig;
+        if (!cancelled) setPbRally(j.rally);
+      } catch { /* network blip — ignorieren */ }
+    };
+    void poll();
+    const iv = setInterval(poll, 20000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, []);
   const [placeBaseMode, setPlaceBaseMode] = useState<null | "runner" | "crew">(null);
 
   // ── Wegelager (Strongholds) + Rally-State ──
@@ -1242,17 +1287,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     if (!userCenter) return;
     let cancelled = false;
     const load = async () => {
-      const dLat = 0.045;  // ≈ 5 km
-      const dLng = 0.07;
+      const dLat = 0.090;  // ≈ 10 km Halbradius
+      const dLng = 0.140;
       const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
       const r = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
       if (!r.ok || cancelled) return;
-      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }> };
+      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }> };
       const merged: BasePin[] = [];
       const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
       (j.runner ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "runner", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, theme_id: b.theme_id, ...t });
+        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, theme_id: b.theme_id, ...t });
       });
       (j.crew ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
@@ -1273,7 +1318,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       if (kind === "runner") setOwnBaseHasPos(true);
       // refetch pins
       if (userCenter) {
-        const dLat = 0.045, dLng = 0.07;
+        const dLat = 0.090, dLng = 0.140;
         const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
         const rr = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
         if (rr.ok) {
@@ -1355,15 +1400,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       return spawnAt(lat, lng, 0);
     };
 
-    // Initialer Bulk-Fill Berlin-weit (läuft sofort beim Mount).
+    // Initialer Bulk-Fill Berlin-weit — OHNE Mapbox-Snap (zu teuer: 200
+    // API-Calls + 200 setStates haben das Dashboard zum Flackern gebracht).
+    // Die Drops landen mit Roh-Koords; nur die User-nahen Boost-Drops werden
+    // gesnappt (siehe userBoostInt unten).
     let cancelled = false;
-    (async () => {
-      for (let i = 0; i < TARGET_DROPS; i++) {
-        if (cancelled) return;
-        await spawnRandomBerlin();
-        await new Promise((r) => setTimeout(r, 60));
-      }
-    })();
+    const initialDrops: ReturnType<typeof makeDrop>[] = [];
+    for (let i = 0; i < TARGET_DROPS; i++) {
+      const lat = BERLIN.south + Math.random() * (BERLIN.north - BERLIN.south);
+      const lng = BERLIN.west  + Math.random() * (BERLIN.east  - BERLIN.west);
+      initialDrops.push(makeDrop(lat, lng));
+    }
+    setLootDrops(initialDrops);
 
     // Sobald GPS verfügbar wird: zusätzliche 15 Drops eng um den User streuen.
     // Pollt alle 500 ms bis userCenter da ist (max 30 s warten).
@@ -1532,7 +1580,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return { ...b, theme_rarity: rar, nameplate_art: np };
               })}
               baseThemeArt={dashboardBaseThemeArt}
-              onBasePinTap={(pin) => setBaseModalTarget(pin)}
+              onBasePinTap={(pin) => {
+                // Fremde Runner-Base → Attack-Modal; eigene oder Crew → BaseModal
+                if (!pin.is_own && pin.kind === "runner") {
+                  const full = basePins.find((b) => b.id === pin.id);
+                  if (full?.owner_user_id) { setAttackTarget(full.owner_user_id); return; }
+                }
+                setBaseModalTarget(pin);
+              }}
               placeBaseMode={placeBaseMode}
               onPlaceBaseClick={onPlaceBaseClick}
             />
@@ -1546,15 +1601,33 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             />
 
             {/* Floating Badge für Tagesangebote — versteckt wenn walking oder ein Modal offen ist */}
-            <DailyDealMapBadge userId={p?.id} hidden={walking || !!baseModalTarget || !!viewingShop || !!viewingArea || !!viewingBoss || !!viewingSanctuary || !!viewingPowerZone || !!ownershipQuery || !!strongholdModalTarget} />
+            <DailyDealMapBadge userId={p?.id} hidden={walking || !!baseModalTarget || !!attackTarget || !!viewingShop || !!viewingArea || !!viewingBoss || !!viewingSanctuary || !!viewingPowerZone || !!ownershipQuery || !!strongholdModalTarget} />
 
             {/* Active-Rally-Banner — oben auf der Karte wenn Crew eine Versammlung laufen hat */}
-            {rallyData?.rally && !strongholdModalTarget && !baseModalTarget && (
+            {rallyData?.rally && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
               <div style={{ position: "absolute", top: 14, left: 12, right: 12, zIndex: 56 }}>
                 <ActiveRallyBanner
                   rally={rallyData.rally}
                   onOpen={async () => {
                     if (rallyData.stronghold) setStrongholdModalTarget(rallyData.stronghold);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Player-Base-Crew-Angriff-Banner */}
+            {pbRally && !strongholdModalTarget && !baseModalTarget && !attackTarget && (
+              <div style={{ position: "absolute", top: 14, left: 12, right: 12, zIndex: 56 }}>
+                <ActivePlayerBaseRallyBanner
+                  rally={pbRally}
+                  onOpen={() => {
+                    if (!pbRally.joined && pbRally.status === "preparing") setShowJoinPbRally(true);
+                    else {
+                      // Zentriere Karte auf Defender-Base
+                      window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                        detail: { lng: pbRally.defender_lng, lat: pbRally.defender_lat, zoom: 16 },
+                      }));
+                    }
                   }}
                 />
               </div>
@@ -1719,7 +1792,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {/* mapActionOverlay: bottom 30 — versteckt wenn ein Modal offen ist (Losgehen darf nicht durchs Modal stechen) */}
             <div style={{
               position: "absolute", bottom: 30, left: 0, right: 0,
-              display: (baseModalTarget || viewingShop || viewingArea || viewingBoss || viewingSanctuary || viewingPowerZone || ownershipQuery || strongholdModalTarget) ? "none" : "flex",
+              display: (baseModalTarget || attackTarget || viewingShop || viewingArea || viewingBoss || viewingSanctuary || viewingPowerZone || ownershipQuery || strongholdModalTarget) ? "none" : "flex",
               flexDirection: "column", alignItems: "center", zIndex: 50, pointerEvents: "none",
             }}>
               {walking && currentStreet && (
@@ -1995,6 +2068,26 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {/* Base-Modal (eigenes oder fremdes Pin) */}
       {baseModalTarget && (
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
+      )}
+
+      {/* Angriffs-Modal — wenn fremde Spieler-Base getappt wird */}
+      {attackTarget && (
+        <AttackBaseModal defenderUserId={attackTarget} onClose={() => setAttackTarget(null)} />
+      )}
+
+      {/* Beitritts-Modal für Crew-Aufgebot gegen Spieler-Base */}
+      {showJoinPbRally && pbRally && (
+        <JoinPlayerBaseRallyModal
+          rally={pbRally}
+          onClose={() => setShowJoinPbRally(false)}
+          onJoined={async () => {
+            const r = await fetch("/api/base/rally", { cache: "no-store" });
+            if (r.ok) {
+              const j = await r.json() as { rally: PlayerBaseRallyState | null };
+              setPbRally(j.rally);
+            }
+          }}
+        />
       )}
 
       {/* Stronghold-Modal (Wegelager-Pin auf der Map) */}
@@ -2436,8 +2529,11 @@ function ProfilTab({
   const p: Profile | null = useDemo && origP
     ? ({ ...origP, ...DEMO_STATS } as Profile)
     : origP;
+  // Demo-Runs nur EINMAL pro Session generieren — sonst spuckt Math.random
+  // bei jedem Render andere Werte aus → Heatmap & Run-Liste flackern.
+  const memoDemoRuns = useMemo(() => generateDemoRecentRuns() as Territory[], []);
   const effectiveRecentRuns: Territory[] = useDemo && recentRuns.length === 0
-    ? generateDemoRecentRuns() as Territory[]
+    ? memoDemoRuns
     : recentRuns;
   const effectiveTerritoryCount = useDemo && territoryCount === 0
     ? DEMO_STATS.territory_count
@@ -2917,25 +3013,22 @@ function ProfilTab({
           >
             {/* Theme-Icon (Artwork aus cosmetic_artwork.kind=base_theme) */}
             <div style={{
-              width: 96, height: 96, borderRadius: 14, flexShrink: 0,
+              width: 76, height: 84, borderRadius: 12, flexShrink: 0,
               background: `radial-gradient(circle at 50% 30%, ${ownBaseInfo.accent}55 0%, ${ownBaseInfo.accent}22 45%, rgba(15,17,21,0.55) 100%)`,
               border: `1px solid ${ownBaseInfo.accent}77`,
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: `0 0 14px ${ownBaseInfo.accent}44, inset 0 0 18px ${ownBaseInfo.accent}22`,
-              overflow: "visible", position: "relative",
+              overflow: "hidden",
             }}>
               {(() => {
-                // Slot-Pattern: "{theme}_runner_pin" (siehe artwork-prompts.ts)
                 const slotPin = `${ownBaseInfo.theme_id}_runner_pin`;
                 const slotBanner = `${ownBaseInfo.theme_id}_runner_banner`;
                 const a = baseThemeArt[slotPin] ?? baseThemeArt[slotBanner] ?? baseThemeArt[ownBaseInfo.theme_id];
-                // Chroma-Key entfernt Greenscreen-Hintergrund (wie Wächter/Map-Pin).
-                // Bild größer gerendert (130%) und mit overflow:visible, weil die
-                // Greenscreen-PNGs ~8% Padding rundum haben → Burg sonst zu klein.
                 const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
-                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 124, height: 124, objectFit: "contain", filter: f }} />;
-                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 124, height: 124, objectFit: "contain", filter: f }} />;
-                return <span style={{ fontSize: 56, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
+                // Bild bevorzugen vor Video (neu hochgeladene PNGs sollen Vorrang haben)
+                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 64, height: 72, objectFit: "contain", filter: f }} />;
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 72, objectFit: "contain", filter: f }} />;
+                return <span style={{ fontSize: 44, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
               })()}
             </div>
 
@@ -3625,8 +3718,8 @@ function ProfilTab({
       )}
 
       {openModal === "inbox" && (
-        <Modal title={tMD("modalInboxTitle")} subtitle={tMD("modalInboxSubtitle")} icon="📬" accent="#22D1C3" onClose={() => setOpenModal(null)}>
-          <InboxContent />
+        <Modal title="Posteingang" subtitle="Nachrichten, Berichte, Crew & Events" icon="📬" accent="#a855f7" maxWidth={1100} onClose={() => setOpenModal(null)}>
+          <InboxClient />
         </Modal>
       )}
 
@@ -3636,6 +3729,16 @@ function ProfilTab({
             prefillEmail={(p as unknown as { email?: string })?.email ?? ""}
             prefillName={p?.display_name ?? p?.username ?? ""}
           />
+          <div style={{ marginTop: 24, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 18 }}>📬</span>
+              <div>
+                <div style={{ color: "#FFF", fontWeight: 900, fontSize: 14 }}>Post vom MyArea365-Team</div>
+                <div style={{ color: "#8B8FA3", fontSize: 11 }}>Antworten auf Tickets &amp; Ankündigungen</div>
+              </div>
+            </div>
+            <InboxContent />
+          </div>
         </Modal>
       )}
 
@@ -8499,7 +8602,9 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#FFF", fontSize: 14, fontWeight: "bold", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {run.street_name || "Unbekannter Weg"}
+            {run.start_address && run.end_address
+              ? `${run.start_address} → ${run.end_address}`
+              : (run.street_name || run.start_address || run.end_address || "Unbekannter Weg")}
           </div>
           <div style={{ color: MUTED, fontSize: 11, marginTop: 3 }}>
             {fmtDateLocal(run.created_at)} · {km.toFixed(2)} km · {fmtDurationLocal(duration)}
@@ -8567,6 +8672,89 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
               </div>
             </div>
           </div>
+
+          {/* Ressourcen-Drops */}
+          {((run.wood_dropped ?? 0) + (run.stone_dropped ?? 0) + (run.gold_dropped ?? 0) + (run.mana_dropped ?? 0)) > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
+                💎 RESSOURCEN
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                {[
+                  { label: "Holz",  v: run.wood_dropped ?? 0,  c: "#7CC36A" },
+                  { label: "Stein", v: run.stone_dropped ?? 0, c: "#9aa3b2" },
+                  { label: "Gold",  v: run.gold_dropped ?? 0,  c: "#FFD700" },
+                  { label: "Mana",  v: run.mana_dropped ?? 0,  c: "#5ddaf0" },
+                ].map((r) => (
+                  <div key={r.label} style={{ background: "rgba(0,0,0,0.25)", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "6px 8px", textAlign: "center" }}>
+                    <div style={{ color: MUTED, fontSize: 9, fontWeight: 800 }}>{r.label}</div>
+                    <div style={{ color: r.v > 0 ? r.c : "rgba(255,255,255,0.3)", fontSize: 12, fontWeight: 800 }}>+{r.v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Speed-Tokens */}
+          {(run.tokens_dropped ?? 0) > 0 && (
+            <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.4)", borderRadius: 10 }}>
+              <span style={{ color: "#FFD700", fontSize: 12, fontWeight: 800 }}>⚡ Speed-Tokens (1 / km)</span>
+              <span style={{ color: "#FFD700", fontSize: 13, fontWeight: 900 }}>+{run.tokens_dropped}</span>
+            </div>
+          )}
+
+          {/* XP-Boni einzeln */}
+          {(run.xp_bonuses?.length ?? 0) > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
+                🎁 BONI
+              </div>
+              <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 10, padding: "8px 12px", border: `1px solid ${BORDER}`, display: "flex", flexDirection: "column", gap: 4 }}>
+                {(run.xp_bonuses ?? []).map((b, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: MUTED }}>{b.label}{b.pct ? ` (+${b.pct}%)` : ""}</span>
+                    <span style={{ color: "#4ade80", fontWeight: 700 }}>
+                      {b.extra_amount != null ? `+${b.extra_amount} ${b.unit ?? ""}` : (b.amount != null ? `+${b.amount}` : "✓")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Achievements freigeschaltet */}
+          {(run.achievements_unlocked?.length ?? 0) > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
+                🏆 ACHIEVEMENTS FREIGESCHALTET
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {(run.achievements_unlocked ?? []).map((a, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.35)", borderRadius: 8 }}>
+                    <span style={{ fontSize: 18 }}>{a.emoji ?? "🏆"}</span>
+                    <span style={{ color: "#FFF", fontSize: 12, fontWeight: 700, flex: 1 }}>{a.name ?? a.id ?? "Achievement"}</span>
+                    {a.xp != null && <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>+{a.xp} XP</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Truhen während des Laufs gesammelt */}
+          {(run.chests_collected?.length ?? 0) > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
+                🗝️ TRUHEN GESAMMELT
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {(run.chests_collected ?? []).map((c, i) => (
+                  <span key={i} style={{ padding: "4px 10px", borderRadius: 999, background: "rgba(168,85,247,0.15)", border: "1px solid rgba(168,85,247,0.45)", color: "#FFF", fontSize: 11, fontWeight: 700 }}>
+                    🗝️ {c.name ?? c.id ?? "Truhe"}{c.rarity ? ` · ${c.rarity}` : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Aktionen */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

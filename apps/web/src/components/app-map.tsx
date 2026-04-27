@@ -2618,8 +2618,8 @@ export function AppMap({
         e.stopPropagation();
         onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
       });
-      inner.addEventListener("mouseenter", () => { inner.style.transform = "scale(1.08)"; });
-      inner.addEventListener("mouseleave", () => { inner.style.transform = "scale(1.0)"; });
+      // KEIN Hover-Scale: würde an den Rändern Cursor wegschieben → mouseleave →
+      // zurückskalieren → mouseenter-Loop = Zitter-Bug.
 
       // anchor:"center" → das Icon (mittleres Element) sitzt exakt auf lat/lng,
       // LV-Chip schwebt darüber, Name-Chip darunter. Wir korrigieren den Offset
@@ -2630,19 +2630,27 @@ export function AppMap({
       basePinMarkersRef.current.push(marker);
     });
 
-    // Base-Pins ausblenden bei zoom < 7. Skalierung übernimmt das globale
-    // data-zoom-scale-System.
-    let lastHide: boolean | null = null;
+    // Base-Pins: ab zoom 15.5 sichtbar, dann linear mit Zoom skalieren
+    // (zoom 15.5 → 0.5, zoom 17.5+ → 1.0), damit die Burg beim Rauszoomen
+    // nicht den ganzen Stadtteil überdeckt.
     const updateBasePinVisibility = () => {
-      const hide = map.getZoom() < 15.5;
-      if (hide === lastHide) return;
-      lastHide = hide;
+      const z = map.getZoom();
+      const hide = z < 15.5;
+      const scale = hide ? 0 : Math.max(0.5, Math.min(1, 0.5 + (z - 15.5) / 2));
       basePinMarkersRef.current.forEach((m) => {
         const e = m.getElement();
         e.style.opacity = hide ? "0" : "1";
         e.style.visibility = hide ? "hidden" : "visible";
+        // WICHTIG: NUR opacity in transition — Mapbox setzt die Position via
+        // transform:translate(...) auf das Root-Element. Eine transform-
+        // Transition würde beim Pannen die Position interpolieren = Base
+        // "schwimmt" hinterher.
         e.style.transition = "opacity 0.25s";
         e.style.pointerEvents = hide ? "none" : "auto";
+        // zoomWrap ist firstElementChild — skalieren ohne den hover-transform
+        // auf `inner` zu stören.
+        const zoomWrap = e.firstElementChild as HTMLElement | null;
+        if (zoomWrap) zoomWrap.style.transform = `scale(${scale})`;
       });
     };
     updateBasePinVisibility();

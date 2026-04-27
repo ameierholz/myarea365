@@ -25,6 +25,7 @@ export async function GET() {
   const chest:      Record<string, Art> = {};
   const stronghold: Record<string, Art> = {};
   const nameplate:  Record<string, Art> = {};
+  const ui_icon:    Record<string, Art> = {};
   for (const r of (data ?? []) as Array<{ kind: string; slot_id: string; variant: string; image_url: string | null; video_url: string | null }>) {
     const art: Art = { image_url: r.image_url, video_url: r.video_url };
     if (r.kind === "marker") {
@@ -52,7 +53,9 @@ export async function GET() {
       stronghold[r.slot_id] = art;
     } else if (r.kind === "nameplate") {
       nameplate[r.slot_id] = art;
+    } else if (r.kind === "ui_icon") {
+      ui_icon[r.slot_id] = art;
     }
   }
-  return NextResponse.json({ marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate });
+  return NextResponse.json({ marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon });
 }

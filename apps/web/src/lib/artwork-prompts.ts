@@ -1401,3 +1401,73 @@ export function buildMaterialPrompt(input: {
 }
 
 
+
+// ─── UI-Icons (Stats / Klassen / Action-Buttons / Badges) ──────────
+export type UiIconSlotInput = {
+  id: string;
+  category: string;
+  name: string;
+  description: string;
+  fallback_emoji: string;
+};
+
+export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" | "video" }): string {
+  const s = input.slot;
+
+  // Per-Slot subject hint
+  const SUBJECT: Record<string, string> = {
+    // Stats
+    stat_troops:    "crossed sword and shield silhouette emblem, troop count icon, militant",
+    stat_attack:    "single longsword diagonal with red glow, sharp blade, attack icon",
+    stat_defense:   "tower shield emblem with steel rim, glowing crest center, defense icon",
+    stat_hp:        "stylized heart icon, crimson red, soft inner glow, life points",
+    stat_power:     "clenched fist emblem with radiating rays, power/strength icon, golden",
+    // Klassen (Set D Kiez-Crew)
+    class_infantry: "burly bouncer silhouette with crossed arms, suit jacket, broad shoulders, club bouncer icon",
+    class_cavalry:  "motorbike courier helmet with visor, side view, urban delivery rider icon, sleek",
+    class_marksman: "slingshot and stone, trajectory arc, urban thrower icon, precision",
+    class_siege:    "sledgehammer crossed with crowbar, demolition icon, heavy and rough",
+    // Aktionen
+    action_spy:     "magnifying glass with eye in center, surveillance icon, spy emblem, cyan glow",
+    action_rally:   "megaphone with sound waves, rally call icon, orange-red glow",
+    action_attack:  "two crossed swords clashing, attack action icon, sharp metallic, pink-magenta glow",
+    action_shield:  "circular shield emblem with star center, protection badge, cyan-blue energy",
+    // Inbox-Kategorien
+    inbox_personal:      "stylized envelope with wax seal, soft blue glow, personal mail icon",
+    inbox_report:        "rolled parchment scroll with red ribbon, battle report icon, aged paper",
+    inbox_crew:          "kite shield with crew banner crest, gold trim, crew emblem",
+    inbox_event:         "festive party popper with confetti burst, vibrant multicolor, event icon",
+    inbox_system:        "geared cog with subtle circuit lines, steel & cyan glow, system notification icon",
+    inbox_sent:          "paper plane with motion trail, soft cyan, outgoing message icon",
+    inbox_fab:           "vintage red mailbox with raised flag, small letters peeking out, mailbox icon",
+    inbox_reward:        "wrapped gift box with golden ribbon and bow, sparkles, reward icon",
+    inbox_starred:       "five-pointed star with golden glow and inner sparkle, bookmark/favorite icon",
+    inbox_unread:        "small glowing dot/pulse orb, cyan-teal, notification dot",
+    inbox_report_pvp:    "two crossed swords clashing with spark, PvP battle report icon",
+    inbox_report_pve:    "longbow with arrow nocked, forest green tone, PvE bandit raid icon",
+    inbox_report_spy:    "magnifying glass over folded document, spy report icon",
+    inbox_crew_decree:   "wax-sealed proclamation scroll, gold seal, crew decree icon",
+    inbox_crew_announce: "megaphone with concentric sound waves, announcement icon",
+    inbox_crew_bounty:   "wanted poster pin with target crosshair, bounty icon",
+    inbox_crew_build:    "construction crane silhouette with steel girders, build report icon",
+  };
+
+  const subject = SUBJECT[s.id] ?? `iconic single-subject illustration representing "${s.name}" — ${s.description}`;
+
+  const base = [
+    `A premium UI icon for a mobile city-walking strategy game called "${s.name}".`,
+    `Background: solid pure GREENSCREEN #00FF00, no other green hue, completely flat — for chroma-key removal.`,
+    `Subject (centered, fills ~75% of frame): ${subject}.`,
+    `Style: stylized 3D game-icon, slight isometric tilt, vibrant saturated colors, soft inner glow, thick clean silhouette readable at 24×24 px, painterly soft shading with strong rim-light.`,
+    `Composition: 1024×1024 square, single icon centered, subtle radial vignette behind subject only (NOT touching frame edges — keep #00FF00 fully clean at edges).`,
+    `Strict negatives: no text, no letters, no logo, no watermark, no human faces, no extra background scenery, no green spill on subject, no shadows on the green background, no anti-aliased green halo around subject (use clean alpha-friendly silhouette).`,
+  ].join(" ");
+
+  if (input.mode === "video") {
+    return [
+      base,
+      "Animation: seamless 3-second loop. Subject pulses gently (scale 100% → 105% → 100%), inner glow brightens then dims once, optional tiny particle drifts upward off the icon. First and last frame must match exactly. No audio.",
+    ].join(" ");
+  }
+  return base;
+}

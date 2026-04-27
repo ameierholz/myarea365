@@ -6,7 +6,7 @@ import { uploadArtworkDirect } from "@/lib/artwork-upload";
 export function AdminArtworkControls({
   targetType, targetId, variant, buildPrompt, hasImage, hasVideo, onUploaded,
 }: {
-  targetType: "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "material" | "base_theme" | "building" | "resource" | "chest";
+  targetType: "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "material" | "base_theme" | "building" | "resource" | "chest" | "ui_icon";
   targetId: string;
   variant?: "neutral" | "male" | "female";
   buildPrompt: (mode: "image" | "video") => string;
@@ -57,6 +57,25 @@ export function AdminArtworkControls({
           {busy ? "…" : hasVideo ? "🎞️ MP4 ersetzen" : "🎞️ MP4 hoch"}
         </button>
       </div>
+      {hasVideo && (
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (!confirm("MP4-Video wirklich löschen?")) return;
+            setBusy(true); setErr(null);
+            try {
+              const params = new URLSearchParams({ target_type: targetType, target_id: targetId, clear: "video", variant: variant ?? "neutral" });
+              const r = await fetch(`/api/admin/artwork?${params}`, { method: "DELETE" });
+              if (!r.ok) { const j = await r.json().catch(() => ({})); setErr(j.error || `delete_failed_${r.status}`); }
+              else onUploaded?.();
+            } finally { setBusy(false); }
+          }}
+          disabled={busy}
+          style={btn("#FF2D78")}
+        >
+          {busy ? "…" : "🗑️ MP4 löschen"}
+        </button>
+      )}
       {err && <div style={{ fontSize: 8, color: "#FF2D78" }}>{err}</div>}
       <input ref={imgRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
       <input ref={vidRef} type="file" accept="video/mp4,video/webm" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />

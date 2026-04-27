@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const sb = adminSb();
 
   const body = await req.json() as {
-    target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest";
+    target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon";
     target_id: string;
     file_name: string;
     content_type: string;
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   if (!body.target_id || !body.file_name) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
-  if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest"].includes(body.target_type)) {
+  if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon"].includes(body.target_type)) {
     return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
   }
 
@@ -60,6 +60,7 @@ export async function POST(req: Request) {
     building:   "buildings",
     resource:   "resources",
     chest:      "chests",
+    ui_icon:    "ui-icons",
   };
   const folder = folderMap[body.target_type] ?? "items";
   const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;
