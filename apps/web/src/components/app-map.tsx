@@ -603,15 +603,18 @@ function buildSelfMarkerEl(
   // Name-Badge (frosted glass, crew-color border glow, Speech-Bubble-Pfeil, klickbar)
   const cleanName = (displayName ?? "").trim();
   const badgeColor = crewColor ?? "#22D1C3";
-  // Nameplate-Banner hinter dem Namens-Chip (greenscreen-PNG, chroma-keyed)
+  // Nameplate-Banner HINTER dem Namens-Chip — auf Pillen-Höhe clamppen, damit
+  // Deko-Elemente (Sterne, Ranken) nicht über den Runner hinausragen.
+  // Pillen-Höhe ist ~24px → Nameplate ~36px hoch, ~190% breit (Aspect-Ratio crop via object-cover).
   const npSrc = nameplateArt?.image_url || nameplateArt?.video_url;
+  const npImgStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:190%;height:36px;max-width:200px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
   const nameplateLayer = npSrc && cleanName
     ? (nameplateArt?.image_url
-        ? `<img src="${nameplateArt.image_url}" alt="" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160%;max-width:240px;height:auto;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0" />`
-        : `<video src="${nameplateArt!.video_url}" autoplay loop muted playsinline style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160%;max-width:240px;height:auto;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0"></video>`)
+        ? `<img src="${nameplateArt.image_url}" alt="" style="${npImgStyle}" />`
+        : `<video src="${nameplateArt!.video_url}" autoplay loop muted playsinline style="${npImgStyle}"></video>`)
     : "";
   const nameLabel = cleanName
-    ? `<div class="ma365-runner-badge-wrap" style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-top:6px">
+    ? `<div class="ma365-runner-badge-wrap" style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-top:6px;height:36px">
         ${nameplateLayer}
         <div class="ma365-runner-badge" data-action="open-runner-profile"
             title="${crewName ? "Crew: " + crewName + " · Klick öffnet dein Runner-Profil" : "Klick öffnet dein Runner-Profil"}"
