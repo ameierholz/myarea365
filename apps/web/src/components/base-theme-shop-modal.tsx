@@ -61,20 +61,19 @@ export function BaseThemeShopModal({ onClose, onChanged }: {
   if (!data) return null;
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1300] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-2 sm:p-4">
+    <div onClick={onClose} className="fixed inset-0 z-[1300] bg-black/85 backdrop-blur-md flex items-stretch sm:items-center justify-center p-0 sm:p-3">
       <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[96vh]"
+        className="w-full max-w-2xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[100dvh] sm:max-h-[88vh]"
         style={{ background: "linear-gradient(180deg, #1A1D23 0%, #0F1115 100%)" }}>
 
-        <div className="relative p-4 sm:p-6 border-b border-white/10 flex items-center gap-3"
+        <div className="relative px-4 py-3 border-b border-white/10 flex items-center gap-3 shrink-0"
           style={{ background: "linear-gradient(135deg, rgba(255,215,0,0.12) 0%, rgba(168,85,247,0.12) 60%, rgba(34,209,195,0.10) 100%)" }}>
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFD700] via-[#a855f7] to-[#22D1C3] flex items-center justify-center text-2xl shadow-lg">🏰</div>
-          <div className="flex-1">
-            <div className="text-[9px] font-black tracking-[3px] text-[#FFD700]/80">SAAL DER ORDNUNG</div>
-            <div className="text-lg sm:text-xl font-black text-white">Base-Themes</div>
-            <div className="text-[10px] text-white/60 mt-0.5">Wähle dein Aussehen — jedes Theme bringt eigene Buffs.</div>
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFD700] via-[#a855f7] to-[#22D1C3] flex items-center justify-center text-lg shadow-lg">🏰</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[8px] font-black tracking-[2px] text-[#FFD700]/80">SAAL DER ORDNUNG</div>
+            <div className="text-base font-black text-white">Base-Themes</div>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-black/40 text-white text-lg font-black">×</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-base font-black shrink-0">×</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
@@ -126,25 +125,24 @@ function ThemeCard({ theme, active, busy, unlocked, art, onActivate }: {
   return (
     <div className="rounded-2xl overflow-hidden flex flex-col"
       style={{ background: meta.gradient, border: `1px solid ${meta.color}55`, boxShadow: active ? `0 0 18px ${meta.glow}` : "0 2px 8px rgba(0,0,0,0.4)" }}>
-      <div className="relative h-32 flex items-center justify-center"
+      <div className="relative h-24 flex items-center justify-center"
         style={{ background: `radial-gradient(circle at 50% 60%, ${meta.glow} 0%, transparent 70%)` }}>
-        {/* Schimmer-Aura hinter dem Theme-Preview */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle, ${meta.glow} 0%, transparent 60%)`, animation: "themeShimmer 3s ease-in-out infinite" }} />
         {pinArt?.video_url ? (
           <video src={pinArt.video_url} autoPlay loop muted playsInline
-            style={{ width: 96, height: 96, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 12px rgba(0,0,0,0.6))" }} />
+            style={{ width: 76, height: 76, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 12px rgba(0,0,0,0.6))" }} />
         ) : pinArt?.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={pinArt.image_url} alt={theme.name}
-            style={{ width: 96, height: 96, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 12px rgba(0,0,0,0.6))" }} />
+            style={{ width: 76, height: 76, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 12px rgba(0,0,0,0.6))" }} />
         ) : (
-          <span style={{ fontSize: 80, filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.6))" }}>{theme.pin_emoji}</span>
+          <span style={{ fontSize: 60, filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.6))" }}>{theme.pin_emoji}</span>
         )}
-        <span className="absolute top-1.5 left-1.5 text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: meta.color, color: "#0F1115" }}>{meta.label}</span>
+        <span className="absolute top-1 left-1 text-[8px] font-black px-1.5 py-0.5 rounded" style={{ background: meta.color, color: "#0F1115" }}>{meta.label}</span>
       </div>
-      <div className="p-3 flex-1 flex flex-col">
-        <div className="text-[14px] font-black text-white">{theme.name}</div>
-        <div className="text-[10px] text-white/65 mt-0.5 line-clamp-2">{theme.description}</div>
+      <div className="p-2.5 flex-1 flex flex-col">
+        <div className="text-[13px] font-black text-white">{theme.name}</div>
+        <div className="text-[9px] text-white/65 mt-0.5 line-clamp-2">{theme.description}</div>
         {buffs.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {buffs.map((b) => (
