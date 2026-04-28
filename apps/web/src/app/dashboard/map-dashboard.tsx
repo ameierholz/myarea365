@@ -3151,11 +3151,11 @@ function ProfilTab({
             </div>
             <span style={{
               flexShrink: 0,
-              padding: "8px 14px", borderRadius: 10,
+              width: 120, padding: "8px 0", borderRadius: 10,
               background: `linear-gradient(135deg, ${ownBaseInfo.accent}, ${ownBaseInfo.accent}cc)`,
               color: "#0F1115", fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
               boxShadow: `0 0 14px ${ownBaseInfo.accent}66`,
-              display: "inline-flex", alignItems: "center", gap: 6,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
               whiteSpace: "nowrap",
             }}>
               <span>{ownBaseHasPos ? "Öffnen" : "Setzen"}</span>
@@ -3226,14 +3226,13 @@ function ProfilTab({
             </div>
             <span style={{
               flexShrink: 0,
-              padding: "8px 14px", borderRadius: 10,
+              width: 120, padding: "8px 0", borderRadius: 10,
               background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
               color: "#FFF", fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
               boxShadow: "0 0 14px rgba(255,45,120,0.45)",
-              display: "inline-flex", alignItems: "center", gap: 6,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
               whiteSpace: "nowrap",
             }}>
-              <span>🛡️</span>
               <span>Details</span>
               <span style={{ fontSize: 14 }}>›</span>
             </span>
@@ -3318,11 +3317,11 @@ function ProfilTab({
 
               <span style={{
                 flexShrink: 0,
-                padding: "8px 14px", borderRadius: 10,
+                width: 120, padding: "8px 0", borderRadius: 10,
                 background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
                 color: BG_DEEP, fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
                 boxShadow: `0 0 14px ${accent}55`,
-                display: "inline-flex", alignItems: "center", gap: 6,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
                 whiteSpace: "nowrap",
               }}>
                 <span>{isAdmin ? "Verwalten" : "Öffnen"}</span>
