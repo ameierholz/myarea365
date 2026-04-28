@@ -1736,11 +1736,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   .map((r) => ({
                     lat: r.lat, lng: r.lng,
                     radius_m: r.turf_radius_m
-                      ?? (r.kind === "hq" ? 500 : r.kind === "mega" ? 350 : 200),
+                      ?? (r.kind === "hq" ? 350 : r.kind === "mega" ? 250 : 150),
                   })),
                 cursor: repeaterPlaceCursor ?? userCenter,
                 newRadius_m: repeaterPlaceMode
-                  ? (repeaterPlaceMode.kind === "hq" ? 500 : repeaterPlaceMode.kind === "mega" ? 350 : 200)
+                  ? (repeaterPlaceMode.kind === "hq" ? 350 : repeaterPlaceMode.kind === "mega" ? 250 : 150)
                   : 50,  // Buildings: kleiner Cursor-Kreis
                 allBlocks: cityBlocksAll.length > 0 ? cityBlocksAll : undefined,
                 blockClaimCount: repeaterPlaceMode
