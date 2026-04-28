@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { UiIcon, useUiIconArt } from "@/components/resource-icon";
+import { createClient } from "@/lib/supabase/client";
 
 const PRIMARY = "#22D1C3";
 const ACCENT = "#FF2D78";
@@ -46,17 +47,51 @@ const KIND_FALLBACK: Record<Repeater["kind"], string> = {
  * für eigene reicht die Info-Anzeige (kein "Öffnen"-Button mehr).
  */
 export function RepeaterInfoPopup({
-  repeater, anchorX, anchorY, onClose, onAttack,
+  repeater, anchorX, anchorY, onClose, onAttack, onDestroyed,
 }: {
   repeater: Repeater;
   anchorX: number;
   anchorY: number;
   onClose: () => void;
   onAttack: () => void;
+  onDestroyed?: () => void;
 }) {
   const uiArt = useUiIconArt();
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+
+  // Crew-Rolle laden (für Zerstören-Berechtigung — nur Leader/Officer)
+  const [canDestroy, setCanDestroy] = useState(false);
+  useEffect(() => {
+    if (!repeater.is_own) return;
+    (async () => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { data } = await sb.from("crew_members").select("role").eq("user_id", user.id).maybeSingle();
+      const role = (data as { role?: string } | null)?.role;
+      setCanDestroy(role === "leader" || role === "officer");
+    })();
+  }, [repeater.is_own]);
+
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
+  const [destroying, setDestroying] = useState(false);
+  const [destroyErr, setDestroyErr] = useState<string | null>(null);
+
+  async function doDestroy() {
+    setDestroying(true);
+    setDestroyErr(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc("destroy_own_crew_repeater", { p_repeater_id: repeater.id });
+    setDestroying(false);
+    const res = data as { ok?: boolean; error?: string; hint?: string } | null;
+    if (error || !res?.ok) {
+      setDestroyErr(res?.hint || res?.error || error?.message || "Fehler beim Zerstören");
+      return;
+    }
+    onDestroyed?.();
+    onClose();
+  }
 
   // Click anywhere (außer im Popup selbst) schließt
   useEffect(() => {
@@ -215,6 +250,66 @@ export function RepeaterInfoPopup({
           >
             ANGREIFEN
           </button>
+        )}
+
+        {/* Zerstören-Aktion: nur eigene Repeater + Leader/Officer */}
+        {repeater.is_own && canDestroy && (
+          <div style={{ marginTop: 12 }}>
+            {!confirmDestroy ? (
+              <button
+                onClick={() => setConfirmDestroy(true)}
+                style={{
+                  width: "100%", padding: "8px 12px", borderRadius: 10,
+                  background: "rgba(255,45,120,0.12)",
+                  border: "1px solid rgba(255,45,120,0.35)",
+                  color: "#FF2D78",
+                  fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+                  cursor: "pointer",
+                }}
+              >
+                ⚠ Repeater zerstören
+              </button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 800, lineHeight: 1.4, textAlign: "center" }}>
+                  Sicher? Du bekommst <b>50%</b> der Baukosten als Gutschrift zurück. Das Crew-Turf schrumpft sofort.
+                </div>
+                {destroyErr && (
+                  <div style={{ color: "#FF2D78", fontSize: 10, fontWeight: 800, textAlign: "center" }}>
+                    {destroyErr}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    disabled={destroying}
+                    onClick={() => { setConfirmDestroy(false); setDestroyErr(null); }}
+                    style={{
+                      flex: 1, padding: "8px 12px", borderRadius: 10,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.18)",
+                      color: "#FFF", fontSize: 11, fontWeight: 800, cursor: "pointer",
+                    }}
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    disabled={destroying}
+                    onClick={() => void doDestroy()}
+                    style={{
+                      flex: 1, padding: "8px 12px", borderRadius: 10,
+                      background: "linear-gradient(135deg, #FF2D78, #c41a5e)",
+                      border: "none", color: "#FFF",
+                      fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+                      cursor: destroying ? "wait" : "pointer",
+                      opacity: destroying ? 0.7 : 1,
+                    }}
+                  >
+                    {destroying ? "..." : "Zerstören"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

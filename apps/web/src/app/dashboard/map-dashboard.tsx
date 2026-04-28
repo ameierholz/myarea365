@@ -2222,6 +2222,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             setRepeaterInfoTarget(null);
             setAttackRepeaterTarget(r);
           }}
+          onDestroyed={() => {
+            // Turf neu laden — zerstörter Repeater verschwindet, Crew-Polygon schrumpft
+            if (userCenter) {
+              const dLat = 0.090, dLng = 0.140;
+              const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+              fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); });
+            }
+          }}
         />
       )}
 
