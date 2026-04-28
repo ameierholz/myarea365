@@ -3100,7 +3100,7 @@ function ProfilTab({
           >
             {/* Theme-Icon (Artwork aus cosmetic_artwork.kind=base_theme) */}
             <div style={{
-              width: 96, height: 104, borderRadius: 14, flexShrink: 0,
+              width: 76, height: 84, borderRadius: 12, flexShrink: 0,
               background: `radial-gradient(circle at 50% 30%, ${ownBaseInfo.accent}55 0%, ${ownBaseInfo.accent}22 45%, rgba(15,17,21,0.55) 100%)`,
               border: `1px solid ${ownBaseInfo.accent}77`,
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -3112,9 +3112,9 @@ function ProfilTab({
                 const slotBanner = `${ownBaseInfo.theme_id}_runner_banner`;
                 const a = baseThemeArt[slotPin] ?? baseThemeArt[slotBanner] ?? baseThemeArt[ownBaseInfo.theme_id];
                 const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
-                // Bild bevorzugen vor Video (neu hochgeladene PNGs sollen Vorrang haben)
-                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: 84, height: 92, objectFit: "contain", filter: f }} />;
-                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 84, height: 92, objectFit: "contain", filter: f }} />;
+                // Artwork füllt den Kasten komplett — nicht abgeschnitten dank objectFit:contain
+                if (a?.image_url) return <img src={a.image_url} alt={ownBaseInfo.theme_name} style={{ width: "100%", height: "100%", objectFit: "contain", filter: f }} />;
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: "100%", height: "100%", objectFit: "contain", filter: f }} />;
                 return <span style={{ fontSize: 56, lineHeight: 1 }}>{ownBaseInfo.pin_emoji}</span>;
               })()}
             </div>
