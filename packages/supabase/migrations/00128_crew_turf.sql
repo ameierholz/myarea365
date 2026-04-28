@@ -139,12 +139,13 @@ create or replace function public._repeater_turf_radius_m()  returns int languag
 create or replace function public._repeater_kind_stats(p_kind text)
 returns table(max_hp int, cost_gold int, cost_wood int, cost_stone int, build_shield_s int)
 language sql immutable as $$
-  select * from (values
-    ('hq',       10000, 5000, 2000, 2000, 1800),
-    ('repeater',  3000,  500,  500,  500,  600),
-    ('mega',      8000, 2000, 1000, 1500, 1200)
-  ) as t(kind, max_hp, cost_gold, cost_wood, cost_stone, build_shield_s)
-  where t.kind = p_kind;
+  select t.max_hp, t.cost_gold, t.cost_wood, t.cost_stone, t.build_shield_s
+    from (values
+      ('hq',       10000, 5000, 2000, 2000, 1800),
+      ('repeater',  3000,  500,  500,  500,  600),
+      ('mega',      8000, 2000, 1000, 1500, 1200)
+    ) as t(kind, max_hp, cost_gold, cost_wood, cost_stone, build_shield_s)
+   where t.kind = p_kind;
 $$;
 
 -- Haversine in Metern (für Chain-Rule ohne PostGIS-Anforderung)
