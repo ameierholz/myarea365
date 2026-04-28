@@ -109,15 +109,12 @@ async function stageWays(ways: OverpassWay[]): Promise<number> {
         if (!wkt) return null;
         return {
           city,
-          // PostGIS-WKT-Insert via plain SQL — Supabase REST kann das nicht direkt,
-          // wir nutzen die geom-Spalte mit ST_GeomFromText.
-          // Workaround: insert via RPC oder raw SQL via PostgREST.
-          // Hier: senden als Text, lassen PostGIS in SQL casten via insert-statement.
           geom: wkt,
           highway: w.tags?.highway ?? null,
+          name: w.tags?.name ?? null,
         };
       })
-      .filter((x): x is { city: string; geom: string; highway: string | null } => x !== null);
+      .filter((x): x is { city: string; geom: string; highway: string | null; name: string | null } => x !== null);
 
     // Direktes insert klappt nicht weil geom-Column geometry ist — wir brauchen ST_GeomFromText.
     // Lösung: ein RPC `etl_insert_ways(rows jsonb)` der den cast macht.

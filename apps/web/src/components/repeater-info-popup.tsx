@@ -76,6 +76,23 @@ export function RepeaterInfoPopup({
     })();
   }, [repeater.is_own]);
 
+  // Turf-Info: Fläche + Grenz-Straßen
+  const [turfInfo, setTurfInfo] = useState<{ area_m2: number; boundary_streets: string[]; fallback_circle: boolean } | null>(null);
+  useEffect(() => {
+    (async () => {
+      const sb = createClient();
+      const { data } = await sb.rpc("get_repeater_turf_info", { p_repeater_id: repeater.id });
+      const res = data as { ok?: boolean; area_m2?: number; boundary_streets?: string[]; fallback_circle?: boolean } | null;
+      if (res?.ok) {
+        setTurfInfo({
+          area_m2: res.area_m2 ?? 0,
+          boundary_streets: res.boundary_streets ?? [],
+          fallback_circle: !!res.fallback_circle,
+        });
+      }
+    })();
+  }, [repeater.id]);
+
   const [confirmDestroy, setConfirmDestroy] = useState(false);
   const [destroying, setDestroying] = useState(false);
   const [destroyErr, setDestroyErr] = useState<string | null>(null);
@@ -273,6 +290,33 @@ export function RepeaterInfoPopup({
         </div>
 
         <Row label="Status" value={<span style={{ color: statusColor, fontWeight: 900, fontSize: 12 }}>{status}</span>} />
+
+        {turfInfo && (
+          <>
+            <Row
+              label="Turf-Fläche"
+              value={
+                <span style={{ color: "#FFF", fontWeight: 800, fontSize: 12 }}>
+                  {(turfInfo.area_m2 / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²
+                  <span style={{ color: "#8B8FA3", fontSize: 10, marginLeft: 4 }}>
+                    ({turfInfo.area_m2.toLocaleString("de-DE")} m²)
+                  </span>
+                  {turfInfo.fallback_circle && (
+                    <span style={{ color: "#8B8FA3", fontWeight: 600, fontSize: 10, marginLeft: 4 }}>(Kreis)</span>
+                  )}
+                </span>
+              }
+            />
+            {turfInfo.boundary_streets.length > 0 && (
+              <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>Grenz-Straßen</div>
+                <div style={{ color: "#FFF", fontSize: 11, lineHeight: 1.5 }}>
+                  {turfInfo.boundary_streets.join(" · ")}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Angriffs-CTA nur für fremde Repeater — eigene haben kein Modal-Folgeschritt nötig */}
         {!repeater.is_own && repeater.hp > 0 && !shieldActive && (
