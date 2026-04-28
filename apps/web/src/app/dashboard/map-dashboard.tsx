@@ -1744,7 +1744,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   : 50,  // Buildings: kleiner Cursor-Kreis
                 allBlocks: cityBlocksAll.length > 0 ? cityBlocksAll : undefined,
                 blockClaimCount: repeaterPlaceMode
-                  ? (repeaterPlaceMode.kind === "hq" ? 9 : repeaterPlaceMode.kind === "mega" ? 4 : 1)
+                  ? (repeaterPlaceMode.kind === "hq" ? 4 : repeaterPlaceMode.kind === "mega" ? 2 : 1)
                   : 1,
               } : null}
               onPlacementHover={(lng, lat) => setRepeaterPlaceCursor({ lat, lng })}
