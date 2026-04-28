@@ -559,10 +559,22 @@ interface AppMapProps {
     crew_name: string | null;
     crew_tag: string | null;
     is_own: boolean;
+    territory_color?: string | null;
     geojson: GeoJSON.Geometry;
   }>;
   onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
+  /** Wenn aktiv: zeichnet Coverage-Preview-Kreise auf der Karte —
+   *  alle eigenen Repeater-Coverages (cyan) + neuer Cursor-Kreis (animiert).
+   *  Beim Cursor-Hover über die Karte wird onPlacementHover mit lng/lat aufgerufen. */
+  placementPreview?: {
+    kind: "hq" | "repeater" | "mega";
+    color: string;             // Crew-Farbe für Cursor-Kreis
+    ownRepeaters: Array<{ lat: number; lng: number; radius_m: number }>;
+    cursor: { lat: number; lng: number } | null;
+    newRadius_m: number;
+  } | null;
+  onPlacementHover?: (lng: number, lat: number) => void;
 }
 
 // Helper: escape user-provided text for innerHTML usage.
@@ -820,6 +832,8 @@ export function AppMap({
   onPlaceBaseClick,
   crewRepeaters = [],
   crewTurfPolygons = [],
+  placementPreview = null,
+  onPlacementHover,
   onRepeaterClick,
   onMapLongPress,
 }: AppMapProps) {
@@ -2728,15 +2742,22 @@ export function AppMap({
     const fillId = "crew-turf-fill";
     const strokeId = "crew-turf-stroke";
 
-    const features = (crewTurfPolygons ?? []).map((p) => ({
-      type: "Feature" as const,
-      geometry: p.geojson,
-      properties: {
-        crew_id: p.crew_id,
-        is_own: p.is_own,
-        color: p.is_own ? "#22D1C3" : "#FF2D78",
-      },
-    }));
+    const features = (crewTurfPolygons ?? []).map((p) => {
+      // Crew-eigene Farbe (Settings) > Default. Eigene Crew immer kräftig,
+      // fremde mit reduzierter Opacity damit eigene Turfs visuell dominieren.
+      const color = p.territory_color || (p.is_own ? "#22D1C3" : "#FF2D78");
+      return {
+        type: "Feature" as const,
+        geometry: p.geojson,
+        properties: {
+          crew_id: p.crew_id,
+          is_own: p.is_own,
+          color,
+          fill_opacity: p.is_own ? 0.22 : 0.10,
+          line_width_mult: p.is_own ? 1.0 : 0.6,
+        },
+      };
+    });
     const data = { type: "FeatureCollection" as const, features };
 
     const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
@@ -2750,7 +2771,7 @@ export function AppMap({
         source: sourceId,
         paint: {
           "fill-color": ["get", "color"],
-          "fill-opacity": 0.18,
+          "fill-opacity": ["get", "fill_opacity"],
           "fill-emissive-strength": 0.4,
         } as mapboxgl.FillLayerSpecification["paint"],
       });
@@ -2760,13 +2781,131 @@ export function AppMap({
         source: sourceId,
         paint: {
           "line-color": ["get", "color"],
-          "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 16, 2.4, 19, 3.5],
+          "line-width": ["*", ["interpolate", ["linear"], ["zoom"], 10, 1.2, 16, 2.4, 19, 3.5], ["get", "line_width_mult"]],
           "line-opacity": 0.85,
           "line-emissive-strength": 1.0,
         } as mapboxgl.LineLayerSpecification["paint"],
       });
     }
   }, [mapReady, crewTurfPolygons]);
+
+  // ── Placement-Preview-Layer: Coverage-Kreise beim Repeater-Setzen ──
+  // Zeigt: (a) alle eigenen existierenden Coverages (cyan ghost), (b) Cursor-Kreis
+  // in Crew-Farbe für den neuen Repeater. Chain-Rule wird visuell — der Cursor-Kreis
+  // muss einen ghost-Kreis berühren damit "Setzen" erlaubt ist.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const ghostSource = "placement-preview-ghosts";
+    const ghostFill = "placement-preview-ghosts-fill";
+    const ghostStroke = "placement-preview-ghosts-stroke";
+    const cursorSource = "placement-preview-cursor";
+    const cursorFill = "placement-preview-cursor-fill";
+    const cursorStroke = "placement-preview-cursor-stroke";
+
+    // Helper: Punkt + Radius (m) → GeoJSON-Kreis-Polygon (64-edge)
+    const circleGeoJSON = (lat: number, lng: number, radiusM: number): GeoJSON.Polygon => {
+      const points: [number, number][] = [];
+      const earthR = 6371000;
+      const angDist = radiusM / earthR;
+      const latRad = (lat * Math.PI) / 180;
+      const lngRad = (lng * Math.PI) / 180;
+      for (let i = 0; i <= 64; i++) {
+        const brng = (i / 64) * 2 * Math.PI;
+        const newLat = Math.asin(Math.sin(latRad) * Math.cos(angDist) + Math.cos(latRad) * Math.sin(angDist) * Math.cos(brng));
+        const newLng = lngRad + Math.atan2(Math.sin(brng) * Math.sin(angDist) * Math.cos(latRad), Math.cos(angDist) - Math.sin(latRad) * Math.sin(newLat));
+        points.push([(newLng * 180) / Math.PI, (newLat * 180) / Math.PI]);
+      }
+      return { type: "Polygon", coordinates: [points] };
+    };
+
+    const removeAllPreviewLayers = () => {
+      [cursorStroke, cursorFill, ghostStroke, ghostFill].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
+      [cursorSource, ghostSource].forEach((id) => { if (map.getSource(id)) map.removeSource(id); });
+    };
+
+    if (!placementPreview) {
+      removeAllPreviewLayers();
+      return;
+    }
+
+    const ghostFeatures = placementPreview.ownRepeaters.map((r) => ({
+      type: "Feature" as const,
+      geometry: circleGeoJSON(r.lat, r.lng, r.radius_m),
+      properties: {},
+    }));
+    const ghostData = { type: "FeatureCollection" as const, features: ghostFeatures };
+
+    if (map.getSource(ghostSource)) {
+      (map.getSource(ghostSource) as mapboxgl.GeoJSONSource).setData(ghostData);
+    } else {
+      map.addSource(ghostSource, { type: "geojson", data: ghostData });
+      map.addLayer({
+        id: ghostFill, type: "fill", source: ghostSource,
+        paint: {
+          "fill-color": placementPreview.color,
+          "fill-opacity": 0.10,
+        } as mapboxgl.FillLayerSpecification["paint"],
+      });
+      map.addLayer({
+        id: ghostStroke, type: "line", source: ghostSource,
+        paint: {
+          "line-color": placementPreview.color,
+          "line-width": 2,
+          "line-opacity": 0.55,
+          "line-dasharray": [2, 2],
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+    }
+
+    // Cursor-Kreis (folgt Maus/Tap)
+    const c = placementPreview.cursor;
+    const cursorData = {
+      type: "FeatureCollection" as const,
+      features: c ? [{
+        type: "Feature" as const,
+        geometry: circleGeoJSON(c.lat, c.lng, placementPreview.newRadius_m),
+        properties: {},
+      }] : [],
+    };
+    if (map.getSource(cursorSource)) {
+      (map.getSource(cursorSource) as mapboxgl.GeoJSONSource).setData(cursorData);
+    } else {
+      map.addSource(cursorSource, { type: "geojson", data: cursorData });
+      map.addLayer({
+        id: cursorFill, type: "fill", source: cursorSource,
+        paint: {
+          "fill-color": placementPreview.color,
+          "fill-opacity": 0.25,
+          "fill-emissive-strength": 0.6,
+        } as mapboxgl.FillLayerSpecification["paint"],
+      });
+      map.addLayer({
+        id: cursorStroke, type: "line", source: cursorSource,
+        paint: {
+          "line-color": placementPreview.color,
+          "line-width": 3,
+          "line-opacity": 0.95,
+          "line-emissive-strength": 1.0,
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+    }
+
+    // Mouse-Move auf Map → onPlacementHover (für live Cursor-Update)
+    const onMove = (e: mapboxgl.MapMouseEvent) => {
+      onPlacementHover?.(e.lngLat.lng, e.lngLat.lat);
+    };
+    map.on("mousemove", onMove);
+    map.getCanvas().style.cursor = "crosshair";
+
+    return () => {
+      map.off("mousemove", onMove);
+      map.getCanvas().style.cursor = "";
+      removeAllPreviewLayers();
+    };
+  }, [mapReady, placementPreview, onPlacementHover]);
 
   // ── Crew-Turf: Repeater-DOM-Marker ──────────────────────────
   const repeaterMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());

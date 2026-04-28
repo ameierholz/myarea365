@@ -199,6 +199,7 @@ interface Crew {
   faction: string;
   invite_code: string;
   member_count: number;
+  territory_color?: string | null;
 }
 
 interface Coord { lat: number; lng: number; }
@@ -364,6 +365,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [overviewMode, setOverviewMode] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [controlsExpanded, setControlsExpanded] = useState(false);
+  // Runner kann Loot-Drops auf der Karte ausblenden (z.B. wenn er nur Streets klimpern will).
+  // Persistiert in localStorage damit Toggle über Tab-Switch hinweg bleibt.
+  const [dropsHidden, setDropsHidden] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return window.localStorage.getItem("ma365.dropsHidden") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem("ma365.dropsHidden", dropsHidden ? "1" : "0"); } catch { /* ignore */ }
+  }, [dropsHidden]);
   const [legendOpen, setLegendOpen] = useState(false);
   const [snapping, setSnapping] = useState(false);
   const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
@@ -1166,11 +1176,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     id: string; crew_id: string; crew_name: string | null; crew_tag: string | null;
     kind: "hq" | "repeater" | "mega"; label: string | null; lat: number; lng: number;
     hp: number; max_hp: number; is_own: boolean;
+    territory_color?: string | null;
+    turf_radius_m?: number | null;
+    shield_until?: string | null;
   };
-  type TurfPoly = { crew_id: string; crew_name: string | null; crew_tag: string | null; is_own: boolean; geojson: GeoJSON.Geometry };
+  type TurfPoly = { crew_id: string; crew_name: string | null; crew_tag: string | null; is_own: boolean; territory_color?: string | null; geojson: GeoJSON.Geometry };
   const [crewRepeaters, setCrewRepeaters] = useState<Repeater[]>([]);
   const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);
   const [placeRepeaterAt, setPlaceRepeaterAt] = useState<{ lat: number; lng: number } | null>(null);
+  // Placement-Mode: User wählt Repeater-Typ → Map zeigt Coverage-Preview & Ghost-Kreise
+  // existierender Repeater. Tap auf Karte öffnet PlaceRepeaterModal an Cursor-Position.
+  const [repeaterPlaceMode, setRepeaterPlaceMode] = useState<null | { kind: "hq" | "repeater" | "mega" }>(null);
+  const [repeaterPlaceCursor, setRepeaterPlaceCursor] = useState<{ lat: number; lng: number } | null>(null);
   const [attackRepeaterTarget, setAttackRepeaterTarget] = useState<Repeater | null>(null);
   const [repeaterInfoTarget, setRepeaterInfoTarget] = useState<{ r: Repeater; x: number; y: number } | null>(null);
   const [showJoinPbRally, setShowJoinPbRally] = useState<boolean>(false);
@@ -1597,7 +1614,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               shopTrail={mapFeatures?.shop_trail ?? []}
               shadowRoute={shadowRoute}
               shopReviews={mapFeatures?.shop_reviews ?? []}
-              lootDrops={lootDrops}
+              lootDrops={dropsHidden ? [] : lootDrops}
               arenaCountdowns={arenaCountdowns}
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
@@ -1659,7 +1676,28 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
               }}
-              onMapLongPress={(lng, lat) => setPlaceRepeaterAt({ lat, lng })}
+              onMapLongPress={(lng, lat) => {
+                // Long-Press funktioniert NUR im Placement-Mode (verhindert Versehen)
+                if (repeaterPlaceMode) {
+                  setPlaceRepeaterAt({ lat, lng });
+                  setRepeaterPlaceMode(null);
+                }
+              }}
+              placementPreview={repeaterPlaceMode ? {
+                kind: repeaterPlaceMode.kind,
+                color: myCrew?.territory_color || "#22D1C3",
+                ownRepeaters: crewRepeaters
+                  .filter((r) => r.is_own && r.hp > 0)
+                  .map((r) => ({
+                    lat: r.lat, lng: r.lng,
+                    radius_m: r.turf_radius_m
+                      ?? (r.kind === "hq" ? 500 : r.kind === "mega" ? 350 : 200),
+                  })),
+                cursor: repeaterPlaceCursor ?? userCenter,
+                newRadius_m: repeaterPlaceMode.kind === "hq" ? 500
+                  : repeaterPlaceMode.kind === "mega" ? 350 : 200,
+              } : null}
+              onPlacementHover={(lng, lat) => setRepeaterPlaceCursor({ lat, lng })}
             />
 
             {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Base, Crew, Inbox etc.) */}
@@ -1807,28 +1845,26 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
+                  {/* Drops auf der Karte ein-/ausblenden — wenn aktiv = Drops ausgeblendet */}
                   <MapIconButton
-                    icon="🏰"
-                    label={ownBaseHasPos ? "Meine Base" : "Base setzen"}
-                    onClick={() => {
-                      if (ownBaseHasPos && ownBaseId) {
-                        setBaseModalTarget({ kind: "runner", id: ownBaseId, is_own: true });
-                      } else {
-                        setPlaceBaseMode("runner");
-                      }
-                    }}
-                    accent="#22D1C3"
+                    icon={dropsHidden ? "🚫" : "🎁"}
+                    label={dropsHidden ? "Drops einblenden" : "Drops ausblenden"}
+                    onClick={() => setDropsHidden((v) => !v)}
+                    active={dropsHidden}
+                    accent="#FFD700"
                   />
+                  {/* Repeater platzieren — Mode aktivieren, Coverage-Preview erscheint */}
                   {myCrew && (
                     <MapIconButton
-                      icon="⚔️"
-                      label="Crew-Base"
+                      icon="📡"
+                      label={crewRepeaters.some((r) => r.is_own && r.kind === "hq") ? "Repeater setzen" : "Hauptquartier setzen"}
                       onClick={() => {
-                        const own = basePins.find((p) => p.kind === "crew" && p.is_own);
-                        if (own) setBaseModalTarget({ kind: "crew", id: own.id, is_own: true });
-                        else setPlaceBaseMode("crew");
+                        const hasHQ = crewRepeaters.some((r) => r.is_own && r.kind === "hq");
+                        setRepeaterPlaceMode({ kind: hasHQ ? "repeater" : "hq" });
+                        setRepeaterPlaceCursor(userCenter);
                       }}
-                      accent="#FF6B4A"
+                      active={!!repeaterPlaceMode}
+                      accent={myCrew?.territory_color || "#22D1C3"}
                     />
                   )}
                   {!walking && process.env.NODE_ENV !== "production" && (
@@ -2268,6 +2304,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[900] px-4 py-2 rounded-full bg-[#22D1C3] text-[#0F1115] text-xs font-black shadow-2xl flex items-center gap-3">
           <span>👆 Tippe auf der Karte, um deine Base zu setzen</span>
           <button onClick={() => setPlaceBaseMode(null)} className="opacity-70 hover:opacity-100">✕</button>
+        </div>
+      )}
+      {repeaterPlaceMode && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[900] px-4 py-2 rounded-full text-[#0F1115] text-xs font-black shadow-2xl flex items-center gap-3"
+             style={{ background: myCrew?.territory_color || "#22D1C3" }}>
+          <span>
+            👆 {repeaterPlaceMode.kind === "hq" ? "Hauptquartier" : repeaterPlaceMode.kind === "mega" ? "Mega-Funk" : "Repeater"} platzieren — Coverage muss bestehenden Repeater berühren
+          </span>
+          <button onClick={() => { setRepeaterPlaceMode(null); setRepeaterPlaceCursor(null); }} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 

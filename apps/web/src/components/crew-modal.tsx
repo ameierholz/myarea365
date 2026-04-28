@@ -464,15 +464,29 @@ function TabShop() {
 
 function TabEinstellungen() {
   const [hudOn, setHudOn] = useState<boolean | null>(null);
+  const [territoryColor, setTerritoryColor] = useState<string | null>(null);
+  const [savingColor, setSavingColor] = useState(false);
+  const [colorMsg, setColorMsg] = useState<string | null>(null);
+  const [canEditColor, setCanEditColor] = useState(false);
+
   useEffect(() => {
     const sb = createClient();
     void (async () => {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
-      const { data } = await sb.from("users").select("show_map_action_hud").eq("id", user.id).maybeSingle();
-      setHudOn((data as { show_map_action_hud?: boolean } | null)?.show_map_action_hud ?? true);
+      const { data: u } = await sb.from("users").select("show_map_action_hud").eq("id", user.id).maybeSingle();
+      setHudOn((u as { show_map_action_hud?: boolean } | null)?.show_map_action_hud ?? true);
+
+      const { data: cm } = await sb.from("crew_members").select("crew_id, role").eq("user_id", user.id).maybeSingle();
+      const cmRow = cm as { crew_id?: string; role?: string } | null;
+      if (cmRow?.crew_id) {
+        setCanEditColor(cmRow.role === "leader" || cmRow.role === "officer");
+        const { data: c } = await sb.from("crews").select("territory_color").eq("id", cmRow.crew_id).maybeSingle();
+        setTerritoryColor((c as { territory_color?: string | null } | null)?.territory_color ?? "#22D1C3");
+      }
     })();
   }, []);
+
   async function toggle() {
     const next = !hudOn;
     setHudOn(next);
@@ -481,37 +495,100 @@ function TabEinstellungen() {
     if (!user) return;
     await sb.from("users").update({ show_map_action_hud: next }).eq("id", user.id);
   }
+
+  async function saveColor(color: string) {
+    setSavingColor(true);
+    setColorMsg(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc("set_crew_territory_color", { p_color: color });
+    setSavingColor(false);
+    if (error || !(data as { ok?: boolean } | null)?.ok) {
+      setColorMsg(error?.message || (data as { error?: string } | null)?.error || "Fehler");
+      return;
+    }
+    setTerritoryColor(color);
+    setColorMsg("✓ gespeichert");
+    setTimeout(() => setColorMsg(null), 2000);
+  }
+
+  // 12 Preset-Farben — kräftig, gut auf dunkler Map sichtbar
+  const COLOR_PRESETS = [
+    "#22D1C3", "#FF2D78", "#FFD700", "#FF6B4A",
+    "#A855F7", "#5DDAF0", "#4ADE80", "#F472B6",
+    "#FB923C", "#818CF8", "#34D399", "#F87171",
+  ];
+
   return (
-    <div>
-      <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>ANZEIGE</div>
-      <button
-        onClick={toggle}
-        style={{
-          width: "100%", padding: 14, borderRadius: 12,
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          cursor: "pointer",
-        }}
-      >
-        <div style={{ textAlign: "left" }}>
-          <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800 }}>⚔ Crew-Angriffe-Symbol auf der Karte</div>
-          <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-            Schwebender Knopf rechts unten zeigt offene Aufgebote zum Beitreten.
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Crew-Farbe (nur Leader/Officer) */}
+      <div>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>CREW-FARBE</div>
+        <div style={{ color: MUTED, fontSize: 11, marginBottom: 10, lineHeight: 1.4 }}>
+          Bestimmt die Farbe eures Crew-Turfs auf der Karte (Repeater-Coverage, eigene Polygone, Pin-Akzente).
+          {!canEditColor && <span style={{ color: "#FF6B4A", fontWeight: 800 }}> Nur Leader oder Officer dürfen ändern.</span>}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+          {COLOR_PRESETS.map((c) => {
+            const active = territoryColor === c;
+            return (
+              <button
+                key={c}
+                disabled={!canEditColor || savingColor}
+                onClick={() => void saveColor(c)}
+                style={{
+                  aspectRatio: "1",
+                  borderRadius: 10,
+                  background: c,
+                  border: active ? "3px solid #FFF" : "2px solid rgba(255,255,255,0.08)",
+                  boxShadow: active ? `0 0 14px ${c}cc, inset 0 0 6px rgba(255,255,255,0.3)` : `0 2px 6px ${c}44`,
+                  cursor: canEditColor && !savingColor ? "pointer" : "not-allowed",
+                  opacity: canEditColor ? 1 : 0.5,
+                  transition: "all 0.15s",
+                }}
+                title={c}
+              />
+            );
+          })}
+        </div>
+        {colorMsg && (
+          <div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, color: colorMsg.startsWith("✓") ? "#4ade80" : "#FF6B4A" }}>
+            {colorMsg}
           </div>
-        </div>
-        <div style={{
-          width: 48, height: 26, borderRadius: 13, position: "relative",
-          background: hudOn ? PRIMARY : "rgba(255,255,255,0.15)",
-          transition: "background 0.2s",
-        }}>
+        )}
+      </div>
+
+      {/* Anzeige-Toggles */}
+      <div>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>ANZEIGE</div>
+        <button
+          onClick={toggle}
+          style={{
+            width: "100%", padding: 14, borderRadius: 12,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ textAlign: "left" }}>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800 }}>⚔ Crew-Angriffe-Symbol auf der Karte</div>
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
+              Schwebender Knopf rechts unten zeigt offene Aufgebote zum Beitreten.
+            </div>
+          </div>
           <div style={{
-            position: "absolute", top: 2, left: hudOn ? 24 : 2,
-            width: 22, height: 22, borderRadius: 11, background: "#FFF",
-            transition: "left 0.2s",
-          }} />
-        </div>
-      </button>
+            width: 48, height: 26, borderRadius: 13, position: "relative",
+            background: hudOn ? PRIMARY : "rgba(255,255,255,0.15)",
+            transition: "background 0.2s",
+          }}>
+            <div style={{
+              position: "absolute", top: 2, left: hudOn ? 24 : 2,
+              width: 22, height: 22, borderRadius: 11, background: "#FFF",
+              transition: "left 0.2s",
+            }} />
+          </div>
+        </button>
+      </div>
     </div>
   );
 }
