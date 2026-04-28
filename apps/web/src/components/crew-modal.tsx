@@ -509,8 +509,11 @@ function TabEinstellungen() {
       return;
     }
     setTerritoryColor(color);
-    setColorMsg("✓ gespeichert");
-    setTimeout(() => setColorMsg(null), 2000);
+    setColorMsg("✓ gespeichert — Karte aktualisiert");
+    // Map-Dashboard hört auf dieses Event und lädt das Turf neu (sonst wartet
+    // der User auf den nächsten Polling-Tick, ~30s).
+    window.dispatchEvent(new CustomEvent("ma365:refresh-turf"));
+    setTimeout(() => setColorMsg(null), 2500);
   }
 
   // 12 Preset-Farben — kräftig, gut auf dunkler Map sichtbar

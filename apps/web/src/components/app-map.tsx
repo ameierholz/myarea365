@@ -3279,18 +3279,26 @@ export function AppMap({
       if (!seen.has(id)) { marker.remove(); repeaterMarkersRef.current.delete(id); }
     }
 
-    // Zoom-Scale-Listener wie basePins: schreibt scale auf zoomWrap (firstElementChild).
-    // Skala-Kurve: zoom 11 → 0.32, zoom 13 → 0.55, zoom 15 → 0.8, zoom 17+ → 1.0.
+    // Zoom-Scale: aggressiver beim Rauszoomen, damit Repeater nicht den
+    // Stadtteil dominieren. Hide unter zoom 12.
+    //   z < 12: 0 (versteckt)
+    //   z 12-14: 0.25 → 0.45
+    //   z 14-16: 0.45 → 0.75
+    //   z 16-18: 0.75 → 1.0
     const updateRepeaterScale = () => {
       const z = map.getZoom();
       let s = 1;
-      if (z < 11)      s = 0.32;
-      else if (z < 13) s = 0.32 + ((z - 11) / 2) * 0.23;
-      else if (z < 15) s = 0.55 + ((z - 13) / 2) * 0.25;
-      else if (z < 17) s = 0.80 + ((z - 15) / 2) * 0.20;
+      let visible = true;
+      if (z < 12)      { s = 0; visible = false; }
+      else if (z < 14) s = 0.25 + ((z - 12) / 2) * 0.20;
+      else if (z < 16) s = 0.45 + ((z - 14) / 2) * 0.30;
+      else if (z < 18) s = 0.75 + ((z - 16) / 2) * 0.25;
       for (const m of repeaterMarkersRef.current.values()) {
-        const wrap = m.getElement().firstElementChild as HTMLElement | null;
+        const el = m.getElement();
+        const wrap = el.firstElementChild as HTMLElement | null;
         if (wrap) wrap.style.transform = `scale(${s.toFixed(3)})`;
+        el.style.opacity = visible ? "1" : "0";
+        el.style.pointerEvents = visible ? "auto" : "none";
       }
     };
     updateRepeaterScale();

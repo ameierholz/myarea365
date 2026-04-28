@@ -1381,7 +1381,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     };
     void load();
     const iv = setInterval(load, 30000);
-    return () => { cancelled = true; clearInterval(iv); };
+    // Custom-Event: andere Komponenten (z.B. Crew-Farb-Picker) können ein
+    // sofortiges Refresh anfordern statt auf den 30s-Tick zu warten.
+    const onRefreshEvent = () => { void load(); };
+    window.addEventListener("ma365:refresh-turf", onRefreshEvent);
+    return () => {
+      cancelled = true;
+      clearInterval(iv);
+      window.removeEventListener("ma365:refresh-turf", onRefreshEvent);
+    };
   }, [userCenter]);
 
   const onPlaceBaseClick = useCallback(async (lng: number, lat: number, kind: "runner" | "crew") => {
