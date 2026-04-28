@@ -23,7 +23,7 @@ type TechQueue = { id: string; tech_id: string; target_level: number; ends_at: s
 type Bounty = { id: string; target_user_id: string; target_name: string; reward_gold: number; reason: string | null; posted_by_name: string; expires_at: string; created_at: string };
 type ShopItem = { id: string; name: string; description: string; category: string; price_coins: number };
 
-export function CrewModal({ onClose }: { onClose: () => void }) {
+export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; onPlaceBuilding?: (kind: "hq" | "mega" | "repeater") => void }) {
   const [tab, setTab] = useState<Tab>("uebersicht");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export function CrewModal({ onClose }: { onClose: () => void }) {
               {tab === "uebersicht"   && <TabUebersicht overview={overview} />}
               {tab === "mitglieder"   && <TabMitglieder crewId={overview.crew.id} />}
               {tab === "tech"         && <TabTech />}
-              {tab === "bauwerke"     && <TabBauwerke />}
+              {tab === "bauwerke"     && <TabBauwerke onPlaceBuilding={(kind) => { onPlaceBuilding?.(kind); onClose(); }} />}
               {tab === "kopfgelder"   && <TabKopfgelder crewId={overview.crew.id} />}
               {tab === "shop"         && <TabShop />}
               {tab === "einstellungen"&& <TabEinstellungen />}
@@ -624,7 +624,7 @@ const PLANNED_BUILDINGS: PlannedBuilding[] = [
     slot: "building_hangout", fallback: "🍻",
     name: "Kiez-Treffpunkt",
     tagline: "Random Buffs · refresh-bar",
-    description: "Spawnt zufällige Crew-weite Buffs (XP +10%, Speed +5%, Drop-Rate +15%, etc.). Refresh via Wegemünzen rollt einen neuen Buff.",
+    description: "Spawnt zufällige Crew-weite Buffs (Ressourcen +10%, Speed +5%, Drop-Rate +15%, etc.). Refresh via Wegemünzen rollt einen neuen Buff.",
   },
   {
     slot: "building_tunnel", fallback: "🚇",
@@ -634,7 +634,7 @@ const PLANNED_BUILDINGS: PlannedBuilding[] = [
   },
 ];
 
-function TabBauwerke() {
+function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: "hq" | "mega" | "repeater") => void }) {
   const [reps, setReps] = useState<RepeaterRow[] | null>(null);
   const uiArt = useUiIconArt();
 
@@ -677,6 +677,7 @@ function TabBauwerke() {
         meta={`${grouped.hq.length}/1 · Crew-Anker, max 1`}
         items={grouped.hq}
         onItemClick={flyTo}
+        onErrichten={grouped.hq.length === 0 ? () => onPlaceBuilding?.("hq") : undefined}
         uiArt={uiArt}
       />
       <BuildingGroup
@@ -685,6 +686,7 @@ function TabBauwerke() {
         meta={`${grouped.mega.length} · Premium-Sekundäranker`}
         items={grouped.mega}
         onItemClick={flyTo}
+        onErrichten={() => onPlaceBuilding?.("mega")}
         uiArt={uiArt}
       />
       <BuildingGroup
@@ -693,6 +695,7 @@ function TabBauwerke() {
         meta={`${grouped.repeater.length} · Standard-Markierung · Crew bekommt +25% Ressourcen + 15% Wegemünzen wenn sie hier laufen`}
         items={grouped.repeater}
         onItemClick={flyTo}
+        onErrichten={() => onPlaceBuilding?.("repeater")}
         uiArt={uiArt}
       />
 
@@ -711,9 +714,10 @@ function TabBauwerke() {
   );
 }
 
-function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, uiArt }: {
+function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErrichten, uiArt }: {
   slot: string; fallback: string; name: string; meta: string;
   items: RepeaterRow[]; onItemClick: (lat: number, lng: number) => void;
+  onErrichten?: () => void;
   uiArt: ReturnType<typeof useUiIconArt>;
 }) {
   return (
@@ -724,6 +728,21 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, uiArt }
           <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>{name}</div>
           <div style={{ color: MUTED, fontSize: 11 }}>{meta}</div>
         </div>
+        {onErrichten && (
+          <button
+            onClick={onErrichten}
+            style={{
+              padding: "6px 12px", borderRadius: 8,
+              background: `linear-gradient(135deg, ${PRIMARY}, #1ba89c)`,
+              border: "none", color: BG,
+              fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+              cursor: "pointer",
+              boxShadow: `0 2px 8px ${PRIMARY}66`,
+            }}
+          >
+            🏗 ERRICHTEN
+          </button>
+        )}
       </div>
       {items.length === 0 ? (
         <div style={{ color: MUTED, fontSize: 11, padding: "10px 12px",

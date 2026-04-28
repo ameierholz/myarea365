@@ -1190,6 +1190,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // existierender Repeater. Tap auf Karte öffnet PlaceRepeaterModal an Cursor-Position.
   const [repeaterPlaceMode, setRepeaterPlaceMode] = useState<null | { kind: "hq" | "repeater" | "mega" }>(null);
   const [repeaterPlaceCursor, setRepeaterPlaceCursor] = useState<{ lat: number; lng: number } | null>(null);
+  // Alle Stadt-Blocks im Sichtbereich — nur im Placement-Mode geladen,
+  // damit AppMap statt Kreis das richtige Block-Polygon highlighten kann.
+  const [cityBlocksAll, setCityBlocksAll] = useState<Array<{ block_id: number; geojson: GeoJSON.Geometry; street_class: string | null }>>([]);
+  useEffect(() => {
+    if (!repeaterPlaceMode || !userCenter) { setCityBlocksAll([]); return; }
+    const dLat = 0.020, dLng = 0.030;
+    const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+    fetch(`/api/city-blocks?bbox=${bbox}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setCityBlocksAll(j.blocks ?? []))
+      .catch(() => setCityBlocksAll([]));
+  }, [repeaterPlaceMode, userCenter]);
   const [attackRepeaterTarget, setAttackRepeaterTarget] = useState<Repeater | null>(null);
   const [repeaterInfoTarget, setRepeaterInfoTarget] = useState<{ r: Repeater; x: number; y: number } | null>(null);
   const [showJoinPbRally, setShowJoinPbRally] = useState<boolean>(false);
@@ -1700,6 +1712,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 cursor: repeaterPlaceCursor ?? userCenter,
                 newRadius_m: repeaterPlaceMode.kind === "hq" ? 500
                   : repeaterPlaceMode.kind === "mega" ? 350 : 200,
+                // Block-Modus aktiv wenn city_blocks-Daten existieren
+                allBlocks: cityBlocksAll.length > 0 ? cityBlocksAll : undefined,
+                // Anzahl Blocks die der neue Repeater claimen wird (Phase 3)
+                blockClaimCount: repeaterPlaceMode.kind === "hq" ? 9
+                  : repeaterPlaceMode.kind === "mega" ? 4 : 1,
               } : null}
               onPlacementHover={(lng, lat) => setRepeaterPlaceCursor({ lat, lng })}
             />
@@ -2210,7 +2227,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       )}
 
       {mapCrewModalOpen && (
-        <CrewModal onClose={() => setMapCrewModalOpen(false)} />
+        <CrewModal
+          onClose={() => setMapCrewModalOpen(false)}
+          onPlaceBuilding={(kind) => {
+            setRepeaterPlaceMode({ kind });
+            setRepeaterPlaceCursor(userCenter);
+          }}
+        />
       )}
 
       {/* Repeater-Info-Popup — schwebt direkt neben dem Pin, kein Backdrop.

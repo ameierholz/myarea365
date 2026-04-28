@@ -576,17 +576,50 @@ interface AppMapProps {
   }>;
   onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
-  /** Wenn aktiv: zeichnet Coverage-Preview-Kreise auf der Karte —
-   *  alle eigenen Repeater-Coverages (cyan) + neuer Cursor-Kreis (animiert).
-   *  Beim Cursor-Hover über die Karte wird onPlacementHover mit lng/lat aufgerufen. */
+  /** Wenn aktiv: zeichnet Coverage-Preview auf der Karte.
+   *  - Wenn allBlocks gesetzt (Phase 3): zeichnet Block-Polygone als Layer,
+   *    highlightet den Block am Cursor in Crew-Farbe (Straßen als Grenzen).
+   *  - Sonst (Fallback): Cyan-Kreis am Cursor + dashed Ghosts der eigenen Repeater. */
   placementPreview?: {
     kind: "hq" | "repeater" | "mega";
-    color: string;             // Crew-Farbe für Cursor-Kreis
+    color: string;             // Crew-Farbe für Cursor-Highlight
     ownRepeaters: Array<{ lat: number; lng: number; radius_m: number }>;
     cursor: { lat: number; lng: number } | null;
     newRadius_m: number;
+    allBlocks?: Array<{ block_id: number; geojson: GeoJSON.Geometry; street_class?: string | null }>;
+    blockClaimCount?: number;  // wieviele Blocks der Repeater-Typ claimt (HQ 9, Mega 4, Std 1)
   } | null;
   onPlacementHover?: (lng: number, lat: number) => void;
+}
+
+// Helper: Point-in-Polygon (Ray-Casting). Akzeptiert GeoJSON Polygon oder MultiPolygon.
+function pointInGeoJSONPolygon(lat: number, lng: number, geom: GeoJSON.Geometry): boolean {
+  const x = lng, y = lat;
+  const ringContains = (ring: number[][]): boolean => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1];
+      const xj = ring[j][0], yj = ring[j][1];
+      const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+  if (geom.type === "Polygon") {
+    if (!ringContains(geom.coordinates[0])) return false;
+    for (let i = 1; i < geom.coordinates.length; i++) {
+      if (ringContains(geom.coordinates[i])) return false;  // im Loch
+    }
+    return true;
+  }
+  if (geom.type === "MultiPolygon") {
+    return geom.coordinates.some((poly) => {
+      if (!ringContains(poly[0])) return false;
+      for (let i = 1; i < poly.length; i++) if (ringContains(poly[i])) return false;
+      return true;
+    });
+  }
+  return false;
 }
 
 // Helper: escape user-provided text for innerHTML usage.
@@ -2884,6 +2917,13 @@ export function AppMap({
     const cursorSource = "placement-preview-cursor";
     const cursorFill = "placement-preview-cursor-fill";
     const cursorStroke = "placement-preview-cursor-stroke";
+    // Block-Mode-Layers (Phase 3)
+    const blocksAllSource = "placement-preview-blocks-all";
+    const blocksAllFill = "placement-preview-blocks-all-fill";
+    const blocksAllStroke = "placement-preview-blocks-all-stroke";
+    const blocksHomeSource = "placement-preview-blocks-home";
+    const blocksHomeFill = "placement-preview-blocks-home-fill";
+    const blocksHomeStroke = "placement-preview-blocks-home-stroke";
 
     // Helper: Punkt + Radius (m) → GeoJSON-Kreis-Polygon (64-edge)
     const circleGeoJSON = (lat: number, lng: number, radiusM: number): GeoJSON.Polygon => {
@@ -2902,8 +2942,13 @@ export function AppMap({
     };
 
     const removeAllPreviewLayers = () => {
-      [cursorStroke, cursorFill, ghostStroke, ghostFill].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
-      [cursorSource, ghostSource].forEach((id) => { if (map.getSource(id)) map.removeSource(id); });
+      [cursorStroke, cursorFill, ghostStroke, ghostFill,
+       blocksHomeStroke, blocksHomeFill, blocksAllStroke, blocksAllFill].forEach((id) => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+      [cursorSource, ghostSource, blocksHomeSource, blocksAllSource].forEach((id) => {
+        if (map.getSource(id)) map.removeSource(id);
+      });
     };
 
     if (!placementPreview) {
@@ -2911,6 +2956,98 @@ export function AppMap({
       return;
     }
 
+    // ─── BLOCK-MODE (Phase 3) ─────────────────────────────────────
+    // Wenn allBlocks gesetzt: Block-Polygone als transparenter Layer +
+    // Home-Block (am Cursor) als gefüllter Polygon in Crew-Farbe.
+    // Mouse-Move triggert queryRenderedFeatures auf den Block-Layer
+    // → Home-Block ändern, Layer aktualisieren.
+    const useBlockMode = !!(placementPreview.allBlocks && placementPreview.allBlocks.length > 0);
+
+    if (useBlockMode) {
+      // 1) Alle Blocks als transparenter Layer (für queryRenderedFeatures)
+      const allFeatures = placementPreview.allBlocks!.map((b) => ({
+        type: "Feature" as const,
+        id: b.block_id,
+        geometry: b.geojson,
+        properties: { block_id: b.block_id, street_class: b.street_class ?? null },
+      }));
+      const allData = { type: "FeatureCollection" as const, features: allFeatures };
+      if (map.getSource(blocksAllSource)) {
+        (map.getSource(blocksAllSource) as mapboxgl.GeoJSONSource).setData(allData);
+      } else {
+        map.addSource(blocksAllSource, { type: "geojson", data: allData });
+        map.addLayer({
+          id: blocksAllFill, type: "fill", source: blocksAllSource,
+          paint: {
+            "fill-color": placementPreview.color,
+            "fill-opacity": 0.05,  // sehr transparent — nur für Hover-Detection
+          } as mapboxgl.FillLayerSpecification["paint"],
+        });
+        map.addLayer({
+          id: blocksAllStroke, type: "line", source: blocksAllSource,
+          paint: {
+            "line-color": placementPreview.color,
+            "line-width": 1,
+            "line-opacity": 0.4,
+            "line-dasharray": [3, 3],
+          } as mapboxgl.LineLayerSpecification["paint"],
+        });
+      }
+
+      // 2) Home-Block am Cursor — über Lat/Lng-Punkt-in-Polygon-Check
+      const c = placementPreview.cursor;
+      const homeFeature = c
+        ? placementPreview.allBlocks!.find((b) => pointInGeoJSONPolygon(c.lat, c.lng, b.geojson))
+        : null;
+      const homeData = {
+        type: "FeatureCollection" as const,
+        features: homeFeature ? [{
+          type: "Feature" as const,
+          geometry: homeFeature.geojson,
+          properties: { block_id: homeFeature.block_id },
+        }] : [],
+      };
+      if (map.getSource(blocksHomeSource)) {
+        (map.getSource(blocksHomeSource) as mapboxgl.GeoJSONSource).setData(homeData);
+      } else {
+        map.addSource(blocksHomeSource, { type: "geojson", data: homeData });
+        map.addLayer({
+          id: blocksHomeFill, type: "fill", source: blocksHomeSource,
+          paint: {
+            "fill-color": placementPreview.color,
+            "fill-opacity": 0.45,
+            "fill-emissive-strength": 0.6,
+          } as mapboxgl.FillLayerSpecification["paint"],
+        });
+        map.addLayer({
+          id: blocksHomeStroke, type: "line", source: blocksHomeSource,
+          paint: {
+            "line-color": placementPreview.color,
+            "line-width": 3,
+            "line-opacity": 0.95,
+            "line-emissive-strength": 1.0,
+          } as mapboxgl.LineLayerSpecification["paint"],
+        });
+      }
+
+      // Kreis-Layer aus dem Fallback-Mode entfernen (falls aktiv)
+      [cursorStroke, cursorFill, ghostStroke, ghostFill].forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
+      [cursorSource, ghostSource].forEach((id) => { if (map.getSource(id)) map.removeSource(id); });
+
+      const onMove = (e: mapboxgl.MapMouseEvent) => {
+        onPlacementHover?.(e.lngLat.lng, e.lngLat.lat);
+      };
+      map.on("mousemove", onMove);
+      map.getCanvas().style.cursor = "crosshair";
+
+      return () => {
+        map.off("mousemove", onMove);
+        map.getCanvas().style.cursor = "";
+        removeAllPreviewLayers();
+      };
+    }
+
+    // ─── KREIS-MODE (Fallback ohne Block-Daten) ─────────────────────
     const ghostFeatures = placementPreview.ownRepeaters.map((r) => ({
       type: "Feature" as const,
       geometry: circleGeoJSON(r.lat, r.lng, r.radius_m),
