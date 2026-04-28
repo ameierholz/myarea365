@@ -237,7 +237,7 @@ export function RepeaterInfoPopup({
               aber nicht so stark dass das Artwork (Antennen, etc.) angeschnitten wird */}
           <div style={{
             width: 180, height: 180,
-            transform: "scale(1.25)",
+            transform: "scale(1.05)",
             transformOrigin: "center center",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -298,9 +298,6 @@ export function RepeaterInfoPopup({
               value={
                 <span style={{ color: "#FFF", fontWeight: 800, fontSize: 12 }}>
                   {(turfInfo.area_m2 / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²
-                  <span style={{ color: "#8B8FA3", fontSize: 10, marginLeft: 4 }}>
-                    ({turfInfo.area_m2.toLocaleString("de-DE")} m²)
-                  </span>
                   {turfInfo.fallback_circle && (
                     <span style={{ color: "#8B8FA3", fontWeight: 600, fontSize: 10, marginLeft: 4 }}>(Kreis)</span>
                   )}
