@@ -2796,17 +2796,17 @@ export function AppMap({
         existing.setLngLat([r.lng, r.lat]);
         continue;
       }
+      // Pattern wie basePins: el = blanker Mapbox-Anker (kein size/transform),
+      // zoomWrap = firstElementChild für manuellen Zoom-Scale via map.on("zoom"),
+      // pin = der eigentliche Visual-Container mit fester Pixel-Größe.
+      // Kein wrapForZoomScale, damit nichts mit dem globalen [data-zoom-scale]-System
+      // konkurriert oder unsynchron schreibt.
       const el = document.createElement("div");
-      // Feste Größe — Mapbox' anchor:center bleibt stabil. Größere Werte als zuvor,
-      // weil wir das transform:scale(1.7) auf dem Video raus haben (verursachte
-      // Drift beim Zoomen wegen asymmetrischer Greenscreen-Padding).
-      const elSize = r.kind === "hq" ? 140 : r.kind === "mega" ? 120 : 100;
-      el.style.cssText = `
-        position:relative;
-        width:${elSize}px; height:${elSize}px;
-        display:flex; align-items:center; justify-content:center;
-        pointer-events:none;
-      `;
+      el.style.cssText = "pointer-events:none; will-change:transform;";
+
+      const zoomWrap = document.createElement("div");
+      zoomWrap.style.cssText = "display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden;";
+
       const isHQ = r.kind === "hq";
       const isMega = r.kind === "mega";
       const slot = isHQ ? "repeater_hq" : isMega ? "repeater_mega" : "repeater_normal";
@@ -2816,7 +2816,7 @@ export function AppMap({
 
       // Wenn Artwork vorhanden: das Artwork IST der Pin (groß, ohne Box)
       // Wenn nicht: kompakte Tile mit Border + Emoji-Fallback
-      const artSize = elSize; // Pin füllt el — kein interner scale → kein Drift
+      const artSize = isHQ ? 140 : isMega ? 120 : 100;
       const tileSize = isHQ ? 36 : isMega ? 30 : 22;
       const pin = document.createElement("div");
       if (hasArt) {
@@ -2853,7 +2853,6 @@ export function AppMap({
       // pointer-events: nur das Pin-Visual ist klickbar (nicht der ganze überstehende Bereich).
       // Bei Artwork: Hit-Area auf ~50% der visuellen Größe begrenzen via separater
       // Hit-Box im Center, anstatt das ganze el klickbar zu machen.
-      el.style.pointerEvents = "none";
       if (hasArt) {
         // Kompakte zentrierte Hit-Box (44×44 — Apple touch target minimum)
         const hit = document.createElement("div");
@@ -2883,19 +2882,36 @@ export function AppMap({
         });
       }
 
-      el.appendChild(pin);
+      zoomWrap.appendChild(pin);
+      el.appendChild(zoomWrap);
 
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([r.lng, r.lat])
         .addTo(map);
-      // Beim Rauszoomen schrumpfen — gleiches System wie alle anderen DOM-Marker
-      wrapForZoomScale(el);
       repeaterMarkersRef.current.set(r.id, marker);
     }
     // Marker entfernen die nicht mehr da sind
     for (const [id, marker] of repeaterMarkersRef.current.entries()) {
       if (!seen.has(id)) { marker.remove(); repeaterMarkersRef.current.delete(id); }
     }
+
+    // Zoom-Scale-Listener wie basePins: schreibt scale auf zoomWrap (firstElementChild).
+    // Skala-Kurve: zoom 11 → 0.32, zoom 13 → 0.55, zoom 15 → 0.8, zoom 17+ → 1.0.
+    const updateRepeaterScale = () => {
+      const z = map.getZoom();
+      let s = 1;
+      if (z < 11)      s = 0.32;
+      else if (z < 13) s = 0.32 + ((z - 11) / 2) * 0.23;
+      else if (z < 15) s = 0.55 + ((z - 13) / 2) * 0.25;
+      else if (z < 17) s = 0.80 + ((z - 15) / 2) * 0.20;
+      for (const m of repeaterMarkersRef.current.values()) {
+        const wrap = m.getElement().firstElementChild as HTMLElement | null;
+        if (wrap) wrap.style.transform = `scale(${s.toFixed(3)})`;
+      }
+    };
+    updateRepeaterScale();
+    map.on("zoom", updateRepeaterScale);
+    return () => { map.off("zoom", updateRepeaterScale); };
   }, [mapReady, crewRepeaters, onRepeaterClick, uiIconArt]);
 
   // ── LongPress (~600 ms) auf Map → onMapLongPress (für Repeater-Setzen) ──
