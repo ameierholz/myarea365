@@ -507,7 +507,7 @@ interface AppMapProps {
   shopTrail?: Array<{ business_id: string; name: string; lat: number; lng: number }>;
   shadowRoute?: { id: string; runner_color: string; geom: Array<{ lat: number; lng: number }> } | null;
   shopReviews?: Array<{ business_id: string; avg_rating: number; review_count: number }>;
-  lootDrops?: Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>;
+  lootDrops?: Array<{ id: string; lat: number; lng: number; rarity: string; kind: string; expires_at?: number }>;
   arenaCountdowns?: Array<{ business_id: string; business_lat: number; business_lng: number; starts_at: string }>;
   onBossClick?: (raidId: string) => void;
   onSanctuaryClick?: (sanctuaryId: string) => void;
@@ -535,6 +535,8 @@ interface AppMapProps {
   }>;
   onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => void;
   baseThemeArt?: Record<string, { image_url: string | null; video_url: string | null }>;
+  /** UI-Icon-Artwork (cosmetic_artwork kind=ui_icon) für Repeater-Pins etc. */
+  uiIconArt?: Record<string, { image_url: string | null; video_url: string | null }>;
   /** Wenn aktiv, fängt der nächste Map-Klick die Lat/Lng ab statt normaler Click-Logik. */
   placeBaseMode?: null | "runner" | "crew";
   onPlaceBaseClick?: (lng: number, lat: number, kind: "runner" | "crew") => void;
@@ -559,7 +561,7 @@ interface AppMapProps {
     is_own: boolean;
     geojson: GeoJSON.Geometry;
   }>;
-  onRepeaterClick?: (repeaterId: string) => void;
+  onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
 }
 
@@ -813,6 +815,7 @@ export function AppMap({
   basePins = [],
   onBasePinTap,
   baseThemeArt = {},
+  uiIconArt = {},
   placeBaseMode = null,
   onPlaceBaseClick,
   crewRepeaters = [],
@@ -2414,6 +2417,7 @@ export function AppMap({
           <div class="ma365-loot-proximity"></div>
           <div class="ma365-loot-proximity two"></div>
           <div class="ma365-loot-crate">${crate}</div>
+          <div class="ma365-loot-timer" data-loot-timer="${d.expires_at ?? 0}" style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);background:rgba(15,17,21,0.85);color:#FFF;font-size:9px;font-weight:900;letter-spacing:0.4px;padding:1px 5px;border-radius:6px;border:1px solid ${color}88;white-space:nowrap;pointer-events:none;font-family:var(--font-display-stack);text-shadow:0 1px 2px rgba(0,0,0,0.8);"></div>
         </div>`;
       outer.addEventListener("click", () => onLootClick?.(d.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
@@ -2422,6 +2426,30 @@ export function AppMap({
     });
     return () => { /* Cleanup nur beim Unmount via mapReady=false-Reset */ };
   }, [mapReady, lootDrops, onLootClick]);
+
+  // Loot-Drop-Countdown: aktualisiert alle Timer-Badges einmal pro Sekunde.
+  useEffect(() => {
+    if (!mapReady) return;
+    const fmt = (msLeft: number) => {
+      const s = Math.max(0, Math.floor(msLeft / 1000));
+      if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+      if (s >= 60) return `${Math.floor(s / 60)}m ${s % 60}s`;
+      return `${s}s`;
+    };
+    const tick = () => {
+      const now = Date.now();
+      document.querySelectorAll<HTMLElement>("[data-loot-timer]").forEach((el) => {
+        const exp = Number(el.dataset.lootTimer || "0");
+        if (!exp) { el.textContent = ""; return; }
+        const left = exp - now;
+        if (left <= 0) { el.textContent = "weg"; return; }
+        el.textContent = fmt(left);
+      });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [mapReady, lootDrops]);
 
   // Proximity-Check: User-Position vs Loot-Drops. 30m = auto-pickup, 100m = "ready"-Glow
   useEffect(() => {
@@ -2742,12 +2770,25 @@ export function AppMap({
 
   // ── Crew-Turf: Repeater-DOM-Marker ──────────────────────────
   const repeaterMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  const lastRepeaterArtHashRef = useRef<string>("");
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
 
     const seen = new Set<string>();
+    // uiIconArt-Hash: wenn sich Artwork ändert, Marker neu bauen damit das Bild geladen wird
+    const artHash = JSON.stringify({
+      hq:  uiIconArt["repeater_hq"]?.image_url ?? uiIconArt["repeater_hq"]?.video_url ?? "",
+      mg:  uiIconArt["repeater_mega"]?.image_url ?? uiIconArt["repeater_mega"]?.video_url ?? "",
+      no:  uiIconArt["repeater_normal"]?.image_url ?? uiIconArt["repeater_normal"]?.video_url ?? "",
+    });
+    if (lastRepeaterArtHashRef.current !== artHash) {
+      // Artwork hat sich geändert → alle Marker entsorgen, neu bauen unten
+      for (const m of repeaterMarkersRef.current.values()) m.remove();
+      repeaterMarkersRef.current.clear();
+      lastRepeaterArtHashRef.current = artHash;
+    }
     for (const r of crewRepeaters ?? []) {
       seen.add(r.id);
       const existing = repeaterMarkersRef.current.get(r.id);
@@ -2756,63 +2797,107 @@ export function AppMap({
         continue;
       }
       const el = document.createElement("div");
+      // width:0/height:0 + position:relative — Pin-Inhalt overflowed visuell, aber
+      // Mapbox' anchor-offset (-50% von 0 = 0px) bleibt stabil → kein Drift beim Zoom.
       el.style.cssText = `
-        cursor:pointer; pointer-events:auto;
-        display:flex; flex-direction:column; align-items:center; gap:2px;
+        position:relative; width:0; height:0;
+        pointer-events:none;
       `;
-      const tag = document.createElement("div");
-      tag.style.cssText = `
-        font-size:9px; font-weight:900; padding:1px 5px; border-radius:4px;
-        color:#fff; background:${r.is_own ? "#22D1C3" : "#FF2D78"};
-        text-shadow:0 1px 2px rgba(0,0,0,0.6);
-        white-space:nowrap;
-      `;
-      tag.textContent = r.crew_tag ?? r.crew_name ?? "?";
-      const pin = document.createElement("div");
       const isHQ = r.kind === "hq";
       const isMega = r.kind === "mega";
-      const size = isHQ ? 36 : isMega ? 30 : 22;
-      pin.style.cssText = `
-        width:${size}px; height:${size}px; border-radius:6px;
-        background:${r.is_own ? "rgba(34,209,195,0.25)" : "rgba(255,45,120,0.25)"};
-        border:2px solid ${r.is_own ? "#22D1C3" : "#FF2D78"};
-        display:flex; align-items:center; justify-content:center;
-        font-size:${size * 0.55}px; font-weight:900;
-        box-shadow:0 4px 12px ${r.is_own ? "rgba(34,209,195,0.5)" : "rgba(255,45,120,0.5)"};
-      `;
-      pin.textContent = isHQ ? "🏛️" : isMega ? "📡" : "📶";
+      const slot = isHQ ? "repeater_hq" : isMega ? "repeater_mega" : "repeater_normal";
+      const fallback = isHQ ? "🏛️" : isMega ? "📡" : "📶";
+      const art = uiIconArt[slot];
+      const hasArt = !!(art?.video_url || art?.image_url);
 
-      // HP-bar
-      const hp = document.createElement("div");
-      hp.style.cssText = `
-        width:${size}px; height:3px; background:rgba(0,0,0,0.5); border-radius:2px; overflow:hidden;
-      `;
-      const hpFill = document.createElement("div");
-      const pct = Math.max(0, Math.min(100, (r.hp / Math.max(r.max_hp, 1)) * 100));
-      hpFill.style.cssText = `
-        width:${pct}%; height:100%;
-        background:${pct > 50 ? "#22D1C3" : pct > 20 ? "#FFD700" : "#FF2D78"};
-      `;
-      hp.appendChild(hpFill);
+      // Wenn Artwork vorhanden: das Artwork IST der Pin (groß, ohne Box)
+      // Wenn nicht: kompakte Tile mit Border + Emoji-Fallback
+      const artSize = isHQ ? 96 : isMega ? 80 : 64;
+      const tileSize = isHQ ? 36 : isMega ? 30 : 22;
+      const pin = document.createElement("div");
+      if (hasArt) {
+        pin.style.cssText = `
+          width:${artSize}px; height:${artSize}px;
+          display:flex; align-items:center; justify-content:center;
+          filter:drop-shadow(0 4px 14px ${r.is_own ? "rgba(34,209,195,0.65)" : "rgba(255,45,120,0.65)"})
+                 drop-shadow(0 0 10px ${r.is_own ? "rgba(34,209,195,0.45)" : "rgba(255,45,120,0.45)"});
+        `;
+        // transform:scale(1.7) zoomt ins Video/Bild rein um das transparente
+        // Greenscreen-Padding (nach Chroma-Key) zu überspringen — der eigentliche
+        // Icon-Inhalt wird dadurch deutlich größer ohne dass der Pin wächst.
+        const zoomCss = "transform:scale(1.7); transform-origin:center center;";
+        pin.style.overflow = "visible";
+        if (art?.video_url) {
+          const v = document.createElement("video");
+          v.src = art.video_url;
+          v.autoplay = true; v.loop = true; v.muted = true;
+          v.setAttribute("playsinline", "");
+          v.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none; ${zoomCss}`;
+          pin.appendChild(v);
+        } else if (art?.image_url) {
+          const img = document.createElement("img");
+          img.src = art.image_url; img.alt = "";
+          img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none; ${zoomCss}`;
+          pin.appendChild(img);
+        }
+      } else {
+        pin.style.cssText = `
+          width:${tileSize}px; height:${tileSize}px; border-radius:6px;
+          background:${r.is_own ? "rgba(34,209,195,0.25)" : "rgba(255,45,120,0.25)"};
+          border:2px solid ${r.is_own ? "#22D1C3" : "#FF2D78"};
+          display:flex; align-items:center; justify-content:center;
+          font-size:${tileSize * 0.55}px; font-weight:900;
+          box-shadow:0 4px 12px ${r.is_own ? "rgba(34,209,195,0.5)" : "rgba(255,45,120,0.5)"};
+        `;
+        pin.textContent = fallback;
+      }
+      // pointer-events: nur das Pin-Visual ist klickbar (nicht der ganze überstehende Bereich).
+      // Bei Artwork: Hit-Area auf ~50% der visuellen Größe begrenzen via separater
+      // Hit-Box im Center, anstatt das ganze el klickbar zu machen.
+      el.style.pointerEvents = "none";
+      if (hasArt) {
+        // Kompakte zentrierte Hit-Box (44×44 — Apple touch target minimum)
+        const hit = document.createElement("div");
+        const hitSize = 44;
+        hit.style.cssText = `
+          position:absolute; left:50%; top:50%;
+          transform:translate(-50%, -50%);
+          width:${hitSize}px; height:${hitSize}px;
+          border-radius:50%;
+          cursor:pointer; pointer-events:auto;
+          z-index:5;
+        `;
+        hit.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          onRepeaterClick?.(r.id, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
+        });
+        // pin braucht position:relative damit hit absolut in pin sitzt
+        pin.style.position = "relative";
+        pin.appendChild(hit);
+      } else {
+        // Kleiner Tile-Look ohne Artwork → ganzer Pin ist klickbar
+        pin.style.cursor = "pointer";
+        pin.style.pointerEvents = "auto";
+        pin.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          onRepeaterClick?.(r.id, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
+        });
+      }
 
-      el.appendChild(tag);
       el.appendChild(pin);
-      el.appendChild(hp);
-      el.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        onRepeaterClick?.(r.id);
-      });
 
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([r.lng, r.lat])
         .addTo(map);
+      // Beim Rauszoomen schrumpfen — gleiches System wie alle anderen DOM-Marker
+      wrapForZoomScale(el);
       repeaterMarkersRef.current.set(r.id, marker);
     }
     // Marker entfernen die nicht mehr da sind
     for (const [id, marker] of repeaterMarkersRef.current.entries()) {
       if (!seen.has(id)) { marker.remove(); repeaterMarkersRef.current.delete(id); }
     }
-  }, [mapReady, crewRepeaters, onRepeaterClick]);
+  }, [mapReady, crewRepeaters, onRepeaterClick, uiIconArt]);
 
   // ── LongPress (~600 ms) auf Map → onMapLongPress (für Repeater-Setzen) ──
   useEffect(() => {

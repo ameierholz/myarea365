@@ -10,6 +10,7 @@ import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
 import { CrewModal } from "@/components/crew-modal";
+import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
@@ -381,7 +382,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     explored_cells: Array<{ cell_x: number; cell_y: number }>;
     shop_trail: Array<{ business_id: string; name: string; lat: number; lng: number; icon: string; color: string; visit_count: number }>;
   } | null>(null);
-  const [lootDrops, setLootDrops] = useState<Array<{ id: string; lat: number; lng: number; rarity: string; kind: string }>>([]);
+  const [lootDrops, setLootDrops] = useState<Array<{ id: string; lat: number; lng: number; rarity: string; kind: string; expires_at: number }>>([]);
   const [viewingBoss, setViewingBoss] = useState<string | null>(null);
   const [viewingSanctuary, setViewingSanctuary] = useState<string | null>(null);
   const [viewingPowerZone, setViewingPowerZone] = useState<string | null>(null);
@@ -1171,6 +1172,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);
   const [placeRepeaterAt, setPlaceRepeaterAt] = useState<{ lat: number; lng: number } | null>(null);
   const [attackRepeaterTarget, setAttackRepeaterTarget] = useState<Repeater | null>(null);
+  const [repeaterInfoTarget, setRepeaterInfoTarget] = useState<{ r: Repeater; x: number; y: number } | null>(null);
   const [showJoinPbRally, setShowJoinPbRally] = useState<boolean>(false);
 
   // Player-Base-Rally polling alle 20 s (nur State updaten wenn sich was
@@ -1201,6 +1203,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [strongholdModalTarget, setStrongholdModalTarget] = useState<Stronghold | null>(null);
   const strongholdArt = useStrongholdArt();
   const dashboardBaseThemeArt = useBaseThemeArt();
+  const dashboardUiIconArt = useUiIconArt();
   const nameplateArt = useNameplateArt();
   const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
     try {
@@ -1408,11 +1411,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     ];
     const kinds: Array<"xp_pack" | "speed_boost" | "mystery_ticket"> = ["xp_pack", "speed_boost", "mystery_ticket"];
 
+    // Lifetime: 30–120 min ab Spawn — nach Ablauf verschwindet der Drop und
+    // wird neu gespawnt (an anderer Position). Position bleibt stabil bis dahin.
+    const DROP_LIFETIME_MIN_MS = 30 * 60 * 1000;
+    const DROP_LIFETIME_RANGE_MS = 90 * 60 * 1000;
     const makeDrop = (lat: number, lng: number) => ({
       id: `loot-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       lat, lng,
       rarity: rarities[Math.floor(Math.random() * rarities.length)],
       kind: kinds[Math.floor(Math.random() * kinds.length)],
+      expires_at: Date.now() + DROP_LIFETIME_MIN_MS + Math.floor(Math.random() * DROP_LIFETIME_RANGE_MS),
     });
 
     const spawnAt = async (lat: number, lng: number, jitterDeg = 0) => {
@@ -1435,18 +1443,29 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       return spawnAt(lat, lng, 0);
     };
 
-    // Initialer Bulk-Fill Berlin-weit — OHNE Mapbox-Snap (zu teuer: 200
-    // API-Calls + 200 setStates haben das Dashboard zum Flackern gebracht).
-    // Die Drops landen mit Roh-Koords; nur die User-nahen Boost-Drops werden
-    // gesnappt (siehe userBoostInt unten).
+    // Persistenz: localStorage hält Drops über Tab-Switch/Reload stabil.
+    // Beim Mount: gespeicherte Drops laden, abgelaufene aussortieren, fehlende auffüllen.
+    const STORAGE_KEY = "ma365.lootDrops.v1";
     let cancelled = false;
-    const initialDrops: ReturnType<typeof makeDrop>[] = [];
-    for (let i = 0; i < TARGET_DROPS; i++) {
+    const now0 = Date.now();
+    let initialDrops: ReturnType<typeof makeDrop>[] = [];
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as ReturnType<typeof makeDrop>[];
+        if (Array.isArray(parsed)) {
+          initialDrops = parsed.filter((d) => d && typeof d.expires_at === "number" && d.expires_at > now0);
+        }
+      }
+    } catch { /* ignore */ }
+    // Auffüllen falls weniger als TARGET_DROPS vorhanden sind
+    while (initialDrops.length < TARGET_DROPS) {
       const lat = BERLIN.south + Math.random() * (BERLIN.north - BERLIN.south);
       const lng = BERLIN.west  + Math.random() * (BERLIN.east  - BERLIN.west);
       initialDrops.push(makeDrop(lat, lng));
     }
     setLootDrops(initialDrops);
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initialDrops)); } catch { /* ignore */ }
 
     // Sobald GPS verfügbar wird: zusätzliche 15 Drops eng um den User streuen.
     // Pollt alle 500 ms bis userCenter da ist (max 30 s warten).
@@ -1465,18 +1484,26 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     }, 500);
     setTimeout(() => clearInterval(userBoostInt), 30_000);
 
-    // Periodisch nachfüllen falls Drops eingesammelt wurden
+    // Periodisch: abgelaufene Drops entfernen + auffüllen falls eingesammelt
     const int = setInterval(() => {
+      const tNow = Date.now();
       setLootDrops((prev) => {
-        if (prev.length >= TARGET_DROPS) return prev;
-        void spawnRandomBerlin();
-        return prev;
+        const alive = prev.filter((d) => d.expires_at > tNow);
+        if (alive.length === prev.length && alive.length >= TARGET_DROPS) return prev;
+        if (alive.length < TARGET_DROPS) void spawnRandomBerlin();
+        return alive;
       });
     }, 20_000);
     return () => { cancelled = true; clearInterval(int); clearInterval(userBoostInt); };
     // userCenter wird absichtlich nicht observed — Pool ist Berlin-weit, unabhängig vom Standort
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Drops bei jeder Änderung persistieren (Tab-Switch/Reload behalten dieselben Positionen)
+  useEffect(() => {
+    if (lootDrops.length === 0) return;
+    try { window.localStorage.setItem("ma365.lootDrops.v1", JSON.stringify(lootDrops)); } catch { /* ignore */ }
+  }, [lootDrops]);
 
   // Arena-Countdowns aus demoShops ableiten (2h in der Zukunft fuer Kaelthor-Demo)
   const arenaCountdowns = useMemo(() => {
@@ -1615,6 +1642,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return { ...b, theme_rarity: rar, nameplate_art: np };
               })}
               baseThemeArt={dashboardBaseThemeArt}
+              uiIconArt={dashboardUiIconArt}
               onBasePinTap={(pin) => {
                 // Fremde Runner-Base → Attack-Modal; eigene oder Crew → BaseModal
                 if (!pin.is_own && pin.kind === "runner") {
@@ -1627,9 +1655,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onPlaceBaseClick={onPlaceBaseClick}
               crewRepeaters={crewRepeaters}
               crewTurfPolygons={crewTurfPolygons}
-              onRepeaterClick={(id) => {
-                const r = crewRepeaters.find((x) => x.id === id);
-                if (r) setAttackRepeaterTarget(r);
+              onRepeaterClick={(id, x, y) => {
+                const r = crewRepeaters.find((p) => p.id === id);
+                if (r) setRepeaterInfoTarget({ r, x, y });
               }}
               onMapLongPress={(lng, lat) => setPlaceRepeaterAt({ lat, lng })}
             />
@@ -2143,6 +2171,22 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
       {mapCrewModalOpen && (
         <CrewModal onClose={() => setMapCrewModalOpen(false)} />
+      )}
+
+      {/* Repeater-Info-Popup — schwebt direkt neben dem Pin, kein Backdrop.
+          Click irgendwo auf Karte schließt. Nur fremde Repeater haben "Angreifen". */}
+      {repeaterInfoTarget && (
+        <RepeaterInfoPopup
+          repeater={repeaterInfoTarget.r}
+          anchorX={repeaterInfoTarget.x}
+          anchorY={repeaterInfoTarget.y}
+          onClose={() => setRepeaterInfoTarget(null)}
+          onAttack={() => {
+            const r = repeaterInfoTarget.r;
+            setRepeaterInfoTarget(null);
+            setAttackRepeaterTarget(r);
+          }}
+        />
       )}
 
       {/* Angriffs-Modal — wenn fremde Spieler-Base getappt wird */}

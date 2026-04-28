@@ -158,16 +158,12 @@ export function MapQuickAccess({
               display: "flex", flexDirection: "row",
               gap: 6, padding: "6px 8px",
               maxWidth: "calc(100vw - 80px)", overflowX: "auto",
-              background: `linear-gradient(180deg, rgba(15,17,21,0.92) 0%, rgba(20,22,28,0.92) 100%)`,
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "transparent",
+              border: "1px solid rgba(255,255,255,0.04)",
               borderRadius: 14,
-              boxShadow: "0 6px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)",
-              backdropFilter: "blur(12px)",
-              backgroundImage: `
-                linear-gradient(180deg, rgba(15,17,21,0.92) 0%, rgba(20,22,28,0.92) 100%),
-                repeating-linear-gradient(90deg, transparent 0 14px, rgba(255,215,0,0.08) 14px 22px)
-              `,
-              backgroundBlendMode: "overlay",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+              backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
             }}
           >
             {items.map((it) => (
@@ -193,12 +189,12 @@ export function MapQuickAccess({
             position: "relative",
             width: 44, height: 64, borderRadius: 12,
             background: `
-              radial-gradient(circle at 30% 25%, rgba(34,209,195,0.55) 0%, rgba(34,209,195,0.15) 35%, transparent 60%),
-              radial-gradient(circle at 70% 75%, rgba(255,45,120,0.45) 0%, rgba(255,45,120,0.10) 30%, transparent 55%),
-              rgba(15,17,21,0.85)
+              radial-gradient(circle at 30% 25%, rgba(34,209,195,0.28) 0%, rgba(34,209,195,0.06) 35%, transparent 60%),
+              radial-gradient(circle at 70% 75%, rgba(255,45,120,0.22) 0%, rgba(255,45,120,0.05) 30%, transparent 55%),
+              rgba(15,17,21,0.18)
             `,
-            border: "1px solid rgba(255,255,255,0.18)",
-            backdropFilter: "blur(14px) saturate(140%)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            backdropFilter: "blur(6px) saturate(120%)",
             color: "#FFF", fontSize: 22, fontWeight: 900, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             boxShadow: "0 4px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
