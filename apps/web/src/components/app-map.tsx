@@ -538,6 +538,29 @@ interface AppMapProps {
   /** Wenn aktiv, fängt der nächste Map-Klick die Lat/Lng ab statt normaler Click-Logik. */
   placeBaseMode?: null | "runner" | "crew";
   onPlaceBaseClick?: (lng: number, lat: number, kind: "runner" | "crew") => void;
+  // ── Crew-Turf (Funkmasten/Repeater + Crew-Gebiete) ──
+  crewRepeaters?: Array<{
+    id: string;
+    crew_id: string;
+    crew_name: string | null;
+    crew_tag: string | null;
+    kind: "hq" | "repeater" | "mega";
+    label: string | null;
+    lat: number;
+    lng: number;
+    hp: number;
+    max_hp: number;
+    is_own: boolean;
+  }>;
+  crewTurfPolygons?: Array<{
+    crew_id: string;
+    crew_name: string | null;
+    crew_tag: string | null;
+    is_own: boolean;
+    geojson: GeoJSON.Geometry;
+  }>;
+  onRepeaterClick?: (repeaterId: string) => void;
+  onMapLongPress?: (lng: number, lat: number) => void;
 }
 
 // Helper: escape user-provided text for innerHTML usage.
@@ -792,6 +815,10 @@ export function AppMap({
   baseThemeArt = {},
   placeBaseMode = null,
   onPlaceBaseClick,
+  crewRepeaters = [],
+  crewTurfPolygons = [],
+  onRepeaterClick,
+  onMapLongPress,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -2662,6 +2689,166 @@ export function AppMap({
       basePinMarkersRef.current = [];
     };
   }, [mapReady, basePins, baseThemeArt]);
+
+  // ── Crew-Turf: Polygons (fill) ──────────────────────────────
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const sourceId = "crew-turf";
+    const fillId = "crew-turf-fill";
+    const strokeId = "crew-turf-stroke";
+
+    const features = (crewTurfPolygons ?? []).map((p) => ({
+      type: "Feature" as const,
+      geometry: p.geojson,
+      properties: {
+        crew_id: p.crew_id,
+        is_own: p.is_own,
+        color: p.is_own ? "#22D1C3" : "#FF2D78",
+      },
+    }));
+    const data = { type: "FeatureCollection" as const, features };
+
+    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: fillId,
+        type: "fill",
+        source: sourceId,
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": 0.18,
+          "fill-emissive-strength": 0.4,
+        } as mapboxgl.FillLayerSpecification["paint"],
+      });
+      map.addLayer({
+        id: strokeId,
+        type: "line",
+        source: sourceId,
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 16, 2.4, 19, 3.5],
+          "line-opacity": 0.85,
+          "line-emissive-strength": 1.0,
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+    }
+  }, [mapReady, crewTurfPolygons]);
+
+  // ── Crew-Turf: Repeater-DOM-Marker ──────────────────────────
+  const repeaterMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const seen = new Set<string>();
+    for (const r of crewRepeaters ?? []) {
+      seen.add(r.id);
+      const existing = repeaterMarkersRef.current.get(r.id);
+      if (existing) {
+        existing.setLngLat([r.lng, r.lat]);
+        continue;
+      }
+      const el = document.createElement("div");
+      el.style.cssText = `
+        cursor:pointer; pointer-events:auto;
+        display:flex; flex-direction:column; align-items:center; gap:2px;
+      `;
+      const tag = document.createElement("div");
+      tag.style.cssText = `
+        font-size:9px; font-weight:900; padding:1px 5px; border-radius:4px;
+        color:#fff; background:${r.is_own ? "#22D1C3" : "#FF2D78"};
+        text-shadow:0 1px 2px rgba(0,0,0,0.6);
+        white-space:nowrap;
+      `;
+      tag.textContent = r.crew_tag ?? r.crew_name ?? "?";
+      const pin = document.createElement("div");
+      const isHQ = r.kind === "hq";
+      const isMega = r.kind === "mega";
+      const size = isHQ ? 36 : isMega ? 30 : 22;
+      pin.style.cssText = `
+        width:${size}px; height:${size}px; border-radius:6px;
+        background:${r.is_own ? "rgba(34,209,195,0.25)" : "rgba(255,45,120,0.25)"};
+        border:2px solid ${r.is_own ? "#22D1C3" : "#FF2D78"};
+        display:flex; align-items:center; justify-content:center;
+        font-size:${size * 0.55}px; font-weight:900;
+        box-shadow:0 4px 12px ${r.is_own ? "rgba(34,209,195,0.5)" : "rgba(255,45,120,0.5)"};
+      `;
+      pin.textContent = isHQ ? "🏛️" : isMega ? "📡" : "📶";
+
+      // HP-bar
+      const hp = document.createElement("div");
+      hp.style.cssText = `
+        width:${size}px; height:3px; background:rgba(0,0,0,0.5); border-radius:2px; overflow:hidden;
+      `;
+      const hpFill = document.createElement("div");
+      const pct = Math.max(0, Math.min(100, (r.hp / Math.max(r.max_hp, 1)) * 100));
+      hpFill.style.cssText = `
+        width:${pct}%; height:100%;
+        background:${pct > 50 ? "#22D1C3" : pct > 20 ? "#FFD700" : "#FF2D78"};
+      `;
+      hp.appendChild(hpFill);
+
+      el.appendChild(tag);
+      el.appendChild(pin);
+      el.appendChild(hp);
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        onRepeaterClick?.(r.id);
+      });
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([r.lng, r.lat])
+        .addTo(map);
+      repeaterMarkersRef.current.set(r.id, marker);
+    }
+    // Marker entfernen die nicht mehr da sind
+    for (const [id, marker] of repeaterMarkersRef.current.entries()) {
+      if (!seen.has(id)) { marker.remove(); repeaterMarkersRef.current.delete(id); }
+    }
+  }, [mapReady, crewRepeaters, onRepeaterClick]);
+
+  // ── LongPress (~600 ms) auf Map → onMapLongPress (für Repeater-Setzen) ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !onMapLongPress) return;
+    const map = mapRef.current;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let armed = false;
+    let lastLngLat: { lng: number; lat: number } | null = null;
+    const start = (e: mapboxgl.MapMouseEvent | mapboxgl.MapTouchEvent) => {
+      armed = true;
+      lastLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+      timer = setTimeout(() => {
+        if (armed && lastLngLat) onMapLongPress(lastLngLat.lng, lastLngLat.lat);
+        armed = false;
+      }, 600);
+    };
+    const cancel = () => {
+      armed = false;
+      if (timer) { clearTimeout(timer); timer = null; }
+    };
+    map.on("mousedown", start);
+    map.on("touchstart", start);
+    map.on("mouseup", cancel);
+    map.on("touchend", cancel);
+    map.on("dragstart", cancel);
+    map.on("zoomstart", cancel);
+    return () => {
+      cancel();
+      map.off("mousedown", start);
+      map.off("touchstart", start);
+      map.off("mouseup", cancel);
+      map.off("touchend", cancel);
+      map.off("dragstart", cancel);
+      map.off("zoomstart", cancel);
+    };
+  }, [mapReady, onMapLongPress]);
 
   // ── Place-Base-Mode: nächster Map-Klick liefert Lat/Lng ──
   useEffect(() => {

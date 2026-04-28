@@ -1,0 +1,398 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type Troop = { id: string; name: string; emoji: string; troop_class: string; tier: number; atk: number };
+type RepeaterKind = "hq" | "repeater" | "mega";
+
+const KIND_INFO: Record<RepeaterKind, { label: string; icon: string; cost_gold: number; cost_wood: number; cost_stone: number; max_hp: number }> = {
+  hq:       { label: "Zentral-Server (HQ)", icon: "🏛️", cost_gold: 5000, cost_wood: 2000, cost_stone: 2000, max_hp: 10000 },
+  repeater: { label: "Signal-Repeater",     icon: "📶", cost_gold:  500, cost_wood:  500, cost_stone:  500, max_hp:  3000 },
+  mega:     { label: "Mega-Server",         icon: "📡", cost_gold: 2000, cost_wood: 1000, cost_stone: 1500, max_hp:  8000 },
+};
+
+type Repeater = {
+  id: string;
+  crew_id: string;
+  crew_name: string | null;
+  crew_tag: string | null;
+  kind: RepeaterKind;
+  label: string | null;
+  lat: number;
+  lng: number;
+  hp: number;
+  max_hp: number;
+  is_own: boolean;
+};
+
+/* ─────────────────────────────────────────────────────────
+   PLACE-REPEATER-MODAL
+   ───────────────────────────────────────────────────────── */
+export function PlaceRepeaterModal({
+  lat, lng, onClose, onPlaced,
+}: {
+  lat: number;
+  lng: number;
+  onClose: () => void;
+  onPlaced: () => void;
+}) {
+  const [kind, setKind] = useState<RepeaterKind>("repeater");
+  const [label, setLabel] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [hasHQ, setHasHQ] = useState<boolean | null>(null);
+  const [resources, setResources] = useState<{ gold: number; wood: number; stone: number } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { data: sum } = await sb.rpc("my_crew_repeater_summary");
+      setHasHQ(!!(sum as { has_hq?: boolean } | null)?.has_hq);
+      const { data: res } = await sb.from("user_resources").select("gold, wood, stone").eq("user_id", user.id).maybeSingle();
+      setResources(res ?? { gold: 0, wood: 0, stone: 0 });
+      // Default-Kind: wenn noch kein HQ → hq
+      if ((sum as { has_hq?: boolean } | null)?.has_hq === false) setKind("hq");
+    })();
+  }, []);
+
+  const stats = KIND_INFO[kind];
+  const canAfford = resources
+    ? resources.gold >= stats.cost_gold && resources.wood >= stats.cost_wood && resources.stone >= stats.cost_stone
+    : false;
+  const blockedByHQRule = hasHQ === false && kind !== "hq";
+
+  async function place() {
+    setBusy(true); setErr(null);
+    const r = await fetch("/api/crews/turf", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ lat, lng, kind, label: label.trim() || null }),
+    });
+    const j = await r.json();
+    if (!r.ok || j?.ok === false) {
+      setErr(j?.error || "place_failed");
+    } else {
+      onPlaced();
+      onClose();
+    }
+    setBusy(false);
+  }
+
+  return (
+    <Backdrop onClose={onClose}>
+      <Card>
+        <Header
+          title="Repeater setzen"
+          subtitle={`${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+          onClose={onClose}
+        />
+
+        {hasHQ === false && (
+          <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/40 text-[11px] text-[#FFD700] font-bold">
+            Erster Repeater MUSS ein HQ (Zentral-Server) sein.
+          </div>
+        )}
+
+        <div className="px-4 pb-3 space-y-2">
+          {(["hq", "repeater", "mega"] as RepeaterKind[]).map((k) => {
+            const info = KIND_INFO[k];
+            const sel = k === kind;
+            const disabled = (k === "hq" && hasHQ === true) || (k !== "hq" && hasHQ === false);
+            return (
+              <button
+                key={k}
+                disabled={disabled}
+                onClick={() => setKind(k)}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border transition ${
+                  sel
+                    ? "bg-[#22D1C3]/15 border-[#22D1C3]"
+                    : disabled
+                      ? "opacity-40 border-white/10"
+                      : "border-white/15 hover:border-white/30"
+                }`}
+              >
+                <span className="text-2xl">{info.icon}</span>
+                <span className="flex-1 text-left">
+                  <div className="text-[13px] font-black text-white">{info.label}</div>
+                  <div className="text-[10px] text-white/60">HP {info.max_hp.toLocaleString()} · {info.cost_gold}🪙 {info.cost_wood}🪵 {info.cost_stone}🪨</div>
+                </span>
+                {disabled && k === "hq" && <span className="text-[9px] text-white/40">vorhanden</span>}
+                {disabled && k !== "hq" && <span className="text-[9px] text-white/40">HQ fehlt</span>}
+              </button>
+            );
+          })}
+
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Spitzname (optional, z.B. 'Kreuzberg-Tor')"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[12px] text-white"
+            maxLength={40}
+          />
+
+          {!canAfford && resources && (
+            <div className="text-[10px] text-[#FF2D78] font-bold">
+              Zu wenig Ressourcen — du hast {resources.gold}🪙 {resources.wood}🪵 {resources.stone}🪨
+            </div>
+          )}
+          {err && <div className="text-[10px] text-[#FF2D78] font-bold">Fehler: {err}</div>}
+        </div>
+
+        <Footer
+          onClose={onClose}
+          onConfirm={place}
+          confirmDisabled={busy || !canAfford || blockedByHQRule}
+          confirmLabel={busy ? "..." : "Bauen"}
+        />
+      </Card>
+    </Backdrop>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   ATTACK-REPEATER-MODAL (Solo + Rally)
+   ───────────────────────────────────────────────────────── */
+export function AttackRepeaterModal({
+  repeater, onClose, onAttacked,
+}: {
+  repeater: Repeater;
+  onClose: () => void;
+  onAttacked: () => void;
+}) {
+  const [troops, setTroops] = useState<Troop[]>([]);
+  const [available, setAvailable] = useState<Record<string, number>>({});
+  const [picked, setPicked] = useState<Record<string, number>>({});
+  const [mode, setMode] = useState<"attack" | "rally">("attack");
+  const [prep, setPrep] = useState<number>(180);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [hasCrew, setHasCrew] = useState<boolean>(false);
+
+  const load = useCallback(async () => {
+    const sb = createClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    const [cat, mine, cm] = await Promise.all([
+      sb.from("troops_catalog").select("id, name, emoji, troop_class, tier, atk").order("troop_class").order("tier"),
+      sb.from("user_troops").select("troop_id, count").eq("user_id", user.id),
+      sb.from("crew_members").select("crew_id").eq("user_id", user.id).maybeSingle(),
+    ]);
+    setTroops((cat.data ?? []) as Troop[]);
+    const a: Record<string, number> = {};
+    (mine.data ?? []).forEach((r: { troop_id: string; count: number }) => { a[r.troop_id] = r.count; });
+    setAvailable(a);
+    setHasCrew(!!cm.data);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const totalAtk = useMemo(() => {
+    return troops.reduce((s, t) => s + (picked[t.id] ?? 0) * (t.atk || 10), 0);
+  }, [troops, picked]);
+
+  function bump(troopId: string, delta: number) {
+    setPicked((p) => {
+      const current = p[troopId] ?? 0;
+      const max = available[troopId] ?? 0;
+      const next = Math.max(0, Math.min(max, current + delta));
+      if (next === 0) { const { [troopId]: _, ...rest } = p; void _; return rest; }
+      return { ...p, [troopId]: next };
+    });
+  }
+  function setMax(troopId: string) {
+    setPicked((p) => ({ ...p, [troopId]: available[troopId] ?? 0 }));
+  }
+
+  async function send() {
+    setBusy(true); setErr(null);
+    if (Object.keys(picked).length === 0) { setErr("Wähl mindestens 1 Truppe."); setBusy(false); return; }
+    const url = mode === "rally" ? "/api/crews/turf/rally" : "/api/crews/turf/attack";
+    const body = mode === "rally"
+      ? { repeater_id: repeater.id, prep_seconds: prep, troops: picked }
+      : { repeater_id: repeater.id, troops: picked };
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!r.ok || j?.ok === false) {
+      setErr(j?.error || "attack_failed");
+    } else {
+      onAttacked();
+      onClose();
+    }
+    setBusy(false);
+  }
+
+  if (repeater.is_own) {
+    return (
+      <Backdrop onClose={onClose}>
+        <Card>
+          <Header title={repeater.label ?? KIND_INFO[repeater.kind].label} subtitle="Eigener Repeater" onClose={onClose} />
+          <div className="px-4 py-4 text-[12px] text-white/80">
+            <div className="mb-2">Crew: <b>{repeater.crew_name}</b></div>
+            <div className="mb-2">Typ: <b>{KIND_INFO[repeater.kind].label}</b></div>
+            <div>HP: <b>{repeater.hp.toLocaleString()} / {repeater.max_hp.toLocaleString()}</b></div>
+          </div>
+        </Card>
+      </Backdrop>
+    );
+  }
+
+  return (
+    <Backdrop onClose={onClose}>
+      <Card wide>
+        <Header
+          title={`Angriff: ${repeater.label ?? KIND_INFO[repeater.kind].label}`}
+          subtitle={`Crew: ${repeater.crew_name ?? "?"} · HP ${repeater.hp.toLocaleString()}/${repeater.max_hp.toLocaleString()}`}
+          onClose={onClose}
+        />
+
+        <div className="px-4 pb-2 flex gap-2">
+          <ModeButton active={mode === "attack"} onClick={() => setMode("attack")} icon="⚔️" label="Solo-Angriff" />
+          <ModeButton active={mode === "rally"} onClick={() => hasCrew && setMode("rally")} disabled={!hasCrew} icon="📣" label="Crew-Aufgebot" />
+        </div>
+
+        {mode === "rally" && (
+          <div className="px-4 pb-2 flex gap-2">
+            {[
+              { s: 180, l: "3 min" },
+              { s: 480, l: "8 min" },
+              { s: 1680, l: "28 min" },
+            ].map((p) => (
+              <button
+                key={p.s}
+                onClick={() => setPrep(p.s)}
+                className={`flex-1 px-2 py-1.5 rounded-md text-[11px] font-bold ${
+                  prep === p.s ? "bg-[#FF2D78] text-white" : "bg-white/5 text-white/70 border border-white/10"
+                }`}
+              >Prep: {p.l}</button>
+            ))}
+          </div>
+        )}
+
+        <div className="px-4 pb-3 space-y-1.5 max-h-[40vh] overflow-y-auto">
+          {troops.map((t) => {
+            const av = available[t.id] ?? 0;
+            const pk = picked[t.id] ?? 0;
+            return (
+              <div key={t.id} className="flex items-center gap-2 p-2 rounded-md bg-white/[0.03] border border-white/5">
+                <span className="text-lg">{t.emoji}</span>
+                <span className="flex-1 min-w-0">
+                  <div className="text-[12px] font-bold text-white truncate">{t.name}</div>
+                  <div className="text-[9px] text-white/50">T{t.tier} · ATK {t.atk} · verfügbar {av.toLocaleString()}</div>
+                </span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => bump(t.id, -100)} disabled={pk <= 0} className="w-7 h-7 rounded bg-white/5 text-white text-sm disabled:opacity-30">−</button>
+                  <input
+                    type="number"
+                    value={pk}
+                    onChange={(e) => {
+                      const n = Math.max(0, Math.min(av, parseInt(e.target.value || "0", 10)));
+                      setPicked((p) => ({ ...p, [t.id]: n }));
+                    }}
+                    className="w-14 bg-white/5 border border-white/10 rounded text-center text-[11px] text-white"
+                  />
+                  <button onClick={() => bump(t.id, 100)} disabled={pk >= av} className="w-7 h-7 rounded bg-white/5 text-white text-sm disabled:opacity-30">+</button>
+                  <button onClick={() => setMax(t.id)} disabled={av === 0} className="px-1.5 h-7 text-[10px] font-bold rounded bg-[#22D1C3]/20 border border-[#22D1C3]/40 text-[#22D1C3] disabled:opacity-30">max</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="px-4 pb-2 text-[11px] text-white/70">
+          Total ATK: <b className="text-[#22D1C3]">{totalAtk.toLocaleString()}</b>
+          {mode === "rally" && hasCrew && <span className="ml-2 text-white/40">+ Crew-Aufgebot kann beitreten</span>}
+        </div>
+
+        {err && <div className="px-4 pb-2 text-[10px] text-[#FF2D78] font-bold">Fehler: {err}</div>}
+
+        <Footer
+          onClose={onClose}
+          onConfirm={send}
+          confirmDisabled={busy || totalAtk === 0}
+          confirmLabel={busy ? "..." : mode === "rally" ? "Aufgebot starten" : "Angreifen"}
+          confirmColor={mode === "rally" ? "#FF2D78" : "#22D1C3"}
+        />
+      </Card>
+    </Backdrop>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   Shared building blocks
+   ───────────────────────────────────────────────────────── */
+function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: 9100, background: "rgba(8,12,24,0.85)", backdropFilter: "blur(12px)" }}
+    >
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[460px]">
+        {children}
+      </div>
+    </div>
+  );
+}
+function Card({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className={`${wide ? "max-w-[560px]" : ""} bg-gradient-to-br from-[#1A1D23] to-[#0F1115] border border-white/15 rounded-2xl shadow-2xl overflow-hidden`}>
+      {children}
+    </div>
+  );
+}
+function Header({ title, subtitle, onClose }: { title: string; subtitle?: string; onClose: () => void }) {
+  return (
+    <div className="px-4 pt-4 pb-3 flex items-start justify-between border-b border-white/10">
+      <div className="min-w-0">
+        <div className="text-[15px] font-black text-white truncate">{title}</div>
+        {subtitle && <div className="text-[10px] text-white/55 mt-0.5 truncate">{subtitle}</div>}
+      </div>
+      <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-white/70 text-base">×</button>
+    </div>
+  );
+}
+function Footer({ onClose, onConfirm, confirmDisabled, confirmLabel, confirmColor = "#22D1C3" }: {
+  onClose: () => void;
+  onConfirm: () => void;
+  confirmDisabled?: boolean;
+  confirmLabel: string;
+  confirmColor?: string;
+}) {
+  return (
+    <div className="px-4 py-3 border-t border-white/10 flex gap-2">
+      <button onClick={onClose} className="flex-1 py-2 rounded-lg bg-white/5 text-white/70 text-[12px] font-bold">Abbrechen</button>
+      <button
+        onClick={onConfirm}
+        disabled={confirmDisabled}
+        className="flex-1 py-2 rounded-lg text-[12px] font-black text-[#0F1115] disabled:opacity-40"
+        style={{ background: confirmColor }}
+      >{confirmLabel}</button>
+    </div>
+  );
+}
+function ModeButton({ active, onClick, icon, label, disabled }: { active: boolean; onClick: () => void; icon: string; label: string; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex-1 py-2 rounded-lg flex flex-col items-center gap-0.5 transition ${
+        active ? "bg-[#22D1C3]/20 border border-[#22D1C3]" : "bg-white/5 border border-white/10"
+      } disabled:opacity-40`}
+    >
+      <span className="text-base">{icon}</span>
+      <span className="text-[10px] font-bold text-white">{label}</span>
+    </button>
+  );
+}

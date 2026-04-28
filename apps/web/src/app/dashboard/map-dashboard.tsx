@@ -8,6 +8,7 @@ import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
 import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
+import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -1155,6 +1156,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
   const [attackTarget, setAttackTarget] = useState<string | null>(null);
   const [pbRally, setPbRally] = useState<PlayerBaseRallyState | null>(null);
+
+  // ── Crew-Turf: Repeater + Polygon-State ──────────────────────
+  type Repeater = {
+    id: string; crew_id: string; crew_name: string | null; crew_tag: string | null;
+    kind: "hq" | "repeater" | "mega"; label: string | null; lat: number; lng: number;
+    hp: number; max_hp: number; is_own: boolean;
+  };
+  type TurfPoly = { crew_id: string; crew_name: string | null; crew_tag: string | null; is_own: boolean; geojson: GeoJSON.Geometry };
+  const [crewRepeaters, setCrewRepeaters] = useState<Repeater[]>([]);
+  const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);
+  const [placeRepeaterAt, setPlaceRepeaterAt] = useState<{ lat: number; lng: number } | null>(null);
+  const [attackRepeaterTarget, setAttackRepeaterTarget] = useState<Repeater | null>(null);
   const [showJoinPbRally, setShowJoinPbRally] = useState<boolean>(false);
 
   // Player-Base-Rally polling alle 20 s (nur State updaten wenn sich was
@@ -1309,6 +1322,25 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const iv = setInterval(load, 30000);
     return () => { cancelled = true; clearInterval(iv); };
   }, [userCenter, themeMeta]);
+
+  // Crew-Turf laden (Repeater + Polygons in 10km bbox, alle 30s)
+  useEffect(() => {
+    if (!userCenter) return;
+    let cancelled = false;
+    const load = async () => {
+      const dLat = 0.090;
+      const dLng = 0.140;
+      const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+      const r = await fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" });
+      if (!r.ok || cancelled) return;
+      const j = await r.json() as { repeaters: Repeater[]; turf: TurfPoly[] };
+      setCrewRepeaters(j.repeaters ?? []);
+      setCrewTurfPolygons(j.turf ?? []);
+    };
+    void load();
+    const iv = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [userCenter]);
 
   const onPlaceBaseClick = useCallback(async (lng: number, lat: number, kind: "runner" | "crew") => {
     const url = kind === "runner" ? "/api/base/position" : "/api/crew/base/position";
@@ -1590,6 +1622,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               }}
               placeBaseMode={placeBaseMode}
               onPlaceBaseClick={onPlaceBaseClick}
+              crewRepeaters={crewRepeaters}
+              crewTurfPolygons={crewTurfPolygons}
+              onRepeaterClick={(id) => {
+                const r = crewRepeaters.find((x) => x.id === id);
+                if (r) setAttackRepeaterTarget(r);
+              }}
+              onMapLongPress={(lng, lat) => setPlaceRepeaterAt({ lat, lng })}
             />
             <LivePaceHud
               distance={distance}
@@ -2073,6 +2112,34 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {/* Angriffs-Modal — wenn fremde Spieler-Base getappt wird */}
       {attackTarget && (
         <AttackBaseModal defenderUserId={attackTarget} onClose={() => setAttackTarget(null)} />
+      )}
+
+      {/* Crew-Turf: Repeater setzen via Long-Press */}
+      {placeRepeaterAt && (
+        <PlaceRepeaterModal
+          lat={placeRepeaterAt.lat}
+          lng={placeRepeaterAt.lng}
+          onClose={() => setPlaceRepeaterAt(null)}
+          onPlaced={() => {
+            // Polling triggern: bbox neu laden
+            if (userCenter) {
+              const dLat = 0.090, dLng = 0.140;
+              const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+              fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); });
+            }
+          }}
+        />
+      )}
+
+      {/* Crew-Turf: Repeater-Pin Click → Angriff/Info */}
+      {attackRepeaterTarget && (
+        <AttackRepeaterModal
+          repeater={attackRepeaterTarget}
+          onClose={() => setAttackRepeaterTarget(null)}
+          onAttacked={() => { /* Cron-Tick resolved den Angriff, Inbox-Report kommt automatisch */ }}
+        />
       )}
 
       {/* Beitritts-Modal für Crew-Aufgebot gegen Spieler-Base */}
