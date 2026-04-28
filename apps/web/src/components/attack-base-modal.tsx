@@ -75,12 +75,13 @@ export function AttackBaseModal({
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
 
-    const [catalog, mine, defBase, defUser] = await Promise.all([
-      sb.from("troops_catalog").select("*").order("troop_class").order("tier"),
-      sb.from("user_troops").select("troop_id, count").eq("user_id", user.id),
+    const [troopsApi, defBase, defUser] = await Promise.all([
+      fetch("/api/base/troops", { cache: "no-store" }).then((r) => r.ok ? r.json() : { catalog: [], owned: [] }),
       sb.from("bases").select("level, pin_label, current_hp, max_hp, shield_until, theme_id").eq("owner_user_id", defenderUserId).maybeSingle(),
       sb.from("users").select("display_name, level, avatar_url").eq("id", defenderUserId).maybeSingle(),
     ]);
+    const catalog = { data: troopsApi.catalog as Troop[] };
+    const mine = { data: troopsApi.owned as Array<{ troop_id: string; count: number }> };
 
     let themeAccent: string | null = null;
     const themeId = (defBase.data as { theme_id?: string | null } | null)?.theme_id ?? null;
@@ -439,10 +440,10 @@ function RallyPicker({
           <div className="flex gap-1.5">
             {prepOptions.map((o) => (
               <button key={o.value} onClick={() => setPrepSeconds(o.value)}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-black transition ${
+                className={`flex-1 py-2.5 rounded-lg text-[12px] font-black transition border-2 ${
                   prepSeconds === o.value
-                    ? "bg-gradient-to-br from-[#FF6B4A] to-[#FFD700] text-[#0F1115] shadow-lg"
-                    : "bg-black/30 border border-white/10 text-white/60"
+                    ? "bg-[#FFD700] border-[#FFD700] text-[#0F1115] shadow-[0_0_18px_rgba(255,215,0,0.5)]"
+                    : "bg-black/40 border-white/15 text-white/80 hover:border-white/40"
                 }`}>
                 {o.label}
               </button>

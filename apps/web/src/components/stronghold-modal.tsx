@@ -144,10 +144,9 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
   const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [g, c, ut] = await Promise.all([
+    const [g, troopsApi] = await Promise.all([
       sb.from("user_guardians").select("id, level, archetype:guardian_archetypes(id,name,image_url,video_url)").eq("is_active", true).limit(20),
-      sb.from("troops_catalog").select("id,name,emoji,tier,troop_class,base_atk").eq("is_active", true).order("sort"),
-      sb.from("user_troops").select("troop_id,count"),
+      fetch("/api/base/troops", { cache: "no-store" }).then((r) => r.ok ? r.json() : { catalog: [], owned: [] }),
     ]);
     type GRow = { id: string; level: number; archetype: { id: string; name: string; image_url: string | null; video_url: string | null } | null };
     setGuardians(((g.data ?? []) as unknown as GRow[]).map((r) => ({
@@ -156,9 +155,9 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
       image_url: r.archetype?.image_url ?? null,
       video_url: r.archetype?.video_url ?? null,
     })));
-    setTroopsCatalog((c.data ?? []) as Troop[]);
+    setTroopsCatalog((troopsApi.catalog ?? []) as Troop[]);
     const have: Record<string, number> = {};
-    for (const t of (ut.data ?? []) as Array<{ troop_id: string; count: number }>) have[t.troop_id] = t.count;
+    for (const t of (troopsApi.owned ?? []) as Array<{ troop_id: string; count: number }>) have[t.troop_id] = t.count;
     setTroopHaveMap(have);
   }, [sb]);
   useEffect(() => { void load(); }, [load]);
@@ -223,10 +222,10 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
                 <button key={g.id} onClick={() => setSelectedGuardian(g.id)}
                   className={`shrink-0 w-20 h-24 rounded-lg flex flex-col items-center justify-center text-xs font-black overflow-hidden ${selectedGuardian === g.id ? "bg-[#FFD700]/20 border-2 border-[#FFD700]" : "bg-white/5 border border-white/10"}`}>
                   {g.video_url ? (
-                    <video src={g.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-cover rounded" />
+                    <video src={g.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
                   ) : g.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={g.image_url} alt={g.name} className="w-14 h-14 object-cover rounded" />
+                    <img src={g.image_url} alt={g.name} className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
                   ) : (
                     <span className="text-2xl">🛡</span>
                   )}
