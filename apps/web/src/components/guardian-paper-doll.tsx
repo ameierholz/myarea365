@@ -134,10 +134,10 @@ export function GuardianPaperDoll({
           display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap",
           margin: "0 12px",
         }}>
-          {totalBonus.hp  > 0 && <span>+{totalBonus.hp} HP</span>}
-          {totalBonus.atk > 0 && <span>+{totalBonus.atk} ATK</span>}
-          {totalBonus.def > 0 && <span>+{totalBonus.def} DEF</span>}
-          {totalBonus.spd > 0 && <span>+{totalBonus.spd} SPD</span>}
+          {totalBonus.hp  > 0 && <span>+{totalBonus.hp} Leben</span>}
+          {totalBonus.atk > 0 && <span>+{totalBonus.atk} Angriff</span>}
+          {totalBonus.def > 0 && <span>+{totalBonus.def} Verteidigung</span>}
+          {totalBonus.spd > 0 && <span>+{totalBonus.spd} Tempo</span>}
         </div>
       ) : (
         <div style={{ padding: 10, margin: "0 12px", borderRadius: 10, background: "rgba(70,82,122,0.2)", textAlign: "center", color: "#8B8FA3", fontSize: 11 }}>
@@ -240,10 +240,10 @@ function SlotButton({ slot, item, onClick, disabled }: {
         const atk = Math.round(item.catalog.bonus_atk * tierMult);
         const def = Math.round(item.catalog.bonus_def * tierMult);
         const spd = Math.round(item.catalog.bonus_spd * tierMult);
-        if (hp > 0)  chips.push({ v: hp,  c: "#4ade80", lbl: "HP" });
-        if (atk > 0) chips.push({ v: atk, c: "#FF6B4A", lbl: "ATK" });
-        if (def > 0) chips.push({ v: def, c: "#5ddaf0", lbl: "DEF" });
-        if (spd > 0) chips.push({ v: spd, c: "#FFD700", lbl: "SPD" });
+        if (hp > 0)  chips.push({ v: hp,  c: "#4ade80", lbl: "Leben" });
+        if (atk > 0) chips.push({ v: atk, c: "#FF6B4A", lbl: "Angriff" });
+        if (def > 0) chips.push({ v: def, c: "#5ddaf0", lbl: "Verteidigung" });
+        if (spd > 0) chips.push({ v: spd, c: "#FFD700", lbl: "Tempo" });
         if (chips.length === 0) return null;
         return (
           <div style={{
@@ -334,10 +334,10 @@ function ItemPickerModal({ slot, items, onEquip, onUnequip, hasEquipped, onClose
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{it.catalog.name}</div>
                     {!it.catalog.cosmetic_only && (
                       <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                        {it.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{Math.round(it.catalog.bonus_hp*tierMult)} HP</span>}
-                        {it.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{Math.round(it.catalog.bonus_atk*tierMult)} ATK</span>}
-                        {it.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{Math.round(it.catalog.bonus_def*tierMult)} DEF</span>}
-                        {it.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{Math.round(it.catalog.bonus_spd*tierMult)} SPD</span>}
+                        {it.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{Math.round(it.catalog.bonus_hp*tierMult)} Leben</span>}
+                        {it.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{Math.round(it.catalog.bonus_atk*tierMult)} Angriff</span>}
+                        {it.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{Math.round(it.catalog.bonus_def*tierMult)} Verteidigung</span>}
+                        {it.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{Math.round(it.catalog.bonus_spd*tierMult)} Tempo</span>}
                       </div>
                     )}
                   </div>

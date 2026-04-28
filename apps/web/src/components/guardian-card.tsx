@@ -32,7 +32,7 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: rarity.color, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>
-            {rarity.label.toUpperCase()} · Lv {guardian.level}
+            {rarity.label.toUpperCase()} · Stufe {guardian.level}
           </div>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {guardian.custom_name ?? guardian.archetype.name}
@@ -119,16 +119,16 @@ export function GuardianCard({ guardian, compact = false, onClick }: {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6 }}>
-            <Stat label="HP"  value={stats.hp}  color="#4ade80" />
-            <Stat label="ATK" value={stats.atk} color="#FF6B4A" />
-            <Stat label="DEF" value={stats.def} color="#5ddaf0" />
-            <Stat label="SPD" value={stats.spd} color="#FFD700" />
+            <Stat label="Leben"        value={stats.hp}  color="#4ade80" />
+            <Stat label="Angriff"      value={stats.atk} color="#FF6B4A" />
+            <Stat label="Verteidigung" value={stats.def} color="#5ddaf0" />
+            <Stat label="Tempo"        value={stats.spd} color="#FFD700" />
           </div>
 
           {guardian.level < GUARDIAN_LEVEL_CAP && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#a8b4cf", marginBottom: 3 }}>
-                <span>XP</span>
+                <span>Erfahrung</span>
                 <span>{guardian.xp} / {xpNext}</span>
               </div>
               <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden" }}>

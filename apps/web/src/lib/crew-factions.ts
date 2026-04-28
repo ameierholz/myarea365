@@ -26,8 +26,8 @@ export const CREW_FACTIONS: Record<CrewFactionId, CrewFactionMeta> = {
     icon: "⚔️",
     color: "#FF6B4A",
     tagline: "Der Orden kämpft vereint.",
-    buff: "+5 % HP & ATK",
-    buffDetail: "Alle Wächter der Crew-Mitglieder haben 5 % mehr HP und 5 % mehr Angriff.",
+    buff: "+5 % Leben & Angriff",
+    buffDetail: "Alle Wächter der Crew-Mitglieder haben 5 % mehr Leben und 5 % mehr Angriff.",
   },
   stadtlaeufer: {
     id: "stadtlaeufer",

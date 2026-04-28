@@ -163,9 +163,9 @@ function ThemeCard({ theme, active, busy, unlocked, art, onActivate }: {
             </button>
           ) : (
             <div className="text-center text-[10px] font-black px-3 py-2 rounded-lg bg-white/5 text-white/60 border border-white/10">
-              {theme.unlock_kind === "vip" ? `🔒 VIP ${theme.unlock_value}` :
+              {theme.unlock_kind === "vip" ? `🔒 Premium ${theme.unlock_value}` :
                theme.unlock_kind === "event" ? "🎁 Event-Belohnung" :
-               theme.unlock_kind === "crew_level" ? `🔒 Crew Lv ${theme.unlock_value}` :
+               theme.unlock_kind === "crew_level" ? `🔒 Crew Stufe ${theme.unlock_value}` :
                theme.unlock_kind === "coins" ? `🪙 ${theme.unlock_value}` : "🔒"}
             </div>
           )}

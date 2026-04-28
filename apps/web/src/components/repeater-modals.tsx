@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { UiIcon, useUiIconArt } from "@/components/resource-icon";
 
 type Troop = { id: string; name: string; emoji: string; troop_class: string; tier: number; base_atk: number; base_def: number; base_hp: number };
 type RepeaterKind = "hq" | "repeater" | "mega";
 
-const KIND_INFO: Record<RepeaterKind, { label: string; icon: string; cost_gold: number; cost_wood: number; cost_stone: number; max_hp: number }> = {
-  hq:       { label: "Zentral-Server (HQ)", icon: "🏛️", cost_gold: 5000, cost_wood: 2000, cost_stone: 2000, max_hp: 10000 },
-  repeater: { label: "Signal-Repeater",     icon: "📶", cost_gold:  500, cost_wood:  500, cost_stone:  500, max_hp:  3000 },
-  mega:     { label: "Mega-Server",         icon: "📡", cost_gold: 2000, cost_wood: 1000, cost_stone: 1500, max_hp:  8000 },
+const KIND_INFO: Record<RepeaterKind, { label: string; icon: string; slot: string; cost_gold: number; cost_wood: number; cost_stone: number; max_hp: number }> = {
+  hq:       { label: "Zentral-Server (Hauptquartier)", icon: "🏛️", slot: "repeater_hq",     cost_gold: 5000, cost_wood: 2000, cost_stone: 2000, max_hp: 10000 },
+  repeater: { label: "Signal-Repeater",     icon: "📶", slot: "repeater_normal", cost_gold:  500, cost_wood:  500, cost_stone:  500, max_hp:  3000 },
+  mega:     { label: "Mega-Server",         icon: "📡", slot: "repeater_mega",   cost_gold: 2000, cost_wood: 1000, cost_stone: 1500, max_hp:  8000 },
 };
 
 type Repeater = {
@@ -43,6 +44,7 @@ export function PlaceRepeaterModal({
   const [err, setErr] = useState<string | null>(null);
   const [hasHQ, setHasHQ] = useState<boolean | null>(null);
   const [resources, setResources] = useState<{ gold: number; wood: number; stone: number } | null>(null);
+  const uiArt = useUiIconArt();
 
   useEffect(() => {
     (async () => {
@@ -92,7 +94,7 @@ export function PlaceRepeaterModal({
 
         {hasHQ === false && (
           <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/40 text-[11px] text-[#FFD700] font-bold">
-            Erster Repeater MUSS ein HQ (Zentral-Server) sein.
+            Erster Repeater MUSS ein Hauptquartier (Zentral-Server) sein.
           </div>
         )}
 
@@ -114,13 +116,15 @@ export function PlaceRepeaterModal({
                       : "border-white/15 hover:border-white/30"
                 }`}
               >
-                <span className="text-2xl">{info.icon}</span>
+                <span style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <UiIcon slot={info.slot} fallback={info.icon} art={uiArt} size={32} />
+                </span>
                 <span className="flex-1 text-left">
                   <div className="text-[13px] font-black text-white">{info.label}</div>
-                  <div className="text-[10px] text-white/60">HP {info.max_hp.toLocaleString()} · {info.cost_gold}🪙 {info.cost_wood}🪵 {info.cost_stone}🪨</div>
+                  <div className="text-[10px] text-white/60">Leben {info.max_hp.toLocaleString()} · {info.cost_gold}🪙 {info.cost_wood}🪵 {info.cost_stone}🪨</div>
                 </span>
                 {disabled && k === "hq" && <span className="text-[9px] text-white/40">vorhanden</span>}
-                {disabled && k !== "hq" && <span className="text-[9px] text-white/40">HQ fehlt</span>}
+                {disabled && k !== "hq" && <span className="text-[9px] text-white/40">Hauptquartier fehlt</span>}
               </button>
             );
           })}
@@ -251,7 +255,7 @@ export function AttackRepeaterModal({
           <div className="px-4 py-4 text-[12px] text-white/80">
             <div className="mb-2">Crew: <b>{repeater.crew_name}</b></div>
             <div className="mb-2">Typ: <b>{KIND_INFO[repeater.kind].label}</b></div>
-            <div>HP: <b>{repeater.hp.toLocaleString()} / {repeater.max_hp.toLocaleString()}</b></div>
+            <div>Leben: <b>{repeater.hp.toLocaleString()} / {repeater.max_hp.toLocaleString()}</b></div>
           </div>
         </Card>
       </Backdrop>
@@ -263,7 +267,7 @@ export function AttackRepeaterModal({
       <Card wide>
         <Header
           title={`Angriff: ${repeater.label ?? KIND_INFO[repeater.kind].label}`}
-          subtitle={`Crew: ${repeater.crew_name ?? "?"} · HP ${repeater.hp.toLocaleString()}/${repeater.max_hp.toLocaleString()}`}
+          subtitle={`Crew: ${repeater.crew_name ?? "?"} · Leben ${repeater.hp.toLocaleString()}/${repeater.max_hp.toLocaleString()}`}
           onClose={onClose}
         />
 
@@ -348,7 +352,7 @@ export function AttackRepeaterModal({
                                 <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                                  <div className="text-[9px] text-white/50">Atk {t.base_atk} · Def {t.base_def} · HP {t.base_hp} · da {av}</div>
+                                  <div className="text-[9px] text-white/50">Angriff {t.base_atk} · Verteidigung {t.base_def} · Leben {t.base_hp} · da {av}</div>
                                 </div>
                                 <input type="number" min={0} max={av} value={pk}
                                   onChange={(e) => {
@@ -368,7 +372,7 @@ export function AttackRepeaterModal({
               </div>
 
               <div className="px-4 pb-2 text-[11px] text-white/70 flex items-center justify-between">
-                <span>Total: <b className="text-white">{totalCount}</b> Truppen · <b className="text-[#22D1C3]">{totalAtk.toLocaleString()}</b> ATK</span>
+                <span>Total: <b className="text-white">{totalCount}</b> Truppen · <b className="text-[#22D1C3]">{totalAtk.toLocaleString()}</b> Angriff</span>
                 {mode === "rally" && hasCrew && <span className="text-white/40">+ Crew kann beitreten</span>}
               </div>
 

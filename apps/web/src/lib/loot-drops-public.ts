@@ -54,7 +54,7 @@ export const REDEMPTION_LOOT_TABLE: Array<{
 export const EQUIPMENT_DROP_NOTE =
   "Bei Rare / Epic / Legendary zusätzlich: 1 zufälliges Equipment-Item " +
   "aus dem Item-Katalog der gleichen Rarity-Klasse. Slot (Helm/Rüstung/Amulett) " +
-  "sowie Stats (HP/ATK/DEF/SPD) sind pro Item fest im Katalog hinterlegt.";
+  "sowie Stats (Leben/Angriff/Verteidigung/Tempo) sind pro Item fest im Katalog hinterlegt.";
 
 /**
  * 3️⃣ Map-Loot-Drops (Kisten auf der Karte)
@@ -89,9 +89,9 @@ export const MYSTERY_BOX_TABLE: Array<{
   reward: string;
 }> = [
   { rarity: "common", chance_pct: 50.0, reward: "Standard-Item (Helm/Rüstung/Amulett)" },
-  { rarity: "rare",   chance_pct: 30.0, reward: "Rare-Item +5 HP/ATK/DEF/SPD" },
-  { rarity: "epic",   chance_pct: 15.0, reward: "Epic-Item +10 HP/ATK/DEF/SPD" },
-  { rarity: "legend", chance_pct:  5.0, reward: "Legendary-Item +20 HP/ATK/DEF/SPD" },
+  { rarity: "rare",   chance_pct: 30.0, reward: "Rare-Item +5 Leben/Angriff/Verteidigung/Tempo" },
+  { rarity: "epic",   chance_pct: 15.0, reward: "Epic-Item +10 Leben/Angriff/Verteidigung/Tempo" },
+  { rarity: "legend", chance_pct:  5.0, reward: "Legendary-Item +20 Leben/Angriff/Verteidigung/Tempo" },
 ];
 
 /**

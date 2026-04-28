@@ -8,6 +8,8 @@ import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
 import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
+import { MapQuickAccess } from "@/components/map-quick-access";
+import { CrewModal } from "@/components/crew-modal";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
@@ -34,7 +36,7 @@ import { ShopHubModal } from "@/components/shop-hub-modal";
 import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
-import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
@@ -1151,6 +1153,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // ── Base-System: Pins auf der Karte + Click-Modal ──
   type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
+  const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
   const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
@@ -1630,6 +1633,34 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               }}
               onMapLongPress={(lng, lat) => setPlaceRepeaterAt({ lat, lng })}
             />
+
+            {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Base, Crew, Inbox etc.) */}
+            <MapQuickAccess
+              onOpenOwnBase={() => {
+                const own = basePins.find((b) => b.is_own && b.kind === "runner");
+                if (own) setBaseModalTarget({ kind: "runner", id: own.id, is_own: true });
+              }}
+              onOpenCrewModal={() => setMapCrewModalOpen(true)}
+              onOpenInbox={() => { window.location.href = "/inbox"; }}
+              onOpenAchievements={() => setActiveTab("profil")}
+              onOpenShop={() => setActiveTab("profil")}
+              onJoinRepeaterRally={(repeaterId) => {
+                const r = crewRepeaters.find((x) => x.id === repeaterId);
+                if (r) setAttackRepeaterTarget(r);
+              }}
+              onJoinBaseRally={(_rallyId) => {
+                if (pbRally?.status === "preparing" && !pbRally.joined) {
+                  setShowJoinPbRally(true);
+                }
+              }}
+              onFlyTo={(lat, lng) => {
+                window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                  detail: { lng, lat, zoom: 16 },
+                }));
+              }}
+              strongholdsNearby={strongholds.length}
+            />
+
             <LivePaceHud
               distance={distance}
               durationMs={walking ? Date.now() - walkStartTime : 0}
@@ -1672,8 +1703,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               </div>
             )}
 
-            {/* Help/FAQ-Button oben links */}
-            <MapHelpButton />
+            {/* (Help/FAQ — verschoben in den Controls-Stack rechts oben) */}
 
             {/* Snap-Loading-Indikator */}
             {snapping && (
@@ -1787,6 +1817,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                       🗑 Karte leeren
                     </button>
                   )}
+                  {/* Hilfe / Intro / Karten-Legende / FAQ — als Submenü ans Ende des Controls-Stacks */}
+                  <MapHelpButton inline />
                 </>
               )}
             </div>
@@ -2109,6 +2141,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
       )}
 
+      {mapCrewModalOpen && (
+        <CrewModal onClose={() => setMapCrewModalOpen(false)} />
+      )}
+
       {/* Angriffs-Modal — wenn fremde Spieler-Base getappt wird */}
       {attackTarget && (
         <AttackBaseModal defenderUserId={attackTarget} onClose={() => setAttackTarget(null)} />
@@ -2284,7 +2320,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               if (data.error === "too_far") { await appAlert(tMD("tooFarTemple", { meters: data.distance_m })); return; }
               if (data.error === "location_required") { await appAlert("GPS-Position wird benötigt."); return; }
               if (data.ok) {
-                await appAlert(`🙏 +${data.xp_gained} Wächter-XP`);
+                await appAlert(`🙏 +${data.xp_gained} Wächter-Erfahrung`);
                 const r = await fetch("/api/map-features", { cache: "no-store" });
                 if (r.ok) setMapFeatures(await r.json());
               }
@@ -2533,6 +2569,8 @@ function ProfilTab({
   const tXG = useTranslations("XpGuide");
   const resourceArt = useResourceArt();
   const baseThemeArt = useBaseThemeArt();
+  const markerArt = useMarkerArt();
+  const uiIconArt = useUiIconArt();
 
   // ═══ Base-Banner-State (eigene Base-Daten für Hero-Banner) ═══
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
@@ -2634,6 +2672,25 @@ function ProfilTab({
   const [showShopDeals, setShowShopDeals] = useState(false);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
   const [guideShopExpanded, setGuideShopExpanded] = useState(false);
+
+  // Crew-Modal-State (öffnet sich per Click auf Crew-Banner)
+  const [crewModalOpen, setCrewModalOpen] = useState(false);
+
+  // Ansehen (Power/Might wie RoK/CoD) — eigene Fetch, lebt auf users.ansehen
+  const [ansehen, setAnsehen] = useState<number | null>(null);
+  useEffect(() => {
+    if (!p?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from("users").select("ansehen").eq("id", p.id).maybeSingle();
+      if (!cancelled) setAnsehen((data as { ansehen?: number } | null)?.ansehen ?? 0);
+    })();
+    const iv = setInterval(async () => {
+      const { data } = await supabase.from("users").select("ansehen").eq("id", p!.id).maybeSingle();
+      if (!cancelled) setAnsehen((data as { ansehen?: number } | null)?.ansehen ?? 0);
+    }, 60000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [p?.id, supabase]);
 
   // Aktiver Wächter für den Profil-Teaser-Block
   type ActiveGuardian = {
@@ -2844,9 +2901,13 @@ function ProfilTab({
               boxShadow: `inset 0 0 30px rgba(0,0,0,0.3), 0 0 35px ${currentRankLive.color}40`,
               border: `2px solid ${teamColor}`,
             }}>
-              <span style={{ fontSize: 66, filter: "drop-shadow(0 4px 14px rgba(0,0,0,0.4))" }}>
-                {currentMarker.icon}
-              </span>
+              {(() => {
+                const a = markerArt[equippedMarker]?.[equippedMarkerVariant] ?? markerArt[equippedMarker]?.neutral;
+                const dropShadow = "drop-shadow(0 4px 14px rgba(0,0,0,0.4))";
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 110, height: 110, objectFit: "contain", filter: `url(#ma365-chroma-black) ${dropShadow}` }} />;
+                if (a?.image_url) return <img src={a.image_url} alt="" style={{ width: 110, height: 110, objectFit: "contain", filter: `url(#ma365-chroma-black) ${dropShadow}` }} />;
+                return <span style={{ fontSize: 66, filter: dropShadow }}>{currentMarker.icon}</span>;
+              })()}
             </div>
 
             {/* Hologramm des equipped Runner-Lights (unten) */}
@@ -2901,7 +2962,7 @@ function ProfilTab({
               <span style={{ position: "relative", zIndex: 1 }}>
                 <RankBadge rankId={currentRankLive.id} color={currentRankLive.color} size={32} rankArt={rankArt} />
               </span>
-              <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
+              <span style={{ position: "relative", zIndex: 1, color: BG_DEEP, fontWeight: 400, fontSize: 16, letterSpacing: 0.8, fontFamily: "var(--font-display-stack)", lineHeight: 1 }}>
                 {currentRankLive.name} · {userXp.toLocaleString()} 🪙
               </span>
               <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", zIndex: 1, color: BG_DEEP, fontSize: 14, fontWeight: 900 }}>›</span>
@@ -2912,17 +2973,35 @@ function ProfilTab({
                 pointerEvents: "none",
               }} />
             </button>
-            {(p?.streak_days ?? 0) > 0 && (
-              <div style={{
-                padding: "6px 12px", borderRadius: 22,
-                background: (p!.streak_days >= 7) ? "rgba(255,45,120,0.18)" : "rgba(255,107,74,0.16)",
-                border: `1px solid ${(p!.streak_days >= 7) ? "#FF2D78" : "#FF6B4A"}`,
-                color: (p!.streak_days >= 7) ? "#FF2D78" : "#FF6B4A",
-                fontSize: 13, fontWeight: 900, letterSpacing: 0.3,
-                display: "flex", alignItems: "center", gap: 4,
-                boxShadow: `0 0 14px ${(p!.streak_days >= 7) ? "rgba(255,45,120,0.35)" : "rgba(255,107,74,0.3)"}`,
-              }} title={`${p!.streak_days}-Tage-Streak — weiter so!`}>
-                🔥 {p!.streak_days}
+            {ansehen !== null && (
+              <div
+                title={`Ansehen ${ansehen.toLocaleString()} — Power-Score aus Bauen, Forschen, Truppen-Training, Wächter-Level-Ups und Crew-Repeater`}
+                style={{
+                  paddingLeft: 6, paddingRight: 14, paddingTop: 4, paddingBottom: 4,
+                  borderRadius: 999, border: "none",
+                  background: "linear-gradient(135deg, #FFD700, #FFA500)",
+                  position: "relative", overflow: "hidden",
+                  boxShadow: "0 4px 24px rgba(255,215,0,0.45), inset 0 1px 0 rgba(255,255,255,0.4)",
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                }}
+              >
+                <span style={{
+                  width: 32, height: 32, borderRadius: 16,
+                  background: "rgba(15,17,21,0.85)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#FFD700",
+                }}>
+                  <UiIcon slot="stat_ansehen" fallback="⚜" art={uiIconArt} size={20} />
+                </span>
+                <span style={{ color: BG_DEEP, fontWeight: 400, fontSize: 16, letterSpacing: 0.8, fontFamily: "var(--font-display-stack)", lineHeight: 1 }}>
+                  Ansehen · {ansehen.toLocaleString()}
+                </span>
+                <span style={{
+                  position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",
+                  background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
+                  animation: "rankShimmer 4s ease-in-out infinite",
+                  pointerEvents: "none",
+                }} />
               </div>
             )}
           </div>
@@ -3306,7 +3385,7 @@ function ProfilTab({
                 <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap" }}>
                   <span style={{ color: "#a8b4cf", fontWeight: 800 }}>👤 {myCrew.member_count}</span>
                   <span style={{ color: hqCount > 0 ? "#22D1C3" : "#FFD700", fontWeight: 800 }}>
-                    {hqCount > 0 ? "🏛️" : "⚠️"} {hqCount > 0 ? "HQ" : "Kein HQ"}
+                    {hqCount > 0 ? "🏛️" : "⚠️"} {hqCount > 0 ? "Hauptquartier" : "Kein Hauptquartier"}
                   </span>
                   <span style={{ color: "#FF6B4A", fontWeight: 800 }}>📶 {repCount} Repeater</span>
                   {repCount > 0 && (
@@ -3367,11 +3446,14 @@ function ProfilTab({
                 ) : null}
               />
               {myCrew ? (
-                <div style={{
+                <div
+                  onClick={() => setCrewModalOpen(true)}
+                  style={{
                   display: "flex", flexDirection: "row",
                   background: `linear-gradient(135deg, ${myCrew.color}22 0%, rgba(70, 82, 122, 0.45) 100%)`,
                   padding: 18, borderRadius: 18, alignItems: "center", gap: 14,
                   border: `1px solid ${myCrew.color}55`,
+                  cursor: "pointer",
                 }}>
                   <div style={{
                     width: 48, height: 48, borderRadius: 14,
@@ -3528,7 +3610,7 @@ function ProfilTab({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {[
-              { icon: "❓", label: "Hilfe & FAQ",  onClick: () => setOpenModal("faq") },
+              { icon: "❓", label: "Hilfe",  onClick: () => setOpenModal("faq") },
               { icon: "📤", label: tMD("shareProfile"), onClick: async () => {
                 const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Gebiete · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
                 const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
@@ -3823,6 +3905,10 @@ function ProfilTab({
             })}
           </div>
         </Modal>
+      )}
+
+      {crewModalOpen && (
+        <CrewModal onClose={() => setCrewModalOpen(false)} />
       )}
 
       {openModal === "ranks" && (
@@ -5153,7 +5239,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.5, marginBottom: 10 }}>
                 {arenaStatus.i_redeemed_myself ? (
                   <>
-                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 3 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir ⚔️ Sessionehre + Wächter-XP.
+                    <b style={{ color: "#4ade80" }}>✓ Zugang freigeschaltet.</b> Du hast in den letzten 3 Tagen hier eingelöst — tritt ein, fordere andere Runner heraus und hol dir ⚔️ Sessionehre + Wächter-Erfahrung.
                   </>
                 ) : arenaStatus.crew_eligible ? (
                   <>
@@ -8743,7 +8829,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
   const polyN = run.polygons_claimed ?? 0;
   const baseBreakdown = [
     { label: "Basis-Lauf", value: XP_PER_WALK },
-    { label: `${km.toFixed(2)} km × ${XP_PER_KM} XP`, value: Math.round(km * XP_PER_KM) },
+    { label: `${km.toFixed(2)} km × ${XP_PER_KM} Erfahrung`, value: Math.round(km * XP_PER_KM) },
     segN > 0 ? { label: `${segN}× Straßenabschnitt`, value: segN * XP_PER_SEGMENT } : null,
     strN > 0 ? { label: `${strN}× Straßenzug`, value: strN * XP_PER_STREET_CLAIMED } : null,
     polyN > 0 ? { label: `${polyN}× Gebiet`, value: polyN * XP_PER_TERRITORY } : null,
@@ -8911,7 +8997,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.35)", borderRadius: 8 }}>
                     <span style={{ fontSize: 18 }}>{a.emoji ?? "🏆"}</span>
                     <span style={{ color: "#FFF", fontSize: 12, fontWeight: 700, flex: 1 }}>{a.name ?? a.id ?? "Achievement"}</span>
-                    {a.xp != null && <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>+{a.xp} XP</span>}
+                    {a.xp != null && <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>+{a.xp} Erfahrung</span>}
                   </div>
                 ))}
               </div>
@@ -12611,7 +12697,7 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: PRIMARY }}>{tR("myPositionLabel")}</div>
             <div style={{ fontSize: 15, fontWeight: 900, color: "#FFF" }}>
-              {myRunnerRow.display_name} · {myRunnerRow[sortRunner].toLocaleString("de-DE")} {sortRunner === "weekly_km" ? "km" : "XP"}
+              {myRunnerRow.display_name} · {myRunnerRow[sortRunner].toLocaleString("de-DE")} {sortRunner === "weekly_km" ? "km" : "Erfahrung"}
             </div>
             <div style={{ fontSize: 11, color: MUTED }}>
               {myPositionRunner === 0 ? tR("youLead") :
@@ -13134,10 +13220,10 @@ function PowerZoneModal({ zone, onClose }: {
     park: "🌳 Park-Zone", water: "💧 Wasser-Zone", city: "🏙️ Stadt-Zone", forest: "🌲 Wald-Zone", landmark: "🗿 Wahrzeichen",
   };
   const buffs: Array<[string, number, string]> = [
-    ["HP", zone.buff_hp, "#4ade80"],
-    ["ATK", zone.buff_atk, "#FF6B4A"],
-    ["DEF", zone.buff_def, "#5ddaf0"],
-    ["SPD", zone.buff_spd, "#FFD700"],
+    ["Leben",        zone.buff_hp,  "#4ade80"],
+    ["Angriff",      zone.buff_atk, "#FF6B4A"],
+    ["Verteidigung", zone.buff_def, "#5ddaf0"],
+    ["Tempo",        zone.buff_spd, "#FFD700"],
   ];
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -13193,7 +13279,7 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
           <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg, #FF2D78, #FFD700)", transition: "width 0.4s" }} />
         </div>
         <div style={{ fontSize: 11, color: "#a8b4cf", marginBottom: 16 }}>
-          {boss.current_hp.toLocaleString()} / {boss.max_hp.toLocaleString()} HP ({pct}%)
+          {boss.current_hp.toLocaleString()} / {boss.max_hp.toLocaleString()} Leben ({pct}%)
         </div>
 
         {/* So funktioniert's — 3 Kacheln in Grid */}
@@ -13638,7 +13724,7 @@ function MmrLeaderboardView() {
       <div>
         <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>SORTIERUNG</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          <FilterPill active={sortBy === "mmr"} onClick={() => setSortBy("mmr")}>MMR</FilterPill>
+          <FilterPill active={sortBy === "mmr"} onClick={() => setSortBy("mmr")}>Wertung</FilterPill>
           <FilterPill active={sortBy === "peak"} onClick={() => setSortBy("peak")}>Peak</FilterPill>
           <FilterPill active={sortBy === "winrate"} onClick={() => setSortBy("winrate")}>Winrate</FilterPill>
           <FilterPill active={sortBy === "games"} onClick={() => setSortBy("games")}>Kämpfe</FilterPill>
@@ -13674,7 +13760,7 @@ function MmrLeaderboardView() {
                 <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 6px", borderRadius: 6, background: `${t.color}11`, border: `1px solid ${t.color}33` }}>
                   <span style={{ fontSize: 12 }}>{t.icon}</span>
                   <span style={{ color: t.color, fontSize: 10, fontWeight: 900, flex: 1 }}>{t.label}</span>
-                  <span style={{ color: "#8B8FA3", fontSize: 9, fontFamily: "monospace" }}>{range} MMR</span>
+                  <span style={{ color: "#8B8FA3", fontSize: 9, fontFamily: "monospace" }}>{range} Wertung</span>
                 </div>
               );
             })}
@@ -14261,7 +14347,7 @@ function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
         <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>WÄCHTER-SANCTUARY</div>
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.5 }}>
-          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-XP</strong> zu holen.
+          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen.
         </div>
         {distM !== null && (
           <div style={{

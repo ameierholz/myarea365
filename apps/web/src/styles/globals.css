@@ -21,6 +21,26 @@
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Display-Fallback wenn next/font noch nicht geladen ist */
+  --font-display-fallback: "Bebas Neue", "Impact", "Arial Black", sans-serif;
+}
+
+/* Display-Schrift (Bebas Neue via next/font) für Headlines, Stats, Badges, Crew-Tags.
+   Body-Text bleibt System-Sans für Lesbarkeit. */
+:root {
+  --font-display-stack: var(--font-display, "Bebas Neue"), "Bebas Neue", "Impact", "Arial Black", sans-serif;
+}
+
+/* Standard-Headlines bekommen die Display-Schrift, ohne forciertes Bold. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display-stack);
+  letter-spacing: 0.02em;
+}
+
+/* Utility-Klasse für jede Stelle, die im urbanen Display-Style gestaltet werden soll. */
+.font-display {
+  font-family: var(--font-display-stack);
+  letter-spacing: 0.04em;
 }
 
 /* Mobile safe areas */

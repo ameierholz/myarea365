@@ -87,7 +87,7 @@ export function NameplatePickerModal({ onClose }: { onClose: () => void }) {
                 ) : (
                   <button disabled={busy === p.id} onClick={() => void action(p.id, "claim")}
                     className="text-[10px] font-black px-3 py-2 rounded-lg bg-white/5 text-[#a8b4cf] border border-white/10 disabled:opacity-50">
-                    {p.unlock_kind === "vip" ? `🔒 VIP ${p.unlock_value}` : p.unlock_kind === "event" ? "🎁 Event" : p.unlock_kind === "achievement" ? `🏆 ${p.unlock_value}` : "🔒"}
+                    {p.unlock_kind === "vip" ? `🔒 Premium ${p.unlock_value}` : p.unlock_kind === "event" ? "🎁 Event" : p.unlock_kind === "achievement" ? `🏆 ${p.unlock_value}` : "🔒"}
                   </button>
                 )}
               </div>

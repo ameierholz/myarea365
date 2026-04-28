@@ -144,7 +144,7 @@ export default function DatenschutzPage() {
               "Erspielte Siegel (Tank, Support, Fernkampf, Nahkampf, Universal)",
               "Streak-Zähler (aufeinanderfolgende Tage mit Aktivität)",
               "Täglich-limitierte Aktionen (Arena-Kampf-Counter, Daily Deals)",
-              "MMR / Elo-Rating (Ranked-Modus), Peak-MMR, W/L-Historie",
+              "Wertung / Elo-Rating (Ranked-Modus), Peak-Wertung, Sieg/Niederlage-Historie",
             ]} />
             <p className="text-xs mt-2">Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
           </SubSection>
@@ -156,7 +156,7 @@ export default function DatenschutzPage() {
               "Runden-Protokoll mit Aktionen, Schadenswerten, Kritischen Treffern",
               "Seed für deterministische Kampf-Reproduktion",
               "Zeitstempel des Kampfes und zugeordnete Saison",
-              "MMR-Änderung (Delta) für Angreifer und Verteidiger",
+              "Wertungs-Änderung (Delta) für Angreifer und Verteidiger",
             ]} />
             <p className="text-xs mt-2">Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
           </SubSection>

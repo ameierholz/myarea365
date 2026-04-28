@@ -6,14 +6,17 @@ import { FaqModal } from "@/components/faq-modal";
 import { OnboardingModal, markOnboardingSeen } from "@/components/onboarding-modal";
 import { MapLegendModal } from "@/components/map-legend-modal";
 
-export function MapHelpButton() {
+export function MapHelpButton({ inline = false }: { inline?: boolean } = {}) {
   const t = useTranslations("MapHelp");
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState<null | "onboarding" | "faq" | "legend">(null);
 
   return (
     <>
-      <div style={{ position: "absolute", bottom: 8, right: 8, zIndex: 55 }}>
+      <div style={inline
+        ? { position: "relative", zIndex: 55 }
+        : { position: "absolute", bottom: 8, right: 8, zIndex: 55 }
+      }>
         <button
           onClick={() => setOpen((v) => !v)}
           aria-label={t("ariaHelp")}

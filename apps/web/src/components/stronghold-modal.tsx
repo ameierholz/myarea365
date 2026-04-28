@@ -69,14 +69,14 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
         <div className="p-4 space-y-4">
           <div className="rounded-xl bg-black/40 border border-white/10 p-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black tracking-widest text-[#a8b4cf]">FESTUNGS-HP</span>
+              <span className="text-[10px] font-black tracking-widest text-[#a8b4cf]">FESTUNGS-LEBEN</span>
               <span className="text-[12px] font-black text-white">{stronghold.current_hp.toLocaleString("de-DE")} / {stronghold.total_hp.toLocaleString("de-DE")}</span>
             </div>
             <div className="h-3 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full bg-gradient-to-r from-[#4ade80] via-[#FFD700] to-[#FF6B4A]" style={{ width: `${stronghold.hp_pct}%` }} />
             </div>
             <div className="text-[10px] text-[#a8b4cf] mt-2">
-              Empfohlen: <b className="text-white">{(stronghold.total_hp).toLocaleString("de-DE")} ATK</b> aus deiner Crew. Truppen-Tier {Math.max(1, Math.min(5, Math.ceil(stronghold.level / 2)))}+ empfohlen.
+              Empfohlen: <b className="text-white">{(stronghold.total_hp).toLocaleString("de-DE")} Angriff</b> aus deiner Crew. Truppen-Tier {Math.max(1, Math.min(5, Math.ceil(stronghold.level / 2)))}+ empfohlen.
             </div>
           </div>
 
@@ -248,7 +248,7 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
                   <div key={t.id} className="flex items-center gap-2 p-2 rounded bg-black/30 border border-white/5">
                     <span className="text-2xl">{t.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] font-black text-white">{t.name} <span className="text-[9px] text-[#a8b4cf]">T{t.tier} · {t.base_atk} ATK</span></div>
+                      <div className="text-[12px] font-black text-white">{t.name} <span className="text-[9px] text-[#a8b4cf]">Stufe {t.tier} · {t.base_atk} Angriff</span></div>
                       <div className="text-[9px] text-[#a8b4cf]">Vorrat: {have.toLocaleString("de-DE")}</div>
                     </div>
                     <input
@@ -269,7 +269,7 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
 
           <div className="rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/40 p-3 flex items-center justify-between">
             <div className="text-[11px] text-[#a8b4cf]">Dein Beitrag</div>
-            <div className="text-lg font-black text-[#FFD700]">{totalAtk.toLocaleString("de-DE")} ATK</div>
+            <div className="text-lg font-black text-[#FFD700]">{totalAtk.toLocaleString("de-DE")} Angriff</div>
           </div>
 
           {err && <div className="text-[11px] text-center font-black text-[#FF2D78]">{err}</div>}
@@ -343,7 +343,7 @@ function RallyBannerInner({ rally, statusColor, statusText, countdown, onOpen }:
       )}
       <div className="flex-1 text-left">
         <div className="text-[10px] font-black tracking-widest" style={{ color: statusColor }}>AUFGEBOT · {statusText}</div>
-        <div className="text-[12px] font-black text-white">{countdown} · {rally.total_atk.toLocaleString("de-DE")} ATK</div>
+        <div className="text-[12px] font-black text-white">{countdown} · {rally.total_atk.toLocaleString("de-DE")} Angriff</div>
       </div>
       <span className="text-white text-lg">›</span>
     </button>

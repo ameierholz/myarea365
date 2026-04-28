@@ -26,11 +26,16 @@ export function ActivePlayerBaseRallyBanner({ rally, onOpen }: {
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
   if (!rally) return null;
+  // Status done/aborted → Banner ist tot, weg damit
+  if (rally.status === "done" || rally.status === "aborted") return null;
 
   const target = rally.status === "preparing"
     ? new Date(rally.prep_ends_at).getTime()
     : rally.march_ends_at ? new Date(rally.march_ends_at).getTime() : 0;
   const remain = Math.max(0, target - now);
+  // Timer ist abgelaufen aber Cron hat noch nicht resolved → Banner ausblenden
+  // (sonst hängt "0:00" dauerhaft auf der Map)
+  if (remain === 0 && target > 0) return null;
   const mm = Math.floor(remain / 60000);
   const ss = Math.floor((remain % 60000) / 1000);
   const countdown = `${mm}:${String(ss).padStart(2, "0")}`;

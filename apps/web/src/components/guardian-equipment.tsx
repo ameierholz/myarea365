@@ -119,10 +119,10 @@ export function GuardianEquipmentPanel({ onChange }: { onChange?: () => void }) 
           fontSize: 11, color: "#FFD700", fontWeight: 800,
           display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap",
         }}>
-          {totalBonus.hp  > 0 && <span>+{totalBonus.hp} HP</span>}
-          {totalBonus.atk > 0 && <span>+{totalBonus.atk} ATK</span>}
-          {totalBonus.def > 0 && <span>+{totalBonus.def} DEF</span>}
-          {totalBonus.spd > 0 && <span>+{totalBonus.spd} SPD</span>}
+          {totalBonus.hp  > 0 && <span>+{totalBonus.hp} Leben</span>}
+          {totalBonus.atk > 0 && <span>+{totalBonus.atk} Angriff</span>}
+          {totalBonus.def > 0 && <span>+{totalBonus.def} Verteidigung</span>}
+          {totalBonus.spd > 0 && <span>+{totalBonus.spd} Tempo</span>}
         </div>
       ) : (
         <div style={{ padding: 10, borderRadius: 10, background: "rgba(70,82,122,0.2)", textAlign: "center", color: "#8B8FA3", fontSize: 11 }}>
@@ -203,10 +203,10 @@ function ItemPickerModal({ slot, items, onEquip, onUnequip, hasEquipped, onClose
                     <div style={{ fontSize: 13, fontWeight: 900 }}>{it.catalog.name}</div>
                     {!it.catalog.cosmetic_only ? (
                       <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                        {it.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{it.catalog.bonus_hp} HP</span>}
-                        {it.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{it.catalog.bonus_atk} ATK</span>}
-                        {it.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{it.catalog.bonus_def} DEF</span>}
-                        {it.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{it.catalog.bonus_spd} SPD</span>}
+                        {it.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{it.catalog.bonus_hp} Leben</span>}
+                        {it.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{it.catalog.bonus_atk} Angriff</span>}
+                        {it.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{it.catalog.bonus_def} Verteidigung</span>}
+                        {it.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{it.catalog.bonus_spd} Tempo</span>}
                       </div>
                     ) : (
                       <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2, fontStyle: "italic" }}>

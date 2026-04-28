@@ -400,10 +400,10 @@ function ForgeItemRow({ item, materials, catalog, forging, success, onForge, onF
           </div>
           <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{item.catalog.name}</div>
           <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 2 }}>
-            {item.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{Math.round(item.catalog.bonus_hp*tierMult)} HP</span>}
-            {item.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{Math.round(item.catalog.bonus_atk*tierMult)} ATK</span>}
-            {item.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{Math.round(item.catalog.bonus_def*tierMult)} DEF</span>}
-            {item.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{Math.round(item.catalog.bonus_spd*tierMult)} SPD</span>}
+            {item.catalog.bonus_hp  > 0 && <span style={{ color: "#4ade80", marginRight: 6 }}>+{Math.round(item.catalog.bonus_hp*tierMult)} Leben</span>}
+            {item.catalog.bonus_atk > 0 && <span style={{ color: "#FF6B4A", marginRight: 6 }}>+{Math.round(item.catalog.bonus_atk*tierMult)} Angriff</span>}
+            {item.catalog.bonus_def > 0 && <span style={{ color: "#5ddaf0", marginRight: 6 }}>+{Math.round(item.catalog.bonus_def*tierMult)} Verteidigung</span>}
+            {item.catalog.bonus_spd > 0 && <span style={{ color: "#FFD700" }}>+{Math.round(item.catalog.bonus_spd*tierMult)} Tempo</span>}
           </div>
         </div>
       </div>

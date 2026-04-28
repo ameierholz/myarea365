@@ -158,9 +158,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           const list = j.unmet.map((u) => `${u.name} ${u.have_level}/${u.required_level}`).join(", ");
           setErr(`Burg-Voraussetzungen fehlen: ${list}`);
         } else if (j.error === "burg_level_too_low") {
-          setErr(`Burg-Level zu niedrig: brauchst Lv ${j.needed}, hast Lv ${j.burg_level}.`);
+          setErr(`Burg-Level zu niedrig: brauchst Stufe${j.needed}, hast Stufe${j.burg_level}.`);
         } else if (j.error === "queue_full") {
-          setErr("Bauslots voll — höhere Burg oder VIP erhöht Slots.");
+          setErr("Bauslots voll — höhere Burg oder Premium erhöht Slots.");
         } else if (j.error === "max_level_reached") {
           setErr("Maximales Level erreicht.");
         } else if (j.error === "not_enough_resources") {
@@ -283,7 +283,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               <div className="mt-2">
                 <div className="flex justify-between text-[9px] text-[#a8b4cf] font-black mb-1">
                   <span>BURG-LEVEL {burgLevel}/25</span>
-                  <span>{burgLevel < 25 ? `→ Lv ${burgLevel + 1}` : "MAX"}</span>
+                  <span>{burgLevel < 25 ? `→ Stufe${burgLevel + 1}` : "MAX"}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${xpPct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}cc)`, boxShadow: `0 0 8px ${accent}` }} />
@@ -329,13 +329,13 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             <div className="px-3 pb-3 flex gap-2">
               {(resources.vip_tickets ?? 0) > 0 && (
                 <div className="flex-1 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 px-2 py-1.5 text-center">
-                  <div className="text-[9px] text-[#a8b4cf]">⭐ VIP-Tickets</div>
+                  <div className="text-[9px] text-[#a8b4cf]">⭐ Premium-Tickets</div>
                   <div className="text-[11px] font-black text-[#a855f7]">{resources.vip_tickets}</div>
                 </div>
               )}
               {(resources.guardian_xp ?? 0) > 0 && (
                 <div className="flex-1 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 px-2 py-1.5 text-center">
-                  <div className="text-[9px] text-[#a8b4cf]">⚔️ Wächter-XP</div>
+                  <div className="text-[9px] text-[#a8b4cf]">⚔️ Wächter-Erfahrung</div>
                   <div className="text-[11px] font-black text-[#22D1C3]">{compactNum(resources.guardian_xp ?? 0)}</div>
                 </div>
               )}
@@ -347,11 +347,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
         <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]">
           {(["overview","res","build","troops","research","chest","vip"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              title={{overview:"Übersicht", res:"Ressourcen", build:"Bau", troops:"Bande", research:"Forschung", chest:"Truhen", vip:"VIP"}[t]}
+              title={{overview:"Übersicht", res:"Ressourcen", build:"Bau", troops:"Bande", research:"Forschung", chest:"Truhen", vip:"Premium"}[t]}
               className={`flex-1 min-w-0 py-2.5 px-1 whitespace-nowrap transition-colors ${tab === t ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
               style={tab === t ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
             >
-              {{overview:"📊 Info", res:"💰 RSS", build:"🏗 Bau", troops:"⚔ Bande", research:"🔬 Tech", chest:"🗝 Loot", vip:"⭐ VIP"}[t]}
+              {{overview:"📊 Info", res:"💰 RSS", build:"🏗 Bau", troops:"⚔ Bande", research:"🔬 Tech", chest:"🗝 Loot", vip:"⭐ Premium"}[t]}
               {t === "build" && queue.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FF6B4A] text-white">{queue.length}</span>}
               {t === "chest" && chests.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FFD700] text-[#0F1115]">{chests.length}</span>}
             </button>
@@ -401,7 +401,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     accent="#4ade80" progress={(builtCount / totalBuildings) * 100}
                   />
                   <StatCard
-                    icon="⭐" label="VIP-Tier" value={String(vip.vip_level)}
+                    icon="⭐" label="Premium-Stufe" value={String(vip.vip_level)}
                     sub={`🔥 ${vip.daily_login_streak} Tage Streak`}
                     accent="#FFD700" progress={vipProgress}
                   />
@@ -493,7 +493,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                           <div key={e.key} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1A1D23] border border-white/5 text-[11px]">
                             <span className="text-base">{e.emoji}</span>
                             <div className="flex-1 min-w-0">
-                              <div className="font-black text-white truncate">{e.name} <span className="text-[9px] text-[#FFD700]">Lv {e.level}</span></div>
+                              <div className="font-black text-white truncate">{e.name} <span className="text-[9px] text-[#FFD700]">Stufe {e.level}</span></div>
                               <div className="text-[9px] text-[#a8b4cf] truncate">{effectLabel}</div>
                             </div>
                             <span className="font-black whitespace-nowrap" style={{ color: accent }}>{valueStr}</span>
@@ -581,7 +581,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                           <span>{e.emoji}</span>
                           <div className="flex-1 min-w-0">
                             <div className="font-black text-white truncate">
-                              {e.name} <span className="text-[9px] text-[#FFD700]">Lv {e.level}</span>
+                              {e.name} <span className="text-[9px] text-[#FFD700]">Stufe {e.level}</span>
                             </div>
                             <div className="text-[9px] text-[#a8b4cf] truncate">{effectLabel}</div>
                           </div>
@@ -620,7 +620,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                       <div key={q.id} className="flex items-center gap-2">
                         <BuildingThumb id={q.building_id} fallback={cat?.emoji ?? "🏗️"} art={buildingArt} size={28} />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-black">{cat?.name ?? q.building_id} → Lv {q.target_level}</div>
+                          <div className="text-sm font-black">{cat?.name ?? q.building_id} → Stufe {q.target_level}</div>
                           <div className="text-[10px] text-[#a8b4cf]">{ready ? <span className="text-[#4ade80] font-black">FERTIG …</span> : `Noch ${min}:${String(restSec).padStart(2,"0")}`}</div>
                         </div>
                         {!ready && resources.speed_tokens > 0 && (
@@ -675,12 +675,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                                 <BuildingThumb id={cat.id} fallback={cat.emoji} art={buildingArt} size={28} />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-xs font-black text-white truncate">{cat.name}</div>
-                                  <div className="text-[9px] text-[#a8b4cf]">Lv {lvl}/{cat.max_level} {cat.effect_key && !isMax && (() => {
+                                  <div className="text-[9px] text-[#a8b4cf]">Stufe {lvl}/{cat.max_level} {cat.effect_key && !isMax && (() => {
                                     const isAbs = ABSOLUTE_EFFECTS.has(cat.effect_key);
                                     const v = isAbs
                                       ? `+${effectAtNext.toLocaleString("de-DE", { maximumFractionDigits: 1 })}`
                                       : `+${Math.round(effectAtNext * 100)}%`;
-                                    return <span style={{ color: accent }} title={`Pro Stufe: ${isAbs ? `+${cat.effect_per_level}` : `+${Math.round(cat.effect_per_level * 100)}%`}`}>· {v} gesamt auf Lv {targetLvl}</span>;
+                                    return <span style={{ color: accent }} title={`Pro Stufe: ${isAbs ? `+${cat.effect_per_level}` : `+${Math.round(cat.effect_per_level * 100)}%`}`}>· {v} gesamt auf Stufe {targetLvl}</span>;
                                   })()}</div>
                                 </div>
                               </div>
@@ -716,12 +716,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                               ) : inQueue ? (
                                 <div className="text-[10px] text-[#FF6B4A] font-black text-center py-1 rounded bg-[#FF6B4A]/10">🔨 In Bau</div>
                               ) : lvlLocked ? (
-                                <div className="text-[10px] text-[#6c7590] text-center py-1 rounded bg-white/5">🔒 Base Lv {cat.required_base_level} nötig</div>
+                                <div className="text-[10px] text-[#6c7590] text-center py-1 rounded bg-white/5">🔒 Base Stufe {cat.required_base_level} nötig</div>
                               ) : (
                                 <button onClick={() => build(cat.id)} disabled={!canPay || busy === cat.id || isCatalogPreview}
                                   className="text-[11px] font-black py-1.5 rounded-lg disabled:opacity-40"
                                   style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-                                  {isCatalogPreview ? "🔒 Vorschau" : lvl === 0 ? "🏗️ Bauen" : `⬆️ Lv ${targetLvl}`}
+                                  {isCatalogPreview ? "🔒 Vorschau" : lvl === 0 ? "🏗️ Bauen" : `⬆️ Stufe${targetLvl}`}
                                 </button>
                               )}
                             </div>
@@ -756,7 +756,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             return (
               <div className="space-y-3">
                 <IntroBox accent={accent} title="🗝️ WO KOMMEN TRUHEN HER?">
-                  Truhen droppen aus <b className="text-white">Arena-Kämpfen</b>, <b className="text-white">Boss-Raids</b>, <b className="text-white">VIP-Daily-Rewards</b> und Crew-Aktivitäten.
+                  Truhen droppen aus <b className="text-white">Arena-Kämpfen</b>, <b className="text-white">Boss-Raids</b>, <b className="text-white">Premium-Tagesbelohnungen</b> und Crew-Aktivitäten.
                   <span className="block mt-1">🥈 <b>Silber</b>: 24h Wartezeit, häufige Items + Resourcen.</span>
                   <span className="block">🥇 <b>Gold</b>: 24h, seltene Items, Wächter-Splitter, große Resource-Drops.</span>
                   <span className="block mt-1 text-[#6c7590]">Pity-Garantie: alle 10 Truhen mind. 1 Episch, alle 30 mind. 1 Legendär.</span>
@@ -831,7 +831,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
                 {chests.length === 0 && (
                   <div className="text-center text-[#6c7590] text-xs py-2">
-                    Noch keine Truhen — kämpfe in der Arena, geh laufen oder check VIP-Daily!
+                    Noch keine Truhen — kämpfe in der Arena, geh laufen oder check Premium-Tagesbelohnung!
                   </div>
                 )}
               </div>
@@ -852,15 +852,15 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               </div>
 
               {vipSection === "status" && <>
-              <IntroBox accent="#FFD700" title="⭐ WAS IST VIP?">
-                VIP-Punkte sammelst du durch <b className="text-white">tägliche Logins</b>, <b className="text-white">erfüllte Quests</b>, <b className="text-white">Premium-Käufe</b> und <b className="text-white">Events</b>.
-                Höheres VIP-Tier = mehr tägliche <b>🥈/🥇 Truhen</b>, <b>+% Resourcen-Drops</b>, <b>−% Bauzeit</b> und exklusive Themes.
+              <IntroBox accent="#FFD700" title="⭐ WAS IST PREMIUM?">
+                Premium-Punkte sammelst du durch <b className="text-white">tägliche Logins</b>, <b className="text-white">erfüllte Quests</b>, <b className="text-white">Premium-Käufe</b> und <b className="text-white">Events</b>.
+                Höheres Premium-Stufe = mehr tägliche <b>🥈/🥇 Truhen</b>, <b>+% Resourcen-Drops</b>, <b>−% Bauzeit</b> und exklusive Themes.
                 Maximal Tier 15.
               </IntroBox>
               <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFD700]/5 border border-[#FFD700]/40 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] font-black tracking-widest text-[#FFD700]">VIP-TIER</div>
+                    <div className="text-[10px] font-black tracking-widest text-[#FFD700]">PREMIUM-STUFE</div>
                     <div className="text-4xl font-black text-[#FFD700] mt-1">{vip.vip_level}</div>
                   </div>
                   <div className="text-right">
@@ -872,7 +872,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                   <div className="mt-3">
                     <div className="flex justify-between text-[9px] text-[#a8b4cf] font-black mb-1">
                       <span>{vip.vip_points.toLocaleString("de-DE")} / {nextTier.required_points.toLocaleString("de-DE")} Pkt</span>
-                      <span>→ Lv {nextTier.vip_level}</span>
+                      <span>→ Stufe {nextTier.vip_level}</span>
                     </div>
                     <div className="h-2 rounded-full bg-black/40 overflow-hidden">
                       <div className="h-full rounded-full transition-all bg-gradient-to-r from-[#FFD700] to-[#FF6B4A]" style={{ width: `${vipProgress}%` }} />
@@ -908,13 +908,13 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                       <Benefit label="🐎 March-Speed" value={`+${Math.round((currentTier.march_speed_pct ?? 0)*100)}%`} />
                     )}
                     {(currentTier.troop_atk_pct ?? 0) > 0 && (
-                      <Benefit label="⚔ Truppen-ATK" value={`+${Math.round((currentTier.troop_atk_pct ?? 0)*100)}%`} />
+                      <Benefit label="⚔ Truppen-Angriff" value={`+${Math.round((currentTier.troop_atk_pct ?? 0)*100)}%`} />
                     )}
                     {(currentTier.troop_def_pct ?? 0) > 0 && (
-                      <Benefit label="🛡 Truppen-DEF" value={`+${Math.round((currentTier.troop_def_pct ?? 0)*100)}%`} />
+                      <Benefit label="🛡 Truppen-Verteidigung" value={`+${Math.round((currentTier.troop_def_pct ?? 0)*100)}%`} />
                     )}
                     {(currentTier.troop_hp_pct ?? 0) > 0 && (
-                      <Benefit label="❤ Truppen-HP" value={`+${Math.round((currentTier.troop_hp_pct ?? 0)*100)}%`} />
+                      <Benefit label="❤ Truppen-Leben" value={`+${Math.round((currentTier.troop_hp_pct ?? 0)*100)}%`} />
                     )}
                   </div>
                 </div>
@@ -1070,7 +1070,7 @@ function ForeignRunnerBase({ baseId, onClose }: { baseId: string; onClose: () =>
                 <span className="text-2xl">{b.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-black truncate">{b.name}</div>
-                  <div className="text-[9px] text-[#a8b4cf]">Lv {b.level}</div>
+                  <div className="text-[9px] text-[#a8b4cf]">Stufe {b.level}</div>
                 </div>
               </div>
             ))}
@@ -1463,7 +1463,7 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
       if (j.ok) { setMsg(`✓ Forschung gestartet (${j.minutes} min)`); await Promise.all([load(), reload()]); }
       else if (j.error === "prereq_missing") setMsg("Vorgänger-Forschung fehlt.");
       else if (j.error === "burg_level_too_low") setMsg("Burg muss höher sein.");
-      else if (j.error === "queue_full") setMsg("Forschungs-Slots voll (mehr ab VIP 4 / 7).");
+      else if (j.error === "queue_full") setMsg("Forschungs-Slots voll (mehr ab Premium 4 / 7).");
       else if (j.error === "not_enough_resources") setMsg("Nicht genug Resourcen.");
       else setMsg(j.error ?? "Fehler");
     } finally { setBusy(null); }
@@ -1483,7 +1483,7 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
       <IntroBox accent={accent} title="🔬 FORSCHUNG">
         Forschungen geben permanente <b className="text-white">%-Boni</b> (Resourcen, Truppen, Bauzeit).
         Höhere Tiers brauchen Vorgänger-Forschung + entsprechendes Burg-Level.
-        <span className="block mt-1 text-[#6c7590]">Forschungs-Slots: 1 (VIP 4 → 2 · VIP 7 → 3).</span>
+        <span className="block mt-1 text-[#6c7590]">Forschungs-Slots: 1 (Premium 4 → 2 · Premium 7 → 3).</span>
       </IntroBox>
 
       {data.queue.length > 0 && (
@@ -1494,7 +1494,7 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
             const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
             return (
               <div key={q.id} className="flex justify-between text-[10px] text-white">
-                <span>{d?.emoji} {d?.name} → Lv {q.target_level}</span>
+                <span>{d?.emoji} {d?.name} → Stufe {q.target_level}</span>
                 <span className="text-[#a8b4cf]">{remain} min</span>
               </div>
             );
@@ -1528,7 +1528,7 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
                         <span className="text-xl">{d.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-[11px] font-black text-white">
-                            {d.name} <span className="text-[9px] text-[#a8b4cf] ml-1">T{d.tier} · Lv {lvl}/{d.max_level} · Burg {d.required_burg_level}+</span>
+                            {d.name} <span className="text-[9px] text-[#a8b4cf] ml-1">T{d.tier} · Stufe {lvl}/{d.max_level} · Burg {d.required_burg_level}+</span>
                           </div>
                           <div className="text-[9px] text-[#a8b4cf]">{d.description}</div>
                           {locked && <div className="text-[9px] text-[#FF6B4A]">🔒 Vorgänger nötig</div>}
@@ -1536,7 +1536,7 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
                         <button onClick={() => start(d.id)} disabled={busy === d.id || locked || maxed}
                           className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40"
                           style={{ background: `${b.color}26`, border: `1px solid ${b.color}66`, color: b.color }}>
-                          {maxed ? "MAX" : busy === d.id ? "…" : `→ Lv ${lvl + 1}`}
+                          {maxed ? "MAX" : busy === d.id ? "…" : `→ Stufe${lvl + 1}`}
                         </button>
                       </div>
                     </div>
@@ -1812,7 +1812,7 @@ function VipTierProgression({ thresholds, currentLevel, chestArt, resourceArt }:
               className="w-full flex items-center gap-2 px-3 py-2 text-left"
             >
               <span className={`text-sm font-black w-16 shrink-0 ${reached ? "text-[#FFD700]" : isNext ? "text-[#FFD700]" : "text-[#6c7590]"}`}>
-                {reached ? "✓ " : ""}Lv{t.vip_level}
+                {reached ? "✓ " : ""}Stufe {t.vip_level}
               </span>
               <div className="flex-1 min-w-0 flex items-center gap-2 text-[12px] text-white">
                 {highlights.slice(0, 3)}
@@ -1871,7 +1871,7 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
     const r = (res ?? null) as Res | null;
     if (error || !r?.ok) {
       const errMap: Record<string, string> = {
-        vip_level_too_low: "VIP-Stufe zu niedrig",
+        vip_level_too_low: "Premium-Stufe zu niedrig",
         daily_limit_reached: "Tageslimit erreicht",
         not_enough_gems: "Nicht genug Edelsteine",
       };
@@ -1887,7 +1887,7 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
     <div className="rounded-xl bg-[#1A1D23] border border-[#FFD700]/30 overflow-hidden">
       {!defaultOpen && (
         <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-3 py-3 text-[13px] font-black text-[#FFD700]">
-          <span>🛒 VIP-SHOP <span className="text-[10px] text-[#a8b4cf] font-normal ml-1">(Rabatt-Angebote)</span></span>
+          <span>🛒 PREMIUM-SHOP <span className="text-[10px] text-[#a8b4cf] font-normal ml-1">(Rabatt-Angebote)</span></span>
           <span>{open ? "▾" : "▸"}</span>
         </button>
       )}
@@ -1924,7 +1924,7 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
                   <div className="text-[12px] font-black text-white">{o.name}</div>
                   <div className="text-[10px] text-[#a8b4cf]">{o.description}</div>
                   <div className="text-[9px] text-[#6c7590] mt-0.5">
-                    {locked ? `🔒 Ab VIP ${o.required_vip}` : `${remaining}/${o.daily_limit} verfügbar heute`}
+                    {locked ? `🔒 Ab Premium ${o.required_vip}` : `${remaining}/${o.daily_limit} verfügbar heute`}
                   </div>
                 </div>
                 <button onClick={() => buy(o.id)} disabled={disabled}
@@ -1963,7 +1963,7 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
     { node: <ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />, label: "Silber-Truhe", n: tier.daily_chest_silver },
     { node: <ChestIcon kind="gold"   size={20} fallback="🥇" art={chestArt} />, label: "Gold-Truhe",   n: tier.daily_chest_gold },
     { node: <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />, label: "Speed-Token", n: tier.daily_speed_tokens ?? 0 },
-    { node: <span className="text-[16px]">🎟</span>, label: "VIP-Ticket", n: tier.daily_vip_tickets ?? 0 },
+    { node: <span className="text-[16px]">🎟</span>, label: "Premium-Ticket", n: tier.daily_vip_tickets ?? 0 },
   ].filter((i) => i.n > 0);
 
   if (items.length === 0) return null;
@@ -1993,7 +1993,7 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
     <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-[#FF6B4A]/10 border border-[#FFD700]/40 p-3">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎁 TÄGLICHE VIP-BELOHNUNG</div>
+          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎁 TÄGLICHE PREMIUM-BELOHNUNG</div>
           <div className="text-[10px] text-[#a8b4cf] mt-0.5">
             {alreadyClaimed ? "Heute schon abgeholt — kommt morgen wieder." : `Stufe ${tier.vip_level} · einmal pro Tag`}
           </div>
@@ -2031,7 +2031,7 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
     if (error || !res?.ok) {
       setMsg(`❌ ${res?.error ?? error?.message ?? "Fehler"}`);
     } else {
-      setMsg(`✅ +${res.points_added ?? 0} VIP-Punkte`);
+      setMsg(`✅ +${res.points_added ?? 0} Premium-Punkte`);
       await reload();
     }
     setTimeout(() => setMsg(null), 2600);
@@ -2041,8 +2041,8 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
     <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/40 p-3">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎟 VIP-TICKETS EINLÖSEN</div>
-          <div className="text-[10px] text-[#a8b4cf] mt-0.5">1 Ticket = 50 VIP-Punkte · {available} verfügbar</div>
+          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎟 PREMIUM-TICKETS EINLÖSEN</div>
+          <div className="text-[10px] text-[#a8b4cf] mt-0.5">1 Ticket = 50 Premium-Punkte · {available} verfügbar</div>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -2095,7 +2095,7 @@ const FALLBACK_CATALOG: Catalog[] = [
   // ── Phase-1 Solo (00079) ──
   { id: "wegekasse",      name: "Wegekasse",     emoji: "🏦", description: "Erhöht das Lager-Limit für alle Resourcen pro Stufe.",     category: "storage",    scope: "solo", max_level: 10, base_cost_wood: 100, base_cost_stone:  50, base_cost_gold:  0, base_cost_mana:  0, base_buildtime_minutes:  5, effect_key: "storage_cap_pct",   effect_per_level: 0.10, required_base_level: 1, sort: 1 },
   { id: "wald_pfad",      name: "Wald-Pfad",     emoji: "🌲", description: "Mehr Holz pro km gelaufenem Park-Weg.",                    category: "production", scope: "solo", max_level: 10, base_cost_wood:  50, base_cost_stone: 100, base_cost_gold:  0, base_cost_mana:  0, base_buildtime_minutes:  5, effect_key: "wood_per_km_pct",   effect_per_level: 0.05, required_base_level: 1, sort: 2 },
-  { id: "waechter_halle", name: "Wächter-Halle", emoji: "⚔️", description: "Aktive Wächter erhalten mehr XP nach jedem Lauf.",         category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 150, base_cost_stone: 150, base_cost_gold: 20, base_cost_mana: 10, base_buildtime_minutes: 10, effect_key: "guardian_xp_pct",   effect_per_level: 0.03, required_base_level: 2, sort: 3 },
+  { id: "waechter_halle", name: "Wächter-Halle", emoji: "⚔️", description: "Aktive Wächter erhalten mehr Erfahrung nach jedem Lauf.",         category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 150, base_cost_stone: 150, base_cost_gold: 20, base_cost_mana: 10, base_buildtime_minutes: 10, effect_key: "guardian_xp_pct",   effect_per_level: 0.03, required_base_level: 2, sort: 3 },
   { id: "laufturm",       name: "Lauftürme",     emoji: "🗼", description: "Erhöht die sichtbare Map-Reichweite + bessere Drops.",     category: "utility",    scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 100, base_cost_gold: 30, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "map_range_km",      effect_per_level: 0.30, required_base_level: 2, sort: 4 },
   // ── Starter (00082) ──
   { id: "lagerhalle",     name: "Lauf-Lager",    emoji: "📦", description: "Zusätzliches Lager für seltene Drops + Wächter-Inventar.", category: "storage",    scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 200, base_cost_gold: 50, base_cost_mana:  0, base_buildtime_minutes: 15, effect_key: "rare_storage_pct",  effect_per_level: 0.08, required_base_level: 1, sort: 5 },
@@ -2113,7 +2113,7 @@ const FALLBACK_CATALOG: Catalog[] = [
   { id: "mauerwerk",      name: "Stein-Speicher",emoji: "🧱", description: "Erhöht das Stein-Lager-Cap zusätzlich.",                   category: "storage",    scope: "solo", max_level: 10, base_cost_wood:  80, base_cost_stone: 150, base_cost_gold:  0, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "stone_storage_pct", effect_per_level: 0.20, required_base_level: 1, sort: 32 },
   // ── Kampf ──
   { id: "hospital",       name: "Heil-Stube",    emoji: "🏥", description: "Wächter regenerieren schneller nach Niederlagen.",          category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 150, base_cost_gold: 50, base_cost_mana: 20, base_buildtime_minutes: 20, effect_key: "heal_speed_pct",    effect_per_level: 0.10, required_base_level: 3, sort: 40 },
-  { id: "trainingsplatz", name: "Übungs-Hof",    emoji: "🥋", description: "Aktive Wächter erhalten Bonus-XP pro Kampf.",              category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 150, base_cost_stone: 150, base_cost_gold: 30, base_cost_mana: 10, base_buildtime_minutes: 15, effect_key: "arena_xp_pct",      effect_per_level: 0.05, required_base_level: 2, sort: 41 },
+  { id: "trainingsplatz", name: "Übungs-Hof",    emoji: "🥋", description: "Aktive Wächter erhalten Bonus-Erfahrung pro Kampf.",              category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 150, base_cost_stone: 150, base_cost_gold: 30, base_cost_mana: 10, base_buildtime_minutes: 15, effect_key: "arena_xp_pct",      effect_per_level: 0.05, required_base_level: 2, sort: 41 },
   { id: "ballistenwerk",  name: "Wurfgeschütz-Werk",emoji: "🎯", description: "Schaltet Belagerungs-Truppen für Crew-Wars frei.",     category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 300, base_cost_stone: 400, base_cost_gold: 100, base_cost_mana: 30, base_buildtime_minutes: 30, effect_key: "siege_strength_pct",effect_per_level: 0.05, required_base_level: 5, sort: 42 },
   { id: "schwertkampflager",name: "Klingen-Kaserne",emoji: "⚔️", description: "Trainiert Schwertkämpfer schneller + günstiger.",  category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 250, base_cost_gold: 50, base_cost_mana: 10, base_buildtime_minutes: 20, effect_key: "melee_train_speed_pct", effect_per_level: 0.08, required_base_level: 3, sort: 43 },
   { id: "bogenschuetzenstand",name: "Pfeil-Kaserne",emoji: "🏹", description: "Trainiert Bogenschützen schneller + günstiger.",   category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 250, base_cost_stone: 150, base_cost_gold: 50, base_cost_mana: 10, base_buildtime_minutes: 20, effect_key: "ranged_train_speed_pct",effect_per_level: 0.08, required_base_level: 3, sort: 44 },
@@ -2136,7 +2136,7 @@ const EFFECT_LABEL: Record<string, string> = {
   stone_per_km_pct:       "Stein pro Wohngebiet-km",
   gold_per_km_pct:        "Gold pro Stadtkern-km",
   mana_per_km_pct:        "Mana pro Wasser-km",
-  guardian_xp_pct:        "Wächter-XP nach Lauf",
+  guardian_xp_pct:        "Wächter-Erfahrung nach Lauf",
   map_range_km:           "Map-Reichweite (km)",
   rare_storage_pct:       "Selten-Item-Lager",
   craft_speed_pct:        "Crafting-Geschwindigkeit",
@@ -2149,7 +2149,7 @@ const EFFECT_LABEL: Record<string, string> = {
   wood_storage_pct:       "Holz-Lager-Cap",
   stone_storage_pct:      "Stein-Lager-Cap",
   heal_speed_pct:         "Heil-Geschwindigkeit",
-  arena_xp_pct:           "Arena-XP",
+  arena_xp_pct:           "Arena-Erfahrung",
   siege_strength_pct:     "Belagerungs-Stärke",
   melee_train_speed_pct:  "Schwertkämpfer-Training",
   ranged_train_speed_pct: "Bogenschützen-Training",

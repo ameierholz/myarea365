@@ -501,10 +501,10 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 12 }}>
-                      <Stat label="HP"  value={s.hp}  color="#4ade80" />
-                      <Stat label="ATK" value={s.atk} color="#FF6B4A" />
-                      <Stat label="DEF" value={s.def} color="#5ddaf0" />
-                      <Stat label="SPD" value={s.spd} color={GOLD} />
+                      <Stat label="Leben"        value={s.hp}  color="#4ade80" />
+                      <Stat label="Angriff"      value={s.atk} color="#FF6B4A" />
+                      <Stat label="Verteidigung" value={s.def} color="#5ddaf0" />
+                      <Stat label="Tempo"        value={s.spd} color={GOLD} />
                     </div>
                   </div>
                 );

@@ -63,7 +63,7 @@ export default function AgbPage() {
             <li>Eroberung virtueller Straßenzüge und Gebiete auf Basis gelaufener Strecken</li>
             <li>Vergabe von Wegemünzen, Level und Achievements</li>
             <li>Sammeln und Aufwerten von &bdquo;Wächtern&ldquo; und virtueller Ausrüstung, Schmiede-System für Materialien</li>
-            <li>Teilnahme an Arena-Kämpfen (Runner vs Runner) und Saison-Ranglisten inkl. Elo/MMR-Ranked-Modus</li>
+            <li>Teilnahme an Arena-Kämpfen (Runner vs Runner) und Saison-Ranglisten inkl. Elo/Wertung-Ranked-Modus</li>
             <li>Fraktions- und Klassen-System mit mechanischen Boni</li>
             <li>Gründen oder Beitreten von Crews inklusive Crew-Chat und Crew-Territorien</li>
             <li>Einlösung von Rabatt-Deals bei teilnehmenden Partner-Shops via QR-Code-Scan</li>
@@ -183,7 +183,7 @@ export default function AgbPage() {
 
         <Section num="8" title="Virtuelle Güter und virtuelle Währungen">
           <p className="text-sm">
-            Wegemünzen, Edelsteine, Materialien (Schrott/Kristall/Essenz/Relikt-Splitter), Wächter, Items, Siegel, MMR,
+            Wegemünzen, Edelsteine, Materialien (Schrott/Kristall/Essenz/Relikt-Splitter), Wächter, Items, Siegel, Wertung,
             Achievements, Cosmetics und sonstige virtuelle Güter sind ausschließlich zur Nutzung innerhalb des Dienstes
             bestimmt.
           </p>
@@ -484,7 +484,7 @@ export default function AgbPage() {
             werden. Die genauen Parameter (Anzahl, Kosten) können wir aus Balance-Gründen anpassen.
           </p>
           <p className="text-sm mt-2">
-            Im <b className="text-text">Ranked-Modus</b> werden Spieler anhand eines Elo-basierten MMR-Systems eingeordnet.
+            Im <b className="text-text">Ranked-Modus</b> werden Spieler anhand eines Elo-basierten Wertungs-Systems eingeordnet.
             Das Rating wird nach jedem gewerteten Kampf automatisch aktualisiert. Wir behalten uns vor, bei Anzeichen von
             Manipulation (Match-Fixing, Win-Trading, Bot-Nutzung, Smurfing) das Rating zurückzusetzen und Konsequenzen nach
             § 14 anzuwenden.

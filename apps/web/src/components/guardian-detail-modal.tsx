@@ -301,10 +301,10 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10 }}>
-            <Stat label="HP"  value={eff.effective.hp}  delta={eff.delta.hp}  color="#4ade80" />
-            <Stat label="ATK" value={eff.effective.atk} delta={eff.delta.atk} color="#FF6B4A" />
-            <Stat label="DEF" value={eff.effective.def} delta={eff.delta.def} color="#5ddaf0" />
-            <Stat label="SPD" value={eff.effective.spd} delta={eff.delta.spd} color="#FFD700" />
+            <Stat label="Leben"        value={eff.effective.hp}  delta={eff.delta.hp}  color="#4ade80" />
+            <Stat label="Angriff"      value={eff.effective.atk} delta={eff.delta.atk} color="#FF6B4A" />
+            <Stat label="Verteidigung" value={eff.effective.def} delta={eff.delta.def} color="#5ddaf0" />
+            <Stat label="Tempo"        value={eff.effective.spd} delta={eff.delta.spd} color="#FFD700" />
           </div>
 
           {(eff.bonusPct.crit > 0) && (
@@ -315,7 +315,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
           <div style={{ marginTop: "auto", paddingTop: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#a8b4cf" }}>
-              <span>XP</span><span>{g.xp} / {xpNext}</span>
+              <span>Erfahrung</span><span>{g.xp} / {xpNext}</span>
             </div>
             <div style={{ height: 5, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden", marginTop: 2 }}>
               <div style={{ width: `${xpPct}%`, height: "100%", background: rarity.color }} />
@@ -387,7 +387,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                         <span style={{ color: "#FFF", fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
                           {mmr.mmr}
                         </span>
-                        <span style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 700 }}>MMR</span>
+                        <span style={{ color: "#a8b4cf", fontSize: 10, fontWeight: 700 }}>Wertung</span>
                         {mmr.last_change !== 0 && mmr.last_change_at && (
                           <span style={{
                             color: mmr.last_change > 0 ? "#4ade80" : "#FF2D78",
@@ -438,7 +438,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                           }}>
                             <span style={{ fontSize: 14 }}>{t.icon}</span>
                             <span style={{ color: t.color, fontSize: 11, fontWeight: 900, flex: 1 }}>{t.label}</span>
-                            <span style={{ color: "#8B8FA3", fontSize: 10, fontFamily: "monospace" }}>{range} MMR</span>
+                            <span style={{ color: "#8B8FA3", fontSize: 10, fontFamily: "monospace" }}>{range} Wertung</span>
                             {isMine && <span style={{ color: t.color, fontSize: 9, fontWeight: 900 }}>{tGD("youBadge")}</span>}
                           </div>
                         );
@@ -470,7 +470,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                     {tGD("conditionHeader")}
                   </div>
                   <div style={{ color: isWounded ? "#FF2D78" : hpColor, fontSize: 11, fontWeight: 900 }}>
-                    {isWounded ? tGD("wounded") : hpPct >= 100 ? tGD("fullFit") : `${hpPct}% HP`}
+                    {isWounded ? tGD("wounded") : hpPct >= 100 ? tGD("fullFit") : `${hpPct}% Leben`}
                   </div>
                 </div>
                 <div style={{ height: 8, background: "rgba(255,255,255,0.08)", borderRadius: 4, overflow: "hidden" }}>
@@ -727,10 +727,10 @@ function StatBox({ label, value, color }: { label: string; value: number | strin
 function Stat({ label, value, color, delta }: { label: string; value: number; color: string; delta?: number }) {
   const tGD = useTranslations("GuardianDetail");
   const tooltips: Record<string, string> = {
-    HP:  tGD("tooltipHp"),
-    ATK: tGD("tooltipAtk"),
-    DEF: tGD("tooltipDef"),
-    SPD: tGD("tooltipSpd"),
+    Leben:        tGD("tooltipHp"),
+    Angriff:      tGD("tooltipAtk"),
+    Verteidigung: tGD("tooltipDef"),
+    Tempo:        tGD("tooltipSpd"),
   };
   return (
     <div

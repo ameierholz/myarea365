@@ -384,9 +384,9 @@ function InfoCard({
 
       <div className="px-4 py-3 shrink-0 space-y-2">
         {[
-          { label: "Spieler-Stufe",  value: `Lv ${defender.user_level}` },
-          { label: "Base-Stufe",     value: `Lv ${defender.base_level}` },
-          { label: "Base-HP",        value: `${defender.current_hp.toLocaleString("de-DE")} / ${defender.max_hp.toLocaleString("de-DE")}` },
+          { label: "Spieler-Stufe",  value: `Stufe ${defender.user_level}` },
+          { label: "Base-Stufe",     value: `Stufe ${defender.base_level}` },
+          { label: "Base-Leben",     value: `${defender.current_hp.toLocaleString("de-DE")} / ${defender.max_hp.toLocaleString("de-DE")}` },
           { label: "Crew",           value: defender.crew_name ?? "—" },
           { label: "Stärke",         value: "???  (Späher senden)", muted: true },
         ].map((r) => (
@@ -533,7 +533,7 @@ function RallyPicker({
             Wächter-Kommandant
             {selectedGuardianId && (() => {
               const g = guardians.find((x) => x.id === selectedGuardianId);
-              return g ? <span className="ml-2 text-[#FFD700]">+{Math.min(100, g.level * 5)}% ATK</span> : null;
+              return g ? <span className="ml-2 text-[#FFD700]">+{Math.min(100, g.level * 5)}% Angriff</span> : null;
             })()}
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -616,7 +616,7 @@ function RallyPicker({
                         <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                          <div className="text-[9px] text-white/50">Atk {t.base_atk} · Def {t.base_def} · HP {t.base_hp} · da {have}</div>
+                          <div className="text-[9px] text-white/50">Angriff {t.base_atk} · Verteidigung {t.base_def} · Leben {t.base_hp} · da {have}</div>
                         </div>
                         <input type="number" min={0} max={have} value={v}
                           onChange={(e) => setQty(t.id, Number(e.target.value))}
@@ -750,7 +750,7 @@ function AttackPicker({
                         <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                          <div className="text-[9px] text-white/50">Atk {t.base_atk} · Def {t.base_def} · HP {t.base_hp} · da {have}</div>
+                          <div className="text-[9px] text-white/50">Angriff {t.base_atk} · Verteidigung {t.base_def} · Leben {t.base_hp} · da {have}</div>
                         </div>
                         <input type="number" min={0} max={have} value={v}
                           onChange={(e) => setQty(t.id, Number(e.target.value))}

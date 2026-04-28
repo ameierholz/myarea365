@@ -34,7 +34,7 @@ export function MapLegendModal({ onClose }: { onClose: () => void }) {
     {
       title: "Basen & Kampf",
       entries: [
-        { icon: "🏰", color: "#FFD700", label: "Deine Base",     desc: "Dein persönliches Hauptquartier — Klick öffnet Bau-Modal (Resourcen, Truppen, Forschung, Loot, VIP)." },
+        { icon: "🏰", color: "#FFD700", label: "Deine Base",     desc: "Dein persönliches Hauptquartier — Klick öffnet Bau-Modal (Resourcen, Truppen, Forschung, Loot, Premium)." },
         { icon: "🏯", color: "#FF6B4A", label: "Crew-Base",      desc: "Hauptquartier deiner Crew — gemeinsame Forschung & Buffs." },
         { icon: "🛡", color: "#8B8FA3", label: "Fremde Base",    desc: "Base eines anderen Runners oder einer anderen Crew." },
         { icon: "🏚", color: "#FF2D78", label: "Wegelager",      desc: "Bandit-Festung (Lv 1–10). Nur per Crew-Angriff zu knacken — Loot proportional zum eigenen Beitrag." },

@@ -99,10 +99,10 @@ export default function GuardianDetailPage() {
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 4, marginTop: 8 }}>
-            <Stat label="HP"  value={stats.hp}  color="#4ade80" />
-            <Stat label="ATK" value={stats.atk} color="#FF6B4A" />
-            <Stat label="DEF" value={stats.def} color="#5ddaf0" />
-            <Stat label="SPD" value={stats.spd} color="#FFD700" />
+            <Stat label="Leben"        value={stats.hp}  color="#4ade80" />
+            <Stat label="Angriff"      value={stats.atk} color="#FF6B4A" />
+            <Stat label="Verteidigung" value={stats.def} color="#5ddaf0" />
+            <Stat label="Tempo"        value={stats.spd} color="#FFD700" />
           </div>
         </div>
       </div>

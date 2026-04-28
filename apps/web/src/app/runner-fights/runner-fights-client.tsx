@@ -587,10 +587,10 @@ function HeroPanel({ myGuardian, myType, rarityMeta, onChanged }: {
         <div style={{
           marginTop: 10, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6,
         }}>
-          <GearStat label="HP"  value={eff.hp}  bonus={bon.hp}  icon="❤️" color="#4ade80" />
-          <GearStat label="ATK" value={eff.atk} bonus={bon.atk} icon="⚔️" color="#FF6B4A" />
-          <GearStat label="DEF" value={eff.def} bonus={bon.def} icon="🛡️" color="#60a5fa" />
-          <GearStat label="SPD" value={eff.spd} bonus={bon.spd} icon="💨" color="#FFD700" />
+          <GearStat label="Leben"        value={eff.hp}  bonus={bon.hp}  icon="❤️" color="#4ade80" />
+          <GearStat label="Angriff"      value={eff.atk} bonus={bon.atk} icon="⚔️" color="#FF6B4A" />
+          <GearStat label="Verteidigung" value={eff.def} bonus={bon.def} icon="🛡️" color="#60a5fa" />
+          <GearStat label="Tempo"        value={eff.spd} bonus={bon.spd} icon="💨" color="#FFD700" />
         </div>
 
         {/* Equipment-Strip (klickbar → Inline-Picker) */}
@@ -708,10 +708,10 @@ const TIER_MULT = [1.0, 1.5, 2.25, 3.5];
 function summarizeBonus(it: EquippedItem, tier: number): string | null {
   const m = TIER_MULT[Math.max(0, Math.min(3, tier))];
   const parts: string[] = [];
-  if (it.bonus_hp)  parts.push(`+${Math.round(it.bonus_hp  * m)} HP`);
-  if (it.bonus_atk) parts.push(`+${Math.round(it.bonus_atk * m)} ATK`);
-  if (it.bonus_def) parts.push(`+${Math.round(it.bonus_def * m)} DEF`);
-  if (it.bonus_spd) parts.push(`+${Math.round(it.bonus_spd * m)} SPD`);
+  if (it.bonus_hp)  parts.push(`+${Math.round(it.bonus_hp  * m)} Leben`);
+  if (it.bonus_atk) parts.push(`+${Math.round(it.bonus_atk * m)} Angriff`);
+  if (it.bonus_def) parts.push(`+${Math.round(it.bonus_def * m)} Verteidigung`);
+  if (it.bonus_spd) parts.push(`+${Math.round(it.bonus_spd * m)} Tempo`);
   return parts.length ? parts.join(" · ") : null;
 }
 
@@ -1364,7 +1364,7 @@ const DEMO_ARCHETYPES: Archetype[] = [
   { id: "d2", name: "Titan der Unbezwingbare", emoji: "🛡️", rarity: "epic",      guardian_type: "infantry", role: "Tank",      ability_name: "Mauer",          ability_desc: "Halbiert erlittenen Schaden in Runde 1." },
   { id: "d3", name: "Zephyr der Schütze",     emoji: "🏹", rarity: "epic",      guardian_type: "marksman", role: "Sniper",    ability_name: "Durchschuss",    ability_desc: "Ignoriert 30% der gegnerischen Verteidigung." },
   { id: "d4", name: "Ember die Flamme",       emoji: "🔥", rarity: "legendary", guardian_type: "mage",     role: "Burst",     ability_name: "Feuersbrunst",   ability_desc: "Brennt den Gegner über 3 Runden." },
-  { id: "d5", name: "Kael der Wachhund",      emoji: "🐺", rarity: "elite",     guardian_type: "infantry", role: "Bruiser",   ability_name: "Bissfest",       ability_desc: "Heilt pro Treffer 8% HP." },
+  { id: "d5", name: "Kael der Wachhund",      emoji: "🐺", rarity: "elite",     guardian_type: "infantry", role: "Bruiser",   ability_name: "Bissfest",       ability_desc: "Heilt pro Treffer 8% Leben." },
   { id: "d6", name: "Shade die Listige",      emoji: "🌙", rarity: "elite",     guardian_type: "cavalry",  role: "Duelist",   ability_name: "Ausweichen",     ability_desc: "25% Chance Angriff zu kontern." },
 ];
 
@@ -1799,7 +1799,7 @@ function PrestigeDemo() {
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
           <div style={{ fontSize: 32, fontWeight: 900, color: "#FFF" }}>{t("prestigeLevelShort", { level })}</div>
           <div style={{ fontSize: 12, color: "#a8b4cf" }}>
-            {xp.toLocaleString(numLocale)} XP
+            {xp.toLocaleString(numLocale)} Erfahrung
             {level < DEMO_LEVEL_CAP && <> / {nextThreshold.toLocaleString(numLocale)}</>}
             {level >= DEMO_LEVEL_CAP && <span style={{ color: "#FFD700" }}>{t("prestigeMaxBadge")}</span>}
           </div>

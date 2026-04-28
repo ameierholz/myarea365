@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
+import { Bebas_Neue } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+
+// Display-Schrift für Headlines, Stats, Badges, Crew-Tags — urbaner Graffiti-Vibe.
+// Bebas Neue hat nur ein Weight (400), wirkt aber durch die kondensierte Form auch
+// ohne Bold markant. Wird via CSS-Variable verteilt, Body-Text bleibt System-Sans.
+const bebas = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" });
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { LOCALES, LOCALE_BCP47 } from "@/i18n/config";
@@ -69,7 +75,7 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
   return (
-    <html lang={locale} className="dark h-full">
+    <html lang={locale} className={`dark h-full ${bebas.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />

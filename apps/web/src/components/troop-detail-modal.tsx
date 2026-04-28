@@ -128,9 +128,9 @@ export function TroopDetailModal({
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-2 mt-3">
-              <Stat label="ATK" value={troop.base_atk} color="#FF6B4A" />
-              <Stat label="DEF" value={troop.base_def} color="#22D1C3" />
-              <Stat label="HP"  value={troop.base_hp}  color="#4ade80" />
+              <Stat label="Angriff"      value={troop.base_atk} color="#FF6B4A" />
+              <Stat label="Verteidigung" value={troop.base_def} color="#22D1C3" />
+              <Stat label="Leben"        value={troop.base_hp}  color="#4ade80" />
             </div>
 
             {/* Quantity-Slider + Live-Cost */}
