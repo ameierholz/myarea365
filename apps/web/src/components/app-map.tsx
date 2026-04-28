@@ -2797,10 +2797,10 @@ export function AppMap({
         continue;
       }
       const el = document.createElement("div");
-      // Feste Größe = artSize (96/80/64 für hq/mega/normal). Mapbox' anchor:center
-      // berechnet -50%-Offset einmalig anhand dieser Größe und ändert sich nie wieder
-      // — egal wie wrapForZoomScale die Children umhängt oder skaliert.
-      const elSize = r.kind === "hq" ? 96 : r.kind === "mega" ? 80 : 64;
+      // Feste Größe — Mapbox' anchor:center bleibt stabil. Größere Werte als zuvor,
+      // weil wir das transform:scale(1.7) auf dem Video raus haben (verursachte
+      // Drift beim Zoomen wegen asymmetrischer Greenscreen-Padding).
+      const elSize = r.kind === "hq" ? 140 : r.kind === "mega" ? 120 : 100;
       el.style.cssText = `
         position:relative;
         width:${elSize}px; height:${elSize}px;
@@ -2816,7 +2816,7 @@ export function AppMap({
 
       // Wenn Artwork vorhanden: das Artwork IST der Pin (groß, ohne Box)
       // Wenn nicht: kompakte Tile mit Border + Emoji-Fallback
-      const artSize = isHQ ? 96 : isMega ? 80 : 64;
+      const artSize = elSize; // Pin füllt el — kein interner scale → kein Drift
       const tileSize = isHQ ? 36 : isMega ? 30 : 22;
       const pin = document.createElement("div");
       if (hasArt) {
@@ -2826,22 +2826,17 @@ export function AppMap({
           filter:drop-shadow(0 4px 14px ${r.is_own ? "rgba(34,209,195,0.65)" : "rgba(255,45,120,0.65)"})
                  drop-shadow(0 0 10px ${r.is_own ? "rgba(34,209,195,0.45)" : "rgba(255,45,120,0.45)"});
         `;
-        // transform:scale(1.7) zoomt ins Video/Bild rein um das transparente
-        // Greenscreen-Padding (nach Chroma-Key) zu überspringen — der eigentliche
-        // Icon-Inhalt wird dadurch deutlich größer ohne dass der Pin wächst.
-        const zoomCss = "transform:scale(1.7); transform-origin:center center;";
-        pin.style.overflow = "visible";
         if (art?.video_url) {
           const v = document.createElement("video");
           v.src = art.video_url;
           v.autoplay = true; v.loop = true; v.muted = true;
           v.setAttribute("playsinline", "");
-          v.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none; ${zoomCss}`;
+          v.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none;`;
           pin.appendChild(v);
         } else if (art?.image_url) {
           const img = document.createElement("img");
           img.src = art.image_url; img.alt = "";
-          img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none; ${zoomCss}`;
+          img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none;`;
           pin.appendChild(img);
         }
       } else {
