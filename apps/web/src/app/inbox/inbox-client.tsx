@@ -261,6 +261,7 @@ export function InboxClient() {
           <MessageDetail
             msg={selected}
             resourceArt={resourceArt}
+            uiArt={uiArt}
             onClose={() => setSelected(null)}
             onDelete={deleteSelected}
             onStar={toggleStar}
@@ -277,9 +278,10 @@ export function InboxClient() {
 }
 
 // ─── Detail-Renderer ────────────────────────────────────────────────
-function MessageDetail({ msg, resourceArt, onClose, onDelete, onStar, onClaim }: {
+function MessageDetail({ msg, resourceArt, uiArt, onClose, onDelete, onStar, onClaim }: {
   msg: Msg;
   resourceArt: ReturnType<typeof useResourceArt>;
+  uiArt: ReturnType<typeof useUiIconArt>;
   onClose: () => void;
   onDelete: () => void;
   onStar: () => void;
