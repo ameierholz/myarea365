@@ -258,7 +258,8 @@ create or replace function public.get_crew_repeaters_in_bbox(
   kind text, tier int, label text, lat double precision, lng double precision,
   hp int, max_hp int, shield_until timestamptz, is_own boolean
 ) language sql security definer as $$
-  select r.id, r.crew_id, c.name as crew_name, c.tag as crew_tag,
+  select r.id, r.crew_id, c.name as crew_name,
+         upper(left(regexp_replace(coalesce(c.name, '?'), '[^a-zA-Z0-9]', '', 'g'), 4)) as crew_tag,
          r.kind, r.tier, r.label, r.lat, r.lng, r.hp, r.max_hp, r.shield_until,
          r.crew_id in (select crew_id from public.crew_members where user_id = auth.uid()) as is_own
     from public.crew_repeaters r
@@ -297,7 +298,8 @@ begin
        group by crew_id
     )
     select a.crew_id,
-           c.name, c.tag,
+           c.name,
+           upper(left(regexp_replace(coalesce(c.name, '?'), '[^a-zA-Z0-9]', '', 'g'), 4)) as crew_tag,
            a.crew_id in (select crew_id from public.crew_members where user_id = auth.uid()) as is_own,
            ST_AsGeoJSON(a.poly)::jsonb
       from agg a
