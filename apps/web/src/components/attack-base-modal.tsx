@@ -467,7 +467,7 @@ function RallyPicker({
         })()}
         <div className="flex-1 min-w-0">
           <div className="text-[8px] font-black tracking-[2px] text-[#FF6B4A]/90">CREW-ANGRIFF</div>
-          <div className="text-[13px] font-black text-white truncate">📣 Aufgebot gegen {defender?.display_name}</div>
+          <div className="text-[13px] font-black text-white truncate">📣 Crew-Angriff gegen {defender?.display_name}</div>
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-base font-black">×</button>
       </div>
