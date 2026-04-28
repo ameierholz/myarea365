@@ -574,6 +574,18 @@ interface AppMapProps {
     territory_color: string;
     geojson: GeoJSON.Geometry;
   }>;
+  /** Phase 4 Crew-Bauwerke (Schwarzmarkt, Bunker, Kiez-Treffpunkt, Tunnel) als DOM-Marker */
+  crewBuildings?: Array<{
+    id: string;
+    kind: "blackmarket" | "bunker" | "hangout" | "tunnel";
+    label: string | null;
+    lat: number;
+    lng: number;
+    hp: number;
+    max_hp: number;
+    is_own: boolean;
+    territory_color: string;
+  }>;
   onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
   /** Wenn aktiv: zeichnet Coverage-Preview auf der Karte.
@@ -878,6 +890,7 @@ export function AppMap({
   crewRepeaters = [],
   crewTurfPolygons = [],
   crewBlocks = [],
+  crewBuildings = [],
   placementPreview = null,
   onPlacementHover,
   onRepeaterClick,
@@ -3269,6 +3282,54 @@ export function AppMap({
     map.on("zoom", updateRepeaterScale);
     return () => { map.off("zoom", updateRepeaterScale); };
   }, [mapReady, crewRepeaters, onRepeaterClick, uiIconArt]);
+
+  // ── Phase 4 Crew-Bauwerke: DOM-Marker (Schwarzmarkt, Bunker, Hangout, Tunnel) ──
+  const buildingMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const KIND_INFO: Record<string, { emoji: string; bg: string }> = {
+      blackmarket: { emoji: "💰", bg: "rgba(255,215,0,0.85)" },
+      bunker:      { emoji: "🛡", bg: "rgba(34,209,195,0.85)" },
+      hangout:     { emoji: "🍻", bg: "rgba(255,107,74,0.85)" },
+      tunnel:      { emoji: "🚇", bg: "rgba(168,85,247,0.85)" },
+    };
+    const seen = new Set<string>();
+    for (const b of crewBuildings ?? []) {
+      seen.add(b.id);
+      const existing = buildingMarkersRef.current.get(b.id);
+      if (existing) {
+        existing.setLngLat([b.lng, b.lat]);
+        continue;
+      }
+      const info = KIND_INFO[b.kind] ?? { emoji: "🏗", bg: "rgba(255,255,255,0.6)" };
+      const el = document.createElement("div");
+      el.style.cssText = "position:relative; width:48px; height:48px; pointer-events:auto; cursor:pointer; will-change:transform;";
+      const inner = document.createElement("div");
+      inner.style.cssText = `
+        width:100%; height:100%;
+        display:flex; align-items:center; justify-content:center;
+        font-size:24px;
+        background:${info.bg};
+        border:2px solid ${b.is_own ? b.territory_color : "rgba(255,255,255,0.4)"};
+        border-radius:12px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.5), 0 0 8px ${b.territory_color}66;
+        backdrop-filter:blur(4px);
+      `;
+      inner.textContent = info.emoji;
+      el.appendChild(inner);
+      // Tooltip-on-Hover (kein eigener Popup für Phase 4 Stub)
+      el.title = `${b.label ?? b.kind} · ${b.hp}/${b.max_hp} HP`;
+      const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+        .setLngLat([b.lng, b.lat]).addTo(map);
+      buildingMarkersRef.current.set(b.id, marker);
+    }
+    for (const [id, marker] of buildingMarkersRef.current.entries()) {
+      if (!seen.has(id)) { marker.remove(); buildingMarkersRef.current.delete(id); }
+    }
+  }, [mapReady, crewBuildings]);
 
   // ── LongPress (~600 ms) auf Map → onMapLongPress (für Repeater-Setzen) ──
   useEffect(() => {

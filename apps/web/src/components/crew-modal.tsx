@@ -23,7 +23,7 @@ type TechQueue = { id: string; tech_id: string; target_level: number; ends_at: s
 type Bounty = { id: string; target_user_id: string; target_name: string; reward_gold: number; reason: string | null; posted_by_name: string; expires_at: string; created_at: string };
 type ShopItem = { id: string; name: string; description: string; category: string; price_coins: number };
 
-export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; onPlaceBuilding?: (kind: "hq" | "mega" | "repeater") => void }) {
+export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; onPlaceBuilding?: (kind: "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel") => void }) {
   const [tab, setTab] = useState<Tab>("uebersicht");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -634,8 +634,12 @@ const PLANNED_BUILDINGS: PlannedBuilding[] = [
   },
 ];
 
-function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: "hq" | "mega" | "repeater") => void }) {
+type BuildingKind = "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel";
+type BuildingRow = { id: string; kind: string; label: string | null; hp: number; max_hp: number; lat: number; lng: number };
+
+function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: BuildingKind) => void }) {
   const [reps, setReps] = useState<RepeaterRow[] | null>(null);
+  const [buildings, setBuildings] = useState<BuildingRow[] | null>(null);
   const uiArt = useUiIconArt();
 
   useEffect(() => {
@@ -646,13 +650,21 @@ function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: "hq" | "meg
       const { data: cm } = await sb.from("crew_members").select("crew_id").eq("user_id", user.id).maybeSingle();
       const crewId = (cm as { crew_id?: string } | null)?.crew_id;
       if (!crewId) { setReps([]); return; }
-      const { data } = await sb.from("crew_repeaters")
-        .select("id, kind, label, hp, max_hp, lat, lng")
-        .eq("crew_id", crewId)
-        .is("destroyed_at", null)
-        .order("kind", { ascending: false })  // hq -> mega -> repeater
-        .order("created_at", { ascending: true });
-      setReps((data as RepeaterRow[] | null) ?? []);
+      const [{ data: repData }, { data: bldData }] = await Promise.all([
+        sb.from("crew_repeaters")
+          .select("id, kind, label, hp, max_hp, lat, lng")
+          .eq("crew_id", crewId)
+          .is("destroyed_at", null)
+          .order("kind", { ascending: false })
+          .order("created_at", { ascending: true }),
+        sb.from("crew_buildings")
+          .select("id, kind, label, hp, max_hp, lat, lng")
+          .eq("crew_id", crewId)
+          .is("destroyed_at", null)
+          .order("created_at", { ascending: true }),
+      ]);
+      setReps((repData as RepeaterRow[] | null) ?? []);
+      setBuildings((bldData as BuildingRow[] | null) ?? []);
     })();
   }, []);
 
@@ -666,7 +678,13 @@ function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: "hq" | "meg
     window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", { detail: { lat, lng, zoom: 17 } }));
   }
 
-  if (reps === null) return <div style={{ color: MUTED }}>Lade Bauwerke…</div>;
+  if (reps === null || buildings === null) return <div style={{ color: MUTED }}>Lade Bauwerke…</div>;
+  const groupedBld = {
+    blackmarket: buildings.filter((b) => b.kind === "blackmarket"),
+    bunker:      buildings.filter((b) => b.kind === "bunker"),
+    hangout:     buildings.filter((b) => b.kind === "hangout"),
+    tunnel:      buildings.filter((b) => b.kind === "tunnel"),
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -699,16 +717,53 @@ function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: "hq" | "meg
         uiArt={uiArt}
       />
 
-      {/* Geplant */}
+      {/* Phase 4 Bauwerke (Foundation: platzierbar, Mechanik teils Stub) */}
       <div style={{ marginTop: 8 }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>
-          GEPLANT — kommt in Phase 4
+          CREW-BAUWERKE (ALPHA) — platzierbar, Game-Mechanik in Arbeit
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {PLANNED_BUILDINGS.map((b) => (
-            <PlannedRow key={b.slot} building={b} uiArt={uiArt} />
-          ))}
-        </div>
+      </div>
+
+      <BuildingGroup
+        slot="building_blackmarket" fallback="💰"
+        name="Schwarzmarkt"
+        meta={`${groupedBld.blackmarket.length}/1 · Passive Resource-Generierung (Mechanik kommt)`}
+        items={groupedBld.blackmarket}
+        onItemClick={flyTo}
+        onErrichten={groupedBld.blackmarket.length === 0 ? () => onPlaceBuilding?.("blackmarket") : undefined}
+        uiArt={uiArt}
+      />
+      <BuildingGroup
+        slot="building_bunker" fallback="🛡"
+        name="Bunker"
+        meta={`${groupedBld.bunker.length}/6 · Verteidigungs-Bauwerk, Wächter-Deploy`}
+        items={groupedBld.bunker}
+        onItemClick={flyTo}
+        onErrichten={groupedBld.bunker.length < 6 ? () => onPlaceBuilding?.("bunker") : undefined}
+        uiArt={uiArt}
+      />
+      <BuildingGroup
+        slot="building_hangout" fallback="🍻"
+        name="Kiez-Treffpunkt"
+        meta={`${groupedBld.hangout.length}/3 · Random-Buff-Spawn, refresh via Wegemünzen`}
+        items={groupedBld.hangout}
+        onItemClick={flyTo}
+        onErrichten={groupedBld.hangout.length < 3 ? () => onPlaceBuilding?.("hangout") : undefined}
+        uiArt={uiArt}
+      />
+      <BuildingGroup
+        slot="building_tunnel" fallback="🚇"
+        name="Tunnel"
+        meta={`${groupedBld.tunnel.length}/10 · Überbrückt Chain-Distanz zwischen Repeatern`}
+        items={groupedBld.tunnel}
+        onItemClick={flyTo}
+        onErrichten={groupedBld.tunnel.length < 10 ? () => onPlaceBuilding?.("tunnel") : undefined}
+        uiArt={uiArt}
+      />
+
+      {/* Belagerungs-Repeater = Upgrade, kein Place-Flow — Hinweis als PlannedRow */}
+      <div style={{ marginTop: 12 }}>
+        <PlannedRow building={PLANNED_BUILDINGS[0]} uiArt={uiArt} />
       </div>
     </div>
   );
@@ -716,7 +771,8 @@ function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: "hq" | "meg
 
 function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErrichten, uiArt }: {
   slot: string; fallback: string; name: string; meta: string;
-  items: RepeaterRow[]; onItemClick: (lat: number, lng: number) => void;
+  items: Array<{ id: string; label: string | null; hp: number; max_hp: number; lat: number; lng: number }>;
+  onItemClick: (lat: number, lng: number) => void;
   onErrichten?: () => void;
   uiArt: ReturnType<typeof useUiIconArt>;
 }) {

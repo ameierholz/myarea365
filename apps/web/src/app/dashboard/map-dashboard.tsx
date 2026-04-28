@@ -1182,26 +1182,29 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   };
   type TurfPoly = { crew_id: string; crew_name: string | null; crew_tag: string | null; is_own: boolean; territory_color?: string | null; geojson: GeoJSON.Geometry };
   type CrewBlock = { block_id: number; crew_id: string; crew_name: string | null; is_own: boolean; is_contested: boolean; territory_color: string; geojson: GeoJSON.Geometry };
+  type CrewBuilding = { id: string; crew_id: string; crew_name: string | null; crew_tag: string | null; kind: "blackmarket" | "bunker" | "hangout" | "tunnel"; level: number; label: string | null; lat: number; lng: number; hp: number; max_hp: number; kind_data: Record<string, unknown>; is_own: boolean; territory_color: string };
   const [crewRepeaters, setCrewRepeaters] = useState<Repeater[]>([]);
   const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);
   const [crewBlocks, setCrewBlocks] = useState<CrewBlock[]>([]);
+  const [crewBuildings, setCrewBuildings] = useState<CrewBuilding[]>([]);
   const [placeRepeaterAt, setPlaceRepeaterAt] = useState<{ lat: number; lng: number } | null>(null);
   // Placement-Mode: User wählt Repeater-Typ → Map zeigt Coverage-Preview & Ghost-Kreise
   // existierender Repeater. Tap auf Karte öffnet PlaceRepeaterModal an Cursor-Position.
   const [repeaterPlaceMode, setRepeaterPlaceMode] = useState<null | { kind: "hq" | "repeater" | "mega" }>(null);
+  const [buildingPlaceMode, setBuildingPlaceMode] = useState<null | { kind: "blackmarket" | "bunker" | "hangout" | "tunnel" }>(null);
   const [repeaterPlaceCursor, setRepeaterPlaceCursor] = useState<{ lat: number; lng: number } | null>(null);
   // Alle Stadt-Blocks im Sichtbereich — nur im Placement-Mode geladen,
   // damit AppMap statt Kreis das richtige Block-Polygon highlighten kann.
   const [cityBlocksAll, setCityBlocksAll] = useState<Array<{ block_id: number; geojson: GeoJSON.Geometry; street_class: string | null }>>([]);
   useEffect(() => {
-    if (!repeaterPlaceMode || !userCenter) { setCityBlocksAll([]); return; }
+    if ((!repeaterPlaceMode && !buildingPlaceMode) || !userCenter) { setCityBlocksAll([]); return; }
     const dLat = 0.020, dLng = 0.030;
     const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
     fetch(`/api/city-blocks?bbox=${bbox}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => setCityBlocksAll(j.blocks ?? []))
       .catch(() => setCityBlocksAll([]));
-  }, [repeaterPlaceMode, userCenter]);
+  }, [repeaterPlaceMode, buildingPlaceMode, userCenter]);
   const [attackRepeaterTarget, setAttackRepeaterTarget] = useState<Repeater | null>(null);
   const [repeaterInfoTarget, setRepeaterInfoTarget] = useState<{ r: Repeater; x: number; y: number } | null>(null);
   const [showJoinPbRally, setShowJoinPbRally] = useState<boolean>(false);
@@ -1370,10 +1373,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
       const r = await fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" });
       if (!r.ok || cancelled) return;
-      const j = await r.json() as { repeaters: Repeater[]; turf: TurfPoly[]; blocks?: CrewBlock[] };
+      const j = await r.json() as { repeaters: Repeater[]; turf: TurfPoly[]; blocks?: CrewBlock[]; buildings?: CrewBuilding[] };
       setCrewRepeaters(j.repeaters ?? []);
       setCrewTurfPolygons(j.turf ?? []);
       setCrewBlocks(j.blocks ?? []);
+      setCrewBuildings(j.buildings ?? []);
     };
     void load();
     const iv = setInterval(load, 30000);
@@ -1688,6 +1692,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               crewRepeaters={crewRepeaters}
               crewTurfPolygons={crewTurfPolygons}
               crewBlocks={crewBlocks}
+              crewBuildings={crewBuildings}
               onRepeaterClick={(id, x, y) => {
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
@@ -1697,10 +1702,34 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 if (repeaterPlaceMode) {
                   setPlaceRepeaterAt({ lat, lng });
                   setRepeaterPlaceMode(null);
+                } else if (buildingPlaceMode) {
+                  // Direkt RPC-Aufruf für neue Bauwerke (kein Modal-Step)
+                  void (async () => {
+                    const { createClient } = await import("@/lib/supabase/client");
+                    const sb = createClient();
+                    const { data } = await sb.rpc("place_crew_building", {
+                      p_kind: buildingPlaceMode.kind,
+                      p_lat: lat, p_lng: lng,
+                    });
+                    const res = data as { ok?: boolean; error?: string; hint?: string } | null;
+                    if (res?.ok) {
+                      setBuildingPlaceMode(null);
+                      // Buildings im Sichtbereich neu laden
+                      if (userCenter) {
+                        const dLat = 0.090, dLng = 0.140;
+                        const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+                        fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
+                          .then((r) => r.json())
+                          .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); setCrewBuildings(j.buildings ?? []); });
+                      }
+                    } else {
+                      alert(res?.hint || res?.error || "Bauwerk konnte nicht platziert werden");
+                    }
+                  })();
                 }
               }}
-              placementPreview={repeaterPlaceMode ? {
-                kind: repeaterPlaceMode.kind,
+              placementPreview={(repeaterPlaceMode || buildingPlaceMode) ? {
+                kind: repeaterPlaceMode?.kind ?? "repeater",  // generischer Default für Buildings
                 color: myCrew?.territory_color || "#22D1C3",
                 ownRepeaters: crewRepeaters
                   .filter((r) => r.is_own && r.hp > 0)
@@ -1710,13 +1739,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                       ?? (r.kind === "hq" ? 500 : r.kind === "mega" ? 350 : 200),
                   })),
                 cursor: repeaterPlaceCursor ?? userCenter,
-                newRadius_m: repeaterPlaceMode.kind === "hq" ? 500
-                  : repeaterPlaceMode.kind === "mega" ? 350 : 200,
-                // Block-Modus aktiv wenn city_blocks-Daten existieren
+                newRadius_m: repeaterPlaceMode
+                  ? (repeaterPlaceMode.kind === "hq" ? 500 : repeaterPlaceMode.kind === "mega" ? 350 : 200)
+                  : 50,  // Buildings: kleiner Cursor-Kreis
                 allBlocks: cityBlocksAll.length > 0 ? cityBlocksAll : undefined,
-                // Anzahl Blocks die der neue Repeater claimen wird (Phase 3)
-                blockClaimCount: repeaterPlaceMode.kind === "hq" ? 9
-                  : repeaterPlaceMode.kind === "mega" ? 4 : 1,
+                blockClaimCount: repeaterPlaceMode
+                  ? (repeaterPlaceMode.kind === "hq" ? 9 : repeaterPlaceMode.kind === "mega" ? 4 : 1)
+                  : 1,
               } : null}
               onPlacementHover={(lng, lat) => setRepeaterPlaceCursor({ lat, lng })}
             />
@@ -2230,8 +2259,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <CrewModal
           onClose={() => setMapCrewModalOpen(false)}
           onPlaceBuilding={(kind) => {
-            setRepeaterPlaceMode({ kind });
-            setRepeaterPlaceCursor(userCenter);
+            // Repeater-Kinds gehen in den existierenden Repeater-Placement-Mode.
+            // Neue Bauwerke (Schwarzmarkt/Bunker/Hangout/Tunnel) gehen in den
+            // generischen Building-Placement-Mode.
+            if (kind === "hq" || kind === "mega" || kind === "repeater") {
+              setRepeaterPlaceMode({ kind });
+              setRepeaterPlaceCursor(userCenter);
+            } else {
+              setBuildingPlaceMode({ kind });
+              setRepeaterPlaceCursor(userCenter);
+            }
           }}
         />
       )}
@@ -2257,7 +2294,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
               fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
                 .then((r) => r.json())
-                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); });
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); setCrewBuildings(j.buildings ?? []); });
             }
           }}
           onRepaired={() => {
@@ -2267,7 +2304,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
               fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
                 .then((r) => r.json())
-                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); });
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); setCrewBuildings(j.buildings ?? []); });
             }
           }}
         />
@@ -2291,7 +2328,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
               fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
                 .then((r) => r.json())
-                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); });
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); setCrewBuildings(j.buildings ?? []); });
             }
           }}
         />
@@ -2361,6 +2398,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             👆 {repeaterPlaceMode.kind === "hq" ? "Hauptquartier" : repeaterPlaceMode.kind === "mega" ? "Mega-Funk" : "Repeater"} platzieren — Coverage muss bestehenden Repeater berühren
           </span>
           <button onClick={() => { setRepeaterPlaceMode(null); setRepeaterPlaceCursor(null); }} className="opacity-70 hover:opacity-100">✕</button>
+        </div>
+      )}
+      {buildingPlaceMode && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[900] px-4 py-2 rounded-full text-[#0F1115] text-xs font-black shadow-2xl flex items-center gap-3"
+             style={{ background: myCrew?.territory_color || "#22D1C3" }}>
+          <span>
+            👆 {buildingPlaceMode.kind === "blackmarket" ? "Schwarzmarkt"
+              : buildingPlaceMode.kind === "bunker" ? "Bunker"
+              : buildingPlaceMode.kind === "hangout" ? "Kiez-Treffpunkt"
+              : "Tunnel"} platzieren — muss im eigenen Crew-Turf liegen
+          </span>
+          <button onClick={() => { setBuildingPlaceMode(null); setRepeaterPlaceCursor(null); }} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
