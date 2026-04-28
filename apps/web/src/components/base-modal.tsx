@@ -1335,8 +1335,6 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
 
   if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
   const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
-  // DEBUG: temporäre Anzeige um zu sehen was das API liefert
-  const debugTotal = data.owned.reduce((s, o) => s + o.count, 0);
   const classes: Array<{ id: string; label: string; building: string }> = [
     { id: "infantry",  label: "🛡️ Türsteher",    building: "Bar" },
     { id: "cavalry",   label: "🏍️ Kuriere",      building: "Garage" },
@@ -1352,10 +1350,6 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
         <span className="block mt-1 text-[#6c7590]">Trainings-Cap pro Auftrag = Gebäude-Level × 10.</span>
       </IntroBox>
 
-      {/* DEBUG */}
-      <div className="text-[10px] font-mono text-[#FFD700] bg-black/40 px-2 py-1 rounded">
-        🔧 DEBUG: API-Catalog={data.catalog.length} · Owned-Rows={data.owned.length} · Total={debugTotal.toLocaleString("de-DE")}
-      </div>
 
       {data.queue.length > 0 && (
         <div className="rounded-lg p-2 bg-[#FF6B4A]/10 border border-[#FF6B4A]/40 text-[11px]">

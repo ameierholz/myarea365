@@ -75,18 +75,27 @@ export function AttackBaseModal({
   const [selectedGuardianId, setSelectedGuardianId] = useState<string | null>(null);
   const baseThemeArt = useBaseThemeArt();
 
+  // March-Caps (was du PRO Angriff schicken kannst, nicht was du besitzt)
+  const [marchCaps, setMarchCaps] = useState<{ march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number } | null>(null);
+  const [activeMarches, setActiveMarches] = useState<number>(0);
+
   const load = useCallback(async () => {
     setLoading(true);
     const sb = createClient();
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
 
-    const [troopsApi, defBase, defUser, gRows] = await Promise.all([
+    const [troopsApi, defBase, defUser, gRows, capsRpc, marchesRpc] = await Promise.all([
       fetch("/api/base/troops", { cache: "no-store" }).then((r) => r.ok ? r.json() : { catalog: [], owned: [] }),
       sb.from("bases").select("level, pin_label, current_hp, max_hp, shield_until, theme_id").eq("owner_user_id", defenderUserId).maybeSingle(),
       sb.from("users").select("display_name, level, avatar_url").eq("id", defenderUserId).maybeSingle(),
       sb.from("user_guardians").select("id, level, archetype:guardian_archetypes(id,name,image_url,video_url)").eq("user_id", user.id).eq("is_active", true).limit(20),
+      sb.rpc("get_march_caps"),
+      sb.rpc("count_active_marches"),
     ]);
+    const capsRow = ((capsRpc.data as Array<{ march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number }>)?.[0]) ?? null;
+    if (capsRow) setMarchCaps(capsRow);
+    if (typeof marchesRpc.data === "number") setActiveMarches(marchesRpc.data);
     type GRow = { id: string; level: number; archetype: { id: string; name: string; image_url: string | null; video_url: string | null } | null };
     setGuardians(((gRows.data ?? []) as unknown as GRow[]).map((r) => ({
       id: r.id, level: r.level,
@@ -160,13 +169,28 @@ export function AttackBaseModal({
 
   function setQty(id: string, n: number) {
     const max = counts[id] ?? 0;
-    const v = Math.max(0, Math.min(max, Math.floor(n) || 0));
+    const cap = marchCaps?.march_capacity ?? 999999;
+    const otherSelected = Object.entries(selected).filter(([k]) => k !== id).reduce((s, [, v]) => s + v, 0);
+    const remainingMarchSlots = Math.max(0, cap - otherSelected);
+    const v = Math.max(0, Math.min(max, remainingMarchSlots, Math.floor(n) || 0));
     setSelected((s) => ({ ...s, [id]: v }));
   }
 
   function fillMax() {
+    // Greedy: höchste Tiers zuerst füllen bis March-Cap erreicht
+    const cap = marchCaps?.march_capacity ?? 999999;
+    const sorted = [...troops].sort((a, b) => b.tier - a.tier || b.base_atk - a.base_atk);
     const all: Record<string, number> = {};
-    for (const t of troops) all[t.id] = counts[t.id] ?? 0;
+    let remaining = cap;
+    for (const t of sorted) {
+      const have = counts[t.id] ?? 0;
+      const take = Math.min(have, remaining);
+      if (take > 0) {
+        all[t.id] = take;
+        remaining -= take;
+      }
+      if (remaining <= 0) break;
+    }
     setSelected(all);
   }
 
@@ -273,6 +297,8 @@ export function AttackBaseModal({
             selectedGuardianId={selectedGuardianId}
             setSelectedGuardianId={setSelectedGuardianId}
             baseThemeArt={baseThemeArt}
+            marchCaps={marchCaps}
+            activeMarches={activeMarches}
           />
         ) : (
           <AttackPicker
@@ -290,6 +316,8 @@ export function AttackBaseModal({
             fillMax={fillMax}
             clearAll={clearAll}
             launch={launch}
+            marchCaps={marchCaps}
+            activeMarches={activeMarches}
           />
         )}
 
@@ -417,6 +445,7 @@ function RallyPicker({
   prepSeconds, setPrepSeconds,
   onBack, onClose, setQty, fillMax, clearAll, launch,
   guardians, selectedGuardianId, setSelectedGuardianId, baseThemeArt,
+  marchCaps, activeMarches,
 }: {
   defender: DefenderInfo | null;
   counts: Record<string, number>;
@@ -438,7 +467,14 @@ function RallyPicker({
   selectedGuardianId: string | null;
   setSelectedGuardianId: (id: string | null) => void;
   baseThemeArt: ResourceArtMap;
+  marchCaps: { march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number } | null;
+  activeMarches: number;
 }) {
+  const [openClass, setOpenClass] = useState<string | null>(null);
+  const cap = marchCaps?.march_capacity ?? null;
+  const remaining = cap !== null ? Math.max(0, cap - totalCount) : null;
+  const overCap = cap !== null && totalCount > cap;
+  const queueFull = marchCaps !== null && activeMarches >= marchCaps.march_queue;
   const prepOptions = [
     { value: 180,  label: "3 Min" },
     { value: 480,  label: "8 Min" },
@@ -531,34 +567,69 @@ function RallyPicker({
           </div>
         </div>
 
-        {/* Truppen-Picker */}
-        {Object.keys(grouped).length === 0 && (
-          <div className="text-center text-[12px] text-white/60 py-12">Keine Truppen verfügbar — bilde welche aus.</div>
-        )}
-        {Object.entries(grouped).map(([cls, list]) => (
-          <div key={cls}>
-            <div className="text-[10px] font-black tracking-[2px] mb-1.5 px-1 text-[#22D1C3]">★ {CLASS_LABEL[cls] ?? cls}</div>
-            <div className="space-y-1.5">
-              {list.map((t) => {
-                const have = counts[t.id] ?? 0;
-                const v = selected[t.id] ?? 0;
-                return (
-                  <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-black/30 border border-white/5">
-                    <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                      <div className="text-[9px] text-white/50">Angriff {t.base_atk} · da {have.toLocaleString("de-DE")}</div>
-                    </div>
-                    <input type="number" min={0} max={have} value={v}
-                      onChange={(e) => setQty(t.id, Number(e.target.value))}
-                      className="w-20 text-right text-[11px] font-black px-2 py-1 rounded bg-black/50 border border-white/10 text-white" />
-                    <button onClick={() => setQty(t.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">MAX</button>
-                  </div>
-                );
-              })}
-            </div>
+        {/* March-Capacity-Hinweis */}
+        {marchCaps && (
+          <div className={`px-3 py-2 rounded-lg text-[11px] font-bold flex items-center justify-between ${
+            queueFull ? "bg-[#FF2D78]/15 border border-[#FF2D78]/40 text-[#FF2D78]"
+            : "bg-[#22D1C3]/10 border border-[#22D1C3]/30 text-white/80"
+          }`}>
+            <span>
+              📦 March-Cap: <b className="text-white">{totalCount}/{cap}</b>
+              <span className="text-white/50 ml-2">· Burg Lv {marchCaps.burg_level}</span>
+              {marchCaps.guardian_bonus_pct > 0 && <span className="text-[#FFD700] ml-2">+{marchCaps.guardian_bonus_pct}% Wächter</span>}
+            </span>
+            <span className={queueFull ? "text-[#FF2D78]" : "text-white/60"}>
+              {activeMarches}/{marchCaps.march_queue} Marches
+            </span>
           </div>
-        ))}
+        )}
+        {queueFull && (
+          <div className="text-[10px] text-[#FF2D78] font-bold px-1">⚠ Alle March-Slots belegt — warte bis ein laufender Angriff fertig ist.</div>
+        )}
+
+        {/* Truppen-Picker (kollabierte Klassen) */}
+        {Object.keys(grouped).length === 0 && (
+          <div className="text-center text-[12px] text-white/60 py-8">Keine Truppen verfügbar — bilde welche aus.</div>
+        )}
+        {Object.entries(grouped).map(([cls, list]) => {
+          const open = openClass === cls;
+          const classSel = list.reduce((s, t) => s + (selected[t.id] ?? 0), 0);
+          const classHave = list.reduce((s, t) => s + (counts[t.id] ?? 0), 0);
+          return (
+            <div key={cls} className="rounded-lg bg-black/20 border border-white/5 overflow-hidden">
+              <button onClick={() => setOpenClass(open ? null : cls)}
+                className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white hover:bg-white/5">
+                <span>★ {CLASS_LABEL[cls] ?? cls}</span>
+                <span className="text-white/60 text-[10px] flex items-center gap-2">
+                  {classSel > 0 && <span className="text-[#FFD700] font-black">{classSel}</span>}
+                  <span className="text-white/40">verfügbar {classHave}</span>
+                  <span>{open ? "▾" : "▸"}</span>
+                </span>
+              </button>
+              {open && (
+                <div className="p-2 space-y-1.5 border-t border-white/5">
+                  {list.map((t) => {
+                    const have = counts[t.id] ?? 0;
+                    const v = selected[t.id] ?? 0;
+                    return (
+                      <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/30 border border-white/5">
+                        <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
+                          <div className="text-[9px] text-white/50">Atk {t.base_atk} · Def {t.base_def} · HP {t.base_hp} · da {have}</div>
+                        </div>
+                        <input type="number" min={0} max={have} value={v}
+                          onChange={(e) => setQty(t.id, Number(e.target.value))}
+                          className="w-16 text-right text-[11px] font-black px-2 py-1 rounded bg-black/50 border border-white/10 text-white" />
+                        <button onClick={() => setQty(t.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">MAX</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="border-t border-white/10 p-3 shrink-0 space-y-2"
@@ -582,10 +653,13 @@ function RallyPicker({
             {msg}
           </div>
         )}
-        <button onClick={launch} disabled={busy || totalCount < 10}
+        <button onClick={launch} disabled={busy || totalCount < 10 || overCap || queueFull}
           className="w-full text-[13px] font-black px-4 py-3 rounded-xl text-white disabled:opacity-40 transition"
           style={{ background: "linear-gradient(135deg, #FF6B4A, #FFD700)", boxShadow: "0 4px 16px rgba(255,107,74,0.4)" }}>
-          {busy ? "…" : `📣 CREW-ANGRIFF STARTEN${totalCount > 0 ? ` (${totalCount.toLocaleString("de-DE")})` : ""}`}
+          {busy ? "…"
+            : queueFull ? "⛔ Alle March-Slots belegt"
+            : overCap ? `⚠ Über March-Cap (${totalCount}/${cap})`
+            : `📣 CREW-ANGRIFF STARTEN${totalCount > 0 ? ` (${totalCount})` : ""}`}
         </button>
       </div>
     </>
@@ -596,6 +670,7 @@ function RallyPicker({
 function AttackPicker({
   defender, counts, selected, grouped, totalAtk, totalCount, busy, msg,
   onBack, onClose, setQty, fillMax, clearAll, launch,
+  marchCaps, activeMarches,
 }: {
   defender: DefenderInfo | null;
   counts: Record<string, number>;
@@ -611,7 +686,14 @@ function AttackPicker({
   fillMax: () => void;
   clearAll: () => void;
   launch: () => void;
+  marchCaps: { march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number } | null;
+  activeMarches: number;
 }) {
+  const [openClass, setOpenClass] = useState<string | null>(null);
+  const cap = marchCaps?.march_capacity ?? null;
+  const overCap = cap !== null && totalCount > cap;
+  const queueFull = marchCaps !== null && activeMarches >= marchCaps.march_queue;
+
   return (
     <>
       <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2 shrink-0"
@@ -625,33 +707,63 @@ function AttackPicker({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {Object.keys(grouped).length === 0 && (
-          <div className="text-center text-[12px] text-white/60 py-12">Keine Truppen verfügbar — bilde welche aus.</div>
-        )}
-        {Object.entries(grouped).map(([cls, list]) => (
-          <div key={cls}>
-            <div className="text-[10px] font-black tracking-[2px] mb-1.5 px-1 text-[#22D1C3]">★ {CLASS_LABEL[cls] ?? cls}</div>
-            <div className="space-y-1.5">
-              {list.map((t) => {
-                const have = counts[t.id] ?? 0;
-                const v = selected[t.id] ?? 0;
-                return (
-                  <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-black/30 border border-white/5">
-                    <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                      <div className="text-[9px] text-white/50">Angriff {t.base_atk} · Verteidigung {t.base_def} · HP {t.base_hp} · da {have.toLocaleString("de-DE")}</div>
-                    </div>
-                    <input type="number" min={0} max={have} value={v}
-                      onChange={(e) => setQty(t.id, Number(e.target.value))}
-                      className="w-20 text-right text-[11px] font-black px-2 py-1 rounded bg-black/50 border border-white/10 text-white" />
-                    <button onClick={() => setQty(t.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">MAX</button>
-                  </div>
-                );
-              })}
-            </div>
+        {marchCaps && (
+          <div className={`px-3 py-2 rounded-lg text-[11px] font-bold flex items-center justify-between ${
+            queueFull ? "bg-[#FF2D78]/15 border border-[#FF2D78]/40 text-[#FF2D78]"
+            : "bg-[#22D1C3]/10 border border-[#22D1C3]/30 text-white/80"
+          }`}>
+            <span>
+              📦 March-Cap: <b className="text-white">{totalCount}/{cap}</b>
+              <span className="text-white/50 ml-2">· Burg Lv {marchCaps.burg_level}</span>
+              {marchCaps.guardian_bonus_pct > 0 && <span className="text-[#FFD700] ml-2">+{marchCaps.guardian_bonus_pct}%</span>}
+            </span>
+            <span className={queueFull ? "text-[#FF2D78]" : "text-white/60"}>
+              {activeMarches}/{marchCaps.march_queue} Marches
+            </span>
           </div>
-        ))}
+        )}
+        {Object.keys(grouped).length === 0 && (
+          <div className="text-center text-[12px] text-white/60 py-8">Keine Truppen verfügbar — bilde welche aus.</div>
+        )}
+        {Object.entries(grouped).map(([cls, list]) => {
+          const open = openClass === cls;
+          const classSel = list.reduce((s, t) => s + (selected[t.id] ?? 0), 0);
+          const classHave = list.reduce((s, t) => s + (counts[t.id] ?? 0), 0);
+          return (
+            <div key={cls} className="rounded-lg bg-black/20 border border-white/5 overflow-hidden">
+              <button onClick={() => setOpenClass(open ? null : cls)}
+                className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white hover:bg-white/5">
+                <span>★ {CLASS_LABEL[cls] ?? cls}</span>
+                <span className="text-white/60 text-[10px] flex items-center gap-2">
+                  {classSel > 0 && <span className="text-[#FFD700] font-black">{classSel}</span>}
+                  <span className="text-white/40">verfügbar {classHave}</span>
+                  <span>{open ? "▾" : "▸"}</span>
+                </span>
+              </button>
+              {open && (
+                <div className="p-2 space-y-1.5 border-t border-white/5">
+                  {list.map((t) => {
+                    const have = counts[t.id] ?? 0;
+                    const v = selected[t.id] ?? 0;
+                    return (
+                      <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/30 border border-white/5">
+                        <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
+                          <div className="text-[9px] text-white/50">Atk {t.base_atk} · Def {t.base_def} · HP {t.base_hp} · da {have}</div>
+                        </div>
+                        <input type="number" min={0} max={have} value={v}
+                          onChange={(e) => setQty(t.id, Number(e.target.value))}
+                          className="w-16 text-right text-[11px] font-black px-2 py-1 rounded bg-black/50 border border-white/10 text-white" />
+                        <button onClick={() => setQty(t.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">MAX</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="border-t border-white/10 p-3 shrink-0 space-y-2"
@@ -659,14 +771,14 @@ function AttackPicker({
         <div className="flex items-center justify-between text-[11px]">
           <div>
             <span className="text-white/60">Truppen: </span>
-            <span className="text-white font-black">{totalCount.toLocaleString("de-DE")}</span>
+            <span className="text-white font-black">{totalCount}</span>
             <span className="text-white/40 mx-2">·</span>
             <span className="text-white/60">Angriff: </span>
             <span className="text-[#FF6B4A] font-black">{totalAtk.toLocaleString("de-DE")}</span>
           </div>
           <div className="flex gap-1">
             <button onClick={clearAll} className="text-[10px] font-black text-white/60 px-2 py-1 rounded bg-white/5">Leer</button>
-            <button onClick={fillMax} className="text-[10px] font-black text-[#FFD700] px-2 py-1 rounded bg-[#FFD700]/10">Alle</button>
+            <button onClick={fillMax} className="text-[10px] font-black text-[#FFD700] px-2 py-1 rounded bg-[#FFD700]/10">Max-Cap</button>
           </div>
         </div>
         {msg && (
@@ -675,10 +787,13 @@ function AttackPicker({
             {msg}
           </div>
         )}
-        <button onClick={launch} disabled={busy || totalCount < 10}
+        <button onClick={launch} disabled={busy || totalCount < 10 || overCap || queueFull}
           className="w-full text-[13px] font-black px-4 py-3 rounded-xl text-white disabled:opacity-40 transition"
           style={{ background: "linear-gradient(135deg, #FF2D78, #FF6B4A)", boxShadow: "0 4px 16px rgba(255,45,120,0.4)" }}>
-          {busy ? "…" : `⚔️ ANGREIFEN${totalCount > 0 ? ` (${totalCount.toLocaleString("de-DE")})` : ""}`}
+          {busy ? "…"
+            : queueFull ? "⛔ Alle March-Slots belegt"
+            : overCap ? `⚠ Über March-Cap (${totalCount}/${cap})`
+            : `⚔️ ANGREIFEN${totalCount > 0 ? ` (${totalCount})` : ""}`}
         </button>
       </div>
     </>
