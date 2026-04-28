@@ -2644,6 +2644,26 @@ function ProfilTab({
   };
   const [activeGuardian, setActiveGuardian] = useState<ActiveGuardian | null>(null);
   const [teaserDetailOpen, setTeaserDetailOpen] = useState(false);
+
+  // Crew-Turf-Summary für Banner-Anzeige (Repeater-Count + has_hq)
+  const [crewSummary, setCrewSummary] = useState<{ count_alive: number; has_hq: boolean } | null>(null);
+  useEffect(() => {
+    if (!myCrew) { setCrewSummary(null); return; }
+    let cancelled = false;
+    const load = async () => {
+      const sb = createClient();
+      const { data } = await sb.rpc("my_crew_repeater_summary");
+      if (!cancelled && data) {
+        setCrewSummary({
+          count_alive: (data as { count_alive?: number })?.count_alive ?? 0,
+          has_hq: !!(data as { has_hq?: boolean })?.has_hq,
+        });
+      }
+    };
+    void load();
+    const iv = setInterval(load, 60000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [myCrew]);
   const [guardianGalleryData, setGuardianGalleryData] = useState<{
     archetypes: import("@/lib/guardian").GuardianArchetype[];
     owned: Array<{ id: string; archetype_id: string; level: number; is_active: boolean }>;
@@ -3219,6 +3239,98 @@ function ProfilTab({
             </span>
           </button>
         )}
+
+        {/* ═══ DEINE CREW — Kompakt-Banner (parallel zu Base/Wächter) ═══ */}
+        {(() => {
+          const isAdmin = !!(myCrew && p && myCrew.owner_id === p.id);
+          const repCount = crewSummary?.count_alive ?? 0;
+          const hqCount = crewSummary?.has_hq ? 1 : 0;
+          const accent = myCrew?.color ?? "#22D1C3";
+
+          if (!myCrew) {
+            return (
+              <button
+                onClick={() => setActiveTab("crew")}
+                style={{
+                  marginTop: 12, width: "100%", padding: 14, borderRadius: 16,
+                  background: "linear-gradient(135deg, rgba(34,209,195,0.10) 0%, rgba(168,85,247,0.10) 100%)",
+                  border: `1px dashed ${BORDER}`,
+                  display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left",
+                }}
+              >
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                  background: "rgba(34,209,195,0.15)", border: "1px solid rgba(34,209,195,0.4)",
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+                }}>👥</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: "#22D1C3" }}>👥 KEINE CREW</div>
+                  <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900, marginTop: 2 }}>Crew gründen oder beitreten</div>
+                  <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>Turf beanspruchen, gemeinsam angreifen</div>
+                </div>
+                <span style={{ color: "#22D1C3", fontSize: 20, fontWeight: 900, flexShrink: 0 }}>›</span>
+              </button>
+            );
+          }
+
+          return (
+            <button
+              onClick={() => setActiveTab("crew")}
+              style={{
+                marginTop: 12, width: "100%", padding: 14, borderRadius: 16,
+                background: `linear-gradient(135deg, ${accent}22 0%, rgba(70, 82, 122, 0.45) 100%)`,
+                border: `1px solid ${accent}55`,
+                display: "flex", alignItems: "center", gap: 12,
+                cursor: "pointer", textAlign: "left",
+                boxShadow: `0 2px 16px ${accent}25`,
+              }}
+              aria-label="Crew öffnen"
+            >
+              {/* Crew-Wappen / Initial */}
+              <div style={{
+                width: 76, height: 84, borderRadius: 12, flexShrink: 0,
+                background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
+                color: BG_DEEP, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 38, fontWeight: 900,
+                boxShadow: `0 0 14px ${accent}66, inset 0 0 18px ${accent}22`,
+              }}>
+                {myCrew.name.charAt(0).toUpperCase()}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: accent }}>
+                  👥 {isAdmin ? "DEINE CREW · BOSS" : "DEINE CREW"}
+                </div>
+                <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {myCrew.name}
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap" }}>
+                  <span style={{ color: "#a8b4cf", fontWeight: 800 }}>👤 {myCrew.member_count}</span>
+                  <span style={{ color: hqCount > 0 ? "#22D1C3" : "#FFD700", fontWeight: 800 }}>
+                    {hqCount > 0 ? "🏛️" : "⚠️"} {hqCount > 0 ? "HQ" : "Kein HQ"}
+                  </span>
+                  <span style={{ color: "#FF6B4A", fontWeight: 800 }}>📶 {repCount} Repeater</span>
+                  {repCount > 0 && (
+                    <span style={{ color: "#4ade80", fontWeight: 800 }}>🗺️ Turf aktiv</span>
+                  )}
+                </div>
+              </div>
+
+              <span style={{
+                flexShrink: 0,
+                padding: "8px 14px", borderRadius: 10,
+                background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                color: BG_DEEP, fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
+                boxShadow: `0 0 14px ${accent}55`,
+                display: "inline-flex", alignItems: "center", gap: 6,
+                whiteSpace: "nowrap",
+              }}>
+                <span>{isAdmin ? "Verwalten" : "Öffnen"}</span>
+                <span style={{ fontSize: 14 }}>›</span>
+              </span>
+            </button>
+          );
+        })()}
 
         {/* ═══ LETZTE LÄUFE ═══ */}
         <SectionHeader title="LETZTE LÄUFE" />
