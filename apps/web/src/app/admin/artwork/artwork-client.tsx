@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, buildUiIconPrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, buildUiIconPrompt, buildTroopPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -84,9 +84,12 @@ type CosmeticArt = {
   resource:   Record<string, Art>;  // slot_id = wood/stone/gold/mana/speed_token
   chest:      Record<string, Art>;  // slot_id = silver/gold/event
   ui_icon:    Record<string, Art>;  // slot_id = stat_*/class_*/action_*
+  troop:      Record<string, Art>;  // slot_id = troop_id (inf_t1, cav_t3, ...)
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon" | "troop";
+
+type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
 type UiIconSlot = { id: string; category: string; name: string; description: string; fallback_emoji: string; sort: number };
 
@@ -105,21 +108,27 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, ui_icon: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, ui_icon: {}, troop: {} });
   const [uiIconSlots, setUiIconSlots] = useState<UiIconSlot[]>([]);
+  const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
 
   const reload = async () => {
     setLoading(true);
-    const [aw, co, slotsRes] = await Promise.all([
+    const [aw, co, slotsRes, troopsRes] = await Promise.all([
       fetch("/api/admin/artwork", { cache: "no-store" }),
       fetch("/api/cosmetic-artwork", { cache: "no-store" }),
       fetch("/api/admin/ui-icon-slots", { cache: "no-store" }),
+      fetch("/api/base/troops", { cache: "no-store" }),
     ]);
     if (slotsRes.ok) {
       const sj = await slotsRes.json() as { slots: UiIconSlot[] };
       setUiIconSlots(sj.slots ?? []);
+    }
+    if (troopsRes.ok) {
+      const tj = await troopsRes.json() as { catalog?: TroopSlot[] };
+      setTroopSlots((tj.catalog ?? []).sort((a, b) => a.troop_class.localeCompare(b.troop_class) || a.tier - b.tier));
     }
     // Cache-Buster — gleicher Storage-Pfad beim Re-Upload, sonst zeigt Browser cached asset
     const v = Date.now();
@@ -150,6 +159,7 @@ export function ArtworkAdminClient() {
         resource:   bustMap(raw.resource   ?? {}),
         chest:      bustMap(raw.chest      ?? {}),
         ui_icon:    bustMap(raw.ui_icon    ?? {}),
+        troop:      bustMap(raw.troop      ?? {}),
       });
     }
     setLoading(false);
@@ -171,6 +181,7 @@ export function ArtworkAdminClient() {
   const doneResource = Object.values(cosmetic.resource ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneChest    = Object.values(cosmetic.chest    ?? {}).filter(a => a.image_url || a.video_url).length; // 4 Assets pro Theme (runner_pin + runner_banner + crew_pin + crew_banner)
   const doneUiIcon   = Object.values(cosmetic.ui_icon  ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneTroop    = Object.values(cosmetic.troop    ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
@@ -187,6 +198,7 @@ export function ArtworkAdminClient() {
     { id: "resource",  label: "💰 Resourcen",       done: doneResource,  total: RESOURCES_ART.length },
     { id: "chest",     label: "🗝️ Truhen",          done: doneChest,     total: CHESTS_ART.length },
     { id: "ui_icon",   label: "✨ UI-Icons",         done: doneUiIcon,    total: uiIconSlots.length },
+    { id: "troop",     label: "⚔ Bande",           done: doneTroop,     total: troopSlots.length },
   ];
 
   return (
@@ -230,7 +242,8 @@ export function ArtworkAdminClient() {
         : tab === "building"  ? <BuildingArtTab artMap={cosmetic.building} onChange={reload} />
         : tab === "resource"  ? <ResourceArtTab artMap={cosmetic.resource} onChange={reload} />
         : tab === "chest"     ? <ChestArtTab artMap={cosmetic.chest} onChange={reload} />
-        : <UiIconArtTab artMap={cosmetic.ui_icon} slots={uiIconSlots} onChange={reload} />
+        : tab === "ui_icon"   ? <UiIconArtTab artMap={cosmetic.ui_icon} slots={uiIconSlots} onChange={reload} />
+        : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
       )}
     </div>
   );
@@ -1472,6 +1485,83 @@ function UiIconArtTab({ artMap, slots, onChange }: {
                 hasImage={!!art?.image_url}
                 hasVideo={!!art?.video_url}
                 buildPrompt={(mode) => buildUiIconPrompt({ slot: s, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Bande (Truppen Set D — 4 Klassen × 5 Tiers = 20)    */
+/* ═════════════════════════════════════════════════════════ */
+
+function TroopArtTab({ artMap, slots, onChange }: {
+  artMap: Record<string, { image_url: string | null; video_url: string | null }>;
+  slots: TroopSlot[];
+  onChange: () => void;
+}) {
+  const [filter, setFilter] = useState<string>("ALL");
+  const filtered = filter === "ALL" ? slots : slots.filter((s) => s.troop_class === filter);
+
+  const CLASS_META: Record<string, { label: string; color: string; emoji: string }> = {
+    infantry: { label: "TÜRSTEHER",   color: "#5ddaf0", emoji: "🛡️" },
+    cavalry:  { label: "KURIERE",     color: "#FF6B4A", emoji: "🏍️" },
+    marksman: { label: "SCHLEUDERER", color: "#FFD700", emoji: "🎯" },
+    siege:    { label: "BRECHER",     color: "#a855f7", emoji: "🔨" },
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
+        <button onClick={() => setFilter("ALL")}
+          className={`px-3 py-1.5 rounded text-xs font-black ${filter === "ALL" ? "bg-[#22D1C3] text-[#0F1115]" : "bg-[#1A1D23] border border-white/10 text-[#a8b4cf]"}`}>
+          ALLE ({slots.length})
+        </button>
+        {Object.entries(CLASS_META).map(([k, m]) => {
+          const count = slots.filter((s) => s.troop_class === k).length;
+          return (
+            <button key={k} onClick={() => setFilter(k)}
+              className={`px-3 py-1.5 rounded text-xs font-black ${filter === k ? "text-[#0F1115]" : "bg-[#1A1D23] border border-white/10 text-[#a8b4cf]"}`}
+              style={filter === k ? { background: m.color } : undefined}>
+              {m.emoji} {m.label} ({count})
+            </button>
+          );
+        })}
+        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: 1024×1024, Greenscreen #00FF00, Single-Subject Charakterbild — urbane Kiez-Crew (Türsteher/Bote/Schleuderer/Brecher).</div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {filtered.map((s) => {
+          const meta = CLASS_META[s.troop_class] ?? { label: s.troop_class.toUpperCase(), color: "#a8b4cf", emoji: "⚔️" };
+          const art = artMap[s.id];
+          return (
+            <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 72, height: 72,
+                  background: `radial-gradient(circle at 50% 30%, ${meta.color}33, ${meta.color}11 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${meta.color}66`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-green)" }} />
+                    : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-green)" }} />
+                    : <span style={{ fontSize: 32 }}>{s.emoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: meta.color }}>{meta.emoji} {meta.label} · T{s.tier}</div>
+                  <div className="text-sm font-black text-white truncate">{s.name}</div>
+                  <div className="text-[9px] text-[#a8b4cf]/60 font-mono mt-0.5">slot: {s.id}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="troop"
+                targetId={s.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildTroopPrompt({ slot: s, mode })}
                 onUploaded={onChange}
               />
             </div>

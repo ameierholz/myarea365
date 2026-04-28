@@ -1471,3 +1471,68 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
   }
   return base;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// TROOP-PROMPT — Set D Kiez-Crew (4 Klassen × 5 Tiers = 20)
+// ─────────────────────────────────────────────────────────────────
+type TroopSlotInput = { id: string; name: string; emoji: string; troop_class: string; tier: number };
+
+export function buildTroopPrompt(input: { slot: TroopSlotInput; mode: "image" | "video" }): string {
+  const s = input.slot;
+
+  // Klassen-Beschreibung (alle urban, Set D Kiez-Crew)
+  const CLASS_VIBE: Record<string, { role: string; outfit: string; weapon: string }> = {
+    infantry: {
+      role: "burly nightclub bouncer / doorman",
+      outfit: "tight black bomber jacket or dark suit, earpiece, chunky boots",
+      weapon: "no weapon needed — fists / brass knuckles / heavy belt",
+    },
+    cavalry: {
+      role: "fast urban courier / motorbike messenger",
+      outfit: "leather riding jacket, helmet with reflective visor, fingerless gloves",
+      weapon: "messenger bag, possibly small baton holstered",
+    },
+    marksman: {
+      role: "skilled urban thrower / slinger",
+      outfit: "hooded streetwear, cargo pants with side pockets, sneakers",
+      weapon: "modern slingshot, ball bearings or stones, thrown bottles",
+    },
+    siege: {
+      role: "demolition worker / heavy hitter",
+      outfit: "heavy work boots, hi-vis vest over thick clothing, knee pads",
+      weapon: "sledgehammer, crowbar, or oversized iron pipe",
+    },
+  };
+
+  // Tier-Progression: T1 = Anfänger, T5 = Boss/Meister
+  const TIER_LOOK: Record<number, string> = {
+    1: "young recruit, plain unbranded clothes, slightly nervous but determined posture",
+    2: "experienced soldier, gear with subtle wear, confident stance, faint scars",
+    3: "veteran, custom-modified equipment, battle-hardened expression, visible muscle",
+    4: "elite enforcer, premium tactical gear, intimidating poise, gold/silver accents",
+    5: "legendary boss, luxurious dark coat or armor, commanding aura, faint golden glow",
+  };
+
+  const cls = CLASS_VIBE[s.troop_class] ?? CLASS_VIBE.infantry;
+  const tier = TIER_LOOK[s.tier] ?? TIER_LOOK[1];
+
+  const subject = `${cls.role}, "${s.name}". ${tier}. Wears ${cls.outfit}. Carries ${cls.weapon}.`;
+
+  const base = [
+    `A premium 3D character portrait for a mobile urban turf-war strategy game called "Stadt-Krieger".`,
+    `Background: solid pure GREENSCREEN #00FF00, no other green hue, completely flat — for chroma-key removal.`,
+    `Subject (centered, fills ~80% of frame, full-body or 3/4 body visible): ${subject}`,
+    `Style: stylized 3D character art, slight isometric tilt, vibrant saturated colors, dramatic rim lighting from upper-left, urban neon-noir vibe, painterly soft shading, high detail on face and weapon, readable silhouette at 64×64 px.`,
+    `Composition: 1024×1024 square, single character centered, subtle ground shadow under feet, NO scenery or buildings — keep #00FF00 fully clean at edges.`,
+    `Strict negatives: no text, no letters, no logo, no watermark, no medieval armor, no fantasy elements, no swords or bows, no military uniforms, no green spill on subject, no anti-aliased green halo around subject (use clean alpha-friendly silhouette).`,
+    `Tone: gritty modern street-gang aesthetic — like GTA-meets-Watch-Dogs character concept art.`,
+  ].join(" ");
+
+  if (input.mode === "video") {
+    return [
+      base,
+      "Animation: seamless 3-second loop. Subject does a confident idle: subtle weight-shift, breathing, weapon hand twitches once, eyes blink. First and last frame must match exactly. No camera movement, no audio.",
+    ].join(" ");
+  }
+  return base;
+}

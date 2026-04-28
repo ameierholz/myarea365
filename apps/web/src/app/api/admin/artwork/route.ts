@@ -52,14 +52,14 @@ export async function POST(req: Request) {
   // Body: { target_type, target_id, path, is_video }
   if (contentType.includes("application/json")) {
     const body = await req.json() as {
-      target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon";
+      target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon" | "troop";
       target_id: string;
       path: string;
       is_video: boolean;
       variant?: "neutral" | "male" | "female";
     };
     if (!body.target_id || !body.path) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-    if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+    if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon", "troop"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
 
     const { data: pub } = sb.storage.from("artwork").getPublicUrl(body.path);
     const publicUrl = pub.publicUrl;
@@ -163,7 +163,7 @@ export async function DELETE(req: Request) {
   if (!targetId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
   // ─── cosmetic_artwork-Kinds ───
-  const cosmeticKinds = ["marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon"];
+  const cosmeticKinds = ["marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon", "troop"];
   if (cosmeticKinds.includes(targetType)) {
     const { data: row } = await adminSb().from("cosmetic_artwork")
       .select("image_url, video_url")
