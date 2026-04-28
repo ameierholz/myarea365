@@ -47,7 +47,7 @@ const KIND_FALLBACK: Record<Repeater["kind"], string> = {
  * für eigene reicht die Info-Anzeige (kein "Öffnen"-Button mehr).
  */
 export function RepeaterInfoPopup({
-  repeater, anchorX, anchorY, onClose, onAttack, onDestroyed,
+  repeater, anchorX, anchorY, onClose, onAttack, onDestroyed, onRepaired, userCenter,
 }: {
   repeater: Repeater;
   anchorX: number;
@@ -55,6 +55,8 @@ export function RepeaterInfoPopup({
   onClose: () => void;
   onAttack: () => void;
   onDestroyed?: () => void;
+  onRepaired?: () => void;
+  userCenter?: { lat: number; lng: number } | null;
 }) {
   const uiArt = useUiIconArt();
   const [now, setNow] = useState(Date.now());
@@ -77,6 +79,43 @@ export function RepeaterInfoPopup({
   const [confirmDestroy, setConfirmDestroy] = useState(false);
   const [destroying, setDestroying] = useState(false);
   const [destroyErr, setDestroyErr] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const [repairErr, setRepairErr] = useState<string | null>(null);
+
+  // Repair-Kosten-Preview (Basis 5g/3w/3s pro HP, -50% wenn im eigenen Turf)
+  const hpMissing = Math.max(0, repeater.max_hp - repeater.hp);
+  const repairCostBase = { gold: 5 * hpMissing, wood: 3 * hpMissing, stone: 3 * hpMissing };
+  // Turf-Discount-Vorhersage: wir wissen Client-seitig nicht ob im eigenen Turf,
+  // aber wenn der User-Pin nahe am Repeater ist (< 600m), zeigen wir "wahrscheinlich Discount" an.
+  const distToRepeaterM = userCenter
+    ? haversineM(userCenter.lat, userCenter.lng, repeater.lat, repeater.lng)
+    : Infinity;
+  const likelyTurfDiscount = distToRepeaterM < 600;
+
+  async function doRepair() {
+    setRepairing(true);
+    setRepairErr(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc("repair_crew_repeater", {
+      p_repeater_id: repeater.id,
+      p_hp_amount: hpMissing,
+      p_runner_lat: userCenter?.lat ?? null,
+      p_runner_lng: userCenter?.lng ?? null,
+    });
+    setRepairing(false);
+    const res = data as { ok?: boolean; error?: string; need?: { gold: number; wood: number; stone: number } } | null;
+    if (error || !res?.ok) {
+      const need = res?.need;
+      setRepairErr(
+        res?.error === "insufficient_resources" && need
+          ? `Brauchst ${need.gold} Gold / ${need.wood} Holz / ${need.stone} Stein`
+          : res?.error || error?.message || "Reparatur fehlgeschlagen"
+      );
+      return;
+    }
+    onRepaired?.();
+    onClose();
+  }
 
   async function doDestroy() {
     setDestroying(true);
@@ -252,6 +291,39 @@ export function RepeaterInfoPopup({
           </button>
         )}
 
+        {/* Reparieren-Aktion: alle Crew-Member dürfen reparieren, wenn HP < max */}
+        {repeater.is_own && hpMissing > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <button
+              onClick={() => void doRepair()}
+              disabled={repairing}
+              style={{
+                width: "100%", padding: "10px 14px", borderRadius: 10,
+                background: `linear-gradient(135deg, ${PRIMARY}, #1ba89c)`,
+                border: "none", color: "#0F1115",
+                fontSize: 12, fontWeight: 900, letterSpacing: 0.4,
+                fontFamily: "var(--font-display-stack)",
+                cursor: repairing ? "wait" : "pointer",
+                boxShadow: `0 4px 12px ${PRIMARY}55`,
+                opacity: repairing ? 0.7 : 1,
+                display: "flex", flexDirection: "column", gap: 2, alignItems: "center",
+              }}
+            >
+              <span>🔧 {repairing ? "REPARIERE..." : "VOLL REPARIEREN"}</span>
+              <span style={{ fontSize: 9, fontWeight: 800, opacity: 0.85, letterSpacing: 0.3, fontFamily: "system-ui" }}>
+                {likelyTurfDiscount
+                  ? `${Math.ceil(repairCostBase.gold * 0.5)}🪙 ${Math.ceil(repairCostBase.wood * 0.5)}🪵 ${Math.ceil(repairCostBase.stone * 0.5)}🪨 (Turf-Bonus −50%)`
+                  : `${repairCostBase.gold}🪙 ${repairCostBase.wood}🪵 ${repairCostBase.stone}🪨`}
+              </span>
+            </button>
+            {repairErr && (
+              <div style={{ marginTop: 6, color: "#FF2D78", fontSize: 10, fontWeight: 800, textAlign: "center" }}>
+                {repairErr}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Zerstören-Aktion: nur eigene Repeater + Leader/Officer */}
         {repeater.is_own && canDestroy && (
           <div style={{ marginTop: 12 }}>
@@ -327,4 +399,13 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span style={{ color: "#FFF", fontSize: 12, textAlign: "right" }}>{value}</span>
     </div>
   );
+}
+
+function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const la1 = (lat1 * Math.PI) / 180, la2 = (lat2 * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
 }

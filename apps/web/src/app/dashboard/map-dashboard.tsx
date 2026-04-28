@@ -2216,6 +2216,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           repeater={repeaterInfoTarget.r}
           anchorX={repeaterInfoTarget.x}
           anchorY={repeaterInfoTarget.y}
+          userCenter={userCenter}
           onClose={() => setRepeaterInfoTarget(null)}
           onAttack={() => {
             const r = repeaterInfoTarget.r;
@@ -2224,6 +2225,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           }}
           onDestroyed={() => {
             // Turf neu laden — zerstörter Repeater verschwindet, Crew-Polygon schrumpft
+            if (userCenter) {
+              const dLat = 0.090, dLng = 0.140;
+              const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+              fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); });
+            }
+          }}
+          onRepaired={() => {
+            // Repeater-Liste neu laden (HP-Update)
             if (userCenter) {
               const dLat = 0.090, dLng = 0.140;
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");

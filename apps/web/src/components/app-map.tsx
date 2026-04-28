@@ -2754,7 +2754,7 @@ export function AppMap({
           is_own: p.is_own,
           color,
           fill_opacity: p.is_own ? 0.22 : 0.10,
-          line_width_mult: p.is_own ? 1.0 : 0.6,
+          line_opacity: p.is_own ? 0.9 : 0.45,
         },
       };
     });
@@ -2781,8 +2781,8 @@ export function AppMap({
         source: sourceId,
         paint: {
           "line-color": ["get", "color"],
-          "line-width": ["*", ["interpolate", ["linear"], ["zoom"], 10, 1.2, 16, 2.4, 19, 3.5], ["get", "line_width_mult"]],
-          "line-opacity": 0.85,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 16, 2.4, 19, 3.5],
+          "line-opacity": ["get", "line_opacity"],
           "line-emissive-strength": 1.0,
         } as mapboxgl.LineLayerSpecification["paint"],
       });
