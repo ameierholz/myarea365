@@ -2797,10 +2797,14 @@ export function AppMap({
         continue;
       }
       const el = document.createElement("div");
-      // width:0/height:0 + position:relative — Pin-Inhalt overflowed visuell, aber
-      // Mapbox' anchor-offset (-50% von 0 = 0px) bleibt stabil → kein Drift beim Zoom.
+      // Feste Größe = artSize (96/80/64 für hq/mega/normal). Mapbox' anchor:center
+      // berechnet -50%-Offset einmalig anhand dieser Größe und ändert sich nie wieder
+      // — egal wie wrapForZoomScale die Children umhängt oder skaliert.
+      const elSize = r.kind === "hq" ? 96 : r.kind === "mega" ? 80 : 64;
       el.style.cssText = `
-        position:relative; width:0; height:0;
+        position:relative;
+        width:${elSize}px; height:${elSize}px;
+        display:flex; align-items:center; justify-content:center;
         pointer-events:none;
       `;
       const isHQ = r.kind === "hq";
