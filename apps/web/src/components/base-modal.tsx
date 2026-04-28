@@ -1368,11 +1368,18 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
 
       {classes.map((c) => {
         const troops = data.catalog.filter((t) => t.troop_class === c.id);
+        const totalCount = troops.reduce((s, t) => s + (ownedMap.get(t.id) ?? 0), 0);
         const open = openClass === c.id;
         return (
           <div key={c.id} className="rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
             <button onClick={() => setOpenClass(open ? null : c.id)} className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white">
-              <span>{c.label}</span><span className="text-[#a8b4cf] text-[10px]">{c.building} · {open ? "▾" : "▸"}</span>
+              <span>{c.label}</span>
+              <span className="text-[#a8b4cf] text-[10px] flex items-center gap-2">
+                {totalCount > 0 && (
+                  <span className="text-[#FFD700] font-black">×{totalCount.toLocaleString("de-DE")}</span>
+                )}
+                <span>{c.building} · {open ? "▾" : "▸"}</span>
+              </span>
             </button>
             {open && (
               <div className="p-2 space-y-1.5">
