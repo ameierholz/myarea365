@@ -562,6 +562,18 @@ interface AppMapProps {
     territory_color?: string | null;
     geojson: GeoJSON.Geometry;
   }>;
+  /** Phase-3 Block-Turf: pro kontrolliertem Stadt-Block ein Feature.
+   *  Wenn vorhanden, ersetzt die Kreis-Polygone visuell (city_blocks-Daten existieren).
+   *  Wenn leer, fällt die Karte auf crewTurfPolygons (Kreise) zurück. */
+  crewBlocks?: Array<{
+    block_id: number;
+    crew_id: string;
+    crew_name: string | null;
+    is_own: boolean;
+    is_contested: boolean;
+    territory_color: string;
+    geojson: GeoJSON.Geometry;
+  }>;
   onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
   /** Wenn aktiv: zeichnet Coverage-Preview-Kreise auf der Karte —
@@ -832,6 +844,7 @@ export function AppMap({
   onPlaceBaseClick,
   crewRepeaters = [],
   crewTurfPolygons = [],
+  crewBlocks = [],
   placementPreview = null,
   onPlacementHover,
   onRepeaterClick,
@@ -2788,6 +2801,73 @@ export function AppMap({
       });
     }
   }, [mapReady, crewTurfPolygons]);
+
+  // ── Crew-Blocks (Phase 3): kontrollierte Stadt-Blocks pro Crew ──
+  // Wenn crewBlocks-Daten existieren, wird die Kreis-Turf-Layer (oben) ausgeblendet.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+
+    const sourceId = "crew-blocks";
+    const fillId = "crew-blocks-fill";
+    const strokeId = "crew-blocks-stroke";
+    const contestedId = "crew-blocks-contested";
+
+    const features = (crewBlocks ?? []).map((b) => ({
+      type: "Feature" as const,
+      geometry: b.geojson,
+      properties: {
+        block_id: b.block_id,
+        crew_id: b.crew_id,
+        is_own: b.is_own,
+        is_contested: b.is_contested,
+        color: b.territory_color,
+        fill_opacity: b.is_own ? 0.32 : 0.18,
+        line_opacity: b.is_own ? 0.95 : 0.6,
+      },
+    }));
+    const data = { type: "FeatureCollection" as const, features };
+
+    if (map.getSource(sourceId)) {
+      (map.getSource(sourceId) as mapboxgl.GeoJSONSource).setData(data);
+    } else {
+      map.addSource(sourceId, { type: "geojson", data });
+      map.addLayer({
+        id: fillId, type: "fill", source: sourceId,
+        paint: {
+          "fill-color": ["get", "color"],
+          "fill-opacity": ["get", "fill_opacity"],
+          "fill-emissive-strength": 0.5,
+        } as mapboxgl.FillLayerSpecification["paint"],
+      });
+      map.addLayer({
+        id: strokeId, type: "line", source: sourceId,
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.5, 17, 3, 19, 4.5],
+          "line-opacity": ["get", "line_opacity"],
+          "line-emissive-strength": 1.0,
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+      // Konflikt-Layer: zusätzliche dashed-Border für umkämpfte Blocks
+      map.addLayer({
+        id: contestedId, type: "line", source: sourceId,
+        filter: ["==", ["get", "is_contested"], true],
+        paint: {
+          "line-color": "#FFFFFF",
+          "line-width": 2,
+          "line-opacity": 0.8,
+          "line-dasharray": [3, 2],
+        } as mapboxgl.LineLayerSpecification["paint"],
+      });
+    }
+
+    // Wenn Blocks existieren, Kreis-Turf-Layer dimmen (sichtbar bleiben für Crews ohne Block-Match)
+    const circleFillVisible = features.length === 0 ? "visible" : "none";
+    if (map.getLayer("crew-turf-fill")) map.setLayoutProperty("crew-turf-fill", "visibility", circleFillVisible);
+    if (map.getLayer("crew-turf-stroke")) map.setLayoutProperty("crew-turf-stroke", "visibility", circleFillVisible);
+  }, [mapReady, crewBlocks]);
 
   // ── Placement-Preview-Layer: Coverage-Kreise beim Repeater-Setzen ──
   // Zeigt: (a) alle eigenen existierenden Coverages (cyan ghost), (b) Cursor-Kreis

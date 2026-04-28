@@ -1181,8 +1181,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     shield_until?: string | null;
   };
   type TurfPoly = { crew_id: string; crew_name: string | null; crew_tag: string | null; is_own: boolean; territory_color?: string | null; geojson: GeoJSON.Geometry };
+  type CrewBlock = { block_id: number; crew_id: string; crew_name: string | null; is_own: boolean; is_contested: boolean; territory_color: string; geojson: GeoJSON.Geometry };
   const [crewRepeaters, setCrewRepeaters] = useState<Repeater[]>([]);
   const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);
+  const [crewBlocks, setCrewBlocks] = useState<CrewBlock[]>([]);
   const [placeRepeaterAt, setPlaceRepeaterAt] = useState<{ lat: number; lng: number } | null>(null);
   // Placement-Mode: User wählt Repeater-Typ → Map zeigt Coverage-Preview & Ghost-Kreise
   // existierender Repeater. Tap auf Karte öffnet PlaceRepeaterModal an Cursor-Position.
@@ -1356,9 +1358,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
       const r = await fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" });
       if (!r.ok || cancelled) return;
-      const j = await r.json() as { repeaters: Repeater[]; turf: TurfPoly[] };
+      const j = await r.json() as { repeaters: Repeater[]; turf: TurfPoly[]; blocks?: CrewBlock[] };
       setCrewRepeaters(j.repeaters ?? []);
       setCrewTurfPolygons(j.turf ?? []);
+      setCrewBlocks(j.blocks ?? []);
     };
     void load();
     const iv = setInterval(load, 30000);
@@ -1672,6 +1675,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onPlaceBaseClick={onPlaceBaseClick}
               crewRepeaters={crewRepeaters}
               crewTurfPolygons={crewTurfPolygons}
+              crewBlocks={crewBlocks}
               onRepeaterClick={(id, x, y) => {
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
@@ -2230,7 +2234,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
               fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
                 .then((r) => r.json())
-                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); });
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); });
             }
           }}
           onRepaired={() => {
@@ -2240,7 +2244,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
               fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
                 .then((r) => r.json())
-                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); });
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); });
             }
           }}
         />
@@ -2264,7 +2268,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
               fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
                 .then((r) => r.json())
-                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); });
+                .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); });
             }
           }}
         />

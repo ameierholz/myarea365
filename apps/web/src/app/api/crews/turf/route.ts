@@ -21,11 +21,15 @@ export async function GET(req: Request) {
   }
   const [minLat, minLng, maxLat, maxLng] = parts;
 
-  const [reps, turf, summary] = await Promise.all([
+  const [reps, turf, blocks, summary] = await Promise.all([
     sb.rpc("get_crew_repeaters_in_bbox", {
       p_min_lat: minLat, p_min_lng: minLng, p_max_lat: maxLat, p_max_lng: maxLng,
     }),
     sb.rpc("get_crew_turf_polygons", {
+      p_min_lat: minLat, p_min_lng: minLng, p_max_lat: maxLat, p_max_lng: maxLng,
+    }),
+    // Phase 3: Block-Turf — leer wenn city_blocks-Tabelle noch nicht ETL'd wurde
+    sb.rpc("get_crew_blocks_in_bbox", {
       p_min_lat: minLat, p_min_lng: minLng, p_max_lat: maxLat, p_max_lng: maxLng,
     }),
     sb.rpc("my_crew_repeater_summary"),
@@ -34,6 +38,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     repeaters: reps.data ?? [],
     turf: turf.data ?? [],
+    blocks: blocks.data ?? [],
     summary: summary.data ?? null,
   });
 }
