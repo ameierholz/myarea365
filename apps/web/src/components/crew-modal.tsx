@@ -9,7 +9,7 @@ const BG = "#0F1115";
 const TEXT = "#F0F0F0";
 const MUTED = "#8B8FA3";
 
-type Tab = "uebersicht" | "mitglieder" | "tech" | "kopfgelder" | "shop" | "einstellungen";
+type Tab = "uebersicht" | "mitglieder" | "tech" | "bauwerke" | "kopfgelder" | "shop" | "einstellungen";
 
 type Overview = {
   crew: { id: string; name: string; tag: string; color: string; zip: string; created_at: string };
@@ -78,6 +78,7 @@ export function CrewModal({ onClose }: { onClose: () => void }) {
               {tab === "uebersicht"   && <TabUebersicht overview={overview} />}
               {tab === "mitglieder"   && <TabMitglieder crewId={overview.crew.id} />}
               {tab === "tech"         && <TabTech />}
+              {tab === "bauwerke"     && <TabBauwerke />}
               {tab === "kopfgelder"   && <TabKopfgelder crewId={overview.crew.id} />}
               {tab === "shop"         && <TabShop />}
               {tab === "einstellungen"&& <TabEinstellungen />}
@@ -129,6 +130,7 @@ function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; 
     { id: "uebersicht",    label: "Übersicht",     slot: "crew_tab_overview", fallback: "📋" },
     { id: "mitglieder",    label: "Mitglieder",    slot: "crew_tab_members",  fallback: "👥" },
     { id: "tech",          label: "Forschung",     slot: "crew_tab_research", fallback: "🧪" },
+    { id: "bauwerke",      label: "Bauwerke",      slot: "crew_tab_buildings", fallback: "🏗" },
     { id: "kopfgelder",    label: "Kopfgelder",    slot: "crew_tab_bounties", fallback: "🎯" },
     { id: "shop",          label: "Lagerhaus",     slot: "crew_tab_shop",     fallback: "📦" },
     { id: "einstellungen", label: "Einstellungen", slot: "crew_tab_settings", fallback: "⚙" },
@@ -589,6 +591,217 @@ function TabEinstellungen() {
           </div>
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   TAB: BAUWERKE — Crew-Strukturen (HQ/Mega/Repeater + geplante)
+   ───────────────────────────────────────────────────────────────── */
+type RepeaterRow = { id: string; kind: "hq" | "repeater" | "mega"; label: string | null; hp: number; max_hp: number; lat: number; lng: number };
+type PlannedBuilding = { slot: string; fallback: string; name: string; tagline: string; description: string };
+
+const PLANNED_BUILDINGS: PlannedBuilding[] = [
+  {
+    slot: "building_siege_repeater", fallback: "🚀",
+    name: "Belagerungs-Repeater",
+    tagline: "Upgrade für Standard-Repeater",
+    description: "Upgegradeter Repeater mit Angriffs-Reichweite — kann gegnerische Bases im Umkreis automatisch belagern und HP runterbomben.",
+  },
+  {
+    slot: "building_bunker", fallback: "🛡",
+    name: "Bunker",
+    tagline: "Verteidigungs-Bauwerk · max 6",
+    description: "Hält Wächter zur passiven Verteidigung — automatisches Gegenfeuer auf alle Crew-Member-Angreifer im Umkreis. Strategisch an Engstellen platzieren.",
+  },
+  {
+    slot: "building_blackmarket", fallback: "💰",
+    name: "Schwarzmarkt",
+    tagline: "Passive Resource-Generierung",
+    description: "Reservoir das sich durch Crew-Walks füllt. Mitglieder können daraus Ressourcen abholen — fairer Pool statt jeder für sich.",
+  },
+  {
+    slot: "building_hangout", fallback: "🍻",
+    name: "Kiez-Treffpunkt",
+    tagline: "Random Buffs · refresh-bar",
+    description: "Spawnt zufällige Crew-weite Buffs (XP +10%, Speed +5%, Drop-Rate +15%, etc.). Refresh via Wegemünzen rollt einen neuen Buff.",
+  },
+  {
+    slot: "building_tunnel", fallback: "🚇",
+    name: "Tunnel",
+    tagline: "Überbrückt Chain-Distanz",
+    description: "Verbindet zwei weit entfernte Repeater unter Umgehung der Chain-Rule — z.B. um über Park-Lücken hinweg zu expandieren. Beide Endpunkte müssen eigene Repeater sein.",
+  },
+];
+
+function TabBauwerke() {
+  const [reps, setReps] = useState<RepeaterRow[] | null>(null);
+  const uiArt = useUiIconArt();
+
+  useEffect(() => {
+    void (async () => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { setReps([]); return; }
+      const { data: cm } = await sb.from("crew_members").select("crew_id").eq("user_id", user.id).maybeSingle();
+      const crewId = (cm as { crew_id?: string } | null)?.crew_id;
+      if (!crewId) { setReps([]); return; }
+      const { data } = await sb.from("crew_repeaters")
+        .select("id, kind, label, hp, max_hp, lat, lng")
+        .eq("crew_id", crewId)
+        .is("destroyed_at", null)
+        .order("kind", { ascending: false })  // hq -> mega -> repeater
+        .order("created_at", { ascending: true });
+      setReps((data as RepeaterRow[] | null) ?? []);
+    })();
+  }, []);
+
+  const grouped = {
+    hq:       reps?.filter((r) => r.kind === "hq") ?? [],
+    mega:     reps?.filter((r) => r.kind === "mega") ?? [],
+    repeater: reps?.filter((r) => r.kind === "repeater") ?? [],
+  };
+
+  function flyTo(lat: number, lng: number) {
+    window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", { detail: { lat, lng, zoom: 17 } }));
+  }
+
+  if (reps === null) return <div style={{ color: MUTED }}>Lade Bauwerke…</div>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* Existierende Bauwerke */}
+      <BuildingGroup
+        slot="repeater_hq" fallback="🏛"
+        name="Hauptquartier"
+        meta={`${grouped.hq.length}/1 · Crew-Anker, max 1`}
+        items={grouped.hq}
+        onItemClick={flyTo}
+        uiArt={uiArt}
+      />
+      <BuildingGroup
+        slot="repeater_mega" fallback="📡"
+        name="Mega-Funk"
+        meta={`${grouped.mega.length} · Premium-Sekundäranker`}
+        items={grouped.mega}
+        onItemClick={flyTo}
+        uiArt={uiArt}
+      />
+      <BuildingGroup
+        slot="repeater_normal" fallback="📶"
+        name="Repeater"
+        meta={`${grouped.repeater.length} · Standard-Markierung · Crew bekommt +25% Ressourcen + 15% Wegemünzen wenn sie hier laufen`}
+        items={grouped.repeater}
+        onItemClick={flyTo}
+        uiArt={uiArt}
+      />
+
+      {/* Geplant */}
+      <div style={{ marginTop: 8 }}>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>
+          GEPLANT — kommt in Phase 4
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {PLANNED_BUILDINGS.map((b) => (
+            <PlannedRow key={b.slot} building={b} uiArt={uiArt} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, uiArt }: {
+  slot: string; fallback: string; name: string; meta: string;
+  items: RepeaterRow[]; onItemClick: (lat: number, lng: number) => void;
+  uiArt: ReturnType<typeof useUiIconArt>;
+}) {
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <UiIcon slot={slot} fallback={fallback} art={uiArt} size={28} />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>{name}</div>
+          <div style={{ color: MUTED, fontSize: 11 }}>{meta}</div>
+        </div>
+      </div>
+      {items.length === 0 ? (
+        <div style={{ color: MUTED, fontSize: 11, padding: "10px 12px",
+          borderRadius: 8, background: "rgba(255,255,255,0.03)",
+          border: "1px dashed rgba(255,255,255,0.1)", textAlign: "center" }}>
+          Noch keins gebaut
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {items.map((r) => {
+            const hpPct = Math.max(0, Math.min(100, (r.hp / Math.max(r.max_hp, 1)) * 100));
+            return (
+              <button
+                key={r.id}
+                onClick={() => onItemClick(r.lat, r.lng)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 10px", borderRadius: 8,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  cursor: "pointer", textAlign: "left",
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: TEXT, fontSize: 12, fontWeight: 700 }}>
+                    {r.label || name}
+                  </div>
+                  <div style={{ color: MUTED, fontSize: 10 }}>
+                    HP {r.hp.toLocaleString("de-DE")}/{r.max_hp.toLocaleString("de-DE")}
+                  </div>
+                </div>
+                <div style={{ width: 50, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                  <div style={{ width: `${hpPct}%`, height: "100%",
+                    background: hpPct > 50 ? "#22D1C3" : hpPct > 20 ? "#FFD700" : "#FF2D78" }} />
+                </div>
+                <div style={{ color: MUTED, fontSize: 10, fontWeight: 700 }}>📍</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlannedRow({ building, uiArt }: { building: PlannedBuilding; uiArt: ReturnType<typeof useUiIconArt> }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{
+      borderRadius: 10,
+      background: "rgba(255,255,255,0.025)",
+      border: "1px dashed rgba(255,255,255,0.1)",
+      overflow: "hidden",
+    }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: "100%", padding: "10px 12px",
+          display: "flex", alignItems: "center", gap: 10,
+          background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+        }}
+      >
+        <UiIcon slot={building.slot} fallback={building.fallback} art={uiArt} size={26} />
+        <div style={{ flex: 1, opacity: 0.7 }}>
+          <div style={{ color: TEXT, fontSize: 13, fontWeight: 700 }}>{building.name}</div>
+          <div style={{ color: MUTED, fontSize: 10 }}>{building.tagline}</div>
+        </div>
+        <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 800,
+          padding: "2px 6px", borderRadius: 6,
+          background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.3)",
+        }}>GEPLANT</span>
+        <span style={{ color: MUTED, fontSize: 12 }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div style={{ padding: "0 12px 12px 48px", color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
+          {building.description}
+        </div>
+      )}
     </div>
   );
 }
