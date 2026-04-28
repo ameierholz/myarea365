@@ -72,7 +72,7 @@ export function RepeaterInfoPopup({
       if (!user) return;
       const { data } = await sb.from("crew_members").select("role").eq("user_id", user.id).maybeSingle();
       const role = (data as { role?: string } | null)?.role;
-      setCanDestroy(role === "leader" || role === "officer");
+      setCanDestroy(role === "leader" || role === "officer" || role === "admin");
     })();
   }, [repeater.is_own]);
 
@@ -216,10 +216,11 @@ export function RepeaterInfoPopup({
           overflow: "hidden",
           filter: `drop-shadow(0 6px 18px ${accentColor}88) drop-shadow(0 0 14px ${accentColor}55)`,
         }}>
-          {/* Inner scale wrapper — zoomt INs Video rein um den Greenscreen-Padding-Rand wegzuschneiden */}
+          {/* Inner scale wrapper — leicht zoomen um Greenscreen-Padding wegzuschneiden,
+              aber nicht so stark dass das Artwork (Antennen, etc.) angeschnitten wird */}
           <div style={{
             width: 180, height: 180,
-            transform: "scale(1.7)",
+            transform: "scale(1.25)",
             transformOrigin: "center center",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>

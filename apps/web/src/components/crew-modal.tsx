@@ -480,7 +480,7 @@ function TabEinstellungen() {
       const { data: cm } = await sb.from("crew_members").select("crew_id, role").eq("user_id", user.id).maybeSingle();
       const cmRow = cm as { crew_id?: string; role?: string } | null;
       if (cmRow?.crew_id) {
-        setCanEditColor(cmRow.role === "leader" || cmRow.role === "officer");
+        setCanEditColor(cmRow.role === "leader" || cmRow.role === "officer" || cmRow.role === "admin");
         const { data: c } = await sb.from("crews").select("territory_color").eq("id", cmRow.crew_id).maybeSingle();
         setTerritoryColor((c as { territory_color?: string | null } | null)?.territory_color ?? "#22D1C3");
       }
