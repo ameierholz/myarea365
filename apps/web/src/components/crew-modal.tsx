@@ -778,8 +778,8 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErric
 }) {
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <UiIcon slot={slot} fallback={fallback} art={uiArt} size={28} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+        <UiIcon slot={slot} fallback={fallback} art={uiArt} size={48} />
         <div style={{ flex: 1 }}>
           <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>{name}</div>
           <div style={{ color: MUTED, fontSize: 11 }}>{meta}</div>
@@ -861,7 +861,7 @@ function PlannedRow({ building, uiArt }: { building: PlannedBuilding; uiArt: Ret
           background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
         }}
       >
-        <UiIcon slot={building.slot} fallback={building.fallback} art={uiArt} size={26} />
+        <UiIcon slot={building.slot} fallback={building.fallback} art={uiArt} size={42} />
         <div style={{ flex: 1, opacity: 0.7 }}>
           <div style={{ color: TEXT, fontSize: 13, fontWeight: 700 }}>{building.name}</div>
           <div style={{ color: MUTED, fontSize: 10 }}>{building.tagline}</div>

@@ -602,6 +602,8 @@ interface AppMapProps {
     blockClaimCount?: number;  // wieviele Blocks der Repeater-Typ claimt (HQ 9, Mega 4, Std 1)
   } | null;
   onPlacementHover?: (lng: number, lat: number) => void;
+  /** Click im Placement-Mode = Platzierung bestätigen (statt 600ms Long-Press warten) */
+  onPlacementConfirm?: (lng: number, lat: number) => void;
 }
 
 // Helper: Point-in-Polygon (Ray-Casting). Akzeptiert GeoJSON Polygon oder MultiPolygon.
@@ -893,6 +895,7 @@ export function AppMap({
   crewBuildings = [],
   placementPreview = null,
   onPlacementHover,
+  onPlacementConfirm,
   onRepeaterClick,
   onMapLongPress,
 }: AppMapProps) {
@@ -3050,11 +3053,17 @@ export function AppMap({
       const onMove = (e: mapboxgl.MapMouseEvent) => {
         onPlacementHover?.(e.lngLat.lng, e.lngLat.lat);
       };
+      const onClick = (e: mapboxgl.MapMouseEvent) => {
+        e.preventDefault();
+        onPlacementConfirm?.(e.lngLat.lng, e.lngLat.lat);
+      };
       map.on("mousemove", onMove);
+      map.on("click", onClick);
       map.getCanvas().style.cursor = "crosshair";
 
       return () => {
         map.off("mousemove", onMove);
+        map.off("click", onClick);
         map.getCanvas().style.cursor = "";
         removeAllPreviewLayers();
       };
@@ -3127,15 +3136,21 @@ export function AppMap({
     const onMove = (e: mapboxgl.MapMouseEvent) => {
       onPlacementHover?.(e.lngLat.lng, e.lngLat.lat);
     };
+    const onClick = (e: mapboxgl.MapMouseEvent) => {
+      e.preventDefault();
+      onPlacementConfirm?.(e.lngLat.lng, e.lngLat.lat);
+    };
     map.on("mousemove", onMove);
+    map.on("click", onClick);
     map.getCanvas().style.cursor = "crosshair";
 
     return () => {
       map.off("mousemove", onMove);
+      map.off("click", onClick);
       map.getCanvas().style.cursor = "";
       removeAllPreviewLayers();
     };
-  }, [mapReady, placementPreview, onPlacementHover]);
+  }, [mapReady, placementPreview, onPlacementHover, onPlacementConfirm]);
 
   // ── Crew-Turf: Repeater-DOM-Marker ──────────────────────────
   const repeaterMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());

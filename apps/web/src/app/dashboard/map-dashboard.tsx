@@ -1748,6 +1748,39 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   : 1,
               } : null}
               onPlacementHover={(lng, lat) => setRepeaterPlaceCursor({ lat, lng })}
+              onPlacementConfirm={(lng, lat) => {
+                // Click im Placement-Mode = sofort platzieren (kein 600ms Long-Press warten)
+                if (repeaterPlaceMode) {
+                  setPlaceRepeaterAt({ lat, lng });
+                  setRepeaterPlaceMode(null);
+                } else if (buildingPlaceMode) {
+                  void (async () => {
+                    const { createClient } = await import("@/lib/supabase/client");
+                    const sb = createClient();
+                    const { data, error } = await sb.rpc("place_crew_building", {
+                      p_kind: buildingPlaceMode.kind,
+                      p_lat: lat, p_lng: lng,
+                    });
+                    const res = data as { ok?: boolean; error?: string; hint?: string; need?: { gold: number; wood: number; stone: number; mana: number } } | null;
+                    if (res?.ok) {
+                      setBuildingPlaceMode(null);
+                      if (userCenter) {
+                        const dLat = 0.090, dLng = 0.140;
+                        const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+                        fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
+                          .then((r) => r.json())
+                          .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); setCrewBuildings(j.buildings ?? []); });
+                      }
+                    } else {
+                      const need = res?.need;
+                      const msg = res?.error === "insufficient_resources" && need
+                        ? `Brauchst ${need.gold}🪙 ${need.wood}🪵 ${need.stone}🪨 ${need.mana}💧`
+                        : res?.hint || res?.error || error?.message || "Bauwerk konnte nicht platziert werden";
+                      alert(msg);
+                    }
+                  })();
+                }
+              }}
             />
 
             {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Base, Crew, Inbox etc.) */}

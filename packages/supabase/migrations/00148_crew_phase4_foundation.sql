@@ -98,12 +98,25 @@ begin
       'limit', v_stats.max_per_crew, 'current', v_existing_count);
   end if;
 
-  -- Bauwerke MÜSSEN im eigenen Crew-Turf platziert werden
-  v_in_own_turf := public._user_in_own_crew_turf(v_user, p_lat, p_lng);
-  if not v_in_own_turf then
-    return jsonb_build_object('ok', false, 'error', 'must_be_in_own_turf',
-      'hint', 'Bauwerke nur im eigenen Crew-Gebiet platzierbar');
-  end if;
+  -- Bauwerke MÜSSEN im eigenen Crew-Turf platziert werden,
+  -- AUSSER die Crew hat noch keinen Turf (kein einziger Repeater) — dann
+  -- darf das erste Bauwerk irgendwo gesetzt werden (Bootstrap).
+  declare
+    v_has_repeater boolean;
+  begin
+    select exists(
+      select 1 from public.crew_repeaters
+       where crew_id = v_crew and destroyed_at is null
+    ) into v_has_repeater;
+
+    if v_has_repeater then
+      v_in_own_turf := public._user_in_own_crew_turf(v_user, p_lat, p_lng);
+      if not v_in_own_turf then
+        return jsonb_build_object('ok', false, 'error', 'must_be_in_own_turf',
+          'hint', 'Bauwerke nur im eigenen Crew-Gebiet platzierbar');
+      end if;
+    end if;
+  end;
 
   -- Resource-Check
   select coalesce(gold,0) gold, coalesce(wood,0) wood, coalesce(stone,0) stone, coalesce(mana,0) mana
