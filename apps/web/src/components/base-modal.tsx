@@ -347,11 +347,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
         <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]">
           {(["overview","res","build","troops","research","chest","vip"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              title={{overview:"Übersicht", res:"Resourcen", build:"Bau", troops:"Truppen", research:"Forschung", chest:"Truhen", vip:"VIP"}[t]}
+              title={{overview:"Übersicht", res:"Ressourcen", build:"Bau", troops:"Truppen", research:"Forschung", chest:"Truhen", vip:"VIP"}[t]}
               className={`flex-1 min-w-0 py-2.5 px-1 whitespace-nowrap transition-colors ${tab === t ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
               style={tab === t ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
             >
-              {{overview:"📊 Info", res:"💰 Res", build:"🏗 Bau", troops:"⚔ Heer", research:"🔬 Tech", chest:"🗝 Loot", vip:"⭐ VIP"}[t]}
+              {{overview:"📊 Info", res:"💰 RSS", build:"🏗 Bau", troops:"⚔ Truppen", research:"🔬 Tech", chest:"🗝 Loot", vip:"⭐ VIP"}[t]}
               {t === "build" && queue.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FF6B4A] text-white">{queue.length}</span>}
               {t === "chest" && chests.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FFD700] text-[#0F1115]">{chests.length}</span>}
             </button>
