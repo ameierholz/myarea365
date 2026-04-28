@@ -74,7 +74,12 @@ async function fetchOverpass(): Promise<OverpassWay[]> {
   console.log(`[ETL] Overpass-Query: bbox ${minLat},${minLng},${maxLat},${maxLng}`);
   const res = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "application/json",
+      // Overpass blockt anonyme Requests — User-Agent identifiziert die App
+      "User-Agent": "MyArea365-ETL/1.0 (+https://myarea365.de)",
+    },
     body: "data=" + encodeURIComponent(overpassQuery),
   });
   if (!res.ok) throw new Error(`Overpass HTTP ${res.status}: ${await res.text().catch(() => "?")}`);
@@ -130,14 +135,29 @@ async function stageWays(ways: OverpassWay[]): Promise<number> {
 }
 
 async function polygonize() {
-  console.log(`[ETL] Polygonize ...`);
-  const { data, error } = await sb.rpc("etl_polygonize_city_blocks", {
+  console.log(`[ETL] Polygonize city_blocks (alle Straßen) ...`);
+  const { data: blockRes, error: blockErr } = await sb.rpc("etl_polygonize_city_blocks", {
     p_city: city,
     p_min_area_m2: 200,
     p_max_area_m2: 200000,
   });
+  if (blockErr) throw blockErr;
+  console.log(`[ETL] city_blocks:`, JSON.stringify(blockRes, null, 2));
+
+  // WICHTIG: city_blocks-ETL löscht _etl_osm_ways am Ende → wir müssen
+  // die Ways nochmal stagen für den neighborhood-pass. Daher: hier nicht
+  // mehr machen, stattdessen in stageWays() den Workflow umkehren.
+}
+
+async function polygonizeNeighborhoods() {
+  console.log(`[ETL] Polygonize neighborhood_blocks (nur Hauptstraßen) ...`);
+  const { data, error } = await sb.rpc("etl_polygonize_neighborhood_blocks", {
+    p_city: city,
+    p_min_area_m2: 50000,
+    p_max_area_m2: 5000000,
+  });
   if (error) throw error;
-  console.log(`[ETL] Ergebnis:`, JSON.stringify(data, null, 2));
+  console.log(`[ETL] neighborhood_blocks:`, JSON.stringify(data, null, 2));
 }
 
 (async () => {
@@ -148,6 +168,8 @@ async function polygonize() {
       return;
     }
     await stageWays(ways);
+    // Reihenfolge wichtig: neighborhood ZUERST (city_blocks löscht staging am Ende)
+    await polygonizeNeighborhoods();
     await polygonize();
     console.log("[ETL] ✅ Fertig.");
   } catch (e) {
