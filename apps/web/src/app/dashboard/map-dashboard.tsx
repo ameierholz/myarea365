@@ -1181,7 +1181,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     shield_until?: string | null;
   };
   type TurfPoly = { crew_id: string; crew_name: string | null; crew_tag: string | null; is_own: boolean; territory_color?: string | null; geojson: GeoJSON.Geometry };
-  type CrewBlock = { block_id: number; crew_id: string; crew_name: string | null; is_own: boolean; is_contested: boolean; territory_color: string; geojson: GeoJSON.Geometry };
+  type CrewBlock = { block_id?: number; crew_id: string; crew_name: string | null; is_own: boolean; is_contested: boolean; territory_color: string; geojson: GeoJSON.Geometry };
   type CrewBuilding = { id: string; crew_id: string; crew_name: string | null; crew_tag: string | null; kind: "blackmarket" | "bunker" | "hangout" | "tunnel"; level: number; label: string | null; lat: number; lng: number; hp: number; max_hp: number; kind_data: Record<string, unknown>; is_own: boolean; territory_color: string };
   const [crewRepeaters, setCrewRepeaters] = useState<Repeater[]>([]);
   const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);

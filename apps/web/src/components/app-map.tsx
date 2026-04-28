@@ -566,7 +566,7 @@ interface AppMapProps {
    *  Wenn vorhanden, ersetzt die Kreis-Polygone visuell (city_blocks-Daten existieren).
    *  Wenn leer, fällt die Karte auf crewTurfPolygons (Kreise) zurück. */
   crewBlocks?: Array<{
-    block_id: number;
+    block_id?: number;  // ab 00155 weg (Union pro Crew → kein einzelner Block mehr)
     crew_id: string;
     crew_name: string | null;
     is_own: boolean;
