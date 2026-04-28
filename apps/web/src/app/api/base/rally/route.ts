@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     defender_user_id?: string;
     troops?: Record<string, number>;
     prep_seconds?: number;
+    guardian_id?: string | null;
   };
   if (!body.defender_user_id || !body.troops || !body.prep_seconds) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
     p_defender_user_id: body.defender_user_id,
     p_prep_seconds: body.prep_seconds,
     p_troops: body.troops,
+    p_guardian_id: body.guardian_id ?? null,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);

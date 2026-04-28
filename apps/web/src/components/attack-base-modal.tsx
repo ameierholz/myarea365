@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { UiIcon, useUiIconArt, type ResourceArtMap } from "@/components/resource-icon";
+import { UiIcon, useUiIconArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
 
 type Troop = {
   id: string;
@@ -69,17 +69,31 @@ export function AttackBaseModal({
   const [mode, setMode] = useState<"info" | "attack" | "rally">("info");
   const [prepSeconds, setPrepSeconds] = useState<number>(180);
 
+  // Wächter (für Crew-Aufgebot)
+  type RGuardian = { id: string; level: number; name: string; image_url: string | null; video_url: string | null };
+  const [guardians, setGuardians] = useState<RGuardian[]>([]);
+  const [selectedGuardianId, setSelectedGuardianId] = useState<string | null>(null);
+  const baseThemeArt = useBaseThemeArt();
+
   const load = useCallback(async () => {
     setLoading(true);
     const sb = createClient();
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
 
-    const [troopsApi, defBase, defUser] = await Promise.all([
+    const [troopsApi, defBase, defUser, gRows] = await Promise.all([
       fetch("/api/base/troops", { cache: "no-store" }).then((r) => r.ok ? r.json() : { catalog: [], owned: [] }),
       sb.from("bases").select("level, pin_label, current_hp, max_hp, shield_until, theme_id").eq("owner_user_id", defenderUserId).maybeSingle(),
       sb.from("users").select("display_name, level, avatar_url").eq("id", defenderUserId).maybeSingle(),
+      sb.from("user_guardians").select("id, level, archetype:guardian_archetypes(id,name,image_url,video_url)").eq("user_id", user.id).eq("is_active", true).limit(20),
     ]);
+    type GRow = { id: string; level: number; archetype: { id: string; name: string; image_url: string | null; video_url: string | null } | null };
+    setGuardians(((gRows.data ?? []) as unknown as GRow[]).map((r) => ({
+      id: r.id, level: r.level,
+      name: r.archetype?.name ?? "Wächter",
+      image_url: r.archetype?.image_url ?? null,
+      video_url: r.archetype?.video_url ?? null,
+    })));
     const catalog = { data: troopsApi.catalog as Troop[] };
     const mine = { data: troopsApi.owned as Array<{ troop_id: string; count: number }> };
 
@@ -183,7 +197,7 @@ export function AttackBaseModal({
       const r = await fetch("/api/base/rally", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defender_user_id: defenderUserId, troops: selected, prep_seconds: prepSeconds }),
+        body: JSON.stringify({ defender_user_id: defenderUserId, troops: selected, prep_seconds: prepSeconds, guardian_id: selectedGuardianId }),
       });
       const j = await r.json() as { ok?: boolean; error?: string; rally_id?: string };
       if (j.ok) {
@@ -255,6 +269,10 @@ export function AttackBaseModal({
             fillMax={fillMax}
             clearAll={clearAll}
             launch={startRally}
+            guardians={guardians}
+            selectedGuardianId={selectedGuardianId}
+            setSelectedGuardianId={setSelectedGuardianId}
+            baseThemeArt={baseThemeArt}
           />
         ) : (
           <AttackPicker
@@ -398,6 +416,7 @@ function RallyPicker({
   defender, counts, selected, grouped, totalAtk, totalCount, busy, msg,
   prepSeconds, setPrepSeconds,
   onBack, onClose, setQty, fillMax, clearAll, launch,
+  guardians, selectedGuardianId, setSelectedGuardianId, baseThemeArt,
 }: {
   defender: DefenderInfo | null;
   counts: Record<string, number>;
@@ -415,6 +434,10 @@ function RallyPicker({
   fillMax: () => void;
   clearAll: () => void;
   launch: () => void;
+  guardians: Array<{ id: string; level: number; name: string; image_url: string | null; video_url: string | null }>;
+  selectedGuardianId: string | null;
+  setSelectedGuardianId: (id: string | null) => void;
+  baseThemeArt: ResourceArtMap;
 }) {
   const prepOptions = [
     { value: 180,  label: "3 Min" },
@@ -426,6 +449,22 @@ function RallyPicker({
       <div className="px-3 py-2 border-b border-white/10 flex items-center gap-2 shrink-0"
         style={{ background: "linear-gradient(135deg, rgba(255,107,74,0.18) 0%, rgba(255,215,0,0.10) 100%)" }}>
         <button onClick={onBack} className="w-8 h-8 rounded-full bg-black/40 text-white text-base font-black">‹</button>
+        {/* Defender Base-Theme-Pin */}
+        {(() => {
+          const themeId = defender?.theme_id;
+          if (!themeId) return null;
+          const a = baseThemeArt[`${themeId}_runner_pin`] ?? baseThemeArt[`${themeId}_runner_banner`] ?? baseThemeArt[themeId];
+          if (!a) return null;
+          const f = "url(#ma365-chroma-black)";
+          if (a.image_url) {
+            // eslint-disable-next-line @next/next/no-img-element
+            return <img src={a.image_url} alt="" className="w-9 h-9 object-contain shrink-0" style={{ filter: f }} />;
+          }
+          if (a.video_url) {
+            return <video src={a.video_url} autoPlay loop muted playsInline className="w-9 h-9 object-contain shrink-0" style={{ filter: f }} />;
+          }
+          return null;
+        })()}
         <div className="flex-1 min-w-0">
           <div className="text-[8px] font-black tracking-[2px] text-[#FF6B4A]/90">CREW-ANGRIFF</div>
           <div className="text-[13px] font-black text-white truncate">📣 Aufgebot gegen {defender?.display_name}</div>
@@ -450,6 +489,46 @@ function RallyPicker({
             ))}
           </div>
           <div className="text-[9px] text-white/40 mt-1 px-1">Crew-Mitglieder können während dieser Zeit beitreten.</div>
+        </div>
+
+        {/* Wächter-Kommandant */}
+        <div>
+          <div className="text-[10px] font-black tracking-[1.5px] text-white/50 mb-1.5 px-1">
+            Wächter-Kommandant
+            {selectedGuardianId && (() => {
+              const g = guardians.find((x) => x.id === selectedGuardianId);
+              return g ? <span className="ml-2 text-[#FFD700]">+{Math.min(100, g.level * 5)}% ATK</span> : null;
+            })()}
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            <button onClick={() => setSelectedGuardianId(null)}
+              className={`shrink-0 w-16 h-20 rounded-lg flex flex-col items-center justify-center text-[10px] font-black transition border-2 ${
+                selectedGuardianId === null ? "bg-white/10 border-white/40 text-white" : "bg-black/30 border-white/10 text-white/50"
+              }`}>
+              <span className="text-xl">—</span>
+              <span className="text-[9px] mt-0.5">Kein Wächter</span>
+            </button>
+            {guardians.length === 0 && (
+              <div className="text-[10px] text-white/40 self-center px-2">Keine aktiven Wächter — siehe Profil.</div>
+            )}
+            {guardians.map((g) => (
+              <button key={g.id} onClick={() => setSelectedGuardianId(g.id)}
+                className={`shrink-0 w-16 h-20 rounded-lg overflow-hidden flex flex-col items-center justify-end transition border-2 ${
+                  selectedGuardianId === g.id ? "bg-[#FFD700]/15 border-[#FFD700]" : "bg-black/30 border-white/10"
+                }`}>
+                <div className="flex-1 w-full flex items-center justify-center">
+                  {g.video_url ? (
+                    <video src={g.video_url} autoPlay loop muted playsInline className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
+                  ) : g.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={g.image_url} alt={g.name} className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
+                  ) : (<span className="text-xl">🛡</span>)}
+                </div>
+                <span className="text-[9px] text-white truncate w-full px-1 text-center">{g.name}</span>
+                <span className="text-[8px] text-[#FFD700] mb-0.5">Lv {g.level}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Truppen-Picker */}
