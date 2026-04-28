@@ -263,11 +263,13 @@ end $$;
 grant execute on function public.upgrade_to_siege_repeater(uuid) to authenticated;
 
 -- ─── 7) crew_wars: Krieg-Deklaration zwischen Crews ──────────────────
-create table if not exists public.crew_wars (
+-- Falls schon mal eine inkompatible Version existierte: erst wegräumen.
+drop table if exists public.crew_wars cascade;
+create table public.crew_wars (
   id              uuid primary key default gen_random_uuid(),
   attacker_crew   uuid not null references public.crews(id) on delete cascade,
   defender_crew   uuid not null references public.crews(id) on delete cascade,
-  declared_by     uuid not null references public.users(id) on delete set null,
+  declared_by     uuid references public.users(id) on delete set null,
   declared_at     timestamptz not null default now(),
   ends_at         timestamptz not null,
   status          text not null default 'active' check (status in ('active', 'ended')),
