@@ -62,12 +62,12 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     @keyframes shopBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
     @keyframes spotlightBadgeShimmer {
-      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,215,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6); filter: brightness(1); }
-      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,215,0,0.95), inset 0 1px 0 rgba(255,255,255,0.8); filter: brightness(1.12); }
+      0%,100% { opacity: 0.92; }
+      50%     { opacity: 1; }
     }
     @keyframes spotlightBadgeStar {
-      0%,100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
-      50%     { transform: rotate(14deg) scale(1.15); filter: drop-shadow(0 0 4px rgba(255,255,255,1)); }
+      0%,100% { transform: rotate(0deg) scale(1); }
+      50%     { transform: rotate(14deg) scale(1.15); }
     }
     .ma365-spotlight-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -81,17 +81,18 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       text-shadow: 0 1px 0 rgba(255,255,255,0.35);
       animation: spotlightBadgeShimmer 2.2s ease-in-out infinite;
       pointer-events: none;
-      will-change: transform, box-shadow;
+      will-change: opacity;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 18px rgba(255,215,0,0.7), inset 0 1px 0 rgba(255,255,255,0.7);
     }
     .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
     /* Arena-Badge: magenta Pill analog zu Spotlight, mit Shield-Icon */
     @keyframes arenaBadgeShimmer {
-      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,45,120,0.55), inset 0 1px 0 rgba(255,255,255,0.5); filter: brightness(1); }
-      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,45,120,0.95), inset 0 1px 0 rgba(255,255,255,0.7); filter: brightness(1.15); }
+      0%,100% { opacity: 0.92; }
+      50%     { opacity: 1; }
     }
     @keyframes arenaBadgeShieldPulse {
-      0%,100% { transform: scale(1)    rotate(0deg);  filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
-      50%     { transform: scale(1.18) rotate(-6deg); filter: drop-shadow(0 0 5px rgba(255,255,255,1)); }
+      0%,100% { transform: scale(1)    rotate(0deg);  }
+      50%     { transform: scale(1.18) rotate(-6deg); }
     }
     .ma365-arena-badge {
       display: inline-flex; align-items: center; gap: 5px;
@@ -105,20 +106,22 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       text-shadow: 0 1px 0 rgba(0,0,0,0.35);
       animation: arenaBadgeShimmer 2.2s ease-in-out infinite;
       pointer-events: none;
-      will-change: box-shadow, filter;
+      will-change: opacity;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(255,45,120,0.75), inset 0 1px 0 rgba(255,255,255,0.6);
     }
     .ma365-arena-badge > .shield { font-size: 12px; animation: arenaBadgeShieldPulse 2.2s ease-in-out infinite; display: inline-block; }
     /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
     @keyframes ma365BeamGlow {
-      0%,100% { filter: blur(4px) brightness(0.85) saturate(1); }
-      50%     { filter: blur(2.5px) brightness(1.35) saturate(1.2); }
+      0%,100% { opacity: 0.7; }
+      50%     { opacity: 1; }
     }
     .ma365-spotlight-beam {
       position: relative;
       width: 54px; height: 130px;
       pointer-events: none;
       transform-origin: center bottom;
-      will-change: transform, opacity, filter;
+      will-change: opacity;
+      filter: blur(3px);
       clip-path: polygon(42% 0%, 58% 0%, 100% 100%, 0% 100%);
       background: linear-gradient(to bottom,
         rgba(255, 215, 0, 0) 0%,
@@ -173,8 +176,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
 
     @keyframes ma365SanctuaryFloat {
-      0%,100% { filter: brightness(1); }
-      50%     { filter: brightness(1.15) drop-shadow(0 0 4px rgba(34,209,195,0.5)); }
+      0%,100% { transform: translateY(0) scale(1); }
+      50%     { transform: translateY(-1px) scale(1.04); }
     }
     .ma365-sanctuary-marker {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -202,13 +205,14 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
 
     /* Wegelager (Strongholds) */
     @keyframes ma365StrongholdGlow {
-      0%,100% { filter: drop-shadow(0 2px 6px rgba(255,45,120,0.6)) drop-shadow(0 0 8px rgba(255,107,74,0.4)); }
-      50%     { filter: drop-shadow(0 2px 8px rgba(255,45,120,0.95)) drop-shadow(0 0 14px rgba(255,107,74,0.7)); }
+      0%,100% { transform: scale(1); }
+      50%     { transform: scale(1.04); }
     }
     .ma365-stronghold-marker {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
       animation: ma365StrongholdGlow 2.4s ease-in-out infinite;
       transform-origin: center bottom;
+      filter: drop-shadow(0 2px 6px rgba(255,45,120,0.7)) drop-shadow(0 0 10px rgba(255,107,74,0.5));
     }
     .ma365-stronghold-emoji { font-size: 30px; line-height: 1; }
     .ma365-stronghold-level {
@@ -232,12 +236,12 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       50%     { transform: translateY(-5px) rotate(5deg); }
     }
     @keyframes ma365CrateGlow {
-      0%,100% { filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
-      50%     { filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 6px 10px rgba(0,0,0,0.6)); }
+      0%,100% { opacity: 0.95; }
+      50%     { opacity: 1; }
     }
     @keyframes ma365CrateReady {
-      0%,100% { transform: translateY(-2px) scale(1); filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 0 28px var(--color)); }
-      50%     { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 22px var(--color)) drop-shadow(0 0 44px var(--color)); }
+      0%,100% { transform: translateY(-2px) scale(1); }
+      50%     { transform: translateY(-6px) scale(1.08); }
     }
     @keyframes ma365CrateRing {
       0%   { transform: scale(0.4); opacity: 0.85; }
