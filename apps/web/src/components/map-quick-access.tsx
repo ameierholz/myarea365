@@ -137,7 +137,7 @@ export function MapQuickAccess({
     { key: "wegel",   slot: "quick_wegelager", fallback: "📜", label: "Lager",     badge: strongholdsNearby, color: "#FF6B4A", onClick: () => { /* zukünftig: Liste */ } },
     { key: "shop",    slot: "quick_shop",      fallback: "🎁", label: "Shop",      color: "#a855f7",         onClick: onOpenShop },
     { key: "inbox",   slot: "quick_inbox",     fallback: "📬", label: "Inbox",     badge: inboxUnread,       color: "#22D1C3", onClick: onOpenInbox },
-    { key: "achieve", slot: "quick_achieve",   fallback: "🏅", label: "Erfolge",   badge: achievementsReady, color: "#FFD700", onClick: onOpenAchievements },
+    { key: "deals",   slot: "quick_deals",     fallback: "🔥", label: "Deals",     color: "#FFD700", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
   ];
 
   // Gesamt-Badge-Summe für eingeklappten Toggle-Knopf

@@ -1257,19 +1257,25 @@ export type ResourceArt = {
   style: string;         // 1-2 Sätze visueller Stil
 };
 
+// 4 Crew-Resourcen (Berlin-Urban-Theme statt CoD-Fantasy):
+//   wood  → Tech-Schrott  (Hardware: für Bau von Repeatern, Bunkern, Servern)
+//   stone → Komponenten   (Bauteile: für Verteidigungsanlagen, Panzerung, hochstufige Gebäude)
+//   gold  → Krypto        (Bezahlung von Söldnern/Crew-Members im Training)
+//   mana  → Bandbreite    (Daten: für Forschung, Hacks, Algorithmen, Reboots/Heilung)
+// Die internen IDs (wood/stone/gold/mana) bleiben erhalten — nur Display-Labels + Artwork ändern sich.
 export const RESOURCES_ART: ResourceArt[] = [
-  { id: "wood",         name: "Holz",         fallbackEmoji: "🪵", accent: "#a16f32",
-    subject: "a small bundle of three freshly chopped oak logs stacked, fresh bark visible, with a single green leaf sprig and a few wood chips around the base",
-    style: "stylized 3D-render, hand-painted texture, warm earthy browns, soft saturation, slight cel-shading, gentle drop-shadow underneath" },
-  { id: "stone",        name: "Stein",        fallbackEmoji: "🪨", accent: "#8B8FA3",
-    subject: "a chunk of light-grey rough granite stone, multifaceted geometric form with flat chiseled planes, small mica sparkles on the surface, tiny moss patch on one corner",
-    style: "stylized 3D-render, cool grey palette, crisp specular highlights, soft cel-shading, mossy green accents for life, subtle inner glow" },
-  { id: "gold",         name: "Gold",         fallbackEmoji: "🪙", accent: "#FFD700",
-    subject: "a single ancient gold coin standing on edge with a stamped sun-rune, a small pile of 2-3 additional coins beside it half-buried in soft dust, subtle glittering sparkles",
-    style: "stylized 3D-render, polished gold with bright orange-yellow rim-light, slight sparkle particles, painterly highlights, premium-feel glow" },
-  { id: "mana",         name: "Mana",         fallbackEmoji: "💧", accent: "#22D1C3",
-    subject: "a luminous teal-cyan magical liquid droplet floating in a frozen splash, with smaller satellite droplets orbiting around it, internal swirl visible",
-    style: "stylized 3D-render, glowing translucent fluid, internal light source, cyan-to-pale-mint gradient, soft bioluminescent particles, ethereal feel" },
+  { id: "wood",         name: "Tech-Schrott", fallbackEmoji: "⚙️", accent: "#FF6B4A",
+    subject: "a small pile of stacked urban scrap-tech: an old motherboard with chips, a broken keyboard fragment, tangled black/red cables, a cracked smartphone screen, rust-orange accents, a few loose screws — dystopian Berlin-junkyard hardware-pile",
+    style: "stylized 3D-render, hand-painted texture, warm rust-orange + dark grey palette, soft cel-shading, slight drop-shadow underneath, gritty industrial vibe" },
+  { id: "stone",        name: "Komponenten",  fallbackEmoji: "🔩", accent: "#8B8FA3",
+    subject: "a small assembly of industrial components: a polished steel I-beam fragment crossed with chunky bolts, a thick coiled spring, two metal brackets with rivets, a protective steel-plate, all stacked tightly — heavy-duty construction hardware",
+    style: "stylized 3D-render, cool grey + brushed-steel palette, crisp specular highlights on metal, soft cel-shading, subtle blue-grey ambient light, structured & weighty feel" },
+  { id: "gold",         name: "Krypto",       fallbackEmoji: "💸", accent: "#FFD700",
+    subject: "a single hexagonal Bitcoin-style crypto-token standing on edge with a stamped lightning-rune in the center, a small pile of 2-3 more coins half-buried beside it, faint holographic shimmer, subtle digital sparkles in the air",
+    style: "stylized 3D-render, polished gold rim with bright cyan-blue digital glow on the rune-face, holographic glints, sparkle particles, premium cyberpunk-currency feel" },
+  { id: "mana",         name: "Bandbreite",   fallbackEmoji: "📡", accent: "#22D1C3",
+    subject: "a luminous teal-cyan data-stream flowing in a tight spiral, made of glowing 1s and 0s and waveform pulses, with a small satellite-dish or wifi-symbol icon in the center radiating concentric signal-rings outward",
+    style: "stylized 3D-render, glowing translucent data-stream, internal cyan light source, hex-pattern matrix accents, electric-blue particles, ethereal sci-fi feel — pure data visualized" },
   { id: "speed_token",  name: "Speed-Token",  fallbackEmoji: "⚡", accent: "#FFD700",
     subject: "a hexagonal energy token coin with an embossed lightning-bolt rune in the center, golden metal rim, electric-yellow glowing core",
     style: "stylized 3D-render, premium currency-token feel, electric-yellow inner glow, polished gold rim, lightning sparks emanating, slight float-bob" },

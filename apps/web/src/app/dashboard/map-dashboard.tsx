@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import dynamic from "next/dynamic";
 import { useTranslations, useLocale } from "next-intl";
 import { getDateLocale, getNumberLocale } from "@/i18n/config";
 import Link from "next/link";
@@ -11,43 +10,32 @@ import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
+import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
+import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
+import { UpgradeModal } from "@/components/upgrade-modal";
 import { BoostShopModal as PowerShopModal, BoostShopBody } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
-import { type WalkSummary } from "@/components/walk-summary-modal";
+import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
+import { RunRouteModal } from "@/components/run-route-modal";
+import { OwnershipModal } from "@/components/ownership-modal";
+import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianAvatar } from "@/components/guardian-avatar";
-
-// Lazy-Loaded Modals — werden erst geladen wenn der User sie öffnet (spart ~hunderte KB im Initial-Bundle)
-const RepeaterInfoPopup = dynamic(() => import("@/components/repeater-info-popup").then((m) => m.RepeaterInfoPopup), { ssr: false });
-const PlaceRepeaterModal = dynamic(() => import("@/components/repeater-modals").then((m) => m.PlaceRepeaterModal), { ssr: false });
-const AttackRepeaterModal = dynamic(() => import("@/components/repeater-modals").then((m) => m.AttackRepeaterModal), { ssr: false });
-const UpgradeModal = dynamic(() => import("@/components/upgrade-modal").then((m) => m.UpgradeModal), { ssr: false });
-const WalkSummaryModal = dynamic(() => import("@/components/walk-summary-modal").then((m) => m.WalkSummaryModal), { ssr: false });
-const RunRouteModal = dynamic(() => import("@/components/run-route-modal").then((m) => m.RunRouteModal), { ssr: false });
-const OwnershipModal = dynamic(() => import("@/components/ownership-modal").then((m) => m.OwnershipModal), { ssr: false });
-const ArenaChallengeModal = dynamic(() => import("@/components/arena-challenge-modal").then((m) => m.ArenaChallengeModal), { ssr: false });
-const GuardianDetailModal = dynamic(() => import("@/components/guardian-detail-modal").then((m) => m.GuardianDetailModal), { ssr: false });
-const GuardianGalleryModal = dynamic(() => import("@/components/guardian-gallery-modal").then((m) => m.GuardianGalleryModal), { ssr: false });
-const GemShopModal = dynamic(() => import("@/components/gem-shop-modal").then((m) => m.GemShopModal), { ssr: false });
-const ShopHubModal = dynamic(() => import("@/components/shop-hub-modal").then((m) => m.ShopHubModal), { ssr: false });
-const ShopDealsModal = dynamic(() => import("@/components/shop-deals-modal").then((m) => m.ShopDealsModal), { ssr: false });
-const MapLegendModal = dynamic(() => import("@/components/map-legend-modal").then((m) => m.MapLegendModal), { ssr: false });
-const FaqModal = dynamic(() => import("@/components/faq-modal").then((m) => m.FaqModal), { ssr: false });
-const PotionInventoryModal = dynamic(() => import("@/components/potion-inventory-modal").then((m) => m.PotionInventoryModal), { ssr: false });
-const RunnerStatsModal = dynamic(() => import("@/components/runner-stats-modal").then((m) => m.RunnerStatsModal), { ssr: false });
-const BaseModal = dynamic(() => import("@/components/base-modal").then((m) => m.BaseModal), { ssr: false });
-const AttackBaseModal = dynamic(() => import("@/components/attack-base-modal").then((m) => m.AttackBaseModal), { ssr: false });
-const StrongholdModal = dynamic(() => import("@/components/stronghold-modal").then((m) => m.StrongholdModal), { ssr: false });
-const JoinPlayerBaseRallyModal = dynamic(() => import("@/components/active-player-base-rally-banner").then((m) => m.JoinPlayerBaseRallyModal), { ssr: false });
+import { GuardianDetailModal } from "@/components/guardian-detail-modal";
+import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
 import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
 import { normalizeFaction } from "@/lib/factions";
 import { AdSenseSlot } from "@/components/adsense-slot";
+import { GemShopModal } from "@/components/gem-shop-modal";
+import { ShopHubModal } from "@/components/shop-hub-modal";
+import { ShopDealsModal } from "@/components/shop-deals-modal";
+import { DealsShopModal } from "@/components/deals-shop-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
 import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon } from "@/components/resource-icon";
@@ -56,9 +44,13 @@ import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
 import { MapHelpButton } from "@/components/map-help-button";
+import { MapLegendModal } from "@/components/map-legend-modal";
 import { CrewLiveHub } from "@/components/crew-live-hub";
 import { OnboardingModal, markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
+import { FaqModal } from "@/components/faq-modal";
+import { PotionInventoryModal } from "@/components/potion-inventory-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
+import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -71,31 +63,11 @@ import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-// AppMap dynamic — Mapbox-gl (~300KB gzip) wird in eigenen Chunk gesplittet,
-// bleibt deploy-übergreifend gecached während App-Code-Updates ihn nicht invalidieren.
-const AppMap = dynamic(() => import("@/components/app-map").then((m) => m.AppMap), {
-  ssr: false,
-  loading: () => (
-    <div style={{
-      flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-      background: "#0F1115", color: "#22D1C3", fontWeight: 800, fontSize: 14, letterSpacing: 0.5,
-    }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{
-          width: 36, height: 36, margin: "0 auto 12px",
-          border: "3px solid rgba(34,209,195,0.2)",
-          borderTop: "3px solid #22D1C3",
-          borderRadius: "50%",
-          animation: "spinAppMap 0.8s linear infinite",
-        }} />
-        <style dangerouslySetInnerHTML={{ __html: "@keyframes spinAppMap { to { transform: rotate(360deg); } }" }} />
-        Karte lädt…
-      </div>
-    </div>
-  ),
-});
-import { ActivePlayerBaseRallyBanner, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
-import { ActiveRallyBanner } from "@/components/stronghold-modal";
+import { AppMap } from "@/components/app-map";
+import { BaseModal } from "@/components/base-modal";
+import { AttackBaseModal } from "@/components/attack-base-modal";
+import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
+import { StrongholdModal, ActiveRallyBanner } from "@/components/stronghold-modal";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
@@ -257,6 +229,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
+  const [showDealsShop, setShowDealsShop] = useState(false);
+
+  // Listener für ma365:open-deals-shop — öffnet die neue 7-Tab-Deals-Modal
+  useEffect(() => {
+    const onOpen = () => setShowDealsShop(true);
+    window.addEventListener("ma365:open-deals-shop", onOpen);
+    return () => window.removeEventListener("ma365:open-deals-shop", onOpen);
+  }, []);
   const [preWalkModal, setPreWalkModal] = useState<null | "asking" | "playing">(null);
   const [preWalkAdProgress, setPreWalkAdProgress] = useState(0);
   const [supplyDropModal, setSupplyDropModal] = useState<null | { dropId: string; phase: "asking" | "playing" }>(null);
@@ -1613,55 +1593,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const currentRank = getCurrentRank(p?.wegemuenzen ?? p?.xp ?? 0);
   const teamColor = myCrew?.color || p?.team_color || PRIMARY;
 
-  // ── Stabile Callbacks für AppMap (verhindert useEffect-Cascade + Marker-Rebuild auf jedem Parent-Render) ──
-  // Wichtig: alle Map-Callbacks landen in useEffect-Deps von app-map.tsx; instabile Closures triggern Marker-Recreation.
-  const handleShopClick = useCallback((id: string) => setViewingShop(id), []);
-  const handleOwnershipClick = useCallback(
-    (kind: "segment" | "street" | "territory", id: string) => setOwnershipQuery({ type: kind, id }),
-    [],
-  );
-  // Refs für Werte die in Callbacks gelesen werden — Callback bleibt stabil, Werte aktuell.
-  // userCenterRef ist bereits oben (Line 1279) deklariert.
-  const strongholdsRef = useRef(strongholds);
-  strongholdsRef.current = strongholds;
-  const lootDropsRef = useRef(lootDrops);
-  lootDropsRef.current = lootDrops;
-  const basePinsRef = useRef(basePins);
-  basePinsRef.current = basePins;
-
-  const handleStrongholdClick = useCallback((id: string) => {
-    const s = strongholdsRef.current.find((x) => x.id === id);
-    if (s) setStrongholdModalTarget(s);
-  }, []);
-
-  const handleLootClick = useCallback(async (id: string) => {
-    const drop = lootDropsRef.current.find((d) => d.id === id);
-    if (!drop) return;
-    const center = userCenterRef.current;
-    if (center) {
-      const R = 6371000;
-      const dLat = ((drop.lat - center.lat) * Math.PI) / 180;
-      const dLng = ((drop.lng - center.lng) * Math.PI) / 180;
-      const la1 = (center.lat * Math.PI) / 180;
-      const la2 = (drop.lat * Math.PI) / 180;
-      const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
-      const distM = 2 * R * Math.asin(Math.sqrt(x));
-      if (distM > 25) {
-        appAlert(`🚶 Zu weit! Du bist ${Math.round(distM)}m entfernt — komm näher (max 25m).`);
-        return;
-      }
-    }
-    setSupplyDropModal({ dropId: id, phase: "asking" });
-  }, []);
-
-  const handleBasePinTap = useCallback((pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => {
-    if (!pin.is_own && pin.kind === "runner") {
-      const full = basePinsRef.current.find((b) => b.id === pin.id);
-      if (full?.owner_user_id) { setAttackTarget(full.owner_user_id); return; }
-    }
-    setBaseModalTarget(pin);
-  }, []);
-
   return (
     <div style={{
       height: "100dvh",
@@ -1696,7 +1627,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               glitchZones={[]}
               crewMembers={[]}
               shops={demoShops}
-              onShopClick={handleShopClick}
+              onShopClick={(id) => setViewingShop(id)}
               onAreaClick={setViewingArea}
               overviewMode={overviewMode}
               recenterAt={recenterAt}
@@ -1715,7 +1646,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               walkedSegments={walkedSegments}
               claimedStreets={claimedStreets}
               ownedTerritories={ownedTerritories}
-              onOwnershipClick={handleOwnershipClick}
+              onOwnershipClick={(kind, id) => setOwnershipQuery({ type: kind, id })}
               powerZones={mapFeatures?.power_zones ?? []}
               bossRaids={mapFeatures?.boss_raids ?? []}
               sanctuaries={mapFeatures?.sanctuaries ?? []}
@@ -1730,8 +1661,29 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onPowerZoneClick={setViewingPowerZone}
               strongholds={strongholds}
               strongholdArt={strongholdArt}
-              onStrongholdClick={handleStrongholdClick}
-              onLootClick={handleLootClick}
+              onStrongholdClick={(id) => {
+                const s = strongholds.find((x) => x.id === id);
+                if (s) setStrongholdModalTarget(s);
+              }}
+              onLootClick={async (id) => {
+                const drop = lootDrops.find((d) => d.id === id);
+                if (!drop) return;
+                if (userCenter) {
+                  const R = 6371000;
+                  const dLat = ((drop.lat - userCenter.lat) * Math.PI) / 180;
+                  const dLng = ((drop.lng - userCenter.lng) * Math.PI) / 180;
+                  const la1 = (userCenter.lat * Math.PI) / 180;
+                  const la2 = (drop.lat * Math.PI) / 180;
+                  const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+                  const distM = 2 * R * Math.asin(Math.sqrt(x));
+                  if (distM > 25) {
+                    appAlert(`🚶 Zu weit! Du bist ${Math.round(distM)}m entfernt — komm näher (max 25m).`);
+                    return;
+                  }
+                }
+                // Ad-Gate-Modal öffnen — User entscheidet: direkt oder Video für Extra-Loot
+                setSupplyDropModal({ dropId: id, phase: "asking" });
+              }}
               basePins={basePins.map((b) => {
                 // Theme-Rarity-Lookup (Seed-IDs aus Migration 00116) für Aura-Effekt
                 const themeRarity: Record<string, "advanced" | "epic" | "legendary"> = {
@@ -1748,7 +1700,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               })}
               baseThemeArt={dashboardBaseThemeArt}
               uiIconArt={dashboardUiIconArt}
-              onBasePinTap={handleBasePinTap}
+              onBasePinTap={(pin) => {
+                // Fremde Runner-Base → Attack-Modal; eigene oder Crew → BaseModal
+                if (!pin.is_own && pin.kind === "runner") {
+                  const full = basePins.find((b) => b.id === pin.id);
+                  if (full?.owner_user_id) { setAttackTarget(full.owner_user_id); return; }
+                }
+                setBaseModalTarget(pin);
+              }}
               placeBaseMode={placeBaseMode}
               onPlaceBaseClick={onPlaceBaseClick}
               crewRepeaters={crewRepeaters}
@@ -1884,8 +1843,27 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               xpBoost={1}
             />
 
-            {/* Floating Badge für Tagesangebote — versteckt wenn walking oder ein Modal offen ist */}
-            <DailyDealMapBadge userId={p?.id} hidden={walking || !!baseModalTarget || !!attackTarget || !!viewingShop || !!viewingArea || !!viewingBoss || !!viewingSanctuary || !!viewingPowerZone || !!ownershipQuery || !!strongholdModalTarget} />
+            {/* Floating Badge für Erfolge — getauscht mit Deals (Deals jetzt im QuickAccess-Bar) */}
+            {!(walking || baseModalTarget || attackTarget || viewingShop || viewingArea || viewingBoss || viewingSanctuary || viewingPowerZone || ownershipQuery || strongholdModalTarget) && (
+              <button
+                onClick={() => setActiveTab("profil")}
+                style={{
+                  position: "absolute", left: "50%", bottom: 110, transform: "translateX(-50%)",
+                  zIndex: 50,
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "8px 14px",
+                  borderRadius: 999,
+                  background: "linear-gradient(135deg, #FFD700, #FF8A3C)",
+                  color: "#0F1115",
+                  fontSize: 13, fontWeight: 900, letterSpacing: 0.5,
+                  border: "2px solid rgba(255,255,255,0.95)",
+                  boxShadow: "0 4px 12px rgba(255,215,0,0.5), 0 0 18px rgba(255,138,60,0.4)",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-display-stack)",
+                }}>
+                🏅 ERFOLGE
+              </button>
+            )}
 
             {/* Active-Rally-Banner — oben auf der Karte wenn Crew eine Versammlung laufen hat */}
             {rallyData?.rally && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
@@ -2888,6 +2866,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           onArrived={() => { /* Toast wird im Banner gezeigt */ }}
         />
       )}
+
+      {/* Neuer 7-Tab Deals-Shop — geöffnet via QuickAccess-Bar (ma365:open-deals-shop) */}
+      {showDealsShop && <DealsShopModal onClose={() => setShowDealsShop(false)} />}
     </div>
   );
 }
@@ -3584,16 +3565,16 @@ function ProfilTab({
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap", alignItems: "center" }}>
                 <span style={{ color: "#a16f32", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="wood" size={20} fallback="🪵" art={resourceArt} /> {ownBaseInfo.resources.wood.toLocaleString("de-DE")}
+                  <ResourceIcon kind="wood" size={20} fallback="⚙️" art={resourceArt} /> {ownBaseInfo.resources.wood.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#8B8FA3", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="stone" size={20} fallback="🪨" art={resourceArt} /> {ownBaseInfo.resources.stone.toLocaleString("de-DE")}
+                  <ResourceIcon kind="stone" size={20} fallback="🔩" art={resourceArt} /> {ownBaseInfo.resources.stone.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#FFD700", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="gold" size={20} fallback="🪙" art={resourceArt} /> {ownBaseInfo.resources.gold.toLocaleString("de-DE")}
+                  <ResourceIcon kind="gold" size={20} fallback="💸" art={resourceArt} /> {ownBaseInfo.resources.gold.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#22D1C3", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  <ResourceIcon kind="mana" size={20} fallback="💧" art={resourceArt} /> {ownBaseInfo.resources.mana.toLocaleString("de-DE")}
+                  <ResourceIcon kind="mana" size={20} fallback="📡" art={resourceArt} /> {ownBaseInfo.resources.mana.toLocaleString("de-DE")}
                 </span>
                 <span style={{ color: "#FFD700", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 3 }}>
                   <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} /> {ownBaseInfo.resources.speed_tokens}
@@ -4245,7 +4226,7 @@ function ProfilTab({
         <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} />
       )}
 
-      {showShopDeals && <ShopDealsModal open={showShopDeals} onClose={() => setShowShopDeals(false)} />}
+      <ShopDealsModal open={showShopDeals} onClose={() => setShowShopDeals(false)} />
 
       {openModal === "onboarding" && (
         <OnboardingModal onClose={() => { markOnboardingSeen(); setOpenModal(null); }} />
@@ -9327,10 +9308,10 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
                 {[
-                  { label: "Holz",  v: run.wood_dropped ?? 0,  c: "#7CC36A" },
-                  { label: "Stein", v: run.stone_dropped ?? 0, c: "#9aa3b2" },
-                  { label: "Gold",  v: run.gold_dropped ?? 0,  c: "#FFD700" },
-                  { label: "Mana",  v: run.mana_dropped ?? 0,  c: "#5ddaf0" },
+                  { label: "Tech-Schrott", v: run.wood_dropped ?? 0,  c: "#FF6B4A" },
+                  { label: "Komponenten",  v: run.stone_dropped ?? 0, c: "#9aa3b2" },
+                  { label: "Krypto",       v: run.gold_dropped ?? 0,  c: "#FFD700" },
+                  { label: "Bandbreite",   v: run.mana_dropped ?? 0,  c: "#5ddaf0" },
                 ].map((r) => (
                   <div key={r.label} style={{ background: "rgba(0,0,0,0.25)", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "6px 8px", textAlign: "center" }}>
                     <div style={{ color: MUTED, fontSize: 9, fontWeight: 800 }}>{r.label}</div>

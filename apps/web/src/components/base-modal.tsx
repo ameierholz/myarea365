@@ -214,10 +214,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   // Resource-Icon-Fallback (Theme-Override > Default-Emoji). Artwork-Image wird
   // separat via <ResourceIcon> gerendert wenn ein Bild im cosmetic_artwork-Slot liegt.
   const RES = {
-    wood:  { icon: theme?.resource_icon_wood  ?? "🪵", color: "#a16f32", label: "Holz",  hint: "🌳 Park-km",                  rate: 100 },
-    stone: { icon: theme?.resource_icon_stone ?? "🪨", color: "#8B8FA3", label: "Stein", hint: "🏘 Wohngebiet-km",            rate: 100 },
-    gold:  { icon: theme?.resource_icon_gold  ?? "🪙", color: "#FFD700", label: "Gold",  hint: "🏬 Stadtkern-km",             rate: 100 },
-    mana:  { icon: theme?.resource_icon_mana  ?? "💧", color: "#22D1C3", label: "Mana",  hint: "💧 am Wasser-km",             rate: 100 },
+    wood:  { icon: theme?.resource_icon_wood  ?? "⚙️", color: "#FF6B4A", label: "Tech-Schrott", hint: "🏚 Schrottplatz-km / Industrie-km", rate: 100 },
+    stone: { icon: theme?.resource_icon_stone ?? "🔩", color: "#8B8FA3", label: "Komponenten",  hint: "🏗 Baumarkt-km / Logistik-km",     rate: 100 },
+    gold:  { icon: theme?.resource_icon_gold  ?? "💸", color: "#FFD700", label: "Krypto",       hint: "🏦 Bankenviertel-km / Konzerne",   rate: 100 },
+    mana:  { icon: theme?.resource_icon_mana  ?? "📡", color: "#22D1C3", label: "Bandbreite",   hint: "📶 WLAN-Hotspot-km / Funkmasten",  rate: 100 },
   } as const;
 
   // Passive Produktion pro Stunde — summiert effect_per_level × level für die
@@ -1396,10 +1396,10 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
                         </div>
                         <div className="text-[9px] text-[#a8b4cf]">⚔️ {t.base_atk} · 🛡 {t.base_def} · ❤️ {t.base_hp} · ⏱ {t.train_time_seconds}s</div>
                         <div className="text-[9px] text-[#a8b4cf] flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={11} fallback="🪵" art={resourceArt} />{t.cost_wood}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={11} fallback="🪨" art={resourceArt} />{t.cost_stone}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={11} fallback="🪙" art={resourceArt} />{t.cost_gold}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={11} fallback="💧" art={resourceArt} />{t.cost_mana}</span>
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={11} fallback="⚙️" art={resourceArt} />{t.cost_wood}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={11} fallback="🔩" art={resourceArt} />{t.cost_stone}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={11} fallback="💸" art={resourceArt} />{t.cost_gold}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={11} fallback="📡" art={resourceArt} />{t.cost_mana}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -1676,7 +1676,7 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
           <div className="text-[10px] text-[#a8b4cf] mb-2 inline-flex items-center gap-1 flex-wrap">
             <span>{status.duration_hours ?? 24}h unsichtbar + unangreifbar. Kostet</span>
             <b style={{ color: "#FFD700" }} className="inline-flex items-center gap-0.5">
-              {status.cost_gold ?? 500}<ResourceIcon kind="gold" size={12} fallback="🪙" art={resourceArt} />
+              {status.cost_gold ?? 500}<ResourceIcon kind="gold" size={12} fallback="💸" art={resourceArt} />
             </b>
             <span>. Cooldown: 7 Tage.</span>
           </div>
@@ -1684,7 +1684,7 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
             className="w-full px-3 py-2 rounded-lg text-[11px] font-black disabled:opacity-40 inline-flex items-center justify-center gap-1.5"
             style={{ background: "linear-gradient(135deg, #FF6B4A, #FF6B4Acc)", color: "#0F1115" }}>
             🛡️ {busy ? "Aktiviere…" : `Schild aktivieren · ${status.cost_gold ?? 500}`}
-            {!busy && <ResourceIcon kind="gold" size={14} fallback="🪙" art={resourceArt} />}
+            {!busy && <ResourceIcon kind="gold" size={14} fallback="💸" art={resourceArt} />}
           </button>
         </>
       )}
@@ -2473,7 +2473,7 @@ function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Prom
       </select>
       <div className="flex gap-1">
         {(["wood","stone","gold","mana"] as const).map((k) => {
-          const labels = { wood: "Holz", stone: "Stein", gold: "Gold", mana: "Mana" } as const;
+          const labels = { wood: "Tech-Schrott", stone: "Komponenten", gold: "Krypto", mana: "Bandbreite" } as const;
           const fbs = { wood: "🪵", stone: "🪨", gold: "🪙", mana: "💧" } as const;
           return (
             <button key={k} onClick={() => setResType(k)}
@@ -2563,10 +2563,10 @@ function PackagesCard({ accent }: { accent: string }) {
               {p.bonus_label && <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: accent, color: "#0F1115" }}>{p.bonus_label}</span>}
             </div>
             <div className="text-[10px] text-[#a8b4cf] mt-1 inline-flex flex-wrap items-center gap-1">
-              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={12} fallback="🪵" art={resourceArt} />{p.reward_wood.toLocaleString("de-DE")}</span>·
-              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={12} fallback="🪨" art={resourceArt} />{p.reward_stone.toLocaleString("de-DE")}</span>·
-              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={12} fallback="🪙" art={resourceArt} />{p.reward_gold.toLocaleString("de-DE")}</span>·
-              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={12} fallback="💧" art={resourceArt} />{p.reward_mana.toLocaleString("de-DE")}</span>
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={12} fallback="⚙️" art={resourceArt} />{p.reward_wood.toLocaleString("de-DE")}</span>·
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={12} fallback="🔩" art={resourceArt} />{p.reward_stone.toLocaleString("de-DE")}</span>·
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={12} fallback="💸" art={resourceArt} />{p.reward_gold.toLocaleString("de-DE")}</span>·
+              <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={12} fallback="📡" art={resourceArt} />{p.reward_mana.toLocaleString("de-DE")}</span>
               {p.reward_speed_tokens > 0 && <span className="inline-flex items-center gap-0.5">·<ResourceIcon kind="speed_token" size={12} fallback="⚡" art={resourceArt} />{p.reward_speed_tokens}</span>}
             </div>
           </div>

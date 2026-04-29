@@ -62,12 +62,12 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     @keyframes shopBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
     @keyframes spotlightBadgeShimmer {
-      0%,100% { opacity: 0.92; }
-      50%     { opacity: 1; }
+      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,215,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6); filter: brightness(1); }
+      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,215,0,0.95), inset 0 1px 0 rgba(255,255,255,0.8); filter: brightness(1.12); }
     }
     @keyframes spotlightBadgeStar {
-      0%,100% { transform: rotate(0deg) scale(1); }
-      50%     { transform: rotate(14deg) scale(1.15); }
+      0%,100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
+      50%     { transform: rotate(14deg) scale(1.15); filter: drop-shadow(0 0 4px rgba(255,255,255,1)); }
     }
     .ma365-spotlight-badge {
       display: inline-flex; align-items: center; gap: 4px;
@@ -81,18 +81,17 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       text-shadow: 0 1px 0 rgba(255,255,255,0.35);
       animation: spotlightBadgeShimmer 2.2s ease-in-out infinite;
       pointer-events: none;
-      will-change: opacity;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 18px rgba(255,215,0,0.7), inset 0 1px 0 rgba(255,255,255,0.7);
+      will-change: transform, box-shadow;
     }
     .ma365-spotlight-badge > .star { font-size: 12px; animation: spotlightBadgeStar 2.2s ease-in-out infinite; display: inline-block; }
     /* Arena-Badge: magenta Pill analog zu Spotlight, mit Shield-Icon */
     @keyframes arenaBadgeShimmer {
-      0%,100% { opacity: 0.92; }
-      50%     { opacity: 1; }
+      0%,100% { box-shadow: 0 4px 10px rgba(0,0,0,0.45), 0 0 12px rgba(255,45,120,0.55), inset 0 1px 0 rgba(255,255,255,0.5); filter: brightness(1); }
+      50%     { box-shadow: 0 6px 18px rgba(0,0,0,0.55), 0 0 26px rgba(255,45,120,0.95), inset 0 1px 0 rgba(255,255,255,0.7); filter: brightness(1.15); }
     }
     @keyframes arenaBadgeShieldPulse {
-      0%,100% { transform: scale(1)    rotate(0deg);  }
-      50%     { transform: scale(1.18) rotate(-6deg); }
+      0%,100% { transform: scale(1)    rotate(0deg);  filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
+      50%     { transform: scale(1.18) rotate(-6deg); filter: drop-shadow(0 0 5px rgba(255,255,255,1)); }
     }
     .ma365-arena-badge {
       display: inline-flex; align-items: center; gap: 5px;
@@ -106,22 +105,20 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       text-shadow: 0 1px 0 rgba(0,0,0,0.35);
       animation: arenaBadgeShimmer 2.2s ease-in-out infinite;
       pointer-events: none;
-      will-change: opacity;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 0 20px rgba(255,45,120,0.75), inset 0 1px 0 rgba(255,255,255,0.6);
+      will-change: box-shadow, filter;
     }
     .ma365-arena-badge > .shield { font-size: 12px; animation: arenaBadgeShieldPulse 2.2s ease-in-out infinite; display: inline-block; }
     /* Spotlight-Beam: Bat-Signal-Lichtstrahl von oben auf den Shop */
     @keyframes ma365BeamGlow {
-      0%,100% { opacity: 0.7; }
-      50%     { opacity: 1; }
+      0%,100% { filter: blur(4px) brightness(0.85) saturate(1); }
+      50%     { filter: blur(2.5px) brightness(1.35) saturate(1.2); }
     }
     .ma365-spotlight-beam {
       position: relative;
       width: 54px; height: 130px;
       pointer-events: none;
       transform-origin: center bottom;
-      will-change: opacity;
-      filter: blur(3px);
+      will-change: transform, opacity, filter;
       clip-path: polygon(42% 0%, 58% 0%, 100% 100%, 0% 100%);
       background: linear-gradient(to bottom,
         rgba(255, 215, 0, 0) 0%,
@@ -176,8 +173,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
 
     @keyframes ma365SanctuaryFloat {
-      0%,100% { transform: translateY(0) scale(1); }
-      50%     { transform: translateY(-1px) scale(1.04); }
+      0%,100% { filter: brightness(1); }
+      50%     { filter: brightness(1.15) drop-shadow(0 0 4px rgba(34,209,195,0.5)); }
     }
     .ma365-sanctuary-marker {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -203,29 +200,25 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       border-radius: 999px; padding: 1px 6px;
     }
 
-    /* Wegelager (Strongholds) */
-    @keyframes ma365StrongholdGlow {
-      0%,100% { transform: scale(1); }
-      50%     { transform: scale(1.04); }
-    }
+    /* Wegelager (Strongholds) — kein Flackern, statischer Schatten */
     .ma365-stronghold-marker {
       display: flex; flex-direction: column; align-items: center; gap: 2px;
-      animation: ma365StrongholdGlow 2.4s ease-in-out infinite;
       transform-origin: center bottom;
-      filter: drop-shadow(0 2px 6px rgba(255,45,120,0.7)) drop-shadow(0 0 10px rgba(255,107,74,0.5));
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.55));
     }
-    .ma365-stronghold-emoji { font-size: 30px; line-height: 1; }
+    .ma365-stronghold-emoji { font-size: 60px; line-height: 1; }
     .ma365-stronghold-level {
-      font-size: 10px; font-weight: 900;
-      padding: 2px 7px; border-radius: 999px;
+      font-size: 12px; font-weight: 900;
+      padding: 3px 9px; border-radius: 999px;
       background: linear-gradient(135deg, #FF2D78, #FF6B4A); color: #FFF;
-      border: 1.5px solid rgba(255,255,255,0.9);
+      border: 1.5px solid rgba(255,255,255,0.95);
       box-shadow: 0 2px 6px rgba(255,45,120,0.4);
+      letter-spacing: 0.4px;
     }
     .ma365-stronghold-hp {
-      width: 36px; height: 4px; background: rgba(15,17,21,0.7);
-      border-radius: 999px; overflow: hidden; margin-top: 1px;
-      border: 1px solid rgba(255,255,255,0.3);
+      width: 56px; height: 5px; background: rgba(15,17,21,0.7);
+      border-radius: 999px; overflow: hidden; margin-top: 2px;
+      border: 1px solid rgba(255,255,255,0.4);
     }
     .ma365-stronghold-hp-fill {
       height: 100%; background: linear-gradient(90deg, #4ade80, #FFD700, #FF6B4A);
@@ -236,12 +229,12 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       50%     { transform: translateY(-5px) rotate(5deg); }
     }
     @keyframes ma365CrateGlow {
-      0%,100% { opacity: 0.95; }
-      50%     { opacity: 1; }
+      0%,100% { filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+      50%     { filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 6px 10px rgba(0,0,0,0.6)); }
     }
     @keyframes ma365CrateReady {
-      0%,100% { transform: translateY(-2px) scale(1); }
-      50%     { transform: translateY(-6px) scale(1.08); }
+      0%,100% { transform: translateY(-2px) scale(1); filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 0 28px var(--color)); }
+      50%     { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 22px var(--color)) drop-shadow(0 0 44px var(--color)); }
     }
     @keyframes ma365CrateRing {
       0%   { transform: scale(0.4); opacity: 0.85; }
@@ -993,13 +986,9 @@ export function AppMap({
     const map = mapRef.current;
     if (!map) return;
 
-    let lastPreset: string | null = null;
     const update = () => {
       try {
-        const next = getCurrentLightPreset();
-        if (next === lastPreset) return; // No-op-Guard: spart unnötige Style-Recomputes
-        lastPreset = next;
-        map.setConfigProperty("basemap", "lightPreset", next);
+        map.setConfigProperty("basemap", "lightPreset", getCurrentLightPreset());
       } catch { /* style evtl. gerade im Transition */ }
     };
     const interval = setInterval(update, 5 * 60 * 1000);
@@ -1055,12 +1044,9 @@ export function AppMap({
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
-    let last3d: boolean | null = null;
     const apply = () => {
       try {
         const enabled = (localStorage.getItem("pref:display_3d") ?? "true") !== "false";
-        if (enabled === last3d) return; // No-op-Guard
-        last3d = enabled;
         map.setConfigProperty("basemap", "show3dObjects", enabled);
       } catch { /* style evtl. nicht Standard */ }
     };
@@ -2319,43 +2305,19 @@ export function AppMap({
     }
   }, [mapReady, shopTrail]);
 
-  // ── Boss-Raids DOM Marker (diff-based: nur Deltas anfassen, in-place HP-Update) ──
-  type BossEntry = { marker: mapboxgl.Marker; el: HTMLElement; hpFill: HTMLElement; data: typeof bossRaids[0] };
-  const bossMarkersRef = useRef<Map<string, BossEntry>>(new Map());
-  const onBossClickRef = useRef(onBossClick);
-  onBossClickRef.current = onBossClick;
+  // ── Boss-Raids DOM Marker (Pulse + HP-Bar, zoom-skaliert) ──
+  const bossMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    const wantIds = new Set(bossRaids.map((b) => b.id));
+    bossMarkersRef.current.forEach(({ marker }) => marker.remove());
+    bossMarkersRef.current = [];
 
-    // 1) Entfernen: Marker, die nicht mehr existieren
-    for (const [id, entry] of bossMarkersRef.current) {
-      if (!wantIds.has(id)) {
-        entry.marker.remove();
-        bossMarkersRef.current.delete(id);
-      }
-    }
-
-    // 2) Hinzufügen oder in-place aktualisieren
     bossRaids.forEach((b) => {
-      const existing = bossMarkersRef.current.get(b.id);
-      const pct = Math.round((b.current_hp / b.max_hp) * 100);
-      if (existing) {
-        // In-place: nur HP-Fill anpassen, Position/Click-Handler bleiben
-        if (existing.data.current_hp !== b.current_hp || existing.data.max_hp !== b.max_hp) {
-          existing.hpFill.style.width = `${pct}%`;
-        }
-        if (existing.data.lat !== b.lat || existing.data.lng !== b.lng) {
-          existing.marker.setLngLat([b.lng, b.lat]);
-        }
-        existing.data = b;
-        return;
-      }
-      // Neu erstellen
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
+      const pct = Math.round((b.current_hp / b.max_hp) * 100);
       const inner = document.createElement("div");
       inner.className = "ma365-boss-marker";
       inner.style.transformOrigin = "center bottom";
@@ -2363,12 +2325,11 @@ export function AppMap({
           <div class="ma365-boss-circle"><span class="ma365-boss-emoji">${b.emoji}</span></div>
           <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>`;
       inner.title = b.name;
-      const hpFill = inner.querySelector(".ma365-boss-hpfill") as HTMLElement;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onBossClickRef.current?.(b.id));
+      outer.addEventListener("click", () => onBossClick?.(b.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([b.lng, b.lat]).addTo(map);
-      bossMarkersRef.current.set(b.id, { marker, el: inner, hpFill, data: b });
+      bossMarkersRef.current.push({ marker, el: inner });
     });
 
     const applyScale = () => {
@@ -2386,63 +2347,34 @@ export function AppMap({
 
     return () => {
       map.off("zoom", applyScale);
-    };
-  }, [mapReady, bossRaids]);
-
-  // Cleanup beim Unmount
-  useEffect(() => {
-    return () => {
       bossMarkersRef.current.forEach(({ marker }) => marker.remove());
-      bossMarkersRef.current.clear();
+      bossMarkersRef.current = [];
     };
-  }, []);
+  }, [mapReady, bossRaids, onBossClick]);
 
-  // ── Sanctuaries DOM Marker (diff-based) ──
-  type SanctEntry = { marker: mapboxgl.Marker; el: HTMLElement; data: typeof sanctuaries[0] };
-  const sanctuaryMarkersRef = useRef<Map<string, SanctEntry>>(new Map());
-  const onSanctuaryClickRef = useRef(onSanctuaryClick);
-  onSanctuaryClickRef.current = onSanctuaryClick;
+  // ── Sanctuaries DOM Marker (zoom-skaliert) ──
+  const sanctuaryMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    const wantIds = new Set(sanctuaries.map((s) => s.id));
-
-    for (const [id, entry] of sanctuaryMarkersRef.current) {
-      if (!wantIds.has(id)) {
-        entry.marker.remove();
-        sanctuaryMarkersRef.current.delete(id);
-      }
-    }
+    sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
+    sanctuaryMarkersRef.current = [];
 
     sanctuaries.forEach((s) => {
-      const existing = sanctuaryMarkersRef.current.get(s.id);
-      if (existing) {
-        // In-place: nur done-State + XP-Label aktualisieren wenn geändert
-        if (existing.data.trained_today !== s.trained_today || existing.data.xp_reward !== s.xp_reward) {
-          existing.el.className = `ma365-sanctuary-marker ${s.trained_today ? "done" : ""}`;
-          existing.el.innerHTML = `
-              <div class="ma365-sanctuary-emoji">${s.emoji}</div>
-              ${s.trained_today ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
-        }
-        if (existing.data.lat !== s.lat || existing.data.lng !== s.lng) {
-          existing.marker.setLngLat([s.lng, s.lat]);
-        }
-        existing.data = s;
-        return;
-      }
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
+      const done = s.trained_today;
       const inner = document.createElement("div");
-      inner.className = `ma365-sanctuary-marker ${s.trained_today ? "done" : ""}`;
+      inner.className = `ma365-sanctuary-marker ${done ? "done" : ""}`;
       inner.innerHTML = `
           <div class="ma365-sanctuary-emoji">${s.emoji}</div>
-          ${s.trained_today ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
+          ${done ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onSanctuaryClickRef.current?.(s.id));
+      outer.addEventListener("click", () => onSanctuaryClick?.(s.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      sanctuaryMarkersRef.current.set(s.id, { marker, el: inner, data: s });
+      sanctuaryMarkersRef.current.push({ marker, el: inner });
     });
 
     const applyScale = () => {
@@ -2460,151 +2392,59 @@ export function AppMap({
 
     return () => {
       map.off("zoom", applyScale);
-    };
-  }, [mapReady, sanctuaries]);
-
-  // Cleanup beim Unmount
-  useEffect(() => {
-    return () => {
       sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
-      sanctuaryMarkersRef.current.clear();
+      sanctuaryMarkersRef.current = [];
     };
-  }, []);
+  }, [mapReady, sanctuaries, onSanctuaryClick]);
 
-  // ── Wegelager (Strongholds) DOM-Marker (diff-based + lazy video) ──
-  type StrongholdEntry = {
-    marker: mapboxgl.Marker;
-    el: HTMLElement;
-    visualSlot: HTMLElement;
-    levelSlot: HTMLElement;
-    hpFill: HTMLElement;
-    data: typeof strongholds[0];
-    artHash: string;
-  };
-  const strongholdMarkersRef = useRef<Map<string, StrongholdEntry>>(new Map());
-  const onStrongholdClickRef = useRef(onStrongholdClick);
-  onStrongholdClickRef.current = onStrongholdClick;
-  // Lazy-Video-Observer: Video-Elemente bekommen ihre src erst wenn sie im Viewport sind.
-  // Spart GPU-Decoder bei vielen Strongholds gleichzeitig.
-  const strongholdVideoObserverRef = useRef<IntersectionObserver | null>(null);
-  if (typeof window !== "undefined" && !strongholdVideoObserverRef.current) {
-    strongholdVideoObserverRef.current = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const v = entry.target as HTMLVideoElement;
-        const realSrc = v.dataset.lazySrc;
-        if (entry.isIntersecting && realSrc && !v.src) {
-          v.src = realSrc;
-        } else if (!entry.isIntersecting && v.src) {
-          v.pause();
-          v.removeAttribute("src");
-          v.load();
-        }
-      });
-    }, { rootMargin: "100px" });
-  }
-
-  const buildStrongholdVisual = (s: typeof strongholds[0]): string => {
-    const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
-    if (art?.image_url) {
-      return `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'" />`;
-    } else if (art?.video_url) {
-      return `<video data-lazy-src="${art.video_url}" autoplay loop muted playsinline preload="none" class="ma365-stronghold-emoji ma365-stronghold-lazy-video" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'"></video>`;
-    }
-    return `<div class="ma365-stronghold-emoji">🏰</div>`;
-  };
-  const computeArtHash = (s: typeof strongholds[0]): string => {
-    const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
-    return `${art?.image_url ?? ""}|${art?.video_url ?? ""}`;
-  };
-
+  // ── Wegelager (Strongholds) DOM-Marker ──
+  const strongholdMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    const wantIds = new Set(strongholds.map((s) => s.id));
-
-    // Entfernen
-    for (const [id, entry] of strongholdMarkersRef.current) {
-      if (!wantIds.has(id)) {
-        entry.marker.remove();
-        strongholdMarkersRef.current.delete(id);
-      }
-    }
+    strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
+    strongholdMarkersRef.current = [];
 
     strongholds.forEach((s) => {
-      const existing = strongholdMarkersRef.current.get(s.id);
-      const newArtHash = computeArtHash(s);
-      const hpPct = Math.max(0, Math.min(100, s.hp_pct));
-      if (existing) {
-        // HP in-place
-        if (existing.data.hp_pct !== s.hp_pct) {
-          existing.hpFill.style.width = `${hpPct}%`;
-        }
-        // Level in-place
-        if (existing.data.level !== s.level) {
-          existing.levelSlot.textContent = `Lv${s.level}`;
-        }
-        // Position in-place
-        if (existing.data.lat !== s.lat || existing.data.lng !== s.lng) {
-          existing.marker.setLngLat([s.lng, s.lat]);
-        }
-        // Artwork nur tauschen wenn es sich tatsächlich geändert hat
-        if (existing.artHash !== newArtHash) {
-          // Alte Video-Elemente abmelden
-          existing.visualSlot.querySelectorAll("video").forEach((v) => strongholdVideoObserverRef.current?.unobserve(v));
-          existing.visualSlot.innerHTML = buildStrongholdVisual(s);
-          existing.visualSlot.querySelectorAll("video").forEach((v) => strongholdVideoObserverRef.current?.observe(v));
-          existing.artHash = newArtHash;
-        }
-        existing.data = s;
-        return;
-      }
-
-      // Neu
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
       const inner = document.createElement("div");
       inner.className = "ma365-stronghold-marker";
 
-      const visualSlot = document.createElement("div");
-      visualSlot.style.display = "contents";
-      visualSlot.innerHTML = buildStrongholdVisual(s);
+      // Ein einziges Artwork für alle Wegelager — Slot "wegelager", Fallback auf
+      // alte Slots (default/level_<N>) für Rückwärtskompatibilität, dann Emoji.
+      const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
+      let visualHtml: string;
+      if (art?.video_url) {
+        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" style="width:85px;height:85px;object-fit:contain;"></video>`;
+      } else if (art?.image_url) {
+        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:85px;height:85px;object-fit:contain;" />`;
+      } else {
+        visualHtml = `<div class="ma365-stronghold-emoji">🏰</div>`;
+      }
 
-      const levelSlot = document.createElement("div");
-      levelSlot.className = "ma365-stronghold-level";
-      levelSlot.textContent = `Lv${s.level}`;
-
-      const hpBar = document.createElement("div");
-      hpBar.className = "ma365-stronghold-hp";
-      const hpFill = document.createElement("div");
-      hpFill.className = "ma365-stronghold-hp-fill";
-      hpFill.style.width = `${hpPct}%`;
-      hpBar.appendChild(hpFill);
-
-      inner.appendChild(visualSlot);
-      inner.appendChild(levelSlot);
-      inner.appendChild(hpBar);
-
-      // Video-Lazy-Load registrieren
-      visualSlot.querySelectorAll("video").forEach((v) => strongholdVideoObserverRef.current?.observe(v));
-
+      inner.innerHTML = `
+        ${visualHtml}
+        <div class="ma365-stronghold-level">Lv${s.level}</div>
+        <div class="ma365-stronghold-hp"><div class="ma365-stronghold-hp-fill" style="width:${Math.max(0, Math.min(100, s.hp_pct))}%"></div></div>`;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onStrongholdClickRef.current?.(s.id));
+      outer.addEventListener("click", () => onStrongholdClick?.(s.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      strongholdMarkersRef.current.set(s.id, {
-        marker, el: inner, visualSlot, levelSlot, hpFill, data: s, artHash: newArtHash,
-      });
+      strongholdMarkersRef.current.push({ marker, el: inner });
     });
 
     const applyScale = () => {
       const zoom = map.getZoom();
+      // Synchron mit Spotlight/Liga-Badges: < z=13 versteckt.
+      // Beim Reinzoomen größer als ursprünglich (max 1.4× bei z=18+).
       // z=13→0.55, z=15→0.95, z=17→1.30, z=18+→1.40
       const hide = zoom < 13;
       let scale = 1.4;
-      if      (zoom < 15)   scale = 0.55 + ((zoom - 13) / 2) * 0.40;
-      else if (zoom < 17)   scale = 0.95 + ((zoom - 15) / 2) * 0.35;
-      else if (zoom < 18)   scale = 1.30 + (zoom - 17) * 0.10;
+      if      (zoom < 15)   scale = 0.55 + ((zoom - 13) / 2) * 0.40; // 0.55 → 0.95
+      else if (zoom < 17)   scale = 0.95 + ((zoom - 15) / 2) * 0.35; // 0.95 → 1.30
+      else if (zoom < 18)   scale = 1.30 + (zoom - 17) * 0.10;        // 1.30 → 1.40
       strongholdMarkersRef.current.forEach(({ el }) => {
         el.style.transform = `scale(${scale.toFixed(2)})`;
         el.style.transformOrigin = "bottom center";
@@ -2616,22 +2456,15 @@ export function AppMap({
     map.on("zoom", applyScale);
     return () => {
       map.off("zoom", applyScale);
-    };
-  }, [mapReady, strongholds, strongholdArt]);
-
-  // Cleanup beim Unmount
-  useEffect(() => {
-    return () => {
       strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
-      strongholdMarkersRef.current.clear();
-      strongholdVideoObserverRef.current?.disconnect();
+      strongholdMarkersRef.current = [];
     };
-  }, []);
+  }, [mapReady, strongholds, onStrongholdClick, strongholdArt]);
 
   // ── Loot-Drops: animierte Kisten mit Proximity-Pickup ──
   // Diff-basiert: bestehende Marker bleiben stehen, nur neue/entfernte werden geändert
   // (verhindert Flackern/Reload beim Spawn neuer Drops).
-  const lootMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; drop: typeof lootDrops[0]; timerEl: HTMLElement | null }>>([]);
+  const lootMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; drop: typeof lootDrops[0] }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
@@ -2665,13 +2498,12 @@ export function AppMap({
           <div class="ma365-loot-proximity"></div>
           <div class="ma365-loot-proximity two"></div>
           <div class="ma365-loot-crate">${crate}</div>
-          <div class="ma365-loot-timer" data-loot-timer="${d.expires_at ?? 0}" style="position:absolute;left:50%;top:-14px;transform:translateX(-50%);background:rgba(15,17,21,0.85);color:#FFF;font-size:9px;font-weight:900;letter-spacing:0.4px;padding:1px 5px;border-radius:6px;border:1px solid ${color}88;white-space:nowrap;pointer-events:none;font-family:var(--font-display-stack);text-shadow:0 1px 2px rgba(0,0,0,0.8);"></div>
+          <div class="ma365-loot-timer" data-loot-timer="${d.expires_at ?? 0}" style="position:absolute;left:50%;top:-16px;transform:translateX(-50%);background:rgba(15,17,21,0.85);color:#FFF;font-size:11px;font-weight:800;letter-spacing:0.2px;padding:2px 6px;border-radius:6px;border:1px solid ${color}88;white-space:nowrap;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.8);"></div>
         </div>`;
       outer.addEventListener("click", () => onLootClick?.(d.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
         .setLngLat([d.lng, d.lat]).addTo(map);
-      const timerEl = outer.querySelector(".ma365-loot-timer") as HTMLElement | null;
-      lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d, timerEl });
+      lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d });
     });
     return () => { /* Cleanup nur beim Unmount via mapReady=false-Reset */ };
   }, [mapReady, lootDrops, onLootClick]);
@@ -2687,14 +2519,12 @@ export function AppMap({
     };
     const tick = () => {
       const now = Date.now();
-      // Pro Loot-Marker direkten ref — kein DOM-Scan pro Sekunde
-      lootMarkersRef.current.forEach(({ timerEl, drop }) => {
-        if (!timerEl) return;
-        const exp = drop.expires_at ?? 0;
-        if (!exp) { timerEl.textContent = ""; return; }
+      document.querySelectorAll<HTMLElement>("[data-loot-timer]").forEach((el) => {
+        const exp = Number(el.dataset.lootTimer || "0");
+        if (!exp) { el.textContent = ""; return; }
         const left = exp - now;
-        if (left <= 0) { timerEl.textContent = "weg"; return; }
-        timerEl.textContent = fmt(left);
+        if (left <= 0) { el.textContent = "weg"; return; }
+        el.textContent = fmt(left);
       });
     };
     tick();
@@ -2843,8 +2673,8 @@ export function AppMap({
       const ownDark = pin.kind === "crew" ? "#a01755" : "#0c8478";
 
       // Tower-Silhouette für mid-LOD — Burg-Form (Crew) bzw. Single-Tower (Runner)
-      const SVG_CASTLE = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
-      const SVG_RUNNER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 4 L13 7 L13 11 L11 13 L11 36 L21 36 L21 13 L19 11 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="18" width="4" height="5" fill="${ownDark}"/></svg>`;
+      const SVG_CASTLE = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+      const SVG_RUNNER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M16 4 L13 7 L13 11 L11 13 L11 36 L21 36 L21 13 L19 11 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="18" width="4" height="5" fill="${ownDark}"/></svg>`;
       // Optionales Silhouette-Artwork (kann via Admin-Tab überschrieben werden)
       const silSlot = `base_silhouette_${scope}`;
       const silArt = uiIconArt[silSlot];
@@ -2855,7 +2685,7 @@ export function AppMap({
 
       // ── Stage 1: STAMP — Mini-SVG-Silhouette (oder Mini-Artwork falls vorhanden)
       const stampEl = document.createElement("div");
-      const stampSize = pin.kind === "crew" ? 16 : 13;
+      const stampSize = pin.kind === "crew" ? 22 : 18;
       stampEl.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${stampSize}px;height:${Math.round(stampSize * 1.18)}px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));cursor:pointer;pointer-events:auto;`;
       if (hasSilArt && silArt?.image_url) {
         stampEl.innerHTML = `<img src="${silArt.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"/>`;
@@ -2870,7 +2700,7 @@ export function AppMap({
 
       // ── Stage 2: SILHOUETTE — flacher Tower + LV-Chip + Name-Banner
       const silWrap = document.createElement("div");
-      const silTowerSize = pin.kind === "crew" ? 38 : 32;
+      const silTowerSize = pin.kind === "crew" ? 52 : 44;
       silWrap.dataset.size = String(silTowerSize);
       silWrap.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:1px;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.45));`;
       const silTower = document.createElement("div");
@@ -2898,7 +2728,7 @@ export function AppMap({
       zoomWrap.appendChild(silWrap);
 
       // ── Stage 3: FULL — Artwork in konstanter Größe (passt ins Tile, nicht mehr 250px)
-      const ART_SIZE = 80;
+      const ART_SIZE = 300;
       const inner = document.createElement("div");
       inner.dataset.fullSize = String(ART_SIZE);
       inner.style.cssText = [
@@ -3018,6 +2848,17 @@ export function AppMap({
         stampEl.style.display = stamp ? "block" : "none";
         silEl.style.display   = sil   ? "flex"  : "none";
         fullEl.style.display  = full  ? "flex"  : "none";
+
+        // Zoom-Skalierung im FULL-Stage: bei niedrigem Zoom kleiner, bei hohem größer
+        // (sonst wirkt das Sprite beim Rauszoomen monströs groß im Vergleich zum Kartenkontext)
+        if (full) {
+          // z=16 → 0.55, z=17 → 0.85, z=18 → 1.0, z=19+ → 1.15
+          let s = 1.0;
+          if      (z < 17)   s = 0.55 + ((z - 16) / 1) * 0.30;
+          else if (z < 18)   s = 0.85 + ((z - 17) / 1) * 0.15;
+          else               s = 1.0  + Math.min(0.15, (z - 18) * 0.075);
+          fullEl.style.transform = `translate(-50%, -50%) scale(${s.toFixed(2)})`;
+        }
       });
     };
     updateBasePinVisibility();
@@ -3440,9 +3281,9 @@ export function AppMap({
       const ownDark  = r.is_own ? "#0c8478" : "#a01755";
 
       // SVG-Silhouetten für das Mid-LOD (CoD-Style flache mono-Tower-Icons)
-      const SVG_HQ = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 2 L18 5 L16 7 L14 5 Z M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
-      const SVG_MEGA = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 2 L14 4 L14 7 L11 7 L11 10 L13 10 L13 13 L10 16 L10 36 L22 36 L22 16 L19 13 L19 10 L21 10 L21 7 L18 7 L18 4 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><circle cx="16" cy="3" r="1.5" fill="${ownDark}"/></svg>`;
-      const SVG_REPEATER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 4 L13 7 L13 14 L9 18 L9 36 L23 36 L23 18 L19 14 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="20" width="4" height="6" fill="${ownDark}"/></svg>`;
+      const SVG_HQ = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M16 2 L18 5 L16 7 L14 5 Z M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+      const SVG_MEGA = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M16 2 L14 4 L14 7 L11 7 L11 10 L13 10 L13 13 L10 16 L10 36 L22 36 L22 16 L19 13 L19 10 L21 10 L21 7 L18 7 L18 4 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><circle cx="16" cy="3" r="1.5" fill="${ownDark}"/></svg>`;
+      const SVG_REPEATER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M16 4 L13 7 L13 14 L9 18 L9 36 L23 36 L23 18 L19 14 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="20" width="4" height="6" fill="${ownDark}"/></svg>`;
       // Optionales Silhouette-Artwork (überschreibt SVG falls vorhanden)
       const silSlot = isHQ ? "repeater_silhouette_hq" : isMega ? "repeater_silhouette_mega" : "repeater_silhouette_normal";
       const silArt = uiIconArt[silSlot];
@@ -3467,7 +3308,7 @@ export function AppMap({
 
       // Stage 1: STAMP — Mini-Tower-Silhouette (selber SVG, sehr klein)
       const stampEl = document.createElement("div");
-      const stampSize = isHQ ? 14 : isMega ? 12 : 10;
+      const stampSize = isHQ ? 20 : isMega ? 17 : 14;
       stampEl.style.cssText = `
         position:absolute; left:50%; top:50%;
         transform:translate(-50%, -50%);
@@ -3484,7 +3325,7 @@ export function AppMap({
 
       // Stage 2: SILHOUETTE — flache farbige Tower-Silhouette (KEIN Artwork)
       const silEl = document.createElement("div");
-      const silSize = isHQ ? 36 : isMega ? 30 : 26;
+      const silSize = isHQ ? 48 : isMega ? 40 : 34;
       silEl.dataset.size = String(silSize);
       silEl.style.cssText = `
         position:absolute; left:50%; top:50%;
@@ -3503,7 +3344,7 @@ export function AppMap({
 
       // Stage 3: FULL — Artwork (oder stilisierte Tile als Fallback)
       const artEl = document.createElement("div");
-      const fullArtSize = isHQ ? 70 : isMega ? 58 : 48;
+      const fullArtSize = isHQ ? 150 : isMega ? 120 : 120;
       artEl.dataset.fullSize = String(fullArtSize);
       artEl.style.cssText = `
         position:absolute; left:50%; top:50%;
@@ -3624,6 +3465,15 @@ export function AppMap({
         stampEl.style.display = stamp ? "block" : "none";
         silEl.style.display   = sil   ? "block" : "none";
         artEl.style.display   = full  ? "flex"  : "none";
+
+        // Zoom-Skalierung im FULL-Stage des Repeaters
+        if (full) {
+          let s = 1.0;
+          if      (z < 17)   s = 0.55 + ((z - 16) / 1) * 0.30;
+          else if (z < 18)   s = 0.85 + ((z - 17) / 1) * 0.15;
+          else               s = 1.0  + Math.min(0.15, (z - 18) * 0.075);
+          artEl.style.transform = `translate(-50%, -50%) scale(${s.toFixed(2)})`;
+        }
 
         if (banner) {
           const showBanner = (sil || full) && (banner.dataset.label ?? "").length > 0;

@@ -367,10 +367,10 @@ function SpyReportView({ msg, resourceArt }: { msg: Msg; resourceArt: ReturnType
 function SystemRewardView({ msg, resourceArt, onClaim }: { msg: Msg; resourceArt: ReturnType<typeof useResourceArt>; onClaim: () => void }) {
   const r = msg.reward_payload ?? {};
   const items = [
-    { k: "wood",  label: "Holz",  v: r.wood ?? 0,  fb: "🌲" },
-    { k: "stone", label: "Stein", v: r.stone ?? 0, fb: "🪨" },
-    { k: "gold",  label: "Gold",  v: r.gold ?? 0,  fb: "🪙" },
-    { k: "mana",  label: "Mana",  v: r.mana ?? 0,  fb: "💧" },
+    { k: "wood",  label: "Tech-Schrott", v: r.wood ?? 0,  fb: "⚙️" },
+    { k: "stone", label: "Komponenten",  v: r.stone ?? 0, fb: "🔩" },
+    { k: "gold",  label: "Krypto",       v: r.gold ?? 0,  fb: "💸" },
+    { k: "mana",  label: "Bandbreite",   v: r.mana ?? 0,  fb: "📡" },
   ].filter((x) => x.v > 0);
   const tokens = r.speed_tokens ?? 0;
   const claimed = !!msg.claimed_at;

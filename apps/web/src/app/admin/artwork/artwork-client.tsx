@@ -1543,8 +1543,8 @@ function MapBuildingsTab({ strongholdArt, uiIconArt, silhouetteSlots, onChange }
                     border: `2px solid ${s.accent}`,
                     boxShadow: `0 0 14px ${s.accent}66`,
                   }}>
-                    {art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
-                      : art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
+                    {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
+                      : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
                       : <span style={{ fontSize: 36 }}>{s.fallbackEmoji}</span>}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -165,10 +165,10 @@ export function TroopDetailModal({
 
               {/* Cost */}
               <div className="grid grid-cols-4 gap-1.5 mt-3">
-                <CostChip kind="gold"  fallback="🪙" value={costGold}  label="Gold"  art={resourceArt} />
-                <CostChip kind="wood"  fallback="🪵" value={costWood}  label="Holz"  art={resourceArt} />
-                <CostChip kind="stone" fallback="🪨" value={costStone} label="Stein" art={resourceArt} />
-                <CostChip kind="mana"  fallback="💧" value={costMana}  label="Mana"  art={resourceArt} />
+                <CostChip kind="gold"  fallback="💸" value={costGold}  label="Krypto"        art={resourceArt} />
+                <CostChip kind="wood"  fallback="⚙️" value={costWood}  label="Tech-Schrott"  art={resourceArt} />
+                <CostChip kind="stone" fallback="🔩" value={costStone} label="Komponenten"   art={resourceArt} />
+                <CostChip kind="mana"  fallback="📡" value={costMana}  label="Bandbreite"    art={resourceArt} />
               </div>
               <div className="text-[10px] text-white/60 mt-2 text-center">
                 Vorrat: <b className="text-[#FFD700]">{(owned.get(troop.id) ?? 0).toLocaleString("de-DE")}</b>

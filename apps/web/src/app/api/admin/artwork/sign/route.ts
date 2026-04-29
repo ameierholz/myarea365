@@ -65,13 +65,7 @@ export async function POST(req: Request) {
     troop:      "troops",
   };
   const folder = folderMap[body.target_type] ?? "items";
-  // Timestamp im Dateinamen umgeht den Supabase-Storage-CDN-Cache, der sonst
-  // beim Re-Upload auf gleichen Pfad das alte File serviert (Query-Strings werden
-  // beim Cache-Key ignoriert). Kosten: ein paar verwaiste alte Dateien im Bucket.
-  const ts = Date.now();
-  const filename = body.target_type === "marker"
-    ? `${safeId}_${variant}_${ts}.${ext}`
-    : `${safeId}_${ts}.${ext}`;
+  const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;
   const path = `${folder}/${filename}`;
 
   const { data, error } = await sb.storage.from("artwork").createSignedUploadUrl(path, { upsert: true });
