@@ -481,12 +481,12 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
     ].filter(Boolean).join(" ");
   }
 
-  // ══════ IMAGE-PROMPT ══════
+  // ══════ IMAGE-PROMPT ══════ (transparent PNG, kein Greenscreen nötig)
   return [
     `Cinematic character key art, square 1:1, 1024x1024, single subject.`,
-    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame including a clean margin around the character — no gradient, no pattern, no texture, no atmospheric effects. (Chroma-keyed to transparent in the app.)`,
+    `Background: FULLY TRANSPARENT PNG with alpha channel — completely empty outside the silhouette of the character and its tight aura. No background color, no gradient, no scene, no environment, no fill, no checkerboard, no white, no black, no green. The pixels outside the character+aura must have alpha = 0 (true transparency).`,
     `Subject: ${subjectBase}. Pose: ${pose}, confident expression appropriate to the species.${speciesPose ? " " + speciesPose + "." : ""}`,
-    `FRAMING (critical): character is FULLY CONTAINED inside the 1024x1024 frame with a uniform green margin of approximately 60-100 pixels (5-10% of frame size) on TOP, BOTTOM, LEFT and RIGHT. Silhouette must NOT touch any frame edge. Full head, both shoulders, both arms and the full base of the character are visible — nothing cropped, nothing extending past the frame border.`,
+    `FRAMING (critical): character is FULLY CONTAINED inside the 1024x1024 frame with a uniform transparent margin of approximately 60-100 pixels (5-10% of frame size) on TOP, BOTTOM, LEFT and RIGHT. Silhouette must NOT touch any frame edge. Full head, both shoulders, both arms and the full base of the character are visible — nothing cropped, nothing extending past the frame border.`,
     `Hair and head: ${hair}.`,
     `Armor / outfit / body materials: ${armor} — adapted to the species silhouette, unique and distinct so this character does not look like any other character in the set.`,
     `Species signature details: ${profile.signature}.`,
@@ -496,9 +496,9 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
     abilityTheme && `Aura subtly references the character's signature ability "${abilityTheme}".`,
     `Additional close-body effect: ${effect} — no wide smoke, fog, clouds, mist, sparkle dust, or atmospheric haze that covers the frame.`,
     `Lighting: ${aura.primary} rim light from the left, ${aura.secondary} rim light from the right, subtle top-light from above.`,
-    `High detail on face and hands, sharp focus on character, tight silhouette.`,
-    `CRITICAL: NO green tones on the character, armor, hair, skin, aura or effects. ONLY the background is #00FF00 — green on the character would be keyed transparent.`,
-    `NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor, NO clouds, NO fog, NO mist, NO smoke, NO magic circles or glyphs behind the character, NO sparkle dust clouds, NO colored backdrop. Only: pure #00FF00 + contained character (safe margin all sides) + tight silhouette aura.`,
+    `High detail on face and hands, sharp focus on character, tight silhouette. Hard clean silhouette edge — no halo, no fringing, no semi-transparent background bleed.`,
+    `NO rooftop, NO city, NO sky, NO moon, NO ground shadows on a floor, NO clouds, NO fog, NO mist, NO smoke, NO magic circles or glyphs behind the character, NO sparkle dust clouds, NO colored backdrop. Only: contained character + tight silhouette aura on a fully transparent canvas.`,
+    `Output format: PNG with alpha channel.`,
     `No text, no captions, no logos, no watermark, no UI overlays, no brand names, no celebrity likeness.`,
   ].filter(Boolean).join(" ");
 }
@@ -821,17 +821,17 @@ export function buildBaseThemePrompt(input: {
         baseNegative,
       ].filter(Boolean).join(" ");
     }
-    // PIN IMAGE
+    // PIN IMAGE → fully transparent PNG
     return [
       `Single isolated 3D game-building sprite, square 1:1, 1024×1024.`,
-      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame including a clean ~8% margin around the building — no gradient, no pattern, no texture, no atmospheric effects. (Chroma-keyed to transparent in the app.)`,
+      `Background: FULLY TRANSPARENT PNG with alpha channel — completely empty outside the silhouette of the building (and its minimal stone-tile base). No background color, no gradient, no scene, no environment, no fill, no checkerboard, no white, no black, no green. The pixels outside the building must have alpha = 0 (true transparency).`,
       `Subject: ${subject}. This is the "${theme.name}" base theme — ${theme.description}`,
       scopeLine,
-      `FRAMING (critical): building FULLY CONTAINED inside the 1024×1024 frame with a uniform green margin of ~80 pixels on TOP, BOTTOM, LEFT and RIGHT. Silhouette must NOT touch any frame edge.`,
-      `Style: a single isolated 3D game-building sprite in the exact aesthetic of Rise of Kingdoms / Call of Dragons / Clash of Clans town-hall icons. Slight isometric ~30° three-quarter view. Thick clean readable silhouette, vibrant saturated colors. Looks like a polished mobile-game building-icon ripped straight from the game UI. Compact footprint — sits on its own minimal stone-tile base (max 5% larger than structure footprint).`,
+      `FRAMING (critical): building FULLY CONTAINED inside the 1024×1024 frame with a uniform transparent margin of ~80 pixels on TOP, BOTTOM, LEFT and RIGHT. Silhouette must NOT touch any frame edge.`,
+      `Style: a single isolated 3D game-building sprite in the exact aesthetic of Rise of Kingdoms / Call of Dragons / Clash of Clans town-hall icons. Slight isometric ~30° three-quarter view. Thick clean readable silhouette, vibrant saturated colors. Looks like a polished mobile-game building-icon ripped straight from the game UI. Compact footprint — sits on its own minimal stone-tile base (max 5% larger than structure footprint). Hard clean silhouette edge — no halo, no fringing, no semi-transparent background bleed.`,
       paletteLine,
-      `CRITICAL: NO green tones ANYWHERE on the building. NO green flags, banners, gems, lights or accents. The ONLY green is the #00FF00 background. Use teal/cyan/blue/yellow/red/orange/purple/white instead.`,
-      `NO ground plane, NO terrain, NO grass, NO sky, NO trees, NO water, NO mountains, NO scenery, NO environment, NO atmospheric effects. Behind and around the building is ONLY pure #00FF00.`,
+      `NO ground plane, NO terrain, NO grass, NO sky, NO trees, NO water, NO mountains, NO scenery, NO environment, NO atmospheric effects. Outside the building silhouette: only true transparency (alpha = 0).`,
+      `Output format: PNG with alpha channel.`,
       baseNegative,
     ].filter(Boolean).join(" ");
   }
@@ -1064,15 +1064,17 @@ export const BUILDINGS_ART: BuildingArt[] = [
 
 /**
  * Prompt-Builder für Building-Sprite (Image oder Video).
- * Stil-Vorgabe: isometrisches RoK/CoD-Asset auf einer schwebenden Stein-/Gras-Plinte,
- * transparenter Hintergrund, gut lesbar bei kleiner Größe.
+ * Stil-Vorgabe: isometrisches RoK/CoD-Asset auf einer schwebenden Stein-/Gras-Plinte.
+ *  - mode === "image": fordert TRANSPARENTEN PNG-Background (Alpha-Channel).
+ *  - mode === "video": fordert GREENSCREEN #00FF00 (Video-Codecs haben keinen Alpha;
+ *    Frontend keyt das Grün im Browser zu transparent).
  */
 export function buildBuildingPrompt(input: { building: BuildingArt; mode: "image" | "video" }): string {
   const { building, mode } = input;
 
   // ════════════════════════════════════════════════════════════════════
-  // GREENSCREEN-Pipeline (wie Wächter & Base-Themes):
-  // Background = #00FF00, im Frontend chroma-keyed zu transparent.
+  // Image  → Alpha-PNG  (kein Greenscreen nötig, weil PNG Alpha kann)
+  // Video  → Greenscreen #00FF00 (Browser-Chroma-Key)
   // Background-Anweisung MUSS Zeile 2 sein, sonst ignoriert Veo sie.
   // ════════════════════════════════════════════════════════════════════
   const subjectBlock = [
@@ -1085,30 +1087,32 @@ export function buildBuildingPrompt(input: { building: BuildingArt; mode: "image
     `Lighting: bright key light from upper-left at 45°, soft ambient fill from upper-right, gentle warm rim-light.`,
   ];
 
-  const greenscreenNegative = `CRITICAL: NO green tones ANYWHERE on the building, walls, roof, banners, flags, gems, lights or accents. NO green moss-tinted glow, NO green flames, NO green liquids, NO bright lime accents. Use teal/cyan/blue/yellow/red/orange/purple/white instead. The ONLY green is the pure #00FF00 background. No text, no labels, no UI overlays, no watermark, no people, no border frames. NO ground extending past the tile, NO sky, NO trees beyond the small grass topping, NO water/mountains/scenery, NO atmospheric effects.`;
+  const sharedNegative = `No text, no labels, no UI overlays, no watermark, no logo, no people, no characters, no border frames, no pedestals beyond the small iso-tile. NO ground extending past the tile, NO sky, NO clouds, NO trees beyond the small grass topping on the tile, NO water, NO mountains, NO scenery, NO atmospheric effects, NO god-rays, NO fog, NO mist, NO scattered rocks around the tile.`;
+  const greenscreenNegative = `CRITICAL: NO green tones ANYWHERE on the building, walls, roof, banners, flags, gems, lights or accents. NO green moss-tinted glow, NO green flames, NO green liquids, NO bright lime accents. Use teal/cyan/blue/yellow/red/orange/purple/white instead. The ONLY green in the entire frame is the pure #00FF00 background.`;
 
   if (mode === "video") {
     return [
       // 1) Shot-Spec
       `Shot: a 3-second seamlessly looping animated isometric game-asset of "${building.name}" — a ${building.category} building, square 1:1 composition, 1024×1024, 30 fps.`,
-      // 2) Background — GREEN SCREEN
-      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~8% margin around the floating tile. No gradients, no patterns, no texture, no shadows on the green, no environment, no scene.`,
+      // 2) Background — GREEN SCREEN (Video kann keinen Alpha-Channel)
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~8% margin around the floating tile. No gradients, no patterns, no texture, no shadows on the green, no environment, no scene. (The app chroma-keys the green to transparent in the browser.)`,
       ...subjectBlock,
-      // Framing
       `FRAMING (critical): the building + tile is FULLY CONTAINED inside the 1024×1024 frame. Silhouette must NOT touch ANY of the four frame edges. Visible green margin on all four sides.`,
-      // Motion
       `Motion: gentle ambient — slow vertical bob of the floating tile (±2 px), subtle on-structure animation only (flag waves, water flows, fire pulses, glow pulses on the signature element). NO environmental particle drift through empty green space. Camera fully static. First and last frame pixel-identical for seamless loop.`,
       `No audio. Silent video only.`,
+      sharedNegative,
       greenscreenNegative,
     ].join(" ");
   }
 
+  // IMAGE → fully transparent PNG
   return [
     `Single isolated isometric stylized 3D-render game-asset of "${building.name}" — a ${building.category} building. Square 1:1, 1024×1024.`,
-    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame including a clean ~8% margin around the floating tile — no gradient, no pattern, no texture. (Chroma-keyed to transparent in the app.)`,
+    `Background: FULLY TRANSPARENT PNG with alpha channel — completely empty outside the silhouette of the building+tile. No background color, no gradient, no scene, no environment, no fill, no checkerboard, no white, no black, no green. The pixels outside the building+tile must have alpha = 0 (true transparency).`,
     ...subjectBlock,
-    `FRAMING (critical): building + tile FULLY CONTAINED inside the frame with uniform green margin on all four sides. Silhouette must NOT touch any frame edge.`,
-    greenscreenNegative,
+    `FRAMING (critical): building + tile FULLY CONTAINED inside the frame with a clean ~10% transparent margin on all four sides. Silhouette must NOT touch any frame edge.`,
+    sharedNegative,
+    `Output format: PNG with alpha channel. Hard clean silhouette edge — no halo, no fringing, no semi-transparent background bleed, no soft scene fade.`,
   ].join(" ");
 }
 
@@ -1454,9 +1458,37 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
     repeater_hq:     "fortified urban crew HQ bunker built from stacked rusty shipping containers and concrete slabs, massive signal antenna on top emitting pulsing teal #22D1C3 and magenta #FF2D78 energy rings, walls covered in spray-paint graffiti tags and stencils, boarded windows glowing neon teal from inside, satellite dishes, makeshift wooden scaffolding, hanging spray cans and chains, padlocks, dripping pink graffiti accents, dominant intimidating boss-base of a street crew, gritty street-art vibe",
     repeater_mega:   "beefed-up urban broadcast tower on a rooftop — mid-size steel lattice cell tower with multiple stacked satellite dishes pointing in different directions and two crossed antenna rods on top, alternating teal #22D1C3 and magenta #FF2D78 signal-rings pulsing outward, hot orange #FF6B4A warning lights blinking, coiled cables, ladder rungs, sideways DANGER stencil spray, layered crew tags on every flat surface, hanging boombox, mid-tier crew asset between humble street-pole and full HQ, heavy hitter actively broadcasting",
     repeater_normal: "jury-rigged urban signal repeater bolted to a battered street lamp post — twisted antenna rods, makeshift dish made from a hubcap, exposed wiring wrapped in duct tape, warning stickers, crew tags spray-painted on the pole base, single teal #22D1C3 signal-pulse ring radiating from antenna tip, pink #FF2D78 graffiti drip on pole, small blinking red LED, hanging spray can, weathered concrete base, improvised gritty claimed-territory marker, scrappy network node",
+    // Silhouette-Slots (Mid-LOD — flat mono-colored Tower-Shape, NO shading, NO detail)
+    repeater_silhouette_hq:     "flat solid silhouette of a fortified crew HQ bunker — a tall blocky castle-like tower with crenellated rooftop, two side towers, large central body, and a single dish/antenna spike on top. Pure flat single-color shape, NO inner detail, NO shading, NO gradient, NO texture. Just the iconic outline. Centered.",
+    repeater_silhouette_mega:   "flat solid silhouette of a tall urban broadcast tower — narrow base widening to a stacked midsection, lattice steel mast with two crossed antenna rods at the top and a single large dish bracketed to one side. Pure flat single-color shape, NO inner detail, NO shading, NO gradient, NO texture. Just the iconic outline. Centered.",
+    repeater_silhouette_normal: "flat solid silhouette of a small urban repeater on a lamp post — short stocky pole with two short antenna spikes splaying from the top and one mini dish bracketed to the side. Pure flat single-color shape, NO inner detail, NO shading, NO gradient, NO texture. Just the iconic outline. Centered.",
+    base_silhouette_runner:     "flat solid silhouette of a single small house-tower — a compact one-tower silhouette with peaked roof and a small banner pennant on top. Pure flat single-color shape, NO inner detail, NO shading, NO gradient, NO texture. Just the iconic outline. Centered.",
+    base_silhouette_crew:       "flat solid silhouette of a fortified crew castle — multi-tower castle outline with three crenellated towers (one tall central, two shorter flanking), wide gatehouse base, banner pennants on each tower top. Pure flat single-color shape, NO inner detail, NO shading, NO gradient, NO texture. Just the iconic outline. Centered.",
   };
 
   const subject = SUBJECT[s.id] ?? `iconic single-subject illustration representing "${s.name}" — ${s.description}`;
+
+  // Silhouette-Slots brauchen einen speziellen Prompt — FLACHES mono-color
+  // Shape mit transparentem Hintergrund (keine Shading-/Glow-/3D-Effekte).
+  if (s.category === "silhouette") {
+    const silhouetteBase = [
+      `Flat mono-color silhouette icon for a city-walking strategy game — simple solid-color shape suitable for a map marker.`,
+      `Background: FULLY TRANSPARENT PNG with alpha channel. Pixels outside the silhouette must have alpha = 0. No background color, no gradient, no scene, no fill, no halo, no glow.`,
+      `Subject (centered, fills ~85% of frame, anchored to the BOTTOM of the canvas like a building tile): ${subject}`,
+      `Style: PURE FLAT SOLID-COLOR shape — like a black-paper papercut silhouette. One single uniform fill color (use pure white #FFFFFF so it can be tinted via CSS later). NO shading, NO gradients, NO highlights, NO outlines, NO depth, NO perspective lines, NO inner detail strokes. Bold and instantly readable at 24×24 pixels.`,
+      `Composition: 1024×1024 square, single icon. Footprint anchored at the bottom edge with ~5% margin. Hard clean silhouette edge — no anti-aliased halo, no fringing, no semi-transparent background bleed.`,
+      `Output format: PNG with alpha channel. Subject = pure white silhouette on fully transparent background.`,
+      `Strict negatives: no text, no letters, no logo, no watermark, no human figures, no shading, no gradients, no inner details, no outlines, no glow effects, no shadows, no perspective, no 3D rendering, no scenery, no background of any kind.`,
+    ];
+    if (input.mode === "video") {
+      return [
+        ...silhouetteBase,
+        `Animation: a 3-second seamlessly looping subtle pulse — the silhouette scales 100% → 102% → 100% from the bottom anchor. First and last frame pixel-identical. No audio.`,
+        `Note: video format does not support alpha. For video silhouettes, use SOLID PURE NEON GREEN #00FF00 background instead of transparent (chroma-keyed in the app).`,
+      ].join(" ");
+    }
+    return silhouetteBase.join(" ");
+  }
 
   const base = [
     `A premium UI icon for a mobile city-walking strategy game called "${s.name}".`,
@@ -1539,4 +1571,59 @@ export function buildTroopPrompt(input: { slot: TroopSlotInput; mode: "image" | 
     ].join(" ");
   }
   return base;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// STRONGHOLDS — PvE-Wegelager (rote Bandit-Festungen auf der Map)
+// ═══════════════════════════════════════════════════════════════════
+// Ein einziges Artwork (Slot "wegelager") für alle Wegelager-Level —
+// Level wird per Lv-Badge im UI angezeigt, das Sprite bleibt gleich.
+
+export type StrongholdArt = {
+  id: string;
+  name: string;
+  fallbackEmoji: string;
+  accent: string;
+  subject: string;
+  style: string;
+};
+
+export const STRONGHOLDS_ART: StrongholdArt[] = [
+  {
+    id: "wegelager",
+    name: "Wegelager",
+    fallbackEmoji: "🏰",
+    accent: "#FF2D78",
+    subject: "a fortified urban bandit lair perched on stacked shipping containers and improvised concrete barriers — crooked watchtower with rusted iron sheets, makeshift battlements made of old tires and barbed wire, glowing red lanterns and hostile graffiti tags (skull crew-mark, X-marks), boarded windows with ominous red glow inside, splintered wooden gate, scattered loot crates and rusty weapons at the base, hostile aggressive vibe — clearly a place travelers should avoid",
+    style: "stylized 3D-render in the same Rise of Kingdoms / Call of Dragons style as the rest of the game, slight isometric 30° three-quarter view, vibrant saturated colors with dominant crimson/red accents and warm orange torch glow, hand-painted textures, soft cel-shading, readable silhouette at 64×64, sits on a small minimal stone-tile base (max +5% larger than footprint), no extending terrain"
+  },
+];
+
+export function buildStrongholdPrompt(input: { stronghold: StrongholdArt; mode: "image" | "video" }): string {
+  const { stronghold: s, mode } = input;
+  if (mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated isometric game-asset of "${s.name}" (a hostile PvE bandit stronghold), square 1:1 composition, 1024×1024, 30 fps.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform single color filling the ENTIRE 1024×1024 frame including a clean ~8% margin around the floating tile. No gradients, no patterns, no shadows on the green, no environment.`,
+      `Subject: ${s.subject}.`,
+      `Style: ${s.style}.`,
+      `Camera: locked isometric 30° angle, structure centered with ~10% padding around the silhouette.`,
+      `Lighting: warm orange torch-light from inside, cool blue moonlight rim from upper-left, dramatic key shadows.`,
+      `Motion: gentle ambient — slow vertical bob of the floating tile (±2 px), red lanterns flicker, torch flame wavers, occasional small spark drifts close to torches only. NO environmental particle drift through empty green space. Camera fully static. First and last frame pixel-identical for seamless loop.`,
+      `No audio. Silent video only.`,
+      `CRITICAL: NO green tones on the stronghold, walls, banners, lanterns or glows. Use crimson red, warm orange, dark grey/brown, rust. The ONLY green is the #00FF00 background.`,
+      `NO ground beyond the tile, NO sky, NO trees, NO scenery, NO atmospheric haze. No text, no labels, no watermark.`,
+    ].join(" ");
+  }
+  return [
+    `Single isolated isometric stylized 3D-render game-asset of "${s.name}" — a hostile PvE bandit stronghold. Square 1:1, 1024×1024.`,
+    `Background: FULLY TRANSPARENT PNG with alpha channel — completely empty outside the silhouette of the structure+tile. No background color, no gradient, no scene, no checkerboard, no white, no black, no green. Pixels outside the structure must have alpha = 0.`,
+    `Subject: ${s.subject}.`,
+    `Style: ${s.style}.`,
+    `Camera: locked isometric 30° angle, structure centered with ~10% transparent padding on all four sides.`,
+    `Lighting: warm orange torch-light from inside, cool blue moonlight rim from upper-left, dramatic key shadows. Hard clean silhouette edge — no halo, no fringing, no semi-transparent background bleed.`,
+    `Output format: PNG with alpha channel.`,
+    `NO ground beyond the tile, NO sky, NO trees, NO scenery, NO atmospheric haze. No text, no labels, no UI overlays, no watermark, no people.`,
+  ].join(" ");
 }

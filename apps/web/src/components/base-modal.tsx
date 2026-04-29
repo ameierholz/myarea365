@@ -2070,7 +2070,7 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
 function BuildingThumb({ id, fallback, art, size = 28 }: {
   id: string; fallback: string; art: ResourceArtMap; size?: number;
 }) {
-  const a = art[`building_${id}`];
+  const a = art[id];
   const filterCss: React.CSSProperties = { filter: "url(#ma365-chroma-black) drop-shadow(0 1px 2px rgba(0,0,0,0.4))" };
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element

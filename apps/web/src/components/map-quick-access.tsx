@@ -42,7 +42,7 @@ function fmtCountdown(iso: string): string {
  * Komplett ausblendbar via users.show_map_action_hud.
  */
 export function MapQuickAccess({
-  onOpenOwnBase,
+  onOpenProfile,
   onOpenCrewModal,
   onOpenInbox,
   onOpenAchievements,
@@ -54,8 +54,10 @@ export function MapQuickAccess({
   baseQueueReady = 0,
   achievementsReady = 0,
   strongholdsNearby = 0,
+  profileIcon,
 }: {
-  onOpenOwnBase: () => void;
+  /** Öffnet das Profil-Dashboard-Modal (zeigt Base/Wächter/Crew als Karten). */
+  onOpenProfile: () => void;
   onOpenCrewModal: () => void;
   onOpenInbox: () => void;
   onOpenAchievements: () => void;
@@ -67,6 +69,8 @@ export function MapQuickAccess({
   baseQueueReady?: number;
   achievementsReady?: number;
   strongholdsNearby?: number;
+  /** Pin-Theme-Artwork des Runners (eigenes Base-Theme), wird als Profil-Icon verwendet. */
+  profileIcon?: { image_url: string | null; video_url: string | null } | null;
 }) {
   const [enabled, setEnabled] = useState(true);
   const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [] });
@@ -125,9 +129,9 @@ export function MapQuickAccess({
   // Kurz halten — passt in 60er-Tiles und bleibt lesbar.
   // Icons kommen aus dem Artwork-System (cosmetic_artwork kind=ui_icon),
   // Emojis sind nur Fallback solange noch kein Artwork hochgeladen ist.
-  type Item = { key: string; slot: string; fallback: string; label: string; badge?: number; color: string; onClick: () => void };
+  type Item = { key: string; slot: string; fallback: string; label: string; badge?: number; color: string; onClick: () => void; customIcon?: { image_url: string | null; video_url: string | null } | null };
   const items: Item[] = [
-    { key: "base",    slot: "quick_base",      fallback: "🏰", label: "Base",      badge: baseQueueReady,    color: "#FFD700", onClick: onOpenOwnBase },
+    { key: "profil", slot: "quick_base", fallback: "👤", label: "Profil", badge: baseQueueReady, color: "#FFD700", onClick: onOpenProfile, customIcon: profileIcon },
     { key: "rally",   slot: "quick_rally",     fallback: "⚔",  label: "Angriff",   badge: rallyTotal,        color: ACCENT,    onClick: () => setOpenRallyList(!openRallyList) },
     { key: "crew",    slot: "quick_crew",      fallback: "👥", label: "Crew",      color: PRIMARY,           onClick: onOpenCrewModal },
     { key: "wegel",   slot: "quick_wegelager", fallback: "📜", label: "Lager",     badge: strongholdsNearby, color: "#FF6B4A", onClick: () => { /* zukünftig: Liste */ } },
@@ -176,6 +180,7 @@ export function MapQuickAccess({
                 badge={it.badge}
                 color={it.color}
                 onClick={it.onClick}
+                customIcon={it.customIcon ?? null}
               />
             ))}
           </div>
@@ -297,10 +302,11 @@ export function MapQuickAccess({
 }
 
 function QuickButton({
-  slot, fallback, art, label, badge, color, onClick,
+  slot, fallback, art, label, badge, color, onClick, customIcon,
 }: {
   slot: string; fallback: string; art: ResourceArtMap;
   label: string; badge?: number; color: string; onClick: () => void;
+  customIcon?: { image_url: string | null; video_url: string | null } | null;
 }) {
   const hasBadge = (badge ?? 0) > 0;
   return (
@@ -354,7 +360,14 @@ function QuickButton({
         lineHeight: 1,
         filter: `drop-shadow(0 1px 2px rgba(0,0,0,0.7)) drop-shadow(0 0 8px ${color}aa)`,
       }}>
-        <UiIcon slot={slot} fallback={fallback} art={art} size={26} />
+        {customIcon?.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={customIcon.image_url} alt="" style={{ width: 24, height: 24, objectFit: "contain", filter: "url(#ma365-chroma-black)", transform: "scale(1.9)", transformOrigin: "center center" }} />
+        ) : customIcon?.video_url ? (
+          <video src={customIcon.video_url} autoPlay loop muted playsInline style={{ width: 24, height: 24, objectFit: "contain", filter: "url(#ma365-chroma-black)", transform: "scale(1.9)", transformOrigin: "center center" }} />
+        ) : (
+          <UiIcon slot={slot} fallback={fallback} art={art} size={26} />
+        )}
       </span>
       <span style={{
         fontSize: 12, fontWeight: 400, letterSpacing: 0.8,

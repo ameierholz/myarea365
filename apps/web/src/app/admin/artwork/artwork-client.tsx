@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, buildUiIconPrompt, buildTroopPrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -83,11 +83,12 @@ type CosmeticArt = {
   building:   Record<string, Art>;  // slot_id = building_id (z.B. "wegekasse")
   resource:   Record<string, Art>;  // slot_id = wood/stone/gold/mana/speed_token
   chest:      Record<string, Art>;  // slot_id = silver/gold/event
+  stronghold: Record<string, Art>;  // slot_id = "wegelager" (1 Slot für alle Wegelager-Level)
   ui_icon:    Record<string, Art>;  // slot_id = stat_*/class_*/action_*
   troop:      Record<string, Art>;  // slot_id = troop_id (inf_t1, cav_t3, ...)
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon" | "troop";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop";
 
 type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -108,7 +109,7 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, ui_icon: {}, troop: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {} });
   const [uiIconSlots, setUiIconSlots] = useState<UiIconSlot[]>([]);
   const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,6 +159,7 @@ export function ArtworkAdminClient() {
         building:   bustMap(raw.building   ?? {}),
         resource:   bustMap(raw.resource   ?? {}),
         chest:      bustMap(raw.chest      ?? {}),
+        stronghold: bustMap(raw.stronghold ?? {}),
         ui_icon:    bustMap(raw.ui_icon    ?? {}),
         troop:      bustMap(raw.troop      ?? {}),
       });
@@ -180,6 +182,7 @@ export function ArtworkAdminClient() {
   const doneBuilding = Object.values(cosmetic.building ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneResource = Object.values(cosmetic.resource ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneChest    = Object.values(cosmetic.chest    ?? {}).filter(a => a.image_url || a.video_url).length; // 4 Assets pro Theme (runner_pin + runner_banner + crew_pin + crew_banner)
+  const doneStronghold = Object.values(cosmetic.stronghold ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneUiIcon   = Object.values(cosmetic.ui_icon  ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneTroop    = Object.values(cosmetic.troop    ?? {}).filter(a => a.image_url || a.video_url).length;
 
@@ -197,6 +200,7 @@ export function ArtworkAdminClient() {
     { id: "building",  label: "🧱 Gebäude",         done: doneBuilding,  total: BUILDINGS_ART.length },
     { id: "resource",  label: "💰 Resourcen",       done: doneResource,  total: RESOURCES_ART.length },
     { id: "chest",     label: "🗝️ Truhen",          done: doneChest,     total: CHESTS_ART.length },
+    { id: "stronghold",label: "⚔ Wegelager",        done: doneStronghold,total: STRONGHOLDS_ART.length },
     { id: "ui_icon",   label: "✨ UI-Icons",         done: doneUiIcon,    total: uiIconSlots.length },
     { id: "troop",     label: "⚔ Bande",           done: doneTroop,     total: troopSlots.length },
   ];
@@ -242,6 +246,7 @@ export function ArtworkAdminClient() {
         : tab === "building"  ? <BuildingArtTab artMap={cosmetic.building} onChange={reload} />
         : tab === "resource"  ? <ResourceArtTab artMap={cosmetic.resource} onChange={reload} />
         : tab === "chest"     ? <ChestArtTab artMap={cosmetic.chest} onChange={reload} />
+        : tab === "stronghold"? <StrongholdArtTab artMap={cosmetic.stronghold ?? {}} onChange={reload} />
         : tab === "ui_icon"   ? <UiIconArtTab artMap={cosmetic.ui_icon} slots={uiIconSlots} onChange={reload} />
         : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
       )}
@@ -1405,6 +1410,53 @@ function ChestArtTab({ artMap, onChange }: { artMap: Record<string, { image_url:
                 hasImage={!!art?.image_url}
                 hasVideo={!!art?.video_url}
                 buildPrompt={(mode) => buildChestPrompt({ chest: c, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Stronghold (Wegelager — 1 Artwork für alle Level)    */
+/* ═════════════════════════════════════════════════════════ */
+function StrongholdArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Ein einziges Artwork für alle Wegelager auf der Karte (PvE-Bandit-Festungen). Das Level wird per Lv-Badge im UI angezeigt — das Sprite bleibt für alle Level identisch.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+        {STRONGHOLDS_ART.map((s) => {
+          const art = artMap[s.id];
+          return (
+            <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 80, height: 80,
+                  background: `radial-gradient(circle at 50% 30%, ${s.accent}55, ${s.accent}22 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${s.accent}`,
+                  boxShadow: `0 0 14px ${s.accent}66`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
+                    : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
+                    : <span style={{ fontSize: 36 }}>{s.fallbackEmoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: s.accent }}>PVE-FESTUNG</div>
+                  <div className="text-sm font-black text-white truncate">{s.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{s.subject.slice(0, 90)}…</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="stronghold"
+                targetId={s.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildStrongholdPrompt({ stronghold: s, mode })}
                 onUploaded={onChange}
               />
             </div>

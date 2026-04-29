@@ -248,7 +248,7 @@ function fmtCountdown(iso: string): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-function TabTech() {
+export function TabTech() {
   const [defs, setDefs] = useState<TechDef[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [queue, setQueue] = useState<TechQueue[]>([]);
@@ -330,7 +330,7 @@ function TabTech() {
   );
 }
 
-function TabKopfgelder({ crewId }: { crewId: string }) {
+export function TabKopfgelder({ crewId }: { crewId: string }) {
   void crewId;
   const [list, setList] = useState<Bounty[] | null>(null);
   const [target, setTarget] = useState("");
@@ -403,7 +403,7 @@ function TabKopfgelder({ crewId }: { crewId: string }) {
   );
 }
 
-function TabShop() {
+export function TabShop() {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [crewGold, setCrewGold] = useState<number>(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -637,10 +637,10 @@ const PLANNED_BUILDINGS: PlannedBuilding[] = [
   },
 ];
 
-type BuildingKind = "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel";
+export type BuildingKind = "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel";
 type BuildingRow = { id: string; kind: string; label: string | null; hp: number; max_hp: number; lat: number; lng: number };
 
-function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: BuildingKind) => void }) {
+export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: BuildingKind) => void }) {
   const [reps, setReps] = useState<RepeaterRow[] | null>(null);
   const [buildings, setBuildings] = useState<BuildingRow[] | null>(null);
   const uiArt = useUiIconArt();

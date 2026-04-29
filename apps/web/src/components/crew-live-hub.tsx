@@ -1324,20 +1324,23 @@ function CrewTabInfo({ tab }: { tab: Tab }) {
   const how = t(`info.${tab}.how` as const);
   const loot = t(`info.${tab}.loot` as const);
   const tips = t(`info.${tab}.tips` as const);
-  const storageKey = `ma365:crewInfoDismissed:${tab}`;
+  const storageKey = `ma365:crewInfoExpanded:${tab}`;
   const [collapsed, setCollapsed] = useState<boolean | null>(null);
 
   useEffect(() => {
     try {
       if (typeof window === "undefined") { setCollapsed(true); return; }
-      setCollapsed(window.localStorage.getItem(storageKey) === "1");
+      // Default = collapsed. Nur wenn der User das Panel explizit ausgeklappt hat
+      // (storageKey === "1"), bleibt es offen. Spart Platz auf der Karte.
+      setCollapsed(window.localStorage.getItem(storageKey) !== "1");
     } catch { setCollapsed(true); }
   }, [storageKey]);
 
   function toggle() {
     setCollapsed((v) => {
       const next = !v;
-      try { window.localStorage.setItem(storageKey, next ? "1" : "0"); } catch { /* noop */ }
+      // Speichern: "1" wenn AUSGEKLAPPT, sonst leer/0
+      try { window.localStorage.setItem(storageKey, next ? "0" : "1"); } catch { /* noop */ }
       return next;
     });
   }
@@ -1346,25 +1349,41 @@ function CrewTabInfo({ tab }: { tab: Tab }) {
 
   return (
     <div style={{
-      marginBottom: 12, borderRadius: 12,
-      background: `${meta.color}0d`,
-      border: `1px solid ${meta.color}44`,
+      marginBottom: collapsed ? 8 : 12, borderRadius: 10,
+      background: collapsed ? "transparent" : `${meta.color}0d`,
+      border: collapsed ? "none" : `1px solid ${meta.color}44`,
       overflow: "hidden",
+      display: collapsed ? "flex" : "block",
+      justifyContent: collapsed ? "flex-end" : undefined,
     }}>
       <button
         onClick={toggle}
         style={{
-          width: "100%", padding: "8px 12px",
-          display: "flex", alignItems: "center", gap: 8,
-          background: "transparent", border: "none", cursor: "pointer",
-          color: meta.color, fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+          // Im kollabierten Zustand: kleiner ?-Hilfe-Link rechtsbündig statt voller Banner
+          width: collapsed ? "auto" : "100%",
+          marginLeft: collapsed ? "auto" : 0,
+          display: collapsed ? "inline-flex" : "flex",
+          padding: collapsed ? "3px 8px" : "8px 12px",
+          alignItems: "center", gap: 6,
+          background: collapsed ? "rgba(255,255,255,0.04)" : "transparent",
+          borderRadius: collapsed ? 6 : 0,
+          border: collapsed ? `1px solid ${meta.color}33` : "none",
+          cursor: "pointer",
+          color: meta.color, fontSize: collapsed ? 10 : 11, fontWeight: 900, letterSpacing: 0.4,
         }}
       >
-        <span style={{ fontSize: 14 }}>{meta.icon}</span>
-        <span style={{ flex: 1, textAlign: "left" }}>
-          {collapsed ? t("infoToggleCollapsed", { title }) : title.toUpperCase()}
-        </span>
-        <span style={{ fontSize: 13, transform: collapsed ? "none" : "rotate(180deg)", transition: "transform 0.2s" }}>▾</span>
+        {collapsed ? (
+          <>
+            <span style={{ fontSize: 11 }}>?</span>
+            <span>Info</span>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: 14 }}>{meta.icon}</span>
+            <span style={{ flex: 1, textAlign: "left" }}>{title.toUpperCase()}</span>
+            <span style={{ fontSize: 13, transform: "rotate(180deg)", transition: "transform 0.2s" }}>▾</span>
+          </>
+        )}
       </button>
       {!collapsed && (
         <div style={{ padding: "4px 14px 14px", color: "#D0D0D5", fontSize: 12, lineHeight: 1.55 }}>

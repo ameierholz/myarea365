@@ -9,7 +9,7 @@ import { claimIntensity } from "@/lib/claim-intensity";
 import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
-import { CrewModal } from "@/components/crew-modal";
+import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
@@ -375,6 +375,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     try { window.localStorage.setItem("ma365.dropsHidden", dropsHidden ? "1" : "0"); } catch { /* ignore */ }
   }, [dropsHidden]);
   const [legendOpen, setLegendOpen] = useState(false);
+  // Profil-Modal (öffnet die ProfilTab-Inhalte als Overlay über der Karte,
+  // ohne aus dem Map-Tab zu wechseln). Aktiviert vom Quickaccess-Profil-Button.
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [snapping, setSnapping] = useState(false);
   const [lightPreset, setLightPreset] = useState<"auto" | "dawn" | "day" | "dusk" | "night">("auto");
 
@@ -1238,6 +1241,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const strongholdArt = useStrongholdArt();
   const dashboardBaseThemeArt = useBaseThemeArt();
   const dashboardUiIconArt = useUiIconArt();
+  const dashboardMarkerArt = useMarkerArt();
   const nameplateArt = useNameplateArt();
   const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
     try {
@@ -1791,12 +1795,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               }}
             />
 
-            {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Base, Crew, Inbox etc.) */}
+            {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Profil, Crew, Inbox etc.) */}
             <MapQuickAccess
-              onOpenOwnBase={() => {
-                const own = basePins.find((b) => b.is_own && b.kind === "runner");
-                if (own) setBaseModalTarget({ kind: "runner", id: own.id, is_own: true });
-              }}
+              onOpenProfile={() => setProfileModalOpen(true)}
+              profileIcon={(() => {
+                // Equippter Runner-Marker (Läufer-Pin auf der Karte) als Profil-Icon
+                const m = dashboardMarkerArt[equippedMarker]?.[equippedMarkerVariant]
+                       ?? dashboardMarkerArt[equippedMarker]?.neutral;
+                return m?.image_url || m?.video_url ? m : null;
+              })()}
               onOpenCrewModal={() => setMapCrewModalOpen(true)}
               onOpenInbox={() => { window.location.href = "/inbox"; }}
               onOpenAchievements={() => setActiveTab("profil")}
@@ -1936,7 +1943,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                     active={overviewMode}
                   />
                   <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
-                  {/* Drops auf der Karte ein-/ausblenden — wenn aktiv = Drops ausgeblendet */}
+                  {/* Drops auf der Karte ein-/ausblenden — versteckt zusätzlich Wegelager, Repeater, Bauwerke, Bases */}
                   <MapIconButton
                     icon={dropsHidden ? "🚫" : "🎁"}
                     label={dropsHidden ? "Drops einblenden" : "Drops ausblenden"}
@@ -2296,22 +2303,117 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
       )}
 
+      {/* Profil-Modal: Dashboard-Karten (Base/Wächter/Crew) als Overlay über der Map */}
+      {profileModalOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9100,
+          background: "rgba(0,0,0,0.78)",
+          display: "flex", alignItems: "stretch", justifyContent: "center",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 720, height: "100%",
+            background: "linear-gradient(180deg, #0F1115 0%, #14181f 100%)",
+            position: "relative", overflowY: "auto",
+            borderLeft: "1px solid rgba(255,255,255,0.08)",
+            borderRight: "1px solid rgba(255,255,255,0.08)",
+          }}>
+            <button
+              onClick={() => setProfileModalOpen(false)}
+              style={{
+                position: "sticky", top: 8, marginLeft: "auto", marginRight: 8,
+                display: "block",
+                width: 36, height: 36, borderRadius: 18,
+                background: "rgba(15,17,21,0.92)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                color: "#fff", fontSize: 18, fontWeight: 900,
+                cursor: "pointer", zIndex: 5,
+              }}
+              aria-label="Schließen"
+            >×</button>
+            <div style={{ padding: "0 0 80px" }}>
+              <ProfilTab
+                profile={p}
+                setProfile={setProfile}
+                equippedMarker={equippedMarker}
+                setEquippedMarker={setEquippedMarker}
+                equippedMarkerVariant={equippedMarkerVariant}
+                setEquippedMarkerVariant={setEquippedMarkerVariant}
+                equippedLight={equippedLight}
+                setEquippedLight={setEquippedLight}
+                setPinThemeOverride={setPinThemeOverride}
+                recentRuns={recentRuns}
+                territoryCount={territoryCount}
+                currentStreet={currentStreet}
+                walking={walking}
+                myCrew={myCrew}
+                setMyCrew={setMyCrew}
+                setActiveTab={setActiveTab}
+                onOpenMmrRanking={() => { setRankingInitialMode("mmr"); setActiveTab("ranking"); setProfileModalOpen(false); }}
+                onLogout={handleLogout}
+                onSwitchToMap={() => setProfileModalOpen(false)}
+                distance={distance}
+                onOpenBase={(id) => { setProfileModalOpen(false); setBaseModalTarget({ kind: "runner", id, is_own: true }); }}
+                onPlaceBase={() => { setProfileModalOpen(false); setPlaceBaseMode("runner"); }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crew-Modal: vollwertige CrewTab-Inhalte als Overlay über der Karte
+          (alle 12 Subtabs: Übersicht/Feed/Mitglieder/Wächter/Challenges/Events/Chat/
+          Forschung/Bauwerke/Kopfgelder/Lagerhaus/Einstellungen) */}
       {mapCrewModalOpen && (
-        <CrewModal
-          onClose={() => setMapCrewModalOpen(false)}
-          onPlaceBuilding={(kind) => {
-            // Repeater-Kinds gehen in den existierenden Repeater-Placement-Mode.
-            // Neue Bauwerke (Schwarzmarkt/Bunker/Hangout/Tunnel) gehen in den
-            // generischen Building-Placement-Mode.
-            if (kind === "hq" || kind === "mega" || kind === "repeater") {
-              setRepeaterPlaceMode({ kind });
-              setRepeaterPlaceCursor(userCenter);
-            } else {
-              setBuildingPlaceMode({ kind });
-              setRepeaterPlaceCursor(userCenter);
-            }
-          }}
-        />
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9100,
+          background: "rgba(0,0,0,0.78)",
+          display: "flex", alignItems: "stretch", justifyContent: "center",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 960, height: "100%",
+            background: "linear-gradient(180deg, #0F1115 0%, #14181f 100%)",
+            position: "relative", overflowY: "auto",
+            borderLeft: "1px solid rgba(255,255,255,0.08)",
+            borderRight: "1px solid rgba(255,255,255,0.08)",
+          }}>
+            <button
+              onClick={() => setMapCrewModalOpen(false)}
+              style={{
+                position: "sticky", top: 8, marginLeft: "auto", marginRight: 8,
+                display: "block",
+                width: 36, height: 36, borderRadius: 18,
+                background: "rgba(15,17,21,0.92)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                color: "#fff", fontSize: 18, fontWeight: 900,
+                cursor: "pointer", zIndex: 5,
+              }}
+              aria-label="Schließen"
+            >×</button>
+            <div style={{ padding: "0 0 80px" }}>
+              <CrewTab
+                profile={p}
+                myCrew={myCrew}
+                setMyCrew={setMyCrew}
+                setProfile={setProfile}
+                onOpenRanking={() => { setMapCrewModalOpen(false); setActiveTab("ranking"); }}
+                onPlaceBuilding={(kind) => {
+                  setMapCrewModalOpen(false);
+                  if (kind === "hq" || kind === "mega" || kind === "repeater") {
+                    setRepeaterPlaceMode({ kind });
+                    setRepeaterPlaceCursor(userCenter);
+                  } else {
+                    setBuildingPlaceMode({ kind });
+                    setRepeaterPlaceCursor(userCenter);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Repeater-Info-Popup — schwebt direkt neben dem Pin, kein Backdrop.
@@ -7876,7 +7978,7 @@ function Modal({ title, icon, subtitle, accent, children, onClose, maxWidth = 54
  * CREW TAB (1:1 alte App – Fraktions-Header + Gründen + Dashboard)
  * ═══════════════════════════════════════════════════════ */
 
-type CrewSubTab = "overview" | "feed" | "members" | "guardians" | "challenges" | "events" | "chat" | "settings";
+type CrewSubTab = "overview" | "feed" | "members" | "guardians" | "challenges" | "events" | "chat" | "tech" | "buildings" | "bounties" | "shop" | "settings";
 
 function CrewTab({
   profile: p,
@@ -7884,12 +7986,14 @@ function CrewTab({
   setMyCrew,
   setProfile,
   onOpenRanking,
+  onPlaceBuilding,
 }: {
   profile: Profile | null;
   myCrew: Crew | null;
   setMyCrew: (c: Crew | null) => void;
   setProfile: (p: Profile) => void;
   onOpenRanking: () => void;
+  onPlaceBuilding?: (kind: BuildingKind) => void;
 }) {
   const supabase = createClient();
   const tC = useTranslations("Crew");
@@ -7962,6 +8066,7 @@ function CrewTab({
         subTab={subTab}
         setSubTab={setSubTab}
         onLeave={handleLeave}
+        onPlaceBuilding={onPlaceBuilding}
       />
     );
   }
@@ -9935,13 +10040,14 @@ function mottoForType(t: CrewTypeId): string {
  * MY CREW VIEW — Dashboard + Tabs
  * ═══════════════════════════════════════════════════════ */
 function MyCrewView({
-  crew, profile, subTab, setSubTab, onLeave,
+  crew, profile, subTab, setSubTab, onLeave, onPlaceBuilding,
 }: {
   crew: Crew;
   profile: Profile | null;
   subTab: CrewSubTab;
   setSubTab: (t: CrewSubTab) => void;
   onLeave: () => void;
+  onPlaceBuilding?: (kind: BuildingKind) => void;
 }) {
   const tC = useTranslations("Crew");
   const isAdmin = profile?.id === crew.owner_id;
@@ -10064,6 +10170,10 @@ function MyCrewView({
           { id: "challenges", label: tC("myTabChallenges"), icon: "🏆" },
           { id: "events",     label: tC("myTabEvents"),     icon: "📅" },
           { id: "chat",       label: tC("myTabChat"),       icon: "💬" },
+          { id: "tech",       label: "Forschung",           icon: "🧪" },
+          { id: "buildings",  label: "Bauwerke",            icon: "🏗️" },
+          { id: "bounties",   label: "Kopfgelder",          icon: "🎯" },
+          { id: "shop",       label: "Lagerhaus",           icon: "📦" },
           { id: "settings",   label: tC("myTabSettings"),   icon: "⚙️" },
         ] as { id: CrewSubTab; label: string; icon: string }[]).map((t) => {
           const active = subTab === t.id;
@@ -10106,6 +10216,10 @@ function MyCrewView({
         {subTab === "challenges" && <CrewChallenges color={crew.color} />}
         {subTab === "events"     && <CrewEvents color={crew.color} />}
         {subTab === "chat"       && <CrewChat color={crew.color} meUsername={profile?.username || "me"} />}
+        {subTab === "tech"       && <TabTech />}
+        {subTab === "buildings"  && <TabBauwerke onPlaceBuilding={onPlaceBuilding} />}
+        {subTab === "bounties"   && <TabKopfgelder crewId={crew.id} />}
+        {subTab === "shop"       && <TabShop />}
         {subTab === "settings"   && <CrewSettings crew={crew} isAdmin={isAdmin} />}
       </div>
     </div>

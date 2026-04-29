@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "next": "16.1.6",
+    "tsx": "^4.21.0",
     "turbo": "^2",
     "typescript": "^5"
   },

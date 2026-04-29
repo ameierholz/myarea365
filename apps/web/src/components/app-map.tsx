@@ -2415,8 +2415,9 @@ export function AppMap({
       const inner = document.createElement("div");
       inner.className = "ma365-stronghold-marker";
 
-      // Artwork-Lookup: level_<N> → default → Emoji-Fallback
-      const art = strongholdArt[`level_${s.level}`] ?? strongholdArt.default ?? null;
+      // Ein einziges Artwork für alle Wegelager — Slot "wegelager", Fallback auf
+      // alte Slots (default/level_<N>) für Rückwärtskompatibilität, dann Emoji.
+      const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       let visualHtml: string;
       if (art?.video_url) {
         visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;"></video>`;
@@ -2439,10 +2440,17 @@ export function AppMap({
 
     const applyScale = () => {
       const zoom = map.getZoom();
+      // Synchron mit Spotlight/Liga-Badges: < z=13 versteckt.
+      // Beim Reinzoomen größer als ursprünglich (max 1.4× bei z=18+).
+      // z=13→0.55, z=15→0.95, z=17→1.30, z=18+→1.40
       const hide = zoom < 13;
-      const scale = Math.max(0.4, Math.min(1.0, (zoom - 11) / 6 + 0.45));
+      let scale = 1.4;
+      if      (zoom < 15)   scale = 0.55 + ((zoom - 13) / 2) * 0.40; // 0.55 → 0.95
+      else if (zoom < 17)   scale = 0.95 + ((zoom - 15) / 2) * 0.35; // 0.95 → 1.30
+      else if (zoom < 18)   scale = 1.30 + (zoom - 17) * 0.10;        // 1.30 → 1.40
       strongholdMarkersRef.current.forEach(({ el }) => {
         el.style.transform = `scale(${scale.toFixed(2)})`;
+        el.style.transformOrigin = "bottom center";
         el.style.opacity = hide ? "0" : "1";
         el.style.transition = "opacity 0.25s";
       });
@@ -2649,61 +2657,110 @@ export function AppMap({
     basePinMarkersRef.current = [];
 
     basePins.forEach((pin) => {
-      // Layer-Stack:
-      //   root  → Mapbox schreibt translate3d (Positionierung) — kein Transform-Override hier!
-      //   zoomWrap → globales Zoom-Scale-System schreibt scale3d via [data-zoom-scale="1"]
-      //   inner → Hover-Scale + Drop-Shadow
       const el = document.createElement("div");
       el.className = "ma365-base-pin";
       el.setAttribute("data-kind", pin.kind);
       el.setAttribute("data-own", pin.is_own ? "1" : "0");
       el.style.cssText = "pointer-events:auto;will-change:transform;";
 
-      // Bewusst NICHT am globalen [data-zoom-scale]-System angemeldet —
-      // die Base soll beim Reinzoomen NICHT weiter wachsen, sondern in
-      // konstanter Pixel-Größe (250 px) bleiben. Zoom-Out-Hide bei <15.5.
       const zoomWrap = document.createElement("div");
-      zoomWrap.style.cssText = "display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden";
+      zoomWrap.style.cssText = "position:relative;display:flex;align-items:center;justify-content:center;width:0;height:0";
 
-      // Innerer Wrapper trägt Hover-Scale + Drop-Shadow.
-      const inner = document.createElement("div");
-      inner.style.cssText = [
-        "display:flex","flex-direction:column","align-items:center","gap:0px",
-        "cursor:pointer","user-select:none",
-        "filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))",
-        "transition:transform 0.15s",
-        "transform-origin:center center",
-      ].join(";");
-      // Base-Theme-Artwork-Lookup: <theme>_<scope>_pin → <theme>_<scope>_banner → emoji
       const scope = pin.kind === "runner" ? "runner" : "crew";
       const artPin = pin.theme_id ? baseThemeArt[`${pin.theme_id}_${scope}_pin`] : null;
       const artFallback = pin.theme_id ? baseThemeArt[`${pin.theme_id}_${scope}_banner`] : null;
       const art = artPin?.image_url || artPin?.video_url ? artPin : (artFallback?.image_url || artFallback?.video_url ? artFallback : null);
-      // Bild bevorzugen (sauberer); Video nur als Fallback.
-      // Chroma-Key-Filter (ma365-chroma-black) entfernt Greenscreen-Hintergrund (#00FF00)
-      // bei neu generierten Videos — wie bei Wächter-Markern.
-      const dropShadow = `drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""}`;
-      const visualBase = art?.image_url
-        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:250px;height:250px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
-        : art?.video_url
-        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:250px;height:250px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
-        : `<div style="position:relative;z-index:1;width:250px;height:250px;display:flex;align-items:center;justify-content:center;font-size:208px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
-      // Schimmer-Aura hinter der Burg — pro Rarity unterschiedlich aufwendig
+      // Crew-Farbe für SVG + Banner
+      const ownColor = pin.pin_color || (pin.is_own ? "#22D1C3" : "#FF2D78");
+      const ownDark = pin.kind === "crew" ? "#a01755" : "#0c8478";
+
+      // Tower-Silhouette für mid-LOD — Burg-Form (Crew) bzw. Single-Tower (Runner)
+      const SVG_CASTLE = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+      const SVG_RUNNER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 4 L13 7 L13 11 L11 13 L11 36 L21 36 L21 13 L19 11 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="18" width="4" height="5" fill="${ownDark}"/></svg>`;
+      // Optionales Silhouette-Artwork (kann via Admin-Tab überschrieben werden)
+      const silSlot = `base_silhouette_${scope}`;
+      const silArt = uiIconArt[silSlot];
+      const hasSilArt = !!(silArt?.image_url || silArt?.video_url);
+      const silhouetteSvg = pin.kind === "crew" ? SVG_CASTLE : SVG_RUNNER;
+
+      const dropShadow = `drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""}`;
+
+      // ── Stage 1: STAMP — Mini-SVG-Silhouette (oder Mini-Artwork falls vorhanden)
+      const stampEl = document.createElement("div");
+      const stampSize = pin.kind === "crew" ? 16 : 13;
+      stampEl.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${stampSize}px;height:${Math.round(stampSize * 1.18)}px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));cursor:pointer;pointer-events:auto;`;
+      if (hasSilArt && silArt?.image_url) {
+        stampEl.innerHTML = `<img src="${silArt.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"/>`;
+      } else {
+        stampEl.innerHTML = silhouetteSvg;
+      }
+      stampEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
+      });
+      zoomWrap.appendChild(stampEl);
+
+      // ── Stage 2: SILHOUETTE — flacher Tower + LV-Chip + Name-Banner
+      const silWrap = document.createElement("div");
+      const silTowerSize = pin.kind === "crew" ? 38 : 32;
+      silWrap.dataset.size = String(silTowerSize);
+      silWrap.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:1px;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.45));`;
+      const silTower = document.createElement("div");
+      silTower.style.cssText = `width:${silTowerSize}px;height:${Math.round(silTowerSize * 1.18)}px;`;
+      if (hasSilArt && (silArt?.image_url || silArt?.video_url)) {
+        silTower.innerHTML = silArt.image_url
+          ? `<img src="${silArt.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"/>`
+          : `<video src="${silArt.video_url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"></video>`;
+      } else {
+        silTower.innerHTML = silhouetteSvg;
+      }
+      silWrap.appendChild(silTower);
+      const silLv = document.createElement("div");
+      silLv.style.cssText = `padding:1px 6px;border-radius:999px;background:linear-gradient(135deg,${ownColor},${ownDark});color:#0F1115;font-size:8px;font-weight:900;letter-spacing:0.5px;border:1px solid rgba(255,255,255,0.4);box-shadow:0 0 6px ${ownColor}aa;line-height:1.1;margin-top:-6px;position:relative;z-index:2;font-family:system-ui;`;
+      silLv.textContent = `LV ${pin.level}`;
+      silWrap.appendChild(silLv);
+      const silName = document.createElement("div");
+      silName.style.cssText = `padding:2px 7px;border-radius:5px;background:rgba(15,17,21,0.92);color:#fff;font-size:9px;font-weight:900;letter-spacing:0.3px;border:1px solid ${ownColor}aa;box-shadow:0 2px 4px rgba(0,0,0,0.4);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-family:system-ui;margin-top:1px;`;
+      silName.textContent = (pin.kind === "crew" ? "⚔️ " : "") + pin.pin_label;
+      silWrap.appendChild(silName);
+      silWrap.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
+      });
+      zoomWrap.appendChild(silWrap);
+
+      // ── Stage 3: FULL — Artwork in konstanter Größe (passt ins Tile, nicht mehr 250px)
+      const ART_SIZE = 80;
+      const inner = document.createElement("div");
+      inner.dataset.fullSize = String(ART_SIZE);
+      inner.style.cssText = [
+        "position:absolute","left:50%","top:50%","transform:translate(-50%,-50%)",
+        "display:none","flex-direction:column","align-items:center","gap:0px",
+        "cursor:pointer","user-select:none",
+        "filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))",
+      ].join(";");
+
+      const visualBase = art?.image_url
+        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
+        : art?.video_url
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
+        : `<div style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(ART_SIZE * 0.83)}px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
+
       const auraColors: Record<string, { primary: string; secondary: string; ring: string; speed: string }> = {
         advanced:  { primary: "#5ddaf0", secondary: "#22D1C3", ring: "rgba(93,218,240,0.35)", speed: "5s" },
         epic:      { primary: "#a855f7", secondary: "#FF2D78", ring: "rgba(168,85,247,0.5)",  speed: "4s" },
         legendary: { primary: "#FFD700", secondary: "#FF6B4A", ring: "rgba(255,215,0,0.6)",   speed: "3s" },
       };
       const aura = pin.theme_rarity ? auraColors[pin.theme_rarity] : null;
+      const auraSize = Math.round(ART_SIZE * 0.7);
+      const auraSizeBig = Math.round(ART_SIZE * 0.78);
       const auraHtml = aura
-        ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:160px;height:160px;border-radius:50%;background:radial-gradient(circle, ${aura.ring} 0%, transparent 65%);animation:basePinShimmer ${aura.speed} ease-in-out infinite;pointer-events:none;z-index:0"></div>
-           ${pin.theme_rarity === "legendary" ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:180px;height:180px;border-radius:50%;background:conic-gradient(from 0deg, ${aura.primary}55, transparent 30%, ${aura.secondary}55 60%, transparent 90%, ${aura.primary}55);opacity:0.45;animation:basePinAuraSpin 8s linear infinite;pointer-events:none;z-index:0"></div>` : ""}`
+        ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:${auraSize}px;height:${auraSize}px;border-radius:50%;background:radial-gradient(circle, ${aura.ring} 0%, transparent 65%);animation:basePinShimmer ${aura.speed} ease-in-out infinite;pointer-events:none;z-index:0"></div>
+           ${pin.theme_rarity === "legendary" ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:${auraSizeBig}px;height:${auraSizeBig}px;border-radius:50%;background:conic-gradient(from 0deg, ${aura.primary}55, transparent 30%, ${aura.secondary}55 60%, transparent 90%, ${aura.primary}55);opacity:0.45;animation:basePinAuraSpin 8s linear infinite;pointer-events:none;z-index:0"></div>` : ""}`
         : "";
-      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:250px;height:250px">${auraHtml}${visualBase}</div>`;
+      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${auraHtml}${visualBase}</div>`;
 
-      // Nameplate-Banner HINTER dem pin_label-Chip (nur bei eigenen Bases),
-      // chroma-keyed, auf Chip-Höhe (32 px) geclamppt.
       const npArt = pin.nameplate_art;
       const npStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:170%;height:28px;max-width:200px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
       const npLayer = npArt?.image_url
@@ -2712,8 +2769,6 @@ export function AppMap({
         ? `<video src="${npArt.video_url}" autoplay loop muted playsinline style="${npStyle}"></video>`
         : "";
 
-      // LV-Badge übernimmt die Aura-Farbe (rarity-driven), damit Badge + Schimmer
-      // visuell zusammengehören. Fallback auf pin_color wenn keine Aura existiert.
       const lvColor = aura?.primary ?? pin.pin_color;
       const lvSecondary = aura?.secondary ?? pin.pin_color;
       inner.innerHTML = `
@@ -2726,13 +2781,13 @@ export function AppMap({
           box-shadow:0 0 8px ${lvColor}aa, inset 0 1px 0 rgba(255,255,255,0.35);
           text-shadow:0 1px 0 rgba(255,255,255,0.25);
           line-height:1.1;
-          margin-top:-16px;position:relative;z-index:2;
+          margin-top:-12px;position:relative;z-index:2;
         ">LV ${pin.level}</div>
-        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:28px;min-width:70px;margin-top:2px">
+        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:24px;min-width:60px;margin-top:2px">
           ${npLayer}
           <div style="
             position:relative;z-index:1;
-            padding:2px 8px;border-radius:8px;
+            padding:2px 8px;border-radius:6px;
             background:rgba(15,17,21,0.92);color:#fff;
             font-size:10px;font-weight:900;letter-spacing:0.3px;
             border:1px solid ${pin.pin_color}aa;
@@ -2761,27 +2816,41 @@ export function AppMap({
       basePinMarkersRef.current.push(marker);
     });
 
-    // Base-Pins: ab zoom 15.5 sichtbar, dann linear mit Zoom skalieren
-    // (zoom 15.5 → 0.5, zoom 17.5+ → 1.0), damit die Burg beim Rauszoomen
-    // nicht den ganzen Stadtteil überdeckt.
+    // 3-Stage LOD wie CoD — KEIN kontinuierliches Skalieren mehr,
+    // jeder Stage hat konstante Pixel-Größe:
+    //   z < 12       hidden  (Polygon übernimmt)
+    //   z 12-14      STAMP   (~18px Mini-Tower)
+    //   z 14-16      SIL     (~50px flache Tower-Silhouette + LV + Banner)
+    //   z >= 16      FULL    (110px Artwork + LV + Banner)
     const updateBasePinVisibility = () => {
       const z = map.getZoom();
-      const hide = z < 15.5;
-      const scale = hide ? 0 : Math.max(0.5, Math.min(1, 0.5 + (z - 15.5) / 2));
       basePinMarkersRef.current.forEach((m) => {
         const e = m.getElement();
-        e.style.opacity = hide ? "0" : "1";
-        e.style.visibility = hide ? "hidden" : "visible";
-        // WICHTIG: NUR opacity in transition — Mapbox setzt die Position via
-        // transform:translate(...) auf das Root-Element. Eine transform-
-        // Transition würde beim Pannen die Position interpolieren = Base
-        // "schwimmt" hinterher.
-        e.style.transition = "opacity 0.25s";
-        e.style.pointerEvents = hide ? "none" : "auto";
-        // zoomWrap ist firstElementChild — skalieren ohne den hover-transform
-        // auf `inner` zu stören.
         const zoomWrap = e.firstElementChild as HTMLElement | null;
-        if (zoomWrap) zoomWrap.style.transform = `scale(${scale})`;
+        if (!zoomWrap) return;
+        // zoomWrap-Children: [stamp, sil, full]
+        const stampEl = zoomWrap.children[0] as HTMLElement | undefined;
+        const silEl   = zoomWrap.children[1] as HTMLElement | undefined;
+        const fullEl  = zoomWrap.children[2] as HTMLElement | undefined;
+        if (!stampEl || !silEl || !fullEl) return;
+
+        if (z < 12) {
+          e.style.opacity = "0";
+          e.style.visibility = "hidden";
+          e.style.pointerEvents = "none";
+          return;
+        }
+        e.style.opacity = "1";
+        e.style.visibility = "visible";
+        e.style.pointerEvents = "auto";
+        e.style.transition = "opacity 0.25s";
+
+        const stamp = z < 14;
+        const full  = z >= 16;
+        const sil   = !stamp && !full;
+        stampEl.style.display = stamp ? "block" : "none";
+        silEl.style.display   = sil   ? "flex"  : "none";
+        fullEl.style.display  = full  ? "flex"  : "none";
       });
     };
     updateBasePinVisibility();
@@ -2792,7 +2861,7 @@ export function AppMap({
       basePinMarkersRef.current.forEach((m) => m.remove());
       basePinMarkersRef.current = [];
     };
-  }, [mapReady, basePins, baseThemeArt]);
+  }, [mapReady, basePins, baseThemeArt, uiIconArt]);
 
   // ── Crew-Turf: Polygons (fill) ──────────────────────────────
   useEffect(() => {
@@ -3166,6 +3235,9 @@ export function AppMap({
       hq:  uiIconArt["repeater_hq"]?.image_url ?? uiIconArt["repeater_hq"]?.video_url ?? "",
       mg:  uiIconArt["repeater_mega"]?.image_url ?? uiIconArt["repeater_mega"]?.video_url ?? "",
       no:  uiIconArt["repeater_normal"]?.image_url ?? uiIconArt["repeater_normal"]?.video_url ?? "",
+      shq: uiIconArt["repeater_silhouette_hq"]?.image_url     ?? uiIconArt["repeater_silhouette_hq"]?.video_url     ?? "",
+      smg: uiIconArt["repeater_silhouette_mega"]?.image_url   ?? uiIconArt["repeater_silhouette_mega"]?.video_url   ?? "",
+      sno: uiIconArt["repeater_silhouette_normal"]?.image_url ?? uiIconArt["repeater_silhouette_normal"]?.video_url ?? "",
     });
     if (lastRepeaterArtHashRef.current !== artHash) {
       // Artwork hat sich geändert → alle Marker entsorgen, neu bauen unten
@@ -3194,77 +3266,150 @@ export function AppMap({
       const isHQ = r.kind === "hq";
       const isMega = r.kind === "mega";
       const slot = isHQ ? "repeater_hq" : isMega ? "repeater_mega" : "repeater_normal";
-      const fallback = isHQ ? "🏛️" : isMega ? "📡" : "📶";
       const art = uiIconArt[slot];
       const hasArt = !!(art?.video_url || art?.image_url);
 
-      // Wenn Artwork vorhanden: das Artwork IST der Pin (groß, ohne Box)
-      // Wenn nicht: kompakte Tile mit Border + Emoji-Fallback
-      const artSize = isHQ ? 140 : isMega ? 120 : 100;
-      const tileSize = isHQ ? 36 : isMega ? 30 : 22;
+      const ownColor = r.is_own ? "#22D1C3" : "#FF2D78";
+      const ownDark  = r.is_own ? "#0c8478" : "#a01755";
+
+      // SVG-Silhouetten für das Mid-LOD (CoD-Style flache mono-Tower-Icons)
+      const SVG_HQ = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 2 L18 5 L16 7 L14 5 Z M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+      const SVG_MEGA = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 2 L14 4 L14 7 L11 7 L11 10 L13 10 L13 13 L10 16 L10 36 L22 36 L22 16 L19 13 L19 10 L21 10 L21 7 L18 7 L18 4 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><circle cx="16" cy="3" r="1.5" fill="${ownDark}"/></svg>`;
+      const SVG_REPEATER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYEnd meet"><path d="M16 4 L13 7 L13 14 L9 18 L9 36 L23 36 L23 18 L19 14 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="20" width="4" height="6" fill="${ownDark}"/></svg>`;
+      // Optionales Silhouette-Artwork (überschreibt SVG falls vorhanden)
+      const silSlot = isHQ ? "repeater_silhouette_hq" : isMega ? "repeater_silhouette_mega" : "repeater_silhouette_normal";
+      const silArt = uiIconArt[silSlot];
+      const silImg = silArt?.image_url || silArt?.video_url ? silArt : null;
+      const silSvg = isHQ ? SVG_HQ : isMega ? SVG_MEGA : SVG_REPEATER;
+      const silhouetteSvg = silImg?.image_url
+        ? `<img src="${silImg.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"/>`
+        : silImg?.video_url
+        ? `<video src="${silImg.video_url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"></video>`
+        : silSvg;
+
+      // ── 3-Stage LOD wie CoD ─────────────────────────────────────────
+      //   stamp:      winziger Mini-Tower (no banner)
+      //   silhouette: flache mono-Tower-Silhouette + Crew-Banner unter dem Sockel
+      //   full:       echtes Artwork + Crew-Banner
       const pin = document.createElement("div");
+      pin.style.cssText = `
+        position:relative;
+        width:0; height:0;
+        display:flex; align-items:center; justify-content:center;
+      `;
+
+      // Stage 1: STAMP — Mini-Tower-Silhouette (selber SVG, sehr klein)
+      const stampEl = document.createElement("div");
+      const stampSize = isHQ ? 14 : isMega ? 12 : 10;
+      stampEl.style.cssText = `
+        position:absolute; left:50%; top:50%;
+        transform:translate(-50%, -50%);
+        width:${stampSize}px; height:${Math.round(stampSize * 1.18)}px;
+        filter:drop-shadow(0 1px 2px rgba(0,0,0,0.55));
+        cursor:pointer; pointer-events:auto;
+      `;
+      stampEl.innerHTML = silhouetteSvg;
+      stampEl.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        onRepeaterClick?.(r.id, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
+      });
+      pin.appendChild(stampEl);
+
+      // Stage 2: SILHOUETTE — flache farbige Tower-Silhouette (KEIN Artwork)
+      const silEl = document.createElement("div");
+      const silSize = isHQ ? 36 : isMega ? 30 : 26;
+      silEl.dataset.size = String(silSize);
+      silEl.style.cssText = `
+        position:absolute; left:50%; top:50%;
+        transform:translate(-50%, -50%);
+        width:${silSize}px; height:${Math.round(silSize * 1.18)}px;
+        display:none;
+        filter:drop-shadow(0 2px 5px rgba(0,0,0,0.45));
+        cursor:pointer; pointer-events:auto;
+      `;
+      silEl.innerHTML = silhouetteSvg;
+      silEl.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        onRepeaterClick?.(r.id, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
+      });
+      pin.appendChild(silEl);
+
+      // Stage 3: FULL — Artwork (oder stilisierte Tile als Fallback)
+      const artEl = document.createElement("div");
+      const fullArtSize = isHQ ? 70 : isMega ? 58 : 48;
+      artEl.dataset.fullSize = String(fullArtSize);
+      artEl.style.cssText = `
+        position:absolute; left:50%; top:50%;
+        transform:translate(-50%, -50%);
+        width:${fullArtSize}px; height:${fullArtSize}px;
+        display:none;
+        align-items:center; justify-content:center;
+        filter:drop-shadow(0 4px 14px ${r.is_own ? "rgba(34,209,195,0.65)" : "rgba(255,45,120,0.65)"})
+               drop-shadow(0 0 10px ${r.is_own ? "rgba(34,209,195,0.45)" : "rgba(255,45,120,0.45)"});
+      `;
       if (hasArt) {
-        pin.style.cssText = `
-          width:${artSize}px; height:${artSize}px;
-          display:flex; align-items:center; justify-content:center;
-          filter:drop-shadow(0 4px 14px ${r.is_own ? "rgba(34,209,195,0.65)" : "rgba(255,45,120,0.65)"})
-                 drop-shadow(0 0 10px ${r.is_own ? "rgba(34,209,195,0.45)" : "rgba(255,45,120,0.45)"});
-        `;
         if (art?.video_url) {
           const v = document.createElement("video");
-          v.src = art.video_url;
-          v.autoplay = true; v.loop = true; v.muted = true;
+          v.src = art.video_url; v.autoplay = true; v.loop = true; v.muted = true;
           v.setAttribute("playsinline", "");
           v.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none;`;
-          pin.appendChild(v);
+          artEl.appendChild(v);
         } else if (art?.image_url) {
           const img = document.createElement("img");
           img.src = art.image_url; img.alt = "";
           img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:url(#ma365-chroma-black); pointer-events:none;`;
-          pin.appendChild(img);
+          artEl.appendChild(img);
         }
-      } else {
-        pin.style.cssText = `
-          width:${tileSize}px; height:${tileSize}px; border-radius:6px;
-          background:${r.is_own ? "rgba(34,209,195,0.25)" : "rgba(255,45,120,0.25)"};
-          border:2px solid ${r.is_own ? "#22D1C3" : "#FF2D78"};
-          display:flex; align-items:center; justify-content:center;
-          font-size:${tileSize * 0.55}px; font-weight:900;
-          box-shadow:0 4px 12px ${r.is_own ? "rgba(34,209,195,0.5)" : "rgba(255,45,120,0.5)"};
-        `;
-        pin.textContent = fallback;
-      }
-      // pointer-events: nur das Pin-Visual ist klickbar (nicht der ganze überstehende Bereich).
-      // Bei Artwork: Hit-Area auf ~50% der visuellen Größe begrenzen via separater
-      // Hit-Box im Center, anstatt das ganze el klickbar zu machen.
-      if (hasArt) {
-        // Kompakte zentrierte Hit-Box (44×44 — Apple touch target minimum)
         const hit = document.createElement("div");
-        const hitSize = 44;
         hit.style.cssText = `
-          position:absolute; left:50%; top:50%;
-          transform:translate(-50%, -50%);
-          width:${hitSize}px; height:${hitSize}px;
-          border-radius:50%;
-          cursor:pointer; pointer-events:auto;
-          z-index:5;
+          position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
+          width:44px; height:44px; border-radius:50%;
+          cursor:pointer; pointer-events:auto; z-index:5;
         `;
         hit.addEventListener("click", (ev) => {
           ev.stopPropagation();
           onRepeaterClick?.(r.id, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
         });
-        // pin braucht position:relative damit hit absolut in pin sitzt
-        pin.style.position = "relative";
-        pin.appendChild(hit);
+        artEl.appendChild(hit);
       } else {
-        // Kleiner Tile-Look ohne Artwork → ganzer Pin ist klickbar
-        pin.style.cursor = "pointer";
-        pin.style.pointerEvents = "auto";
-        pin.addEventListener("click", (ev) => {
+        // Ohne Artwork: vergrößerte Silhouette als Fallback
+        const sil2 = document.createElement("div");
+        sil2.style.cssText = `width:${fullArtSize * 0.8}px; height:${fullArtSize * 0.95}px; cursor:pointer; pointer-events:auto;`;
+        sil2.innerHTML = silhouetteSvg;
+        sil2.addEventListener("click", (ev) => {
           ev.stopPropagation();
           onRepeaterClick?.(r.id, (ev as MouseEvent).clientX, (ev as MouseEvent).clientY);
         });
+        artEl.appendChild(sil2);
       }
+      pin.appendChild(artEl);
+
+      // Crew-Tag-Banner (CoD-Style: schmaler farbiger Streifen mit Tag-Text, Schatten)
+      // Sichtbar in silhouette + full Stage; Position relativ zum aktuellen Tower-Sockel.
+      const banner = document.createElement("div");
+      const bannerLabel = ((r.crew_tag ?? "").toString() + (r.crew_tag && r.label ? " " : "") + (r.label ?? "")).trim() ||
+                          (r.crew_name ?? "").toString();
+      banner.dataset.label = bannerLabel;
+      banner.style.cssText = `
+        position:absolute; left:50%; top:50%;
+        transform:translate(-50%, 0);
+        padding:2px 7px; border-radius:3px;
+        background:linear-gradient(180deg, #1a1d23, #0c0e12);
+        border:1px solid ${ownColor};
+        color:#fff;
+        font-size:10px; font-weight:900; letter-spacing:0.5px;
+        white-space:nowrap; pointer-events:none;
+        box-shadow:0 2px 4px rgba(0,0,0,0.6);
+        display:none;
+        font-family:var(--font-display-stack, system-ui);
+      `;
+      // Tag in Crew-Farbe + Label in weiß
+      if (r.crew_tag && r.label) {
+        banner.innerHTML = `<span style="color:${ownColor}">${escapeHtml(r.crew_tag)}</span> <span>${escapeHtml(r.label)}</span>`;
+      } else {
+        banner.textContent = bannerLabel;
+      }
+      pin.appendChild(banner);
 
       zoomWrap.appendChild(pin);
       el.appendChild(zoomWrap);
@@ -3279,31 +3424,57 @@ export function AppMap({
       if (!seen.has(id)) { marker.remove(); repeaterMarkersRef.current.delete(id); }
     }
 
-    // Zoom-Scale: aggressiver beim Rauszoomen, damit Repeater nicht den
-    // Stadtteil dominieren. Hide unter zoom 12.
-    //   z < 12: 0 (versteckt)
-    //   z 12-14: 0.25 → 0.45
-    //   z 14-16: 0.45 → 0.75
-    //   z 16-18: 0.75 → 1.0
-    const updateRepeaterScale = () => {
+    // 3-Stage LOD wie CoD:
+    //   z < 12      hidden  (Polygon übernimmt)
+    //   z 12-14     STAMP   (Mini-Tower-Silhouette)
+    //   z 14-16     SIL     (flache mono-Tower-Silhouette + Banner)
+    //   z >= 16     FULL    (volles Artwork + Banner)
+    const updateRepeaterLOD = () => {
       const z = map.getZoom();
-      let s = 1;
-      let visible = true;
-      if (z < 12)      { s = 0; visible = false; }
-      else if (z < 14) s = 0.25 + ((z - 12) / 2) * 0.20;
-      else if (z < 16) s = 0.45 + ((z - 14) / 2) * 0.30;
-      else if (z < 18) s = 0.75 + ((z - 16) / 2) * 0.25;
+
       for (const m of repeaterMarkersRef.current.values()) {
         const el = m.getElement();
-        const wrap = el.firstElementChild as HTMLElement | null;
-        if (wrap) wrap.style.transform = `scale(${s.toFixed(3)})`;
-        el.style.opacity = visible ? "1" : "0";
-        el.style.pointerEvents = visible ? "auto" : "none";
+        const pin = (el.firstElementChild as HTMLElement | null)?.firstElementChild as HTMLElement | null;
+        if (!pin) continue;
+        const stampEl  = pin.children[0] as HTMLElement | undefined;
+        const silEl    = pin.children[1] as HTMLElement | undefined;
+        const artEl    = pin.children[2] as HTMLElement | undefined;
+        const banner   = pin.children[3] as HTMLElement | undefined;
+        if (!stampEl || !silEl || !artEl) continue;
+
+        if (z < 12) {
+          el.style.opacity = "0";
+          el.style.pointerEvents = "none";
+          continue;
+        }
+        el.style.opacity = "1";
+        el.style.pointerEvents = "auto";
+
+        const stamp = z < 14;
+        const full  = z >= 16;
+        const sil   = !stamp && !full;
+
+        stampEl.style.display = stamp ? "block" : "none";
+        silEl.style.display   = sil   ? "block" : "none";
+        artEl.style.display   = full  ? "flex"  : "none";
+
+        if (banner) {
+          const showBanner = (sil || full) && (banner.dataset.label ?? "").length > 0;
+          banner.style.display = showBanner ? "block" : "none";
+          // Banner unter dem aktuellen Sockel positionieren
+          if (showBanner) {
+            const baseHeight = sil
+              ? Math.round(parseInt(silEl.dataset.size ?? "44", 10) * 1.18)
+              : parseInt(artEl.dataset.fullSize ?? "90", 10);
+            // top:50% + halbe Sockelhöhe + 4px Abstand
+            banner.style.top = `calc(50% + ${Math.round(baseHeight / 2) + 4}px)`;
+          }
+        }
       }
     };
-    updateRepeaterScale();
-    map.on("zoom", updateRepeaterScale);
-    return () => { map.off("zoom", updateRepeaterScale); };
+    updateRepeaterLOD();
+    map.on("zoom", updateRepeaterLOD);
+    return () => { map.off("zoom", updateRepeaterLOD); };
   }, [mapReady, crewRepeaters, onRepeaterClick, uiIconArt]);
 
   // ── Phase 4 Crew-Bauwerke: DOM-Marker (Schwarzmarkt, Bunker, Hangout, Tunnel) ──

@@ -76,18 +76,43 @@ export function RepeaterInfoPopup({
     })();
   }, [repeater.is_own]);
 
-  // Turf-Info: Fläche + Grenz-Straßen
-  const [turfInfo, setTurfInfo] = useState<{ area_m2: number; boundary_streets: string[]; fallback_circle: boolean } | null>(null);
+  // Turf-Info: Fläche + Grenz-Straßen + Meta (Erbaut am, Founder, Letzter Angriff, Ansehen)
+  type SameTurfRepeater = { id: string; kind: "hq" | "repeater" | "mega"; label: string | null; hp: number; max_hp: number };
+  type AdjacentCrew = { crew_id: string; crew_name: string; crew_tag: string; repeater_count: number };
+  type TurfInfo = {
+    area_m2: number;
+    boundary_streets: string[];
+    fallback_circle: boolean;
+    created_at: string | null;
+    founder_name: string | null;
+    last_attack_at: string | null;
+    last_attacker_crew: string | null;
+    last_attack_outcome: string | null;
+    last_attack_status: string | null;
+    ansehen_total: number;
+    same_turf_repeaters: SameTurfRepeater[];
+    adjacent_crews: AdjacentCrew[];
+  };
+  const [turfInfo, setTurfInfo] = useState<TurfInfo | null>(null);
   useEffect(() => {
     (async () => {
       const sb = createClient();
       const { data } = await sb.rpc("get_repeater_turf_info", { p_repeater_id: repeater.id });
-      const res = data as { ok?: boolean; area_m2?: number; boundary_streets?: string[]; fallback_circle?: boolean } | null;
+      const res = data as (Partial<TurfInfo> & { ok?: boolean }) | null;
       if (res?.ok) {
         setTurfInfo({
           area_m2: res.area_m2 ?? 0,
           boundary_streets: res.boundary_streets ?? [],
           fallback_circle: !!res.fallback_circle,
+          created_at: res.created_at ?? null,
+          founder_name: res.founder_name ?? null,
+          last_attack_at: res.last_attack_at ?? null,
+          last_attacker_crew: res.last_attacker_crew ?? null,
+          last_attack_outcome: res.last_attack_outcome ?? null,
+          last_attack_status: res.last_attack_status ?? null,
+          ansehen_total: res.ansehen_total ?? 0,
+          same_turf_repeaters: res.same_turf_repeaters ?? [],
+          adjacent_crews: res.adjacent_crews ?? [],
         });
       }
     })();
@@ -177,7 +202,7 @@ export function RepeaterInfoPopup({
   const accentColor = repeater.is_own ? PRIMARY : ACCENT;
 
   // Position berechnen — versucht oben-rechts vom Anker, mit Viewport-Clamp
-  const PW = 320, PH = 380;
+  const PW = 320, PH = 460;
   const margin = 12;
   let left = anchorX + 24;
   let top = anchorY - PH / 2;
@@ -258,7 +283,7 @@ export function RepeaterInfoPopup({
       </div>
 
       {/* Info-Rows */}
-      <div style={{ padding: "4px 14px 14px" }}>
+      <div style={{ padding: "4px 14px 14px", maxHeight: "70vh", overflowY: "auto" }}>
         <Row label="Besitzer" value={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "flex-end", flexWrap: "wrap" }}>
             {repeater.crew_tag && (
@@ -304,6 +329,114 @@ export function RepeaterInfoPopup({
                 </span>
               }
             />
+            {turfInfo.created_at && (
+              <Row
+                label="Erbaut"
+                value={
+                  <span style={{ color: "#FFF", fontWeight: 700, fontSize: 12 }}>
+                    {formatRelative(turfInfo.created_at, now)}
+                  </span>
+                }
+              />
+            )}
+            {turfInfo.founder_name && (
+              <Row
+                label="Errichtet von"
+                value={<span style={{ color: "#FFF", fontWeight: 700, fontSize: 12 }}>{turfInfo.founder_name}</span>}
+              />
+            )}
+            {turfInfo.ansehen_total > 0 && (
+              <Row
+                label="Ansehen-Beitrag"
+                value={
+                  <span style={{ color: "#FFD700", fontWeight: 800, fontSize: 12 }}>
+                    +{turfInfo.ansehen_total.toLocaleString("de-DE")}
+                  </span>
+                }
+              />
+            )}
+            {turfInfo.last_attack_at ? (
+              <Row
+                label="Letzter Angriff"
+                value={
+                  <span style={{ color: "#FFF", fontWeight: 700, fontSize: 11, textAlign: "right" }}>
+                    <span>{formatRelative(turfInfo.last_attack_at, now)}</span>
+                    {turfInfo.last_attacker_crew && (
+                      <>
+                        <br />
+                        <span style={{ color: ACCENT, fontSize: 10, fontWeight: 800 }}>
+                          {turfInfo.last_attacker_crew}
+                          {turfInfo.last_attack_outcome === "attacker_won" && " · gewonnen"}
+                          {turfInfo.last_attack_outcome === "defender_won" && " · abgewehrt"}
+                          {turfInfo.last_attack_status === "marching" && " · im Anflug"}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                }
+              />
+            ) : (
+              <Row
+                label="Letzter Angriff"
+                value={<span style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700 }}>noch keiner</span>}
+              />
+            )}
+            {turfInfo.same_turf_repeaters.length > 0 && (
+              <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                  Andere Sender im selben Turf
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  {turfInfo.same_turf_repeaters.map((r) => (
+                    <div key={r.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                      <span style={{ color: "#FFF", fontWeight: 700 }}>
+                        {r.label || KIND_LABEL[r.kind]}
+                      </span>
+                      <span style={{ color: r.hp / r.max_hp > 0.5 ? "#22D1C3" : r.hp / r.max_hp > 0.2 ? "#FFD700" : "#FF2D78", fontWeight: 800 }}>
+                        {r.hp}/{r.max_hp}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {turfInfo.adjacent_crews.length > 0 && (
+              <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                  Anrainer-Crews
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {turfInfo.adjacent_crews.map((c) => (
+                    <span key={c.crew_id} style={{
+                      padding: "3px 7px", borderRadius: 6,
+                      background: `${ACCENT}1a`, border: `1px solid ${ACCENT}55`,
+                      fontSize: 10, fontWeight: 800, color: "#FFF",
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                    }}>
+                      <span style={{ color: ACCENT }}>{c.crew_tag}</span>
+                      <span>{c.crew_name}</span>
+                      <span style={{ color: "#8B8FA3", fontSize: 9 }}>×{c.repeater_count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {repeater.is_own && !turfInfo.fallback_circle && (
+              <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                  Aktive Turf-Buffs
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11 }}>
+                  <BuffRow icon="🪙" text="+25% Ressourcen beim Lauf im Turf" />
+                  <BuffRow icon="🪙" text="+15% Wegemünzen-Drop im Turf" />
+                  <BuffRow icon="🎁" text="+30% Loot beim Wegelager-Einlösen im Turf" />
+                  <BuffRow icon="🔧" text="−50% Reparatur-Kosten im Turf" />
+                </div>
+              </div>
+            )}
+
             {turfInfo.boundary_streets.length > 0 && (
               <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>Grenz-Straßen</div>
@@ -441,6 +574,32 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span style={{ color: "#FFF", fontSize: 12, textAlign: "right" }}>{value}</span>
     </div>
   );
+}
+
+function BuffRow({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#22D1C3", fontWeight: 700 }}>
+      <span style={{ fontSize: 13 }}>{icon}</span>
+      <span style={{ color: "#FFF" }}>{text}</span>
+    </div>
+  );
+}
+
+function formatRelative(isoDate: string, nowMs: number): string {
+  const t = new Date(isoDate).getTime();
+  if (!Number.isFinite(t)) return "—";
+  const diffSec = Math.max(0, Math.floor((nowMs - t) / 1000));
+  if (diffSec < 60) return "gerade eben";
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `vor ${min} Min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `vor ${h} Std`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `vor ${d} Tag${d === 1 ? "" : "en"}`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `vor ${mo} Monat${mo === 1 ? "" : "en"}`;
+  const y = Math.floor(d / 365);
+  return `vor ${y} Jahr${y === 1 ? "" : "en"}`;
 }
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {

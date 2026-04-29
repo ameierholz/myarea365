@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<title>MyArea365 — Feature Graphic 1024×500</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1024px; height: 500px; overflow: hidden;
+    background: #0F1115;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .bg {
+    width: 1024px; height: 500px; position: relative;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(34,209,195,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 70%, rgba(255,45,120,0.30) 0%, transparent 55%),
+      repeating-linear-gradient(45deg, transparent 0 18px, rgba(255,255,255,0.025) 18px 20px),
+      linear-gradient(135deg, #0F1115 0%, #14181f 50%, #0F1115 100%);
+    overflow: hidden;
+  }
+  .grid-overlay {
+    position: absolute; inset: 0; opacity: 0.35;
+    background-image:
+      linear-gradient(rgba(34,209,195,0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,209,195,0.12) 1px, transparent 1px);
+    background-size: 60px 60px;
+    transform: perspective(800px) rotateX(50deg) translateY(80px) scale(1.5);
+    transform-origin: center bottom;
+  }
+  .content {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    padding: 0 70px;
+  }
+  .left {
+    flex: 1; max-width: 560px;
+  }
+  .right {
+    width: 280px; height: 280px; position: relative;
+    margin-left: auto;
+  }
+  .pill {
+    display: inline-block;
+    padding: 6px 14px; border-radius: 999px;
+    background: linear-gradient(135deg, #FF2D78 0%, #FF6B4A 100%);
+    color: #fff; font-size: 11px; font-weight: 900;
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 16px rgba(255,45,120,0.4);
+  }
+  h1 {
+    color: #fff; font-size: 56px; line-height: 1.05; font-weight: 900;
+    letter-spacing: -1.5px;
+    margin-bottom: 14px;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  }
+  h1 .accent {
+    background: linear-gradient(135deg, #22D1C3 0%, #5ddaf0 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  h1 .accent-pink {
+    background: linear-gradient(135deg, #FF2D78 0%, #FF6B4A 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub {
+    color: #c2c8d4; font-size: 18px; line-height: 1.4; font-weight: 500;
+    max-width: 480px;
+    margin-bottom: 22px;
+  }
+  .badges {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .badge {
+    padding: 6px 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; font-size: 12px; font-weight: 700;
+    backdrop-filter: blur(6px);
+  }
+  .badge .dot { color: #22D1C3; margin-right: 6px; }
+  .castle {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 360px; height: 360px;
+    background: radial-gradient(circle at 50% 50%, rgba(34,209,195,0.4) 0%, transparent 65%);
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+    filter: drop-shadow(0 12px 40px rgba(34,209,195,0.6)) drop-shadow(0 0 30px rgba(255,45,120,0.4));
+  }
+  .castle img {
+    width: 320px; height: 320px; object-fit: contain;
+    filter: url(#ma365-chroma-black);
+  }
+  .castle::before {
+    content: ""; position: absolute; inset: 30px;
+    border-radius: 50%;
+    border: 2px solid rgba(34,209,195,0.4);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.4; }
+  }
+  .corner-tag {
+    position: absolute; top: 24px; right: 30px;
+    color: #22D1C3; font-size: 10px; font-weight: 900;
+    letter-spacing: 3px;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+  <!-- Chroma-Key SVG-Filter (entfernt #00FF00 Greenscreen aus Artwork-PNGs) -->
+  <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <defs>
+      <filter id="ma365-chroma-black" color-interpolation-filters="sRGB">
+        <feColorMatrix in="SourceGraphic" result="keyAlphaRaw" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  1 -1 1 0 0.1" />
+        <feComponentTransfer in="keyAlphaRaw" result="keyAlpha">
+          <feFuncA type="linear" slope="12" intercept="0" />
+        </feComponentTransfer>
+        <feColorMatrix in="SourceGraphic" result="despilled" type="matrix"
+          values="1    0    0    0 0
+                  0.15 0.7  0.15 0 0
+                  0    0    1    0 0
+                  0    0    0    1 0" />
+        <feComposite in="despilled" in2="keyAlpha" operator="in" />
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="bg">
+    <div class="grid-overlay"></div>
+    <div class="corner-tag">myarea365.de</div>
+    <div class="content">
+      <div class="left">
+        <span class="pill">Berlin · Beta-Launch</span>
+        <h1>
+          Erlauf<br/>
+          deinen <span class="accent">Kiez</span>.<br/>
+          Erobere die <span class="accent-pink">Stadt</span>.
+        </h1>
+        <p class="sub">
+          Verwandle deine Spaziergänge in ein Spiel: erobere Straßen,
+          sammle mit Freunden Wegemünzen und löse Rabatte bei lokalen
+          Geschäften ein.
+        </p>
+        <div class="badges">
+          <span class="badge"><span class="dot">●</span>Crew-Wars</span>
+          <span class="badge"><span class="dot">●</span>Wächter-System</span>
+          <span class="badge" style="border-color:rgba(255,215,0,0.5)"><span class="dot" style="color:#FFD700">●</span>Lokale Rabatte</span>
+        </div>
+      </div>
+      <div class="right">
+        <div class="castle">
+          <img src="https://dqxfbsgusydmaaxdrgxx.supabase.co/storage/v1/object/public/artwork/base-themes/medieval_runner_pin.png" alt="" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!--
+═══════════════════════════════════════════════════════
+SO RENDERST DU DAS ALS PNG (1024×500):
+═══════════════════════════════════════════════════════
+
+1. Im Browser öffnen: file://.../play-store-feature-graphic.html
+   (oder via http://localhost dev server)
+
+2. Browser-Window auf exakt 1024×500 stellen — am einfachsten:
+   DevTools öffnen → Device-Toolbar → Custom Width 1024, Height 500
+
+3. Vollbild-Screenshot machen:
+   - Chrome DevTools: Cmd/Ctrl+Shift+P → "Capture full size screenshot"
+   - Firefox: Rechtsklick → "Screenshot aufnehmen" → ganze Seite
+   - Oder: Puppeteer/Playwright headless screenshot bei viewport 1024×500
+
+4. Resultierende PNG prüfen:
+   - Exakt 1024×500 px
+   - Keine Transparenz (Google verlangt RGB ohne Alpha)
+   - Unter 1 MB
+   - JPG oder PNG erlaubt — PNG ist hier ok
+
+5. Im Play Console hochladen unter:
+   App-Inhalte → Hauptangebot → Grafiken → Feature-Grafik
+-->
+</body>
+</html>
