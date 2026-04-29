@@ -2315,19 +2315,43 @@ export function AppMap({
     }
   }, [mapReady, shopTrail]);
 
-  // ── Boss-Raids DOM Marker (Pulse + HP-Bar, zoom-skaliert) ──
-  const bossMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  // ── Boss-Raids DOM Marker (diff-based: nur Deltas anfassen, in-place HP-Update) ──
+  type BossEntry = { marker: mapboxgl.Marker; el: HTMLElement; hpFill: HTMLElement; data: typeof bossRaids[0] };
+  const bossMarkersRef = useRef<Map<string, BossEntry>>(new Map());
+  const onBossClickRef = useRef(onBossClick);
+  onBossClickRef.current = onBossClick;
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    bossMarkersRef.current.forEach(({ marker }) => marker.remove());
-    bossMarkersRef.current = [];
+    const wantIds = new Set(bossRaids.map((b) => b.id));
 
+    // 1) Entfernen: Marker, die nicht mehr existieren
+    for (const [id, entry] of bossMarkersRef.current) {
+      if (!wantIds.has(id)) {
+        entry.marker.remove();
+        bossMarkersRef.current.delete(id);
+      }
+    }
+
+    // 2) Hinzufügen oder in-place aktualisieren
     bossRaids.forEach((b) => {
+      const existing = bossMarkersRef.current.get(b.id);
+      const pct = Math.round((b.current_hp / b.max_hp) * 100);
+      if (existing) {
+        // In-place: nur HP-Fill anpassen, Position/Click-Handler bleiben
+        if (existing.data.current_hp !== b.current_hp || existing.data.max_hp !== b.max_hp) {
+          existing.hpFill.style.width = `${pct}%`;
+        }
+        if (existing.data.lat !== b.lat || existing.data.lng !== b.lng) {
+          existing.marker.setLngLat([b.lng, b.lat]);
+        }
+        existing.data = b;
+        return;
+      }
+      // Neu erstellen
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
-      const pct = Math.round((b.current_hp / b.max_hp) * 100);
       const inner = document.createElement("div");
       inner.className = "ma365-boss-marker";
       inner.style.transformOrigin = "center bottom";
@@ -2335,11 +2359,12 @@ export function AppMap({
           <div class="ma365-boss-circle"><span class="ma365-boss-emoji">${b.emoji}</span></div>
           <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>`;
       inner.title = b.name;
+      const hpFill = inner.querySelector(".ma365-boss-hpfill") as HTMLElement;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onBossClick?.(b.id));
+      outer.addEventListener("click", () => onBossClickRef.current?.(b.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([b.lng, b.lat]).addTo(map);
-      bossMarkersRef.current.push({ marker, el: inner });
+      bossMarkersRef.current.set(b.id, { marker, el: inner, hpFill, data: b });
     });
 
     const applyScale = () => {
@@ -2357,34 +2382,63 @@ export function AppMap({
 
     return () => {
       map.off("zoom", applyScale);
-      bossMarkersRef.current.forEach(({ marker }) => marker.remove());
-      bossMarkersRef.current = [];
     };
-  }, [mapReady, bossRaids, onBossClick]);
+  }, [mapReady, bossRaids]);
 
-  // ── Sanctuaries DOM Marker (zoom-skaliert) ──
-  const sanctuaryMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  // Cleanup beim Unmount
+  useEffect(() => {
+    return () => {
+      bossMarkersRef.current.forEach(({ marker }) => marker.remove());
+      bossMarkersRef.current.clear();
+    };
+  }, []);
+
+  // ── Sanctuaries DOM Marker (diff-based) ──
+  type SanctEntry = { marker: mapboxgl.Marker; el: HTMLElement; data: typeof sanctuaries[0] };
+  const sanctuaryMarkersRef = useRef<Map<string, SanctEntry>>(new Map());
+  const onSanctuaryClickRef = useRef(onSanctuaryClick);
+  onSanctuaryClickRef.current = onSanctuaryClick;
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
-    sanctuaryMarkersRef.current = [];
+    const wantIds = new Set(sanctuaries.map((s) => s.id));
+
+    for (const [id, entry] of sanctuaryMarkersRef.current) {
+      if (!wantIds.has(id)) {
+        entry.marker.remove();
+        sanctuaryMarkersRef.current.delete(id);
+      }
+    }
 
     sanctuaries.forEach((s) => {
+      const existing = sanctuaryMarkersRef.current.get(s.id);
+      if (existing) {
+        // In-place: nur done-State + XP-Label aktualisieren wenn geändert
+        if (existing.data.trained_today !== s.trained_today || existing.data.xp_reward !== s.xp_reward) {
+          existing.el.className = `ma365-sanctuary-marker ${s.trained_today ? "done" : ""}`;
+          existing.el.innerHTML = `
+              <div class="ma365-sanctuary-emoji">${s.emoji}</div>
+              ${s.trained_today ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
+        }
+        if (existing.data.lat !== s.lat || existing.data.lng !== s.lng) {
+          existing.marker.setLngLat([s.lng, s.lat]);
+        }
+        existing.data = s;
+        return;
+      }
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
-      const done = s.trained_today;
       const inner = document.createElement("div");
-      inner.className = `ma365-sanctuary-marker ${done ? "done" : ""}`;
+      inner.className = `ma365-sanctuary-marker ${s.trained_today ? "done" : ""}`;
       inner.innerHTML = `
           <div class="ma365-sanctuary-emoji">${s.emoji}</div>
-          ${done ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
+          ${s.trained_today ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">+${s.xp_reward} XP</div>`}`;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onSanctuaryClick?.(s.id));
+      outer.addEventListener("click", () => onSanctuaryClickRef.current?.(s.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      sanctuaryMarkersRef.current.push({ marker, el: inner });
+      sanctuaryMarkersRef.current.set(s.id, { marker, el: inner, data: s });
     });
 
     const applyScale = () => {
@@ -2402,62 +2456,151 @@ export function AppMap({
 
     return () => {
       map.off("zoom", applyScale);
-      sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
-      sanctuaryMarkersRef.current = [];
     };
-  }, [mapReady, sanctuaries, onSanctuaryClick]);
+  }, [mapReady, sanctuaries]);
 
-  // ── Wegelager (Strongholds) DOM-Marker ──
-  const strongholdMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  // Cleanup beim Unmount
+  useEffect(() => {
+    return () => {
+      sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
+      sanctuaryMarkersRef.current.clear();
+    };
+  }, []);
+
+  // ── Wegelager (Strongholds) DOM-Marker (diff-based + lazy video) ──
+  type StrongholdEntry = {
+    marker: mapboxgl.Marker;
+    el: HTMLElement;
+    visualSlot: HTMLElement;
+    levelSlot: HTMLElement;
+    hpFill: HTMLElement;
+    data: typeof strongholds[0];
+    artHash: string;
+  };
+  const strongholdMarkersRef = useRef<Map<string, StrongholdEntry>>(new Map());
+  const onStrongholdClickRef = useRef(onStrongholdClick);
+  onStrongholdClickRef.current = onStrongholdClick;
+  // Lazy-Video-Observer: Video-Elemente bekommen ihre src erst wenn sie im Viewport sind.
+  // Spart GPU-Decoder bei vielen Strongholds gleichzeitig.
+  const strongholdVideoObserverRef = useRef<IntersectionObserver | null>(null);
+  if (typeof window !== "undefined" && !strongholdVideoObserverRef.current) {
+    strongholdVideoObserverRef.current = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const v = entry.target as HTMLVideoElement;
+        const realSrc = v.dataset.lazySrc;
+        if (entry.isIntersecting && realSrc && !v.src) {
+          v.src = realSrc;
+        } else if (!entry.isIntersecting && v.src) {
+          v.pause();
+          v.removeAttribute("src");
+          v.load();
+        }
+      });
+    }, { rootMargin: "100px" });
+  }
+
+  const buildStrongholdVisual = (s: typeof strongholds[0]): string => {
+    const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
+    if (art?.image_url) {
+      return `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'" />`;
+    } else if (art?.video_url) {
+      return `<video data-lazy-src="${art.video_url}" autoplay loop muted playsinline preload="none" class="ma365-stronghold-emoji ma365-stronghold-lazy-video" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'"></video>`;
+    }
+    return `<div class="ma365-stronghold-emoji">🏰</div>`;
+  };
+  const computeArtHash = (s: typeof strongholds[0]): string => {
+    const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
+    return `${art?.image_url ?? ""}|${art?.video_url ?? ""}`;
+  };
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
-    strongholdMarkersRef.current = [];
+    const wantIds = new Set(strongholds.map((s) => s.id));
+
+    // Entfernen
+    for (const [id, entry] of strongholdMarkersRef.current) {
+      if (!wantIds.has(id)) {
+        entry.marker.remove();
+        strongholdMarkersRef.current.delete(id);
+      }
+    }
 
     strongholds.forEach((s) => {
+      const existing = strongholdMarkersRef.current.get(s.id);
+      const newArtHash = computeArtHash(s);
+      const hpPct = Math.max(0, Math.min(100, s.hp_pct));
+      if (existing) {
+        // HP in-place
+        if (existing.data.hp_pct !== s.hp_pct) {
+          existing.hpFill.style.width = `${hpPct}%`;
+        }
+        // Level in-place
+        if (existing.data.level !== s.level) {
+          existing.levelSlot.textContent = `Lv${s.level}`;
+        }
+        // Position in-place
+        if (existing.data.lat !== s.lat || existing.data.lng !== s.lng) {
+          existing.marker.setLngLat([s.lng, s.lat]);
+        }
+        // Artwork nur tauschen wenn es sich tatsächlich geändert hat
+        if (existing.artHash !== newArtHash) {
+          // Alte Video-Elemente abmelden
+          existing.visualSlot.querySelectorAll("video").forEach((v) => strongholdVideoObserverRef.current?.unobserve(v));
+          existing.visualSlot.innerHTML = buildStrongholdVisual(s);
+          existing.visualSlot.querySelectorAll("video").forEach((v) => strongholdVideoObserverRef.current?.observe(v));
+          existing.artHash = newArtHash;
+        }
+        existing.data = s;
+        return;
+      }
+
+      // Neu
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
       const inner = document.createElement("div");
       inner.className = "ma365-stronghold-marker";
 
-      // Ein einziges Artwork für alle Wegelager — Slot "wegelager", Fallback auf
-      // alte Slots (default/level_<N>) für Rückwärtskompatibilität, dann Emoji.
-      // WICHTIG: Image wird ggü. Video bevorzugt — mehrere autoplay-MP4s parallel
-      // hauen den WebGL-Context auf Mobile raus. Video ist nur Fallback, dann
-      // mit preload="metadata" + onerror-Fallback auf Emoji.
-      const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
-      let visualHtml: string;
-      if (art?.image_url) {
-        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'" />`;
-      } else if (art?.video_url) {
-        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline preload="metadata" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'"></video>`;
-      } else {
-        visualHtml = `<div class="ma365-stronghold-emoji">🏰</div>`;
-      }
+      const visualSlot = document.createElement("div");
+      visualSlot.style.display = "contents";
+      visualSlot.innerHTML = buildStrongholdVisual(s);
 
-      inner.innerHTML = `
-        ${visualHtml}
-        <div class="ma365-stronghold-level">Lv${s.level}</div>
-        <div class="ma365-stronghold-hp"><div class="ma365-stronghold-hp-fill" style="width:${Math.max(0, Math.min(100, s.hp_pct))}%"></div></div>`;
+      const levelSlot = document.createElement("div");
+      levelSlot.className = "ma365-stronghold-level";
+      levelSlot.textContent = `Lv${s.level}`;
+
+      const hpBar = document.createElement("div");
+      hpBar.className = "ma365-stronghold-hp";
+      const hpFill = document.createElement("div");
+      hpFill.className = "ma365-stronghold-hp-fill";
+      hpFill.style.width = `${hpPct}%`;
+      hpBar.appendChild(hpFill);
+
+      inner.appendChild(visualSlot);
+      inner.appendChild(levelSlot);
+      inner.appendChild(hpBar);
+
+      // Video-Lazy-Load registrieren
+      visualSlot.querySelectorAll("video").forEach((v) => strongholdVideoObserverRef.current?.observe(v));
+
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onStrongholdClick?.(s.id));
+      outer.addEventListener("click", () => onStrongholdClickRef.current?.(s.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      strongholdMarkersRef.current.push({ marker, el: inner });
+      strongholdMarkersRef.current.set(s.id, {
+        marker, el: inner, visualSlot, levelSlot, hpFill, data: s, artHash: newArtHash,
+      });
     });
 
     const applyScale = () => {
       const zoom = map.getZoom();
-      // Synchron mit Spotlight/Liga-Badges: < z=13 versteckt.
-      // Beim Reinzoomen größer als ursprünglich (max 1.4× bei z=18+).
       // z=13→0.55, z=15→0.95, z=17→1.30, z=18+→1.40
       const hide = zoom < 13;
       let scale = 1.4;
-      if      (zoom < 15)   scale = 0.55 + ((zoom - 13) / 2) * 0.40; // 0.55 → 0.95
-      else if (zoom < 17)   scale = 0.95 + ((zoom - 15) / 2) * 0.35; // 0.95 → 1.30
-      else if (zoom < 18)   scale = 1.30 + (zoom - 17) * 0.10;        // 1.30 → 1.40
+      if      (zoom < 15)   scale = 0.55 + ((zoom - 13) / 2) * 0.40;
+      else if (zoom < 17)   scale = 0.95 + ((zoom - 15) / 2) * 0.35;
+      else if (zoom < 18)   scale = 1.30 + (zoom - 17) * 0.10;
       strongholdMarkersRef.current.forEach(({ el }) => {
         el.style.transform = `scale(${scale.toFixed(2)})`;
         el.style.transformOrigin = "bottom center";
@@ -2469,15 +2612,22 @@ export function AppMap({
     map.on("zoom", applyScale);
     return () => {
       map.off("zoom", applyScale);
-      strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
-      strongholdMarkersRef.current = [];
     };
-  }, [mapReady, strongholds, onStrongholdClick, strongholdArt]);
+  }, [mapReady, strongholds, strongholdArt]);
+
+  // Cleanup beim Unmount
+  useEffect(() => {
+    return () => {
+      strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
+      strongholdMarkersRef.current.clear();
+      strongholdVideoObserverRef.current?.disconnect();
+    };
+  }, []);
 
   // ── Loot-Drops: animierte Kisten mit Proximity-Pickup ──
   // Diff-basiert: bestehende Marker bleiben stehen, nur neue/entfernte werden geändert
   // (verhindert Flackern/Reload beim Spawn neuer Drops).
-  const lootMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; drop: typeof lootDrops[0] }>>([]);
+  const lootMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; drop: typeof lootDrops[0]; timerEl: HTMLElement | null }>>([]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
@@ -2516,7 +2666,8 @@ export function AppMap({
       outer.addEventListener("click", () => onLootClick?.(d.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
         .setLngLat([d.lng, d.lat]).addTo(map);
-      lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d });
+      const timerEl = outer.querySelector(".ma365-loot-timer") as HTMLElement | null;
+      lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d, timerEl });
     });
     return () => { /* Cleanup nur beim Unmount via mapReady=false-Reset */ };
   }, [mapReady, lootDrops, onLootClick]);
@@ -2532,12 +2683,14 @@ export function AppMap({
     };
     const tick = () => {
       const now = Date.now();
-      document.querySelectorAll<HTMLElement>("[data-loot-timer]").forEach((el) => {
-        const exp = Number(el.dataset.lootTimer || "0");
-        if (!exp) { el.textContent = ""; return; }
+      // Pro Loot-Marker direkten ref — kein DOM-Scan pro Sekunde
+      lootMarkersRef.current.forEach(({ timerEl, drop }) => {
+        if (!timerEl) return;
+        const exp = drop.expires_at ?? 0;
+        if (!exp) { timerEl.textContent = ""; return; }
         const left = exp - now;
-        if (left <= 0) { el.textContent = "weg"; return; }
-        el.textContent = fmt(left);
+        if (left <= 0) { timerEl.textContent = "weg"; return; }
+        timerEl.textContent = fmt(left);
       });
     };
     tick();
