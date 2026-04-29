@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations, useLocale } from "next-intl";
 import { getDateLocale, getNumberLocale } from "@/i18n/config";
 import Link from "next/link";
@@ -10,31 +11,43 @@ import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
-import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
-import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
-import { UpgradeModal } from "@/components/upgrade-modal";
 import { BoostShopModal as PowerShopModal, BoostShopBody } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
-import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
-import { RunRouteModal } from "@/components/run-route-modal";
-import { OwnershipModal } from "@/components/ownership-modal";
-import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
+import { type WalkSummary } from "@/components/walk-summary-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianAvatar } from "@/components/guardian-avatar";
-import { GuardianDetailModal } from "@/components/guardian-detail-modal";
-import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
+
+// Lazy-Loaded Modals — werden erst geladen wenn der User sie öffnet (spart ~hunderte KB im Initial-Bundle)
+const RepeaterInfoPopup = dynamic(() => import("@/components/repeater-info-popup").then((m) => m.RepeaterInfoPopup), { ssr: false });
+const PlaceRepeaterModal = dynamic(() => import("@/components/repeater-modals").then((m) => m.PlaceRepeaterModal), { ssr: false });
+const AttackRepeaterModal = dynamic(() => import("@/components/repeater-modals").then((m) => m.AttackRepeaterModal), { ssr: false });
+const UpgradeModal = dynamic(() => import("@/components/upgrade-modal").then((m) => m.UpgradeModal), { ssr: false });
+const WalkSummaryModal = dynamic(() => import("@/components/walk-summary-modal").then((m) => m.WalkSummaryModal), { ssr: false });
+const RunRouteModal = dynamic(() => import("@/components/run-route-modal").then((m) => m.RunRouteModal), { ssr: false });
+const OwnershipModal = dynamic(() => import("@/components/ownership-modal").then((m) => m.OwnershipModal), { ssr: false });
+const ArenaChallengeModal = dynamic(() => import("@/components/arena-challenge-modal").then((m) => m.ArenaChallengeModal), { ssr: false });
+const GuardianDetailModal = dynamic(() => import("@/components/guardian-detail-modal").then((m) => m.GuardianDetailModal), { ssr: false });
+const GuardianGalleryModal = dynamic(() => import("@/components/guardian-gallery-modal").then((m) => m.GuardianGalleryModal), { ssr: false });
+const GemShopModal = dynamic(() => import("@/components/gem-shop-modal").then((m) => m.GemShopModal), { ssr: false });
+const ShopHubModal = dynamic(() => import("@/components/shop-hub-modal").then((m) => m.ShopHubModal), { ssr: false });
+const ShopDealsModal = dynamic(() => import("@/components/shop-deals-modal").then((m) => m.ShopDealsModal), { ssr: false });
+const MapLegendModal = dynamic(() => import("@/components/map-legend-modal").then((m) => m.MapLegendModal), { ssr: false });
+const FaqModal = dynamic(() => import("@/components/faq-modal").then((m) => m.FaqModal), { ssr: false });
+const PotionInventoryModal = dynamic(() => import("@/components/potion-inventory-modal").then((m) => m.PotionInventoryModal), { ssr: false });
+const RunnerStatsModal = dynamic(() => import("@/components/runner-stats-modal").then((m) => m.RunnerStatsModal), { ssr: false });
+const BaseModal = dynamic(() => import("@/components/base-modal").then((m) => m.BaseModal), { ssr: false });
+const AttackBaseModal = dynamic(() => import("@/components/attack-base-modal").then((m) => m.AttackBaseModal), { ssr: false });
+const StrongholdModal = dynamic(() => import("@/components/stronghold-modal").then((m) => m.StrongholdModal), { ssr: false });
+const JoinPlayerBaseRallyModal = dynamic(() => import("@/components/active-player-base-rally-banner").then((m) => m.JoinPlayerBaseRallyModal), { ssr: false });
 import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
 import { normalizeFaction } from "@/lib/factions";
 import { AdSenseSlot } from "@/components/adsense-slot";
-import { GemShopModal } from "@/components/gem-shop-modal";
-import { ShopHubModal } from "@/components/shop-hub-modal";
-import { ShopDealsModal } from "@/components/shop-deals-modal";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
 import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon } from "@/components/resource-icon";
@@ -43,13 +56,9 @@ import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
 import { MapHelpButton } from "@/components/map-help-button";
-import { MapLegendModal } from "@/components/map-legend-modal";
 import { CrewLiveHub } from "@/components/crew-live-hub";
 import { OnboardingModal, markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
-import { FaqModal } from "@/components/faq-modal";
-import { PotionInventoryModal } from "@/components/potion-inventory-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
-import { RunnerStatsModal } from "@/components/runner-stats-modal";
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -62,11 +71,31 @@ import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { AppMap } from "@/components/app-map";
-import { BaseModal } from "@/components/base-modal";
-import { AttackBaseModal } from "@/components/attack-base-modal";
-import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
-import { StrongholdModal, ActiveRallyBanner } from "@/components/stronghold-modal";
+// AppMap dynamic — Mapbox-gl (~300KB gzip) wird in eigenen Chunk gesplittet,
+// bleibt deploy-übergreifend gecached während App-Code-Updates ihn nicht invalidieren.
+const AppMap = dynamic(() => import("@/components/app-map").then((m) => m.AppMap), {
+  ssr: false,
+  loading: () => (
+    <div style={{
+      flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "#0F1115", color: "#22D1C3", fontWeight: 800, fontSize: 14, letterSpacing: 0.5,
+    }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 36, height: 36, margin: "0 auto 12px",
+          border: "3px solid rgba(34,209,195,0.2)",
+          borderTop: "3px solid #22D1C3",
+          borderRadius: "50%",
+          animation: "spinAppMap 0.8s linear infinite",
+        }} />
+        <style dangerouslySetInnerHTML={{ __html: "@keyframes spinAppMap { to { transform: rotate(360deg); } }" }} />
+        Karte lädt…
+      </div>
+    </div>
+  ),
+});
+import { ActivePlayerBaseRallyBanner, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
+import { ActiveRallyBanner } from "@/components/stronghold-modal";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
@@ -4216,7 +4245,7 @@ function ProfilTab({
         <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} />
       )}
 
-      <ShopDealsModal open={showShopDeals} onClose={() => setShowShopDeals(false)} />
+      {showShopDeals && <ShopDealsModal open={showShopDeals} onClose={() => setShowShopDeals(false)} />}
 
       {openModal === "onboarding" && (
         <OnboardingModal onClose={() => { markOnboardingSeen(); setOpenModal(null); }} />
