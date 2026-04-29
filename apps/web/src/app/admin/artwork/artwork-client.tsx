@@ -88,7 +88,7 @@ type CosmeticArt = {
   troop:      Record<string, Art>;  // slot_id = troop_id (inf_t1, cav_t3, ...)
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop";
 
 type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -183,7 +183,18 @@ export function ArtworkAdminClient() {
   const doneResource = Object.values(cosmetic.resource ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneChest    = Object.values(cosmetic.chest    ?? {}).filter(a => a.image_url || a.video_url).length; // 4 Assets pro Theme (runner_pin + runner_banner + crew_pin + crew_banner)
   const doneStronghold = Object.values(cosmetic.stronghold ?? {}).filter(a => a.image_url || a.video_url).length;
-  const doneUiIcon   = Object.values(cosmetic.ui_icon  ?? {}).filter(a => a.image_url || a.video_url).length;
+  const silhouetteSlots = uiIconSlots.filter(s => s.category === "silhouette");
+  const nonSilhouetteSlots = uiIconSlots.filter(s => s.category !== "silhouette");
+  const doneSilhouette = silhouetteSlots.filter(s => {
+    const a = cosmetic.ui_icon?.[s.id];
+    return a?.image_url || a?.video_url;
+  }).length;
+  const doneMapBuilding = doneStronghold + doneSilhouette;
+  const totalMapBuilding = STRONGHOLDS_ART.length + silhouetteSlots.length;
+  const doneUiIcon   = nonSilhouetteSlots.filter(s => {
+    const a = cosmetic.ui_icon?.[s.id];
+    return a?.image_url || a?.video_url;
+  }).length;
   const doneTroop    = Object.values(cosmetic.troop    ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
@@ -200,8 +211,8 @@ export function ArtworkAdminClient() {
     { id: "building",  label: "🧱 Gebäude",         done: doneBuilding,  total: BUILDINGS_ART.length },
     { id: "resource",  label: "💰 Resourcen",       done: doneResource,  total: RESOURCES_ART.length },
     { id: "chest",     label: "🗝️ Truhen",          done: doneChest,     total: CHESTS_ART.length },
-    { id: "stronghold",label: "⚔ Wegelager",        done: doneStronghold,total: STRONGHOLDS_ART.length },
-    { id: "ui_icon",   label: "✨ UI-Icons",         done: doneUiIcon,    total: uiIconSlots.length },
+    { id: "map_building",label: "🏰 Map-Gebäude",   done: doneMapBuilding, total: totalMapBuilding },
+    { id: "ui_icon",   label: "✨ UI-Icons",         done: doneUiIcon,    total: nonSilhouetteSlots.length },
     { id: "troop",     label: "⚔ Bande",           done: doneTroop,     total: troopSlots.length },
   ];
 
@@ -246,8 +257,8 @@ export function ArtworkAdminClient() {
         : tab === "building"  ? <BuildingArtTab artMap={cosmetic.building} onChange={reload} />
         : tab === "resource"  ? <ResourceArtTab artMap={cosmetic.resource} onChange={reload} />
         : tab === "chest"     ? <ChestArtTab artMap={cosmetic.chest} onChange={reload} />
-        : tab === "stronghold"? <StrongholdArtTab artMap={cosmetic.stronghold ?? {}} onChange={reload} />
-        : tab === "ui_icon"   ? <UiIconArtTab artMap={cosmetic.ui_icon} slots={uiIconSlots} onChange={reload} />
+        : tab === "map_building"? <MapBuildingsTab strongholdArt={cosmetic.stronghold ?? {}} uiIconArt={cosmetic.ui_icon} silhouetteSlots={silhouetteSlots} onChange={reload} />
+        : tab === "ui_icon"   ? <UiIconArtTab artMap={cosmetic.ui_icon} slots={nonSilhouetteSlots} onChange={reload} />
         : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
       )}
     </div>
@@ -1421,53 +1432,6 @@ function ChestArtTab({ artMap, onChange }: { artMap: Record<string, { image_url:
 }
 
 /* ═════════════════════════════════════════════════════════ */
-/*  Tab: Stronghold (Wegelager — 1 Artwork für alle Level)    */
-/* ═════════════════════════════════════════════════════════ */
-function StrongholdArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
-  return (
-    <div>
-      <div className="text-[10px] text-[#a8b4cf] mb-3">
-        Ein einziges Artwork für alle Wegelager auf der Karte (PvE-Bandit-Festungen). Das Level wird per Lv-Badge im UI angezeigt — das Sprite bleibt für alle Level identisch.
-      </div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-        {STRONGHOLDS_ART.map((s) => {
-          const art = artMap[s.id];
-          return (
-            <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
-                  width: 80, height: 80,
-                  background: `radial-gradient(circle at 50% 30%, ${s.accent}55, ${s.accent}22 50%, rgba(15,17,21,0.6))`,
-                  border: `2px solid ${s.accent}`,
-                  boxShadow: `0 0 14px ${s.accent}66`,
-                }}>
-                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
-                    : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
-                    : <span style={{ fontSize: 36 }}>{s.fallbackEmoji}</span>}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-bold tracking-wider" style={{ color: s.accent }}>PVE-FESTUNG</div>
-                  <div className="text-sm font-black text-white truncate">{s.name}</div>
-                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{s.subject.slice(0, 90)}…</div>
-                </div>
-              </div>
-              <AdminArtworkControls
-                targetType="stronghold"
-                targetId={s.id}
-                hasImage={!!art?.image_url}
-                hasVideo={!!art?.video_url}
-                buildPrompt={(mode) => buildStrongholdPrompt({ stronghold: s, mode })}
-                onUploaded={onChange}
-              />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ═════════════════════════════════════════════════════════ */
 /*  Tab: UI-Icons (Stats / Klassen / Action-Buttons / Badges) */
 /* ═════════════════════════════════════════════════════════ */
 function UiIconArtTab({ artMap, slots, onChange }: {
@@ -1542,6 +1506,110 @@ function UiIconArtTab({ artMap, slots, onChange }: {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Map-Gebäude — Wegelager + LOD-Silhouetten            */
+/*  (zoom-out Pins für Repeater HQ/Mega/Normal + Bases)       */
+/* ═════════════════════════════════════════════════════════ */
+function MapBuildingsTab({ strongholdArt, uiIconArt, silhouetteSlots, onChange }: {
+  strongholdArt: Record<string, { image_url: string | null; video_url: string | null }>;
+  uiIconArt: Record<string, { image_url: string | null; video_url: string | null }>;
+  silhouetteSlots: UiIconSlot[];
+  onChange: () => void;
+}) {
+  const accent = "#FFD700";
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Pins, die auf der Karte sichtbar sind: das Wegelager-Sprite (PvE-Festungen) und die Rauszoom-Silhouetten der Repeater (HQ / Mega / Normal) und Bases (Runner / Crew). Die Silhouetten werden bei niedriger Zoomstufe statt der vollen Sprites angezeigt.
+      </div>
+
+      {/* ── Sektion 1: Wegelager ── */}
+      <div className="mb-4">
+        <div className="text-xs font-black text-[#FFD700] mb-2 tracking-wider">⚔ WEGELAGER</div>
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+          {STRONGHOLDS_ART.map((s) => {
+            const art = strongholdArt[s.id];
+            return (
+              <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                    width: 80, height: 80,
+                    background: `radial-gradient(circle at 50% 30%, ${s.accent}55, ${s.accent}22 50%, rgba(15,17,21,0.6))`,
+                    border: `2px solid ${s.accent}`,
+                    boxShadow: `0 0 14px ${s.accent}66`,
+                  }}>
+                    {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
+                      : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" style={{ filter: "url(#ma365-chroma-black)" }} />
+                      : <span style={{ fontSize: 36 }}>{s.fallbackEmoji}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-bold tracking-wider" style={{ color: s.accent }}>PVE-FESTUNG</div>
+                    <div className="text-sm font-black text-white truncate">{s.name}</div>
+                    <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{s.subject.slice(0, 90)}…</div>
+                  </div>
+                </div>
+                <AdminArtworkControls
+                  targetType="stronghold"
+                  targetId={s.id}
+                  hasImage={!!art?.image_url}
+                  hasVideo={!!art?.video_url}
+                  buildPrompt={(mode) => buildStrongholdPrompt({ stronghold: s, mode })}
+                  onUploaded={onChange}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Sektion 2: Rauszoom-Silhouetten (Repeater + Bases) ── */}
+      <div>
+        <div className="text-xs font-black mb-2 tracking-wider" style={{ color: accent }}>🗼 ZOOM-OUT-SILHOUETTEN</div>
+        <div className="text-[10px] text-[#a8b4cf] mb-2">Flache, monochrome Papercut-Silhouetten — werden bei niedriger Zoomstufe (LOD-Stufe 2) statt der vollen Sprites gerendert.</div>
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+          {silhouetteSlots.map((s) => {
+            const art = uiIconArt[s.id];
+            return (
+              <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                    width: 72, height: 72,
+                    background: `radial-gradient(circle at 50% 30%, ${accent}33, ${accent}11 50%, rgba(15,17,21,0.6))`,
+                    border: `2px solid ${accent}66`,
+                  }}>
+                    {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                      : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" />
+                      : <span style={{ fontSize: 32 }}>{s.fallback_emoji}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-bold tracking-wider" style={{ color: accent }}>SILHOUETTE</div>
+                    <div className="text-sm font-black text-white truncate">{s.name}</div>
+                    <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{s.description}</div>
+                    <div className="text-[9px] text-[#a8b4cf]/60 font-mono mt-0.5">slot: {s.id}</div>
+                  </div>
+                </div>
+                <AdminArtworkControls
+                  targetType="ui_icon"
+                  targetId={s.id}
+                  hasImage={!!art?.image_url}
+                  hasVideo={!!art?.video_url}
+                  buildPrompt={(mode) => buildUiIconPrompt({ slot: s, mode })}
+                  onUploaded={onChange}
+                />
+              </div>
+            );
+          })}
+          {silhouetteSlots.length === 0 && (
+            <div className="text-[10px] text-[#a8b4cf]/60 italic col-span-full p-3">
+              Keine Silhouette-Slots gefunden. Migration 00169_silhouette_artwork_slots.sql ausführen.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
