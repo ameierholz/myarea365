@@ -1584,6 +1584,55 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const currentRank = getCurrentRank(p?.wegemuenzen ?? p?.xp ?? 0);
   const teamColor = myCrew?.color || p?.team_color || PRIMARY;
 
+  // ── Stabile Callbacks für AppMap (verhindert useEffect-Cascade + Marker-Rebuild auf jedem Parent-Render) ──
+  // Wichtig: alle Map-Callbacks landen in useEffect-Deps von app-map.tsx; instabile Closures triggern Marker-Recreation.
+  const handleShopClick = useCallback((id: string) => setViewingShop(id), []);
+  const handleOwnershipClick = useCallback(
+    (kind: "segment" | "street" | "territory", id: string) => setOwnershipQuery({ type: kind, id }),
+    [],
+  );
+  // Refs für Werte die in Callbacks gelesen werden — Callback bleibt stabil, Werte aktuell.
+  // userCenterRef ist bereits oben (Line 1279) deklariert.
+  const strongholdsRef = useRef(strongholds);
+  strongholdsRef.current = strongholds;
+  const lootDropsRef = useRef(lootDrops);
+  lootDropsRef.current = lootDrops;
+  const basePinsRef = useRef(basePins);
+  basePinsRef.current = basePins;
+
+  const handleStrongholdClick = useCallback((id: string) => {
+    const s = strongholdsRef.current.find((x) => x.id === id);
+    if (s) setStrongholdModalTarget(s);
+  }, []);
+
+  const handleLootClick = useCallback(async (id: string) => {
+    const drop = lootDropsRef.current.find((d) => d.id === id);
+    if (!drop) return;
+    const center = userCenterRef.current;
+    if (center) {
+      const R = 6371000;
+      const dLat = ((drop.lat - center.lat) * Math.PI) / 180;
+      const dLng = ((drop.lng - center.lng) * Math.PI) / 180;
+      const la1 = (center.lat * Math.PI) / 180;
+      const la2 = (drop.lat * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+      const distM = 2 * R * Math.asin(Math.sqrt(x));
+      if (distM > 25) {
+        appAlert(`🚶 Zu weit! Du bist ${Math.round(distM)}m entfernt — komm näher (max 25m).`);
+        return;
+      }
+    }
+    setSupplyDropModal({ dropId: id, phase: "asking" });
+  }, []);
+
+  const handleBasePinTap = useCallback((pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => {
+    if (!pin.is_own && pin.kind === "runner") {
+      const full = basePinsRef.current.find((b) => b.id === pin.id);
+      if (full?.owner_user_id) { setAttackTarget(full.owner_user_id); return; }
+    }
+    setBaseModalTarget(pin);
+  }, []);
+
   return (
     <div style={{
       height: "100dvh",
@@ -1618,7 +1667,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               glitchZones={[]}
               crewMembers={[]}
               shops={demoShops}
-              onShopClick={(id) => setViewingShop(id)}
+              onShopClick={handleShopClick}
               onAreaClick={setViewingArea}
               overviewMode={overviewMode}
               recenterAt={recenterAt}
@@ -1637,7 +1686,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               walkedSegments={walkedSegments}
               claimedStreets={claimedStreets}
               ownedTerritories={ownedTerritories}
-              onOwnershipClick={(kind, id) => setOwnershipQuery({ type: kind, id })}
+              onOwnershipClick={handleOwnershipClick}
               powerZones={mapFeatures?.power_zones ?? []}
               bossRaids={mapFeatures?.boss_raids ?? []}
               sanctuaries={mapFeatures?.sanctuaries ?? []}
@@ -1652,29 +1701,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onPowerZoneClick={setViewingPowerZone}
               strongholds={strongholds}
               strongholdArt={strongholdArt}
-              onStrongholdClick={(id) => {
-                const s = strongholds.find((x) => x.id === id);
-                if (s) setStrongholdModalTarget(s);
-              }}
-              onLootClick={async (id) => {
-                const drop = lootDrops.find((d) => d.id === id);
-                if (!drop) return;
-                if (userCenter) {
-                  const R = 6371000;
-                  const dLat = ((drop.lat - userCenter.lat) * Math.PI) / 180;
-                  const dLng = ((drop.lng - userCenter.lng) * Math.PI) / 180;
-                  const la1 = (userCenter.lat * Math.PI) / 180;
-                  const la2 = (drop.lat * Math.PI) / 180;
-                  const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
-                  const distM = 2 * R * Math.asin(Math.sqrt(x));
-                  if (distM > 25) {
-                    appAlert(`🚶 Zu weit! Du bist ${Math.round(distM)}m entfernt — komm näher (max 25m).`);
-                    return;
-                  }
-                }
-                // Ad-Gate-Modal öffnen — User entscheidet: direkt oder Video für Extra-Loot
-                setSupplyDropModal({ dropId: id, phase: "asking" });
-              }}
+              onStrongholdClick={handleStrongholdClick}
+              onLootClick={handleLootClick}
               basePins={basePins.map((b) => {
                 // Theme-Rarity-Lookup (Seed-IDs aus Migration 00116) für Aura-Effekt
                 const themeRarity: Record<string, "advanced" | "epic" | "legendary"> = {
@@ -1691,14 +1719,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               })}
               baseThemeArt={dashboardBaseThemeArt}
               uiIconArt={dashboardUiIconArt}
-              onBasePinTap={(pin) => {
-                // Fremde Runner-Base → Attack-Modal; eigene oder Crew → BaseModal
-                if (!pin.is_own && pin.kind === "runner") {
-                  const full = basePins.find((b) => b.id === pin.id);
-                  if (full?.owner_user_id) { setAttackTarget(full.owner_user_id); return; }
-                }
-                setBaseModalTarget(pin);
-              }}
+              onBasePinTap={handleBasePinTap}
               placeBaseMode={placeBaseMode}
               onPlaceBaseClick={onPlaceBaseClick}
               crewRepeaters={crewRepeaters}

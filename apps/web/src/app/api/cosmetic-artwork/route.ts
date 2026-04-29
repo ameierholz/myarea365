@@ -60,5 +60,14 @@ export async function GET() {
       troop[r.slot_id] = art;
     }
   }
-  return NextResponse.json({ marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop });
+  return NextResponse.json(
+    { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop },
+    {
+      headers: {
+        // Artwork aendert sich nur bei Admin-Uploads. Browser cached 5min, CDN 1h, stale-while-revalidate 24h.
+        // Spart 2-3s First-Paint auf wiederholten Map-Loads.
+        "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    },
+  );
 }

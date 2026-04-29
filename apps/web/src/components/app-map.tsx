@@ -989,9 +989,13 @@ export function AppMap({
     const map = mapRef.current;
     if (!map) return;
 
+    let lastPreset: string | null = null;
     const update = () => {
       try {
-        map.setConfigProperty("basemap", "lightPreset", getCurrentLightPreset());
+        const next = getCurrentLightPreset();
+        if (next === lastPreset) return; // No-op-Guard: spart unnötige Style-Recomputes
+        lastPreset = next;
+        map.setConfigProperty("basemap", "lightPreset", next);
       } catch { /* style evtl. gerade im Transition */ }
     };
     const interval = setInterval(update, 5 * 60 * 1000);
@@ -1047,9 +1051,12 @@ export function AppMap({
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
+    let last3d: boolean | null = null;
     const apply = () => {
       try {
         const enabled = (localStorage.getItem("pref:display_3d") ?? "true") !== "false";
+        if (enabled === last3d) return; // No-op-Guard
+        last3d = enabled;
         map.setConfigProperty("basemap", "show3dObjects", enabled);
       } catch { /* style evtl. nicht Standard */ }
     };
@@ -2417,12 +2424,15 @@ export function AppMap({
 
       // Ein einziges Artwork für alle Wegelager — Slot "wegelager", Fallback auf
       // alte Slots (default/level_<N>) für Rückwärtskompatibilität, dann Emoji.
+      // WICHTIG: Image wird ggü. Video bevorzugt — mehrere autoplay-MP4s parallel
+      // hauen den WebGL-Context auf Mobile raus. Video ist nur Fallback, dann
+      // mit preload="metadata" + onerror-Fallback auf Emoji.
       const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       let visualHtml: string;
-      if (art?.video_url) {
-        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;"></video>`;
-      } else if (art?.image_url) {
-        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;" />`;
+      if (art?.image_url) {
+        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'" />`;
+      } else if (art?.video_url) {
+        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline preload="metadata" class="ma365-stronghold-emoji" style="width:44px;height:44px;object-fit:contain;filter:url(#ma365-chroma-black);" onerror="this.outerHTML='<div class=ma365-stronghold-emoji>🏰</div>'"></video>`;
       } else {
         visualHtml = `<div class="ma365-stronghold-emoji">🏰</div>`;
       }
