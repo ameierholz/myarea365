@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { DangerZone } from "./danger-zone";
+import { RenameSection } from "./rename-section";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,8 @@ export default async function SettingsPage() {
             {t.rich("loggedInAs", { name, b: (chunks) => <b className="text-white">{chunks}</b> })}
           </p>
         </div>
+
+        <RenameSection initial={name} />
 
         <section className="p-5 rounded-2xl bg-bg-card border border-border">
           <h2 className="text-lg font-bold text-white mb-2">{t("exportTitle")}</h2>

@@ -9,7 +9,9 @@ export type ResourceArtMap = Record<string, { image_url: string | null; video_ur
 type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
 
 let _cache: AllArt | null = null;
+let _ready = false;
 const _listeners = new Set<(m: AllArt) => void>();
+const _readyListeners = new Set<(r: boolean) => void>();
 let _fetching = false;
 
 function ensureFetch() {
@@ -22,8 +24,29 @@ function ensureFetch() {
       const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
       _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, marker: j.marker ?? {} };
       _listeners.forEach((l) => l(_cache!));
-    } catch { /* silent */ } finally { _fetching = false; }
+    } catch { /* silent */ } finally {
+      _fetching = false;
+      // Auch bei Fehler ready=true setzen, damit UI nicht ewig blockiert
+      _ready = true;
+      _readyListeners.forEach((l) => l(true));
+    }
   })();
+}
+
+/**
+ * Wartet bis das Cosmetic-Artwork einmal geladen wurde.
+ * Verhindert Flicker (Fallback → User-Art) bei Map-Markern, die Art aus DB beziehen.
+ */
+export function useArtworkReady(): boolean {
+  const [ready, setReady] = useState<boolean>(_ready);
+  useEffect(() => {
+    if (_ready) { setReady(true); return; }
+    const sub = (r: boolean) => setReady(r);
+    _readyListeners.add(sub);
+    ensureFetch();
+    return () => { _readyListeners.delete(sub); };
+  }, []);
+  return ready;
 }
 
 export function useResourceArt(): ResourceArtMap {

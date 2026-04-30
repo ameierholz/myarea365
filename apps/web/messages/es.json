@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "locale": "es",
+    "status": "skeleton",
+    "note": "Translations werden hier eingefügt. Bis dahin fallt der i18n-Loader automatisch auf de.json zurück (siehe i18n/request.ts deepMerge)."
+  }
+}

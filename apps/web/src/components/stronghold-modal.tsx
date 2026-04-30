@@ -32,11 +32,14 @@ const PREP_OPTIONS: Array<{ s: number; label: string }> = [
   { s: 28680,  label: "7h 58m" },
 ];
 
-export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally }: {
+export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally, anchorX, anchorY }: {
   stronghold: Stronghold;
   onClose: () => void;
   activeRally: RallyState["rally"];
   refreshRally: () => Promise<void>;
+  /** Screen-Position des angeklickten Pins (clientX/Y). Optional — fallback auf Viewport-Mitte. */
+  anchorX?: number;
+  anchorY?: number;
 }) {
   const [setup, setSetup] = useState<"setup" | "join" | null>(null);
   const sameTarget = activeRally && activeRally.stronghold_id === stronghold.id;
@@ -44,17 +47,45 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
   const strongholdArt = useStrongholdArt();
   const art = pickStrongholdArt(strongholdArt, stronghold.level);
 
+  // ESC schließt
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Popup-Position: rechts vom Pin, mit Viewport-Clamping
+  const POPUP_W = 340;
+  const POPUP_H_EST = 380;
+  const PAD = 12;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 768;
+  const ax = anchorX ?? vw / 2;
+  const ay = anchorY ?? vh / 2;
+  // Bevorzugt rechts vom Pin, sonst links
+  let left = ax + 24;
+  if (left + POPUP_W + PAD > vw) left = ax - POPUP_W - 24;
+  if (left < PAD) left = PAD;
+  // Vertikal um Pin herum zentriert, geclamped
+  let top = ay - POPUP_H_EST / 2;
+  if (top + POPUP_H_EST + PAD > vh) top = vh - POPUP_H_EST - PAD;
+  if (top < PAD) top = PAD;
+
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-[#1A1D23] border border-[#FF2D78]/40 shadow-2xl overflow-hidden">
+    <div onClick={onClose} className="fixed inset-0 z-[1100]" style={{ background: "transparent", pointerEvents: "auto" }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute rounded-2xl bg-[#1A1D23] border border-[#FF2D78]/50 shadow-2xl overflow-hidden"
+        style={{ left, top, width: POPUP_W, boxShadow: "0 12px 40px rgba(0,0,0,0.55)" }}
+      >
         <div className="relative p-4 bg-gradient-to-br from-[#FF2D78]/20 to-[#FF6B4A]/10 flex items-center gap-3">
           <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white text-lg z-10" aria-label="Schließen">×</button>
           <div className="shrink-0 w-20 h-20 flex items-center justify-center">
             {art?.video_url ? (
-              <video src={art.video_url} autoPlay loop muted playsInline className="w-20 h-20 object-contain" />
+              <video src={art.video_url} autoPlay loop muted playsInline className="w-20 h-20 object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
             ) : art?.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={art.image_url} alt={`Wegelager Lv ${stronghold.level}`} className="w-20 h-20 object-contain" />
+              <img src={art.image_url} alt={`Wegelager Lv ${stronghold.level}`} className="w-20 h-20 object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
             ) : (
               <span className="text-5xl">🏰</span>
             )}
@@ -62,21 +93,21 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-black tracking-widest text-[#FF2D78]">WEGELAGER</div>
             <div className="text-2xl font-black text-white mt-1">Stufe {stronghold.level}</div>
-            <div className="text-[11px] text-[#a8b4cf] mt-1">Crew-Streifzug erforderlich</div>
+            <div className="text-[11px] text-[#a8b4cf] mt-1">Crew-Angriff erforderlich</div>
           </div>
         </div>
 
         <div className="p-4 space-y-4">
           <div className="rounded-xl bg-black/40 border border-white/10 p-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black tracking-widest text-[#a8b4cf]">FESTUNGS-LEBEN</span>
+              <span className="text-[10px] font-black tracking-widest text-[#a8b4cf]">WEGELAGER-ABWEHR</span>
               <span className="text-[12px] font-black text-white">{stronghold.current_hp.toLocaleString("de-DE")} / {stronghold.total_hp.toLocaleString("de-DE")}</span>
             </div>
             <div className="h-3 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full bg-gradient-to-r from-[#4ade80] via-[#FFD700] to-[#FF6B4A]" style={{ width: `${stronghold.hp_pct}%` }} />
             </div>
             <div className="text-[10px] text-[#a8b4cf] mt-2">
-              Empfohlen: <b className="text-white">{(stronghold.total_hp).toLocaleString("de-DE")} Angriff</b> aus deiner Crew. Truppen-Tier {Math.max(1, Math.min(5, Math.ceil(stronghold.level / 2)))}+ empfohlen.
+              Empfohlen: <b className="text-white">{(stronghold.total_hp).toLocaleString("de-DE")} Angriff</b> aus deiner Crew. Banditen-Tier {Math.max(1, Math.min(5, Math.ceil(stronghold.level / 2)))}+ empfohlen.
             </div>
           </div>
 
@@ -107,7 +138,7 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
 
           {canStart && (
             <button onClick={() => setSetup("setup")} className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF2D78] to-[#FF6B4A] text-white font-black text-sm shadow-lg">
-              ⚔️ Crew-Angriff starten
+              ⚔️ Crew zusammen rufen
             </button>
           )}
         </div>
@@ -222,10 +253,10 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
                 <button key={g.id} onClick={() => setSelectedGuardian(g.id)}
                   className={`shrink-0 w-20 h-24 rounded-lg flex flex-col items-center justify-center text-xs font-black overflow-hidden ${selectedGuardian === g.id ? "bg-[#FFD700]/20 border-2 border-[#FFD700]" : "bg-white/5 border border-white/10"}`}>
                   {g.video_url ? (
-                    <video src={g.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
+                    <video src={g.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
                   ) : g.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={g.image_url} alt={g.name} className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
+                    <img src={g.image_url} alt={g.name} className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
                   ) : (
                     <span className="text-2xl">🛡</span>
                   )}

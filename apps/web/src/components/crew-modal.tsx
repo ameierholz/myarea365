@@ -470,6 +470,13 @@ function TabEinstellungen() {
   const [savingColor, setSavingColor] = useState(false);
   const [colorMsg, setColorMsg] = useState<string | null>(null);
   const [canEditColor, setCanEditColor] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [crewName, setCrewName] = useState("");
+  const [crewTag, setCrewTag] = useState("");
+  const [origName, setOrigName] = useState("");
+  const [origTag, setOrigTag] = useState("");
+  const [savingId, setSavingId] = useState(false);
+  const [idMsg, setIdMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     const sb = createClient();
@@ -483,11 +490,42 @@ function TabEinstellungen() {
       const cmRow = cm as { crew_id?: string; role?: string } | null;
       if (cmRow?.crew_id) {
         setCanEditColor(cmRow.role === "leader" || cmRow.role === "officer" || cmRow.role === "admin");
-        const { data: c } = await sb.from("crews").select("territory_color").eq("id", cmRow.crew_id).maybeSingle();
-        setTerritoryColor((c as { territory_color?: string | null } | null)?.territory_color ?? "#22D1C3");
+        const { data: c } = await sb.from("crews").select("territory_color, name, tag, owner_id").eq("id", cmRow.crew_id).maybeSingle();
+        const crew = c as { territory_color?: string | null; name: string; tag: string | null; owner_id: string } | null;
+        setTerritoryColor(crew?.territory_color ?? "#22D1C3");
+        setIsOwner(!!crew && crew.owner_id === user.id);
+        if (crew) {
+          setCrewName(crew.name);
+          setOrigName(crew.name);
+          setCrewTag(crew.tag ?? "");
+          setOrigTag(crew.tag ?? "");
+        }
       }
     })();
   }, []);
+
+  async function saveIdentity() {
+    setSavingId(true); setIdMsg(null);
+    try {
+      const body: { name?: string; tag?: string } = {};
+      if (crewName.trim() !== origName) body.name = crewName.trim();
+      if (crewTag.trim().toUpperCase() !== origTag) body.tag = crewTag.trim().toUpperCase();
+      if (!body.name && !body.tag) { setSavingId(false); return; }
+      const r = await fetch("/api/crew/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string; message?: string };
+      if (!j.ok) { setIdMsg({ type: "err", text: j.message ?? j.error ?? "Fehler" }); return; }
+      if (body.name) setOrigName(body.name);
+      if (body.tag) setOrigTag(body.tag);
+      setIdMsg({ type: "ok", text: "✓ Crew aktualisiert" });
+      setTimeout(() => setIdMsg(null), 2500);
+    } finally {
+      setSavingId(false);
+    }
+  }
 
   async function toggle() {
     const next = !hudOn;
@@ -523,8 +561,48 @@ function TabEinstellungen() {
     "#FB923C", "#818CF8", "#34D399", "#F87171",
   ];
 
+  const idDirty = crewName.trim() !== origName || crewTag.trim().toUpperCase() !== origTag;
+  const tagOk = /^[A-Z0-9]{4}$/.test(crewTag.trim().toUpperCase());
+  const nameOk = crewName.trim().length >= 2 && crewName.trim().length <= 12;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Crew-Identität (nur Owner) */}
+      {isOwner && (
+        <div>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>CREW-NAME &amp; KÜRZEL</div>
+          <div style={{ color: MUTED, fontSize: 11, marginBottom: 10 }}>Name 2–12 Zeichen, Tag exakt 4 (A–Z, 0–9). Nur Owner.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 8, marginBottom: 8 }}>
+            <input
+              value={crewName}
+              onChange={(e) => setCrewName(e.target.value)}
+              maxLength={12}
+              placeholder="Crew-Name"
+              style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(0,0,0,0.3)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", fontSize: 13 }}
+            />
+            <input
+              value={crewTag}
+              onChange={(e) => setCrewTag(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))}
+              maxLength={4}
+              placeholder="TAG"
+              style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(0,0,0,0.3)", color: "#FFD700", border: "1px solid rgba(255,255,255,0.1)", fontSize: 13, fontWeight: 800, letterSpacing: 1, textAlign: "center" }}
+            />
+          </div>
+          <button
+            disabled={savingId || !idDirty || !nameOk || !tagOk}
+            onClick={() => void saveIdentity()}
+            style={{ padding: "8px 14px", borderRadius: 8, background: "rgba(34,209,195,0.2)", color: PRIMARY, border: "1px solid rgba(34,209,195,0.4)", fontSize: 12, fontWeight: 800, cursor: savingId ? "wait" : "pointer", opacity: (idDirty && nameOk && tagOk) ? 1 : 0.5 }}
+          >
+            {savingId ? "…" : "Speichern"}
+          </button>
+          {idMsg && (
+            <div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, color: idMsg.type === "ok" ? "#4ade80" : "#FF6B4A" }}>
+              {idMsg.text}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Crew-Farbe (nur Leader/Officer) */}
       <div>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>CREW-FARBE</div>

@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { createClient } from "@/lib/supabase/client";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
 import type { ClaimedArea, SupplyDrop, GlitchZone, MapRunner } from "@/lib/game-config";
 
@@ -26,6 +27,26 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const FALLBACK = { lat: 52.6000, lng: 13.3565 };
+
+// rAF-Throttle: koalesziert viele Aufrufe (z.B. Mapbox "zoom" mit ~60Hz während Pinch/Wheel)
+// auf einen einzigen Aufruf pro Frame. Drastische Perf-Verbesserung bei vielen DOM-Markern.
+function rafThrottle<F extends (...args: unknown[]) => void>(fn: F): F & { cancel(): void } {
+  let scheduled = false;
+  let lastArgs: unknown[] | null = null;
+  const wrapped = ((...args: unknown[]) => {
+    lastArgs = args;
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      const a = lastArgs;
+      lastArgs = null;
+      if (a) fn(...(a as Parameters<F>));
+    });
+  }) as F & { cancel(): void };
+  wrapped.cancel = () => { scheduled = false; lastArgs = null; };
+  return wrapped;
+}
 
 // Marker-Animationen EINMAL global im <head> injecten (verhindert Flickering bei Zoom)
 if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-animations")) {
@@ -224,6 +245,38 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       height: 100%; background: linear-gradient(90deg, #4ade80, #FFD700, #FF6B4A);
     }
 
+    /* Resource-Nodes (Sammelpunkte: Schrottplatz/Fabrik/ATM/Datacenter) */
+    .ma365-rnode-marker {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      transform-origin: center bottom;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+      cursor: pointer;
+    }
+    .ma365-rnode-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; line-height: 1;
+      border: 2px solid rgba(255,255,255,0.85);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .ma365-rnode-icon.kind-scrapyard  { background: linear-gradient(135deg, #6b7280, #374151); }
+    .ma365-rnode-icon.kind-factory    { background: linear-gradient(135deg, #f59e0b, #b45309); }
+    .ma365-rnode-icon.kind-atm        { background: linear-gradient(135deg, #FFD700, #FF8C00); }
+    .ma365-rnode-icon.kind-datacenter { background: linear-gradient(135deg, #22D1C3, #0e7490); }
+    .ma365-rnode-level {
+      font-size: 10px; font-weight: 900;
+      padding: 1px 6px; border-radius: 999px;
+      background: rgba(15,17,21,0.85); color: #FFD700;
+      border: 1px solid rgba(255,215,0,0.6);
+      letter-spacing: 0.3px;
+      margin-top: 2px;
+    }
+
+    @keyframes ma365GatherPulse {
+      0%, 100% { transform: translateX(-50%) scale(1);   opacity: 0.95; }
+      50%      { transform: translateX(-50%) scale(1.1); opacity: 1; }
+    }
     @keyframes ma365CrateBob {
       0%,100% { transform: translateY(0) rotate(-5deg); }
       50%     { transform: translateY(-5px) rotate(5deg); }
@@ -510,8 +563,19 @@ interface AppMapProps {
   onSanctuaryClick?: (sanctuaryId: string) => void;
   onPowerZoneClick?: (zoneId: string) => void;
   strongholds?: Array<{ id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number }>;
-  onStrongholdClick?: (strongholdId: string) => void;
+  onStrongholdClick?: (strongholdId: string, screenX: number, screenY: number) => void;
   strongholdArt?: Record<string, { image_url: string | null; video_url: string | null }>;
+  resourceNodes?: Array<{ id: number; kind: "scrapyard" | "factory" | "atm" | "datacenter"; resource_type: "wood" | "stone" | "gold" | "mana"; name: string | null; lat: number; lng: number; level: number; total_yield: number; current_yield: number; gather_count?: number; gather_active?: boolean; gather_someone_gathering?: boolean; gather_finish_at?: string | null; gather_mine?: boolean; gather_username?: string | null; gather_crew_tag?: string | null }>;
+  onResourceNodeClick?: (nodeId: number, screenX: number, screenY: number) => void;
+  onViewportChange?: (bbox: { minLng: number; minLat: number; maxLng: number; maxLat: number; zoom: number }) => void;
+  gatherMarches?: Array<{
+    id: number;
+    status: "marching" | "gathering" | "returning";
+    origin_lat: number | null; origin_lng: number | null;
+    started_at: string; arrives_at: string; finishes_at: string; returns_at: string;
+    owner_name?: string | null; owner_crew_tag?: string | null;
+    node: { lat: number; lng: number; kind: "scrapyard" | "factory" | "atm" | "datacenter" } | null;
+  }>;
   onLootClick?: (dropId: string) => void;
   // ── Base-Pins (Runner + Crew) ──
   basePins?: Array<{
@@ -523,6 +587,8 @@ interface AppMapProps {
     pin_emoji: string;
     pin_color: string;
     pin_label: string;
+    owner_username?: string | null;
+    crew_tag?: string | null;
     is_own: boolean;
     theme_id?: string;
     /** Rarity des aktiven Themes — steuert Aura/Schimmer-Layer (advanced/epic/legendary) */
@@ -530,7 +596,7 @@ interface AppMapProps {
     /** Optional: equippiertes Nameplate-Artwork (nur für eigene Bases relevant) */
     nameplate_art?: { image_url: string | null; video_url: string | null } | null;
   }>;
-  onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }) => void;
+  onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }, screenX: number, screenY: number) => void;
   baseThemeArt?: Record<string, { image_url: string | null; video_url: string | null }>;
   /** UI-Icon-Artwork (cosmetic_artwork kind=ui_icon) für Repeater-Pins etc. */
   uiIconArt?: Record<string, { image_url: string | null; video_url: string | null }>;
@@ -877,6 +943,10 @@ export function AppMap({
   strongholds = [],
   onStrongholdClick,
   strongholdArt = {},
+  resourceNodes = [],
+  onResourceNodeClick,
+  onViewportChange,
+  gatherMarches = [],
   onPowerZoneClick,
   onLootClick,
   routeGeometry = null,
@@ -900,6 +970,55 @@ export function AppMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
+  // Viewport-Bounds (mit Buffer) — gefilterte Marker-Listen verwenden das,
+  // damit nur sichtbare Marker als DOM-Elemente erzeugt werden.
+  // Update auf moveend (nach Pan/Zoom-Ende), nicht pro Frame.
+  const [viewBounds, setViewBounds] = useState<{
+    minLng: number; minLat: number; maxLng: number; maxLat: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const recalc = () => {
+      const b = map.getBounds();
+      if (!b) return;
+      // 30% Buffer rundherum — Pan im aktuellen Viewport zeigt Marker sofort,
+      // erst bei großem Pan wird neu gefiltert.
+      const w = b.getEast() - b.getWest();
+      const h = b.getNorth() - b.getSouth();
+      const bx = w * 0.3;
+      const by = h * 0.3;
+      setViewBounds({
+        minLng: b.getWest()  - bx,
+        maxLng: b.getEast()  + bx,
+        minLat: b.getSouth() - by,
+        maxLat: b.getNorth() + by,
+      });
+    };
+    recalc();
+    map.on("moveend", recalc);
+    return () => { map.off("moveend", recalc); };
+  }, [mapReady]);
+
+  // Generischer Viewport-Filter — Marker nur erzeugen wenn sie im Buffer-Rect liegen.
+  // Bei viewBounds=null (vor erstem moveend) Identität zurückgeben (alles durchlassen).
+  const cull = useCallback(<T extends { lng: number; lat: number }>(arr: T[]): T[] => {
+    if (!viewBounds) return arr;
+    const { minLng, maxLng, minLat, maxLat } = viewBounds;
+    const out: T[] = [];
+    for (const item of arr) {
+      if (item.lng >= minLng && item.lng <= maxLng && item.lat >= minLat && item.lat <= maxLat) {
+        out.push(item);
+      }
+    }
+    return out;
+  }, [viewBounds]);
+
+  // Viewport-gefilterte Marker-Listen. Bei viewBounds=null (initial) → alle durchlassen.
+  const lootDropsInView    = useMemo(() => cull(lootDrops),    [cull, lootDrops]);
+  const strongholdsInView  = useMemo(() => cull(strongholds),  [cull, strongholds]);
+  const resourceNodesInView = useMemo(() => cull(resourceNodes), [cull, resourceNodes]);
+
   const myEmoji = UNLOCKABLE_MARKERS.find((m) => m.id === markerId)?.icon || "👣";
   const light = RUNNER_LIGHTS.find((l) => l.id === lightId) || RUNNER_LIGHTS[0];
 
@@ -909,6 +1028,7 @@ export function AppMap({
   const watchRef = useRef<number | null>(null);
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [markerArt, setMarkerArt] = useState<{ image_url: string | null; video_url: string | null } | null>(null);
+  const [markerArtFetched, setMarkerArtFetched] = useState(false);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -919,7 +1039,9 @@ export function AppMap({
         const variants = j.marker?.[markerId];
         const art = variants?.[markerVariant] ?? variants?.neutral ?? null;
         if (alive) setMarkerArt(art);
-      } catch {}
+      } catch {} finally {
+        if (alive) setMarkerArtFetched(true);
+      }
     })();
     return () => { alive = false; };
   }, [markerId, markerVariant]);
@@ -1150,11 +1272,22 @@ export function AppMap({
     }
   }, [overviewMode, mapReady]);
 
-  // Eigenes Marker — Instanz wiederverwenden, nur Position updaten
+  // Eigenes Marker — nur sichtbar wenn der Runner unterwegs ist (walking/joggen).
+  // Im Ruhezustand "wohnt" der Runner in seiner Base — daher kein Pin auf der Map.
   useEffect(() => {
     if (!mapReady || !pos) return;
+    if (!markerArtFetched) return;
     const map = mapRef.current;
     if (!map) return;
+
+    // Nicht-walking → existierenden Marker entfernen, nicht neu erstellen
+    if (!trackingActive) {
+      if (selfMarkerRef.current) {
+        selfMarkerRef.current.remove();
+        selfMarkerRef.current = null;
+      }
+      return;
+    }
 
     if (!selfMarkerRef.current) {
       const el = buildSelfMarkerEl(myEmoji, teamColor, !!trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArt);
@@ -1165,7 +1298,7 @@ export function AppMap({
     } else {
       selfMarkerRef.current.setLngLat([pos.lng, pos.lat]);
     }
-  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive, crewColor, crewName, displayName]);
+  }, [mapReady, pos, teamColor, myEmoji, trackingActive, supporterTier, auraActive, crewColor, crewName, displayName, markerArtFetched, markerArt]);
 
   // Tier-/Crew-Wechsel: Marker neu bauen
   useEffect(() => {
@@ -1216,11 +1349,13 @@ export function AppMap({
       wrap.style.transformOrigin = "center center";
     };
     apply();
-    map.on("zoom", apply);
+    const applyThrottled = rafThrottle(apply);
+    map.on("zoom", applyThrottled);
     // Marker-Rebuilds werden vom globalen MutationObserver in der applyZoomScale-Effect
     // abgefangen — kein zusätzliches Polling mehr nötig.
     return () => {
-      map.off("zoom", apply);
+      map.off("zoom", applyThrottled);
+      applyThrottled.cancel();
     };
   }, [mapReady]);
 
@@ -1540,10 +1675,12 @@ export function AppMap({
       });
     };
     updateMarkerGeometry();
-    map.on("zoom", updateMarkerGeometry);
+    const updateMarkerGeometryThrottled = rafThrottle(updateMarkerGeometry);
+    map.on("zoom", updateMarkerGeometryThrottled);
 
     return () => {
-      map.off("zoom", updateMarkerGeometry);
+      map.off("zoom", updateMarkerGeometryThrottled);
+      updateMarkerGeometryThrottled.cancel();
       spotlightBadgeMarkersRef.current.forEach(({ marker }) => marker.remove());
       spotlightBadgeMarkersRef.current = [];
       spotlightBeamMarkersRef.current.forEach(({ marker }) => marker.remove());
@@ -1606,13 +1743,14 @@ export function AppMap({
     };
 
     applyZoomScale(true);
-    const onZoom = () => applyZoomScale(false);
+    const onZoom = rafThrottle(() => applyZoomScale(false));
     map.on("zoom", onZoom);
     // moveend NICHT mehr: Pan ändert Zoom nicht, alle Style-Writes wären umsonst.
     const mo = new MutationObserver(onMutation);
     mo.observe(container, { childList: true, subtree: true });
     return () => {
       map.off("zoom", onZoom);
+      onZoom.cancel();
       mo.disconnect();
     };
   }, [mapReady]);
@@ -1681,6 +1819,8 @@ export function AppMap({
         } as mapboxgl.LineLayerSpecification["paint"],
       });
       map.on("click", fillId, (e) => {
+        const t = e.originalEvent.target as HTMLElement | null;
+        if (t && t.closest(".mapboxgl-marker")) return;
         const f = e.features?.[0];
         if (f && onAreaClick) onAreaClick(f.properties?.id as string);
       });
@@ -1854,6 +1994,10 @@ export function AppMap({
       });
       if (onOwnershipClick) {
         map.on("click", layerId, (e) => {
+          // Skip wenn Click eigentlich einem DOM-Marker (Base/Wegelager/Resource) galt —
+          // Marker haben eigene Handler, sonst öffnen sich 2 Modals gleichzeitig.
+          const t = e.originalEvent.target as HTMLElement | null;
+          if (t && t.closest(".mapboxgl-marker")) return;
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onOwnershipClick("segment", id);
         });
@@ -1958,6 +2102,8 @@ export function AppMap({
       });
       if (onOwnershipClick) {
         map.on("click", layerId, (e) => {
+          const t = e.originalEvent.target as HTMLElement | null;
+          if (t && t.closest(".mapboxgl-marker")) return;
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onOwnershipClick("street", id);
         });
@@ -2029,6 +2175,8 @@ export function AppMap({
       });
       if (onOwnershipClick) {
         map.on("click", fillId, (e) => {
+          const t = e.originalEvent.target as HTMLElement | null;
+          if (t && t.closest(".mapboxgl-marker")) return;
           const id = e.features?.[0]?.properties?.id as string | undefined;
           if (id) onOwnershipClick("territory", id);
         });
@@ -2115,6 +2263,8 @@ export function AppMap({
       });
       // Click-Handler: Power-Zone Info anzeigen
       const onZoneClick = (e: mapboxgl.MapLayerMouseEvent) => {
+        const t = e.originalEvent.target as HTMLElement | null;
+        if (t && t.closest(".mapboxgl-marker")) return;
         const id = e.features?.[0]?.properties?.id as string | undefined;
         if (id && onPowerZoneClickRef.current) onPowerZoneClickRef.current(id);
       };
@@ -2343,10 +2493,12 @@ export function AppMap({
       });
     };
     applyScale();
-    map.on("zoom", applyScale);
+    const applyScaleThrottled = rafThrottle(applyScale);
+    map.on("zoom", applyScaleThrottled);
 
     return () => {
-      map.off("zoom", applyScale);
+      map.off("zoom", applyScaleThrottled);
+      applyScaleThrottled.cancel();
       bossMarkersRef.current.forEach(({ marker }) => marker.remove());
       bossMarkersRef.current = [];
     };
@@ -2388,24 +2540,35 @@ export function AppMap({
       });
     };
     applyScale();
-    map.on("zoom", applyScale);
+    const applyScaleThrottled = rafThrottle(applyScale);
+    map.on("zoom", applyScaleThrottled);
 
     return () => {
-      map.off("zoom", applyScale);
+      map.off("zoom", applyScaleThrottled);
+      applyScaleThrottled.cancel();
       sanctuaryMarkersRef.current.forEach(({ marker }) => marker.remove());
       sanctuaryMarkersRef.current = [];
     };
   }, [mapReady, sanctuaries, onSanctuaryClick]);
 
   // ── Wegelager (Strongholds) DOM-Marker ──
-  const strongholdMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement }>>([]);
+  const strongholdMarkersRef = useRef<Array<{
+    marker: mapboxgl.Marker;
+    el: HTMLElement;
+    full: HTMLElement | null;
+    sil: HTMLElement | null;
+    lvl: HTMLElement | null;
+    hp: HTMLElement | null;
+  }>>([]);
+  const onStrongholdClickRef = useRef(onStrongholdClick);
+  useEffect(() => { onStrongholdClickRef.current = onStrongholdClick; }, [onStrongholdClick]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
     strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
     strongholdMarkersRef.current = [];
 
-    strongholds.forEach((s) => {
+    strongholdsInView.forEach((s) => {
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
@@ -2415,51 +2578,344 @@ export function AppMap({
       // Ein einziges Artwork für alle Wegelager — Slot "wegelager", Fallback auf
       // alte Slots (default/level_<N>) für Rückwärtskompatibilität, dann Emoji.
       const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
+      // Wegelager = Feind → ROT. Falls Artwork in anderer Farbe gespeichert ist,
+      // mit hue-rotate auf Rot drücken (kombiniert mit chroma-key für transparenten BG).
+      const wegelagerStyle = "width:48px;height:48px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
       let visualHtml: string;
       if (art?.video_url) {
-        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" style="width:85px;height:85px;object-fit:contain;"></video>`;
+        visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}"></video>`;
       } else if (art?.image_url) {
-        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" style="width:85px;height:85px;object-fit:contain;" />`;
+        visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}" />`;
       } else {
-        visualHtml = `<div class="ma365-stronghold-emoji">🏰</div>`;
+        visualHtml = `<div class="ma365-stronghold-emoji" data-vis="full" style="font-size:28px;color:#DC2626;text-shadow:0 1px 2px rgba(0,0,0,0.6);">🏰</div>`;
       }
 
+      // Silhouette-SVG (mid-LOD): kleine rote Bandit-Festung mit Flagge
+      const silhouetteSvg = `<svg class="ma365-stronghold-sil" data-vis="sil" viewBox="0 0 40 44" width="28" height="28" preserveAspectRatio="xMidYMax meet" style="display:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.55));">
+        <defs>
+          <linearGradient id="ma365-sh-grad-${s.id}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#DC2626"/>
+            <stop offset="100%" stop-color="#991B1B"/>
+          </linearGradient>
+        </defs>
+        <path d="M20 4 L20 12 L28 10 L20 18 Z" fill="#FFD700" stroke="#7F1D1D" stroke-width="0.7"/>
+        <path d="M4 18 L4 14 L8 14 L8 18 L12 18 L12 12 L16 12 L16 18 L20 18 L20 14 L24 14 L24 18 L28 18 L28 13 L32 13 L32 18 L36 18 L36 22 L34 22 L34 40 L26 40 L26 32 L22 32 L22 40 L18 40 L18 34 L14 34 L14 40 L6 40 L6 22 L4 22 Z"
+              fill="url(#ma365-sh-grad-${s.id})" stroke="#7F1D1D" stroke-width="1.1" stroke-linejoin="round"/>
+        <rect x="9" y="24" width="3" height="3" fill="#0F1115"/>
+        <rect x="20" y="24" width="3" height="3" fill="#0F1115"/>
+        <rect x="29" y="24" width="3" height="3" fill="#0F1115"/>
+      </svg>`;
+
       inner.innerHTML = `
+        ${silhouetteSvg}
         ${visualHtml}
         <div class="ma365-stronghold-level">Lv${s.level}</div>
         <div class="ma365-stronghold-hp"><div class="ma365-stronghold-hp-fill" style="width:${Math.max(0, Math.min(100, s.hp_pct))}%"></div></div>`;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onStrongholdClick?.(s.id));
+      outer.addEventListener("click", (ev) => {
+        const me = ev as MouseEvent;
+        onStrongholdClickRef.current?.(s.id, me.clientX, me.clientY);
+      });
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
-      strongholdMarkersRef.current.push({ marker, el: inner });
+      // Child-Refs einmalig cachen — kein querySelector mehr pro Zoom-Frame
+      strongholdMarkersRef.current.push({
+        marker,
+        el: inner,
+        full: inner.querySelector('[data-vis="full"]') as HTMLElement | null,
+        sil:  inner.querySelector('[data-vis="sil"]')  as HTMLElement | null,
+        lvl:  inner.querySelector(".ma365-stronghold-level") as HTMLElement | null,
+        hp:   inner.querySelector(".ma365-stronghold-hp")    as HTMLElement | null,
+      });
     });
 
+    // Letzter applyScale-State — vermeidet identische Style-Writes (Pan ohne Zoom)
+    let lastScale = -1;
+    let lastHide: boolean | null = null;
+    let lastSil: boolean | null = null;
     const applyScale = () => {
       const zoom = map.getZoom();
-      // Synchron mit Spotlight/Liga-Badges: < z=13 versteckt.
-      // Beim Reinzoomen größer als ursprünglich (max 1.4× bei z=18+).
-      // z=13→0.55, z=15→0.95, z=17→1.30, z=18+→1.40
-      const hide = zoom < 13;
-      let scale = 1.4;
-      if      (zoom < 15)   scale = 0.55 + ((zoom - 13) / 2) * 0.40; // 0.55 → 0.95
-      else if (zoom < 17)   scale = 0.95 + ((zoom - 15) / 2) * 0.35; // 0.95 → 1.30
-      else if (zoom < 18)   scale = 1.30 + (zoom - 17) * 0.10;        // 1.30 → 1.40
-      strongholdMarkersRef.current.forEach(({ el }) => {
-        el.style.transform = `scale(${scale.toFixed(2)})`;
-        el.style.transformOrigin = "bottom center";
-        el.style.opacity = hide ? "0" : "1";
-        el.style.transition = "opacity 0.25s";
+      // 3-stufige LOD wie Gebäude:
+      //   zoom < 12        → komplett versteckt
+      //   12 ≤ zoom < 16   → Silhouette (klein, mono-schwarz, ohne Lv/HP)
+      //   zoom ≥ 16        → volles Artwork mit Lv-Badge + HP-Bar
+      const hide = zoom < 12;
+      const silhouette = !hide && zoom < 16;
+      // Wegelager kleiner als Bases — sind nur "POIs", keine Hauptbauwerke
+      let scale = 1.0;
+      if      (zoom < 13)   scale = 0.30;
+      else if (zoom < 16)   scale = 0.30 + ((zoom - 13) / 3) * 0.25; // 0.30 → 0.55
+      else if (zoom < 17)   scale = 0.75;
+      else if (zoom < 18)   scale = 0.85 + (zoom - 17) * 0.10;       // 0.85 → 0.95
+      const scaleChanged = Math.abs(scale - lastScale) > 0.005;
+      const visChanged = hide !== lastHide || silhouette !== lastSil;
+      if (!scaleChanged && !visChanged) return;
+      lastScale = scale;
+      lastHide = hide;
+      lastSil = silhouette;
+      const transformStr = `scale(${scale.toFixed(2)})`;
+      const opacity = hide ? "0" : "1";
+      const fullDisp = silhouette ? "none" : "";
+      const silDisp = silhouette ? "block" : "none";
+      const lvlDisp = silhouette ? "none" : "";
+      strongholdMarkersRef.current.forEach((m) => {
+        if (scaleChanged) {
+          m.el.style.transform = transformStr;
+          m.el.style.transformOrigin = "bottom center";
+        }
+        if (visChanged) {
+          m.el.style.opacity = opacity;
+          m.el.style.transition = "opacity 0.25s";
+          if (m.full) m.full.style.display = fullDisp;
+          if (m.sil)  m.sil.style.display  = silDisp;
+          if (m.lvl)  m.lvl.style.display  = lvlDisp;
+          if (m.hp)   m.hp.style.display   = lvlDisp;
+        }
       });
     };
     applyScale();
-    map.on("zoom", applyScale);
+    const applyScaleThrottled = rafThrottle(applyScale);
+    map.on("zoom", applyScaleThrottled);
     return () => {
-      map.off("zoom", applyScale);
+      map.off("zoom", applyScaleThrottled);
+      applyScaleThrottled.cancel();
       strongholdMarkersRef.current.forEach(({ marker }) => marker.remove());
       strongholdMarkersRef.current = [];
     };
-  }, [mapReady, strongholds, onStrongholdClick, strongholdArt]);
+  }, [mapReady, strongholdsInView, strongholdArt]);
+
+  // ── Resource-Nodes (Schrottplatz/Fabrik/ATM/Datacenter) — diff-based ──
+  const rnodeEmoji: Record<string, string> = {
+    scrapyard: "⚙️", factory: "🔩", atm: "💸", datacenter: "📡",
+  };
+  // SVG-Silhouetten pro Typ (mid-LOD) — passend zum Kind-Farbschema
+  const rnodeSilhouette = (kind: string): string => {
+    const grad = (id: string, c1: string, c2: string) =>
+      `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>`;
+    const wrap = (inner: string) =>
+      `<svg data-vis="sil" viewBox="0 0 36 36" width="32" height="32" preserveAspectRatio="xMidYMax meet" style="display:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.55));">${inner}</svg>`;
+    if (kind === "scrapyard") {
+      // Schrottberg + Kran-Haken
+      return wrap(`${grad("g-sy", "#9ca3af", "#374151")}
+        <path d="M6 30 L4 32 L32 32 L30 30 L26 22 L20 18 L14 20 L10 26 Z" fill="url(#g-sy)" stroke="#1f2937" stroke-width="1" stroke-linejoin="round"/>
+        <rect x="10" y="14" width="2" height="10" fill="#1f2937"/>
+        <rect x="10" y="14" width="14" height="2" fill="#1f2937"/>
+        <line x1="22" y1="14" x2="22" y2="20" stroke="#1f2937" stroke-width="1.2"/>
+        <rect x="20" y="20" width="4" height="3" fill="#FFD700" stroke="#1f2937" stroke-width="0.8"/>`);
+    }
+    if (kind === "factory") {
+      // Fabrikgebäude mit Schornstein + Rauchwolke
+      return wrap(`${grad("g-fa", "#fbbf24", "#b45309")}
+        <ellipse cx="11" cy="6" rx="4" ry="2.5" fill="#9ca3af" opacity="0.7"/>
+        <ellipse cx="14" cy="3.5" rx="3" ry="2" fill="#cbd5e1" opacity="0.6"/>
+        <rect x="9" y="8" width="4" height="14" fill="#7c2d12" stroke="#1f2937" stroke-width="0.7"/>
+        <path d="M4 32 L4 18 L14 18 L14 22 L20 18 L20 22 L26 18 L26 22 L32 22 L32 32 Z" fill="url(#g-fa)" stroke="#7c2d12" stroke-width="1" stroke-linejoin="round"/>
+        <rect x="7" y="25" width="3" height="3" fill="#0F1115"/>
+        <rect x="15" y="25" width="3" height="3" fill="#0F1115"/>
+        <rect x="23" y="25" width="3" height="3" fill="#0F1115"/>`);
+    }
+    if (kind === "atm") {
+      // Bank-Tresor mit Münze
+      return wrap(`${grad("g-at", "#FFD700", "#FF8C00")}
+        <rect x="6" y="6" width="24" height="26" rx="2" fill="url(#g-at)" stroke="#7c2d12" stroke-width="1.1" stroke-linejoin="round"/>
+        <circle cx="18" cy="18" r="6" fill="#0F1115" stroke="#7c2d12" stroke-width="0.8"/>
+        <circle cx="18" cy="18" r="3" fill="#FFD700"/>
+        <text x="18" y="21" font-size="6" font-weight="900" fill="#7c2d12" text-anchor="middle" font-family="system-ui">€</text>
+        <rect x="9" y="8.5" width="3" height="2" fill="#0F1115"/>
+        <rect x="24" y="8.5" width="3" height="2" fill="#0F1115"/>`);
+    }
+    // datacenter
+    // Server-Rack + Antenne
+    return wrap(`${grad("g-dc", "#22D1C3", "#0e7490")}
+      <line x1="18" y1="2" x2="18" y2="8" stroke="#0F1115" stroke-width="1"/>
+      <circle cx="18" cy="2" r="1.5" fill="#FFD700"/>
+      <path d="M14 5 Q18 1 22 5" fill="none" stroke="#0F1115" stroke-width="0.8"/>
+      <path d="M12 8 Q18 2 24 8" fill="none" stroke="#0F1115" stroke-width="0.8"/>
+      <rect x="6" y="10" width="24" height="22" rx="1.5" fill="url(#g-dc)" stroke="#0c4a6e" stroke-width="1.1" stroke-linejoin="round"/>
+      <rect x="9" y="13" width="18" height="3" fill="#0F1115"/>
+      <rect x="9" y="18" width="18" height="3" fill="#0F1115"/>
+      <rect x="9" y="23" width="18" height="3" fill="#0F1115"/>
+      <circle cx="11" cy="14.5" r="0.7" fill="#22D1C3"/>
+      <circle cx="11" cy="19.5" r="0.7" fill="#FFD700"/>
+      <circle cx="11" cy="24.5" r="0.7" fill="#FF6B4A"/>`);
+  };
+  const rnodeMarkersRef = useRef<Map<number, {
+    marker: mapboxgl.Marker;
+    el: HTMLElement;
+    level: number;
+    full: HTMLElement | null;
+    sil: HTMLElement | null;
+    lvl: HTMLElement | null;
+    ring: HTMLElement | null;
+    cd: HTMLElement | null;
+  }>>(new Map());
+  const onResourceNodeClickRef = useRef(onResourceNodeClick);
+  useEffect(() => { onResourceNodeClickRef.current = onResourceNodeClick; }, [onResourceNodeClick]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const cur = rnodeMarkersRef.current;
+    const incomingIds = new Set(resourceNodesInView.map((n) => n.id));
+
+    // entferne alte (auch jene, die jetzt außerhalb des Viewports liegen)
+    for (const [id, entry] of cur) {
+      if (!incomingIds.has(id)) { entry.marker.remove(); cur.delete(id); }
+    }
+    const updateGatherIndicator = (
+      ring: HTMLElement | null,
+      cd: HTMLElement | null,
+      n: typeof resourceNodes[0],
+    ) => {
+      if (!ring) return;
+      if (n.gather_active && n.gather_finish_at) {
+        ring.style.display = "flex";
+        ring.dataset.finishAt = n.gather_finish_at;
+        ring.dataset.mine = n.gather_mine ? "1" : "0";
+        const color = n.gather_mine ? "#4ade80" : "#FF2D78";
+        ring.style.borderColor = color;
+        ring.style.boxShadow = `0 0 14px ${color}cc, inset 0 0 8px ${color}55`;
+        if (cd) cd.style.color = color;
+      } else {
+        ring.style.display = "none";
+      }
+    };
+
+    // füge neue ein
+    for (const n of resourceNodesInView) {
+      const existing = cur.get(n.id);
+      if (existing) {
+        if (existing.level !== n.level) {
+          if (existing.lvl) existing.lvl.textContent = `Lv${n.level}`;
+          existing.level = n.level;
+        }
+        updateGatherIndicator(existing.ring, existing.cd, n);
+        continue;
+      }
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "auto";
+      const inner = document.createElement("div");
+      inner.className = "ma365-rnode-marker";
+      inner.innerHTML = `
+        ${rnodeSilhouette(n.kind)}
+        <div class="ma365-rnode-icon kind-${n.kind}" data-vis="full">${rnodeEmoji[n.kind] ?? "📦"}</div>
+        <div class="ma365-rnode-gather-ring" style="display:none;position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;border:3px solid #4ade80;background:rgba(15,17,21,0.7);align-items:center;justify-content:center;pointer-events:none;z-index:3;animation:ma365GatherPulse 1.6s ease-in-out infinite;">
+          <span class="ma365-rnode-cd" style="font-size:10px;font-weight:900;color:#4ade80;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.9);"></span>
+        </div>
+        <div class="ma365-rnode-level">Lv${n.level}</div>`;
+      outer.appendChild(inner);
+      outer.addEventListener("click", (ev) => { ev.stopPropagation(); const me = ev as MouseEvent; onResourceNodeClickRef.current?.(n.id, me.clientX, me.clientY); });
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
+        .setLngLat([n.lng, n.lat]).addTo(map);
+      // Child-Refs einmalig cachen
+      const ring = inner.querySelector(".ma365-rnode-gather-ring") as HTMLElement | null;
+      const entry = {
+        marker, el: inner, level: n.level,
+        full: inner.querySelector('[data-vis="full"]') as HTMLElement | null,
+        sil:  inner.querySelector('[data-vis="sil"]')  as HTMLElement | null,
+        lvl:  inner.querySelector(".ma365-rnode-level") as HTMLElement | null,
+        ring,
+        cd:   ring ? (ring.querySelector(".ma365-rnode-cd") as HTMLElement | null) : null,
+      };
+      cur.set(n.id, entry);
+      updateGatherIndicator(entry.ring, entry.cd, n);
+    }
+
+    // Countdown-Tick: Sekündlich Restzeit auf gather-rings aktualisieren
+    const cdInterval = window.setInterval(() => {
+      const now = Date.now();
+      for (const m of cur.values()) {
+        const ring = m.ring;
+        if (!ring || ring.style.display === "none") continue;
+        const finishAt = ring.dataset.finishAt;
+        if (!finishAt) continue;
+        const remaining = Math.max(0, new Date(finishAt).getTime() - now);
+        if (m.cd) {
+          const s = Math.floor(remaining / 1000);
+          const mins = Math.floor(s / 60);
+          m.cd.textContent = mins > 0 ? `${mins}m${String(s % 60).padStart(2, "0")}` : `${s}s`;
+        }
+      }
+    }, 1000);
+
+    let lastScale = -1;
+    let lastHide: boolean | null = null;
+    let lastSil: boolean | null = null;
+    const applyScale = () => {
+      const zoom = map.getZoom();
+      // 3-stufige LOD wie Wegelager:
+      //   < 13 hidden, 13-16 SVG-Silhouette, ≥ 16 voller Icon-Stage
+      const hide = zoom < 13;
+      const silhouette = !hide && zoom < 16;
+      let scale = 1.0;
+      if      (zoom < 14) scale = 0.65;
+      else if (zoom < 16) scale = 0.65 + (zoom - 14) * 0.18; // 0.65 → 1.0
+      else if (zoom < 17) scale = 1.05;
+      else                scale = 1.15;
+      const scaleChanged = Math.abs(scale - lastScale) > 0.005;
+      const visChanged = hide !== lastHide || silhouette !== lastSil;
+      if (!scaleChanged && !visChanged) return;
+      lastScale = scale;
+      lastHide = hide;
+      lastSil = silhouette;
+      const transformStr = `scale(${scale.toFixed(2)})`;
+      const opacity = hide ? "0" : "1";
+      const pe = hide ? "none" : "auto";
+      const fullDisp = silhouette ? "none" : "";
+      const silDisp = silhouette ? "block" : "none";
+      const lvlDisp = silhouette ? "none" : "";
+      for (const m of cur.values()) {
+        if (scaleChanged) {
+          m.el.style.transform = transformStr;
+          m.el.style.transformOrigin = "bottom center";
+        }
+        if (visChanged) {
+          m.el.style.opacity = opacity;
+          m.el.style.transition = "opacity 0.2s";
+          m.el.style.pointerEvents = pe;
+          if (m.full) m.full.style.display = fullDisp;
+          if (m.sil)  m.sil.style.display  = silDisp;
+          if (m.lvl)  m.lvl.style.display  = lvlDisp;
+        }
+      }
+    };
+    applyScale();
+    const applyScaleThrottled = rafThrottle(applyScale);
+    map.on("zoom", applyScaleThrottled);
+    return () => {
+      map.off("zoom", applyScaleThrottled);
+      applyScaleThrottled.cancel();
+      window.clearInterval(cdInterval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, resourceNodesInView]);
+
+  // ── Viewport-Change-Emitter (debounced) für Resource-Nodes-Fetching ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !onViewportChange) return;
+    const map = mapRef.current;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const emit = () => {
+      const b = map.getBounds();
+      if (!b) return;
+      onViewportChange({
+        minLng: b.getWest(), minLat: b.getSouth(),
+        maxLng: b.getEast(), maxLat: b.getNorth(),
+        zoom: map.getZoom(),
+      });
+    };
+    const debounced = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(emit, 300);
+    };
+    emit();
+    map.on("moveend", debounced);
+    map.on("zoomend", debounced);
+    return () => {
+      if (timer) clearTimeout(timer);
+      map.off("moveend", debounced);
+      map.off("zoomend", debounced);
+    };
+  }, [mapReady, onViewportChange]);
 
   // ── Loot-Drops: animierte Kisten mit Proximity-Pickup ──
   // Diff-basiert: bestehende Marker bleiben stehen, nur neue/entfernte werden geändert
@@ -2478,16 +2934,16 @@ export function AppMap({
     const zoom = map.getZoom();
     const initialLootScale = Math.max(0.22, Math.min(0.85, (zoom - 12) / 6 * 0.65 + 0.25));
 
-    const wantIds = new Set(lootDrops.map((d) => d.id));
-    // Entfernen: Marker, deren Drop nicht mehr existiert
+    const wantIds = new Set(lootDropsInView.map((d) => d.id));
+    // Entfernen: Marker, die nicht mehr existieren ODER aus dem Viewport gefallen sind
     lootMarkersRef.current = lootMarkersRef.current.filter((m) => {
       if (wantIds.has(m.drop.id)) return true;
       m.marker.remove();
       return false;
     });
     const haveIds = new Set(lootMarkersRef.current.map((m) => m.drop.id));
-    // Hinzufügen: neue Drops
-    lootDrops.forEach((d) => {
+    // Hinzufügen: neue Drops im Viewport
+    lootDropsInView.forEach((d) => {
       if (haveIds.has(d.id)) return;
       const outer = document.createElement("div");
       outer.style.pointerEvents = "auto";
@@ -2506,7 +2962,7 @@ export function AppMap({
       lootMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-loot-wrap") as HTMLElement, drop: d });
     });
     return () => { /* Cleanup nur beim Unmount via mapReady=false-Reset */ };
-  }, [mapReady, lootDrops, onLootClick]);
+  }, [mapReady, lootDropsInView, onLootClick]);
 
   // Loot-Drop-Countdown: aktualisiert alle Timer-Badges einmal pro Sekunde.
   useEffect(() => {
@@ -2644,13 +3100,21 @@ export function AppMap({
   }, [mapReady, shopReviews, shops]);
 
   // ── Base-Pins (Runner + Crew) als DOM-Marker ──
-  const basePinMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const basePinMarkersRef = useRef<Array<{
+    marker: mapboxgl.Marker;
+    el: HTMLElement;
+    stampEl: HTMLElement | null;
+    silEl: HTMLElement | null;
+    fullEl: HTMLElement | null;
+    nameplate: HTMLElement | null;
+    levelChip: HTMLElement | null;
+  }>>([]);
   const onBasePinTapRef = useRef(onBasePinTap);
   useEffect(() => { onBasePinTapRef.current = onBasePinTap; }, [onBasePinTap]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    basePinMarkersRef.current.forEach((m) => m.remove());
+    basePinMarkersRef.current.forEach((m) => m.marker.remove());
     basePinMarkersRef.current = [];
 
     basePins.forEach((pin) => {
@@ -2694,7 +3158,7 @@ export function AppMap({
       }
       stampEl.addEventListener("click", (e) => {
         e.stopPropagation();
-        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
+        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own }, (e as MouseEvent).clientX, (e as MouseEvent).clientY);
       });
       zoomWrap.appendChild(stampEl);
 
@@ -2715,15 +3179,17 @@ export function AppMap({
       silWrap.appendChild(silTower);
       const silLv = document.createElement("div");
       silLv.style.cssText = `padding:1px 6px;border-radius:999px;background:linear-gradient(135deg,${ownColor},${ownDark});color:#0F1115;font-size:8px;font-weight:900;letter-spacing:0.5px;border:1px solid rgba(255,255,255,0.4);box-shadow:0 0 6px ${ownColor}aa;line-height:1.1;margin-top:-6px;position:relative;z-index:2;font-family:system-ui;`;
-      silLv.textContent = `LV ${pin.level}`;
+      silLv.textContent = String(pin.level);
       silWrap.appendChild(silLv);
       const silName = document.createElement("div");
-      silName.style.cssText = `padding:2px 7px;border-radius:5px;background:rgba(15,17,21,0.92);color:#fff;font-size:9px;font-weight:900;letter-spacing:0.3px;border:1px solid ${ownColor}aa;box-shadow:0 2px 4px rgba(0,0,0,0.4);max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;font-family:system-ui;margin-top:1px;`;
-      silName.textContent = (pin.kind === "crew" ? "⚔️ " : "") + pin.pin_label;
+      silName.style.cssText = `padding:1px 6px;border-radius:4px;background:rgba(0,0,0,0.12);color:#fff;font-size:9px;font-weight:900;letter-spacing:0.3px;white-space:nowrap;line-height:1.15;font-family:system-ui;margin-top:1px;text-shadow:0 1px 2px rgba(0,0,0,0.85);`;
+      const silRawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;
+      const silDisplayLabel = silRawLabel;
+      silName.innerHTML = (pin.kind === "crew" ? "⚔️ " : "@") + escapeHtml(silDisplayLabel) + (pin.crew_tag ? ` <span style="color:${ownColor};font-weight:800;">[${escapeHtml(pin.crew_tag)}]</span>` : "");
       silWrap.appendChild(silName);
       silWrap.addEventListener("click", (e) => {
         e.stopPropagation();
-        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
+        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own }, (e as MouseEvent).clientX, (e as MouseEvent).clientY);
       });
       zoomWrap.appendChild(silWrap);
 
@@ -2768,38 +3234,64 @@ export function AppMap({
 
       const lvColor = aura?.primary ?? pin.pin_color;
       const lvSecondary = aura?.secondary ?? pin.pin_color;
+      // Runner-Marker-Icon über LV-Badge (nur eigene Runner-Base) — wenn der
+      // Runner zu Hause ist, sitzt sein Map-Icon hier auf der Base.
+      const showRunnerOnBase = pin.is_own && pin.kind === "runner";
+      const RUNNER_BADGE_SIZE = 64;
+      const runnerBadge = showRunnerOnBase
+        ? `<div style="
+              position:relative;z-index:3;margin-top:-65px;
+              width:${RUNNER_BADGE_SIZE}px;height:${RUNNER_BADGE_SIZE}px;border-radius:50%;
+              display:flex;align-items:center;justify-content:center;
+              background:radial-gradient(circle at 35% 30%, ${pin.pin_color}, rgba(15,17,21,0.92));
+              border:3px solid rgba(255,255,255,0.95);
+              box-shadow:0 0 18px ${pin.pin_color}cc, 0 4px 10px rgba(0,0,0,0.65);
+            ">${
+              markerArt?.video_url
+                ? `<video src="${markerArt.video_url}" autoplay loop muted playsinline style="width:${RUNNER_BADGE_SIZE - 14}px;height:${RUNNER_BADGE_SIZE - 14}px;object-fit:contain;"></video>`
+                : markerArt?.image_url
+                  ? `<img src="${markerArt.image_url}" alt="" style="width:${RUNNER_BADGE_SIZE - 14}px;height:${RUNNER_BADGE_SIZE - 14}px;object-fit:contain;" />`
+                  : `<span style="font-size:${RUNNER_BADGE_SIZE - 30}px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));">${myEmoji}</span>`
+            }</div>`
+        : "";
+      // Display-Name auf Runner-Pin: owner_username (echter Name) bevorzugt vor pin_label (z.B. "Homebase").
+      // Volle Länge (max 15 Zeichen) wird angezeigt — keine Truncation.
+      const rawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;
+      const displayLabel = rawLabel;
       inner.innerHTML = `
         ${visualHtml}
-        <div style="
-          padding:2px 8px;border-radius:999px;
+        ${runnerBadge}
+        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:24px;min-width:60px;margin-top:${showRunnerOnBase ? "4px" : "-8px"}">
+          ${npLayer}
+          <div data-nameplate style="
+            position:relative;z-index:1;transform-origin:center center;
+            padding:1px 6px;border-radius:4px;
+            background:rgba(0,0,0,0.12);color:#fff;
+            font-size:10px;font-weight:800;letter-spacing:0.5px;
+            white-space:nowrap;
+            line-height:1.2;
+            text-shadow:0 1px 2px rgba(0,0,0,0.85);
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
+          ">${pin.kind === "crew" ? "⚔️ " : "@"}${escapeHtml(displayLabel)}${pin.crew_tag ? ` <span style="color:${pin.pin_color};">[${escapeHtml(pin.crew_tag)}]</span>` : ""}</div>
+        </div>
+        <div data-levelchip style="
+          padding:2px 9px;border-radius:999px;transform-origin:center top;
           background:linear-gradient(135deg, ${lvColor}, ${lvSecondary}cc);
-          color:#0F1115;font-size:9px;font-weight:900;letter-spacing:1px;
+          color:#0F1115;font-size:10px;font-weight:900;letter-spacing:0.5px;
           border:1px solid rgba(255,255,255,0.4);
           box-shadow:0 0 8px ${lvColor}aa, inset 0 1px 0 rgba(255,255,255,0.35);
           text-shadow:0 1px 0 rgba(255,255,255,0.25);
           line-height:1.1;
-          margin-top:-12px;position:relative;z-index:2;
-        ">LV ${pin.level}</div>
-        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:24px;min-width:60px;margin-top:2px">
-          ${npLayer}
-          <div style="
-            position:relative;z-index:1;
-            padding:2px 8px;border-radius:6px;
-            background:rgba(15,17,21,0.92);color:#fff;
-            font-size:10px;font-weight:900;letter-spacing:0.3px;
-            border:1px solid ${pin.pin_color}aa;
-            box-shadow:0 2px 6px rgba(0,0,0,0.35);
-            max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-            line-height:1.2;
-          ">${pin.kind === "crew" ? "⚔️ " : ""}${escapeHtml(pin.pin_label)}</div>
-        </div>
+          margin-top:3px;position:relative;z-index:2;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
+        ">${pin.level}</div>
       `;
       zoomWrap.appendChild(inner);
       el.appendChild(zoomWrap);
 
       inner.addEventListener("click", (e) => {
         e.stopPropagation();
-        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own });
+        onBasePinTapRef.current?.({ kind: pin.kind, id: pin.id, is_own: pin.is_own }, (e as MouseEvent).clientX, (e as MouseEvent).clientY);
       });
       // KEIN Hover-Scale: würde an den Rändern Cursor wegschieben → mouseleave →
       // zurückskalieren → mouseenter-Loop = Zitter-Bug.
@@ -2810,7 +3302,20 @@ export function AppMap({
       const marker = new mapboxgl.Marker({ element: el, anchor: "center", offset: [0, 0] })
         .setLngLat([pin.lng, pin.lat])
         .addTo(map);
-      basePinMarkersRef.current.push(marker);
+      // Child-Refs einmalig cachen — in updateBasePinVisibility wird sonst
+      // pro Zoom-Frame & Marker mehrfach querySelector ausgeführt.
+      const zw = el.firstElementChild as HTMLElement | null;
+      const cachedStamp = (zw?.children[0] as HTMLElement | undefined) ?? null;
+      const cachedSil   = (zw?.children[1] as HTMLElement | undefined) ?? null;
+      const cachedFull  = (zw?.children[2] as HTMLElement | undefined) ?? null;
+      basePinMarkersRef.current.push({
+        marker, el,
+        stampEl: cachedStamp,
+        silEl: cachedSil,
+        fullEl: cachedFull,
+        nameplate: (cachedFull?.querySelector("[data-nameplate]") as HTMLElement | null) ?? null,
+        levelChip: (cachedFull?.querySelector("[data-levelchip]") as HTMLElement | null) ?? null,
+      });
     });
 
     // 3-Stage LOD wie CoD — KEIN kontinuierliches Skalieren mehr,
@@ -2819,57 +3324,70 @@ export function AppMap({
     //   z 12-14      STAMP   (~18px Mini-Tower)
     //   z 14-16      SIL     (~50px flache Tower-Silhouette + LV + Banner)
     //   z >= 16      FULL    (110px Artwork + LV + Banner)
+    let lastZ = -1;
+    let lastStage = ""; // "hidden" | "stamp" | "sil" | "full"
+    let lastFullScale = -1;
     const updateBasePinVisibility = () => {
       const z = map.getZoom();
+      // Skip wenn Zoom-Delta < 0.005 — passiert bei jedem Pan/Tilt-Update
+      if (Math.abs(z - lastZ) < 0.005) return;
+      lastZ = z;
+
+      const stage = z < 12 ? "hidden" : z < 14 ? "stamp" : z >= 16 ? "full" : "sil";
+      const stageChanged = stage !== lastStage;
+
+      // Full-Stage-Scale berechnen (auch wenn Stage gleich, ändert sich Scale)
+      let s = 1.0;
+      if (stage === "full") {
+        if      (z < 17)   s = 0.55 + ((z - 16) / 1) * 0.30;
+        else if (z < 18)   s = 0.85 + ((z - 17) / 1) * 0.15;
+        else               s = 1.0  + Math.min(0.15, (z - 18) * 0.075);
+      }
+      const scaleChanged = stage === "full" && Math.abs(s - lastFullScale) > 0.005;
+      if (!stageChanged && !scaleChanged) return;
+      lastStage = stage;
+      if (stage === "full") lastFullScale = s;
+
+      const transformStr = `translate(-50%, -50%) scale(${s.toFixed(2)})`;
+      const inv = (1 / s).toFixed(3);
+      const invStr = `scale(${inv})`;
+
       basePinMarkersRef.current.forEach((m) => {
-        const e = m.getElement();
-        const zoomWrap = e.firstElementChild as HTMLElement | null;
-        if (!zoomWrap) return;
-        // zoomWrap-Children: [stamp, sil, full]
-        const stampEl = zoomWrap.children[0] as HTMLElement | undefined;
-        const silEl   = zoomWrap.children[1] as HTMLElement | undefined;
-        const fullEl  = zoomWrap.children[2] as HTMLElement | undefined;
+        const { el, stampEl, silEl, fullEl, nameplate, levelChip } = m;
         if (!stampEl || !silEl || !fullEl) return;
-
-        if (z < 12) {
-          e.style.opacity = "0";
-          e.style.visibility = "hidden";
-          e.style.pointerEvents = "none";
-          return;
+        if (stageChanged) {
+          if (stage === "hidden") {
+            el.style.opacity = "0";
+            el.style.visibility = "hidden";
+            el.style.pointerEvents = "none";
+            return;
+          }
+          el.style.opacity = "1";
+          el.style.visibility = "visible";
+          el.style.pointerEvents = "auto";
+          el.style.transition = "opacity 0.25s";
+          stampEl.style.display = stage === "stamp" ? "block" : "none";
+          silEl.style.display   = stage === "sil"   ? "flex"  : "none";
+          fullEl.style.display  = stage === "full"  ? "flex"  : "none";
         }
-        e.style.opacity = "1";
-        e.style.visibility = "visible";
-        e.style.pointerEvents = "auto";
-        e.style.transition = "opacity 0.25s";
-
-        const stamp = z < 14;
-        const full  = z >= 16;
-        const sil   = !stamp && !full;
-        stampEl.style.display = stamp ? "block" : "none";
-        silEl.style.display   = sil   ? "flex"  : "none";
-        fullEl.style.display  = full  ? "flex"  : "none";
-
-        // Zoom-Skalierung im FULL-Stage: bei niedrigem Zoom kleiner, bei hohem größer
-        // (sonst wirkt das Sprite beim Rauszoomen monströs groß im Vergleich zum Kartenkontext)
-        if (full) {
-          // z=16 → 0.55, z=17 → 0.85, z=18 → 1.0, z=19+ → 1.15
-          let s = 1.0;
-          if      (z < 17)   s = 0.55 + ((z - 16) / 1) * 0.30;
-          else if (z < 18)   s = 0.85 + ((z - 17) / 1) * 0.15;
-          else               s = 1.0  + Math.min(0.15, (z - 18) * 0.075);
-          fullEl.style.transform = `translate(-50%, -50%) scale(${s.toFixed(2)})`;
+        if (stage === "full" && (scaleChanged || stageChanged)) {
+          fullEl.style.transform = transformStr;
+          if (nameplate) nameplate.style.transform = invStr;
+          if (levelChip) levelChip.style.transform = invStr;
         }
       });
     };
     updateBasePinVisibility();
-    map.on("zoom", updateBasePinVisibility);
+    const updateBasePinVisibilityThrottled = rafThrottle(updateBasePinVisibility);
+    map.on("zoom", updateBasePinVisibilityThrottled);
 
     return () => {
-      map.off("zoom", updateBasePinVisibility);
-      basePinMarkersRef.current.forEach((m) => m.remove());
+      map.off("zoom", updateBasePinVisibilityThrottled);
+      updateBasePinVisibilityThrottled.cancel();
+      basePinMarkersRef.current.forEach((m) => m.marker.remove());
       basePinMarkersRef.current = [];
     };
-  }, [mapReady, basePins, baseThemeArt, uiIconArt]);
+  }, [mapReady, basePins, baseThemeArt, uiIconArt, markerArt, myEmoji]);
 
   // ── Crew-Turf: Polygons (fill) ──────────────────────────────
   useEffect(() => {
@@ -3392,32 +3910,7 @@ export function AppMap({
       }
       pin.appendChild(artEl);
 
-      // Crew-Tag-Banner (CoD-Style: schmaler farbiger Streifen mit Tag-Text, Schatten)
-      // Sichtbar in silhouette + full Stage; Position relativ zum aktuellen Tower-Sockel.
-      const banner = document.createElement("div");
-      const bannerLabel = ((r.crew_tag ?? "").toString() + (r.crew_tag && r.label ? " " : "") + (r.label ?? "")).trim() ||
-                          (r.crew_name ?? "").toString();
-      banner.dataset.label = bannerLabel;
-      banner.style.cssText = `
-        position:absolute; left:50%; top:50%;
-        transform:translate(-50%, 0);
-        padding:2px 7px; border-radius:3px;
-        background:linear-gradient(180deg, #1a1d23, #0c0e12);
-        border:1px solid ${ownColor};
-        color:#fff;
-        font-size:10px; font-weight:900; letter-spacing:0.5px;
-        white-space:nowrap; pointer-events:none;
-        box-shadow:0 2px 4px rgba(0,0,0,0.6);
-        display:none;
-        font-family:var(--font-display-stack, system-ui);
-      `;
-      // Tag in Crew-Farbe + Label in weiß
-      if (r.crew_tag && r.label) {
-        banner.innerHTML = `<span style="color:${ownColor}">${escapeHtml(r.crew_tag)}</span> <span>${escapeHtml(r.label)}</span>`;
-      } else {
-        banner.textContent = bannerLabel;
-      }
-      pin.appendChild(banner);
+      // Kein Nameplate auf Repeatern — alle Infos kommen via Klick auf den Tower (Modal).
 
       zoomWrap.appendChild(pin);
       el.appendChild(zoomWrap);
@@ -3437,8 +3930,27 @@ export function AppMap({
     //   z 12-14     STAMP   (Mini-Tower-Silhouette)
     //   z 14-16     SIL     (flache mono-Tower-Silhouette + Banner)
     //   z >= 16     FULL    (volles Artwork + Banner)
+    let lastZ = -1;
+    let lastStage = "";
+    let lastFullScale = -1;
     const updateRepeaterLOD = () => {
       const z = map.getZoom();
+      // Skip wenn Zoom-Delta minimal ist (Pan/Tilt)
+      if (Math.abs(z - lastZ) < 0.005) return;
+      lastZ = z;
+
+      const stage = z < 12 ? "hidden" : z < 14 ? "stamp" : z >= 16 ? "full" : "sil";
+      const stageChanged = stage !== lastStage;
+      let s = 1.0;
+      if (stage === "full") {
+        if      (z < 17)   s = 0.55 + ((z - 16) / 1) * 0.30;
+        else if (z < 18)   s = 0.85 + ((z - 17) / 1) * 0.15;
+        else               s = 1.0  + Math.min(0.15, (z - 18) * 0.075);
+      }
+      const scaleChanged = stage === "full" && Math.abs(s - lastFullScale) > 0.005;
+      if (!stageChanged && !scaleChanged) return;
+      lastStage = stage;
+      if (stage === "full") lastFullScale = s;
 
       for (const m of repeaterMarkersRef.current.values()) {
         const el = m.getElement();
@@ -3490,8 +4002,12 @@ export function AppMap({
       }
     };
     updateRepeaterLOD();
-    map.on("zoom", updateRepeaterLOD);
-    return () => { map.off("zoom", updateRepeaterLOD); };
+    const updateRepeaterLODThrottled = rafThrottle(updateRepeaterLOD);
+    map.on("zoom", updateRepeaterLODThrottled);
+    return () => {
+      map.off("zoom", updateRepeaterLODThrottled);
+      updateRepeaterLODThrottled.cancel();
+    };
   }, [mapReady, crewRepeaters, onRepeaterClick, uiIconArt]);
 
   // ── Phase 4 Crew-Bauwerke: DOM-Marker (Schwarzmarkt, Bunker, Hangout, Tunnel) ──
@@ -3654,7 +4170,10 @@ export function AppMap({
       defender_lat: number; defender_lng: number;
       started_at: string; ends_at: string;
     };
-    let marchMarkers: mapboxgl.Marker[] = [];
+    // Diff-basierte Marker-Verwaltung: id → { marker, march }
+    const marchMarkers = new Map<string, { marker: mapboxgl.Marker; march: March }>();
+    let currentMarches: March[] = [];
+    let rafId = 0;
 
     const ensureLayers = () => {
       if (!map.getSource(SRC)) {
@@ -3676,8 +4195,20 @@ export function AppMap({
       }
     };
 
+    const interpolatePos = (m: March): [number, number] => {
+      const start = new Date(m.started_at).getTime();
+      const end = new Date(m.ends_at).getTime();
+      const t = Math.max(0, Math.min(1, (Date.now() - start) / Math.max(1, end - start)));
+      const lat = m.attacker_lat + (m.defender_lat - m.attacker_lat) * t;
+      const lng = m.attacker_lng + (m.defender_lng - m.attacker_lng) * t;
+      return [lng, lat];
+    };
+
     const setData = (marches: March[]) => {
       ensureLayers();
+      currentMarches = marches;
+
+      // GeoJSON-Linien nur updaten wenn Anzahl/IDs sich geändert haben
       const features = marches.map((m) => ({
         type: "Feature" as const,
         properties: { id: m.id, is_attacker: m.is_attacker },
@@ -3688,19 +4219,39 @@ export function AppMap({
       const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
       if (src) src.setData({ type: "FeatureCollection", features });
 
-      // Truppen-Marker (animiert) — t = elapsed/duration. Position interpoliert.
-      marchMarkers.forEach((mk) => mk.remove());
-      marchMarkers = marches.map((m) => {
-        const start = new Date(m.started_at).getTime();
-        const end = new Date(m.ends_at).getTime();
-        const t = Math.max(0, Math.min(1, (Date.now() - start) / Math.max(1, end - start)));
-        const lat = m.attacker_lat + (m.defender_lat - m.attacker_lat) * t;
-        const lng = m.attacker_lng + (m.defender_lng - m.attacker_lng) * t;
-        const el = document.createElement("div");
-        el.style.cssText = "font-size:22px;line-height:1;filter:drop-shadow(0 0 6px " + (m.is_attacker ? "#FF2D78" : "#FF6B4A") + ")";
-        el.textContent = "⚔️";
-        return new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]).addTo(map);
-      });
+      // Diff: nur neue Marker erstellen, alte entfernen, vorhandene wiederverwenden
+      const seenIds = new Set<string>();
+      for (const m of marches) {
+        seenIds.add(m.id);
+        const existing = marchMarkers.get(m.id);
+        if (existing) {
+          existing.march = m; // Daten aktualisieren, Marker bleibt
+        } else {
+          const [lng, lat] = interpolatePos(m);
+          const el = document.createElement("div");
+          el.style.cssText = "font-size:22px;line-height:1;filter:drop-shadow(0 0 6px " + (m.is_attacker ? "#FF2D78" : "#FF6B4A") + ")";
+          el.textContent = "⚔️";
+          const marker = new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]).addTo(map);
+          marchMarkers.set(m.id, { marker, march: m });
+        }
+      }
+      // Entfernte Marches: Marker abbauen
+      for (const [id, entry] of marchMarkers) {
+        if (!seenIds.has(id)) {
+          entry.marker.remove();
+          marchMarkers.delete(id);
+        }
+      }
+    };
+
+    // RAF-Loop: interpoliert Marker-Position smooth zwischen Server-Updates
+    const tickPositions = () => {
+      if (cancelled) return;
+      for (const [, entry] of marchMarkers) {
+        const [lng, lat] = interpolatePos(entry.march);
+        entry.marker.setLngLat([lng, lat]);
+      }
+      rafId = window.requestAnimationFrame(tickPositions);
     };
 
     const fetchMarches = async () => {
@@ -3714,11 +4265,35 @@ export function AppMap({
     };
 
     void fetchMarches();
-    const id = window.setInterval(fetchMarches, 5000); // alle 5s neu fetchen
+    rafId = window.requestAnimationFrame(tickPositions);
+
+    // Realtime: lauscht auf base_attacks INSERT/UPDATE/DELETE für eigene Crew.
+    // RLS filtert serverseitig — Client erhält nur relevante Events.
+    const sb = createClient();
+    const channel = sb
+      .channel("ma365-marches-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "base_attacks" }, () => {
+        if (!cancelled) void fetchMarches();
+      })
+      .subscribe();
+
+    // Fallback-Poll falls WebSocket abreißt: 2 Minuten — nur als Sicherheitsnetz.
+    let pollId: number | null = null;
+    const schedulePoll = () => {
+      pollId = window.setTimeout(async () => {
+        await fetchMarches();
+        if (!cancelled) schedulePoll();
+      }, 120000);
+    };
+    schedulePoll();
+
     return () => {
       cancelled = true;
-      window.clearInterval(id);
-      marchMarkers.forEach((mk) => mk.remove());
+      void sb.removeChannel(channel);
+      if (pollId !== null) window.clearTimeout(pollId);
+      if (rafId) window.cancelAnimationFrame(rafId);
+      for (const [, entry] of marchMarkers) entry.marker.remove();
+      marchMarkers.clear();
       try {
         if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
         if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
@@ -3726,6 +4301,276 @@ export function AppMap({
       } catch { /* cleanup race */ }
     };
   }, [mapReady]);
+
+  // ── Sammel-Marsch-Linien: Karren auf Straßen-Route zum Resource-Node ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const SRC = "ma365-gather-marches";
+    const LYR_LINE = "ma365-gather-marches-line";
+    const LYR_GLOW = "ma365-gather-marches-glow";
+
+    type Phase = "marching" | "gathering" | "returning";
+    type RouteCache = {
+      coords: Array<[number, number]>; // [lng, lat]
+      cumDist: number[];                // kumulative Distanz pro Punkt (in m)
+      total: number;                    // Gesamt-Routen-Distanz (m)
+    };
+    const routeCache = new Map<number, RouteCache>(); // march_id → route
+    const fetchedIds = new Set<number>();
+    const cartMarkers = new Map<number, mapboxgl.Marker>();
+
+    const ensureLayers = () => {
+      if (!map.getSource(SRC)) {
+        map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: LYR_GLOW, type: "line", source: SRC,
+          paint: { "line-color": "#FFD700", "line-width": 8, "line-opacity": 0.25, "line-blur": 6 },
+        });
+        map.addLayer({
+          id: LYR_LINE, type: "line", source: SRC,
+          paint: {
+            "line-color": "#FFD700", "line-width": 3, "line-opacity": 0.9,
+            "line-dasharray": [0, 4, 3],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+      }
+    };
+
+    // "Marching Ants" — Dash-Phase shiftet jeden Frame, Linie wirkt sich bewegend
+    const dashSequence: Array<[number, number, number] | [number, number, number, number]> = [
+      [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5], [3, 4, 0],
+      [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
+    ];
+    let dashIdx = 0;
+    let dashFrameCount = 0;
+
+    const fetchRoute = async (marchId: number, from: [number, number], to: [number, number]) => {
+      if (fetchedIds.has(marchId)) return;
+      fetchedIds.add(marchId);
+      try {
+        const url = `/api/route?from=${from[1]},${from[0]}&to=${to[1]},${to[0]}`;
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) {
+          // Fallback: Luftlinie
+          routeCache.set(marchId, makeStraightRoute(from, to));
+          return;
+        }
+        const j = await r.json() as { ok?: boolean; geometry?: { coordinates: Array<[number, number]> } };
+        if (!j.ok || !j.geometry?.coordinates?.length) {
+          routeCache.set(marchId, makeStraightRoute(from, to));
+          return;
+        }
+        const coords = j.geometry.coordinates;
+        const { cumDist, total } = computeCum(coords);
+        routeCache.set(marchId, { coords, cumDist, total });
+      } catch {
+        routeCache.set(marchId, makeStraightRoute(from, to));
+      }
+    };
+
+    const makeStraightRoute = (from: [number, number], to: [number, number]): RouteCache => {
+      const coords: Array<[number, number]> = [[from[1], from[0]], [to[1], to[0]]];
+      const { cumDist, total } = computeCum(coords);
+      return { coords, cumDist, total };
+    };
+
+    const haversine = (a: [number, number], b: [number, number]) => {
+      const R = 6371000;
+      const lat1 = (a[1] * Math.PI) / 180;
+      const lat2 = (b[1] * Math.PI) / 180;
+      const dLat = lat2 - lat1;
+      const dLng = ((b[0] - a[0]) * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+
+    const computeCum = (coords: Array<[number, number]>) => {
+      const cum = [0];
+      let total = 0;
+      for (let i = 1; i < coords.length; i++) {
+        total += haversine(coords[i - 1], coords[i]);
+        cum.push(total);
+      }
+      return { cumDist: cum, total };
+    };
+
+    // Position + Bearing entlang Route bei Fortschritt 0..1 (reverse für Rückweg)
+    const interpolate = (rt: RouteCache, t: number, reversed: boolean): { lng: number; lat: number; bearing: number } | null => {
+      if (rt.coords.length < 2) return null;
+      const target = Math.max(0, Math.min(1, t)) * rt.total;
+      const cum = rt.cumDist;
+      // Binäre Suche nach dem Segment
+      let lo = 0, hi = cum.length - 1;
+      while (lo + 1 < hi) {
+        const mid = (lo + hi) >> 1;
+        if (cum[mid] <= target) lo = mid; else hi = mid;
+      }
+      const segLen = cum[hi] - cum[lo] || 1;
+      const segT = (target - cum[lo]) / segLen;
+      const a = rt.coords[lo];
+      const b = rt.coords[hi];
+      const lng = a[0] + (b[0] - a[0]) * segT;
+      const lat = a[1] + (b[1] - a[1]) * segT;
+      // Bearing
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      let bearing = Math.atan2(dx, dy) * (180 / Math.PI);
+      if (reversed) bearing = (bearing + 180) % 360;
+      return { lng, lat, bearing };
+    };
+
+    const buildCartEl = (phase: Phase, label: string | null): HTMLDivElement => {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = `
+        position:relative; display:flex; flex-direction:column; align-items:center; gap:1px;
+        pointer-events:none; will-change:transform; transform-origin:center;
+      `;
+      if (label) {
+        const lbl = document.createElement("div");
+        lbl.className = "ma365-cart-label";
+        lbl.style.cssText = `
+          padding:1px 6px; border-radius:4px;
+          background:rgba(15,17,21,0.92); color:#fff;
+          font-size:9px; font-weight:700; letter-spacing:0.3px;
+          border:1px solid rgba(255,215,0,0.6);
+          box-shadow:0 1px 3px rgba(0,0,0,0.5);
+          white-space:nowrap;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
+        `;
+        lbl.textContent = label;
+        wrap.appendChild(lbl);
+      }
+      const sprite = document.createElement("div");
+      sprite.className = "ma365-cart-sprite";
+      sprite.style.cssText = `
+        font-size:24px; line-height:1;
+        filter:drop-shadow(0 0 6px rgba(255,215,0,0.85)) drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+        transform-origin:center;
+      `;
+      sprite.textContent = phase === "gathering" ? "⛏️" : "🛒";
+      wrap.appendChild(sprite);
+      return wrap;
+    };
+
+    const cartLabel = (m: { owner_name?: string | null; owner_crew_tag?: string | null }): string | null => {
+      if (!m.owner_name) return null;
+      return m.owner_crew_tag ? `[${m.owner_crew_tag}] ${m.owner_name}` : m.owner_name;
+    };
+
+    ensureLayers();
+
+    let raf = 0;
+    const renderFrame = () => {
+      const now = Date.now();
+      const lineFeatures: GeoJSON.Feature[] = [];
+
+      for (const m of gatherMarches) {
+        if (!m.node || m.origin_lat == null || m.origin_lng == null) continue;
+        const from: [number, number] = [m.origin_lat, m.origin_lng];
+        const to:   [number, number] = [m.node.lat, m.node.lng];
+        // Route fetchen wenn fehlt
+        if (!routeCache.has(m.id) && !fetchedIds.has(m.id)) {
+          void fetchRoute(m.id, from, to);
+        }
+        const rt = routeCache.get(m.id);
+        if (!rt) continue;
+
+        // Linie zeichnen — orientiert nach Phase
+        const reverseLine = m.status === "returning";
+        const lineCoords = reverseLine ? [...rt.coords].reverse() : rt.coords;
+        lineFeatures.push({
+          type: "Feature",
+          properties: { id: String(m.id), status: m.status },
+          geometry: { type: "LineString", coordinates: lineCoords },
+        });
+
+        // Karren-Position
+        let pos: { lng: number; lat: number; bearing: number } | null;
+        if (m.status === "marching") {
+          const start = new Date(m.started_at).getTime();
+          const end = new Date(m.arrives_at).getTime();
+          const t = (now - start) / Math.max(1, end - start);
+          pos = interpolate(rt, t, false);
+        } else if (m.status === "gathering") {
+          // Karren am Node-Punkt
+          pos = { lng: rt.coords[rt.coords.length - 1][0], lat: rt.coords[rt.coords.length - 1][1], bearing: 0 };
+        } else { // returning
+          const start = new Date(m.finishes_at).getTime();
+          const end = new Date(m.returns_at).getTime();
+          const t = (now - start) / Math.max(1, end - start);
+          // Zurück = von Ende zu Anfang
+          pos = interpolate(rt, 1 - t, true);
+        }
+        if (!pos) continue;
+
+        let cart = cartMarkers.get(m.id);
+        const label = cartLabel(m);
+        if (!cart) {
+          const el = buildCartEl(m.status, label);
+          el.dataset.phase = m.status;
+          el.dataset.label = label ?? "";
+          cart = new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
+          cartMarkers.set(m.id, cart);
+        } else {
+          const el = cart.getElement();
+          // Phase-Wechsel oder Label-Wechsel → komplett neu bauen (selten)
+          if (el.dataset.phase !== m.status || el.dataset.label !== (label ?? "")) {
+            const fresh = buildCartEl(m.status, label);
+            fresh.dataset.phase = m.status;
+            fresh.dataset.label = label ?? "";
+            cart.getElement().replaceWith(fresh);
+            // Mapbox Marker hält intern das alte Element-Pointer; ersetze:
+            cart.remove();
+            cart = new mapboxgl.Marker({ element: fresh, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
+            cartMarkers.set(m.id, cart);
+          } else {
+            cart.setLngLat([pos.lng, pos.lat]);
+          }
+          // Nur das Sprite rotieren (Label bleibt aufrecht)
+          const sprite = cart.getElement().querySelector(".ma365-cart-sprite") as HTMLElement | null;
+          if (sprite) {
+            sprite.style.transform = m.status !== "gathering" ? `rotate(${pos.bearing.toFixed(0)}deg)` : "";
+          }
+        }
+      }
+
+      // Linien-Source aktualisieren
+      const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
+      if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
+
+      // Marching-Ants: Dash-Pattern alle ~4 Frames shiften (~15 Hz @ 60fps)
+      dashFrameCount++;
+      if (dashFrameCount >= 4 && lineFeatures.length > 0) {
+        dashFrameCount = 0;
+        dashIdx = (dashIdx + 1) % dashSequence.length;
+        try {
+          map.setPaintProperty(LYR_LINE, "line-dasharray", dashSequence[dashIdx]);
+        } catch { /* layer evtl. weg */ }
+      }
+
+      // Karren entfernen für Märsche die nicht mehr aktiv sind
+      const activeIds = new Set(gatherMarches.map((m) => m.id));
+      for (const [id, marker] of cartMarkers) {
+        if (!activeIds.has(id)) { marker.remove(); cartMarkers.delete(id); }
+      }
+
+      raf = requestAnimationFrame(renderFrame);
+    };
+    raf = requestAnimationFrame(renderFrame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      cartMarkers.forEach((m) => m.remove());
+      cartMarkers.clear();
+      try {
+        if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
+        if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
+        if (map.getSource(SRC)) map.removeSource(SRC);
+      } catch { /* cleanup race */ }
+    };
+  }, [mapReady, gatherMarches]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>

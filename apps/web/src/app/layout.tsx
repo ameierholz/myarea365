@@ -9,7 +9,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const bebas = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" });
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
-import { LOCALES, LOCALE_BCP47 } from "@/i18n/config";
+import { LOCALES, LOCALE_BCP47, getDir } from "@/i18n/config";
 import "@/styles/globals.css";
 import { PrefsBoot } from "@/components/prefs-boot";
 import { ReferralCapture } from "@/components/referral-capture";
@@ -21,6 +21,9 @@ import { GlobalSvgFilters } from "@/components/global-svg-filters";
 import { CookieConsent } from "@/components/cookie-consent";
 import { CapacitorAuthBridge } from "@/components/capacitor-auth-bridge";
 import { UmpConsent } from "@/components/ump-consent";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { OfflineOutboxBoot } from "@/components/offline-outbox-boot";
+import { SkipLink } from "@/components/skip-link";
 import Script from "next/script";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -74,8 +77,9 @@ export default async function RootLayout({
 }) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const dir = getDir(locale);
   return (
-    <html lang={locale} className={`dark h-full ${bebas.variable}`}>
+    <html lang={locale} dir={dir} className={`dark h-full ${bebas.variable}`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -120,10 +124,13 @@ export default async function RootLayout({
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
         <PrefsBoot />
+        <ServiceWorkerRegister />
+        <OfflineOutboxBoot />
         <CapacitorAuthBridge />
         <ReferralCapture />
         <PinThemeStyles />
         <GlobalSvgFilters />
+        <SkipLink />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AppDialogProvider />
           {children}

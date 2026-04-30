@@ -119,10 +119,24 @@ async function main() {
     const elements = await fetchOverpassFor(q.query);
     console.log(`[ETL]   Overpass lieferte ${elements.length} Elemente`);
 
+    // Räumliche Ausdünnung: Grid-Buckets ≈ 500m × 500m
+    // Pro Zelle max 1 Node pro Typ — verhindert Cluster in Industriegebieten.
+    // 0.005° lat ≈ 555m, 0.0075° lng ≈ 510m bei Berlin-Breite (~52.5°)
+    const GRID_LAT = 0.005;
+    const GRID_LNG = 0.0075;
+    const seen = new Set<string>();
     const rows: Array<{ osm_id: number; city: string; kind: string; resource_type: string; name: string | null; lat: number; lng: number; level: number; total_yield: number; current_yield: number }> = [];
+    // Vor-Shuffle damit nicht die ersten OSM-IDs immer gewinnen → gleichmäßigere Auswahl
+    for (let i = elements.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [elements[i], elements[j]] = [elements[j], elements[i]];
+    }
     for (const el of elements) {
       const c = elementCenter(el);
       if (!c) continue;
+      const cellKey = `${Math.floor(c.lat / GRID_LAT)}:${Math.floor(c.lng / GRID_LNG)}`;
+      if (seen.has(cellKey)) continue;
+      seen.add(cellKey);
       // Level = 1..10 zufällig (höhere Levels seltener)
       const lvlRoll = Math.random();
       const level = lvlRoll < 0.55 ? 1 + Math.floor(Math.random() * 3)        // 1-3 (55%)

@@ -47,6 +47,7 @@ export function MapQuickAccess({
   onOpenInbox,
   onOpenAchievements,
   onOpenShop,
+  onOpenRanking,
   onJoinRepeaterRally,
   onJoinBaseRally,
   onFlyTo,
@@ -62,6 +63,7 @@ export function MapQuickAccess({
   onOpenInbox: () => void;
   onOpenAchievements: () => void;
   onOpenShop: () => void;
+  onOpenRanking: () => void;
   onJoinRepeaterRally: (repeaterId: string) => void;
   onJoinBaseRally: (rallyId: string) => void;
   onFlyTo: (lat: number, lng: number) => void;
@@ -76,16 +78,17 @@ export function MapQuickAccess({
   const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [] });
   const [openRallyList, setOpenRallyList] = useState(false);
   const uiArt = useUiIconArt();
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
+  // SSR-sicher: starte immer mit false, hydratisiere dann clientseitig.
+  // Verhindert hydration-mismatch (Server kennt weder localStorage noch innerWidth).
+  const [collapsed, setCollapsed] = useState<boolean>(false);
+  useEffect(() => {
     try {
-      if (typeof window === "undefined") return false;
       const stored = window.localStorage.getItem("ma365_qa_collapsed");
-      if (stored === "1") return true;
-      if (stored === "0") return false;
-      // kein gespeicherter Wert → auf Mobile default collapsed (kollidiert sonst mit Losgehen-Button)
-      return window.innerWidth < 640;
-    } catch { return false; }
-  });
+      if (stored === "1") { setCollapsed(true); return; }
+      if (stored === "0") { setCollapsed(false); return; }
+      if (window.innerWidth < 640) setCollapsed(true);
+    } catch { /* ignore */ }
+  }, []);
   function toggleCollapsed() {
     setCollapsed((prev) => {
       const next = !prev;
@@ -131,13 +134,13 @@ export function MapQuickAccess({
   // Emojis sind nur Fallback solange noch kein Artwork hochgeladen ist.
   type Item = { key: string; slot: string; fallback: string; label: string; badge?: number; color: string; onClick: () => void; customIcon?: { image_url: string | null; video_url: string | null } | null };
   const items: Item[] = [
-    { key: "profil", slot: "quick_base", fallback: "👤", label: "Profil", badge: baseQueueReady, color: "#FFD700", onClick: onOpenProfile, customIcon: profileIcon },
-    { key: "rally",   slot: "quick_rally",     fallback: "⚔",  label: "Angriff",   badge: rallyTotal,        color: ACCENT,    onClick: () => setOpenRallyList(!openRallyList) },
-    { key: "crew",    slot: "quick_crew",      fallback: "👥", label: "Crew",      color: PRIMARY,           onClick: onOpenCrewModal },
-    { key: "wegel",   slot: "quick_wegelager", fallback: "📜", label: "Lager",     badge: strongholdsNearby, color: "#FF6B4A", onClick: () => { /* zukünftig: Liste */ } },
-    { key: "shop",    slot: "quick_shop",      fallback: "🎁", label: "Shop",      color: "#a855f7",         onClick: onOpenShop },
-    { key: "inbox",   slot: "quick_inbox",     fallback: "📬", label: "Inbox",     badge: inboxUnread,       color: "#22D1C3", onClick: onOpenInbox },
-    { key: "deals",   slot: "quick_deals",     fallback: "🔥", label: "Deals",     color: "#FFD700", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
+    { key: "profil",  slot: "quick_base",      fallback: "👤", label: "Profil",  badge: baseQueueReady,    color: "#FFD700", onClick: onOpenProfile, customIcon: profileIcon },
+    { key: "crew",    slot: "quick_crew",      fallback: "👥", label: "Crew",    color: PRIMARY,           onClick: onOpenCrewModal },
+    { key: "rally",   slot: "quick_rally",     fallback: "⚔",  label: "Angriffe", badge: rallyTotal,        color: ACCENT,    onClick: () => setOpenRallyList(!openRallyList) },
+    { key: "ranking", slot: "quick_ranking",   fallback: "🏆", label: "Ranking", color: "#FF6B4A",         onClick: onOpenRanking },
+    { key: "shop",    slot: "quick_shop",      fallback: "🎁", label: "Shops",   color: "#a855f7",         onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
+    { key: "deals",   slot: "quick_deals",     fallback: "🔥", label: "Deals",   color: "#FFD700",         onClick: onOpenShop },
+    { key: "inbox",   slot: "quick_inbox",     fallback: "📬", label: "Inbox",   badge: inboxUnread,       color: "#22D1C3", onClick: onOpenInbox },
   ];
 
   // Gesamt-Badge-Summe für eingeklappten Toggle-Knopf
@@ -145,7 +148,7 @@ export function MapQuickAccess({
 
   return (
     <>
-      {/* Stadt/Straßen-Style Quickaccess: rechts auf gleicher Höhe wie "Losgehen" (bottom 30) */}
+      {/* Stadt/Straßen-Style Quickaccess: rechts auf gleicher Höhe wie "Losgehen" */}
       <div style={{
         position: "absolute",
         right: 8,
@@ -214,9 +217,10 @@ export function MapQuickAccess({
               minWidth: 20, height: 20, borderRadius: 10, padding: "0 5px",
               background: `radial-gradient(circle at 35% 30%, #ff5b8d, ${ACCENT})`,
               border: "1.5px solid rgba(0,0,0,0.6)",
-              color: "#FFF", fontSize: 10, fontWeight: 900,
+              color: "#FFF", fontSize: 10, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: `0 0 8px ${ACCENT}aa`,
+              fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif",
             }}>{totalBadges > 99 ? "99+" : totalBadges}</span>
           )}
         </button>
@@ -386,9 +390,10 @@ function QuickButton({
           background: `radial-gradient(circle at 35% 30%, #ff5b8d, ${ACCENT})`,
           border: "1.5px solid rgba(0,0,0,0.6)",
           color: "#FFF",
-          fontSize: 10, fontWeight: 900,
+          fontSize: 10, fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: `0 0 8px ${ACCENT}aa, 0 1px 3px rgba(0,0,0,0.5)`,
+          fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif",
         }}>
           {badge! > 99 ? "99+" : badge}
         </span>

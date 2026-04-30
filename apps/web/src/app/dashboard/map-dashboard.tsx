@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations, useLocale } from "next-intl";
 import { getDateLocale, getNumberLocale } from "@/i18n/config";
 import Link from "next/link";
@@ -14,31 +15,32 @@ import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { ReferralWidget } from "@/components/referral-widget";
-import { UpgradeModal } from "@/components/upgrade-modal";
-import { BoostShopModal as PowerShopModal, BoostShopBody } from "@/components/boost-shop";
+const UpgradeModal = dynamic(() => import("@/components/upgrade-modal").then(m => m.UpgradeModal));
+const PowerShopModal = dynamic(() => import("@/components/boost-shop").then(m => m.BoostShopModal));
+import { BoostShopBody } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
-import { WalkSummaryModal, type WalkSummary } from "@/components/walk-summary-modal";
-import { RunRouteModal } from "@/components/run-route-modal";
-import { OwnershipModal } from "@/components/ownership-modal";
-import { ArenaChallengeModal } from "@/components/arena-challenge-modal";
+const WalkSummaryModal = dynamic(() => import("@/components/walk-summary-modal").then(m => m.WalkSummaryModal));
+import type { WalkSummary } from "@/components/walk-summary-modal";
+const RunRouteModal = dynamic(() => import("@/components/run-route-modal").then(m => m.RunRouteModal));
+const OwnershipModal = dynamic(() => import("@/components/ownership-modal").then(m => m.OwnershipModal));
+const ArenaChallengeModal = dynamic(() => import("@/components/arena-challenge-modal").then(m => m.ArenaChallengeModal));
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianAvatar } from "@/components/guardian-avatar";
-import { GuardianDetailModal } from "@/components/guardian-detail-modal";
-import { GuardianGalleryModal } from "@/components/guardian-gallery-modal";
+const GuardianDetailModal = dynamic(() => import("@/components/guardian-detail-modal").then(m => m.GuardianDetailModal));
+const GuardianGalleryModal = dynamic(() => import("@/components/guardian-gallery-modal").then(m => m.GuardianGalleryModal));
 import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
 import { normalizeFaction } from "@/lib/factions";
 import { AdSenseSlot } from "@/components/adsense-slot";
-import { GemShopModal } from "@/components/gem-shop-modal";
-import { ShopHubModal } from "@/components/shop-hub-modal";
-import { ShopDealsModal } from "@/components/shop-deals-modal";
-import { DealsShopModal } from "@/components/deals-shop-modal";
+const GemShopModal = dynamic(() => import("@/components/gem-shop-modal").then(m => m.GemShopModal));
+const ShopHubModal = dynamic(() => import("@/components/shop-hub-modal").then(m => m.ShopHubModal));
+const ShopDealsModal = dynamic(() => import("@/components/shop-deals-modal").then(m => m.ShopDealsModal));
+const DealsShopModal = dynamic(() => import("@/components/deals-shop-modal").then(m => m.DealsShopModal));
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
-import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon, useArtworkReady } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
@@ -46,11 +48,12 @@ import { DailyDealMapBadge } from "@/components/daily-deal-map-badge";
 import { MapHelpButton } from "@/components/map-help-button";
 import { MapLegendModal } from "@/components/map-legend-modal";
 import { CrewLiveHub } from "@/components/crew-live-hub";
-import { OnboardingModal, markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
-import { FaqModal } from "@/components/faq-modal";
-import { PotionInventoryModal } from "@/components/potion-inventory-modal";
+import { markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
+const OnboardingModal = dynamic(() => import("@/components/onboarding-modal").then(m => m.OnboardingModal));
+const FaqModal = dynamic(() => import("@/components/faq-modal").then(m => m.FaqModal));
+const PotionInventoryModal = dynamic(() => import("@/components/potion-inventory-modal").then(m => m.PotionInventoryModal));
 import { LoadoutTrio } from "@/components/loadout-trio";
-import { RunnerStatsModal } from "@/components/runner-stats-modal";
+const RunnerStatsModal = dynamic(() => import("@/components/runner-stats-modal").then(m => m.RunnerStatsModal));
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -63,11 +66,16 @@ import { isPremium, hasActiveBoost } from "@/lib/monetization";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { deferIdle } from "@/lib/defer";
 import { AppMap } from "@/components/app-map";
-import { BaseModal } from "@/components/base-modal";
-import { AttackBaseModal } from "@/components/attack-base-modal";
+const BaseModal = dynamic(() => import("@/components/base-modal").then(m => m.BaseModal));
+const AttackBaseModal = dynamic(() => import("@/components/attack-base-modal").then(m => m.AttackBaseModal), { loading: () => null });
 import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
 import { StrongholdModal, ActiveRallyBanner } from "@/components/stronghold-modal";
+const GatherModal = dynamic(() => import("@/components/gather-modal").then(m => m.GatherModal), { loading: () => null });
+const AppSettingsContent = dynamic(() => import("@/components/settings/app-settings-modal").then(m => m.AppSettingsContent));
+const HealthDashboard = dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard));
+import { ActiveMarchesBanner } from "@/components/active-marches-banner";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
@@ -244,7 +252,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [streakSaveModal, setStreakSaveModal] = useState<null | "asking" | "playing">(null);
   const [streakSaveAdProgress, setStreakSaveAdProgress] = useState(0);
   const [victoryTrigger, setVictoryTrigger] = useState(0);
-  const [activeTab, setActiveTab] = useState<TabId>("profil");
+  const [activeTab, setActiveTab] = useState<TabId>("map");
   const [rankingInitialMode, setRankingInitialMode] = useState<RankingMode | undefined>(undefined);
   // In-App-Routing: Mapbox-Direction zu Shop, gerendert auf der Karte
   const [routingRoute, setRoutingRoute] = useState<ActiveRoute | null>(null);
@@ -440,10 +448,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [speedWarning, setSpeedWarning] = useState(false);
   const lastGeoRef = useRef<number>(0);
 
-  // Load recent runs when profile changes
+  // Load recent runs when profile changes (non-critical — defer bis idle)
   useEffect(() => {
     if (!profile) return;
-    (async () => {
+    return deferIdle(() => void (async () => {
       // Bevorzugt: enriched walks-Endpoint (mit Adressen + RSS-Drops + Tokens + Boni).
       // Fallback: territories-Direkt-Query falls API noch nicht deployed.
       const r = await fetch("/api/runs/recent?limit=5", { cache: "no-store" });
@@ -458,7 +466,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         .order("created_at", { ascending: false })
         .limit(5);
       if (data) setRecentRuns(data as Territory[]);
-    })();
+    })());
   }, [profile?.id]);
 
   // 3-Ebenen-Layer laden (eigene + Crew-eigene + gestohlene fremde)
@@ -1174,13 +1182,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
+  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
+  const [shopsModalOpen, setShopsModalOpen] = useState(false);
+  const [inboxModalOpen, setInboxModalOpen] = useState(false);
+  const [rankingModalOpen, setRankingModalOpen] = useState(false);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
+  const [ownBasePos, setOwnBasePos] = useState<{ lat: number; lng: number } | null>(null);
   const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
-  const [attackTarget, setAttackTarget] = useState<string | null>(null);
+  const [attackTarget, setAttackTarget] = useState<{ defenderUserId: string; x: number; y: number } | null>(null);
   const [pbRally, setPbRally] = useState<PlayerBaseRallyState | null>(null);
 
   // ── Crew-Turf: Repeater + Polygon-State ──────────────────────
@@ -1246,12 +1258,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // ── Wegelager (Strongholds) + Rally-State ──
   type Stronghold = { id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number };
   const [strongholds, setStrongholds] = useState<Stronghold[]>([]);
-  const [strongholdModalTarget, setStrongholdModalTarget] = useState<Stronghold | null>(null);
+  const [strongholdModalTarget, setStrongholdModalTarget] = useState<{ s: Stronghold; x: number; y: number } | null>(null);
   const strongholdArt = useStrongholdArt();
   const dashboardBaseThemeArt = useBaseThemeArt();
   const dashboardUiIconArt = useUiIconArt();
   const dashboardMarkerArt = useMarkerArt();
   const nameplateArt = useNameplateArt();
+  const artworkReady = useArtworkReady();
   const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
     try {
       const r = await fetch(`/api/strongholds/nearby?lat=${lat}&lng=${lng}&radius_km=30`, { cache: "no-store" });
@@ -1282,49 +1295,75 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const id = setInterval(refreshRally, 15000);
     return () => clearInterval(id);
   }, [refreshRally]);
-  // Strongholds: bei initialem Mount fetchen + spawnen, dann nur bei
-  // signifikanter Bewegung (>500m) erneut spawnen. Fetch alle 60s pro Position.
-  const lastSpawnPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  // Wegelager sind Welt-Content (Berlin-weit pre-seeded in DB, Migration 00193).
+  // Frontend triggert keinen Spawn mehr — nur Fetch der bestehenden + Respawn-Trigger
+  // bei Defeat läuft DB-seitig (respawn_due_strongholds, gleiche Position).
   const userCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   useEffect(() => { userCenterRef.current = userCenter ?? null; }, [userCenter]);
   useEffect(() => {
-    // Berlin-Mitte als Fallback für User ohne GPS — Wegelager bleiben so überall sichtbar
     const center = userCenter ?? { lat: 52.520, lng: 13.405 };
-    const last = lastSpawnPosRef.current;
-    const movedMeters = last
-      ? (() => {
-          const R = 6371000;
-          const dLat = ((center.lat - last.lat) * Math.PI) / 180;
-          const dLng = ((center.lng - last.lng) * Math.PI) / 180;
-          const a = Math.sin(dLat / 2) ** 2 + Math.cos((last.lat * Math.PI) / 180) * Math.cos((center.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-          return 2 * R * Math.asin(Math.sqrt(a));
-        })()
-      : Infinity;
-
-    // Fetch immer (zeigt aktuelle DB-Daten — pin verschwindet erst wenn defeated_at gesetzt)
     void fetchStrongholds(center.lat, center.lng);
-
-    // Spawn nur wenn ECHTER Standort vorhanden + >500m Bewegung
-    if (userCenter && movedMeters > 500) {
-      lastSpawnPosRef.current = { lat: userCenter.lat, lng: userCenter.lng };
-      void (async () => {
-        const plzKey = `grid_${userCenter.lat.toFixed(2)}_${userCenter.lng.toFixed(2)}`;
-        try {
-          await fetch("/api/strongholds/spawn", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plz: plzKey, lat: userCenter.lat, lng: userCenter.lng }),
-          });
-          await fetchStrongholds(userCenter.lat, userCenter.lng);
-        } catch { /* silent */ }
-      })();
-    }
-
-    // Periodisch DB-Stand syncen (für HP-Updates / fremde Crew besiegt etc.)
     const id = setInterval(() => void fetchStrongholds(center.lat, center.lng), 60000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCenter?.lat, userCenter?.lng]);
+
+  // ── Resource-Nodes (Schrottplatz/Fabrik/ATM/Datacenter) ──
+  type ResourceNode = { id: number; kind: "scrapyard" | "factory" | "atm" | "datacenter"; resource_type: "wood" | "stone" | "gold" | "mana"; name: string | null; lat: number; lng: number; level: number; total_yield: number; current_yield: number; gather_count?: number; gather_active?: boolean; gather_someone_gathering?: boolean; gather_finish_at?: string | null; gather_mine?: boolean; gather_username?: string | null; gather_crew_tag?: string | null };
+  const [resourceNodes, setResourceNodes] = useState<ResourceNode[]>([]);
+  const [gatherModalNode, setGatherModalNode] = useState<{ n: ResourceNode; x: number; y: number } | null>(null);
+  const lastBboxRef = useRef<string>("");
+  // Aktive Sammel-Märsche des Users (für Banner mit Live-Countdown)
+  type ActiveMarch = {
+    id: number; node_id: number; guardian_id: string | null; guardian_name?: string | null; troop_count: number;
+    status: "marching" | "gathering" | "returning";
+    started_at: string; arrives_at: string; finishes_at: string; returns_at: string;
+    collected: number;
+    origin_lat: number | null; origin_lng: number | null;
+    owner_name?: string | null; owner_crew_tag?: string | null;
+    node: { id: number; kind: "scrapyard" | "factory" | "atm" | "datacenter"; resource_type: "wood" | "stone" | "gold" | "mana"; name: string | null; lat: number; lng: number; level: number; total_yield?: number; current_yield?: number } | null;
+  };
+  const [activeMarches, setActiveMarches] = useState<ActiveMarch[]>([]);
+  const refreshActiveMarches = useCallback(async () => {
+    try {
+      const r = await fetch("/api/gather/active", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json() as { marches: ActiveMarch[] };
+      setActiveMarches(j.marches ?? []);
+    } catch { /* silent */ }
+  }, []);
+  useEffect(() => {
+    void refreshActiveMarches();
+    // Realtime: lauscht auf gather_marches-Änderungen — RLS filtert auf eigene Märsche.
+    const sb = createClient();
+    const channel = sb
+      .channel("ma365-gather-marches-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "gather_marches" }, () => {
+        void refreshActiveMarches();
+      })
+      .subscribe();
+    // Fallback-Poll: 2 Minuten falls WebSocket abreißt.
+    const id = setInterval(refreshActiveMarches, 120000);
+    return () => {
+      clearInterval(id);
+      void sb.removeChannel(channel);
+    };
+  }, [refreshActiveMarches]);
+
+  const onMapViewportChange = useCallback((vp: { minLng: number; minLat: number; maxLng: number; maxLat: number; zoom: number }) => {
+    if (vp.zoom < 13) { setResourceNodes([]); return; }
+    const bbox = `${vp.minLng.toFixed(4)},${vp.minLat.toFixed(4)},${vp.maxLng.toFixed(4)},${vp.maxLat.toFixed(4)}`;
+    if (bbox === lastBboxRef.current) return;
+    lastBboxRef.current = bbox;
+    void (async () => {
+      try {
+        const r = await fetch(`/api/resource-nodes/nearby?bbox=${bbox}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { nodes: ResourceNode[] };
+        setResourceNodes(j.nodes ?? []);
+      } catch { /* silent */ }
+    })();
+  }, []);
 
   // Theme-Lookup für Pin-Rendering (cache als Map id → { emoji, color })
   type ThemeMeta = { pin_emoji: string; pin_color: string };
@@ -1340,7 +1379,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       };
       if (j.base) {
         setOwnBaseId(j.base.id);
-        setOwnBaseHasPos(j.base.lat != null && j.base.lng != null);
+        const has = j.base.lat != null && j.base.lng != null;
+        setOwnBaseHasPos(has);
+        setOwnBasePos(has ? { lat: j.base.lat as number, lng: j.base.lng as number } : null);
       }
       const map = new Map<string, ThemeMeta>();
       (j.themes ?? []).forEach((t) => map.set(t.id, { pin_emoji: t.pin_emoji, pin_color: t.pin_color }));
@@ -1358,16 +1399,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
       const r = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
       if (!r.ok || cancelled) return;
-      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; is_own: boolean }> };
+      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }> };
       const merged: BasePin[] = [];
       const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
       (j.runner ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, theme_id: b.theme_id, ...t });
+        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, owner_username: b.owner_username, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, ...t });
       });
       (j.crew ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "crew", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, is_own: b.is_own, theme_id: b.theme_id, ...t });
+        merged.push({ kind: "crew", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, ...t });
       });
       setBasePins(merged);
     };
@@ -1455,9 +1496,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       } catch { return { lat, lng }; }
     }
 
-    // Berlin-BBox: Drops über die ganze Stadt verteilen (nicht nur um den User).
-    const BERLIN = { south: 52.340, north: 52.680, west: 13.090, east: 13.760 };
-    const TARGET_DROPS = 200; // hohe Dichte, damit immer was in der Nähe ist
+    // Berlin-BBox: enger gefasst auf eigentlichen Stadtkern — vermeidet Drops im
+    // Brandenburger Wald außerhalb der Stadt.
+    const BERLIN = { south: 52.420, north: 52.620, west: 13.180, east: 13.620 };
+    const TARGET_DROPS = 3000; // Berlin-weit verteilt; Viewport-Cull rendert nur sichtbare
 
     // Gewichtung: ~63% common, 25% rare, 10% epic, 2% legendary (= "mega selten")
     const rarities = [
@@ -1502,7 +1544,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
     // Persistenz: localStorage hält Drops über Tab-Switch/Reload stabil.
     // Beim Mount: gespeicherte Drops laden, abgelaufene aussortieren, fehlende auffüllen.
-    const STORAGE_KEY = "ma365.lootDrops.v1";
+    const STORAGE_KEY = "ma365.lootDrops.v2";
     let cancelled = false;
     const now0 = Date.now();
     let initialDrops: ReturnType<typeof makeDrop>[] = [];
@@ -1515,6 +1557,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         }
       }
     } catch { /* ignore */ }
+    // Trimmen falls Cache über TARGET (z.B. nach Reduktion): zufällig auf TARGET kürzen,
+    // damit Verteilung Berlin-weit gleichmäßig bleibt.
+    if (initialDrops.length > TARGET_DROPS) {
+      for (let i = initialDrops.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [initialDrops[i], initialDrops[j]] = [initialDrops[j], initialDrops[i]];
+      }
+      initialDrops = initialDrops.slice(0, TARGET_DROPS);
+    }
     // Auffüllen falls weniger als TARGET_DROPS vorhanden sind
     while (initialDrops.length < TARGET_DROPS) {
       const lat = BERLIN.south + Math.random() * (BERLIN.north - BERLIN.south);
@@ -1524,20 +1575,22 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     setLootDrops(initialDrops);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(initialDrops)); } catch { /* ignore */ }
 
-    // Sobald GPS verfügbar wird: zusätzliche 15 Drops eng um den User streuen.
-    // Pollt alle 500 ms bis userCenter da ist (max 30 s warten).
-    let userBoostDone = false;
+    // User-Boost: 5 Drops um den User — NUR beim allerersten Spawn (kein Cache vorhanden).
+    // Verhindert dass jeder Reload weitere Drops zum Cache addiert.
+    const isFirstSpawn = initialDrops.length <= TARGET_DROPS && !window.localStorage.getItem("ma365.lootDrops.userBoosted");
+    let userBoostDone = !isFirstSpawn;
     const userBoostInt = setInterval(async () => {
       if (cancelled || userBoostDone) { clearInterval(userBoostInt); return; }
       const u = userCenterRef.current;
       if (!u) return;
       userBoostDone = true;
       clearInterval(userBoostInt);
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 5; i++) {
         if (cancelled) return;
         await spawnAt(u.lat, u.lng, 0.020); // ±~1.1 km
         await new Promise((r) => setTimeout(r, 80));
       }
+      try { window.localStorage.setItem("ma365.lootDrops.userBoosted", "1"); } catch { /* ignore */ }
     }, 500);
     setTimeout(() => clearInterval(userBoostInt), 30_000);
 
@@ -1559,7 +1612,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // Drops bei jeder Änderung persistieren (Tab-Switch/Reload behalten dieselben Positionen)
   useEffect(() => {
     if (lootDrops.length === 0) return;
-    try { window.localStorage.setItem("ma365.lootDrops.v1", JSON.stringify(lootDrops)); } catch { /* ignore */ }
+    try { window.localStorage.setItem("ma365.lootDrops.v2", JSON.stringify(lootDrops)); } catch { /* ignore */ }
   }, [lootDrops]);
 
   // Arena-Countdowns aus demoShops ableiten (2h in der Zukunft fuer Kaelthor-Demo)
@@ -1659,12 +1712,19 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
               onPowerZoneClick={setViewingPowerZone}
-              strongholds={strongholds}
+              strongholds={artworkReady ? strongholds : []}
               strongholdArt={strongholdArt}
-              onStrongholdClick={(id) => {
+              onStrongholdClick={(id, x, y) => {
                 const s = strongholds.find((x) => x.id === id);
-                if (s) setStrongholdModalTarget(s);
+                if (s) setStrongholdModalTarget({ s, x, y });
               }}
+              resourceNodes={resourceNodes}
+              gatherMarches={activeMarches}
+              onResourceNodeClick={(id, x, y) => {
+                const n = resourceNodes.find((x) => x.id === id);
+                if (n) setGatherModalNode({ n, x, y });
+              }}
+              onViewportChange={onMapViewportChange}
               onLootClick={async (id) => {
                 const drop = lootDrops.find((d) => d.id === id);
                 if (!drop) return;
@@ -1684,7 +1744,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 // Ad-Gate-Modal öffnen — User entscheidet: direkt oder Video für Extra-Loot
                 setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
-              basePins={basePins.map((b) => {
+              basePins={!artworkReady ? [] : basePins.map((b) => {
                 // Theme-Rarity-Lookup (Seed-IDs aus Migration 00116) für Aura-Effekt
                 const themeRarity: Record<string, "advanced" | "epic" | "legendary"> = {
                   medieval: "advanced",
@@ -1700,20 +1760,20 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               })}
               baseThemeArt={dashboardBaseThemeArt}
               uiIconArt={dashboardUiIconArt}
-              onBasePinTap={(pin) => {
-                // Fremde Runner-Base → Attack-Modal; eigene oder Crew → BaseModal
+              onBasePinTap={(pin, x, y) => {
+                // Fremde Runner-Base → Attack-Popup; eigene oder Crew → BaseModal
                 if (!pin.is_own && pin.kind === "runner") {
                   const full = basePins.find((b) => b.id === pin.id);
-                  if (full?.owner_user_id) { setAttackTarget(full.owner_user_id); return; }
+                  if (full?.owner_user_id) { setAttackTarget({ defenderUserId: full.owner_user_id, x, y }); return; }
                 }
                 setBaseModalTarget(pin);
               }}
               placeBaseMode={placeBaseMode}
               onPlaceBaseClick={onPlaceBaseClick}
-              crewRepeaters={crewRepeaters}
+              crewRepeaters={artworkReady ? crewRepeaters : []}
               crewTurfPolygons={crewTurfPolygons}
               crewBlocks={crewBlocks}
-              crewBuildings={crewBuildings}
+              crewBuildings={artworkReady ? crewBuildings : []}
               onRepeaterClick={(id, x, y) => {
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
@@ -1814,9 +1874,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return m?.image_url || m?.video_url ? m : null;
               })()}
               onOpenCrewModal={() => setMapCrewModalOpen(true)}
-              onOpenInbox={() => { window.location.href = "/inbox"; }}
+              onOpenInbox={() => setInboxModalOpen(true)}
               onOpenAchievements={() => setActiveTab("profil")}
-              onOpenShop={() => setActiveTab("profil")}
+              onOpenShop={() => setShopsModalOpen(true)}
+              onOpenRanking={() => setRankingModalOpen(true)}
               onJoinRepeaterRally={(repeaterId) => {
                 const r = crewRepeaters.find((x) => x.id === repeaterId);
                 if (r) setAttackRepeaterTarget(r);
@@ -1843,35 +1904,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               xpBoost={1}
             />
 
-            {/* Floating Badge für Erfolge — getauscht mit Deals (Deals jetzt im QuickAccess-Bar) */}
-            {!(walking || baseModalTarget || attackTarget || viewingShop || viewingArea || viewingBoss || viewingSanctuary || viewingPowerZone || ownershipQuery || strongholdModalTarget) && (
-              <button
-                onClick={() => setActiveTab("profil")}
-                style={{
-                  position: "absolute", left: "50%", bottom: 110, transform: "translateX(-50%)",
-                  zIndex: 50,
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  background: "linear-gradient(135deg, #FFD700, #FF8A3C)",
-                  color: "#0F1115",
-                  fontSize: 13, fontWeight: 900, letterSpacing: 0.5,
-                  border: "2px solid rgba(255,255,255,0.95)",
-                  boxShadow: "0 4px 12px rgba(255,215,0,0.5), 0 0 18px rgba(255,138,60,0.4)",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-display-stack)",
-                }}>
-                🏅 ERFOLGE
-              </button>
-            )}
-
             {/* Active-Rally-Banner — oben auf der Karte wenn Crew eine Versammlung laufen hat */}
             {rallyData?.rally && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
               <div style={{ position: "absolute", top: 14, left: 12, right: 12, zIndex: 56 }}>
                 <ActiveRallyBanner
                   rally={rallyData.rally}
                   onOpen={async () => {
-                    if (rallyData.stronghold) setStrongholdModalTarget(rallyData.stronghold);
+                    if (rallyData.stronghold) {
+                      // Aufruf via Banner (kein Map-Click) → Popup mittig öffnen
+                      setStrongholdModalTarget({ s: rallyData.stronghold, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+                    }
                   }}
                 />
               </div>
@@ -2233,78 +2275,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         />
       )}
 
-      {/* ══ BOTTOM NAV ══ */}
-      <div style={{
-        display: "flex",
-        flexDirection: "row",
-        background: "transparent",
-        paddingBottom: 4,
-        paddingTop: 8,
-      }}>
-        {[
-          { id: "profil",  label: "Profil",  icon: "👤", color: "#22D1C3" }, // Teal
-          { id: "map",     label: "Karte",   icon: "🗺️", color: "#5ddaf0" }, // Cyan
-          { id: "crew",    label: "Crew",    icon: "👥", color: "#FF2D78" }, // Magenta
-          { id: "shops",   label: "Deals",   icon: "🏪", color: "#FFD700" }, // Gold
-          { id: "ranking", label: "Ranking", icon: "🏆", color: "#FF6B4A" }, // Coral
-        ].map((tab) => {
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabId)}
-              style={{
-                flex: 1,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                padding: "6px 0",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 0,
-                position: "relative",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {active && (
-                <div style={{
-                  position: "absolute",
-                  top: -16,
-                  left: "28%",
-                  right: "28%",
-                  height: 3,
-                  borderRadius: 3,
-                  background: tab.color,
-                  boxShadow: `0 0 14px ${tab.color}`,
-                }} />
-              )}
-              <span style={{
-                fontSize: active ? 38 : 30,
-                lineHeight: 1,
-                filter: active
-                  ? `drop-shadow(0 0 10px ${tab.color}cc) drop-shadow(0 0 20px ${tab.color}66)`
-                  : "grayscale(0.3) opacity(0.75)",
-                transform: active ? "translateY(-2px) scale(1.05)" : "none",
-                transition: "all 0.2s",
-              }}>
-                {tab.icon}
-              </span>
-              <span style={{
-                color: active ? tab.color : MUTED,
-                fontSize: 12,
-                fontWeight: active ? 800 : 600,
-                textAlign: "center",
-                letterSpacing: 0.3,
-                textShadow: active ? `0 0 12px ${tab.color}80` : "none",
-              }}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Runner-Profil-Modal (öffnet beim Klick auf Angreifer) */}
       {viewingRunner && DEMO_RUNNERS[viewingRunner] && (
         <RunnerProfileModal
@@ -2483,7 +2453,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
       {/* Angriffs-Modal — wenn fremde Spieler-Base getappt wird */}
       {attackTarget && (
-        <AttackBaseModal defenderUserId={attackTarget} onClose={() => setAttackTarget(null)} />
+        <AttackBaseModal
+          defenderUserId={attackTarget.defenderUserId}
+          anchorX={attackTarget.x}
+          anchorY={attackTarget.y}
+          onClose={() => setAttackTarget(null)}
+        />
       )}
 
       {/* Crew-Turf: Repeater setzen via Long-Press */}
@@ -2529,10 +2504,51 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         />
       )}
 
-      {/* Stronghold-Modal (Wegelager-Pin auf der Map) */}
+      {/* Aktive Sammel-Märsche (Banner oben rechts) */}
+      {activeMarches.length > 0 && !strongholdModalTarget && !baseModalTarget && !attackTarget && !gatherModalNode && (
+        <ActiveMarchesBanner marches={activeMarches} onCancelled={() => { void refreshActiveMarches(); }} />
+      )}
+
+      {/* Sammel-Modal (Resource-Node-Click) */}
+      {/* Shops/Deals-Übersicht-Modal */}
+      {shopsModalOpen && (
+        <FullscreenMapModal title="DEALS — SHOPS-ÜBERSICHT" onClose={() => setShopsModalOpen(false)}>
+          <ShopsTab />
+        </FullscreenMapModal>
+      )}
+
+      {/* Inbox-Modal */}
+      {inboxModalOpen && (
+        <FullscreenMapModal title="POSTEINGANG" onClose={() => setInboxModalOpen(false)}>
+          <InboxClient />
+        </FullscreenMapModal>
+      )}
+
+      {/* Ranking-Modal */}
+      {rankingModalOpen && (
+        <FullscreenMapModal title="RANGLISTE" onClose={() => setRankingModalOpen(false)}>
+          <RankingTab profile={p} leaderboard={leaderboard} initialMode={rankingInitialMode} />
+        </FullscreenMapModal>
+      )}
+
+      {gatherModalNode && (
+        <GatherModal
+          node={gatherModalNode.n}
+          anchorX={gatherModalNode.x}
+          anchorY={gatherModalNode.y}
+          userCenter={userCenter}
+          basePos={ownBasePos}
+          onClose={() => setGatherModalNode(null)}
+          onSuccess={() => { void refreshActiveMarches(); }}
+        />
+      )}
+
+      {/* Stronghold-Popup (Wegelager-Pin auf der Map — neben dem Pin) */}
       {strongholdModalTarget && (
         <StrongholdModal
-          stronghold={strongholdModalTarget}
+          stronghold={strongholdModalTarget.s}
+          anchorX={strongholdModalTarget.x}
+          anchorY={strongholdModalTarget.y}
           onClose={() => setStrongholdModalTarget(null)}
           activeRally={rallyData?.rally ?? null}
           refreshRally={async () => {
@@ -3023,7 +3039,7 @@ function ProfilTab({
     : "—";
   const longestKm = ((p?.longest_run_m || 0) / 1000).toFixed(1);
 
-  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "account" | "xpguide" | "achievements" | "ranks" | "inbox" | "support" | "arena" | "faq" | "onboarding">(null);
+  const [openModal, setOpenModal] = useState<null | "health" | "settings" | "xpguide" | "achievements" | "ranks" | "inbox" | "support" | "arena" | "faq" | "onboarding">(null);
   const rankArt = useRankArt();
   const [showUpgrade, setShowUpgrade] = useState<null | "plus" | "crew">(null);
   const [showBoostShop, setShowBoostShop] = useState(false);
@@ -3982,7 +3998,6 @@ function ProfilTab({
               { icon: "🪙", label: "Währungen-Guide", onClick: () => setOpenModal("xpguide") },
               { icon: "🎫", label: "Support",      onClick: () => setOpenModal("support") },
               { icon: "⚙️", label: "Einstellungen", onClick: () => setOpenModal("settings") },
-              { icon: "👤", label: "Account",      onClick: () => setOpenModal("account") },
             ].map((b, i) => (
               <button key={i} onClick={b.onClick} style={{
                 padding: "14px 10px", borderRadius: 12,
@@ -4154,56 +4169,6 @@ function ProfilTab({
               URL.revokeObjectURL(url);
             }}
           />
-        </Modal>
-      )}
-
-      {openModal === "account" && (
-        <Modal title="Account" subtitle="Stammdaten, Sicherheit & Datenverwaltung" icon="🔐" accent="#a855f7" onClose={() => setOpenModal(null)}>
-          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>🔐 STAMMDATEN</div>
-          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
-            <AccountRow label="📧 E-Mail-Adresse ändern" onClick={async () => {
-              const newEmail = prompt("Neue E-Mail-Adresse:");
-              if (!newEmail) return;
-              const { error } = await supabase.auth.updateUser({ email: newEmail });
-              if (error) appAlert("Fehler: " + error.message);
-              else appAlert("Bestätigungs-Mail an beide Adressen gesendet.");
-            }} />
-            <AccountRow label="🔑 Passwort ändern" onClick={async () => {
-              const newPw = prompt("Neues Passwort (min. 8 Zeichen):");
-              if (!newPw || newPw.length < 8) { if (newPw) appAlert("Mindestens 8 Zeichen."); return; }
-              const { error } = await supabase.auth.updateUser({ password: newPw });
-              if (error) appAlert("Fehler: " + error.message);
-              else appAlert(tMD("passwordChanged"));
-            }} last />
-          </div>
-
-          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>📦 DATEN & WERBUNG</div>
-          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
-            <AccountRow label="📥 Meine Daten exportieren (DSGVO)" onClick={() => {
-              const blob = new Blob([JSON.stringify({ profile: p, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url; a.download = `myarea365-daten-${Date.now()}.json`; a.click();
-              URL.revokeObjectURL(url);
-            }} />
-            <AccountRow label="🛡️ Werbe-Einwilligung verwalten" onClick={async () => {
-              const { openPrivacyOptions } = await import("@/components/ump-consent");
-              openPrivacyOptions();
-            }} last />
-          </div>
-
-          <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6, paddingLeft: 4 }}>🚪 SESSION</div>
-          <div style={{ background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", marginBottom: 12 }}>
-            <AccountRow label="🚪 Ausloggen" onClick={onLogout} danger />
-            <AccountRow label="⚠️ Konto löschen" onClick={async () => {
-              if (!(await appConfirm({ title: tMD("deleteAccountTitle"), message: tMD("deleteAccountMessage"), danger: true, confirmLabel: tMD("deleteAccountConfirm") }))) return;
-              appAlert("Account-Löschung per E-Mail an support@myarea365.de anfordern. (Automatisierter Flow folgt.)");
-            }} danger last />
-          </div>
-
-          <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
-            <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>{tMD("supportContact")}</a>
-          </div>
         </Modal>
       )}
 
@@ -6104,7 +6069,7 @@ function MissionsModal({ onClose }: { onClose: () => void }) {
       setMissions([]);
     }
   };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => deferIdle(() => void load()), []);
 
   const claim = async (assignmentId: string) => {
     setClaiming(assignmentId);
@@ -6878,396 +6843,6 @@ function StatBox({ emoji, value, label }: { emoji: string; value: string; label:
   );
 }
 
-function SettingRow({ label, checked, onChange, last }: { label: string; checked: boolean; onChange: (v: boolean) => void; last?: boolean }) {
-  return (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "center",
-      paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
-    }}>
-      <span style={{ color: "#FFF", fontSize: 15 }}>{label}</span>
-      <button
-        onClick={() => onChange(!checked)}
-        style={{
-          width: 44, height: 26, borderRadius: 13,
-          background: checked ? PRIMARY : "rgba(255, 255, 255, 0.1)",
-          border: "none", cursor: "pointer",
-          position: "relative", transition: "background 0.2s",
-        }}
-      >
-        <div style={{
-          position: "absolute", top: 3, left: checked ? 22 : 3,
-          width: 20, height: 20, borderRadius: 10,
-          background: "#FFF", transition: "left 0.2s",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-        }} />
-      </button>
-    </div>
-  );
-}
-
-function SettingSelect({ label, value, options, onChange, last }: { label: string; value: string; options: { id: string; label: string }[]; onChange: (v: string) => void; last?: boolean }) {
-  return (
-    <div style={{
-      display: "flex", justifyContent: "space-between", alignItems: "center",
-      paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
-    }}>
-      <span style={{ color: "#FFF", fontSize: 15 }}>{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          background: "rgba(255, 255, 255, 0.1)", color: "#FFF", border: "none",
-          padding: "6px 12px", borderRadius: 8, fontSize: 13,
-          cursor: "pointer",
-        }}
-      >
-        {options.map((o) => (
-          <option key={o.id} value={o.id} style={{ background: "#1A1D23", color: "#FFF" }}>{o.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function SettingsGroup({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 16px", borderRadius: 14,
-          background: "rgba(70, 82, 122, 0.55)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          color: "#FFF", fontSize: 13, fontWeight: 800, letterSpacing: 0.5,
-          cursor: "pointer", textAlign: "left",
-        }}
-      >
-        <span>{title}</span>
-        <span style={{ fontSize: 14, color: "#a8b4cf", transition: "transform 0.2s", display: "inline-block", transform: open ? "rotate(90deg)" : "rotate(0deg)" }}>›</span>
-      </button>
-      {open && (
-        <div style={{
-          background: "rgba(70, 82, 122, 0.35)", borderRadius: 14, overflow: "hidden",
-          border: "1px solid rgba(255, 255, 255, 0.08)", marginTop: 4,
-        }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SettingAction({ label, value, onClick, danger, last }: { label: string; value?: string; onClick: () => void; danger?: boolean; last?: boolean }) {
-  return (
-    <button onClick={onClick} style={{
-      width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-      paddingTop: 16, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-      background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-      borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
-      color: danger ? "#ef7169" : "#FFF",
-    }}>
-      <span style={{ fontSize: 15 }}>{label}</span>
-      <span style={{ fontSize: 13, color: "#a8b4cf" }}>{value ?? "›"}</span>
-    </button>
-  );
-}
-
-function useLocalPref<T extends string | boolean>(key: string, fallback: T): [T, (v: T) => void] {
-  const [v, setV] = useState<T>(fallback);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`pref:${key}`);
-      if (raw !== null) setV(JSON.parse(raw) as T);
-    } catch {}
-  }, [key]);
-  const set = (val: T) => {
-    setV(val);
-    // via prefs-Modul speichern (persistiert + löst Side-Effects aus)
-    import("@/lib/prefs").then(({ setPref }) => setPref(key as never, val));
-  };
-  return [v, set];
-}
-
-function AppSettingsContent({ p, updateSetting, onExportData, onLogout }: {
-  p: Profile | null;
-  updateSetting: (key: string, value: boolean | string) => Promise<void>;
-  onExportData: () => void;
-  onLogout: () => void;
-}) {
-  const tMD = useTranslations("MapDashboard");
-  // Benachrichtigungen
-  const [pushEnabled, setPushEnabled] = useLocalPref<boolean>("notif_push", true);
-  const [notifCrewChat, setNotifCrewChat] = useLocalPref<boolean>("notif_crew_chat", true);
-  const [notifCrewEvents, setNotifCrewEvents] = useLocalPref<boolean>("notif_crew_events", true);
-  const [notifDuels, setNotifDuels] = useLocalPref<boolean>("notif_duels", true);
-  const [notifAchievements, setNotifAchievements] = useLocalPref<boolean>("notif_achievements", true);
-  const [notifRankUp, setNotifRankUp] = useLocalPref<boolean>("notif_rank_up", true);
-  const [notifShopDeals, setNotifShopDeals] = useLocalPref<boolean>("notif_shop_deals", true);
-  const [notifStreakWarn, setNotifStreakWarn] = useLocalPref<boolean>("notif_streak_warn", true);
-  const [notifQuietMode, setNotifQuietMode] = useLocalPref<boolean>("notif_quiet_mode", true);
-  const [quietStart, setQuietStart] = useLocalPref<string>("notif_quiet_start", "22");
-  const [quietEnd, setQuietEnd] = useLocalPref<string>("notif_quiet_end", "7");
-
-  // E-Mail
-  const [emailWeekly, setEmailWeekly] = useLocalPref<boolean>("email_weekly", false);
-  const [emailMonthly, setEmailMonthly] = useLocalPref<boolean>("email_monthly", true);
-  const [emailNewsletter, setEmailNewsletter] = useLocalPref<boolean>("email_newsletter", false);
-  const [emailFlashDeals, setEmailFlashDeals] = useLocalPref<boolean>("email_flash_deals", false);
-
-  // Privatsphäre
-  const [leaderboardVisible, setLeaderboardVisible] = useLocalPref<boolean>("privacy_leaderboard", true);
-  const [liveLocationCrew, setLiveLocationCrew] = useLocalPref<boolean>("privacy_live_crew", true);
-  const [publicTerritories, setPublicTerritories] = useLocalPref<boolean>("privacy_territories", true);
-  const [publicRoutes, setPublicRoutes] = useLocalPref<boolean>("privacy_routes", false);
-  const [searchable, setSearchable] = useLocalPref<boolean>("privacy_searchable", true);
-  const [allowCrewInvites, setAllowCrewInvites] = useLocalPref<boolean>("privacy_crew_invites", true);
-  const [allowFriends, setAllowFriends] = useLocalPref<boolean>("privacy_friends", true);
-
-  // Tracking & Lauf
-  const [gpsAccuracy, setGpsAccuracy] = useLocalPref<string>("track_gps", "high");
-  const [snapToRoads, setSnapToRoads] = useLocalPref<boolean>("track_snap", true);
-  const [wakeLock, setWakeLock] = useLocalPref<boolean>("track_wakelock", true);
-  const [paceAnnounce, setPaceAnnounce] = useLocalPref<boolean>("track_pace_announce", false);
-  const [paceVoice, setPaceVoice] = useLocalPref<string>("track_voice", "female");
-  const [paceInterval, setPaceInterval] = useLocalPref<string>("track_pace_interval", "1");
-  const [autoStart, setAutoStart] = useLocalPref<boolean>("track_autostart", false);
-
-  // Darstellung
-  const [theme, setTheme] = useLocalPref<string>("display_theme", "dark");
-  const [mapStyle, setMapStyle] = useLocalPref<string>("display_mapstyle", "standard");
-  const [buildings3d, setBuildings3d] = useLocalPref<boolean>("display_3d", true);
-  const [reducedMotion, setReducedMotion] = useLocalPref<boolean>("display_reduced_motion", false);
-  const [animations, setAnimations] = useLocalPref<boolean>("display_animations", true);
-  const [fontSize, setFontSize] = useLocalPref<string>("display_font", "normal");
-  const [accentColor, setAccentColor] = useLocalPref<string>("display_accent", "teal");
-
-  // Sound & Haptik
-  const [musicDuringRun, setMusicDuringRun] = useLocalPref<boolean>("sound_music", false);
-  const [haptics, setHaptics] = useLocalPref<boolean>("sound_haptics", true);
-  const [achievementSound, setAchievementSound] = useLocalPref<boolean>("sound_achievement", true);
-
-  // Performance
-  const [dataMode, setDataMode] = useLocalPref<string>("perf_data", "full");
-  const [mapPreload, setMapPreload] = useLocalPref<boolean>("perf_preload", true);
-  const [backgroundSync, setBackgroundSync] = useLocalPref<boolean>("perf_bg_sync", true);
-  const [offlineMode, setOfflineMode] = useLocalPref<boolean>("perf_offline", false);
-
-  // Werbung
-  const [personalizedDeals, setPersonalizedDeals] = useLocalPref<boolean>("ads_personalized", true);
-  const [anonymousStats, setAnonymousStats] = useLocalPref<boolean>("ads_anon_stats", true);
-
-  // Beta
-  const [betaFeatures, setBetaFeatures] = useLocalPref<boolean>("app_beta", false);
-
-  return (
-    <>
-      <SettingsGroup title="🌐 SPRACHE & EINHEITEN">
-        <div style={{ padding: 16, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-          <LanguageSwitcher />
-          <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
-            Weitere Sprachen folgen: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …
-          </div>
-        </div>
-        <SettingSelect
-          label="📏 Einheiten"
-          value={p?.setting_units || "metric"}
-          options={UNITS.map(u => ({ id: u.id, label: u.label }))}
-          onChange={(v) => updateSetting("setting_units", v)}
-          last
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title="🔔 BENACHRICHTIGUNGEN (PUSH)">
-        <SettingRow label="Push aktivieren" checked={pushEnabled} onChange={async (v) => {
-          if (v) {
-            const { requestPushPermission } = await import("@/lib/prefs");
-            const ok = await requestPushPermission();
-            if (!ok) { appAlert(tMD("pushDeniedHint")); return; }
-          }
-          setPushEnabled(v);
-        }} />
-        <SettingRow label="💬 Crew-Chat" checked={notifCrewChat} onChange={setNotifCrewChat} />
-        <SettingRow label="📅 Crew-Events & Treffen" checked={notifCrewEvents} onChange={setNotifCrewEvents} />
-        <SettingRow label="⚔️ Rival-Duell gestartet" checked={notifDuels} onChange={setNotifDuels} />
-        <SettingRow label="🏆 Achievement freigeschaltet" checked={notifAchievements} onChange={setNotifAchievements} />
-        <SettingRow label="⭐ Neuer Rang erreicht" checked={notifRankUp} onChange={setNotifRankUp} />
-        <SettingRow label="🏪 Shop-Deal in der Nähe" checked={notifShopDeals} onChange={setNotifShopDeals} />
-        <SettingRow label="🔥 Streak läuft ab" checked={notifStreakWarn} onChange={setNotifStreakWarn} />
-        <SettingRow label="🌙 Ruhe-Modus (Nacht)" checked={notifQuietMode} onChange={setNotifQuietMode} />
-        <SettingSelect
-          label="⏰ Ruhe ab"
-          value={quietStart}
-          options={Array.from({ length: 24 }, (_, i) => ({ id: String(i), label: `${i}:00` }))}
-          onChange={setQuietStart}
-        />
-        <SettingSelect
-          label="⏰ Ruhe bis"
-          value={quietEnd}
-          options={Array.from({ length: 24 }, (_, i) => ({ id: String(i), label: `${i}:00` }))}
-          onChange={setQuietEnd}
-          last
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title="📧 E-MAIL-BENACHRICHTIGUNGEN">
-        <SettingRow label="📊 Wöchentlicher Report" checked={emailWeekly} onChange={setEmailWeekly} />
-        <SettingRow label="🏁 Monats-Statistik" checked={emailMonthly} onChange={setEmailMonthly} />
-        <SettingRow label="📬 Kiez-Newsletter (monatlich)" checked={emailNewsletter} onChange={setEmailNewsletter} />
-        <SettingRow label="⚡ Flash-Deals von Shops" checked={emailFlashDeals} onChange={setEmailFlashDeals} last />
-      </SettingsGroup>
-
-      <SettingsGroup title="🔒 PRIVATSPHÄRE">
-        <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
-        <SettingRow label="🏆 Auf Leaderboard erscheinen" checked={leaderboardVisible} onChange={setLeaderboardVisible} />
-        <SettingRow label="📍 Live-Position in Crew teilen" checked={liveLocationCrew} onChange={setLiveLocationCrew} />
-        <SettingRow label="🗺️ Gebiete öffentlich" checked={publicTerritories} onChange={setPublicTerritories} />
-        <SettingRow label="🏃 Lauf-Routen öffentlich" checked={publicRoutes} onChange={setPublicRoutes} />
-        <SettingRow label="🔎 Per Runner-Name findbar" checked={searchable} onChange={setSearchable} />
-        <SettingRow label="👥 Crew-Einladungen zulassen" checked={allowCrewInvites} onChange={setAllowCrewInvites} />
-        <SettingRow label="🤝 Freundschaftsanfragen" checked={allowFriends} onChange={setAllowFriends} last />
-      </SettingsGroup>
-
-      <SettingsGroup title="🏃 TRACKING & LAUF">
-        <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
-        <SettingRow label="🔆 Bildschirm-Wachhalten (Wake-Lock)" checked={wakeLock} onChange={setWakeLock} />
-        <SettingRow label="🧲 Snap-to-Roads" checked={snapToRoads} onChange={setSnapToRoads} />
-        <SettingRow label="🎬 Auto-Start bei Bewegung" checked={autoStart} onChange={setAutoStart} />
-        <SettingSelect
-          label="📡 GPS-Genauigkeit"
-          value={gpsAccuracy}
-          options={[
-            { id: "high", label: "Hoch (Akku ↓)" },
-            { id: "balanced", label: "Ausgewogen" },
-            { id: "low", label: "Spar-Modus" },
-          ]}
-          onChange={setGpsAccuracy}
-        />
-        <SettingRow label="🔊 Pace-Ansage (pro km)" checked={paceAnnounce} onChange={setPaceAnnounce} />
-        <SettingSelect
-          label="🗣️ Ansage-Stimme"
-          value={paceVoice}
-          options={[
-            { id: "female", label: "Weiblich" },
-            { id: "male", label: "Männlich" },
-            { id: "neutral", label: "Neutral" },
-          ]}
-          onChange={setPaceVoice}
-        />
-        <SettingSelect
-          label="⏱️ Ansage-Intervall"
-          value={paceInterval}
-          options={[
-            { id: "0.5", label: "Alle 500 m" },
-            { id: "1", label: "Jeden km" },
-            { id: "2", label: "Alle 2 km" },
-            { id: "5", label: "Alle 5 km" },
-          ]}
-          onChange={setPaceInterval}
-          last
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title="🎨 DARSTELLUNG">
-        <SettingSelect
-          label="🎭 Theme"
-          value={theme}
-          options={[
-            { id: "dark", label: "Dunkel" },
-            { id: "light", label: "Hell" },
-            { id: "system", label: "System folgen" },
-          ]}
-          onChange={setTheme}
-        />
-        <SettingSelect
-          label="🗺️ Map-Style"
-          value={mapStyle}
-          options={[
-            { id: "standard", label: "Standard 3D" },
-            { id: "satellite", label: "Satellit" },
-            { id: "neon", label: "Neon Nacht" },
-            { id: "minimal", label: "Minimal" },
-          ]}
-          onChange={setMapStyle}
-        />
-        <SettingSelect
-          label="🎨 Akzent-Farbe"
-          value={accentColor}
-          options={[
-            { id: "teal", label: "Teal (Standard)" },
-            { id: "pink", label: "Pink" },
-            { id: "gold", label: "Gold" },
-            { id: "violet", label: "Violett" },
-          ]}
-          onChange={setAccentColor}
-        />
-        <SettingRow label="🏢 3D-Gebäude anzeigen" checked={buildings3d} onChange={setBuildings3d} />
-        <SettingRow label="✨ Animationen" checked={animations} onChange={setAnimations} />
-        <SettingRow label="♿ Bewegungen reduzieren" checked={reducedMotion} onChange={setReducedMotion} />
-        <SettingSelect
-          label="🔠 Schriftgröße"
-          value={fontSize}
-          options={[
-            { id: "small", label: "Klein" },
-            { id: "normal", label: "Normal" },
-            { id: "large", label: "Groß" },
-            { id: "xlarge", label: "Sehr groß" },
-          ]}
-          onChange={setFontSize}
-          last
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title="🔊 SOUND & HAPTIK">
-        <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
-        <SettingRow label="🏆 Achievement-Sound" checked={achievementSound} onChange={setAchievementSound} />
-        <SettingRow label="🎵 Musik während Lauf" checked={musicDuringRun} onChange={setMusicDuringRun} />
-        <SettingRow label="📳 Haptik / Vibration" checked={haptics} onChange={setHaptics} last />
-      </SettingsGroup>
-
-      <SettingsGroup title="⚡ PERFORMANCE & AKKU">
-        <SettingSelect
-          label="📶 Daten-Modus"
-          value={dataMode}
-          options={[
-            { id: "full", label: "Voll (Standard)" },
-            { id: "saver", label: "Spar-Modus" },
-            { id: "wifi", label: "Nur WLAN" },
-          ]}
-          onChange={setDataMode}
-        />
-        <SettingRow label="🗺️ Map-Tiles vorladen" checked={mapPreload} onChange={setMapPreload} />
-        <SettingRow label="🔄 Hintergrund-Sync" checked={backgroundSync} onChange={setBackgroundSync} />
-        <SettingRow label="📴 Offline-Modus" checked={offlineMode} onChange={setOfflineMode} last />
-      </SettingsGroup>
-
-      <SettingsGroup title="💰 WERBUNG & PARTNER">
-        <SettingRow label="🎯 Personalisierte Shop-Vorschläge" checked={personalizedDeals} onChange={setPersonalizedDeals} />
-        <SettingRow label="📊 Anonyme Nutzungsstatistik" checked={anonymousStats} onChange={setAnonymousStats} last />
-      </SettingsGroup>
-
-      <SettingsGroup title="🧪 BETA">
-        <SettingRow label="🚀 Beta-Features aktivieren" checked={betaFeatures} onChange={setBetaFeatures} last />
-      </SettingsGroup>
-
-      <SettingsGroup title="🧹 CACHE">
-        <SettingAction label={tMD("cacheClearedLabel")} value={tMD("cacheSize")} onClick={() => {
-          try { Object.keys(localStorage).filter(k => k.startsWith("cache:")).forEach(k => localStorage.removeItem(k)); } catch {}
-          appAlert(tMD("cacheCleared"));
-        }} last />
-      </SettingsGroup>
-
-      <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, padding: "8px 0 4px", lineHeight: 1.6 }}>
-        Für E-Mail-Änderung, Passwort, Daten-Export, Logout → <b>Account</b><br />
-        MyArea365 · v0.9.0 (Beta) · <a href="/datenschutz" style={{ color: "#22D1C3" }}>Datenschutz</a> · <a href="/agb" style={{ color: "#22D1C3" }}>AGB</a>
-      </div>
-    </>
-  );
-}
 
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
@@ -7302,525 +6877,6 @@ function ModalTriggerButton({ icon, label, onClick }: { icon: string; label: str
   );
 }
 
-function AccountRow({ label, onClick, danger, last }: { label: string; onClick: () => void; danger?: boolean; last?: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "16px 20px",
-        background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-        borderBottom: last ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
-      }}
-    >
-      <span style={{
-        color: danger ? ACCENT : "#FFF", fontSize: 15, fontWeight: danger ? "bold" : 500,
-      }}>{label}</span>
-      {!danger && <span style={{ color: MUTED }}>›</span>}
-    </button>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
- * HEALTH DASHBOARD — vollständiges Fitness-Statistik-Modal
- * ═══════════════════════════════════════════════════════ */
-
-type HealthPeriod = "week" | "month" | "year" | "all";
-
-function HealthDashboard({ profile: p, runs, territoryCount, teamColor, achievements }: {
-  profile: Profile | null;
-  runs: Territory[];
-  territoryCount: number;
-  teamColor: string;
-  achievements: Array<{ id: string; name: string; icon: string; unlocked: boolean; pct: number; current: number; target: number; unit: string; xp: number; displayFmt: (v: number) => string }>;
-}) {
-  const [period, setPeriod] = useState<HealthPeriod>("month");
-  const [weeklyGoalKm, setWeeklyGoalKm] = useState<number>(() => {
-    if (typeof window === "undefined") return 10;
-    return Number(localStorage.getItem("health_weekly_goal_km") || 10);
-  });
-
-  const now = new Date();
-  const msPerDay = 24 * 60 * 60 * 1000;
-
-  // Perioden-Grenzen
-  const periodDays = period === "week" ? 7 : period === "month" ? 30 : period === "year" ? 365 : 365 * 10;
-  const periodStart = new Date(now.getTime() - periodDays * msPerDay);
-  const prevPeriodStart = new Date(now.getTime() - 2 * periodDays * msPerDay);
-
-  const inPeriod = runs.filter((r) => new Date(r.created_at) >= periodStart);
-  const inPrevPeriod = runs.filter((r) => {
-    const d = new Date(r.created_at);
-    return d >= prevPeriodStart && d < periodStart;
-  });
-
-  const sumKm = (arr: Territory[]) => arr.reduce((s, r) => s + r.distance_m, 0) / 1000;
-  const sumSec = (arr: Territory[]) => arr.reduce((s, r) => s + r.duration_s, 0);
-
-  const kmNow = sumKm(inPeriod);
-  const kmPrev = sumKm(inPrevPeriod);
-  const walksNow = inPeriod.length;
-  const walksPrev = inPrevPeriod.length;
-
-  // Kcal-Schätzung: ~70 kcal pro km (moderates Joggen, 70kg)
-  const kcalNow = kmNow * 70;
-  const kcalPrev = kmPrev * 70;
-
-  const secNow = sumSec(inPeriod);
-  const secPrev = sumSec(inPrevPeriod);
-
-  const uniqueDaysNow = new Set(inPeriod.map((r) => r.created_at.slice(0, 10))).size;
-
-  // Lauf-Stats
-  const avgDistance = walksNow > 0 ? kmNow / walksNow : 0;
-  const avgDurationMin = walksNow > 0 ? secNow / walksNow / 60 : 0;
-  const avgPaceMinPerKm = kmNow > 0 ? (secNow / 60) / kmNow : 0;
-  const longest = inPeriod.reduce((max, r) => r.distance_m > max ? r.distance_m : max, 0) / 1000;
-  const shortest = inPeriod.length > 0 ? inPeriod.reduce((min, r) => r.distance_m < min ? r.distance_m : min, Infinity) / 1000 : 0;
-  const fastestPace = inPeriod.reduce((best, r) => {
-    if (r.distance_m < 500) return best; // Nur relevante Distanzen
-    const pace = (r.duration_s / 60) / (r.distance_m / 1000);
-    return pace < best ? pace : best;
-  }, Infinity);
-
-  // Tageszeit-Verteilung (4 Slots)
-  const timeSlots = { morgens: 0, mittags: 0, abends: 0, nachts: 0 };
-  inPeriod.forEach((r) => {
-    const h = new Date(r.created_at).getHours();
-    if (h >= 5 && h < 11) timeSlots.morgens++;
-    else if (h >= 11 && h < 17) timeSlots.mittags++;
-    else if (h >= 17 && h < 22) timeSlots.abends++;
-    else timeSlots.nachts++;
-  });
-
-  // Wochentag-Verteilung
-  const weekdayData = [0, 0, 0, 0, 0, 0, 0]; // Mo=0
-  inPeriod.forEach((r) => {
-    const wd = (new Date(r.created_at).getDay() + 6) % 7;
-    weekdayData[wd] += r.distance_m / 1000;
-  });
-
-  // Chart-Daten: Balken über Zeitraum
-  const chartBuckets = period === "week" ? 7 : period === "month" ? 30 : 12;
-  const bucketKm: number[] = new Array(chartBuckets).fill(0);
-  const bucketLabels: string[] = [];
-  if (period === "year") {
-    // 12 Monate
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      bucketLabels.push(d.toLocaleDateString("de-DE", { month: "short" }));
-    }
-    inPeriod.forEach((r) => {
-      const d = new Date(r.created_at);
-      const mDiff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-      const idx = 11 - mDiff;
-      if (idx >= 0 && idx < 12) bucketKm[idx] += r.distance_m / 1000;
-    });
-  } else {
-    // Tages-Buckets
-    for (let i = chartBuckets - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * msPerDay);
-      bucketLabels.push(d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }));
-    }
-    inPeriod.forEach((r) => {
-      const d = new Date(r.created_at);
-      const daysAgo = Math.floor((now.getTime() - d.getTime()) / msPerDay);
-      const idx = chartBuckets - 1 - daysAgo;
-      if (idx >= 0 && idx < chartBuckets) bucketKm[idx] += r.distance_m / 1000;
-    });
-  }
-  const maxBucket = Math.max(1, ...bucketKm);
-
-  // Weekly-Goal Progress (letzte 7 Tage)
-  const last7Days = runs.filter((r) => new Date(r.created_at) >= new Date(now.getTime() - 7 * msPerDay));
-  const weeklyKm = sumKm(last7Days);
-  const weeklyPct = Math.min(100, (weeklyKm / weeklyGoalKm) * 100);
-
-  // Lifetime Total für Äquivalente
-  const lifetimeKm = (p?.total_distance_m || 0) / 1000;
-  const lifetimeKcal = p?.total_calories || Math.round(lifetimeKm * 70);
-  const estimatedSteps = Math.round(lifetimeKm * 1300);
-  const savedCo2Kg = (lifetimeKm * 120) / 1000; // 120g/km vs Auto
-
-  // Achievements: nächste 3 die am nächsten am Unlock sind
-  const nextMilestones = achievements
-    .filter((a) => !a.unlocked)
-    .sort((a, b) => b.pct - a.pct)
-    .slice(0, 3);
-
-  const deltaPct = (n: number, prev: number) => {
-    if (prev === 0 && n === 0) return 0;
-    if (prev === 0) return 100;
-    return Math.round(((n - prev) / prev) * 100);
-  };
-
-  const periodLabel: Record<HealthPeriod, string> = {
-    week: "7 Tage",
-    month: "30 Tage",
-    year: "12 Monate",
-    all: "Gesamt",
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-      {/* ═══ Period-Tabs ═══ */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6,
-        background: "rgba(70, 82, 122, 0.45)", borderRadius: 14, padding: 4,
-      }}>
-        {(["week", "month", "year", "all"] as HealthPeriod[]).map((pp) => (
-          <button
-            key={pp}
-            onClick={() => setPeriod(pp)}
-            style={{
-              padding: "8px 4px", borderRadius: 11, border: "none", cursor: "pointer",
-              background: period === pp
-                ? `linear-gradient(135deg, ${PRIMARY}, ${teamColor})`
-                : "transparent",
-              color: period === pp ? BG_DEEP : TEXT_SOFT,
-              fontSize: 12, fontWeight: 800,
-              boxShadow: period === pp ? `0 4px 14px ${PRIMARY}50` : "none",
-              transition: "all 0.15s",
-            }}
-          >
-            {periodLabel[pp]}
-          </button>
-        ))}
-      </div>
-
-      {/* ═══ Haupt-Kennzahlen mit Delta ═══ */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <HealthHeroStat emoji="📏" value={kmNow.toFixed(1)} unit="km" label="Gelaufen" delta={deltaPct(kmNow, kmPrev)} color={PRIMARY} />
-        <HealthHeroStat emoji="🏃" value={walksNow.toString()} unit="" label="Läufe" delta={deltaPct(walksNow, walksPrev)} color="#5ddaf0" />
-        <HealthHeroStat emoji="🔥" value={Math.round(kcalNow).toLocaleString()} unit="kcal" label="Verbrannt" delta={deltaPct(kcalNow, kcalPrev)} color="#FF6B4A" />
-        <HealthHeroStat emoji="📅" value={uniqueDaysNow.toString()} unit={`/ ${periodDays}`} label="Aktive Tage" delta={0} color="#FFD700" hideDelta />
-      </div>
-
-      {/* ═══ Chart: km-Verlauf ═══ */}
-      <HealthSection title="KM-VERLAUF" emoji="📈">
-        <div style={{
-          display: "flex", alignItems: "flex-end", gap: 3,
-          height: 150, padding: "20px 4px 0", position: "relative",
-        }}>
-          {bucketKm.map((km, i) => {
-            const hPct = Math.max(2, (km / maxBucket) * 100);
-            const showLabel = km > 0;
-            return (
-              <div
-                key={i}
-                title={`${bucketLabels[i]}: ${km.toFixed(2)} km`}
-                style={{
-                  flex: 1, position: "relative",
-                  height: `${hPct}%`,
-                  background: km > 0
-                    ? `linear-gradient(180deg, ${teamColor}, ${teamColor}66)`
-                    : "rgba(255,255,255,0.06)",
-                  borderRadius: 3,
-                  boxShadow: km > 0 ? `0 0 6px ${teamColor}aa` : "none",
-                  minHeight: 2,
-                  transition: "height 0.5s ease-out",
-                }}
-              >
-                {showLabel && (
-                  <span style={{
-                    position: "absolute", top: -15, left: "50%", transform: "translateX(-50%)",
-                    fontSize: 9, fontWeight: 900, color: teamColor,
-                    whiteSpace: "nowrap", textShadow: "0 1px 2px rgba(0,0,0,0.6)",
-                  }}>
-                    {km.toFixed(km < 10 ? 1 : 0)}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          marginTop: 6, fontSize: 9, color: MUTED,
-        }}>
-          <span>{bucketLabels[0]}</span>
-          <span>Heute</span>
-        </div>
-      </HealthSection>
-
-      {/* ═══ Wöchentliches Ziel ═══ */}
-      <HealthSection title="WÖCHENTLICHES ZIEL" emoji="🎯" action={
-        <div style={{ display: "flex", gap: 4 }}>
-          {[5, 10, 20, 50].map((g) => (
-            <button
-              key={g}
-              onClick={() => {
-                setWeeklyGoalKm(g);
-                if (typeof window !== "undefined") localStorage.setItem("health_weekly_goal_km", String(g));
-              }}
-              style={{
-                padding: "3px 8px", borderRadius: 8,
-                background: weeklyGoalKm === g ? `${PRIMARY}33` : "rgba(255,255,255,0.05)",
-                border: weeklyGoalKm === g ? `1px solid ${PRIMARY}` : "1px solid rgba(255,255,255,0.1)",
-                color: weeklyGoalKm === g ? PRIMARY : MUTED,
-                fontSize: 10, fontWeight: 800, cursor: "pointer",
-              }}
-            >
-              {g}km
-            </button>
-          ))}
-        </div>
-      }>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <span style={{ color: "#FFF", fontSize: 22, fontWeight: 900 }}>
-            {weeklyKm.toFixed(1)} / {weeklyGoalKm} km
-          </span>
-          <span style={{ color: weeklyPct >= 100 ? "#4ade80" : PRIMARY, fontSize: 15, fontWeight: 800, alignSelf: "center" }}>
-            {weeklyPct >= 100 ? "✓ Geschafft!" : `${Math.round(weeklyPct)}%`}
-          </span>
-        </div>
-        <div style={{ height: 10, borderRadius: 5, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-          <div style={{
-            height: "100%", width: `${weeklyPct}%`,
-            background: weeklyPct >= 100
-              ? "linear-gradient(90deg, #4ade80, #22D1C3)"
-              : `linear-gradient(90deg, ${PRIMARY}, ${ACCENT})`,
-            borderRadius: 5,
-            boxShadow: `0 0 10px ${PRIMARY}80`,
-            transition: "width 0.8s ease-out",
-          }} />
-        </div>
-      </HealthSection>
-
-      {/* ═══ Lauf-Statistiken ═══ */}
-      <HealthSection title="LAUF-STATISTIKEN" emoji="🏃">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          <MiniStat label="Ø Distanz" value={avgDistance.toFixed(1)} unit="km" />
-          <MiniStat label="Ø Dauer" value={avgDurationMin.toFixed(0)} unit="min" />
-          <MiniStat label="Ø Pace" value={avgPaceMinPerKm > 0 ? avgPaceMinPerKm.toFixed(1) : "—"} unit="min/km" />
-          <MiniStat label="Längster" value={longest.toFixed(1)} unit="km" />
-          <MiniStat label="Kürzester" value={shortest > 0 ? shortest.toFixed(1) : "—"} unit="km" />
-          <MiniStat label="Schnellste" value={isFinite(fastestPace) ? fastestPace.toFixed(1) : "—"} unit="min/km" />
-        </div>
-      </HealthSection>
-
-      {/* ═══ Wochentag-Verteilung ═══ */}
-      <HealthSection title="WANN LÄUFST DU?" emoji="📆">
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100, marginBottom: 6 }}>
-          {weekdayData.map((km, i) => {
-            const max = Math.max(0.1, ...weekdayData);
-            return (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div style={{ fontSize: 9, color: MUTED, fontWeight: 700 }}>{km.toFixed(1)}</div>
-                <div style={{
-                  width: "100%", height: `${Math.max(4, (km / max) * 100)}%`, minHeight: 4,
-                  background: km > 0
-                    ? `linear-gradient(180deg, ${teamColor}, ${teamColor}55)`
-                    : "rgba(255,255,255,0.05)",
-                  borderRadius: 4,
-                  boxShadow: km > 0 ? `0 0 6px ${teamColor}66` : "none",
-                }} />
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
-            <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 10, color: MUTED, fontWeight: 700 }}>{d}</div>
-          ))}
-        </div>
-      </HealthSection>
-
-      {/* ═══ Tageszeit-Verteilung ═══ */}
-      <HealthSection title="TAGESZEIT" emoji="🌅">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
-          <TimeSlot icon="🌅" label="Morgens" count={timeSlots.morgens} total={walksNow} color="#FFD700" />
-          <TimeSlot icon="☀️" label="Mittags" count={timeSlots.mittags} total={walksNow} color="#FF6B4A" />
-          <TimeSlot icon="🌆" label="Abends" count={timeSlots.abends} total={walksNow} color="#a855f7" />
-          <TimeSlot icon="🌙" label="Nachts" count={timeSlots.nachts} total={walksNow} color="#5ddaf0" />
-        </div>
-      </HealthSection>
-
-      {/* ═══ Kalorien & Äquivalente ═══ */}
-      <HealthSection title="KALORIEN-ÄQUIVALENTE" emoji="🍕" subtitle={`Lifetime: ${lifetimeKcal.toLocaleString()} kcal`}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <Equivalent icon="🍕" count={(lifetimeKcal / 285).toFixed(1)} label="Pizza-Stücke" />
-          <Equivalent icon="🍌" count={Math.round(lifetimeKcal / 105).toString()} label="Bananen" />
-          <Equivalent icon="🍫" count={Math.round(lifetimeKcal / 235).toString()} label="Schokoriegel" />
-          <Equivalent icon="🥨" count={Math.round(lifetimeKcal / 340).toString()} label="Brezeln" />
-        </div>
-      </HealthSection>
-
-      {/* ═══ Geografie & Umwelt ═══ */}
-      <HealthSection title="GEOGRAFIE & UMWELT" emoji="🌍">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <MiniStat label="Gebiete" value={territoryCount.toString()} unit="" big />
-          <MiniStat label="Einzigartige Straßen" value={new Set(runs.map((r) => r.street_name).filter(Boolean)).size.toString()} unit="" big />
-          <MiniStat label="Geschätzte Schritte" value={estimatedSteps.toLocaleString()} unit="" big />
-          <MiniStat label="CO₂-Ersparnis" value={savedCo2Kg.toFixed(1)} unit="kg" big />
-        </div>
-        <div style={{
-          marginTop: 10, padding: "10px 12px", borderRadius: 12,
-          background: "rgba(34, 209, 195, 0.08)",
-          border: "1px solid rgba(34, 209, 195, 0.2)",
-          fontSize: 11, color: TEXT_SOFT, lineHeight: 1.5,
-        }}>
-          💚 Du hast {savedCo2Kg.toFixed(1)} kg CO₂ eingespart, indem du nicht Auto gefahren bist. Das entspricht ca. {(savedCo2Kg / 0.12).toFixed(0)} km nicht-gefahrener Strecke im Schnitt-PKW.
-        </div>
-      </HealthSection>
-
-      {/* ═══ Nächste Meilensteine ═══ */}
-      {nextMilestones.length > 0 && (
-        <HealthSection title="NÄCHSTE MEILENSTEINE" emoji="🎖️">
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {nextMilestones.map((m) => (
-              <div key={m.id} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 12px", borderRadius: 12,
-                background: "rgba(70, 82, 122, 0.45)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}>
-                <span style={{ fontSize: 22 }}>{m.icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ color: "#FFF", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.name}</span>
-                    <span style={{ color: PRIMARY, fontSize: 11, fontWeight: 800 }}>
-                      {m.displayFmt(m.current)} / {m.displayFmt(m.target)}{m.unit ? ` ${m.unit}` : ""}
-                    </span>
-                  </div>
-                  <div style={{ marginTop: 4, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", width: `${m.pct}%`,
-                      background: `linear-gradient(90deg, ${PRIMARY}, #FFD700)`,
-                      borderRadius: 3, boxShadow: `0 0 6px ${PRIMARY}88`,
-                    }} />
-                  </div>
-                </div>
-                <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>+{m.xp.toLocaleString()} 🪙</span>
-              </div>
-            ))}
-          </div>
-        </HealthSection>
-      )}
-
-      {/* ═══ Medizinischer Disclaimer ═══ */}
-      <div style={{
-        padding: "10px 12px", borderRadius: 12,
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        fontSize: 10.5, color: MUTED, lineHeight: 1.5, fontStyle: "italic",
-      }}>
-        ℹ️ Kalorien- und Schritt-Angaben sind Schätzwerte auf Basis deiner gelaufenen Distanz (~70 kcal/km, ~1.300 Schritte/km). Für medizinisch relevante Daten nutze zertifizierte Geräte.
-      </div>
-    </div>
-  );
-}
-
-function HealthHeroStat({ emoji, value, unit, label, delta, color, hideDelta }: {
-  emoji: string; value: string; unit: string; label: string; delta: number; color: string; hideDelta?: boolean;
-}) {
-  const deltaColor = delta > 0 ? "#4ade80" : delta < 0 ? "#FF6B4A" : MUTED;
-  return (
-    <div style={{
-      background: `linear-gradient(135deg, ${color}15 0%, rgba(70, 82, 122, 0.5) 70%)`,
-      padding: 14, borderRadius: 14,
-      border: `1px solid ${color}44`,
-      boxShadow: `0 0 14px ${color}22`,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ fontSize: 22 }}>{emoji}</span>
-        {!hideDelta && delta !== 0 && (
-          <span style={{
-            fontSize: 10, fontWeight: 800, color: deltaColor,
-            padding: "2px 6px", borderRadius: 8,
-            background: `${deltaColor}18`, border: `1px solid ${deltaColor}55`,
-          }}>
-            {delta > 0 ? "↑" : "↓"} {Math.abs(delta)}%
-          </span>
-        )}
-      </div>
-      <div style={{ display: "baseline", gap: 4 }}>
-        <span style={{ fontSize: 26, fontWeight: 900, color: "#FFF" }}>{value}</span>
-        {unit && <span style={{ fontSize: 12, color: MUTED, fontWeight: 700, marginLeft: 4 }}>{unit}</span>}
-      </div>
-      <div style={{ fontSize: 11, color: MUTED, marginTop: 3, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
-    </div>
-  );
-}
-
-function HealthSection({ title, emoji, subtitle, action, children }: {
-  title: string; emoji?: string; subtitle?: string;
-  action?: React.ReactNode; children: React.ReactNode;
-}) {
-  return (
-    <div style={{
-      background: "rgba(70, 82, 122, 0.38)",
-      borderRadius: 14, padding: 14,
-      border: "1px solid rgba(255,255,255,0.08)",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <div>
-          <div style={{ fontSize: 11, color: PRIMARY, fontWeight: 800, letterSpacing: 1 }}>
-            {emoji && <span style={{ marginRight: 6 }}>{emoji}</span>}
-            {title}
-          </div>
-          {subtitle && <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>{subtitle}</div>}
-        </div>
-        {action}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function MiniStat({ label, value, unit, big }: { label: string; value: string; unit: string; big?: boolean }) {
-  return (
-    <div style={{
-      background: "rgba(255,255,255,0.04)",
-      padding: big ? "10px 12px" : "8px 10px",
-      borderRadius: 10,
-      border: "1px solid rgba(255,255,255,0.06)",
-    }}>
-      <div style={{ fontSize: 10, color: MUTED, fontWeight: 600, marginBottom: 3 }}>{label}</div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-        <span style={{ fontSize: big ? 18 : 15, fontWeight: 900, color: "#FFF" }}>{value}</span>
-        {unit && <span style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}>{unit}</span>}
-      </div>
-    </div>
-  );
-}
-
-function TimeSlot({ icon, label, count, total, color }: {
-  icon: string; label: string; count: number; total: number; color: string;
-}) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
-  return (
-    <div style={{
-      padding: 10, borderRadius: 12,
-      background: count > 0 ? `${color}15` : "rgba(255,255,255,0.04)",
-      border: count > 0 ? `1px solid ${color}55` : "1px solid rgba(255,255,255,0.06)",
-      textAlign: "center",
-    }}>
-      <div style={{ fontSize: 20, marginBottom: 3 }}>{icon}</div>
-      <div style={{ fontSize: 16, fontWeight: 900, color: count > 0 ? color : MUTED }}>{count}</div>
-      <div style={{ fontSize: 9, color: MUTED, marginTop: 2, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 9, color: count > 0 ? color : MUTED, fontWeight: 700, marginTop: 2 }}>{Math.round(pct)}%</div>
-    </div>
-  );
-}
-
-function Equivalent({ icon, count, label }: { icon: string; count: string; label: string }) {
-  return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: "10px 12px", borderRadius: 12,
-      background: "rgba(255,255,255,0.04)",
-      border: "1px solid rgba(255,255,255,0.06)",
-    }}>
-      <span style={{ fontSize: 24 }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: "#FFD700" }}>{count}</div>
-        <div style={{ fontSize: 10, color: MUTED, fontWeight: 600 }}>{label}</div>
-      </div>
-    </div>
-  );
-}
 
 function XpGuideSection({ title, subtitle, defaultOpen = false, children }: {
   title: string; subtitle?: string; defaultOpen?: boolean; children: React.ReactNode;
@@ -11500,6 +10556,24 @@ function fmtRelTime(iso: string, t: CrewT): string {
 /* ═══════════════════════════════════════════════════════
  * RANKING TAB (1:1 alte App)
  * ═══════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════
+ * Generischer Vollbild-Map-Modal-Wrapper
+ * Wird benutzt für Shops/Deals/Inbox/Ranking — Tabs als Modals.
+ * ═══════════════════════════════════════════════════════ */
+function FullscreenMapModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div onClick={onClose} className="fixed inset-0 z-[9100] bg-black/85 backdrop-blur-md flex items-stretch justify-center sm:items-center sm:p-4">
+      <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-3xl sm:rounded-2xl bg-[#0F1115] sm:border sm:border-white/10 shadow-2xl flex flex-col max-h-[100vh] sm:max-h-[92vh] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 bg-[#0F1115] z-10">
+          <div className="text-[11px] font-black tracking-widest text-[#FFD700]">{title}</div>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-black/40 text-white text-xl leading-none">×</button>
+        </div>
+        <div className="flex-1 overflow-y-auto">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════
  * SHOPS TAB (Lokale Geschäfte – Kiez-Deals)

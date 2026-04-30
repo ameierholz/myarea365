@@ -53,9 +53,14 @@ const CLASS_LABEL: Record<string, string> = {
 export function AttackBaseModal({
   defenderUserId,
   onClose,
+  anchorX,
+  anchorY,
 }: {
   defenderUserId: string;
   onClose: () => void;
+  /** Screen-Position des angeklickten Pins. Optional — fallback Viewport-Mitte. */
+  anchorX?: number;
+  anchorY?: number;
 }) {
   const [troops, setTroops] = useState<Troop[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -78,6 +83,13 @@ export function AttackBaseModal({
   // March-Caps (was du PRO Angriff schicken kannst, nicht was du besitzt)
   const [marchCaps, setMarchCaps] = useState<{ march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number } | null>(null);
   const [activeMarches, setActiveMarches] = useState<number>(0);
+
+  // ESC schließt das Popup
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -259,11 +271,32 @@ export function AttackBaseModal({
 
   if (loading) return null;
 
+  // Popup-Position: rechts vom Pin, mit Viewport-Clamping
+  const POPUP_W = 360;
+  const POPUP_H_EST = 560;
+  const PAD = 12;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 768;
+  const ax = anchorX ?? vw / 2;
+  const ay = anchorY ?? vh / 2;
+  let left = ax + 24;
+  if (left + POPUP_W + PAD > vw) left = ax - POPUP_W - 24;
+  if (left < PAD) left = PAD;
+  let top = ay - POPUP_H_EST / 2;
+  if (top + POPUP_H_EST + PAD > vh) top = vh - POPUP_H_EST - PAD;
+  if (top < PAD) top = PAD;
+  const maxH = vh - top - PAD;
+
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[9000] bg-black/85 backdrop-blur-md flex items-center justify-center p-3">
+    <div onClick={onClose} className="fixed inset-0 z-[9000]" style={{ background: "transparent" }}>
       <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
-        style={{ background: "linear-gradient(180deg, #1A1D23 0%, #0F1115 100%)" }}>
+        className="absolute rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          left, top, width: POPUP_W, maxHeight: maxH,
+          background: "linear-gradient(180deg, #1A1D23 0%, #0F1115 100%)",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.55)",
+          border: "1px solid rgba(255,45,120,0.4)",
+        }}>
 
         {mode === "info" ? (
           <InfoCard
@@ -554,10 +587,10 @@ function RallyPicker({
                 }`}>
                 <div className="flex-1 w-full flex items-center justify-center">
                   {g.video_url ? (
-                    <video src={g.video_url} autoPlay loop muted playsInline className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
+                    <video src={g.video_url} autoPlay loop muted playsInline className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
                   ) : g.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={g.image_url} alt={g.name} className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-green)" }} />
+                    <img src={g.image_url} alt={g.name} className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
                   ) : (<span className="text-xl">🛡</span>)}
                 </div>
                 <span className="text-[9px] text-white truncate w-full px-1 text-center">{g.name}</span>

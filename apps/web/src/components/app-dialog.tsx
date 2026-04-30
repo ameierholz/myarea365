@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createPortal } from "react-dom";
 
@@ -45,15 +45,44 @@ export function AppDialogProvider() {
   }, []);
 
   const current = queue[0];
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descId = useId();
 
+  // Focus-Management: Modal bekommt Focus, Original-Focus wird nach Close zurückgesetzt.
   useEffect(() => {
     if (!current) return;
+    previouslyFocused.current = (document.activeElement as HTMLElement) ?? null;
+    const node = dialogRef.current;
+    // Body-Scroll lock
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // Initial-Focus: erstes fokussierbares Element im Dialog (autoFocus auf Confirm-Button)
+    const focusable = node?.querySelectorAll<HTMLElement>(
+      'button, [href], input, [tabindex]:not([tabindex="-1"])'
+    );
+    focusable?.[focusable.length - 1]?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") resolve(false);
-      else if (e.key === "Enter") resolve(true);
+      if (e.key === "Escape") { e.preventDefault(); resolve(false); return; }
+      if (e.key === "Enter" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+        e.preventDefault(); resolve(true); return;
+      }
+      // Focus-Trap (Tab + Shift+Tab zykelt nur innerhalb Dialog)
+      if (e.key === "Tab" && focusable && focusable.length > 0) {
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      previouslyFocused.current?.focus?.();
+    };
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function resolve(value: boolean) {
@@ -71,6 +100,7 @@ export function AppDialogProvider() {
   return createPortal(
     <div
       onClick={() => current.kind === "alert" && resolve(true)}
+      role="presentation"
       style={{
         position: "fixed", inset: 0, zIndex: 10000,
         background: "rgba(15,17,21,0.75)", backdropFilter: "blur(8px)",
@@ -79,7 +109,12 @@ export function AppDialogProvider() {
       }}
     >
       <div
+        ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
+        role={isDanger || current.kind === "confirm" ? "alertdialog" : "dialog"}
+        aria-modal="true"
+        aria-labelledby={current.title ? titleId : undefined}
+        aria-describedby={descId}
         style={{
           width: "100%", maxWidth: 420,
           background: "#1A1D23",
@@ -91,7 +126,7 @@ export function AppDialogProvider() {
         }}
       >
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
-          <div style={{
+          <div aria-hidden="true" style={{
             width: 42, height: 42, borderRadius: 12,
             background: `${accent}20`, border: `1px solid ${accent}55`,
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -99,11 +134,11 @@ export function AppDialogProvider() {
           }}>{icon}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             {current.title && (
-              <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginBottom: 4 }}>
+              <h2 id={titleId} style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginBottom: 4, margin: 0 }}>
                 {current.title}
-              </div>
+              </h2>
             )}
-            <div style={{ color: "#d6ddeb", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+            <div id={descId} style={{ color: "#d6ddeb", fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
               {current.message}
             </div>
           </div>
@@ -112,6 +147,7 @@ export function AppDialogProvider() {
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
           {current.kind === "confirm" && (
             <button
+              type="button"
               onClick={() => resolve(false)}
               style={{
                 padding: "10px 18px", borderRadius: 10,
@@ -123,6 +159,7 @@ export function AppDialogProvider() {
             </button>
           )}
           <button
+            type="button"
             onClick={() => resolve(true)}
             autoFocus
             style={{
@@ -139,6 +176,9 @@ export function AppDialogProvider() {
       <style>{`
         @keyframes appDialogFade { from { opacity: 0 } to { opacity: 1 } }
         @keyframes appDialogPop { from { opacity: 0; transform: scale(0.92) translateY(8px) } to { opacity: 1; transform: scale(1) translateY(0) } }
+        @media (prefers-reduced-motion: reduce) {
+          [role="dialog"], [role="alertdialog"] { animation: none !important; }
+        }
       `}</style>
     </div>,
     document.body,
