@@ -73,7 +73,7 @@ export function ActiveMarchesBanner({ marches, onClose, onCancelled }: { marches
 
   return (
     <div className="fixed top-3 right-3 sm:max-w-sm z-[900] pointer-events-auto">
-      <div className="rounded-2xl bg-[#0F1115]/95 backdrop-blur border-2 border-[#FFD700]/50 shadow-2xl overflow-hidden">
+      <div className="rounded-2xl bg-[#0F1115]/55 backdrop-blur-md border border-[#FFD700]/35 shadow-2xl overflow-hidden">
         <button
           onClick={() => setCollapsed((c) => !c)}
           className="w-full flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#FFD700]/20 to-transparent text-left"

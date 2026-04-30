@@ -26,13 +26,24 @@ export function ServiceWorkerRegister() {
 
     // DEV: alle vorhandenen SWs killen + Caches leeren, sonst werden alte
     // Bundles ausgeliefert und HMR funktioniert nicht.
+    // Wichtig: wenn ein SW gefunden + entfernt wird, MUSS die Seite einmal
+    // hart reloadet werden — sonst lebt die aktuell-geladene Seite weiter mit
+    // dem alten SW-Bundle. Marker im sessionStorage verhindert Reload-Loop.
     void (async () => {
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
-        for (const r of regs) await r.unregister();
+        let unregistered = 0;
+        for (const r of regs) {
+          if (await r.unregister()) unregistered++;
+        }
         if (typeof caches !== "undefined") {
           const keys = await caches.keys();
           await Promise.all(keys.filter((k) => k.startsWith("ma365-")).map((k) => caches.delete(k)));
+        }
+        if (unregistered > 0 && !sessionStorage.getItem("ma365.dev.swPurged")) {
+          sessionStorage.setItem("ma365.dev.swPurged", "1");
+          // Reload bypassing SW (kommt nicht mehr durch — wir haben ihn ja gerade entfernt)
+          window.location.reload();
         }
       } catch { /* ignore */ }
     })();

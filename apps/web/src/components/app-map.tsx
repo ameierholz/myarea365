@@ -575,6 +575,17 @@ interface AppMapProps {
     started_at: string; arrives_at: string; finishes_at: string; returns_at: string;
     owner_name?: string | null; owner_crew_tag?: string | null;
     node: { lat: number; lng: number; kind: "scrapyard" | "factory" | "atm" | "datacenter" } | null;
+    route_geom?: { type: "LineString"; coordinates: [number, number][] } | null;
+    recall_progress?: number | null;
+  }>;
+  activeScouts?: Array<{
+    id: string;
+    status: "marching" | "scouting" | "returning";
+    started_at: string; arrives_at: string; scout_done_at: string; returns_at: string;
+    from_lat: number; from_lng: number;
+    target_lat: number; target_lng: number;
+    defender_name?: string | null;
+    route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null;
   }>;
   onLootClick?: (dropId: string) => void;
   // ── Base-Pins (Runner + Crew) ──
@@ -947,6 +958,7 @@ export function AppMap({
   onResourceNodeClick,
   onViewportChange,
   gatherMarches = [],
+  activeScouts = [],
   onPowerZoneClick,
   onLootClick,
   routeGeometry = null,
@@ -1070,7 +1082,7 @@ export function AppMap({
       style: MAPBOX_STYLE,
       center: [FALLBACK.lng, FALLBACK.lat],
       zoom: 16,          // höheres Default-Zoom → Fassaden-Details sichtbar
-      pitch: 62,         // stärkere 3D-Perspektive für dramatischere Gebäude
+      pitch: 52,         // moderate 3D-Perspektive (dynamisch erhöht bei nahem Zoom)
       bearing: -20,
       attributionControl: false,
     });
@@ -1095,7 +1107,30 @@ export function AppMap({
       setMapReady(true);
     });
 
+    // ResizeObserver auf Container — Mapbox auto-detect nur window.resize, aber
+    // Container-Resize (z.B. Scrollbar weg/da bei Modal body.overflow:hidden)
+    // triggert nichts. Ohne resize() bleibt Canvas in alter Groesse gestretcht.
+    const container = map.getContainer();
+    let lastWidth = container.clientWidth;
+    let lastHeight = container.clientHeight;
+    let rafQueued = false;
+    const ro = new ResizeObserver(() => {
+      if (rafQueued) return;
+      rafQueued = true;
+      requestAnimationFrame(() => {
+        rafQueued = false;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w !== lastWidth || h !== lastHeight) {
+          lastWidth = w; lastHeight = h;
+          map.resize();
+        }
+      });
+    });
+    ro.observe(container);
+
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
     };
@@ -1253,6 +1288,34 @@ export function AppMap({
       map.off("zoomstart", mark);
       map.off("rotatestart", mark);
       map.off("pitchstart", mark);
+    };
+  }, [mapReady]);
+
+  // Pitch dynamisch an Zoom koppeln: weit raus = flach (weniger dramatische
+  // Gebäude-Türme bei Pan), nah ran = volle 3D-Perspektive.
+  // Greift nicht wenn User gerade selbst pitcht (sonst bekämpft sich's).
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    if (!map) return;
+    let userPitching = false;
+    const onPitchStart = () => { userPitching = true; };
+    const onPitchEnd = () => { userPitching = false; };
+    const onZoom = () => {
+      if (userPitching) return;
+      const z = map.getZoom();
+      // 14 → 30°, 16 → 50°, 18 → 60° (linear interpoliert, geclampt)
+      const target = Math.max(0, Math.min(60, (z - 13) * 10));
+      const cur = map.getPitch();
+      if (Math.abs(cur - target) > 1.5) map.setPitch(target);
+    };
+    map.on("pitchstart", onPitchStart);
+    map.on("pitchend", onPitchEnd);
+    map.on("zoom", onZoom);
+    return () => {
+      map.off("pitchstart", onPitchStart);
+      map.off("pitchend", onPitchEnd);
+      map.off("zoom", onZoom);
     };
   }, [mapReady]);
 
@@ -4295,7 +4358,9 @@ export function AppMap({
       for (const [, entry] of marchMarkers) entry.marker.remove();
       marchMarkers.clear();
       try {
+        if (map.getLayer(LYR_LINE + "-arrows")) map.removeLayer(LYR_LINE + "-arrows");
         if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
+        if (map.getLayer(LYR_LINE + "-casing")) map.removeLayer(LYR_LINE + "-casing");
         if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
         if (map.getSource(SRC)) map.removeSource(SRC);
       } catch { /* cleanup race */ }
@@ -4303,6 +4368,13 @@ export function AppMap({
   }, [mapReady]);
 
   // ── Sammel-Marsch-Linien: Karren auf Straßen-Route zum Resource-Node ──
+  // Wichtig: Effekt hängt NICHT an gatherMarches → Cart-Marker werden nicht
+  // bei jedem Realtime-Refresh zerstört+neu erstellt (= Ruckeln). Stattdessen
+  // ein Ref auf den aktuellen gatherMarches-Stand, der rAF-Loop liest live.
+  const gatherMarchesRef = useRef(gatherMarches);
+  useEffect(() => { gatherMarchesRef.current = gatherMarches; }, [gatherMarches]);
+  const uiIconArtRef = useRef(uiIconArt);
+  useEffect(() => { uiIconArtRef.current = uiIconArt; }, [uiIconArt]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
@@ -4323,17 +4395,52 @@ export function AppMap({
     const ensureLayers = () => {
       if (!map.getSource(SRC)) {
         map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        // 1) Breiter weicher Glow — gibt der Linie Tiefe + lässt sie sich vom Untergrund abheben
         map.addLayer({
           id: LYR_GLOW, type: "line", source: SRC,
-          paint: { "line-color": "#FFD700", "line-width": 8, "line-opacity": 0.25, "line-blur": 6 },
+          paint: { "line-color": "#FF6B4A", "line-width": 14, "line-opacity": 0.22, "line-blur": 10 },
+          layout: { "line-cap": "round", "line-join": "round" },
         });
+        // 2) Solider Casing-Stroke (dunkel) als Kontrast-Outline
+        map.addLayer({
+          id: LYR_LINE + "-casing", type: "line", source: SRC,
+          paint: { "line-color": "#1a1a1a", "line-width": 7, "line-opacity": 0.85 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        // 3) Animierte Haupt-Linie (Marching-Ants in Crew-Farben)
         map.addLayer({
           id: LYR_LINE, type: "line", source: SRC,
           paint: {
-            "line-color": "#FFD700", "line-width": 3, "line-opacity": 0.9,
+            "line-color": "#FFD700",
+            "line-width": 4,
+            "line-opacity": 1,
             "line-dasharray": [0, 4, 3],
           },
           layout: { "line-cap": "round", "line-join": "round" },
+        });
+        // 4) Richtungs-Pfeile entlang der Linie — dunkle Bronze-Pfeile mit
+        //    goldenem Halo. Symbol-placement: line orientiert die Pfeile
+        //    automatisch nach Linienrichtung. Returning-Phase dreht sie um.
+        map.addLayer({
+          id: LYR_LINE + "-arrows", type: "symbol", source: SRC,
+          layout: {
+            "symbol-placement": "line",
+            "symbol-spacing": 80,
+            "text-field": "▶",
+            "text-size": 13,
+            "text-keep-upright": false,
+            "text-rotation-alignment": "map",
+            "text-pitch-alignment": "map",
+            "text-rotate": ["case", ["==", ["get", "status"], "returning"], 180, 0],
+            "text-allow-overlap": true,
+            "text-ignore-placement": true,
+            "text-padding": 2,
+          },
+          paint: {
+            "text-color": "#3a2a00",        // dunkles Bronze
+            "text-halo-color": "#FFD700",   // goldener Halo
+            "text-halo-width": 1.5,
+          },
         });
       }
     };
@@ -4345,6 +4452,7 @@ export function AppMap({
     ];
     let dashIdx = 0;
     let dashFrameCount = 0;
+    let lastLineHash = ""; // verhindert redundante setData-Calls (= Label-Flicker)
 
     const fetchRoute = async (marchId: number, from: [number, number], to: [number, number]) => {
       if (fetchedIds.has(marchId)) return;
@@ -4444,12 +4552,23 @@ export function AppMap({
       }
       const sprite = document.createElement("div");
       sprite.className = "ma365-cart-sprite";
-      sprite.style.cssText = `
-        font-size:24px; line-height:1;
-        filter:drop-shadow(0 0 6px rgba(255,215,0,0.85)) drop-shadow(0 2px 4px rgba(0,0,0,0.6));
-        transform-origin:center;
-      `;
-      sprite.textContent = phase === "gathering" ? "⛏️" : "🛒";
+      // Phase → UI-Icon-Slot
+      const slot = phase === "marching" ? "gather_cart_marching"
+                  : phase === "gathering" ? "gather_cart_gathering"
+                  : "gather_cart_returning";
+      const art = uiIconArtRef.current[slot];
+      const fallbackEmoji = phase === "gathering" ? "⛏️" : "🛒";
+      const baseStyle = "filter:drop-shadow(0 0 6px rgba(255,215,0,0.85)) drop-shadow(0 2px 4px rgba(0,0,0,0.6)); transform-origin:center;";
+      if (art?.video_url) {
+        sprite.style.cssText = `width:36px;height:36px;${baseStyle}`;
+        sprite.innerHTML = `<video src="${art.video_url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"></video>`;
+      } else if (art?.image_url) {
+        sprite.style.cssText = `width:36px;height:36px;${baseStyle}`;
+        sprite.innerHTML = `<img src="${art.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)" />`;
+      } else {
+        sprite.style.cssText = `font-size:24px; line-height:1; ${baseStyle}`;
+        sprite.textContent = fallbackEmoji;
+      }
       wrap.appendChild(sprite);
       return wrap;
     };
@@ -4465,45 +4584,92 @@ export function AppMap({
     const renderFrame = () => {
       const now = Date.now();
       const lineFeatures: GeoJSON.Feature[] = [];
+      const gatherMarches = gatherMarchesRef.current;
 
       for (const m of gatherMarches) {
         if (!m.node || m.origin_lat == null || m.origin_lng == null) continue;
         const from: [number, number] = [m.origin_lat, m.origin_lng];
         const to:   [number, number] = [m.node.lat, m.node.lng];
-        // Route fetchen wenn fehlt
-        if (!routeCache.has(m.id) && !fetchedIds.has(m.id)) {
-          void fetchRoute(m.id, from, to);
+        // 1. DB-Route (von start_gather_march gespeichert) bevorzugen — kein API-Call
+        // 2. Sofort Luftlinie als Fallback setzen (Cart erscheint ohne Wartezeit)
+        // 3. Im Hintergrund /api/route fetchen, ersetzt den Fallback wenn erfolgreich
+        if (!routeCache.has(m.id)) {
+          if (m.route_geom?.coordinates?.length) {
+            const coords = m.route_geom.coordinates;
+            const { cumDist, total } = computeCum(coords);
+            routeCache.set(m.id, { coords, cumDist, total });
+          } else {
+            // Sofort Luftlinie als Fallback — Cart wird sichtbar bevor API antwortet
+            routeCache.set(m.id, makeStraightRoute(from, to));
+            if (!fetchedIds.has(m.id)) {
+              void fetchRoute(m.id, from, to);
+            }
+          }
         }
         const rt = routeCache.get(m.id);
         if (!rt) continue;
 
-        // Linie zeichnen — orientiert nach Phase
-        const reverseLine = m.status === "returning";
-        const lineCoords = reverseLine ? [...rt.coords].reverse() : rt.coords;
-        lineFeatures.push({
-          type: "Feature",
-          properties: { id: String(m.id), status: m.status },
-          geometry: { type: "LineString", coordinates: lineCoords },
-        });
-
-        // Karren-Position
+        // Karren-Position + Progress (0..1 entlang Route) berechnen
         let pos: { lng: number; lat: number; bearing: number } | null;
+        let currentProgress = 0; // wo entlang der Route ist der Cart gerade
         if (m.status === "marching") {
           const start = new Date(m.started_at).getTime();
           const end = new Date(m.arrives_at).getTime();
-          const t = (now - start) / Math.max(1, end - start);
+          const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
+          currentProgress = t;
           pos = interpolate(rt, t, false);
         } else if (m.status === "gathering") {
-          // Karren am Node-Punkt
+          currentProgress = 1;
           pos = { lng: rt.coords[rt.coords.length - 1][0], lat: rt.coords[rt.coords.length - 1][1], bearing: 0 };
         } else { // returning
           const start = new Date(m.finishes_at).getTime();
           const end = new Date(m.returns_at).getTime();
-          const t = (now - start) / Math.max(1, end - start);
-          // Zurück = von Ende zu Anfang
-          pos = interpolate(rt, 1 - t, true);
+          const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
+          const startProgress = typeof m.recall_progress === "number" && m.recall_progress > 0 && m.recall_progress < 1
+            ? m.recall_progress
+            : 1.0;
+          currentProgress = startProgress * (1 - t);
+          pos = interpolate(rt, currentProgress, true);
         }
         if (!pos) continue;
+
+        // Linie zeichnen — zeigt nur die noch zu gehende Strecke (vor dem Cart).
+        // Marching: vom Cart-Punkt bis zum Node (rt.coords[lookFromIdx ... ende]).
+        // Returning: vom Cart-Punkt zurück zur Base — Slice 0..currentProgress, dann reversed.
+        // → Während des Rückwegs schrumpft die Linie automatisch und ist weg
+        //   wenn der Cart die Base erreicht.
+        const cutoffDist = currentProgress * rt.total;
+        let lineCoords: [number, number][];
+        if (m.status === "returning") {
+          // Slice 0..cutoff, dann umdrehen (Cart läuft von cutoff → 0)
+          const cut: [number, number][] = [[pos.lng, pos.lat]];
+          for (let i = rt.coords.length - 1; i >= 0; i--) {
+            if (rt.cumDist[i] <= cutoffDist) {
+              // alles bis cutoffDist (rückwärts iteriert um reversed direction zu bekommen)
+              cut.push(rt.coords[i]);
+            }
+          }
+          lineCoords = cut;
+        } else if (m.status === "marching") {
+          // Vom Cart-Punkt bis zum Node
+          const cut: [number, number][] = [[pos.lng, pos.lat]];
+          for (let i = 0; i < rt.coords.length; i++) {
+            if (rt.cumDist[i] > cutoffDist) cut.push(rt.coords[i]);
+          }
+          lineCoords = cut;
+        } else {
+          // gathering: keine Linie nötig, aber zeigen wir kurze Linie zum Node
+          lineCoords = [[pos.lng, pos.lat], rt.coords[rt.coords.length - 1]];
+        }
+
+        // Linie nur einreihen wenn mindestens 2 Punkte (sonst ungültig)
+        if (lineCoords.length >= 2) {
+          lineFeatures.push({
+            type: "Feature",
+            properties: { id: String(m.id), status: m.status },
+            geometry: { type: "LineString", coordinates: lineCoords },
+          });
+        }
 
         let cart = cartMarkers.get(m.id);
         const label = cartLabel(m);
@@ -4536,13 +4702,28 @@ export function AppMap({
         }
       }
 
-      // Linien-Source aktualisieren
-      const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
-      if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
+      // Linien-Source NUR aktualisieren wenn sich Linien-Content geändert hat.
+      // setData jeden Frame würde Mapbox-Tile-Resort triggern → Label-Flicker
+      // (Hausnummern/Straßennamen flackern beim Cart-Movement).
+      // Hash: id + status + Cart-Position auf ~100m gerundet. Damit feuert
+      // setData nur wenn der Cart spürbar weitergelaufen ist (~1×/Minute),
+      // nicht jeden Frame → kein Hausnummern-Flicker.
+      const lineHash = lineFeatures.map((f) => {
+        const c = (f.geometry as unknown as { coordinates: [number, number][] }).coordinates;
+        const props = f.properties as { id: string; status: string };
+        return `${props.id}:${props.status}:${c.length}:${c[0]?.[0].toFixed(3)}:${c[0]?.[1].toFixed(3)}`;
+      }).join("|");
+      if (lineHash !== lastLineHash) {
+        lastLineHash = lineHash;
+        const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
+        if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
+      }
 
-      // Marching-Ants: Dash-Pattern alle ~4 Frames shiften (~15 Hz @ 60fps)
+      // Marching-Ants: deutlich seltener animieren (4 Hz statt 15 Hz)
+      // setPaintProperty triggert Mapbox-Re-Layout der Label-Layer → Flicker.
+      // 4 Hz wirkt subtiler aber bleibt erkennbar.
       dashFrameCount++;
-      if (dashFrameCount >= 4 && lineFeatures.length > 0) {
+      if (dashFrameCount >= 15 && lineFeatures.length > 0) {
         dashFrameCount = 0;
         dashIdx = (dashIdx + 1) % dashSequence.length;
         try {
@@ -4565,12 +4746,242 @@ export function AppMap({
       cartMarkers.forEach((m) => m.remove());
       cartMarkers.clear();
       try {
+        if (map.getLayer(LYR_LINE + "-arrows")) map.removeLayer(LYR_LINE + "-arrows");
         if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
+        if (map.getLayer(LYR_LINE + "-casing")) map.removeLayer(LYR_LINE + "-casing");
         if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
         if (map.getSource(SRC)) map.removeSource(SRC);
       } catch { /* cleanup race */ }
     };
-  }, [mapReady, gatherMarches]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]);
+
+  // ── Späher-Linien & Sprite (Player-Base-Spy) ──
+  // Eigener Layer-Stack damit Späher visuell anders aussehen als Plünderwagen.
+  // Teal/Cyan-Theme statt Gold/Orange, kompakteres Sprite, keine Marching-Ants.
+  const activeScoutsRef = useRef(activeScouts);
+  useEffect(() => { activeScoutsRef.current = activeScouts; }, [activeScouts]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const SRC = "ma365-scouts";
+    const LYR_LINE = "ma365-scouts-line";
+    const LYR_GLOW = "ma365-scouts-glow";
+
+    type Phase = "marching" | "scouting" | "returning";
+    type RouteCache = { coords: Array<[number, number]>; cumDist: number[]; total: number };
+    const routeCache = new Map<string, RouteCache>();
+    const fetchedIds = new Set<string>();
+    const scoutMarkers = new Map<string, mapboxgl.Marker>();
+
+    const ensureLayers = () => {
+      if (!map.getSource(SRC)) {
+        map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: LYR_GLOW, type: "line", source: SRC,
+          paint: { "line-color": "#22D1C3", "line-width": 12, "line-opacity": 0.22, "line-blur": 8 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: LYR_LINE + "-casing", type: "line", source: SRC,
+          paint: { "line-color": "#0a1f1d", "line-width": 5, "line-opacity": 0.85 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: LYR_LINE, type: "line", source: SRC,
+          paint: {
+            "line-color": "#22D1C3", "line-width": 2.5, "line-opacity": 0.95,
+            "line-dasharray": [2, 3],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+      }
+    };
+
+    const haversine = (a: [number, number], b: [number, number]) => {
+      const R = 6371000;
+      const lat1 = (a[1] * Math.PI) / 180; const lat2 = (b[1] * Math.PI) / 180;
+      const dLat = lat2 - lat1; const dLng = ((b[0] - a[0]) * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+    const computeCum = (coords: Array<[number, number]>) => {
+      const cum = [0]; let total = 0;
+      for (let i = 1; i < coords.length; i++) { total += haversine(coords[i - 1], coords[i]); cum.push(total); }
+      return { cumDist: cum, total };
+    };
+    const makeStraight = (from: [number, number], to: [number, number]): RouteCache => {
+      const coords: Array<[number, number]> = [[from[1], from[0]], [to[1], to[0]]];
+      const { cumDist, total } = computeCum(coords);
+      return { coords, cumDist, total };
+    };
+    const fetchRoute = async (id: string, from: [number, number], to: [number, number]) => {
+      if (fetchedIds.has(id)) return;
+      fetchedIds.add(id);
+      try {
+        const r = await fetch(`/api/route?from=${from[1]},${from[0]}&to=${to[1]},${to[0]}`, { cache: "no-store" });
+        if (!r.ok) { routeCache.set(id, makeStraight(from, to)); return; }
+        const j = await r.json() as { ok?: boolean; geometry?: { coordinates: Array<[number, number]> } };
+        if (!j.ok || !j.geometry?.coordinates?.length) { routeCache.set(id, makeStraight(from, to)); return; }
+        const coords = j.geometry.coordinates;
+        const { cumDist, total } = computeCum(coords);
+        routeCache.set(id, { coords, cumDist, total });
+      } catch { routeCache.set(id, makeStraight(from, to)); }
+    };
+    const interpolate = (rt: RouteCache, t: number, reversed: boolean) => {
+      if (rt.coords.length < 2) return null;
+      const target = Math.max(0, Math.min(1, t)) * rt.total;
+      const cum = rt.cumDist;
+      let lo = 0, hi = cum.length - 1;
+      while (lo + 1 < hi) { const mid = (lo + hi) >> 1; if (cum[mid] <= target) lo = mid; else hi = mid; }
+      const segLen = cum[hi] - cum[lo] || 1;
+      const segT = (target - cum[lo]) / segLen;
+      const a = rt.coords[lo]; const b = rt.coords[hi];
+      const lng = a[0] + (b[0] - a[0]) * segT;
+      const lat = a[1] + (b[1] - a[1]) * segT;
+      const dx = b[0] - a[0]; const dy = b[1] - a[1];
+      let bearing = Math.atan2(dx, dy) * (180 / Math.PI);
+      if (reversed) bearing = (bearing + 180) % 360;
+      return { lng, lat, bearing };
+    };
+
+    const buildScoutEl = (label: string | null): HTMLDivElement => {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;pointer-events:none;will-change:transform;";
+      if (label) {
+        const lbl = document.createElement("div");
+        lbl.style.cssText = "padding:1px 6px;border-radius:4px;background:rgba(15,17,21,0.92);color:#22D1C3;font-size:9px;font-weight:700;border:1px solid rgba(34,209,195,0.7);white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;";
+        lbl.textContent = `🔍 ${label}`;
+        wrap.appendChild(lbl);
+      }
+      const sprite = document.createElement("div");
+      sprite.className = "ma365-scout-sprite";
+      sprite.style.cssText = "font-size:22px;line-height:1;filter:drop-shadow(0 0 6px rgba(34,209,195,0.85)) drop-shadow(0 2px 4px rgba(0,0,0,0.6));";
+      sprite.textContent = "🔍";
+      wrap.appendChild(sprite);
+      return wrap;
+    };
+
+    ensureLayers();
+
+    let raf = 0;
+    let lastHash = "";
+    const renderFrame = () => {
+      const now = Date.now();
+      const lineFeatures: GeoJSON.Feature[] = [];
+      const scouts = activeScoutsRef.current;
+
+      for (const s of scouts) {
+        const from: [number, number] = [s.from_lat, s.from_lng];
+        const to:   [number, number] = [s.target_lat, s.target_lng];
+        if (!routeCache.has(s.id)) {
+          if (s.route_geom_json?.coordinates?.length) {
+            const coords = s.route_geom_json.coordinates;
+            const { cumDist, total } = computeCum(coords);
+            routeCache.set(s.id, { coords, cumDist, total });
+          } else {
+            routeCache.set(s.id, makeStraight(from, to));
+            if (!fetchedIds.has(s.id)) void fetchRoute(s.id, from, to);
+          }
+        }
+        const rt = routeCache.get(s.id);
+        if (!rt) continue;
+
+        let pos: { lng: number; lat: number; bearing: number } | null;
+        let progress = 0;
+        const phase: Phase = s.status;
+        if (phase === "marching") {
+          const start = new Date(s.started_at).getTime();
+          const end = new Date(s.arrives_at).getTime();
+          const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
+          progress = t;
+          pos = interpolate(rt, t, false);
+        } else if (phase === "scouting") {
+          progress = 1;
+          pos = { lng: rt.coords[rt.coords.length - 1][0], lat: rt.coords[rt.coords.length - 1][1], bearing: 0 };
+        } else {
+          const start = new Date(s.scout_done_at).getTime();
+          const end = new Date(s.returns_at).getTime();
+          const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
+          progress = 1 - t;
+          pos = interpolate(rt, progress, true);
+        }
+        if (!pos) continue;
+
+        // Linie: vor dem Späher (marching) bzw. zurück zur Base (returning)
+        const cutoffDist = progress * rt.total;
+        let lineCoords: [number, number][] = [];
+        if (phase === "marching") {
+          lineCoords = [[pos.lng, pos.lat]];
+          for (let i = 0; i < rt.coords.length; i++) if (rt.cumDist[i] > cutoffDist) lineCoords.push(rt.coords[i]);
+        } else if (phase === "returning") {
+          lineCoords = [[pos.lng, pos.lat]];
+          for (let i = rt.coords.length - 1; i >= 0; i--) if (rt.cumDist[i] <= cutoffDist) lineCoords.push(rt.coords[i]);
+        }
+        if (lineCoords.length >= 2) {
+          lineFeatures.push({
+            type: "Feature",
+            properties: { id: s.id, status: phase },
+            geometry: { type: "LineString", coordinates: lineCoords },
+          });
+        }
+
+        let marker = scoutMarkers.get(s.id);
+        const label = s.defender_name ?? null;
+        if (!marker) {
+          const el = buildScoutEl(label);
+          el.dataset.label = label ?? "";
+          marker = new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
+          scoutMarkers.set(s.id, marker);
+        } else {
+          const el = marker.getElement();
+          if (el.dataset.label !== (label ?? "")) {
+            const fresh = buildScoutEl(label);
+            fresh.dataset.label = label ?? "";
+            marker.remove();
+            marker = new mapboxgl.Marker({ element: fresh, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
+            scoutMarkers.set(s.id, marker);
+          } else {
+            marker.setLngLat([pos.lng, pos.lat]);
+          }
+          const sprite = marker.getElement().querySelector(".ma365-scout-sprite") as HTMLElement | null;
+          if (sprite && phase !== "scouting") sprite.style.transform = `rotate(${pos.bearing.toFixed(0)}deg)`;
+        }
+      }
+
+      const hash = lineFeatures.map((f) => {
+        const c = (f.geometry as unknown as { coordinates: [number, number][] }).coordinates;
+        const props = f.properties as { id: string; status: string };
+        return `${props.id}:${props.status}:${c.length}:${c[0]?.[0].toFixed(3)}:${c[0]?.[1].toFixed(3)}`;
+      }).join("|");
+      if (hash !== lastHash) {
+        lastHash = hash;
+        const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
+        if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
+      }
+
+      const activeIds = new Set(scouts.map((s) => s.id));
+      for (const [id, m] of scoutMarkers) {
+        if (!activeIds.has(id)) { m.remove(); scoutMarkers.delete(id); }
+      }
+
+      raf = requestAnimationFrame(renderFrame);
+    };
+    raf = requestAnimationFrame(renderFrame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      scoutMarkers.forEach((m) => m.remove());
+      scoutMarkers.clear();
+      try {
+        if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
+        if (map.getLayer(LYR_LINE + "-casing")) map.removeLayer(LYR_LINE + "-casing");
+        if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
+        if (map.getSource(SRC)) map.removeSource(SRC);
+      } catch { /* cleanup race */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]);
 
   return (
     <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>

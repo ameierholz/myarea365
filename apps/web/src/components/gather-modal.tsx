@@ -123,6 +123,28 @@ export function GatherModal({
     if (!origin) { setErr("Setze zuerst deine Base"); return; }
     setBusy(true); setErr(null);
     try {
+      // Echtes Walking-Routing holen (Mapbox Directions). Bei Fehler/Timeout
+      // wird ohne Route gestartet → Fallback auf Luftlinie × 1.4 in der DB.
+      let routeDistance: number | undefined;
+      let routeGeom: { type: "LineString"; coordinates: [number, number][] } | undefined;
+      try {
+        const rr = await fetch(
+          `/api/route?from=${origin.lat},${origin.lng}&to=${node.lat},${node.lng}`,
+          { signal: AbortSignal.timeout(6_000) },
+        );
+        if (rr.ok) {
+          const rj = await rr.json() as {
+            ok?: boolean;
+            distance_m?: number;
+            geometry?: { type: "LineString"; coordinates: [number, number][] };
+          };
+          if (rj.ok && typeof rj.distance_m === "number" && rj.geometry?.type === "LineString") {
+            routeDistance = rj.distance_m;
+            routeGeom = rj.geometry;
+          }
+        }
+      } catch { /* Routing optional, Fallback in RPC */ }
+
       const r = await fetch("/api/gather/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,6 +154,8 @@ export function GatherModal({
           troop_count: troopCount,
           user_lat: origin.lat,
           user_lng: origin.lng,
+          route_distance_m: routeDistance,
+          route_geom: routeGeom,
         }),
       });
       const j = await r.json() as { ok?: boolean; error?: string; message?: string };

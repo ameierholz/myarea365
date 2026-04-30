@@ -216,12 +216,14 @@ export function AttackBaseModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ defender_user_id: defenderUserId }),
       });
-      const j = await r.json() as Intel & { ok?: boolean; error?: string; need?: number };
+      const j = await r.json() as Intel & { ok?: boolean; error?: string; need?: number; travel_seconds?: number };
       if (j.ok) {
-        setIntel(j);
-        setMsg("✓ Späher zurück — Bericht im Postfach.");
-        setTimeout(onClose, 1500);
+        const eta = j.travel_seconds ? `${Math.round((j.travel_seconds * 2 + 5) / 60)} Min.` : "kurz";
+        setMsg(`🔍 Späher unterwegs — Bericht in ca. ${eta} im Postfach.`);
+        setTimeout(onClose, 1800);
       } else if (j.error === "not_enough_gold") setMsg(`Nicht genug Gold (${j.need} 🪙 nötig).`);
+      else if (j.error === "already_scouting") setMsg("Du hast bereits einen Späher zu diesem Gegner unterwegs.");
+      else if (j.error === "base_missing") setMsg("Eigene oder Ziel-Base fehlt auf der Karte.");
       else setMsg(j.error ?? "Spionage fehlgeschlagen");
     } finally { setSpying(false); }
   }

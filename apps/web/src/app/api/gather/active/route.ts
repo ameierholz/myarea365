@@ -32,6 +32,7 @@ export async function GET() {
       id, node_id, guardian_id, troop_count, troop_class,
       started_at, arrives_at, finishes_at, returns_at,
       status, collected, origin_lat, origin_lng,
+      route_geom_json, route_distance_m, recall_progress,
       node:resource_nodes (id, kind, resource_type, name, lat, lng, level, total_yield, current_yield)
     `)
     .eq("user_id", user.id)

@@ -16,28 +16,45 @@ import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-m
 import { SupportContent } from "./support-content";
 import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
 import { ReferralWidget } from "@/components/referral-widget";
-const UpgradeModal = dynamic(() => import("@/components/upgrade-modal").then(m => m.UpgradeModal));
-const PowerShopModal = dynamic(() => import("@/components/boost-shop").then(m => m.BoostShopModal));
-import { BoostShopBody } from "@/components/boost-shop";
+// Modals: in PROD lazy via dynamic, in DEV direkt — Turbopack HMR-Bug
+// "module factory not available" bei dynamic+ssr-mix. process.env.NODE_ENV
+// wird zur Build-Zeit ersetzt → Tree-Shaking lässt im PROD-Bundle den
+// Static-Import raus, im DEV den dynamic-Branch.
+import { UpgradeModal as UpgradeModalDirect } from "@/components/upgrade-modal";
+import { BoostShopModal as PowerShopModalDirect, BoostShopBody } from "@/components/boost-shop";
 import { RewardedAdButton } from "@/components/rewarded-ad";
 import { SupporterBadge, type SupporterTier } from "@/components/supporter-badge";
-const WalkSummaryModal = dynamic(() => import("@/components/walk-summary-modal").then(m => m.WalkSummaryModal));
+import { WalkSummaryModal as WalkSummaryModalDirect } from "@/components/walk-summary-modal";
 import type { WalkSummary } from "@/components/walk-summary-modal";
-const RunRouteModal = dynamic(() => import("@/components/run-route-modal").then(m => m.RunRouteModal));
-const OwnershipModal = dynamic(() => import("@/components/ownership-modal").then(m => m.OwnershipModal));
-const ArenaChallengeModal = dynamic(() => import("@/components/arena-challenge-modal").then(m => m.ArenaChallengeModal));
+import { RunRouteModal as RunRouteModalDirect } from "@/components/run-route-modal";
+import { OwnershipModal as OwnershipModalDirect } from "@/components/ownership-modal";
+import { ArenaChallengeModal as ArenaChallengeModalDirect } from "@/components/arena-challenge-modal";
 import { GuardianCard } from "@/components/guardian-card";
 import { GuardianAvatar } from "@/components/guardian-avatar";
-const GuardianDetailModal = dynamic(() => import("@/components/guardian-detail-modal").then(m => m.GuardianDetailModal));
-const GuardianGalleryModal = dynamic(() => import("@/components/guardian-gallery-modal").then(m => m.GuardianGalleryModal));
+import { GuardianDetailModal as GuardianDetailModalDirect } from "@/components/guardian-detail-modal";
+import { GuardianGalleryModal as GuardianGalleryModalDirect } from "@/components/guardian-gallery-modal";
+
+const _IS_PROD = process.env.NODE_ENV === "production";
+const UpgradeModal = _IS_PROD ? dynamic(() => import("@/components/upgrade-modal").then(m => m.UpgradeModal)) : UpgradeModalDirect;
+const PowerShopModal = _IS_PROD ? dynamic(() => import("@/components/boost-shop").then(m => m.BoostShopModal)) : PowerShopModalDirect;
+const WalkSummaryModal = _IS_PROD ? dynamic(() => import("@/components/walk-summary-modal").then(m => m.WalkSummaryModal)) : WalkSummaryModalDirect;
+const RunRouteModal = _IS_PROD ? dynamic(() => import("@/components/run-route-modal").then(m => m.RunRouteModal)) : RunRouteModalDirect;
+const OwnershipModal = _IS_PROD ? dynamic(() => import("@/components/ownership-modal").then(m => m.OwnershipModal)) : OwnershipModalDirect;
+const ArenaChallengeModal = _IS_PROD ? dynamic(() => import("@/components/arena-challenge-modal").then(m => m.ArenaChallengeModal)) : ArenaChallengeModalDirect;
+const GuardianDetailModal = _IS_PROD ? dynamic(() => import("@/components/guardian-detail-modal").then(m => m.GuardianDetailModal)) : GuardianDetailModalDirect;
+const GuardianGalleryModal = _IS_PROD ? dynamic(() => import("@/components/guardian-gallery-modal").then(m => m.GuardianGalleryModal)) : GuardianGalleryModalDirect;
 import { MMR_TIERS, type MmrTier } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
 import { normalizeFaction } from "@/lib/factions";
 import { AdSenseSlot } from "@/components/adsense-slot";
-const GemShopModal = dynamic(() => import("@/components/gem-shop-modal").then(m => m.GemShopModal));
-const ShopHubModal = dynamic(() => import("@/components/shop-hub-modal").then(m => m.ShopHubModal));
-const ShopDealsModal = dynamic(() => import("@/components/shop-deals-modal").then(m => m.ShopDealsModal));
-const DealsShopModal = dynamic(() => import("@/components/deals-shop-modal").then(m => m.DealsShopModal));
+import { GemShopModal as GemShopModalDirect } from "@/components/gem-shop-modal";
+import { ShopHubModal as ShopHubModalDirect } from "@/components/shop-hub-modal";
+import { ShopDealsModal as ShopDealsModalDirect } from "@/components/shop-deals-modal";
+import { DealsShopModal as DealsShopModalDirect } from "@/components/deals-shop-modal";
+const GemShopModal = _IS_PROD ? dynamic(() => import("@/components/gem-shop-modal").then(m => m.GemShopModal)) : GemShopModalDirect;
+const ShopHubModal = _IS_PROD ? dynamic(() => import("@/components/shop-hub-modal").then(m => m.ShopHubModal)) : ShopHubModalDirect;
+const ShopDealsModal = _IS_PROD ? dynamic(() => import("@/components/shop-deals-modal").then(m => m.ShopDealsModal)) : ShopDealsModalDirect;
+const DealsShopModal = _IS_PROD ? dynamic(() => import("@/components/deals-shop-modal").then(m => m.DealsShopModal)) : DealsShopModalDirect;
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
 import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon, useArtworkReady } from "@/components/resource-icon";
@@ -49,11 +66,15 @@ import { MapHelpButton } from "@/components/map-help-button";
 import { MapLegendModal } from "@/components/map-legend-modal";
 import { CrewLiveHub } from "@/components/crew-live-hub";
 import { markOnboardingSeen, shouldShowOnboarding } from "@/components/onboarding-modal";
-const OnboardingModal = dynamic(() => import("@/components/onboarding-modal").then(m => m.OnboardingModal));
-const FaqModal = dynamic(() => import("@/components/faq-modal").then(m => m.FaqModal));
-const PotionInventoryModal = dynamic(() => import("@/components/potion-inventory-modal").then(m => m.PotionInventoryModal));
+import { OnboardingModal as OnboardingModalDirect } from "@/components/onboarding-modal";
+import { FaqModal as FaqModalDirect } from "@/components/faq-modal";
+import { PotionInventoryModal as PotionInventoryModalDirect } from "@/components/potion-inventory-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
-const RunnerStatsModal = dynamic(() => import("@/components/runner-stats-modal").then(m => m.RunnerStatsModal));
+import { RunnerStatsModal as RunnerStatsModalDirect } from "@/components/runner-stats-modal";
+const OnboardingModal = _IS_PROD ? dynamic(() => import("@/components/onboarding-modal").then(m => m.OnboardingModal)) : OnboardingModalDirect;
+const FaqModal = _IS_PROD ? dynamic(() => import("@/components/faq-modal").then(m => m.FaqModal)) : FaqModalDirect;
+const PotionInventoryModal = _IS_PROD ? dynamic(() => import("@/components/potion-inventory-modal").then(m => m.PotionInventoryModal)) : PotionInventoryModalDirect;
+const RunnerStatsModal = _IS_PROD ? dynamic(() => import("@/components/runner-stats-modal").then(m => m.RunnerStatsModal)) : RunnerStatsModalDirect;
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -68,14 +89,21 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { deferIdle } from "@/lib/defer";
 import { AppMap } from "@/components/app-map";
-const BaseModal = dynamic(() => import("@/components/base-modal").then(m => m.BaseModal));
-const AttackBaseModal = dynamic(() => import("@/components/attack-base-modal").then(m => m.AttackBaseModal), { loading: () => null });
+import { BaseModal as BaseModalDirect } from "@/components/base-modal";
+import { AttackBaseModal as AttackBaseModalDirect } from "@/components/attack-base-modal";
 import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
 import { StrongholdModal, ActiveRallyBanner } from "@/components/stronghold-modal";
-const GatherModal = dynamic(() => import("@/components/gather-modal").then(m => m.GatherModal), { loading: () => null });
-const AppSettingsContent = dynamic(() => import("@/components/settings/app-settings-modal").then(m => m.AppSettingsContent));
-const HealthDashboard = dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard));
+import { GatherModal as GatherModalDirect } from "@/components/gather-modal";
+import { AppSettingsContent as AppSettingsContentDirect } from "@/components/settings/app-settings-modal";
+import { HealthDashboard as HealthDashboardDirect } from "@/components/health/health-dashboard";
+const BaseModal = _IS_PROD ? dynamic(() => import("@/components/base-modal").then(m => m.BaseModal)) : BaseModalDirect;
+const AttackBaseModal = _IS_PROD ? dynamic(() => import("@/components/attack-base-modal").then(m => m.AttackBaseModal), { loading: () => null }) : AttackBaseModalDirect;
+const GatherModal = _IS_PROD ? dynamic(() => import("@/components/gather-modal").then(m => m.GatherModal), { loading: () => null }) : GatherModalDirect;
+const AppSettingsContent = _IS_PROD ? dynamic(() => import("@/components/settings/app-settings-modal").then(m => m.AppSettingsContent)) : AppSettingsContentDirect;
+const HealthDashboard = _IS_PROD ? dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard)) : HealthDashboardDirect;
 import { ActiveMarchesBanner } from "@/components/active-marches-banner";
+import { ActiveCrewRallyBanner, type CrewRally } from "@/components/active-crew-rally-banner";
+import { ActiveScoutsBanner, type ActiveScout } from "@/components/active-scouts-banner";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
@@ -1187,6 +1215,37 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [shopsModalOpen, setShopsModalOpen] = useState(false);
   const [inboxModalOpen, setInboxModalOpen] = useState(false);
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+  // Unread-Counts laden + Realtime-Update bei neuen Inbox-Einträgen
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        const r = await fetch("/api/inbox/counts", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { counts?: Record<string, { unread?: number }> };
+        // Counts ist nach Kategorie gruppiert (personal/report/crew/event/system) — alle unread aufsummieren.
+        const total = Object.values(j.counts ?? {}).reduce((sum, c) => sum + (c?.unread ?? 0), 0);
+        setInboxUnreadCount(total);
+      } catch { /* silent */ }
+    };
+    void refresh();
+    // Bei Modal-Close neu laden (User hat ggf. Mails gelesen)
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    // Realtime: bei neuen Inbox-Einträgen direkt aktualisieren
+    const sb = createClient();
+    const channel = sb
+      .channel("ma365-inbox-counts-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_inbox" }, () => { void refresh(); })
+      .subscribe();
+    // Fallback-Poll
+    const id = setInterval(refresh, 60_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(id);
+      void sb.removeChannel(channel);
+    };
+  }, [inboxModalOpen]);
   const [rankingModalOpen, setRankingModalOpen] = useState(false);
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
@@ -1295,6 +1354,60 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     const id = setInterval(refreshRally, 15000);
     return () => clearInterval(id);
   }, [refreshRally]);
+
+  // ─── Aktive Späher (eigene) ─────────────────────────────────────────
+  const [activeScouts, setActiveScouts] = useState<ActiveScout[]>([]);
+  const refreshScouts = useCallback(async () => {
+    try {
+      const r = await fetch("/api/base/scouts/active", { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json() as { scouts?: ActiveScout[] };
+        setActiveScouts(j.scouts ?? []);
+      }
+    } catch { /* silent */ }
+  }, []);
+  useEffect(() => {
+    void refreshScouts();
+    const id = setInterval(refreshScouts, 5000);
+    const sb = createClient();
+    const channel = sb
+      .channel("ma365-scouts-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "player_base_scouts" }, () => {
+        void refreshScouts();
+      })
+      .subscribe();
+    return () => {
+      clearInterval(id);
+      void sb.removeChannel(channel);
+    };
+  }, [refreshScouts]);
+
+  // ─── Crew-Repeater-Rallies (eigene Crew als Angreifer ODER Verteidiger) ─
+  const [crewRallies, setCrewRallies] = useState<CrewRally[]>([]);
+  const refreshCrewRallies = useCallback(async () => {
+    try {
+      const r = await fetch("/api/crews/turf/rally/active", { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json() as { rallies?: CrewRally[] };
+        setCrewRallies(j.rallies ?? []);
+      }
+    } catch { /* silent */ }
+  }, []);
+  useEffect(() => {
+    void refreshCrewRallies();
+    const id = setInterval(refreshCrewRallies, 15000);
+    const sb = createClient();
+    const channel = sb
+      .channel("ma365-crew-rallies-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "crew_repeater_rallies" }, () => {
+        void refreshCrewRallies();
+      })
+      .subscribe();
+    return () => {
+      clearInterval(id);
+      void sb.removeChannel(channel);
+    };
+  }, [refreshCrewRallies]);
   // Wegelager sind Welt-Content (Berlin-weit pre-seeded in DB, Migration 00193).
   // Frontend triggert keinen Spawn mehr — nur Fetch der bestehenden + Respawn-Trigger
   // bei Defeat läuft DB-seitig (respawn_due_strongholds, gleiche Position).
@@ -1321,6 +1434,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     collected: number;
     origin_lat: number | null; origin_lng: number | null;
     owner_name?: string | null; owner_crew_tag?: string | null;
+    route_geom_json?: string | null;
+    route_distance_m?: number | null;
+    recall_progress?: number | null;
     node: { id: number; kind: "scrapyard" | "factory" | "atm" | "datacenter"; resource_type: "wood" | "stone" | "gold" | "mana"; name: string | null; lat: number; lng: number; level: number; total_yield?: number; current_yield?: number } | null;
   };
   const [activeMarches, setActiveMarches] = useState<ActiveMarch[]>([]);
@@ -1344,11 +1460,26 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       .subscribe();
     // Fallback-Poll: 2 Minuten falls WebSocket abreißt.
     const id = setInterval(refreshActiveMarches, 120000);
+
+    // Targeted Refresh: wenn ein Marsch returns_at überschreitet, fired kein
+    // Realtime-Event (nur tick_gather_marches transitioniert returning→completed).
+    // Daher exakt zu dem Zeitpunkt einen zusätzlichen Refresh schedulen → Tick
+    // läuft, Status springt auf completed, Banner verschwinden ohne Verzögerung.
+    const nextTransition = activeMarches
+      .map((m) => new Date(m.status === "returning" ? m.returns_at : m.status === "gathering" ? m.finishes_at : m.arrives_at).getTime())
+      .filter((t) => t > Date.now())
+      .sort((a, b) => a - b)[0];
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    if (nextTransition) {
+      const delay = Math.max(500, nextTransition - Date.now() + 250); // +250ms Sicherheits-Puffer
+      timeoutId = setTimeout(() => { void refreshActiveMarches(); }, delay);
+    }
     return () => {
       clearInterval(id);
+      if (timeoutId) clearTimeout(timeoutId);
       void sb.removeChannel(channel);
     };
-  }, [refreshActiveMarches]);
+  }, [refreshActiveMarches, activeMarches]);
 
   const onMapViewportChange = useCallback((vp: { minLng: number; minLat: number; maxLng: number; maxLat: number; zoom: number }) => {
     if (vp.zoom < 13) { setResourceNodes([]); return; }
@@ -1719,7 +1850,24 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 if (s) setStrongholdModalTarget({ s, x, y });
               }}
               resourceNodes={resourceNodes}
-              gatherMarches={activeMarches}
+              gatherMarches={activeMarches.map((m) => ({
+                ...m,
+                recall_progress: m.recall_progress ?? null,
+                route_geom: (() => {
+                  if (!m.route_geom_json) return null;
+                  try {
+                    const g = JSON.parse(m.route_geom_json) as { type?: string; coordinates?: [number, number][] };
+                    if (g.type === "LineString" && Array.isArray(g.coordinates)) {
+                      return { type: "LineString" as const, coordinates: g.coordinates };
+                    }
+                    return null;
+                  } catch { return null; }
+                })(),
+              }))}
+              activeScouts={activeScouts.map((s) => ({
+                ...s,
+                route_geom_json: s.route_geom_json && s.route_geom_json.type === "LineString" ? s.route_geom_json : null,
+              }))}
               onResourceNodeClick={(id, x, y) => {
                 const n = resourceNodes.find((x) => x.id === id);
                 if (n) setGatherModalNode({ n, x, y });
@@ -1893,6 +2041,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 }));
               }}
               strongholdsNearby={strongholds.length}
+              inboxUnread={inboxUnreadCount}
             />
 
             <LivePaceHud
@@ -1917,6 +2066,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   }}
                 />
               </div>
+            )}
+
+            {/* Aktive Späher (eigene) */}
+            {activeScouts.length > 0 && !strongholdModalTarget && !baseModalTarget && !attackTarget && (
+              <ActiveScoutsBanner
+                scouts={activeScouts}
+                onFly={(lat, lng) => {
+                  window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                    detail: { lat, lng, zoom: 17 },
+                  }));
+                }}
+              />
+            )}
+
+            {/* Crew-Repeater-Rally-Banner (Aufgebote gegen feindliche Repeater) */}
+            {crewRallies.length > 0 && !strongholdModalTarget && !baseModalTarget && !attackTarget && (
+              <ActiveCrewRallyBanner
+                rallies={crewRallies}
+                onFly={(lat, lng) => {
+                  window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                    detail: { lat, lng, zoom: 17 },
+                  }));
+                }}
+              />
             )}
 
             {/* Player-Base-Crew-Angriff-Banner */}
@@ -2485,7 +2658,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <AttackRepeaterModal
           repeater={attackRepeaterTarget}
           onClose={() => setAttackRepeaterTarget(null)}
-          onAttacked={() => { /* Cron-Tick resolved den Angriff, Inbox-Report kommt automatisch */ }}
+          onAttacked={() => { void refreshCrewRallies(); /* Cron-Tick resolved den Angriff, Inbox-Report kommt automatisch */ }}
         />
       )}
 

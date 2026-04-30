@@ -134,28 +134,70 @@ export function InboxClient() {
   const totalUnread = useMemo(() => Object.values(counts).reduce((s, c) => s + (c.unread ?? 0), 0), [counts]);
 
   return (
-    <div className="flex flex-col lg:flex-row h-full min-h-[60vh] max-h-[80vh]">
-      {/* Sidebar — Kategorien */}
-      <aside className="lg:w-56 shrink-0 bg-[#1A1D23] border-r border-white/10 flex lg:flex-col overflow-x-auto lg:overflow-x-visible">
-        <div className="hidden lg:block p-4 border-b border-white/10">
-          <h1 className="text-lg font-black text-white">📬 Posteingang</h1>
-          {totalUnread > 0 && <div className="text-[10px] text-[#FFD700] font-black mt-0.5">{totalUnread} ungelesen</div>}
+    <div className="ma365-inbox flex flex-row h-full min-h-[60vh] max-h-[80vh] overflow-hidden">
+      <style jsx global>{`
+        @keyframes ma365-pulse-badge {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,45,120,0.7); }
+          50%      { box-shadow: 0 0 0 6px rgba(255,45,120,0); }
+        }
+        @keyframes ma365-shimmer {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+        @keyframes ma365-slide-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes ma365-glow-active {
+          0%, 100% { box-shadow: inset 3px 0 0 0 #22D1C3, 0 0 12px -2px rgba(34,209,195,0.4); }
+          50%      { box-shadow: inset 3px 0 0 0 #22D1C3, 0 0 18px 0 rgba(34,209,195,0.65); }
+        }
+        .ma365-cat-active { animation: ma365-glow-active 2.4s ease-in-out infinite; }
+        .ma365-badge-pulse { animation: ma365-pulse-badge 1.8s infinite; }
+        .ma365-msg-row { animation: ma365-slide-in 0.25s ease-out backwards; }
+        .ma365-shimmer-wrap { position: relative; overflow: hidden; }
+        .ma365-shimmer-wrap::after {
+          content: ""; position: absolute; inset: 0;
+          background: linear-gradient(105deg, transparent 35%, rgba(34,209,195,0.18) 50%, transparent 65%);
+          animation: ma365-shimmer 3.5s linear infinite;
+          pointer-events: none;
+        }
+        .ma365-cat-btn { transition: background 0.2s, color 0.2s; }
+        .ma365-msg-card { transition: background 0.18s, border-color 0.2s; }
+      `}</style>
+      {/* Sidebar — Kategorien (immer als schmale vertikale Spalte) */}
+      <aside
+        className="flex flex-col w-32 sm:w-44 shrink-0 border-r border-white/10 overflow-hidden"
+        style={{ background: "linear-gradient(180deg, #1A1D23 0%, #14171c 100%)" }}>
+        <div className="hidden sm:block p-3 border-b border-white/10">
+          <h1 className="text-lg font-black text-white flex items-center gap-2">
+            <span>📬</span>
+            <span style={{ color: "#22D1C3", textShadow: "0 0 12px rgba(34,209,195,0.5)" }}>Posteingang</span>
+          </h1>
+          {totalUnread > 0 && (
+            <div className="text-[10px] text-[#FFD700] font-black mt-1 tracking-[1px] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FFD700] ma365-badge-pulse" />
+              {totalUnread} UNGELESEN
+            </div>
+          )}
         </div>
-        <nav className="flex lg:flex-col flex-1 lg:min-h-0 lg:overflow-y-auto">
-          {(Object.keys(CATEGORY_META) as Category[]).map((c) => {
+        <nav className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+          {(Object.keys(CATEGORY_META) as Category[]).map((c, idx) => {
             const meta = CATEGORY_META[c];
             const cnt = counts[c] ?? { total: 0, unread: 0 };
             const active = category === c;
             return (
               <button key={c}
                 onClick={() => { setCategory(c); setSubcategory(null); setSelected(null); }}
-                className={`flex items-center gap-2 px-4 py-3 text-left text-sm font-black transition border-b lg:border-b lg:border-r-0 ${
-                  active ? "bg-[#22D1C3]/15 text-white border-[#22D1C3]" : "text-white/60 hover:text-white border-transparent"
+                style={{ animationDelay: `${idx * 40}ms` }}
+                title={meta.label}
+                className={`ma365-cat-btn ma365-msg-row relative flex items-center gap-2 px-2 sm:px-3 py-3 text-left text-[12px] font-black border-b border-white/5 ${
+                  active ? "ma365-cat-active ma365-shimmer-wrap bg-[#22D1C3]/12 text-white" : "text-white/55 hover:text-white hover:bg-white/5"
                 }`}>
                 <UiIcon slot={meta.slot} fallback={meta.icon} art={uiArt} size={20} />
-                <span className="flex-1">{meta.label}</span>
+                <span className="flex-1 tracking-wide truncate">{meta.label}</span>
                 {cnt.unread > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-[#FF2D78] text-white text-[10px] font-black">
+                  <span className="ma365-badge-pulse min-w-[18px] text-center px-1.5 py-0.5 rounded-full bg-[#FF2D78] text-white text-[9px] font-black">
                     {cnt.unread > 99 ? "99+" : cnt.unread}
                   </span>
                 )}
@@ -163,19 +205,19 @@ export function InboxClient() {
             );
           })}
         </nav>
-        <div className="hidden lg:block p-3 border-t border-white/10 space-y-2">
+        <div className="hidden sm:block p-2 border-t border-white/10 space-y-2">
           {(category === "personal" || category === "crew") && (
             <button onClick={() => setComposerOpen(true)}
-              className="w-full text-[12px] font-black px-3 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115]">
+              className="w-full text-[11px] font-black px-2 py-2 rounded-lg bg-[#22D1C3] text-[#0F1115]">
               ✉️ Neue Nachricht
             </button>
           )}
-          <a href="/dashboard" className="block text-center text-[11px] text-white/50 hover:text-white">← Dashboard</a>
+          <a href="/dashboard" className="block text-center text-[10px] text-white/50 hover:text-white">← Dashboard</a>
         </div>
       </aside>
 
-      {/* Mittlere Spalte — Nachrichtenliste */}
-      <section className="lg:w-80 shrink-0 bg-[#0F1115] border-r border-white/10 flex flex-col max-h-screen">
+      {/* Hauptbereich — zeigt Liste ODER Detail (nicht beides, da Modal-Breite begrenzt) */}
+      <section className={`${selected ? "hidden" : "flex"} flex-1 min-w-0 bg-[#0F1115] flex-col max-h-screen min-h-0`}>
         {/* Header mit Sub-Kategorien */}
         <div className="p-3 border-b border-white/10 shrink-0">
           <div className="flex items-center justify-between mb-2">
@@ -211,31 +253,51 @@ export function InboxClient() {
           {!loading && messages.length === 0 && (
             <div className="p-6 text-center text-[12px] text-white/40">Keine Nachrichten</div>
           )}
-          {messages.map((m) => (
-            <button key={m.id} onClick={() => openMessage(m)}
-              className={`w-full text-left px-3 py-2.5 border-b border-white/5 transition ${
-                selected?.id === m.id ? "bg-[#22D1C3]/15" : "hover:bg-white/5"
-              }`}>
-              <div className="flex items-start gap-2">
-                {!m.read_at && <span className="w-2 h-2 rounded-full bg-[#FF2D78] shrink-0 mt-1.5" />}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className={`text-[12px] truncate ${m.read_at ? "text-white/70" : "text-white font-black"}`}>
-                      {m.title}
-                    </span>
-                    {m.is_starred && <span className="text-[10px] text-[#FFD700]">⭐</span>}
+          {messages.map((m, idx) => {
+            const meta = CATEGORY_META[m.category as Category] ?? CATEGORY_META.system;
+            const isActive = selected?.id === m.id;
+            const isUnread = !m.read_at;
+            return (
+              <button key={m.id} onClick={() => openMessage(m)}
+                style={{ animationDelay: `${Math.min(idx, 12) * 30}ms` }}
+                className={`ma365-msg-card ma365-msg-row w-full text-left px-3 py-3 border-b border-white/5 ${
+                  isActive ? "bg-[#22D1C3]/15 border-l-2 border-l-[#22D1C3]" : "hover:bg-white/5 border-l-2 border-l-transparent"
+                }`}>
+                <div className="flex items-start gap-2.5">
+                  <div className={`relative w-9 h-9 rounded-full shrink-0 flex items-center justify-center ${
+                    isUnread ? "bg-gradient-to-br from-[#22D1C3]/30 to-[#FF2D78]/20 ring-1 ring-[#22D1C3]/50" : "bg-white/5"
+                  }`}>
+                    {m.from_avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.from_avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <UiIcon slot={meta.slot} fallback={meta.icon} art={uiArt} size={18} />
+                    )}
+                    {isUnread && (
+                      <span className="ma365-badge-pulse absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#FF2D78] ring-2 ring-[#0F1115]" />
+                    )}
                   </div>
-                  <div className="text-[10px] text-white/45 truncate mt-0.5">
-                    {m.from_name && m.from_name !== "System" ? `${m.from_name} · ` : ""}
-                    {fmtDate(m.created_at)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[12px] truncate ${isUnread ? "text-white font-black" : "text-white/70"}`}>
+                        {m.title}
+                      </span>
+                      {m.is_starred && <span className="text-[10px] text-[#FFD700] shrink-0">⭐</span>}
+                    </div>
+                    <div className="text-[10px] text-white/45 truncate mt-0.5">
+                      {m.from_name && m.from_name !== "System" ? `${m.from_name} · ` : ""}
+                      {fmtDate(m.created_at)}
+                    </div>
+                    {m.reward_payload && !m.claimed_at && (
+                      <div className="text-[9px] text-[#FFD700] font-black mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#FFD700]/10 border border-[#FFD700]/30">
+                        🎁 Belohnung wartet
+                      </div>
+                    )}
                   </div>
-                  {m.reward_payload && !m.claimed_at && (
-                    <div className="text-[9px] text-[#FFD700] font-black mt-0.5">🎁 Belohnung wartet</div>
-                  )}
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         {/* Footer-Aktionen */}
@@ -251,13 +313,9 @@ export function InboxClient() {
         </div>
       </section>
 
-      {/* Detail-Spalte */}
-      <section className="flex-1 bg-[#0F1115] flex flex-col max-h-screen">
-        {!selected ? (
-          <div className="flex-1 flex items-center justify-center text-[12px] text-white/30">
-            Wähle eine Nachricht
-          </div>
-        ) : (
+      {/* Detail-Spalte (nur sichtbar wenn Nachricht ausgewählt) */}
+      <section className={`${selected ? "flex" : "hidden"} flex-1 min-w-0 bg-[#0F1115] flex-col max-h-screen min-h-0`}>
+        {selected && (
           <MessageDetail
             msg={selected}
             resourceArt={resourceArt}
@@ -289,28 +347,39 @@ function MessageDetail({ msg, resourceArt, uiArt, onClose, onDelete, onStar, onC
 }) {
   return (
     <>
-      <div className="p-4 border-b border-white/10 shrink-0">
-        <div className="flex items-start gap-3">
+      <div className="relative border-b border-white/10 shrink-0 ma365-shimmer-wrap"
+        style={{
+          background: "linear-gradient(135deg, rgba(34,209,195,0.18) 0%, rgba(15,17,21,0.6) 50%, rgba(255,45,120,0.12) 100%)",
+        }}>
+        <div className="p-3 lg:p-4 flex items-start gap-3 relative z-10">
+          <button onClick={onClose}
+            className="shrink-0 w-9 h-9 rounded-full bg-black/40 hover:bg-black/60 text-white text-lg font-black flex items-center justify-center transition"
+            title="Zurück">
+            ←
+          </button>
           {msg.from_avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={msg.from_avatar} alt="" className="w-10 h-10 rounded-full" />
+            <img src={msg.from_avatar} alt="" className="w-11 h-11 lg:w-12 lg:h-12 rounded-full ring-2 ring-[#22D1C3]/40 shrink-0" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-[#22D1C3]/20 flex items-center justify-center">
+            <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-full shrink-0 flex items-center justify-center ring-2 ring-[#22D1C3]/40"
+              style={{ background: "linear-gradient(135deg, rgba(34,209,195,0.35), rgba(255,45,120,0.25))" }}>
               <UiIcon
                 slot={CATEGORY_META[msg.category as Category]?.slot ?? "inbox_fab"}
                 fallback={CATEGORY_META[msg.category as Category]?.icon ?? "📬"}
                 art={uiArt}
-                size={22}
+                size={26}
               />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <div className="text-base font-black text-white leading-tight">{msg.title}</div>
-            <div className="text-[10px] text-white/55 mt-0.5">
-              {msg.from_name ?? "System"} · {fmtDate(msg.created_at)}
+            <div className="text-sm lg:text-base font-black text-white leading-tight break-words">{msg.title}</div>
+            <div className="text-[10px] text-white/60 mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="font-black text-[#22D1C3]">{msg.from_name ?? "System"}</span>
+              <span className="text-white/30">·</span>
+              <span>{fmtDate(msg.created_at)}</span>
+              {msg.is_starred && <span className="text-[#FFD700]">⭐</span>}
             </div>
           </div>
-          <button onClick={onClose} className="text-white/50 text-xl lg:hidden">×</button>
         </div>
       </div>
 

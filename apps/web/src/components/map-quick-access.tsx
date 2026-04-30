@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt, type ResourceArtMap } from "@/components/resource-icon";
 
@@ -10,22 +10,30 @@ const BG = "#0F1115";
 const TEXT = "#F0F0F0";
 const MUTED = "#8B8FA3";
 
+type RallyStatus = "preparing" | "marching" | "fighting";
 type RepeaterRally = {
   rally_id: string; repeater_id: string; kind: "repeater";
+  status: RallyStatus;
   leader_name: string; target_label: string | null;
   target_kind: "hq" | "repeater" | "mega";
   target_lat: number; target_lng: number;
-  prep_ends_at: string; total_atk: number; participants: number;
+  prep_ends_at: string; march_ends_at: string | null;
+  total_atk: number; participants: number;
+  i_joined: boolean; is_leader: boolean;
 };
 type BaseRally = {
   rally_id: string; kind: "base";
+  status: RallyStatus;
   leader_name: string; target_label: string | null;
   target_lat: number; target_lng: number;
-  prep_ends_at: string; total_atk: number; participants: number;
+  prep_ends_at: string; march_ends_at: string | null;
+  total_atk: number; participants: number;
+  i_joined: boolean; is_leader: boolean;
 };
 type Joinable = { repeater: RepeaterRally[]; base: BaseRally[] };
 
-function fmtCountdown(iso: string): string {
+function fmtCountdown(iso: string | null): string {
+  if (!iso) return "—";
   const ms = new Date(iso).getTime() - Date.now();
   if (ms <= 0) return "00:00";
   const s = Math.floor(ms / 1000);
@@ -98,6 +106,22 @@ export function MapQuickAccess({
     });
   }
   const [, setTick] = useState(0);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barRect, setBarRect] = useState<{ left: number; width: number } | null>(null);
+  useEffect(() => {
+    if (!openRallyList) return;
+    const update = () => {
+      const el = barRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setBarRect({ left: r.left, width: r.width });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (barRef.current) ro.observe(barRef.current);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, [openRallyList]);
 
   useEffect(() => {
     const sb = createClient();
@@ -160,6 +184,7 @@ export function MapQuickAccess({
       }}>
         {!collapsed && (
           <div
+            ref={barRef}
             className="ma365-qa-bar"
             style={{
               display: "flex", flexDirection: "row",
@@ -234,18 +259,20 @@ export function MapQuickAccess({
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
-            position: "absolute",
-            right: 8,
+            position: "fixed",
+            left: barRect?.left ?? 8,
+            width: barRect?.width ?? undefined,
+            right: barRect ? undefined : 58,
             bottom: 110,
             zIndex: 9002,
-            width: "min(340px, calc(100vw - 24px))",
             maxHeight: "60vh",
             overflowY: "auto",
-            background: "rgba(15,17,21,0.96)",
-            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(15,17,21,0.55)",
+            border: "1px solid rgba(255,45,120,0.35)",
             borderRadius: 16,
             boxShadow: "0 12px 32px rgba(0,0,0,0.55)",
-            backdropFilter: "blur(14px)",
+            backdropFilter: "blur(14px) saturate(140%)",
+            WebkitBackdropFilter: "blur(14px) saturate(140%)",
             padding: 12,
           }}
         >
@@ -272,33 +299,70 @@ export function MapQuickAccess({
           {rallies.repeater.map((r) => {
             const slot = r.target_kind === "hq" ? "repeater_hq" : r.target_kind === "mega" ? "repeater_mega" : "repeater_normal";
             const fallback = r.target_kind === "hq" ? "🏛" : r.target_kind === "mega" ? "📡" : "📶";
+            const countdownIso = r.status === "preparing" ? r.prep_ends_at : r.march_ends_at;
             return (
               <RallyRow
                 key={r.rally_id}
+                rallyId={r.rally_id}
                 slot={slot}
                 fallback={fallback}
                 art={uiArt}
                 title={r.target_label || "Repeater"}
-                subtitle={`${r.leader_name} · ${r.participants} dabei`}
-                countdown={fmtCountdown(r.prep_ends_at)}
-                onJoin={() => { onJoinRepeaterRally(r.repeater_id); setOpenRallyList(false); }}
+                leaderName={r.leader_name}
+                participants={r.participants}
+                totalAtk={r.total_atk}
+                countdown={fmtCountdown(countdownIso)}
+                status={r.status}
+                joined={r.i_joined}
+                isLeader={r.is_leader}
+                onJoin={r.status === "preparing" && !r.i_joined
+                  ? () => { onJoinRepeaterRally(r.repeater_id); setOpenRallyList(false); }
+                  : undefined}
                 onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
+                onCancel={r.is_leader && r.status === "preparing"
+                  ? async () => {
+                      await fetch(`/api/crews/turf/rally/${r.rally_id}/cancel`, { method: "POST" });
+                      const sb = createClient();
+                      const { data } = await sb.rpc("get_joinable_rallies");
+                      if (data) setRallies(data as Joinable);
+                    }
+                  : undefined}
               />
             );
           })}
-          {rallies.base.map((r) => (
-            <RallyRow
-              key={r.rally_id}
-              slot="quick_base"
-              fallback="🏰"
-              art={uiArt}
-              title={r.target_label || "Spieler-Base"}
-              subtitle={`${r.leader_name} · ${r.participants} dabei`}
-              countdown={fmtCountdown(r.prep_ends_at)}
-              onJoin={() => { onJoinBaseRally(r.rally_id); setOpenRallyList(false); }}
-              onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
-            />
-          ))}
+          {rallies.base.map((r) => {
+            const countdownIso = r.status === "preparing" ? r.prep_ends_at : r.march_ends_at;
+            return (
+              <RallyRow
+                key={r.rally_id}
+                rallyId={r.rally_id}
+                slot="quick_base"
+                fallback="🏰"
+                art={uiArt}
+                title={r.target_label || "Spieler-Base"}
+                leaderName={r.leader_name}
+                participants={r.participants}
+                totalAtk={r.total_atk}
+                countdown={fmtCountdown(countdownIso)}
+                status={r.status}
+                joined={r.i_joined}
+                isLeader={r.is_leader}
+                onJoin={r.status === "preparing" && !r.i_joined
+                  ? () => { onJoinBaseRally(r.rally_id); setOpenRallyList(false); }
+                  : undefined}
+                onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
+                onCancel={r.is_leader && r.status === "preparing"
+                  ? async () => {
+                      if (!confirm("Aufgebot wirklich abbrechen? Alle Truppen werden zurückgegeben.")) return;
+                      await fetch(`/api/base/rally/${r.rally_id}/cancel`, { method: "POST" });
+                      const sb = createClient();
+                      const { data } = await sb.rpc("get_joinable_rallies");
+                      if (data) setRallies(data as Joinable);
+                    }
+                  : undefined}
+              />
+            );
+          })}
         </div>
       )}
     </>
@@ -402,51 +466,221 @@ function QuickButton({
   );
 }
 
+type Participant = {
+  user_id: string; name: string; troops_sent: Record<string, number>;
+  troop_atk: number; joined_at: string; is_leader: boolean;
+};
+
 function RallyRow({
-  slot, fallback, art, title, subtitle, countdown, onJoin, onShow,
+  rallyId, slot, fallback, art, title, leaderName, participants, totalAtk, countdown,
+  status, joined, isLeader, onJoin, onShow, onCancel,
 }: {
+  rallyId: string;
   slot: string; fallback: string; art: ResourceArtMap;
-  title: string; subtitle: string; countdown: string;
-  onJoin: () => void; onShow: () => void;
+  title: string; leaderName: string; participants: number; totalAtk: number; countdown: string;
+  status: "preparing" | "marching" | "fighting";
+  joined: boolean; isLeader: boolean;
+  onJoin?: () => void; onShow: () => void; onCancel?: () => void | Promise<void>;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [parts, setParts] = useState<Participant[] | null>(null);
+  const [busyCancel, setBusyCancel] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [kickingId, setKickingId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!confirmCancel) return;
+    const t = setTimeout(() => setConfirmCancel(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmCancel]);
+
+  const loadParticipants = async () => {
+    const r = await fetch(`/api/crews/turf/rally/${rallyId}/participants`, { cache: "no-store" });
+    if (!r.ok) return;
+    const j = await r.json() as { participants?: Participant[] };
+    setParts(j.participants ?? []);
+  };
+
+  useEffect(() => {
+    if (!expanded || parts !== null) return;
+    void loadParticipants();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
+
+  const kick = async (userId: string) => {
+    if (kickingId) return;
+    if (!confirm("Diesen Teilnehmer aus dem Aufgebot werfen? Die Truppen werden zurückgegeben.")) return;
+    setKickingId(userId);
+    try {
+      const r = await fetch(`/api/crews/turf/rally/${rallyId}/kick`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      if (r.ok) await loadParticipants();
+    } finally {
+      setKickingId(null);
+    }
+  };
+
+  const statusBadge =
+    status === "preparing" ? { label: "SAMMELN",  color: "#FFD700" } :
+    status === "marching"  ? { label: "ANMARSCH", color: "#FF6B4A" } :
+                              { label: "KAMPF",    color: "#FF2D78" };
+
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 10,
       padding: "10px 8px",
       borderBottom: "1px solid rgba(255,255,255,0.06)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28 }}>
-        <UiIcon slot={slot} fallback={fallback} art={art} size={22} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: TEXT, fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {title}
+      {/* Icon links, Title+Info-Spalte mitte, Atk-Block rechts (volle Höhe) */}
+      <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 64, flexShrink: 0, marginLeft: -20, marginTop: -6 }}>
+          <UiIcon slot={slot} fallback={fallback} art={art} size={56} />
         </div>
-        <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-          {subtitle} · ⏱ {countdown}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5 }}>
+          {/* Zeile 1: Titel + ZUM-ZIEL + Angriffskraft */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ minWidth: 0, color: TEXT, fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {title}
+            </div>
+            <button
+              onClick={onShow}
+              style={{
+                padding: "2px 6px", borderRadius: 4,
+                background: `${PRIMARY}1f`,
+                border: `1px solid ${PRIMARY}55`,
+                color: PRIMARY,
+                fontSize: 9, fontWeight: 900, letterSpacing: 0.6, cursor: "pointer",
+                whiteSpace: "nowrap", flexShrink: 0, lineHeight: 1.4,
+              }}
+              title="Karte zentrieren"
+            >📍 ZUM ZIEL</button>
+            <span style={{
+              padding: "2px 6px", borderRadius: 4,
+              background: "rgba(255,107,74,0.12)",
+              border: "1px solid rgba(255,107,74,0.45)",
+              color: "#FF6B4A",
+              fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
+              whiteSpace: "nowrap", flexShrink: 0, lineHeight: 1.4,
+              fontVariantNumeric: "tabular-nums",
+            }} title="Gesamt-Angriffskraft des Aufgebots">⚔ {totalAtk.toLocaleString("de-DE")}</span>
+          </div>
+          {/* Zeile 2: Leader · N dabei · Countdown · Status */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: MUTED, fontSize: 11, flexWrap: "wrap" }}>
+            <span style={{ color: TEXT, fontWeight: 700 }}>{leaderName}</span>
+            <span>·</span>
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              style={{
+                background: "transparent", border: "none", padding: 0,
+                color: PRIMARY, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                textDecoration: "underline", textUnderlineOffset: 2,
+              }}
+              title={expanded ? "Zuklappen" : "Teilnehmer anzeigen"}
+            >
+              {participants} dabei {expanded ? "▲" : "▼"}
+            </button>
+            <span>·</span>
+            <span style={{ color: TEXT, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>⏱ {countdown}</span>
+            <span style={{
+              fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
+              color: statusBadge.color,
+              padding: "2px 6px", borderRadius: 4,
+              background: `${statusBadge.color}1f`, border: `1px solid ${statusBadge.color}55`,
+              whiteSpace: "nowrap", lineHeight: 1.4,
+            }}>{statusBadge.label}</span>
+            {onCancel && (
+              <button
+                onClick={async () => {
+                  if (busyCancel) return;
+                  if (!confirmCancel) { setConfirmCancel(true); return; }
+                  setBusyCancel(true);
+                  try { await onCancel(); } finally { setBusyCancel(false); setConfirmCancel(false); }
+                }}
+                disabled={busyCancel}
+                title={confirmCancel ? "Nochmal klicken zum Bestätigen" : "Aufgebot abbrechen (Truppen zurück)"}
+                style={{
+                  fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
+                  color: confirmCancel ? "#FFF" : "#FF6B9A",
+                  padding: "2px 6px", borderRadius: 4,
+                  background: confirmCancel ? "rgba(255,45,120,0.85)" : "rgba(255,45,120,0.12)",
+                  border: `1px solid ${confirmCancel ? "rgba(255,45,120,1)" : "rgba(255,45,120,0.5)"}`,
+                  whiteSpace: "nowrap", cursor: busyCancel ? "wait" : "pointer",
+                  opacity: busyCancel ? 0.5 : 1, lineHeight: 1.4,
+                  boxShadow: confirmCancel ? "0 0 8px rgba(255,45,120,0.6)" : "none",
+                  transition: "background 0.15s, color 0.15s, box-shadow 0.15s",
+                }}
+              >{busyCancel ? "…" : confirmCancel ? "✕ BESTÄTIGEN?" : "✕ ABBRECHEN"}</button>
+            )}
+          </div>
         </div>
       </div>
-      <button
-        onClick={onShow}
-        style={{
-          padding: "6px 10px", borderRadius: 10,
-          background: `${PRIMARY}22`,
-          border: `1px solid ${PRIMARY}`,
-          color: PRIMARY,
-          fontSize: 11, fontWeight: 800, cursor: "pointer",
-        }}
-      >Map</button>
-      <button
-        onClick={onJoin}
-        style={{
-          padding: "6px 12px", borderRadius: 10,
-          background: `linear-gradient(135deg, ${ACCENT}, #FF6B4A)`,
-          border: "none",
-          color: "#FFF",
-          fontSize: 11, fontWeight: 900, cursor: "pointer",
-          boxShadow: `0 4px 12px ${ACCENT}66`,
-        }}
-      >Beitreten</button>
+
+      {/* Zeile 3: Aktions-Buttons (nur wenn relevant) */}
+
+
+      {/* Aktions-Zeile: nur Beitreten (Abbrechen wandert als Mini-Badge in Zeile 2) */}
+      {onJoin && (
+        <div style={{ display: "flex", gap: 6, marginTop: 8, marginLeft: 54 }}>
+          <button
+            onClick={onJoin}
+            style={{
+              flex: 1, padding: "6px 12px", borderRadius: 10,
+              background: `linear-gradient(135deg, ${ACCENT}, #FF6B4A)`,
+              border: "none", color: "#FFF",
+              fontSize: 11, fontWeight: 900, cursor: "pointer",
+              boxShadow: `0 4px 12px ${ACCENT}66`,
+            }}
+          >Beitreten</button>
+        </div>
+      )}
+
+      {/* Aufgeklappte Teilnehmer-Liste */}
+      {expanded && (
+        <div style={{
+          marginTop: 8, marginLeft: 36, padding: 8,
+          background: "rgba(0,0,0,0.25)", borderRadius: 8,
+          border: "1px solid rgba(255,255,255,0.05)",
+        }}>
+          {parts === null && <div style={{ color: MUTED, fontSize: 11, textAlign: "center", padding: 8 }}>Lade…</div>}
+          {parts !== null && parts.length === 0 && <div style={{ color: MUTED, fontSize: 11, textAlign: "center", padding: 8 }}>Keine Teilnehmer.</div>}
+          {parts !== null && parts.map((p) => {
+            const total = Object.values(p.troops_sent ?? {}).reduce((s, n) => s + (n ?? 0), 0);
+            const canKick = isLeader && status === "preparing" && !p.is_leader;
+            return (
+              <div key={p.user_id} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "4px 0", fontSize: 11,
+                borderBottom: "1px dashed rgba(255,255,255,0.05)",
+              }}>
+                <span style={{ color: p.is_leader ? "#FFD700" : TEXT, fontWeight: 800, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.is_leader ? "👑 " : ""}{p.name}
+                </span>
+                <span style={{ color: MUTED, fontVariantNumeric: "tabular-nums" }}>
+                  {total.toLocaleString("de-DE")} Trp.
+                </span>
+                <span style={{ color: "#FF6B4A", fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                  {p.troop_atk.toLocaleString("de-DE")} Atk
+                </span>
+                {canKick && (
+                  <button
+                    onClick={() => void kick(p.user_id)}
+                    disabled={kickingId === p.user_id}
+                    title="Teilnehmer auswerfen"
+                    style={{
+                      padding: "2px 7px", borderRadius: 4,
+                      background: "rgba(255,45,120,0.12)",
+                      border: "1px solid rgba(255,45,120,0.4)",
+                      color: "#FF6B9A",
+                      fontSize: 10, fontWeight: 900, cursor: kickingId === p.user_id ? "wait" : "pointer",
+                      opacity: kickingId === p.user_id ? 0.5 : 1,
+                    }}
+                  >{kickingId === p.user_id ? "…" : "✕"}</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
