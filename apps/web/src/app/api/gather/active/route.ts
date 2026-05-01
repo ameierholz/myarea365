@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -8,23 +7,13 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/gather/active
  * Liefert alle aktiven Plünder-Märsche des aktuellen Users (marching/gathering/returning).
- * Tickt vor dem Lesen den globalen March-Lifecycle (Status-Übergänge + Inbox-Reports).
+ * Lifecycle-Tick läuft jetzt zentral via pg_cron alle 10s (Job ma365-tick-gather-marches),
+ * NICHT mehr beim Lesen — entlastet die DB bei vielen gleichzeitigen Polls.
  */
 export async function GET() {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ marches: [] });
-
-  // Tick: marching → gathering → returning → completed (mit Inbox-Insert).
-  // Nutzt Service-Role weil tick_gather_marches() nur service_role darf.
-  try {
-    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const srk = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (url && srk) {
-      const admin = createAdminClient(url, srk, { auth: { persistSession: false } });
-      await admin.rpc("tick_gather_marches");
-    }
-  } catch { /* tick darf nicht den Read blockieren */ }
 
   const { data, error } = await sb
     .from("gather_marches")

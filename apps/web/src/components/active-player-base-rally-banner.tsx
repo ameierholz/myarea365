@@ -17,6 +17,9 @@ export type PlayerBaseRallyState = {
   total_atk: number;
   participants: number;
   joined: boolean;
+  leader_base_lat?: number | null;
+  leader_base_lng?: number | null;
+  route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null;
 };
 
 export function ActivePlayerBaseRallyBanner({ rally, onOpen }: {

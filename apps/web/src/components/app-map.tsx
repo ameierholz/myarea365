@@ -533,6 +533,9 @@ interface AppMapProps {
   onShopClick?: (shopId: string) => void;
   overviewMode?: boolean;
   recenterAt?: number;
+  /** Position der eigenen Base (Runner) — wird beim Map-Init als Fokus genutzt
+   *  (statt FALLBACK-Berlin oder erste GPS-Position). */
+  ownBasePos?: { lat: number; lng: number } | null;
   lightPreset?: "dawn" | "day" | "dusk" | "night" | "auto";
   supporterTier?: "bronze" | "silver" | "gold" | null;
   equippedTrail?: string | null;
@@ -585,6 +588,24 @@ interface AppMapProps {
     from_lat: number; from_lng: number;
     target_lat: number; target_lng: number;
     defender_name?: string | null;
+    route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null;
+  }>;
+  /**
+   * Aktive Crew-Aufgebote (alle drei Typen) — werden als Marsch-Linie + Sprite
+   * gerendert. Phase 'preparing' versteckt (Truppen sammeln), 'marching' zeigt
+   * animiertes Sprite das vom Leader-Base-Origin zum Ziel läuft, 'fighting'
+   * setzt Sprite ans Ziel.
+   */
+  activeRallyMarches?: Array<{
+    id: string;
+    kind: "crew_repeater" | "player_base" | "stronghold";
+    status: "preparing" | "marching" | "fighting";
+    prep_ends_at: string; march_ends_at: string | null;
+    origin_lat: number | null; origin_lng: number | null;
+    target_lat: number; target_lng: number;
+    target_label?: string | null;
+    leader_name?: string | null;
+    crew_tag?: string | null;
     route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null;
   }>;
   onLootClick?: (dropId: string) => void;
@@ -927,6 +948,7 @@ export function AppMap({
   onShopClick,
   overviewMode = false,
   recenterAt,
+  ownBasePos,
   lightPreset = "auto",
   supporterTier = null,
   equippedTrail = null,
@@ -959,6 +981,7 @@ export function AppMap({
   onViewportChange,
   gatherMarches = [],
   activeScouts = [],
+  activeRallyMarches = [],
   onPowerZoneClick,
   onLootClick,
   routeGeometry = null,
@@ -1260,16 +1283,33 @@ export function AppMap({
     };
   }, [handlePosition]);
 
+  // Initial-Fokus auf Runner-Base statt FALLBACK-Berlin / GPS. Greift einmalig
+  // sobald Map ready UND ownBasePos bekannt — auch wenn ownBasePos erst nach
+  // Map-Init nachgeladen wird (typisch beim ersten Reload mit kaltem Cache).
+  const basePosFocusedRef = useRef(false);
+  useEffect(() => {
+    if (!mapReady || basePosFocusedRef.current) return;
+    if (!ownBasePos) return;
+    const map = mapRef.current;
+    if (!map) return;
+    map.jumpTo({ center: [ownBasePos.lng, ownBasePos.lat], zoom: 17 });
+    basePosFocusedRef.current = true;
+    locatedRef.current = true; // verhindert dass GPS uns sofort wegträgt
+  }, [mapReady, ownBasePos]);
+
   // Recenter (expliziter Klick) → Auto-Follow wieder aktivieren.
-  // Dep: NUR recenterAt (nicht pos), sonst fliegt die Karte bei jedem GPS-Update.
+  // Priorität: Runner-Base (ownBasePos) > GPS-Position. Dep: NUR recenterAt
+  // (nicht pos/ownBasePos), sonst fliegt die Karte bei jedem GPS-Update.
   const posRef = useRef(pos);
   useEffect(() => { posRef.current = pos; }, [pos]);
+  const ownBasePosRef = useRef(ownBasePos);
+  useEffect(() => { ownBasePosRef.current = ownBasePos; }, [ownBasePos]);
   useEffect(() => {
     if (!mapReady || !recenterAt) return;
-    const p = posRef.current;
-    if (!p) return;
+    const target = ownBasePosRef.current ?? posRef.current;
+    if (!target) return;
     userInteractedRef.current = false;
-    mapRef.current?.flyTo({ center: [p.lng, p.lat], zoom: 17, pitch: 50, duration: 900 });
+    mapRef.current?.flyTo({ center: [target.lng, target.lat], zoom: 17, pitch: 50, duration: 900 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterAt, mapReady]);
 
@@ -4845,9 +4885,10 @@ export function AppMap({
       return { lng, lat, bearing };
     };
 
-    const buildScoutEl = (label: string | null): HTMLDivElement => {
+    const buildScoutEl = (label: string | null, phase: "marching" | "scouting" | "returning"): HTMLDivElement => {
       const wrap = document.createElement("div");
       wrap.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;pointer-events:none;will-change:transform;";
+      wrap.dataset.phase = phase;
       if (label) {
         const lbl = document.createElement("div");
         lbl.style.cssText = "padding:1px 6px;border-radius:4px;background:rgba(15,17,21,0.92);color:#22D1C3;font-size:9px;font-weight:700;border:1px solid rgba(34,209,195,0.7);white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;";
@@ -4856,8 +4897,20 @@ export function AppMap({
       }
       const sprite = document.createElement("div");
       sprite.className = "ma365-scout-sprite";
-      sprite.style.cssText = "font-size:22px;line-height:1;filter:drop-shadow(0 0 6px rgba(34,209,195,0.85)) drop-shadow(0 2px 4px rgba(0,0,0,0.6));";
-      sprite.textContent = "🔍";
+      const baseStyle = "filter:drop-shadow(0 0 6px rgba(34,209,195,0.85)) drop-shadow(0 2px 4px rgba(0,0,0,0.6));transform-origin:center;";
+      // Phase-spezifisches Artwork wenn vorhanden, sonst Emoji-Fallback
+      const slotName = phase === "scouting" ? "scout_scouting" : phase === "returning" ? "scout_returning" : "scout_marching";
+      const art = uiIconArtRef.current[slotName];
+      if (art?.video_url) {
+        sprite.style.cssText = `width:32px;height:32px;${baseStyle}`;
+        sprite.innerHTML = `<video src="${art.video_url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"></video>`;
+      } else if (art?.image_url) {
+        sprite.style.cssText = `width:32px;height:32px;${baseStyle}`;
+        sprite.innerHTML = `<img src="${art.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)" />`;
+      } else {
+        sprite.style.cssText = `font-size:22px;line-height:1;${baseStyle}`;
+        sprite.textContent = phase === "scouting" ? "👁" : "🔍";
+      }
       wrap.appendChild(sprite);
       return wrap;
     };
@@ -4929,14 +4982,14 @@ export function AppMap({
         let marker = scoutMarkers.get(s.id);
         const label = s.defender_name ?? null;
         if (!marker) {
-          const el = buildScoutEl(label);
+          const el = buildScoutEl(label, phase);
           el.dataset.label = label ?? "";
           marker = new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
           scoutMarkers.set(s.id, marker);
         } else {
           const el = marker.getElement();
-          if (el.dataset.label !== (label ?? "")) {
-            const fresh = buildScoutEl(label);
+          if (el.dataset.label !== (label ?? "") || el.dataset.phase !== phase) {
+            const fresh = buildScoutEl(label, phase);
             fresh.dataset.label = label ?? "";
             marker.remove();
             marker = new mapboxgl.Marker({ element: fresh, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
@@ -4974,6 +5027,262 @@ export function AppMap({
       scoutMarkers.forEach((m) => m.remove());
       scoutMarkers.clear();
       try {
+        if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
+        if (map.getLayer(LYR_LINE + "-casing")) map.removeLayer(LYR_LINE + "-casing");
+        if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);
+        if (map.getSource(SRC)) map.removeSource(SRC);
+      } catch { /* cleanup race */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]);
+
+  // ── Rally-Märsche (Crew-Repeater / Player-Base / Stronghold) ──
+  // Phasen-Verhalten:
+  //  - preparing: keine Linie/Sprite (Truppen sammeln noch)
+  //  - marching:  Linie origin→target, Sprite läuft entlang Route
+  //  - fighting:  Sprite am Ziel (kein Marsch mehr)
+  // Farbe je nach Typ: pink für player_base (PvP), orange für crew_repeater,
+  // gelb für stronghold (Wegelager/PvE).
+  const activeRallyMarchesRef = useRef(activeRallyMarches);
+  useEffect(() => { activeRallyMarchesRef.current = activeRallyMarches; }, [activeRallyMarches]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const SRC = "ma365-rally-marches";
+    const LYR_LINE = "ma365-rally-line";
+    const LYR_GLOW = "ma365-rally-glow";
+    type RallyMarch = NonNullable<typeof activeRallyMarches>[number];
+    type RouteCache = { coords: Array<[number, number]>; cumDist: number[]; total: number };
+    const routeCache = new Map<string, RouteCache>();
+    const fetchedIds = new Set<string>();
+    const markers = new Map<string, mapboxgl.Marker>();
+
+    const colorFor = (kind: RallyMarch["kind"]) =>
+      kind === "player_base" ? "#FF2D78" : kind === "crew_repeater" ? "#FF6B4A" : "#FFD700";
+
+    const ensureLayers = () => {
+      if (!map.getSource(SRC)) {
+        map.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        map.addLayer({
+          id: LYR_GLOW, type: "line", source: SRC,
+          paint: { "line-color": ["coalesce", ["get", "color"], "#FF2D78"], "line-width": 14, "line-opacity": 0.22, "line-blur": 10 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: LYR_LINE + "-casing", type: "line", source: SRC,
+          paint: { "line-color": "#1a1a1a", "line-width": 6, "line-opacity": 0.85 },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: LYR_LINE, type: "line", source: SRC,
+          paint: {
+            "line-color": ["coalesce", ["get", "color"], "#FF2D78"],
+            "line-width": 3.5,
+            "line-opacity": 1,
+            "line-dasharray": [0, 4, 3],
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+        map.addLayer({
+          id: LYR_LINE + "-arrows", type: "symbol", source: SRC,
+          layout: {
+            "symbol-placement": "line", "symbol-spacing": 90,
+            "text-field": "▶", "text-size": 13, "text-keep-upright": false,
+            "text-rotation-alignment": "map", "text-pitch-alignment": "map",
+            "text-allow-overlap": true, "text-ignore-placement": true, "text-padding": 2,
+          },
+          paint: {
+            "text-color": "#1a1a1a",
+            "text-halo-color": ["coalesce", ["get", "color"], "#FF2D78"],
+            "text-halo-width": 1.5,
+          },
+        });
+      }
+    };
+
+    const haversine = (a: [number, number], b: [number, number]) => {
+      const R = 6371000;
+      const lat1 = (a[1] * Math.PI) / 180; const lat2 = (b[1] * Math.PI) / 180;
+      const dLat = lat2 - lat1; const dLng = ((b[0] - a[0]) * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+    const computeCum = (coords: Array<[number, number]>) => {
+      const cum = [0]; let total = 0;
+      for (let i = 1; i < coords.length; i++) { total += haversine(coords[i - 1], coords[i]); cum.push(total); }
+      return { cumDist: cum, total };
+    };
+    const makeStraight = (from: [number, number], to: [number, number]): RouteCache => {
+      const coords: Array<[number, number]> = [[from[1], from[0]], [to[1], to[0]]];
+      const { cumDist, total } = computeCum(coords);
+      return { coords, cumDist, total };
+    };
+    const fetchRoute = async (id: string, from: [number, number], to: [number, number]) => {
+      if (fetchedIds.has(id)) return;
+      fetchedIds.add(id);
+      try {
+        const r = await fetch(`/api/route?from=${from[1]},${from[0]}&to=${to[1]},${to[0]}`, { cache: "no-store" });
+        if (!r.ok) { routeCache.set(id, makeStraight(from, to)); return; }
+        const j = await r.json() as { ok?: boolean; geometry?: { coordinates: Array<[number, number]> } };
+        if (!j.ok || !j.geometry?.coordinates?.length) { routeCache.set(id, makeStraight(from, to)); return; }
+        const coords = j.geometry.coordinates;
+        const { cumDist, total } = computeCum(coords);
+        routeCache.set(id, { coords, cumDist, total });
+      } catch { routeCache.set(id, makeStraight(from, to)); }
+    };
+    const interpolate = (rt: RouteCache, t: number) => {
+      if (rt.coords.length < 2) return null;
+      const target = Math.max(0, Math.min(1, t)) * rt.total;
+      const cum = rt.cumDist;
+      let lo = 0, hi = cum.length - 1;
+      while (lo + 1 < hi) { const mid = (lo + hi) >> 1; if (cum[mid] <= target) lo = mid; else hi = mid; }
+      const segLen = cum[hi] - cum[lo] || 1;
+      const segT = (target - cum[lo]) / segLen;
+      const a = rt.coords[lo]; const b = rt.coords[hi];
+      const lng = a[0] + (b[0] - a[0]) * segT;
+      const lat = a[1] + (b[1] - a[1]) * segT;
+      const dx = b[0] - a[0]; const dy = b[1] - a[1];
+      const bearing = Math.atan2(dx, dy) * (180 / Math.PI);
+      return { lng, lat, bearing };
+    };
+
+    const buildMarkerEl = (m: RallyMarch): HTMLDivElement => {
+      const wrap = document.createElement("div");
+      wrap.style.cssText = "position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;pointer-events:none;will-change:transform;";
+      const color = colorFor(m.kind);
+      const labelText = m.crew_tag ? `[${m.crew_tag}] ${m.leader_name ?? ""}`.trim() : (m.leader_name ?? "");
+      if (labelText) {
+        const lbl = document.createElement("div");
+        lbl.style.cssText = `padding:1px 6px;border-radius:4px;background:rgba(15,17,21,0.92);color:${color};font-size:9px;font-weight:700;border:1px solid ${color}aa;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;`;
+        lbl.textContent = labelText;
+        wrap.appendChild(lbl);
+      }
+      const sprite = document.createElement("div");
+      sprite.className = "ma365-rally-sprite";
+      const baseStyle = `filter:drop-shadow(0 0 6px ${color}cc) drop-shadow(0 2px 4px rgba(0,0,0,0.6));transform-origin:center;`;
+      // Typ-spezifisches Artwork: rally_march_pvp / rally_march_attacker / rally_march_stronghold
+      const slotName = m.kind === "player_base" ? "rally_march_pvp"
+                     : m.kind === "stronghold" ? "rally_march_stronghold"
+                     : "rally_march_attacker";
+      const art = uiIconArtRef.current[slotName];
+      if (art?.video_url) {
+        sprite.style.cssText = `width:34px;height:34px;${baseStyle}`;
+        sprite.innerHTML = `<video src="${art.video_url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"></video>`;
+      } else if (art?.image_url) {
+        sprite.style.cssText = `width:34px;height:34px;${baseStyle}`;
+        sprite.innerHTML = `<img src="${art.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)" />`;
+      } else {
+        sprite.style.cssText = `font-size:24px;line-height:1;${baseStyle}`;
+        sprite.textContent = "⚔";
+      }
+      wrap.appendChild(sprite);
+      return wrap;
+    };
+
+    ensureLayers();
+
+    let raf = 0;
+    let lastHash = "";
+    const dashSeq: Array<[number, number, number]> = [
+      [0, 4, 3], [1, 4, 2], [2, 4, 1], [3, 4, 0],
+    ];
+    let dashIdx = 0; let dashFrameCount = 0;
+
+    const renderFrame = () => {
+      const now = Date.now();
+      const lineFeatures: GeoJSON.Feature[] = [];
+      const marches = activeRallyMarchesRef.current ?? [];
+
+      for (const m of marches) {
+        if (m.status !== "marching" && m.status !== "fighting") continue;
+        if (m.origin_lat == null || m.origin_lng == null) continue;
+        const from: [number, number] = [m.origin_lat, m.origin_lng];
+        const to:   [number, number] = [m.target_lat, m.target_lng];
+
+        if (!routeCache.has(m.id)) {
+          if (m.route_geom_json?.coordinates?.length) {
+            const coords = m.route_geom_json.coordinates;
+            const { cumDist, total } = computeCum(coords);
+            routeCache.set(m.id, { coords, cumDist, total });
+          } else {
+            routeCache.set(m.id, makeStraight(from, to));
+            if (!fetchedIds.has(m.id)) void fetchRoute(m.id, from, to);
+          }
+        }
+        const rt = routeCache.get(m.id);
+        if (!rt) continue;
+
+        let pos: { lng: number; lat: number; bearing: number } | null;
+        let progress = 0;
+        if (m.status === "marching" && m.march_ends_at) {
+          const start = new Date(m.prep_ends_at).getTime();
+          const end = new Date(m.march_ends_at).getTime();
+          const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
+          progress = t;
+          pos = interpolate(rt, t);
+        } else {
+          progress = 1;
+          pos = { lng: rt.coords[rt.coords.length - 1][0], lat: rt.coords[rt.coords.length - 1][1], bearing: 0 };
+        }
+        if (!pos) continue;
+
+        // Linie: vom Sprite bis zum Ziel
+        const cutoffDist = progress * rt.total;
+        const lineCoords: [number, number][] = [[pos.lng, pos.lat]];
+        for (let i = 0; i < rt.coords.length; i++) if (rt.cumDist[i] > cutoffDist) lineCoords.push(rt.coords[i]);
+        if (lineCoords.length >= 2) {
+          lineFeatures.push({
+            type: "Feature",
+            properties: { id: m.id, color: colorFor(m.kind) },
+            geometry: { type: "LineString", coordinates: lineCoords },
+          });
+        }
+
+        let marker = markers.get(m.id);
+        if (!marker) {
+          const el = buildMarkerEl(m);
+          marker = new mapboxgl.Marker({ element: el, anchor: "bottom" }).setLngLat([pos.lng, pos.lat]).addTo(map);
+          markers.set(m.id, marker);
+        } else {
+          marker.setLngLat([pos.lng, pos.lat]);
+          const sprite = marker.getElement().querySelector(".ma365-rally-sprite") as HTMLElement | null;
+          if (sprite && m.status === "marching") sprite.style.transform = `rotate(${pos.bearing.toFixed(0)}deg)`;
+        }
+      }
+
+      const hash = lineFeatures.map((f) => {
+        const c = (f.geometry as unknown as { coordinates: [number, number][] }).coordinates;
+        const props = f.properties as { id: string };
+        return `${props.id}:${c.length}:${c[0]?.[0].toFixed(3)}:${c[0]?.[1].toFixed(3)}`;
+      }).join("|");
+      if (hash !== lastHash) {
+        lastHash = hash;
+        const src = map.getSource(SRC) as mapboxgl.GeoJSONSource | undefined;
+        if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
+      }
+
+      dashFrameCount++;
+      if (dashFrameCount >= 18 && lineFeatures.length > 0) {
+        dashFrameCount = 0;
+        dashIdx = (dashIdx + 1) % dashSeq.length;
+        try { map.setPaintProperty(LYR_LINE, "line-dasharray", dashSeq[dashIdx]); } catch { /* layer evtl. weg */ }
+      }
+
+      const activeIds = new Set(marches.filter((x) => x.status === "marching" || x.status === "fighting").map((x) => x.id));
+      for (const [id, mk] of markers) {
+        if (!activeIds.has(id)) { mk.remove(); markers.delete(id); }
+      }
+
+      raf = requestAnimationFrame(renderFrame);
+    };
+    raf = requestAnimationFrame(renderFrame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      markers.forEach((m) => m.remove());
+      markers.clear();
+      try {
+        if (map.getLayer(LYR_LINE + "-arrows")) map.removeLayer(LYR_LINE + "-arrows");
         if (map.getLayer(LYR_LINE)) map.removeLayer(LYR_LINE);
         if (map.getLayer(LYR_LINE + "-casing")) map.removeLayer(LYR_LINE + "-casing");
         if (map.getLayer(LYR_GLOW)) map.removeLayer(LYR_GLOW);

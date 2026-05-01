@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { fetchWalkingRoute } from "@/lib/mapbox-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export async function POST(req: Request) {
   const body = await req.json() as StartBody | JoinBody | ResolveBody;
 
   if (body.action === "start") {
+    const { data: { user } } = await sb.auth.getUser();
     const { data, error } = await sb.rpc("start_rally", {
       p_stronghold_id: body.stronghold_id,
       p_prep_seconds:  body.prep_seconds,
@@ -29,6 +31,25 @@ export async function POST(req: Request) {
       p_troops:        body.troops,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    const rallyResult = data as { ok?: boolean; rally_id?: string };
+    if (user && rallyResult?.ok && rallyResult.rally_id) {
+      try {
+        const [{ data: myBase }, { data: sh }] = await Promise.all([
+          sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+          sb.from("strongholds").select("lat, lng").eq("id", body.stronghold_id).maybeSingle<{ lat: number; lng: number }>(),
+        ]);
+        if (myBase && sh) {
+          const route = await fetchWalkingRoute(myBase.lat, myBase.lng, sh.lat, sh.lng);
+          await sb.rpc("enrich_rally_with_route", {
+            p_kind: "stronghold",
+            p_rally_id: rallyResult.rally_id,
+            p_route_distance_m: route?.distance_m ?? null,
+            p_route_geom_geojson: route?.geometry ?? null,
+          });
+        }
+      } catch { /* enrich optional */ }
+    }
     return NextResponse.json(data);
   }
 

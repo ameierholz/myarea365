@@ -25,12 +25,25 @@ type BaseRally = {
   rally_id: string; kind: "base";
   status: RallyStatus;
   leader_name: string; target_label: string | null;
+  target_avatar_url: string | null;
+  target_pin_theme: string | null;
   target_lat: number; target_lng: number;
   prep_ends_at: string; march_ends_at: string | null;
   total_atk: number; participants: number;
   i_joined: boolean; is_leader: boolean;
 };
-type Joinable = { repeater: RepeaterRally[]; base: BaseRally[] };
+type StrongholdRally = {
+  rally_id: string; kind: "stronghold";
+  status: RallyStatus;
+  stronghold_id: string;
+  leader_name: string; target_label: string | null;
+  target_lat: number; target_lng: number;
+  target_level?: number | null;
+  prep_ends_at: string; march_ends_at: string | null;
+  total_atk: number; participants: number;
+  i_joined: boolean; is_leader: boolean;
+};
+type Joinable = { repeater: RepeaterRally[]; base: BaseRally[]; stronghold: StrongholdRally[] };
 
 function fmtCountdown(iso: string | null): string {
   if (!iso) return "—";
@@ -83,7 +96,7 @@ export function MapQuickAccess({
   profileIcon?: { image_url: string | null; video_url: string | null } | null;
 }) {
   const [enabled, setEnabled] = useState(true);
-  const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [] });
+  const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [], stronghold: [] });
   const [openRallyList, setOpenRallyList] = useState(false);
   const uiArt = useUiIconArt();
   // SSR-sicher: starte immer mit false, hydratisiere dann clientseitig.
@@ -151,7 +164,7 @@ export function MapQuickAccess({
 
   if (!enabled) return null;
 
-  const rallyTotal = rallies.repeater.length + rallies.base.length;
+  const rallyTotal = rallies.repeater.length + rallies.base.length + rallies.stronghold.length;
 
   // Kurz halten — passt in 60er-Tiles und bleibt lesbar.
   // Icons kommen aus dem Artwork-System (cosmetic_artwork kind=ui_icon),
@@ -339,6 +352,7 @@ export function MapQuickAccess({
                 slot="quick_base"
                 fallback="🏰"
                 art={uiArt}
+                avatarUrl={r.target_avatar_url}
                 title={r.target_label || "Spieler-Base"}
                 leaderName={r.leader_name}
                 participants={r.participants}
@@ -355,6 +369,44 @@ export function MapQuickAccess({
                   ? async () => {
                       if (!confirm("Aufgebot wirklich abbrechen? Alle Truppen werden zurückgegeben.")) return;
                       await fetch(`/api/base/rally/${r.rally_id}/cancel`, { method: "POST" });
+                      const sb = createClient();
+                      const { data } = await sb.rpc("get_joinable_rallies");
+                      if (data) setRallies(data as Joinable);
+                    }
+                  : undefined}
+              />
+            );
+          })}
+          {rallies.stronghold.map((r) => {
+            const countdownIso = r.status === "preparing" ? r.prep_ends_at : r.march_ends_at;
+            return (
+              <RallyRow
+                key={r.rally_id}
+                rallyId={r.rally_id}
+                slot="stronghold_pin"
+                fallback="🏚"
+                art={uiArt}
+                title={`${r.target_label ?? "Wegelager"}${r.target_level ? ` Lv ${r.target_level}` : ""}`}
+                leaderName={r.leader_name}
+                participants={r.participants}
+                totalAtk={r.total_atk}
+                countdown={fmtCountdown(countdownIso)}
+                status={r.status}
+                joined={r.i_joined}
+                isLeader={r.is_leader}
+                onJoin={r.status === "preparing" && !r.i_joined
+                  ? () => {
+                      // Map-Dashboard fängt das Event und öffnet das Stronghold-Modal
+                      window.dispatchEvent(new CustomEvent("ma365:open-stronghold", {
+                        detail: { strongholdId: r.stronghold_id, lat: r.target_lat, lng: r.target_lng },
+                      }));
+                      setOpenRallyList(false);
+                    }
+                  : undefined}
+                onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
+                onCancel={r.is_leader && r.status === "preparing"
+                  ? async () => {
+                      await fetch(`/api/rally/${r.rally_id}/cancel`, { method: "POST" });
                       const sb = createClient();
                       const { data } = await sb.rpc("get_joinable_rallies");
                       if (data) setRallies(data as Joinable);
@@ -472,11 +524,12 @@ type Participant = {
 };
 
 function RallyRow({
-  rallyId, slot, fallback, art, title, leaderName, participants, totalAtk, countdown,
+  rallyId, slot, fallback, art, avatarUrl, title, leaderName, participants, totalAtk, countdown,
   status, joined, isLeader, onJoin, onShow, onCancel,
 }: {
   rallyId: string;
   slot: string; fallback: string; art: ResourceArtMap;
+  avatarUrl?: string | null;
   title: string; leaderName: string; participants: number; totalAtk: number; countdown: string;
   status: "preparing" | "marching" | "fighting";
   joined: boolean; isLeader: boolean;
@@ -534,7 +587,16 @@ function RallyRow({
       {/* Icon links, Title+Info-Spalte mitte, Atk-Block rechts (volle Höhe) */}
       <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 64, flexShrink: 0, marginLeft: -20, marginTop: -6 }}>
-          <UiIcon slot={slot} fallback={fallback} art={art} size={56} />
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" style={{
+              width: 56, height: 56, borderRadius: "50%", objectFit: "cover",
+              border: `2px solid ${ACCENT}66`,
+              boxShadow: `0 0 8px ${ACCENT}55`,
+            }} />
+          ) : (
+            <UiIcon slot={slot} fallback={fallback} art={art} size={56} />
+          )}
         </div>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5 }}>
           {/* Zeile 1: Titel + ZUM-ZIEL + Angriffskraft */}
@@ -614,9 +676,6 @@ function RallyRow({
           </div>
         </div>
       </div>
-
-      {/* Zeile 3: Aktions-Buttons (nur wenn relevant) */}
-
 
       {/* Aktions-Zeile: nur Beitreten (Abbrechen wandert als Mini-Badge in Zeile 2) */}
       {onJoin && (

@@ -13,16 +13,14 @@ export async function GET(req: Request) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return NextResponse.json({ error: "invalid_coords" }, { status: 400 });
   }
-  // Defeated Strongholds, deren respawn_at abgelaufen ist, wiederbeleben.
-  // Cheap (DB-seitiges Update auf indizierter Spalte) — sorgt dafür dass die
-  // Welt ohne externe Cron-Jobs am Leben bleibt.
-  await sb.rpc("respawn_due_strongholds");
+  // Respawn jetzt zentral via pg_cron (ma365-respawn-strongholds, jede Minute) —
+  // kein Read-time-Tick mehr, das spart bei vielen concurrent Spielern enorm.
   const { data, error } = await sb.rpc("get_nearby_strongholds", {
     p_lat: lat, p_lng: lng, p_radius_km: radius,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  // Strongholds sind nicht user-spezifisch → kurz Edge-Cache mit SWR.
+  // Strongholds sind nicht user-spezifisch → längerer Edge-Cache mit SWR.
   return NextResponse.json({ ok: true, strongholds: data ?? [] }, {
-    headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60" },
+    headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" },
   });
 }

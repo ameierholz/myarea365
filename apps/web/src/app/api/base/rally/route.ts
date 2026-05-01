@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { fetchWalkingRoute } from "@/lib/mapbox-route";
+import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +15,10 @@ export async function POST(req: Request) {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+  const rl = await rateLimitSmart(`pbrally:${user.id}`, 4, 60_000);
+  const blocked = rateLimitResponse(rl);
+  if (blocked) return blocked;
 
   const body = (await req.json()) as {
     defender_user_id?: string;
@@ -31,6 +37,25 @@ export async function POST(req: Request) {
     p_guardian_id: body.guardian_id ?? null,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const rallyResult = data as { ok?: boolean; rally_id?: string };
+  if (rallyResult?.ok && rallyResult.rally_id) {
+    try {
+      const [{ data: myBase }, { data: defBase }] = await Promise.all([
+        sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+        sb.from("bases").select("lat, lng").eq("owner_user_id", body.defender_user_id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+      ]);
+      if (myBase && defBase) {
+        const route = await fetchWalkingRoute(myBase.lat, myBase.lng, defBase.lat, defBase.lng);
+        await sb.rpc("enrich_rally_with_route", {
+          p_kind: "player_base",
+          p_rally_id: rallyResult.rally_id,
+          p_route_distance_m: route?.distance_m ?? null,
+          p_route_geom_geojson: route?.geometry ?? null,
+        });
+      }
+    } catch { /* enrich optional */ }
+  }
   return NextResponse.json(data);
 }
 

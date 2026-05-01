@@ -60,5 +60,9 @@ export async function GET() {
       troop[r.slot_id] = art;
     }
   }
-  return NextResponse.json({ marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop });
+  // Artwork ändert sich selten (Admin-Upload). Lange Edge-Cache + lange SWR.
+  return NextResponse.json(
+    { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop },
+    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } }
+  );
 }

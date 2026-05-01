@@ -28,6 +28,9 @@ export type CrewRally = {
   participant_count: number;
   is_attacker: boolean;
   is_defender: boolean;
+  leader_base_lat?: number | null;
+  leader_base_lng?: number | null;
+  route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null;
 };
 
 const KIND_LABEL: Record<string, string> = { hq: "HQ", repeater: "Repeater", mega: "Mega-Repeater" };

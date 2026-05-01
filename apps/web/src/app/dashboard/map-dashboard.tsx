@@ -103,6 +103,7 @@ const AppSettingsContent = _IS_PROD ? dynamic(() => import("@/components/setting
 const HealthDashboard = _IS_PROD ? dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard)) : HealthDashboardDirect;
 import { ActiveMarchesBanner } from "@/components/active-marches-banner";
 import { ActiveCrewRallyBanner, type CrewRally } from "@/components/active-crew-rally-banner";
+import { useRealtimeAwareInterval } from "@/lib/use-realtime-aware-interval";
 import { ActiveScoutsBanner, type ActiveScout } from "@/components/active-scouts-banner";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
@@ -1341,7 +1342,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
     } catch { /* silent */ }
   }, []);
-  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; status: "preparing" | "marching" | "fighting" | "done" | "aborted"; total_atk: number } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold };
+  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; status: "preparing" | "marching" | "fighting" | "done" | "aborted"; total_atk: number; leader_base_lat?: number | null; leader_base_lng?: number | null; route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold };
   const [rallyData, setRallyData] = useState<RallyData | null>(null);
   const refreshRally = useCallback(async () => {
     try {
@@ -1355,6 +1356,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     return () => clearInterval(id);
   }, [refreshRally]);
 
+  // ─── Event: Wegelager-Modal öffnen (z.B. via Crew-Angriffe-Panel) ──
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent<{ strongholdId: string; lat: number; lng: number }>).detail;
+      if (!detail) return;
+      const s = strongholds.find((x) => x.id === detail.strongholdId);
+      window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+        detail: { lat: detail.lat, lng: detail.lng, zoom: 17 },
+      }));
+      if (s) setStrongholdModalTarget({ s, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    };
+    window.addEventListener("ma365:open-stronghold", onOpen as EventListener);
+    return () => window.removeEventListener("ma365:open-stronghold", onOpen as EventListener);
+  }, [strongholds]);
+
   // ─── Aktive Späher (eigene) ─────────────────────────────────────────
   const [activeScouts, setActiveScouts] = useState<ActiveScout[]>([]);
   const refreshScouts = useCallback(async () => {
@@ -1366,21 +1382,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
     } catch { /* silent */ }
   }, []);
-  useEffect(() => {
-    void refreshScouts();
-    const id = setInterval(refreshScouts, 5000);
-    const sb = createClient();
-    const channel = sb
-      .channel("ma365-scouts-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "player_base_scouts" }, () => {
-        void refreshScouts();
-      })
-      .subscribe();
-    return () => {
-      clearInterval(id);
-      void sb.removeChannel(channel);
-    };
-  }, [refreshScouts]);
+  // Realtime-aware: bei aktivem Channel nur 60s-Watchdog statt 5s-Poll.
+  useRealtimeAwareInterval(refreshScouts, "player_base_scouts", { fastMs: 5000, slowMs: 60_000, channelName: "ma365-scouts-rt" });
 
   // ─── Crew-Repeater-Rallies (eigene Crew als Angreifer ODER Verteidiger) ─
   const [crewRallies, setCrewRallies] = useState<CrewRally[]>([]);
@@ -1393,21 +1396,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
     } catch { /* silent */ }
   }, []);
-  useEffect(() => {
-    void refreshCrewRallies();
-    const id = setInterval(refreshCrewRallies, 15000);
-    const sb = createClient();
-    const channel = sb
-      .channel("ma365-crew-rallies-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "crew_repeater_rallies" }, () => {
-        void refreshCrewRallies();
-      })
-      .subscribe();
-    return () => {
-      clearInterval(id);
-      void sb.removeChannel(channel);
-    };
-  }, [refreshCrewRallies]);
+  useRealtimeAwareInterval(refreshCrewRallies, "crew_repeater_rallies", { fastMs: 15_000, slowMs: 60_000, channelName: "ma365-crew-rallies-rt" });
   // Wegelager sind Welt-Content (Berlin-weit pre-seeded in DB, Migration 00193).
   // Frontend triggert keinen Spawn mehr — nur Fetch der bestehenden + Respawn-Trigger
   // bei Defeat läuft DB-seitig (respawn_due_strongholds, gleiche Position).
@@ -1815,6 +1804,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onAreaClick={setViewingArea}
               overviewMode={overviewMode}
               recenterAt={recenterAt}
+              ownBasePos={ownBasePos}
               lightPreset={lightPreset}
               supporterTier={(p as unknown as { supporter_tier?: SupporterTier | null })?.supporter_tier ?? null}
               equippedTrail={(p as unknown as { equipped_trail?: string | null })?.equipped_trail ?? null}
@@ -1868,6 +1858,59 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 ...s,
                 route_geom_json: s.route_geom_json && s.route_geom_json.type === "LineString" ? s.route_geom_json : null,
               }))}
+              activeRallyMarches={[
+                ...crewRallies
+                  .filter((r) => r.status === "marching" || r.status === "fighting")
+                  .map((r) => ({
+                    id: `crew_repeater:${r.id}`,
+                    kind: "crew_repeater" as const,
+                    status: r.status as "marching" | "fighting",
+                    prep_ends_at: r.prep_ends_at,
+                    march_ends_at: r.march_ends_at,
+                    origin_lat: r.leader_base_lat ?? null,
+                    origin_lng: r.leader_base_lng ?? null,
+                    target_lat: r.repeater_lat,
+                    target_lng: r.repeater_lng,
+                    target_label: r.repeater_label,
+                    leader_name: r.leader_name,
+                    crew_tag: r.attacker_crew_tag,
+                    route_geom_json: r.route_geom_json && r.route_geom_json.type === "LineString" ? r.route_geom_json : null,
+                  })),
+                ...(pbRally && (pbRally.status === "marching" || pbRally.status === "fighting")
+                  ? [{
+                      id: `player_base:${pbRally.rally_id}`,
+                      kind: "player_base" as const,
+                      status: pbRally.status as "marching" | "fighting",
+                      prep_ends_at: pbRally.prep_ends_at,
+                      march_ends_at: pbRally.march_ends_at,
+                      origin_lat: pbRally.leader_base_lat ?? null,
+                      origin_lng: pbRally.leader_base_lng ?? null,
+                      target_lat: pbRally.defender_lat,
+                      target_lng: pbRally.defender_lng,
+                      target_label: pbRally.defender_name,
+                      leader_name: pbRally.leader_name,
+                      crew_tag: null,
+                      route_geom_json: pbRally.route_geom_json && pbRally.route_geom_json.type === "LineString" ? pbRally.route_geom_json : null,
+                    }]
+                  : []),
+                ...(rallyData?.rally && (rallyData.rally.status === "marching" || rallyData.rally.status === "fighting") && rallyData.stronghold
+                  ? [{
+                      id: `stronghold:${rallyData.rally.id}`,
+                      kind: "stronghold" as const,
+                      status: rallyData.rally.status as "marching" | "fighting",
+                      prep_ends_at: rallyData.rally.prep_ends_at,
+                      march_ends_at: rallyData.rally.march_ends_at,
+                      origin_lat: rallyData.rally.leader_base_lat ?? null,
+                      origin_lng: rallyData.rally.leader_base_lng ?? null,
+                      target_lat: rallyData.stronghold.lat,
+                      target_lng: rallyData.stronghold.lng,
+                      target_label: `Wegelager Lv ${rallyData.stronghold.level}`,
+                      leader_name: null,
+                      crew_tag: null,
+                      route_geom_json: rallyData.rally.route_geom_json && rallyData.rally.route_geom_json.type === "LineString" ? rallyData.rally.route_geom_json : null,
+                    }]
+                  : []),
+              ]}
               onResourceNodeClick={(id, x, y) => {
                 const n = resourceNodes.find((x) => x.id === id);
                 if (n) setGatherModalNode({ n, x, y });
