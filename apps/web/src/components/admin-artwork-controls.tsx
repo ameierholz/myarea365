@@ -76,7 +76,7 @@ export function AdminArtworkControls({
           {busy ? "…" : "🗑️ MP4 löschen"}
         </button>
       )}
-      {err && <div style={{ fontSize: 8, color: "#FF2D78" }}>{err}</div>}
+      {err && <div style={{ fontSize: 11, color: "#FFF", background: "#FF2D78", padding: "4px 6px", borderRadius: 4, fontWeight: 800, marginTop: 4, wordBreak: "break-word" }}>⚠️ {err}</div>}
       <input ref={imgRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
       <input ref={vidRef} type="file" accept="video/mp4,video/webm" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
     </div>
