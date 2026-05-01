@@ -175,7 +175,7 @@ export function MapQuickAccess({
     { key: "crew",    slot: "quick_crew",      fallback: "👥", label: "Crew",    color: PRIMARY,           onClick: onOpenCrewModal },
     { key: "rally",   slot: "quick_rally",     fallback: "⚔",  label: "Angriffe", badge: rallyTotal,        color: ACCENT,    onClick: () => setOpenRallyList(!openRallyList) },
     { key: "ranking", slot: "quick_ranking",   fallback: "🏆", label: "Ranking", color: "#FF6B4A",         onClick: onOpenRanking },
-    { key: "shop",    slot: "quick_shop",      fallback: "🎁", label: "Shops",   color: "#a855f7",         onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
+    { key: "shop",    slot: "quick_shop",      fallback: "🎁", label: "Shop",    color: "#a855f7",         onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
     { key: "deals",   slot: "quick_deals",     fallback: "🔥", label: "Deals",   color: "#FFD700",         onClick: onOpenShop },
     { key: "inbox",   slot: "quick_inbox",     fallback: "📬", label: "Inbox",   badge: inboxUnread,       color: "#22D1C3", onClick: onOpenInbox },
   ];
@@ -209,6 +209,9 @@ export function MapQuickAccess({
               boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
               backdropFilter: "blur(4px)",
               WebkitBackdropFilter: "blur(4px)",
+              // Mobile-Hint: rechter Rand fadet aus, signalisiert Scrollbarkeit
+              WebkitMaskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
+              maskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
             }}
           >
             {items.map((it) => (

@@ -11,6 +11,8 @@ import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
 import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
+import { BaseRingPickerModal } from "@/components/base-ring-picker-modal";
+import { NameplatePickerModal } from "@/components/nameplate-picker-modal";
 import { createClient } from "@/lib/supabase/client";
 
 type Theme = {
@@ -85,6 +87,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [tab, setTab]   = useState<"overview" | "res" | "build" | "troops" | "research" | "chest" | "vip" | "settings">("overview");
   const [vipSection, setVipSection] = useState<"status" | "shop" | "tiers">("status");
   const [themeShopOpen, setThemeShopOpen] = useState(false);
+  const [ringPickerOpen, setRingPickerOpen] = useState(false);
+  const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
   const [now, setNow]   = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr]   = useState<string | null>(null);
@@ -986,22 +990,57 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               <BaseRelocatePanel accent={accent} reload={reload} tokenCount={(base as { relocate_tokens?: number }).relocate_tokens ?? 0} />
 
               <div>
-                <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">THEME</div>
-                <button onClick={() => setThemeShopOpen(true)}
-                  className="w-full p-3 rounded-xl flex items-center gap-3 text-left transition hover:scale-[1.01]"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(255,215,0,0.18) 0%, rgba(168,85,247,0.18) 60%, rgba(34,209,195,0.16) 100%)",
-                    border: "1.5px solid rgba(255,215,0,0.45)",
-                    boxShadow: "0 0 14px rgba(255,215,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
-                  }}>
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFD700] via-[#a855f7] to-[#22D1C3] flex items-center justify-center text-2xl shadow-lg shrink-0">🏰</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[9px] font-black tracking-[2px] text-[#FFD700]">SAAL DER ORDNUNG</div>
-                    <div className="text-[13px] font-black text-white truncate">Base-Themes ansehen →</div>
-                    <div className="text-[10px] text-white/70 mt-0.5">Aktiv: <b>{themes.find((t) => t.id === base.theme_id)?.name ?? "—"}</b> · {themes.length} verfügbar</div>
-                  </div>
-                  <span className="text-white/60 text-xl">›</span>
-                </button>
+                <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">BASE-AUSSEHEN</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {/* Theme */}
+                  <button onClick={() => setThemeShopOpen(true)}
+                    className="p-3 rounded-xl flex flex-col items-center text-center gap-2 transition hover:scale-[1.02]"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(255,215,0,0.18) 0%, rgba(168,85,247,0.18) 100%)",
+                      border: "1.5px solid rgba(255,215,0,0.45)",
+                      boxShadow: "0 0 12px rgba(255,215,0,0.20)",
+                      minHeight: 110,
+                    }}>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFD700] via-[#a855f7] to-[#22D1C3] flex items-center justify-center text-2xl shadow-lg">🏰</div>
+                    <div className="min-w-0">
+                      <div className="text-[8px] font-black tracking-[2px] text-[#FFD700]">THEME</div>
+                      <div className="text-[11px] font-black text-white truncate">{themes.find((t) => t.id === base.theme_id)?.name ?? "—"}</div>
+                      <div className="text-[9px] text-white/60 mt-0.5">{themes.length} verfügbar</div>
+                    </div>
+                  </button>
+                  {/* Ring */}
+                  <button onClick={() => setRingPickerOpen(true)}
+                    className="p-3 rounded-xl flex flex-col items-center text-center gap-2 transition hover:scale-[1.02]"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(34,209,195,0.18) 0%, rgba(93,218,240,0.16) 100%)",
+                      border: "1.5px solid rgba(34,209,195,0.45)",
+                      boxShadow: "0 0 12px rgba(34,209,195,0.20)",
+                      minHeight: 110,
+                    }}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg" style={{ border: "4px solid #22D1C3", boxShadow: "0 0 10px #22D1C388, inset 0 0 8px #22D1C355" }}>💍</div>
+                    <div className="min-w-0">
+                      <div className="text-[8px] font-black tracking-[2px] text-[#22D1C3]">RING</div>
+                      <div className="text-[11px] font-black text-white truncate">Base-Ring</div>
+                      <div className="text-[9px] text-white/60 mt-0.5">20 verfügbar</div>
+                    </div>
+                  </button>
+                  {/* Banner */}
+                  <button onClick={() => setBannerPickerOpen(true)}
+                    className="p-3 rounded-xl flex flex-col items-center text-center gap-2 transition hover:scale-[1.02]"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(255,45,120,0.18) 0%, rgba(168,85,247,0.16) 100%)",
+                      border: "1.5px solid rgba(255,45,120,0.45)",
+                      boxShadow: "0 0 12px rgba(255,45,120,0.20)",
+                      minHeight: 110,
+                    }}>
+                    <div className="w-20 h-8 rounded-md bg-gradient-to-r from-[#FF2D78]/40 via-[#FF2D78]/20 to-[#FF2D78]/40 flex items-center justify-center text-base shadow-lg" style={{ border: "1px solid #FF2D78" }}>🎀</div>
+                    <div className="min-w-0">
+                      <div className="text-[8px] font-black tracking-[2px] text-[#FF2D78]">BANNER</div>
+                      <div className="text-[11px] font-black text-white truncate">Namensschild</div>
+                      <div className="text-[9px] text-white/60 mt-0.5">20 verfügbar</div>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1009,6 +1048,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
       </div>
       {themeShopOpen && (
         <BaseThemeShopModal onClose={() => setThemeShopOpen(false)} onChanged={() => void reload()} />
+      )}
+      {ringPickerOpen && (
+        <BaseRingPickerModal onClose={() => setRingPickerOpen(false)} onChanged={() => void reload()} />
+      )}
+      {bannerPickerOpen && (
+        <NameplatePickerModal onClose={() => { setBannerPickerOpen(false); void reload(); }} />
       )}
     </Backdrop>
   );

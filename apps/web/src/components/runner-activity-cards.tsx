@@ -40,7 +40,7 @@ export function RunnerActivityCards() {
   const [open, setOpen] = useState<ActivityId | null>(null);
   const [showArena, setShowArena] = useState(false);
   return (
-    <div style={{ padding: "0 20px", marginBottom: 24 }}>
+    <div style={{ padding: "0 12px", marginBottom: 24 }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         marginBottom: 12,
@@ -53,9 +53,10 @@ export function RunnerActivityCards() {
 
       <div style={{
         display: "grid",
-        // Desktop: alle Karten in einer Reihe; Mobile (< 660px): 3+3
-        gridTemplateColumns: "repeat(auto-fill, minmax(min(110px, 100%), 1fr))",
-        gap: 8,
+        // Mobile-first: 3 Karten/Reihe (3+3 Layout, gut tapp-bar bei ~360px)
+        // Desktop ≥ ~660px: alle 6 nebeneinander
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(100px, 100%), 1fr))",
+        gap: 6,
       }}>
         {ACTIVITIES.map((a) => (
           <button
@@ -63,8 +64,8 @@ export function RunnerActivityCards() {
             onClick={() => setOpen(a.id)}
             style={{
               position: "relative",
-              padding: "14px 12px",
-              borderRadius: 16,
+              padding: "12px 8px",
+              borderRadius: 14,
               background: `linear-gradient(135deg, ${a.gradient[0]}22, ${a.gradient[1]}11)`,
               border: `1px solid ${a.accent}55`,
               color: "#FFF",
@@ -76,9 +77,9 @@ export function RunnerActivityCards() {
             onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; }}
             onMouseOut={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
           >
-            <div style={{ fontSize: 32, marginBottom: 4 }}>{a.icon}</div>
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#FFF" }}>{a.title}</div>
-            <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 2, lineHeight: 1.3 }}>{a.hook}</div>
+            <div style={{ fontSize: 26, marginBottom: 2 }}>{a.icon}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: "#FFF", lineHeight: 1.15 }}>{a.title}</div>
+            <div style={{ fontSize: 9, color: "#a8b4cf", marginTop: 2, lineHeight: 1.25 }}>{a.hook}</div>
           </button>
         ))}
       </div>

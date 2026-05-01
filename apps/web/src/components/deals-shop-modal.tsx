@@ -35,7 +35,8 @@ type DealsResponse = {
   };
 };
 
-type TabId = "seasonal" | "thresholds" | "themed" | "gems" | "daily" | "battlepass" | "subs";
+export type DealsTabId = "seasonal" | "thresholds" | "themed" | "gems" | "daily" | "battlepass" | "subs";
+type TabId = DealsTabId;
 
 const TABS: { id: TabId; icon: string; label: string }[] = [
   { id: "seasonal",   icon: "🥚", label: "Saison-Pack" },
@@ -50,7 +51,11 @@ const TABS: { id: TabId; icon: string; label: string }[] = [
 const formatPrice = (cents: number) => `EUR ${(cents / 100).toFixed(2).replace(".", ",")}`;
 const formatNum = (n: number) => n.toLocaleString("de-DE");
 
-export function DealsShopModal({ initialTab = "seasonal", onClose }: { initialTab?: TabId; onClose: () => void }) {
+/**
+ * Inline-Body — wird embeddable im UnifiedShopHub als Tab gerendert.
+ * Die TABS werden hier intern gerendert (horizontal-scrollbar auf Mobile, Sidebar auf Desktop ≥640px via wrapper).
+ */
+export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId }) {
   const [tab, setTab] = useState<TabId>(initialTab);
   const [data, setData] = useState<DealsResponse | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -77,73 +82,74 @@ export function DealsShopModal({ initialTab = "seasonal", onClose }: { initialTa
   }
 
   return (
+    <div>
+      {/* Sub-Tabs — Mobile: horizontal scroll, Desktop ≥640px: 2 Reihen Pills */}
+      <div style={{
+        display: "flex", gap: 6, overflowX: "auto", flexWrap: "nowrap",
+        marginBottom: 14, paddingBottom: 6,
+        scrollbarWidth: "none",
+      }}>
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          const dailyCount = t.id === "daily" ? (data?.daily.length ?? 0) - (data?.progress.daily_purchased?.length ?? 0) : 0;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flexShrink: 0,
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "8px 12px", borderRadius: 999,
+              background: active ? `${PRIMARY}33` : "rgba(255,255,255,0.04)",
+              border: active ? `1px solid ${PRIMARY}` : "1px solid rgba(255,255,255,0.08)",
+              color: active ? "#fff" : "#a8b4cf",
+              fontSize: 12, fontWeight: active ? 900 : 700,
+              cursor: "pointer", whiteSpace: "nowrap",
+            }}>
+              <span style={{ fontSize: 14 }}>{t.icon}</span>
+              <span>{t.label}</span>
+              {dailyCount > 0 && (
+                <span style={{
+                  background: ACCENT, color: "#fff",
+                  fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 999,
+                }}>{dailyCount}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Content */}
+      {!data && <div style={{ color: "#a8b4cf", textAlign: "center", padding: 40 }}>Lade Deals…</div>}
+      {data && tab === "seasonal" && <SeasonalView pack={data.seasonal} onCheckout={() => data.seasonal && checkout("seasonal", data.seasonal.id)} busy={busy} />}
+      {data && tab === "thresholds" && <ThresholdsView thresholds={data.thresholds} progress={data.progress.gem_threshold} />}
+      {data && tab === "themed" && <ThemedView packs={data.themed} purchasedToday={data.progress.themed_purchased_today ?? []} onCheckout={(id) => checkout("themed", id)} busy={busy} />}
+      {data && tab === "gems" && <GemsView tiers={data.tiers} onCheckout={(id) => checkout("gem_tier", id)} busy={busy} />}
+      {data && tab === "daily" && <DailyView />}
+      {data && tab === "battlepass" && <BattlePassView season={data.battle_pass_season} progress={data.progress.battle_pass} onCheckout={(t) => data.battle_pass_season && checkout("battle_pass", `${data.battle_pass_season.id}:${t}`)} busy={busy} />}
+      {data && tab === "subs" && <SubsView subs={data.subscriptions} active={data.progress.subscription} onCheckout={(id) => checkout("subscription", id)} busy={busy} />}
+    </div>
+  );
+}
+
+/** Standalone-Modal-Wrapper (Backwards-Compat) */
+export function DealsShopModal({ initialTab = "seasonal", onClose }: { initialTab?: TabId; onClose: () => void }) {
+  return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9500,
       background: "rgba(0,0,0,0.85)",
-      display: "flex", alignItems: "center", justifyContent: "center",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "min(1100px, 95vw)", height: "min(700px, 90vh)",
-        display: "flex", flexDirection: "row",
+        width: "100%", maxWidth: 1100, maxHeight: "92vh",
+        display: "flex", flexDirection: "column",
         background: BG_DEEP, borderRadius: 16, overflow: "hidden",
         border: `2px solid ${PRIMARY}33`,
         boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
       }}>
-        {/* Sidebar */}
-        <div style={{
-          width: 200, background: `linear-gradient(180deg, #0a0c10, ${BG_DEEP})`,
-          borderRight: `1px solid ${PRIMARY}22`,
-          display: "flex", flexDirection: "column", padding: "16px 0",
-        }}>
-          <div style={{ padding: "0 16px 12px", color: GOLD, fontWeight: 900, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>
-            Deals
-          </div>
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            const dailyCount = t.id === "daily" ? (data?.daily.length ?? 0) - (data?.progress.daily_purchased?.length ?? 0) : 0;
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
-                position: "relative",
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 16px",
-                background: active ? `linear-gradient(90deg, ${PRIMARY}33, transparent)` : "transparent",
-                borderLeft: active ? `3px solid ${PRIMARY}` : "3px solid transparent",
-                color: active ? "#fff" : "#a8b4cf",
-                fontSize: 13, fontWeight: active ? 900 : 700,
-                cursor: "pointer",
-                textAlign: "left",
-              }}>
-                <span style={{ fontSize: 18 }}>{t.icon}</span>
-                <span>{t.label}</span>
-                {dailyCount > 0 && (
-                  <span style={{
-                    marginLeft: "auto",
-                    background: ACCENT, color: "#fff",
-                    fontSize: 9, fontWeight: 900, padding: "1px 6px", borderRadius: 999,
-                  }}>{dailyCount}</span>
-                )}
-              </button>
-            );
-          })}
-          <div style={{ marginTop: "auto", padding: "12px 16px" }}>
-            <button onClick={onClose} style={{
-              width: "100%", padding: "8px 12px", borderRadius: 8,
-              background: CARD_BG, color: "#a8b4cf", border: "1px solid #ffffff15",
-              fontSize: 12, fontWeight: 700, cursor: "pointer",
-            }}>✕ Schließen</button>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${PRIMARY}22` }}>
+          <div style={{ flex: 1, color: GOLD, fontWeight: 900, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>Deals</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
         </div>
-
-        {/* Content */}
-        <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
-          {!data && <div style={{ color: "#a8b4cf", textAlign: "center", padding: 40 }}>Lade Deals…</div>}
-          {data && tab === "seasonal" && <SeasonalView pack={data.seasonal} onCheckout={() => data.seasonal && checkout("seasonal", data.seasonal.id)} busy={busy} />}
-          {data && tab === "thresholds" && <ThresholdsView thresholds={data.thresholds} progress={data.progress.gem_threshold} />}
-          {data && tab === "themed" && <ThemedView packs={data.themed} purchasedToday={data.progress.themed_purchased_today ?? []} onCheckout={(id) => checkout("themed", id)} busy={busy} />}
-          {data && tab === "gems" && <GemsView tiers={data.tiers} onCheckout={(id) => checkout("gem_tier", id)} busy={busy} />}
-          {data && tab === "daily" && <DailyView />}
-          {data && tab === "battlepass" && <BattlePassView season={data.battle_pass_season} progress={data.progress.battle_pass} onCheckout={(t) => data.battle_pass_season && checkout("battle_pass", `${data.battle_pass_season.id}:${t}`)} busy={busy} />}
-          {data && tab === "subs" && <SubsView subs={data.subscriptions} active={data.progress.subscription} onCheckout={(id) => checkout("subscription", id)} busy={busy} />}
+        <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+          <DealsShopBody initialTab={initialTab} />
         </div>
       </div>
     </div>

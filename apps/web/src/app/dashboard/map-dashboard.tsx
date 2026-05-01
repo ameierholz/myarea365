@@ -267,13 +267,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
   const [showDealsShop, setShowDealsShop] = useState(false);
-
-  // Listener für ma365:open-deals-shop — öffnet die neue 7-Tab-Deals-Modal
-  useEffect(() => {
-    const onOpen = () => setShowDealsShop(true);
-    window.addEventListener("ma365:open-deals-shop", onOpen);
-    return () => window.removeEventListener("ma365:open-deals-shop", onOpen);
-  }, []);
   const [preWalkModal, setPreWalkModal] = useState<null | "asking" | "playing">(null);
   const [preWalkAdProgress, setPreWalkAdProgress] = useState(0);
   const [supplyDropModal, setSupplyDropModal] = useState<null | { dropId: string; phase: "asking" | "playing" }>(null);
@@ -3261,7 +3254,19 @@ function ProfilTab({
   const [showBoostShop, setShowBoostShop] = useState(false);
   const [showGemShop, setShowGemShop] = useState(false);
   const [showShopHub, setShowShopHub] = useState(false);
+  const [shopHubInitialTab, setShopHubInitialTab] = useState<"deals" | "plus" | "power" | "gems" | "cosmetics">("deals");
   const [showShopDeals, setShowShopDeals] = useState(false);
+
+  // SHOPS-Bottom-Nav-Button + alle ma365:open-deals-shop-Events öffnen jetzt den Unified-Hub.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const ev = e as CustomEvent<{ tab?: "deals" | "plus" | "power" | "gems" | "cosmetics" } | undefined>;
+      setShopHubInitialTab(ev.detail?.tab ?? "deals");
+      setShowShopHub(true);
+    };
+    window.addEventListener("ma365:open-deals-shop", onOpen as EventListener);
+    return () => window.removeEventListener("ma365:open-deals-shop", onOpen as EventListener);
+  }, []);
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
   const [guideShopExpanded, setGuideShopExpanded] = useState(false);
 
@@ -3717,9 +3722,9 @@ function ProfilTab({
         }}>
           {[
             { key: "arena",      icon: "⚔️", label: "Arena",    color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
-            { key: "deals",      icon: "🔥", label: "Angebote", color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-daily-deals")) },
+            { key: "deals",      icon: "🔥", label: "Angebote", color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => { setShopHubInitialTab("deals"); setShowShopHub(true); } },
             { key: "crew",       icon: "👥", label: "Crew",     color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
-            { key: "shop",       icon: "💎", label: "Shop",     color: "#22D1C3", title: "💎 Ausgeben: Wegemünzen, Gems oder Echtgeld. Kosmetik, Komfort, Streak-Freezes — niemals Pay-to-Win.", onClick: () => setShowShopHub(true) },
+            { key: "shop",       icon: "💎", label: "Shop",     color: "#22D1C3", title: "💎 Alles was du kaufen kannst — Tagesangebote, Gems, Premium, Power-Boosts, Kosmetik. Niemals Pay-to-Win.", onClick: () => { setShopHubInitialTab("deals"); setShowShopHub(true); } },
             { key: "shop-deals", icon: "🏪", label: "Deals",    color: "#4ade80", title: "🏪 Lokale Shop-Deals: alle Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => setShowShopDeals(true) },
             { key: "inbox",      icon: "📬", label: "Inbox",    color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
           ].map((a) => (
@@ -3836,6 +3841,9 @@ function ProfilTab({
         )}
 
         {/* ═══ AKTIVER WÄCHTER — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
+        {activeGuardian && activeGuardian.archetype && (
+          <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
+        )}
         {activeGuardian && activeGuardian.archetype && (
           <button
             onClick={() => setTeaserDetailOpen(true)}
@@ -4166,7 +4174,7 @@ function ProfilTab({
         </div>
 
         {/* ═══ LOADOUT (Runner + Base) ═══ */}
-        <SectionHeader title="LOADOUT" action={<GuardianHelpButton />} />
+        <SectionHeader title="LOADOUT" />
 
         {/* Loadout-Sections: 1) Auf der Karte (Runner)  2) An der Base */}
         <LoadoutTrio
@@ -4404,7 +4412,7 @@ function ProfilTab({
       {showGemShop && <GemShopModal onClose={() => setShowGemShop(false)} />}
 
       {showShopHub && p && (
-        <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} />
+        <ShopHubModal userId={p.id} onClose={() => setShowShopHub(false)} initialTab={shopHubInitialTab} isAdmin={["admin","super_admin"].includes((p as unknown as { role?: string })?.role ?? "user")} />
       )}
 
       <ShopDealsModal open={showShopDeals} onClose={() => setShowShopDeals(false)} />

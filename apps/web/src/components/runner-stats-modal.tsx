@@ -173,12 +173,27 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
         ) : (
           <div style={{ overflowY: "auto" }}>
             {/* ═══ HERO BAND ═══ */}
+            {/* Fallback-Layer (immer sichtbar) — verhindert schwarzen Balken
+                wenn banner_url null ist ODER das Bild nicht lädt (404/CORS).
+                Banner-Image liegt drüber per <img onError> der bei Fehler
+                versteckt wird, sodass der Gradient durchscheint. */}
             <div style={{
               height: 140, position: "relative",
-              background: data.banner_url
-                ? `url("${data.banner_url}") center/cover`
-                : `linear-gradient(135deg, ${color} 0%, ${color}77 60%, ${color}33 100%)`,
+              background: `linear-gradient(135deg, ${color} 0%, ${color}aa 40%, ${color}66 100%), radial-gradient(ellipse at top, rgba(255,255,255,0.18) 0%, transparent 60%)`,
+              backgroundBlendMode: "screen",
             }}>
+              {data.banner_url && (
+                <img
+                  src={data.banner_url}
+                  alt=""
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  style={{
+                    position: "absolute", inset: 0,
+                    width: "100%", height: "100%", objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              )}
               {data.banner_url && (
                 <div style={{
                   position: "absolute", inset: 0,
