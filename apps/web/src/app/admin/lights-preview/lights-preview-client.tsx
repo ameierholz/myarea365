@@ -11,6 +11,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, type RunnerLightId } from "@/lib/game-config";
 import { addRunnerLight, removeRunnerLight, type LightRenderHandles } from "@/lib/runner-light-render";
+import { HtmlLightGrid } from "./html-demos";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 const BERLIN_CENTER: [number, number] = [13.3777, 52.5163];
@@ -120,6 +121,7 @@ export function LightsPreviewClient() {
   const rallyHandlesRef = useRef<Map<string, LayerHandles>>(new Map());
   const [mapReady, setMapReady] = useState(false);
 
+  const [view, setView] = useState<"map" | "html">("map");
   const [mode, setMode] = useState<"single" | "all">("single");
   const [selectedLight, setSelectedLight] = useState<RunnerLightId>("classic");
   const [showStronghold, setShowStronghold] = useState(true);
@@ -206,11 +208,26 @@ export function LightsPreviewClient() {
 
   return (
     <div className="min-h-screen bg-[#0F1115] text-white">
-      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 h-screen">
+      {/* View-Toggle */}
+      <div className="border-b border-white/10 px-4 py-2 flex items-center gap-2">
+        <h1 className="text-sm font-black uppercase tracking-wider mr-3">🎨 Lights Preview</h1>
+        <button onClick={() => setView("map")} className={`px-3 py-1 rounded text-xs font-bold ${view === "map" ? "bg-[#22D1C3] text-black" : "bg-white/5 text-white hover:bg-white/10"}`}>Mapbox-View</button>
+        <button onClick={() => setView("html")} className={`px-3 py-1 rounded text-xs font-bold ${view === "html" ? "bg-[#22D1C3] text-black" : "bg-white/5 text-white hover:bg-white/10"}`}>HTML/SVG/Canvas-Demo</button>
+        <span className="text-[10px] text-[#6c7590] ml-2">
+          {view === "map" ? "Echte Mapbox-Render-Pipeline (so siehts on-map aus)" : "Full-Power Web-Rendering: SVG-Filter + Canvas-Particles + Heat-Distortion"}
+        </span>
+      </div>
+
+      {view === "html" ? (
+        <div className="p-6 max-w-[1800px] mx-auto">
+          <HtmlLightGrid />
+        </div>
+      ) : (
+      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0" style={{ height: "calc(100vh - 44px)" }}>
         {/* Sidebar */}
         <div className="bg-[#1A1D23] border-r border-white/10 overflow-y-auto p-4 space-y-6">
           <div>
-            <h1 className="text-xl font-black mb-1">🎨 Map-Effekte Preview</h1>
+            <h2 className="text-base font-black mb-1">Map-Effekte</h2>
             <p className="text-xs text-[#8B8FA3]">Visual-Testbed für Lights & Märsche — echte Mapbox-Render-Pipeline.</p>
           </div>
 
@@ -292,8 +309,9 @@ export function LightsPreviewClient() {
         </div>
 
         {/* Map */}
-        <div ref={containerRef} className="w-full h-screen" />
+        <div ref={containerRef} className="w-full h-full" />
       </div>
+      )}
     </div>
   );
 }
