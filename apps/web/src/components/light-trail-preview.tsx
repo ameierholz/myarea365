@@ -71,7 +71,7 @@ export function LightTrailPreview({
     const particles: Particle[] = [];
     let segIdx = 0;
     let t = 0;
-    const speed = 0.025; // schneller als die Demo-Page für Kompakt-Vorschau
+    const speed = 0.012; // Bewusst langsam, damit der Particle-Effekt sichtbar ist
     let raf = 0;
 
     const tick = () => {

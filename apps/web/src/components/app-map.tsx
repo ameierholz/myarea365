@@ -172,7 +172,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       cursor: pointer;
     }
     .ma365-boss-circle {
-      width: 56px; height: 56px;
+      width: 50px; height: 50px;
       border-radius: 50%;
       background: radial-gradient(circle at 50% 40%, rgba(120,0,40,0.95) 0%, rgba(20,0,10,0.95) 100%);
       border: 2px solid rgba(255,45,120,0.85);
@@ -181,7 +181,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       color: #FFF;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
     }
-    .ma365-boss-emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+    .ma365-boss-emoji { font-size: 26px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
     .ma365-boss-name { display: none; }
     .ma365-boss-hpbar {
       width: 48px;
@@ -205,7 +205,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       transform-origin: center bottom;
     }
     .ma365-sanctuary-emoji {
-      font-size: 28px; line-height: 1;
+      font-size: 32px; line-height: 1;
       filter: drop-shadow(0 2px 6px rgba(34,209,195,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
     }
     .ma365-sanctuary-marker.done .ma365-sanctuary-emoji { filter: drop-shadow(0 2px 6px rgba(74,222,128,0.6)); opacity: 0.6; }
@@ -229,7 +229,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       transform-origin: center bottom;
       filter: drop-shadow(0 3px 6px rgba(0,0,0,0.55));
     }
-    .ma365-stronghold-emoji { font-size: 60px; line-height: 1; }
+    .ma365-stronghold-emoji { font-size: 50px; line-height: 1; }
     .ma365-stronghold-level {
       font-size: 12px; font-weight: 900;
       padding: 3px 9px; border-radius: 999px;
@@ -255,8 +255,8 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       cursor: pointer;
     }
     .ma365-rnode-icon {
-      width: 38px; height: 38px;
-      border-radius: 10px;
+      width: 32px; height: 32px;
+      border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
       font-size: 22px; line-height: 1;
       border: 2px solid rgba(255,255,255,0.85);
@@ -302,7 +302,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-loot-wrap {
       position: relative;
-      width: 64px; height: 64px;
+      width: 42px; height: 42px;
       display: flex; align-items: center; justify-content: center;
       pointer-events: auto;
       cursor: pointer;
@@ -321,7 +321,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     /* Kiste: Emoji mit 3D-Schatten + Glow */
     .ma365-loot-crate {
-      font-size: 38px;
+      font-size: 26px;
       line-height: 1;
       animation: ma365CrateBob 1.6s ease-in-out infinite, ma365CrateGlow 2s ease-in-out infinite;
       filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5));
@@ -777,8 +777,8 @@ function buildSelfMarkerEl(
   displayName?: string | null,
   markerArt?: { image_url: string | null; video_url: string | null } | null,
 ): HTMLDivElement {
-  const size = isRunning ? 52 : 44;
-  const glow = isRunning ? 30 : 18;
+  const size = isRunning ? 50 : 44;
+  const glow = isRunning ? 28 : 18;
   const el = document.createElement("div");
   // Klasse NICHT auf el — sonst kleben Theme-Pseudoelemente (::before/::after) am
   // OUTER-el und skalieren nicht mit dem Zoom-Wrap. wrapForZoomScale verschiebt
@@ -819,9 +819,9 @@ function buildSelfMarkerEl(
     ${auraLayer}
     <div class="runner-ring" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
     ${markerArt?.video_url
-      ? `<video class="runner-emoji" src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;width:${isRunning ? 56 : 48}px;height:${isRunning ? 56 : 48}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)"></video>`
+      ? `<video class="runner-emoji" src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;width:${isRunning ? 50 : 44}px;height:${isRunning ? 50 : 44}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)"></video>`
       : markerArt?.image_url
-        ? `<img class="runner-emoji" src="${markerArt.image_url}" alt="" style="position:relative;width:${isRunning ? 56 : 48}px;height:${isRunning ? 56 : 48}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)" />`
+        ? `<img class="runner-emoji" src="${markerArt.image_url}" alt="" style="position:relative;width:${isRunning ? 50 : 44}px;height:${isRunning ? 50 : 44}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)" />`
         : `<span class="runner-emoji" style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>`
     }
     ${supporterChip}
@@ -857,8 +857,8 @@ function buildSelfMarkerEl(
 
 function buildRunnerMarkerEl(r: MapRunner): HTMLDivElement {
   const isCrew = r.is_crew_member;
-  const size = isCrew ? 52 : 42;
-  const iconSize = isCrew ? 30 : 24;
+  const size = isCrew ? 50 : 42;
+  const iconSize = isCrew ? 28 : 24;
   const el = document.createElement("div");
   el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 12}px;height:${size + 12}px`;
 
@@ -899,7 +899,7 @@ function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
   const el = document.createElement("div");
   el.style.cssText = "position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:56px;cursor:pointer";
   el.innerHTML = `
-    <div style="position:absolute;width:52px;height:52px;border-radius:50%;background:${color}25;box-shadow:0 0 22px ${color}cc;animation:dropPulse 1.6s ease-in-out infinite"></div>
+    <div style="position:absolute;width:50px;height:50px;border-radius:50%;background:${color}25;box-shadow:0 0 22px ${color}cc;animation:dropPulse 1.6s ease-in-out infinite"></div>
     <div style="position:absolute;width:38px;height:38px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 12px rgba(255,255,255,0.4)">
       <span style="font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5))">🎁</span>
     </div>
@@ -2680,7 +2680,7 @@ export function AppMap({
       const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       // Wegelager = Feind → ROT. Falls Artwork in anderer Farbe gespeichert ist,
       // mit hue-rotate auf Rot drücken (kombiniert mit chroma-key für transparenten BG).
-      const wegelagerStyle = "width:48px;height:48px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
+      const wegelagerStyle = "width:50px;height:50px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
       let visualHtml: string;
       if (art?.video_url) {
         visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}"></video>`;
@@ -3943,7 +3943,7 @@ export function AppMap({
 
       // Stage 2: SILHOUETTE — flache farbige Tower-Silhouette (KEIN Artwork)
       const silEl = document.createElement("div");
-      const silSize = isHQ ? 48 : isMega ? 40 : 34;
+      const silSize = isHQ ? 42 : isMega ? 38 : 34;
       silEl.dataset.size = String(silSize);
       silEl.style.cssText = `
         position:absolute; left:50%; top:50%;
@@ -4133,12 +4133,12 @@ export function AppMap({
       }
       const info = KIND_INFO[b.kind] ?? { emoji: "🏗", bg: "rgba(255,255,255,0.6)" };
       const el = document.createElement("div");
-      el.style.cssText = "position:relative; width:48px; height:48px; pointer-events:auto; cursor:pointer; will-change:transform;";
+      el.style.cssText = "position:relative; width:42px; height:42px; pointer-events:auto; cursor:pointer; will-change:transform;";
       const inner = document.createElement("div");
       inner.style.cssText = `
         width:100%; height:100%;
         display:flex; align-items:center; justify-content:center;
-        font-size:24px;
+        font-size:22px;
         background:${info.bg};
         border:2px solid ${b.is_own ? b.territory_color : "rgba(255,255,255,0.4)"};
         border-radius:12px;
