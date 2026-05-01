@@ -112,9 +112,9 @@ export function BaseRingPickerModal({
                     }}>
                     <div style={{ width: 84, height: 84, marginBottom: 6, position: "relative" }}>
                       {art?.video_url ? (
-                        <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 84, height: 84, objectFit: "contain" }} />
+                        <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 84, height: 84, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                       ) : art?.image_url ? (
-                        <img src={art.image_url} alt={r.name} style={{ width: 84, height: 84, objectFit: "contain" }} />
+                        <img src={art.image_url} alt={r.name} style={{ width: 84, height: 84, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                       ) : (
                         // Fallback: gezeichneter Donut mit Emoji in Mitte
                         <div style={{

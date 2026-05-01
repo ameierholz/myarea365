@@ -216,8 +216,8 @@ export function LoadoutTrio({
           {(() => {
             const variants = cosmeticArt.marker[currentMarker.id];
             const mArt = variants?.[equippedMarkerVariant] ?? variants?.neutral;
-            if (mArt?.video_url) return <video src={mArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />;
-            if (mArt?.image_url) return <img src={mArt.image_url} alt={currentMarker.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />;
+            if (mArt?.video_url) return <video src={mArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />;
+            if (mArt?.image_url) return <img src={mArt.image_url} alt={currentMarker.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />;
             return <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>;
           })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{currentMarker.name}</div>
@@ -230,8 +230,8 @@ export function LoadoutTrio({
           <div style={labelStyle()}>{tL("labelLight")}</div>
           {(() => {
             const lArt = cosmeticArt.light[currentLight.id];
-            if (lArt?.video_url) return <video src={lArt.video_url} autoPlay loop muted playsInline style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
-            if (lArt?.image_url) return <img src={lArt.image_url} alt={currentLight.name} style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
+            if (lArt?.video_url) return <video src={lArt.video_url} autoPlay loop muted playsInline style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />;
+            if (lArt?.image_url) return <img src={lArt.image_url} alt={currentLight.name} style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />;
             // Animierte Live-Vorschau (Particle-Engine, identisch zur Karte)
             return (
               <div style={{ marginTop: 14, marginBottom: 6 }}>
@@ -251,9 +251,9 @@ export function LoadoutTrio({
             <div style={tileStyle()} onClick={() => setThemeOpen(true)}>
               <div style={labelStyle()}>{tL("labelPinTheme")}</div>
               {tArt?.video_url ? (
-                <video src={tArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+                <video src={tArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />
               ) : tArt?.image_url ? (
-                <img src={tArt.image_url} alt={tMeta.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+                <img src={tArt.image_url} alt={tMeta.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />
               ) : (
                 <div style={{ marginTop: 4 }}>
                   <PinThemePreview
@@ -448,9 +448,9 @@ function PinThemePickerModal({
                       cursor: isUnlocked && !isActive ? "pointer" : "default", padding: 0,
                     }}>
                     {art?.video_url ? (
-                      <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
+                      <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8, filter: "url(#ma365-chroma-black)" }} />
                     ) : art?.image_url ? (
-                      <img src={art.image_url} alt={m.name} style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
+                      <img src={art.image_url} alt={m.name} style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8, filter: "url(#ma365-chroma-black)" }} />
                     ) : (
                       <div style={{ marginBottom: 8 }}>
                         <PinThemePreview

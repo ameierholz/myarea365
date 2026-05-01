@@ -120,9 +120,9 @@ function MarkerCard({
         }}>
         <div style={{ width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6, opacity: unlocked ? 1 : 0.25 }}>
           {art?.video_url ? (
-            <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 64, objectFit: "contain" }} />
+            <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 64, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
           ) : art?.image_url ? (
-            <img src={art.image_url} alt={m.name} style={{ width: 64, height: 64, objectFit: "contain" }} />
+            <img src={art.image_url} alt={m.name} style={{ width: 64, height: 64, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
           ) : (
             <span style={{ fontSize: 34 }}>{m.icon}</span>
           )}

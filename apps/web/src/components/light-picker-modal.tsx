@@ -87,9 +87,9 @@ export function LightPickerModal({
                     }}>
                     <div style={{ width: 80, height: 36, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
                       {art?.video_url ? (
-                        <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 80, height: 36, objectFit: "contain" }} />
+                        <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 80, height: 36, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                       ) : art?.image_url ? (
-                        <img src={art.image_url} alt={l.name} style={{ width: 80, height: 36, objectFit: "contain" }} />
+                        <img src={art.image_url} alt={l.name} style={{ width: 80, height: 36, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                       ) : unlocked ? (
                         // Animierte Vorschau via Particle-Engine (identisch zur On-Map-Darstellung)
                         <LightTrailPreview lightId={l.id} width={80} height={36} />

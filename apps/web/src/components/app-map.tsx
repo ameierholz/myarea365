@@ -2908,9 +2908,9 @@ export function AppMap({
       // Artwork falls vorhanden, sonst Emoji-Fallback im Gradient-Box
       const rnArt = rnodeArtRef.current[n.kind];
       const iconHtml = rnArt?.video_url
-        ? `<video src="${rnArt.video_url}" autoplay loop muted playsinline class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;"></video>`
+        ? `<video src="${rnArt.video_url}" autoplay loop muted playsinline class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;filter:url(#ma365-chroma-black);"></video>`
         : rnArt?.image_url
-          ? `<img src="${rnArt.image_url}" class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;" alt="" />`
+          ? `<img src="${rnArt.image_url}" class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;filter:url(#ma365-chroma-black);" alt="" />`
           : `<div class="ma365-rnode-icon kind-${n.kind}" data-vis="full">${rnodeEmoji[n.kind] ?? "📦"}</div>`;
       inner.innerHTML = `
         ${rnodeSilhouette(n.kind)}
@@ -3068,9 +3068,9 @@ export function AppMap({
       const crate = crateByRarity[d.rarity] || "📦";
       const ldArt = lootDropArtRef.current[d.rarity];
       const crateHtml = ldArt?.video_url
-        ? `<video class="ma365-loot-crate" src="${ldArt.video_url}" autoplay loop muted playsinline style="object-fit:contain;background:transparent;"></video>`
+        ? `<video class="ma365-loot-crate" src="${ldArt.video_url}" autoplay loop muted playsinline style="object-fit:contain;background:transparent;filter:url(#ma365-chroma-black);"></video>`
         : ldArt?.image_url
-          ? `<img class="ma365-loot-crate" src="${ldArt.image_url}" style="object-fit:contain;background:transparent;" alt="" />`
+          ? `<img class="ma365-loot-crate" src="${ldArt.image_url}" style="object-fit:contain;background:transparent;filter:url(#ma365-chroma-black);" alt="" />`
           : `<div class="ma365-loot-crate">${crate}</div>`;
       outer.innerHTML = `
         <div class="ma365-loot-wrap" style="--color:${color}; --loot-scale:${initialLootScale.toFixed(2)}">

@@ -63,6 +63,12 @@ export type ArtworkRarity = typeof ARTWORK_RARITIES[number]["level"];
 
 export type EquipmentClassId = "tank" | "support" | "ranged" | "melee";
 
+// ─── BACKGROUND-SPEC: Greenscreen für Chroma-Key ─────────────────────────
+// Die App keyed pure-green (#00FF00) zur Render-Zeit raus via SVG-Filter
+// (#ma365-chroma-black). AI-Generatoren (MJ/DALL·E/Imagen/Veo) liefern unzuverlässig
+// echtes Alpha — pure green ist verlässlicher und wird identisch aussehen wie transparent.
+export const GREEN_BG_RULE = `Background: pure chroma-key green #00FF00 (RGB 0,255,0), filling the ENTIRE frame uniformly behind the subject — corner to corner, no vignette, no gradient, no shadows, no fade. The green will be removed automatically at render time via chroma-key filter. Do NOT use transparent PNG, white, or any other background color. Subject must NOT contain pure-green pixels (use teal/forest-green instead if needed).`;
+
 export type GeneratedPrompt = {
   key: string;           // `slot__class__rarity` ASCII-Slug
   itemName: string;
@@ -580,8 +586,9 @@ export function buildMarkerPrompt(input: {
 
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024x1024, 30 fps, fully transparent background (alpha channel, PNG-style).`,
-      `Subject: "${input.name}" — centered, iconic silhouette, readable at very small sizes (32-64 px).`,
+      `Shot: a 3-second seamlessly looping animated icon, square 1:1, 1024x1024, 30 fps.`,
+      GREEN_BG_RULE,
+      `Subject: "${input.name}" — centered, iconic silhouette, readable at very small sizes (32-64 px). Avoid pure-green tones in the subject.`,
       input.hint ? `Motif hint: ${input.hint}.` : "",
       humanInstruction,
       walkingPoseInstruction,
@@ -594,11 +601,12 @@ export function buildMarkerPrompt(input: {
         : `Motion: motion appropriate to the subject (e.g. flames flicker, wings flap slowly, sparkles drift, fur breathes). Slow bob 4-5 px if helpful. No rotation of the whole subject.`,
       `Lighting: warm-and-cool rim-light to pop against any background. Soft ambient glow appropriate to the subject's color.`,
       `The final frame must exactly match the first frame for seamless looping.`,
-      `No audio. No text, no labels, no watermark, no logo, no background, no pin, no marker shape — fully transparent outside the subject silhouette.`,
+      `No audio. No text, no labels, no watermark, no logo, no pin, no marker shape outside the subject silhouette.`,
     ].filter(Boolean).join(" ");
   }
   return [
-    `A premium game icon representing "${input.name}", square 1:1, 1024x1024, centered on a fully transparent background (PNG with alpha).`,
+    `A premium game icon representing "${input.name}", square 1:1, 1024x1024 PNG.`,
+    GREEN_BG_RULE,
     input.hint ? `Motif hint: ${input.hint}.` : "",
     humanInstruction,
     walkingPoseInstruction,
@@ -606,9 +614,9 @@ export function buildMarkerPrompt(input: {
     styleGuidance,
     fillDisclaimer,
     noPinDisclaimer,
-    `Lighting: warm-and-cool rim-light for readability, soft ambient glow appropriate to the subject's theme.`,
-    `Iconic readable silhouette usable at 32-64 px. Crisp edges, rich material detail, vibrant colors, no anti-aliased halo.`,
-    `No text, no labels, no watermark, no logo, no background, no pin, no map-marker shape, no teardrop, no frame, no pedestal.`,
+    `Lighting: warm-and-cool rim-light for readability, soft ambient glow appropriate to the subject's theme. Avoid pure-green tones in the subject.`,
+    `Iconic readable silhouette usable at 32-64 px. Crisp edges, rich material detail, vibrant colors.`,
+    `No text, no labels, no watermark, no logo, no pin, no map-marker shape, no teardrop, no frame, no pedestal.`,
   ].filter(Boolean).join(" ");
 }
 
@@ -618,8 +626,9 @@ export function buildPinThemePrompt(input: {
   const paletteLine = `Background base: ${input.bg}. Primary accent: ${input.accent}. Ambient glow: ${input.glow}.`;
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping map-pin base tile animation, square 1:1, 1024x1024, 30 fps, fully transparent background outside the tile shape.`,
-      `Subject: a stylized map-pin base tile representing the theme "${input.name}" — ${input.description}.`,
+      `Shot: a 3-second seamlessly looping map-pin base tile animation, square 1:1, 1024x1024, 30 fps.`,
+      GREEN_BG_RULE,
+      `Subject: a stylized map-pin base tile representing the theme "${input.name}" — ${input.description}. Avoid pure-green tones in the subject.`,
       paletteLine,
       `Style: cyber-fantasy game-UI, thick clean outlines, soft inner glow, subtle particle motion (sparks, mist, scan-lines depending on theme).`,
       `Motion: gentle pulsing glow, slow particle drift. No camera movement. First and last frame identical.`,
@@ -627,8 +636,9 @@ export function buildPinThemePrompt(input: {
     ].filter(Boolean).join(" ");
   }
   return [
-    `A stylized map-pin base tile representing the theme "${input.name}" — ${input.description}.`,
-    `Square 1:1, 1024x1024, centered, fully transparent outside the tile shape (PNG with alpha).`,
+    `A stylized map-pin base tile representing "${input.name}" — ${input.description}.`,
+    `Square 1:1, 1024x1024 PNG.`,
+    GREEN_BG_RULE,
     paletteLine,
     `Style: cyber-fantasy game-UI, thick clean outlines, soft inner glow, readable at small sizes.`,
     `No text, no labels, no watermark, no logos.`,
@@ -1385,24 +1395,26 @@ export function buildLightPrompt(input: {
 
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated runner trail/light effect for the game "MyArea365", horizontal 16:9, 1920x1080, 30 fps, fully transparent background (alpha channel, NO solid background, NO sky).`,
-      `Subject: ${vibe}, stretching horizontally across the full frame from left edge to right edge as a single continuous light ribbon.`,
-      `Color palette (strict): ${colorStr}. Use ONLY these colors. Smooth gradient blending along the length of the trail.`,
+      `Shot: a 3-second seamlessly looping animated runner trail/light effect for "MyArea365", horizontal 16:9, 1920x1080, 30 fps.`,
+      GREEN_BG_RULE,
+      `Subject: ${vibe}, stretching horizontally across the full frame from left edge to right edge as a single continuous light ribbon. Avoid pure-green tones in the trail itself.`,
+      `Color palette (strict): ${colorStr}. Use ONLY these colors for the trail. Smooth gradient blending along the length.`,
       `Surface character: ${texture}.`,
       `Motion: ${motion}. The ribbon body itself stays in place — only inner energy/particles/highlights animate. Do NOT move the trail itself across the frame.`,
-      `Style: high-quality game-ready VFX, neon bloom, sharp bright core, soft glowing halo. Cyber-fantasy aesthetic. Premium look matching the trail's tier.`,
-      `Composition: trail centered vertically, occupies central ~30% of vertical space, ribbon thickness suits the look (thinner for low-tier, thicker for premium). NO characters, NO runners, NO map, NO scenery.`,
-      `Looping: the final frame must exactly match the first frame, frame-perfect seamless loop.`,
-      `Negative: no audio, no text, no labels, no watermarks, no UI, no background — only the glowing trail on full alpha transparency.`,
+      `Style: high-quality game-ready VFX, neon bloom, sharp bright core, soft glowing halo against the green background. Cyber-fantasy aesthetic. Premium look matching the trail's tier.`,
+      `Composition: trail centered vertically, occupies central ~30% of vertical space. NO characters, NO runners, NO map, NO scenery.`,
+      `Looping: final frame matches first frame, frame-perfect seamless loop.`,
+      `Negative: no audio, no text, no labels, no watermarks, no UI.`,
     ].join(" ");
   }
   return [
-    `A premium game-ready runner's light trail asset called "${input.name}" for "MyArea365", 16:9 landscape, 1920x1080, fully transparent PNG with alpha (NO solid background).`,
-    `Subject: ${vibe}, stretching horizontally across the entire frame as one continuous light ribbon centered vertically.`,
-    `Color palette (strict): ${colorStr}. Smooth gradient along the length, no other colors.`,
+    `A premium game-ready runner's light trail "${input.name}" for "MyArea365", 16:9 landscape, 1920x1080 PNG.`,
+    GREEN_BG_RULE,
+    `Subject: ${vibe}, stretching horizontally across the entire frame. Avoid pure-green tones in the trail.`,
+    `Color palette (strict): ${colorStr}. Smooth gradient along the length, no off-palette colors in the trail.`,
     `Surface character: ${texture}.`,
     `Style: neon glow, sharp bright core, soft outer halo, premium VFX, cyber-fantasy aesthetic.`,
-    `Negative: no characters, no runners, no map, no scenery, no text, no watermark — only the glowing trail on full alpha transparency.`,
+    `Negative: no characters, no runners, no map, no scenery, no text, no watermark.`,
   ].join(" ");
 }
 
@@ -1480,25 +1492,27 @@ export function buildBaseRingPrompt(input: {
 
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated halo/aura ring for the game "MyArea365", square 1024x1024, 30 fps, fully transparent background (alpha channel, NO solid background).`,
+      `Shot: a 3-second seamlessly looping animated halo/aura ring for the game "MyArea365", square 1024x1024, 30 fps.`,
+      GREEN_BG_RULE,
       `Subject: a circular ring/halo named "${input.name}" — ${input.description}. ${rarityVibe}.`,
-      `CRITICAL: the CENTER of the ring is COMPLETELY EMPTY/TRANSPARENT (a hole, donut shape) — a base-icon will be rendered inside the center hole at runtime. Do NOT fill the center.`,
-      `Geometry: perfectly centered ring, outer diameter ~95% of canvas, inner hole diameter ~55% of canvas (transparent middle), ring band thickness ~20% of canvas radius.`,
-      `Color palette (strict): primary ${input.color}, plus complementary glow tones consistent with the theme. No off-theme colors.`,
-      `Motion: only the ring's surface animates (rotation, shimmer, particles, energy flow along the band). The ring itself does NOT move position.`,
-      `Style: top-down view, premium VFX, sharp inner+outer edges, soft glow falloff outside the band, game-ready quality.`,
+      `CRITICAL: the CENTER of the ring is FILLED WITH THE PURE-GREEN BACKGROUND — donut shape, the green inside the inner hole MUST be visible (it will become transparent at render). A base-icon is rendered inside this hole at runtime. Do NOT fill the center with anything else.`,
+      `Geometry: perfectly centered ring, outer diameter ~95% of canvas, inner hole diameter ~55% of canvas (filled with pure green), ring band thickness ~20% of canvas radius.`,
+      `Color palette (strict): primary ${input.color}, plus complementary glow tones. Avoid pure green tones in the ring itself.`,
+      `Motion: only the ring's surface animates (rotation, shimmer, particles, energy flow). The ring itself does NOT move position.`,
+      `Style: top-down view, premium VFX, sharp inner+outer edges, soft glow falloff against the green background.`,
       `Looping: final frame matches first frame for seamless loop.`,
-      `Negative: no characters, no buildings, no text, no UI, no labels, no watermarks, no solid background — only the donut-ring on alpha transparency.`,
+      `Negative: no characters, no buildings, no text, no UI, no labels, no watermarks.`,
     ].join(" ");
   }
   return [
-    `A premium game-ready base-pin halo/aura ring named "${input.name}" for the game "MyArea365", square 1024x1024 PNG with full alpha transparency (NO solid background).`,
+    `A premium game-ready base-pin halo/aura ring named "${input.name}" for "MyArea365", square 1024x1024 PNG.`,
+    GREEN_BG_RULE,
     `Subject: ${input.description}. ${rarityVibe}.`,
-    `CRITICAL: donut shape — the CENTER is COMPLETELY EMPTY/TRANSPARENT (a base-icon goes there at runtime). Do NOT draw anything inside the inner hole.`,
+    `CRITICAL: donut shape — the CENTER (inner hole) is FILLED with the pure-green background (becomes transparent at render). Do NOT draw the ring or anything else inside the hole.`,
     `Geometry: perfectly centered ring, outer diameter ~95% of canvas, inner hole diameter ~55% of canvas, band thickness ~20% of canvas radius.`,
-    `Color palette (strict): primary ${input.color} plus harmonized glow tones. Crisp inner+outer edges, soft outer glow falloff.`,
+    `Color palette (strict): primary ${input.color} plus harmonized glow tones. Avoid pure-green in the ring.`,
     `Style: top-down view, premium VFX, sharp clean ring silhouette.`,
-    `Negative: no characters, no scenery, no text, no UI, no watermark — only the donut-ring on alpha transparency.`,
+    `Negative: no characters, no scenery, no text, no UI, no watermark.`,
   ].join(" ");
 }
 
@@ -1519,24 +1533,28 @@ export function buildNameplatePrompt(input: {
 
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated nameplate/banner for the game "MyArea365", horizontal 4:1 wide aspect (e.g. 1024x256), 30 fps, fully transparent background (alpha channel, NO solid background).`,
+      `Shot: a 3-second seamlessly looping animated nameplate/banner for the game "MyArea365", horizontal 4:1 wide aspect (e.g. 1024x256), 30 fps.`,
+      GREEN_BG_RULE,
       `Subject: a horizontal nameplate banner named "${input.name}" — ${input.description}. ${rarityVibe}.`,
-      `CRITICAL CENTER REQUIREMENT: the CENTRAL ~60% of the banner width is RESERVED for a runner display name (text overlaid by the UI at runtime). The center MUST be a clean, mostly-uniform area (subtle parchment, dark plate, glass panel etc.) so light text remains readable on top of it. Do NOT draw faces, complex art, or busy texture in the center. Decorations/effects ONLY on the LEFT cap and RIGHT cap of the banner.`,
-      `Layout: left cap (~20% width) = ornament/sigil/flourish; center band (~60%) = clean readable surface; right cap (~20% width) = mirrored ornament. Vertical centerline must allow ~14-16px legible text height.`,
-      `Color: theme-matched palette, no off-theme colors.`,
-      `Motion: ornaments on the caps animate (shimmer, rotate, particles); the central name area stays calm with at most a very subtle gradient pulse to keep text legible.`,
-      `Style: game UI overlay quality, premium fantasy/sci-fi nameplate. Top-down/flat presentation.`,
+      `LAYOUT: the banner shape sits centered on the green background. Around the banner (above, below, outside the caps) should be pure-green so it gets cleanly cut to the banner silhouette.`,
+      `CRITICAL CENTER REQUIREMENT: the CENTRAL ~60% of the banner width is RESERVED for a runner display name (text overlaid by UI at render time). The center MUST be a clean, mostly-uniform area (subtle parchment, dark plate, glass panel etc.) so light text remains readable. Do NOT draw faces, complex art, or busy texture in the center. Ornaments/effects ONLY on the LEFT cap and RIGHT cap.`,
+      `Cap layout: left cap (~20% width) = ornament/sigil/flourish; center band (~60%) = clean readable surface; right cap (~20% width) = mirrored ornament. Vertical centerline must allow ~14-16px legible text height.`,
+      `Color: theme-matched palette. Avoid pure-green tones in the banner itself.`,
+      `Motion: ornaments on the caps animate (shimmer, rotate, particles); central name area stays calm.`,
+      `Style: game UI overlay quality, premium fantasy/sci-fi nameplate.`,
       `Looping: final frame matches first frame for seamless loop.`,
-      `Negative: no text, no letters, no numbers, no faces, no scenery, no solid background — only the banner with empty center on alpha transparency.`,
+      `Negative: no text, no letters, no numbers, no faces, no scenery.`,
     ].join(" ");
   }
   return [
-    `A premium horizontal nameplate banner asset named "${input.name}" for the game "MyArea365", wide 4:1 aspect (e.g. 1024x256), PNG with full alpha transparency (NO solid background).`,
+    `A premium horizontal nameplate banner asset named "${input.name}" for "MyArea365", wide 4:1 aspect (e.g. 1024x256), PNG.`,
+    GREEN_BG_RULE,
     `Subject: ${input.description}. ${rarityVibe}.`,
-    `CRITICAL CENTER REQUIREMENT: the CENTRAL ~60% of the banner width is RESERVED for the runner's display name (rendered by the UI at runtime). The center MUST be a clean uniform surface (parchment, dark plate, glass panel etc.) so light text remains legible. Decorate ONLY the LEFT cap and RIGHT cap.`,
-    `Layout: left cap (~20% width) = ornament/sigil/flourish; center (~60%) = clean readable surface; right cap (~20% width) = mirrored ornament.`,
-    `Style: game UI overlay quality, premium fantasy/sci-fi nameplate, top-down flat presentation.`,
-    `Negative: no text, no letters, no numbers, no faces, no scenery, no solid background — only the banner with empty center on alpha transparency.`,
+    `LAYOUT: banner shape centered, with pure-green around it (above/below/outside caps) so the banner is cleanly silhouetted.`,
+    `CRITICAL CENTER REQUIREMENT: the CENTRAL ~60% of the banner width is RESERVED for the runner's display name. The center MUST be a clean uniform surface (parchment, dark plate, glass panel). Decorate ONLY LEFT cap and RIGHT cap.`,
+    `Cap layout: left (~20%) = ornament; center (~60%) = clean readable surface; right (~20%) = mirrored ornament.`,
+    `Style: game UI overlay quality, premium fantasy/sci-fi nameplate. Avoid pure-green in the banner.`,
+    `Negative: no text, no letters, no numbers, no faces, no scenery.`,
   ].join(" ");
 }
 
@@ -1565,20 +1583,22 @@ export function buildLootDropPrompt(input: {
 
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated map loot-drop for the game "MyArea365", square 1024x1024, 30 fps, fully transparent background (alpha channel, NO solid background).`,
-      `Subject: a ${input.hint} loot drop sitting on the ground, named "${input.name}" — ${rarityVibe}. Tier color accent: ${rarityColor}.`,
-      `Composition: subject centered, occupying ~70% of the frame, slight 3/4 top-down camera angle (NOT pure top-down) so the object reads as a 3D pickup on a map.`,
-      `Motion: gentle bob up/down + subtle rotation around vertical axis + tier-appropriate sparkles/glow pulse around the drop. Looping seamlessly.`,
-      `Style: stylized cartoon-realism game asset, vivid saturation, sharp readable silhouette at small map-marker sizes (~50px). Tier-glow halo around the base.`,
-      `Negative: no scenery, no map tiles, no characters, no text, no UI, no watermarks, no solid background — only the loot drop on alpha transparency.`,
+      `Shot: a 3-second seamlessly looping animated map loot-drop for "MyArea365", square 1024x1024, 30 fps.`,
+      GREEN_BG_RULE,
+      `Subject: a ${input.hint} loot drop, named "${input.name}" — ${rarityVibe}. Tier color accent: ${rarityColor}. Avoid pure-green tones in the subject.`,
+      `Composition: subject centered, occupying ~70% of the frame on the green background, slight 3/4 top-down camera angle so it reads as a 3D pickup.`,
+      `Motion: gentle bob up/down + subtle rotation + tier sparkles/glow pulse. Loops seamlessly.`,
+      `Style: stylized cartoon-realism game asset, vivid saturation, sharp readable silhouette at small map-marker sizes (~50px). Tier-glow halo against the green background.`,
+      `Negative: no scenery, no map tiles, no characters, no text, no UI, no watermarks.`,
     ].join(" ");
   }
   return [
-    `A premium game-ready map loot-drop asset named "${input.name}" for "MyArea365", square 1024x1024 PNG with full alpha transparency (NO solid background).`,
-    `Subject: a ${input.hint} loot drop on the ground — ${rarityVibe}. Tier color accent: ${rarityColor}.`,
-    `Composition: centered, ~70% of frame, slight 3/4 top-down camera angle so it reads as a 3D pickup on a map.`,
-    `Style: stylized cartoon-realism game asset, vivid saturation, sharp silhouette readable at small marker sizes (~50px). Tier-glow halo around the base.`,
-    `Negative: no scenery, no map, no characters, no text, no UI, no watermark — only the drop on alpha transparency.`,
+    `A premium game-ready map loot-drop asset "${input.name}" for "MyArea365", square 1024x1024 PNG.`,
+    GREEN_BG_RULE,
+    `Subject: a ${input.hint} loot drop — ${rarityVibe}. Tier color accent: ${rarityColor}. Avoid pure-green in the subject.`,
+    `Composition: centered, ~70% of frame, slight 3/4 top-down camera angle.`,
+    `Style: stylized cartoon-realism, vivid saturation, sharp silhouette at small marker sizes (~50px). Tier-glow halo.`,
+    `Negative: no scenery, no map, no characters, no text, no UI, no watermark.`,
   ].join(" ");
 }
 
@@ -1596,23 +1616,25 @@ export function buildResourceNodePrompt(input: { id: ResourceNodeId; mode: "imag
   if (!n) return "";
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated map node icon for "MyArea365" (Berlin cyberpunk setting), square 512x512, 30 fps, fully transparent background (alpha channel, NO solid background).`,
-      `Subject: a "${n.name}" plunder spot — ${n.hint}. Stylized cartoon-realism, vivid saturation.`,
-      `Composition: subject centered, ~75% of frame, slight 3/4 top-down camera angle so it reads as a 3D map pickup.`,
+      `Shot: a 3-second seamlessly looping animated map node icon for "MyArea365" (Berlin cyberpunk setting), square 512x512, 30 fps.`,
+      GREEN_BG_RULE,
+      `Subject: a "${n.name}" plunder spot — ${n.hint}. Stylized cartoon-realism, vivid saturation. Avoid pure-green tones in the subject.`,
+      `Composition: subject centered, ~75% of frame on green background, slight 3/4 top-down camera angle.`,
       `Color palette: primary ${n.color}, glow accent ${n.glow}. Cyberpunk neon hints.`,
-      `Motion: subtle ambient animation (smoke/sparks/blinking lights/gear rotation appropriate to the type). Object stays in place.`,
-      `Style: sharp readable silhouette at small map-marker sizes (~32px), neon halo around the base.`,
+      `Motion: subtle ambient animation (smoke/sparks/blinking lights/gear rotation). Object stays in place.`,
+      `Style: sharp readable silhouette at small map-marker sizes (~32px), neon halo against the green background.`,
       `Looping: final frame matches first frame for seamless loop.`,
-      `Negative: no characters, no text, no UI, no scenery, no solid background — only the node on alpha transparency.`,
+      `Negative: no characters, no text, no UI, no scenery.`,
     ].join(" ");
   }
   return [
-    `A premium game-ready map resource-node icon "${n.name}" for "MyArea365", square 512x512 PNG with full alpha transparency.`,
-    `Subject: ${n.hint}. Stylized cartoon-realism, vivid saturation.`,
+    `A premium game-ready map resource-node icon "${n.name}" for "MyArea365", square 512x512 PNG.`,
+    GREEN_BG_RULE,
+    `Subject: ${n.hint}. Stylized cartoon-realism, vivid saturation. Avoid pure-green in the subject.`,
     `Composition: centered, ~75% of frame, slight 3/4 top-down camera angle.`,
     `Color palette: primary ${n.color} with ${n.glow} glow accents. Cyberpunk neon hints.`,
-    `Style: sharp silhouette at ~32px, neon halo around the base.`,
-    `Negative: no characters, no scenery, no text, no UI — only the node on alpha transparency.`,
+    `Style: sharp silhouette at ~32px, neon halo.`,
+    `Negative: no characters, no scenery, no text, no UI.`,
   ].join(" ");
 }
 
