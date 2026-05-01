@@ -3386,10 +3386,17 @@ export function AppMap({
       // Volle Länge (max 15 Zeichen) wird angezeigt — keine Truncation.
       const rawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;
       const displayLabel = rawLabel;
+      // Auto-Fit für Display-Name + optionalem Crew-Tag: Container hat feste Banner-Breite,
+      // Text wird via scaleX gestaucht wenn er nicht passt (statt überlaufen).
+      // Geschätzte Char-Breite: 6.2px bei font-size 10px; passt ~28 Zeichen in 180px hinein.
+      const labelText = (pin.kind === "crew" ? "⚔️ " : "@") + displayLabel + (pin.crew_tag ? ` [${pin.crew_tag}]` : "");
+      const estTextWidth = labelText.length * 6.2;
+      const NAMEPLATE_MAX_W = 180;
+      const fitScale = estTextWidth > NAMEPLATE_MAX_W ? NAMEPLATE_MAX_W / estTextWidth : 1;
       inner.innerHTML = `
         ${visualHtml}
         ${runnerBadge}
-        <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;height:24px;min-width:60px;margin-top:${showRunnerOnBase ? "4px" : "-8px"}">
+        <div style="position:relative;display:flex;align-items:center;justify-content:center;height:24px;width:${NAMEPLATE_MAX_W + 20}px;margin-top:${showRunnerOnBase ? "4px" : "-8px"}">
           ${npLayer}
           <div data-nameplate style="
             position:relative;z-index:1;transform-origin:center center;
@@ -3400,6 +3407,8 @@ export function AppMap({
             line-height:1.2;
             text-shadow:0 1px 2px rgba(0,0,0,0.85);
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
+            max-width:${NAMEPLATE_MAX_W}px;
+            transform:${fitScale < 1 ? `scaleX(${fitScale.toFixed(3)})` : "none"};
           ">${pin.kind === "crew" ? "⚔️ " : "@"}${escapeHtml(displayLabel)}${pin.crew_tag ? ` <span style="color:${pin.pin_color};">[${escapeHtml(pin.crew_tag)}]</span>` : ""}</div>
         </div>
         <div data-levelchip style="
@@ -3500,8 +3509,10 @@ export function AppMap({
         }
         if (stage === "full" && (scaleChanged || stageChanged)) {
           fullEl.style.transform = transformStr;
-          if (nameplate) nameplate.style.transform = invStr;
-          if (levelChip) levelChip.style.transform = invStr;
+          // Nameplate + Level-Chip skalieren MIT dem Base (kein invStr mehr) —
+          // sonst wirken Text+Chip beim Rauszoomen monströs groß auf der kleinen Base.
+          if (nameplate) nameplate.style.transform = "";
+          if (levelChip) levelChip.style.transform = "";
         }
       });
     };
