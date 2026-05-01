@@ -53,8 +53,9 @@ export function RunnerActivityCards() {
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-        gap: 10,
+        // Desktop: alle Karten in einer Reihe; Mobile (< 660px): 3+3
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(110px, 100%), 1fr))",
+        gap: 8,
       }}>
         {ACTIVITIES.map((a) => (
           <button
