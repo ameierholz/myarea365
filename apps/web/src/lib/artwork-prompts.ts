@@ -1406,6 +1406,216 @@ export function buildLightPrompt(input: {
   ].join(" ");
 }
 
+// ─── BASE-RING catalog (mirrors DB seed in migration 00207) ─────────────
+export const BASE_RINGS_ART = [
+  { id: "default",    name: "Standard",      description: "Schlichter Glow-Ring um die Base.",                     rarity: "common"    as const, color: "#22D1C3" },
+  { id: "iron",       name: "Eisenring",     description: "Schwerer Eisen-Reif mit Nieten — solide Basis.",          rarity: "common"    as const, color: "#9aa3b8" },
+  { id: "emerald",    name: "Smaragd-Halo",  description: "Leuchtend grüner Edelstein-Ring mit Pflanzenranken.",    rarity: "advanced"  as const, color: "#22D1C3" },
+  { id: "frost",      name: "Frost-Halo",    description: "Eiskristalle wachsen aus dem Ring, kalter blauer Schimmer.", rarity: "advanced"  as const, color: "#5ddaf0" },
+  { id: "golden",     name: "Gold-Reif",     description: "Massiver Goldring mit Punzierungen — Premium-Statussymbol.", rarity: "advanced"  as const, color: "#FFD700" },
+  { id: "thorn",      name: "Dornenring",    description: "Verdrehte schwarze Dornenranken mit roten Tropfen.",     rarity: "epic"      as const, color: "#8B0000" },
+  { id: "flame",      name: "Flammenring",   description: "Lodernde Flammen tanzen entlang des Rings, orange-gelb.", rarity: "epic"      as const, color: "#FF6B00" },
+  { id: "plasma",     name: "Plasma-Ring",   description: "Pulsierende Energie-Adern in Magenta mit Cyan-Sparks.",  rarity: "epic"      as const, color: "#FF2D78" },
+  { id: "crystal",    name: "Kristall-Ring", description: "Geschliffene Edelstein-Splitter im Hexagon-Muster.",     rarity: "epic"      as const, color: "#a855f7" },
+  { id: "shadow",     name: "Schattenring",  description: "Tiefschwarzer Ring der Licht zu schlucken scheint.",     rarity: "epic"      as const, color: "#1a1a2e" },
+  { id: "lightning",  name: "Blitzring",     description: "Zuckende Stromschläge umkreisen die Base unaufhörlich.", rarity: "epic"      as const, color: "#FFEE00" },
+  { id: "coral",      name: "Korallen-Ring", description: "Maritimer Korallen-Reif mit Perlen und Seetang.",         rarity: "epic"      as const, color: "#FF6B4A" },
+  { id: "nebula",     name: "Nebula-Ring",   description: "Kosmische Wirbel in Violett und Blau mit Sterndust.",    rarity: "legendary" as const, color: "#7c3aed" },
+  { id: "dragon",     name: "Drachenring",   description: "Geflügelte Drachen-Schwingen formen den Ring, Goldglut.", rarity: "legendary" as const, color: "#FF4500" },
+  { id: "solar",      name: "Sonnenring",    description: "Goldene Sonnenstrahlen explodieren nach außen — heroisch.", rarity: "legendary" as const, color: "#FFD700" },
+  { id: "lunar",      name: "Mondring",      description: "Silberner Halbmond mit Nachthimmel und funkelnden Sternen.", rarity: "legendary" as const, color: "#C0C0FF" },
+  { id: "void",       name: "Leere-Ring",    description: "Schwarzes Loch verzerrt das Licht — unheimliche Eleganz.", rarity: "legendary" as const, color: "#5a3aa8" },
+  { id: "prismatic",  name: "Prisma-Ring",   description: "Rotierender Regenbogen-Refraktor — alle Farben gleichzeitig.", rarity: "legendary" as const, color: "#FF00FF" },
+  { id: "phoenix",    name: "Phönix-Ring",   description: "Lodernde goldene Federn, eingebrannt mit Glut-Asche.",   rarity: "legendary" as const, color: "#FFAC33" },
+  { id: "founders",   name: "Gründer-Ring",  description: "Limited Edition für die ersten 1000 Runner — niemals erneut.", rarity: "legendary" as const, color: "#FFD700" },
+] as const;
+
+// ─── NAMEPLATE catalog (mirrors DB seed in migrations 00117 + 00207) ────
+export const NAMEPLATES_ART = [
+  { id: "default",      name: "Standard",         description: "Schlichter Rahmen ohne Effekt.",                    rarity: "common"    as const },
+  { id: "snow",         name: "Schneetreiben",    description: "Schneeflocken-Wirbel mit Wolken-Banner.",            rarity: "advanced"  as const },
+  { id: "silver_wing",  name: "Silberflügel",     description: "Silberne Flügel rahmen den Namen — elegant und schnell.", rarity: "advanced"  as const },
+  { id: "ocean_wave",   name: "Meereswelle",      description: "Türkise Wellen mit Schaumkronen und Möwen-Silhouette.",   rarity: "advanced"  as const },
+  { id: "emerald_vines",name: "Smaragdranken",    description: "Lebende grüne Ranken mit goldenen Blüten.",          rarity: "advanced"  as const },
+  { id: "floral",       name: "Blumenband",       description: "Pinkes Schleifen-Band mit Herzen.",                  rarity: "epic"      as const },
+  { id: "frost_crown",  name: "Frost-Krone",      description: "Eiskristall-Krone mit gefrorenem Atem-Hauch.",       rarity: "epic"      as const },
+  { id: "thorn_rose",   name: "Dornen-Rose",      description: "Schwarze Rose mit Dornen-Schlinge.",                 rarity: "epic"      as const },
+  { id: "streak_30",    name: "Streak-Champion",  description: "Kettenring — freigespielt durch 30-Tage-Streak.",    rarity: "epic"      as const },
+  { id: "inferno",      name: "Inferno-Banner",   description: "Lodernde Glut-Adern mit fallender Asche.",           rarity: "epic"      as const },
+  { id: "arcane_scroll",name: "Arkane Schriftrolle", description: "Pergament-Rolle mit leuchtenden Runen-Inschriften.", rarity: "epic"      as const },
+  { id: "samurai",      name: "Samurai-Klinge",   description: "Gekreuzte Katanas mit Kirschblüten und rotem Hintergrund.", rarity: "epic"      as const },
+  { id: "cyber_glitch", name: "Cyber-Glitch",     description: "Pixel-Distortion mit Neon-Magenta und Cyan-Scan-Lines.", rarity: "epic"      as const },
+  { id: "royal",        name: "Königskrone",      description: "Goldene Krone + Blau-Gold-Heraldik.",                rarity: "legendary" as const },
+  { id: "dragon",       name: "Drachen-Banner",   description: "Geflügelte Drachen-Schwingen mit Flammen.",          rarity: "legendary" as const },
+  { id: "sunburst",     name: "Sonnen-Aureole",   description: "Goldene Sonnenstrahlen hinter dem Namen.",           rarity: "legendary" as const },
+  { id: "founder",      name: "Gründer-Banner",   description: "Limited Founders-Edition für die ersten 1000 Runner.", rarity: "legendary" as const },
+  { id: "galaxy",       name: "Galaxie-Band",     description: "Sternennebel mit Planeten-Orbits — kosmische Tiefe.", rarity: "legendary" as const },
+  { id: "phoenix",      name: "Phönix-Schwingen", description: "Lodernde Phönix-Flügel rahmen den Namen ein.",       rarity: "legendary" as const },
+  { id: "starforged",   name: "Sterngeschmiedet", description: "Geschmiedet aus Sternenstahl — freigespielt durch 100 Siege.", rarity: "legendary" as const },
+] as const;
+
+// ─── LOOT-DROP catalog (4 rarities matching app-map crateByRarity) ──────
+export const LOOT_DROPS_ART = [
+  { id: "common",    name: "Gewöhnlich", rarity: "common"    as const, hint: "small leather pouch / worn satchel" },
+  { id: "rare",      name: "Selten",     rarity: "rare"      as const, hint: "polished iron-banded chest" },
+  { id: "epic",      name: "Episch",     rarity: "epic"      as const, hint: "ornate enchanted container with violet runes" },
+  { id: "legendary", name: "Legendär",   rarity: "legendary" as const, hint: "godly artifact with golden particle storm" },
+] as const;
+
+// ─── BASE-RING (Halo/Aura around the base pin) ──────────────────────────
+export function buildBaseRingPrompt(input: {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  rarity: "common" | "advanced" | "epic" | "legendary";
+  mode: "image" | "video";
+}): string {
+  const rarityVibe = {
+    common: "simple subtle glow, minimal effect",
+    advanced: "soft luminescence, refined detail",
+    epic: "vivid energy, animated flourishes",
+    legendary: "spectacular VFX, premium particle work, godly aura",
+  }[input.rarity];
+
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated halo/aura ring for the game "MyArea365", square 1024x1024, 30 fps, fully transparent background (alpha channel, NO solid background).`,
+      `Subject: a circular ring/halo named "${input.name}" — ${input.description}. ${rarityVibe}.`,
+      `CRITICAL: the CENTER of the ring is COMPLETELY EMPTY/TRANSPARENT (a hole, donut shape) — a base-icon will be rendered inside the center hole at runtime. Do NOT fill the center.`,
+      `Geometry: perfectly centered ring, outer diameter ~95% of canvas, inner hole diameter ~55% of canvas (transparent middle), ring band thickness ~20% of canvas radius.`,
+      `Color palette (strict): primary ${input.color}, plus complementary glow tones consistent with the theme. No off-theme colors.`,
+      `Motion: only the ring's surface animates (rotation, shimmer, particles, energy flow along the band). The ring itself does NOT move position.`,
+      `Style: top-down view, premium VFX, sharp inner+outer edges, soft glow falloff outside the band, game-ready quality.`,
+      `Looping: final frame matches first frame for seamless loop.`,
+      `Negative: no characters, no buildings, no text, no UI, no labels, no watermarks, no solid background — only the donut-ring on alpha transparency.`,
+    ].join(" ");
+  }
+  return [
+    `A premium game-ready base-pin halo/aura ring named "${input.name}" for the game "MyArea365", square 1024x1024 PNG with full alpha transparency (NO solid background).`,
+    `Subject: ${input.description}. ${rarityVibe}.`,
+    `CRITICAL: donut shape — the CENTER is COMPLETELY EMPTY/TRANSPARENT (a base-icon goes there at runtime). Do NOT draw anything inside the inner hole.`,
+    `Geometry: perfectly centered ring, outer diameter ~95% of canvas, inner hole diameter ~55% of canvas, band thickness ~20% of canvas radius.`,
+    `Color palette (strict): primary ${input.color} plus harmonized glow tones. Crisp inner+outer edges, soft outer glow falloff.`,
+    `Style: top-down view, premium VFX, sharp clean ring silhouette.`,
+    `Negative: no characters, no scenery, no text, no UI, no watermark — only the donut-ring on alpha transparency.`,
+  ].join(" ");
+}
+
+// ─── NAMEPLATE (Banner with center area for runner name) ────────────────
+export function buildNameplatePrompt(input: {
+  id: string;
+  name: string;
+  description: string;
+  rarity: "common" | "advanced" | "epic" | "legendary";
+  mode: "image" | "video";
+}): string {
+  const rarityVibe = {
+    common: "simple clean frame, minimal ornaments",
+    advanced: "refined details, soft glow accents",
+    epic: "ornate filigree, glowing energy details",
+    legendary: "spectacular VFX, premium ornaments, godly aura",
+  }[input.rarity];
+
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated nameplate/banner for the game "MyArea365", horizontal 4:1 wide aspect (e.g. 1024x256), 30 fps, fully transparent background (alpha channel, NO solid background).`,
+      `Subject: a horizontal nameplate banner named "${input.name}" — ${input.description}. ${rarityVibe}.`,
+      `CRITICAL CENTER REQUIREMENT: the CENTRAL ~60% of the banner width is RESERVED for a runner display name (text overlaid by the UI at runtime). The center MUST be a clean, mostly-uniform area (subtle parchment, dark plate, glass panel etc.) so light text remains readable on top of it. Do NOT draw faces, complex art, or busy texture in the center. Decorations/effects ONLY on the LEFT cap and RIGHT cap of the banner.`,
+      `Layout: left cap (~20% width) = ornament/sigil/flourish; center band (~60%) = clean readable surface; right cap (~20% width) = mirrored ornament. Vertical centerline must allow ~14-16px legible text height.`,
+      `Color: theme-matched palette, no off-theme colors.`,
+      `Motion: ornaments on the caps animate (shimmer, rotate, particles); the central name area stays calm with at most a very subtle gradient pulse to keep text legible.`,
+      `Style: game UI overlay quality, premium fantasy/sci-fi nameplate. Top-down/flat presentation.`,
+      `Looping: final frame matches first frame for seamless loop.`,
+      `Negative: no text, no letters, no numbers, no faces, no scenery, no solid background — only the banner with empty center on alpha transparency.`,
+    ].join(" ");
+  }
+  return [
+    `A premium horizontal nameplate banner asset named "${input.name}" for the game "MyArea365", wide 4:1 aspect (e.g. 1024x256), PNG with full alpha transparency (NO solid background).`,
+    `Subject: ${input.description}. ${rarityVibe}.`,
+    `CRITICAL CENTER REQUIREMENT: the CENTRAL ~60% of the banner width is RESERVED for the runner's display name (rendered by the UI at runtime). The center MUST be a clean uniform surface (parchment, dark plate, glass panel etc.) so light text remains legible. Decorate ONLY the LEFT cap and RIGHT cap.`,
+    `Layout: left cap (~20% width) = ornament/sigil/flourish; center (~60%) = clean readable surface; right cap (~20% width) = mirrored ornament.`,
+    `Style: game UI overlay quality, premium fantasy/sci-fi nameplate, top-down flat presentation.`,
+    `Negative: no text, no letters, no numbers, no faces, no scenery, no solid background — only the banner with empty center on alpha transparency.`,
+  ].join(" ");
+}
+
+// ─── LOOT-DROP (Map drops, distinct from Chests catalog) ────────────────
+export function buildLootDropPrompt(input: {
+  id: string;             // common | uncommon | rare | epic | legendary
+  name: string;
+  rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
+  hint: string;           // e.g. "leather pouch", "wooden crate"...
+  mode: "image" | "video";
+}): string {
+  const rarityColor = {
+    common:    "#9aa3b8",
+    uncommon:  "#4ade80",
+    rare:      "#22D1C3",
+    epic:      "#a855f7",
+    legendary: "#FFD700",
+  }[input.rarity];
+  const rarityVibe = {
+    common:    "simple worn leather, minimal effect",
+    uncommon:  "modest wood with green glow seams",
+    rare:      "polished iron-banded chest with cyan energy",
+    epic:      "ornate enchanted container with violet runes and floating sigils",
+    legendary: "godly artifact with golden particle storm and divine aura",
+  }[input.rarity];
+
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated map loot-drop for the game "MyArea365", square 1024x1024, 30 fps, fully transparent background (alpha channel, NO solid background).`,
+      `Subject: a ${input.hint} loot drop sitting on the ground, named "${input.name}" — ${rarityVibe}. Tier color accent: ${rarityColor}.`,
+      `Composition: subject centered, occupying ~70% of the frame, slight 3/4 top-down camera angle (NOT pure top-down) so the object reads as a 3D pickup on a map.`,
+      `Motion: gentle bob up/down + subtle rotation around vertical axis + tier-appropriate sparkles/glow pulse around the drop. Looping seamlessly.`,
+      `Style: stylized cartoon-realism game asset, vivid saturation, sharp readable silhouette at small map-marker sizes (~50px). Tier-glow halo around the base.`,
+      `Negative: no scenery, no map tiles, no characters, no text, no UI, no watermarks, no solid background — only the loot drop on alpha transparency.`,
+    ].join(" ");
+  }
+  return [
+    `A premium game-ready map loot-drop asset named "${input.name}" for "MyArea365", square 1024x1024 PNG with full alpha transparency (NO solid background).`,
+    `Subject: a ${input.hint} loot drop on the ground — ${rarityVibe}. Tier color accent: ${rarityColor}.`,
+    `Composition: centered, ~70% of frame, slight 3/4 top-down camera angle so it reads as a 3D pickup on a map.`,
+    `Style: stylized cartoon-realism game asset, vivid saturation, sharp silhouette readable at small marker sizes (~50px). Tier-glow halo around the base.`,
+    `Negative: no scenery, no map, no characters, no text, no UI, no watermark — only the drop on alpha transparency.`,
+  ].join(" ");
+}
+
+// ─── RESOURCE-NODE (on-map plünder spots) ────────────────────────────────
+export const RESOURCE_NODES_ART = [
+  { id: "scrapyard",  name: "Schrottplatz",     hint: "scrap-metal yard with broken machines, twisted rebar, rusted hulks", color: "#6b7280", glow: "#9ca3af" },
+  { id: "factory",    name: "Fabrik",           hint: "abandoned industrial factory with smokestacks, gears, cogs",          color: "#f59e0b", glow: "#fbbf24" },
+  { id: "atm",        name: "Krypto-ATM",       hint: "neon crypto ATM with holographic coin spilling out",                  color: "#FFD700", glow: "#FFAC33" },
+  { id: "datacenter", name: "Datacenter",       hint: "datacenter rack with cyan fiber-optic cables, blinking server LEDs",  color: "#22D1C3", glow: "#5ddaf0" },
+] as const;
+export type ResourceNodeId = (typeof RESOURCE_NODES_ART)[number]["id"];
+
+export function buildResourceNodePrompt(input: { id: ResourceNodeId; mode: "image" | "video" }): string {
+  const n = RESOURCE_NODES_ART.find((x) => x.id === input.id);
+  if (!n) return "";
+  if (input.mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated map node icon for "MyArea365" (Berlin cyberpunk setting), square 512x512, 30 fps, fully transparent background (alpha channel, NO solid background).`,
+      `Subject: a "${n.name}" plunder spot — ${n.hint}. Stylized cartoon-realism, vivid saturation.`,
+      `Composition: subject centered, ~75% of frame, slight 3/4 top-down camera angle so it reads as a 3D map pickup.`,
+      `Color palette: primary ${n.color}, glow accent ${n.glow}. Cyberpunk neon hints.`,
+      `Motion: subtle ambient animation (smoke/sparks/blinking lights/gear rotation appropriate to the type). Object stays in place.`,
+      `Style: sharp readable silhouette at small map-marker sizes (~32px), neon halo around the base.`,
+      `Looping: final frame matches first frame for seamless loop.`,
+      `Negative: no characters, no text, no UI, no scenery, no solid background — only the node on alpha transparency.`,
+    ].join(" ");
+  }
+  return [
+    `A premium game-ready map resource-node icon "${n.name}" for "MyArea365", square 512x512 PNG with full alpha transparency.`,
+    `Subject: ${n.hint}. Stylized cartoon-realism, vivid saturation.`,
+    `Composition: centered, ~75% of frame, slight 3/4 top-down camera angle.`,
+    `Color palette: primary ${n.color} with ${n.glow} glow accents. Cyberpunk neon hints.`,
+    `Style: sharp silhouette at ~32px, neon halo around the base.`,
+    `Negative: no characters, no scenery, no text, no UI — only the node on alpha transparency.`,
+  ].join(" ");
+}
+
 export const SIEGEL_TYPES = [
   { id: 'infantry', name: 'Infanterie-Siegel', hint: 'crossed swords, shield', color: '#60a5fa', accent: 'steel blue', theme: 'heavy armor, plate mail, stalwart defender' },
   { id: 'cavalry',  name: 'Kavallerie-Siegel', hint: 'rearing horse, lance', color: '#FF6B4A', accent: 'amber orange', theme: 'charging cavalry, mounted warrior, speed' },

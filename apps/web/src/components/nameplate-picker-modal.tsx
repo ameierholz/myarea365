@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNameplateArt } from "@/components/resource-icon";
+import { AdminArtworkControls } from "@/components/admin-artwork-controls";
+import { buildNameplatePrompt } from "@/lib/artwork-prompts";
 
 type Plate = {
   id: string;
@@ -22,7 +24,7 @@ const RARITY_LABEL: Record<Plate["rarity"], string> = {
   common: "Standard", advanced: "Fortgeschritten", epic: "Episch", legendary: "Legendär",
 };
 
-export function NameplatePickerModal({ onClose }: { onClose: () => void }) {
+export function NameplatePickerModal({ onClose, isAdmin = false }: { onClose: () => void; isAdmin?: boolean }) {
   const [items, setItems] = useState<Plate[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const art = useNameplateArt();
@@ -89,6 +91,20 @@ export function NameplatePickerModal({ onClose }: { onClose: () => void }) {
                     className="text-[10px] font-black px-3 py-2 rounded-lg bg-white/5 text-[#a8b4cf] border border-white/10 disabled:opacity-50">
                     {p.unlock_kind === "vip" ? `🔒 Premium ${p.unlock_value}` : p.unlock_kind === "event" ? "🎁 Event" : p.unlock_kind === "achievement" ? `🏆 ${p.unlock_value}` : "🔒"}
                   </button>
+                )}
+                {isAdmin && (
+                  <div className="ml-2">
+                    <AdminArtworkControls
+                      targetType="nameplate"
+                      targetId={p.id}
+                      hasImage={!!a?.image_url}
+                      hasVideo={!!a?.video_url}
+                      buildPrompt={(mode) => buildNameplatePrompt({
+                        id: p.id, name: p.name, description: p.description, rarity: p.rarity, mode,
+                      })}
+                      onUploaded={() => void load()}
+                    />
+                  </div>
                 )}
               </div>
             );

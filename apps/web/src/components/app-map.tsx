@@ -1067,16 +1067,26 @@ export function AppMap({
   const selfMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [markerArt, setMarkerArt] = useState<{ image_url: string | null; video_url: string | null } | null>(null);
   const [markerArtFetched, setMarkerArtFetched] = useState(false);
+  const rnodeArtRef = useRef<Record<string, { image_url: string | null; video_url: string | null }>>({});
+  const lootDropArtRef = useRef<Record<string, { image_url: string | null; video_url: string | null }>>({});
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
         if (!res.ok) return;
-        const j = await res.json() as { marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+        const j = await res.json() as {
+          marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>>;
+          resource_node?: Record<string, { image_url: string | null; video_url: string | null }>;
+          loot_drop?: Record<string, { image_url: string | null; video_url: string | null }>;
+        };
         const variants = j.marker?.[markerId];
         const art = variants?.[markerVariant] ?? variants?.neutral ?? null;
-        if (alive) setMarkerArt(art);
+        if (alive) {
+          setMarkerArt(art);
+          rnodeArtRef.current = j.resource_node ?? {};
+          lootDropArtRef.current = j.loot_drop ?? {};
+        }
       } catch {} finally {
         if (alive) setMarkerArtFetched(true);
       }
@@ -2895,9 +2905,16 @@ export function AppMap({
       outer.style.pointerEvents = "auto";
       const inner = document.createElement("div");
       inner.className = "ma365-rnode-marker";
+      // Artwork falls vorhanden, sonst Emoji-Fallback im Gradient-Box
+      const rnArt = rnodeArtRef.current[n.kind];
+      const iconHtml = rnArt?.video_url
+        ? `<video src="${rnArt.video_url}" autoplay loop muted playsinline class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;"></video>`
+        : rnArt?.image_url
+          ? `<img src="${rnArt.image_url}" class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;" alt="" />`
+          : `<div class="ma365-rnode-icon kind-${n.kind}" data-vis="full">${rnodeEmoji[n.kind] ?? "📦"}</div>`;
       inner.innerHTML = `
         ${rnodeSilhouette(n.kind)}
-        <div class="ma365-rnode-icon kind-${n.kind}" data-vis="full">${rnodeEmoji[n.kind] ?? "📦"}</div>
+        ${iconHtml}
         <div class="ma365-rnode-gather-ring" style="display:none;position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;border:3px solid #4ade80;background:rgba(15,17,21,0.7);align-items:center;justify-content:center;pointer-events:none;z-index:3;animation:ma365GatherPulse 1.6s ease-in-out infinite;">
           <span class="ma365-rnode-cd" style="font-size:10px;font-weight:900;color:#4ade80;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.9);"></span>
         </div>
@@ -3049,11 +3066,17 @@ export function AppMap({
       outer.style.pointerEvents = "auto";
       const color = rarityColor[d.rarity] || "#5ddaf0";
       const crate = crateByRarity[d.rarity] || "📦";
+      const ldArt = lootDropArtRef.current[d.rarity];
+      const crateHtml = ldArt?.video_url
+        ? `<video class="ma365-loot-crate" src="${ldArt.video_url}" autoplay loop muted playsinline style="object-fit:contain;background:transparent;"></video>`
+        : ldArt?.image_url
+          ? `<img class="ma365-loot-crate" src="${ldArt.image_url}" style="object-fit:contain;background:transparent;" alt="" />`
+          : `<div class="ma365-loot-crate">${crate}</div>`;
       outer.innerHTML = `
         <div class="ma365-loot-wrap" style="--color:${color}; --loot-scale:${initialLootScale.toFixed(2)}">
           <div class="ma365-loot-proximity"></div>
           <div class="ma365-loot-proximity two"></div>
-          <div class="ma365-loot-crate">${crate}</div>
+          ${crateHtml}
           <div class="ma365-loot-timer" data-loot-timer="${d.expires_at ?? 0}" style="position:absolute;left:50%;top:-16px;transform:translateX(-50%);background:rgba(15,17,21,0.85);color:#FFF;font-size:11px;font-weight:800;letter-spacing:0.2px;padding:2px 6px;border-radius:6px;border:1px solid ${color}88;white-space:nowrap;pointer-events:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.8);"></div>
         </div>`;
       outer.addEventListener("click", () => onLootClick?.(d.id));

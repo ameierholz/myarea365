@@ -14,6 +14,11 @@ import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes"
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildPinThemePrompt } from "@/lib/artwork-prompts";
 import { LightTrailPreview } from "@/components/light-trail-preview";
+import { PinThemePreview } from "@/components/pin-theme-preview";
+import { NameplatePickerModal } from "@/components/nameplate-picker-modal";
+import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
+import { BaseRingPickerModal } from "@/components/base-ring-picker-modal";
+import { useNameplateArt } from "@/components/resource-icon";
 
 const PRIMARY = "#5ddaf0";
 
@@ -54,6 +59,14 @@ export function LoadoutTrio({
   const [markerOpen, setMarkerOpen] = useState(false);
   const [lightOpen, setLightOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [nameplateOpen, setNameplateOpen] = useState(false);
+  const [baseThemeOpen, setBaseThemeOpen] = useState(false);
+  const [baseRingOpen, setBaseRingOpen] = useState(false);
+  const [baseTheme, setBaseTheme] = useState<{ id: string; name: string; emoji: string; rarity: string; color: string } | null>(null);
+  const [baseRing, setBaseRing] = useState<{ id: string; name: string; emoji: string; rarity: string; color: string } | null>(null);
+  const [baseRingArt, setBaseRingArt] = useState<{ image_url: string | null; video_url: string | null } | null>(null);
+  const [nameplate, setNameplate] = useState<{ id: string; name: string; emoji: string; rarity: string } | null>(null);
+  const nameplateArtMap = useNameplateArt();
   const [pinThemeState, setPinThemeState] = useState<{ active: PinTheme; unlocked: PinTheme[] }>({ active: "default", unlocked: ["default"] });
   const [busy, setBusy] = useState(false);
   const [cosmeticArt, setCosmeticArt] = useState<{
@@ -79,7 +92,47 @@ export function LoadoutTrio({
     await loadTheme();
     onPinThemeChange?.(t);
   }
-  useEffect(() => { load(); loadArt(); loadTheme(); }, []);
+  async function loadBaseAndNameplate() {
+    try {
+      const [tRes, rRes, nRes, aRes] = await Promise.all([
+        fetch("/api/base/theme", { cache: "no-store" }),
+        fetch("/api/base/ring", { cache: "no-store" }),
+        fetch("/api/nameplates", { cache: "no-store" }),
+        fetch("/api/cosmetic-artwork", { cache: "no-store" }),
+      ]);
+      if (tRes.ok) {
+        const j = await tRes.json() as { themes: Array<{ id: string; name: string; pin_emoji?: string; emoji?: string; rarity: string; pin_color?: string; accent_color?: string }>; active_theme_id: string };
+        const cur = j.themes.find((t) => t.id === j.active_theme_id) ?? null;
+        if (cur) setBaseTheme({ id: cur.id, name: cur.name, emoji: cur.pin_emoji ?? cur.emoji ?? "🏰", rarity: cur.rarity, color: cur.pin_color ?? cur.accent_color ?? PRIMARY });
+      }
+      if (rRes.ok) {
+        const j = await rRes.json() as { items: Array<{ id: string; name: string; preview_emoji: string; rarity: string; preview_color: string; equipped: boolean }> };
+        const cur = j.items.find((r) => r.equipped) ?? null;
+        if (cur) setBaseRing({ id: cur.id, name: cur.name, emoji: cur.preview_emoji, rarity: cur.rarity, color: cur.preview_color });
+      }
+      if (nRes.ok) {
+        const j = await nRes.json() as { items: Array<{ id: string; name: string; preview_emoji: string; rarity: string; equipped: boolean }> };
+        const cur = j.items.find((p) => p.equipped) ?? null;
+        if (cur) setNameplate({ id: cur.id, name: cur.name, emoji: cur.preview_emoji, rarity: cur.rarity });
+        else setNameplate(null);
+      }
+      if (aRes.ok) {
+        await aRes.json();
+      }
+    } catch {}
+  }
+  // Base-Ring artwork separat nachziehen (für Tile-Vorschau)
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/cosmetic-artwork", { cache: "no-store" }).then(async (r) => {
+      if (!r.ok || cancelled) return;
+      const j = await r.json() as { base_ring?: Record<string, { image_url: string | null; video_url: string | null }> };
+      if (cancelled || !baseRing) return;
+      setBaseRingArt(j.base_ring?.[baseRing.id] ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [baseRing]);
+  useEffect(() => { load(); loadArt(); loadTheme(); loadBaseAndNameplate(); }, []);
 
   async function claimStarter(archetypeId: string) {
     setBusy(true);
@@ -146,14 +199,18 @@ export function LoadoutTrio({
     );
   }
 
+  const RARITY_COLOR: Record<string, string> = { common: "#9ba8c7", advanced: "#5ddaf0", epic: "#a855f7", legendary: "#FFD700" };
+  const npArt = nameplate ? nameplateArtMap[nameplate.id] : null;
+
   return (
     <>
-      {/* ── 3-Col: Map-Icon · Runner-Light · Pin-Theme (alles Runner-bezogen) ── */}
+      {/* ═══ SECTION 1: Auf der Karte (Runner-Loadout) ═══ */}
+      <SectionHeading title={tL("runnerHeading")} subtitle={tL("runnerSubtitle")} />
       <div style={{
         display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
         marginBottom: 14,
       }}>
-        {/* ── MAP-ICON ── */}
+        {/* ── AVATAR (Map-Icon) ── */}
         <div style={tileStyle()} onClick={() => setMarkerOpen(true)}>
           <div style={labelStyle()}>{tL("labelMapIcon")}</div>
           {(() => {
@@ -164,6 +221,7 @@ export function LoadoutTrio({
             return <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>;
           })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{currentMarker.name}</div>
+          <div style={{ fontSize: 8, color: "#8B8FA3", marginTop: 1, fontWeight: 700 }}>{tL("avatarSharedHint")}</div>
           <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
         </div>
 
@@ -197,15 +255,15 @@ export function LoadoutTrio({
               ) : tArt?.image_url ? (
                 <img src={tArt.image_url} alt={tMeta.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
               ) : (
-                <div style={{
-                  width: 70, height: 70, borderRadius: 16,
-                  background: tMeta.preview.bg,
-                  border: `2px solid ${tMeta.preview.accent}`,
-                  boxShadow: `0 0 16px ${tMeta.preview.glow}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 34, marginTop: 4,
-                }}>
-                  {tMeta.icon}
+                <div style={{ marginTop: 4 }}>
+                  <PinThemePreview
+                    theme={pinThemeState.active}
+                    icon={tMeta.icon}
+                    accent={tMeta.preview.accent}
+                    glow={tMeta.preview.glow}
+                    bg={tMeta.preview.bg}
+                    size={70}
+                  />
                 </div>
               )}
               <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{tMeta.name}</div>
@@ -215,7 +273,86 @@ export function LoadoutTrio({
         })()}
       </div>
 
+      {/* ═══ SECTION 2: An deiner Base (Base-Loadout) ═══ */}
+      <SectionHeading title={tL("baseHeading")} subtitle={tL("baseSubtitle")} />
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8,
+        marginBottom: 14,
+      }}>
+        {/* ── BASE-THEME (Gebäude/Skin) ── */}
+        <div style={tileStyle()} onClick={() => setBaseThemeOpen(true)}>
+          <div style={labelStyle()}>{tL("labelBaseTheme")}</div>
+          <div style={{
+            width: 72, height: 72, borderRadius: 14, marginTop: 4,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            border: `2px solid ${baseTheme?.color ?? PRIMARY}`,
+            boxShadow: `0 0 14px ${baseTheme?.color ?? PRIMARY}66`,
+            background: "rgba(15,17,21,0.6)",
+            fontSize: 34,
+          }}>
+            {baseTheme?.emoji ?? "🏰"}
+          </div>
+          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{baseTheme?.name ?? "—"}</div>
+          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
+        </div>
+
+        {/* ── BASE-RING (Aura/Donut um den Pin) ── */}
+        <div style={tileStyle()} onClick={() => setBaseRingOpen(true)}>
+          <div style={labelStyle()}>{tL("labelBaseRing")}</div>
+          {baseRingArt?.video_url ? (
+            <video src={baseRingArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+          ) : baseRingArt?.image_url ? (
+            <img src={baseRingArt.image_url} alt={baseRing?.name ?? ""} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+          ) : (
+            <div style={{
+              width: 72, height: 72, borderRadius: "50%", marginTop: 4,
+              border: `5px solid ${baseRing ? RARITY_COLOR[baseRing.rarity] ?? PRIMARY : PRIMARY}`,
+              boxShadow: `0 0 14px ${baseRing ? RARITY_COLOR[baseRing.rarity] ?? PRIMARY : PRIMARY}88, inset 0 0 10px ${baseRing ? RARITY_COLOR[baseRing.rarity] ?? PRIMARY : PRIMARY}55`,
+              background: "transparent",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 26,
+            }}>
+              {baseRing?.emoji ?? "⭕"}
+            </div>
+          )}
+          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{baseRing?.name ?? "—"}</div>
+          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
+        </div>
+
+        {/* ── BANNER (Nameplate) ── */}
+        <div style={tileStyle()} onClick={() => setNameplateOpen(true)}>
+          <div style={labelStyle()}>{tL("labelBaseBanner")}</div>
+          {npArt?.video_url ? (
+            <video src={npArt.video_url} autoPlay loop muted playsInline style={{ width: 100, height: 36, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />
+          ) : npArt?.image_url ? (
+            <img src={npArt.image_url} alt={nameplate?.name ?? ""} style={{ width: 100, height: 36, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />
+          ) : (
+            <div style={{
+              width: 100, height: 28, marginTop: 18, marginBottom: 6,
+              borderRadius: 6,
+              background: `linear-gradient(90deg, ${nameplate ? RARITY_COLOR[nameplate.rarity] ?? "#5ddaf0" : "#5ddaf0"}33, ${nameplate ? RARITY_COLOR[nameplate.rarity] ?? "#5ddaf0" : "#5ddaf0"}11)`,
+              border: `1px solid ${nameplate ? RARITY_COLOR[nameplate.rarity] ?? "#5ddaf0" : "#5ddaf0"}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16,
+            }}>
+              {nameplate?.emoji ?? "🎀"}
+            </div>
+          )}
+          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{nameplate?.name ?? "—"}</div>
+          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
+        </div>
+      </div>
+
       {/* Modals */}
+      {nameplateOpen && (
+        <NameplatePickerModal isAdmin={isAdmin} onClose={() => { setNameplateOpen(false); void loadBaseAndNameplate(); }} />
+      )}
+      {baseThemeOpen && (
+        <BaseThemeShopModal onClose={() => setBaseThemeOpen(false)} onChanged={() => void loadBaseAndNameplate()} />
+      )}
+      {baseRingOpen && (
+        <BaseRingPickerModal isAdmin={isAdmin} onClose={() => setBaseRingOpen(false)} onChanged={() => void loadBaseAndNameplate()} />
+      )}
       {themeOpen && (
         <PinThemePickerModal
           active={pinThemeState.active}
@@ -315,12 +452,16 @@ function PinThemePickerModal({
                     ) : art?.image_url ? (
                       <img src={art.image_url} alt={m.name} style={{ width: 72, height: 72, objectFit: "contain", marginBottom: 8 }} />
                     ) : (
-                      <div style={{
-                        width: 72, height: 72, borderRadius: 16, marginBottom: 8,
-                        background: m.preview.bg, border: `2px solid ${m.preview.accent}`,
-                        boxShadow: `0 0 14px ${m.preview.glow}`,
-                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34,
-                      }}>{m.icon}</div>
+                      <div style={{ marginBottom: 8 }}>
+                        <PinThemePreview
+                          theme={id}
+                          icon={m.icon}
+                          accent={m.preview.accent}
+                          glow={m.preview.glow}
+                          bg={m.preview.bg}
+                          size={72}
+                        />
+                      </div>
                     )}
                     <span style={{ fontSize: 12, fontWeight: 900 }}>{m.name}</span>
                     <span style={{ fontSize: 9, color: "#a8b4cf", textAlign: "center", marginTop: 3, lineHeight: 1.3 }}>{m.description}</span>
@@ -372,4 +513,13 @@ function tileStyle(): React.CSSProperties {
 }
 function labelStyle(): React.CSSProperties {
   return { color: PRIMARY, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 };
+}
+
+function SectionHeading({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div style={{ marginBottom: 8, marginTop: 4 }}>
+      <div style={{ color: PRIMARY, fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>{title}</div>
+      <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 600, marginTop: 2 }}>{subtitle}</div>
+    </div>
+  );
 }

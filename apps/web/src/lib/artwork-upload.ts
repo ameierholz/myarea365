@@ -3,7 +3,7 @@
 
 export async function uploadArtworkDirect(
   file: File,
-  targetType: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop",
+  targetType: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "loot_drop" | "resource_node",
   targetId: string,
   variant?: "neutral" | "male" | "female",
 ): Promise<{ ok: true; image_url: string | null; video_url: string | null; is_video: boolean } | { ok: false; error: string }> {

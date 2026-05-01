@@ -6,7 +6,7 @@ export type ResourceKind = "wood" | "stone" | "gold" | "mana" | "speed_token";
 export type ChestKind = "silver" | "gold" | "event";
 export type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
 
-type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; resource_node: ResourceArtMap; loot_drop: ResourceArtMap; base_ring: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
 
 let _cache: AllArt | null = null;
 let _ready = false;
@@ -21,8 +21,8 @@ function ensureFetch() {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (!r.ok) return;
-      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
-      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, marker: j.marker ?? {} };
+      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, marker: j.marker ?? {} };
       _listeners.forEach((l) => l(_cache!));
     } catch { /* silent */ } finally {
       _fetching = false;
@@ -114,6 +114,30 @@ export function useNameplateArt(): ResourceArtMap {
   useEffect(() => {
     if (_cache) { setArt(_cache.nameplate); return; }
     const sub = (m: AllArt) => setArt(m.nameplate);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
+export function useResourceNodeArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_cache?.resource_node ?? {});
+  useEffect(() => {
+    if (_cache) { setArt(_cache.resource_node); return; }
+    const sub = (m: AllArt) => setArt(m.resource_node);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
+export function useLootDropArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_cache?.loot_drop ?? {});
+  useEffect(() => {
+    if (_cache) { setArt(_cache.loot_drop); return; }
+    const sub = (m: AllArt) => setArt(m.loot_drop);
     _listeners.add(sub);
     ensureFetch();
     return () => { _listeners.delete(sub); };

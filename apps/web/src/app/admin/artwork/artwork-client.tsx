@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, BASE_RINGS_ART, buildBaseRingPrompt, NAMEPLATES_ART, buildNameplatePrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -86,9 +86,13 @@ type CosmeticArt = {
   stronghold: Record<string, Art>;  // slot_id = "wegelager" (1 Slot für alle Wegelager-Level)
   ui_icon:    Record<string, Art>;  // slot_id = stat_*/class_*/action_*
   troop:      Record<string, Art>;  // slot_id = troop_id (inf_t1, cav_t3, ...)
+  nameplate:    Record<string, Art>;  // slot_id = nameplate_id (default, snow, dragon, ...)
+  base_ring:    Record<string, Art>;  // slot_id = ring_id (default, iron, golden, ...)
+  resource_node:Record<string, Art>;  // slot_id = scrapyard|factory|atm|datacenter
+  loot_drop:    Record<string, Art>;  // slot_id = common|rare|epic|legendary
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "resource_node" | "loot_drop";
 
 type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -109,7 +113,7 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {} });
   const [uiIconSlots, setUiIconSlots] = useState<UiIconSlot[]>([]);
   const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +166,10 @@ export function ArtworkAdminClient() {
         stronghold: bustMap(raw.stronghold ?? {}),
         ui_icon:    bustMap(raw.ui_icon    ?? {}),
         troop:      bustMap(raw.troop      ?? {}),
+        nameplate:    bustMap(raw.nameplate    ?? {}),
+        base_ring:    bustMap(raw.base_ring    ?? {}),
+        resource_node:bustMap(raw.resource_node?? {}),
+        loot_drop:    bustMap(raw.loot_drop    ?? {}),
       });
     }
     setLoading(false);
@@ -196,6 +204,10 @@ export function ArtworkAdminClient() {
     return a?.image_url || a?.video_url;
   }).length;
   const doneTroop    = Object.values(cosmetic.troop    ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneNameplate = Object.values(cosmetic.nameplate ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneBaseRing  = Object.values(cosmetic.base_ring ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneRNode     = Object.values(cosmetic.resource_node ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneLootDrop  = Object.values(cosmetic.loot_drop ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
@@ -214,6 +226,10 @@ export function ArtworkAdminClient() {
     { id: "map_building",label: "🏰 Map-Gebäude",   done: doneMapBuilding, total: totalMapBuilding },
     { id: "ui_icon",   label: "✨ UI-Icons",         done: doneUiIcon,    total: nonSilhouetteSlots.length },
     { id: "troop",     label: "⚔ Bande",           done: doneTroop,     total: troopSlots.length },
+    { id: "nameplate", label: "🎀 Banner",           done: doneNameplate, total: 20 },
+    { id: "base_ring", label: "💍 Base-Rings",       done: doneBaseRing,  total: 20 },
+    { id: "resource_node", label: "⛏️ Plünderpunkte", done: doneRNode,    total: 4 },
+    { id: "loot_drop", label: "🎁 Loot-Drops",       done: doneLootDrop,  total: 4 },
   ];
 
   return (
@@ -259,6 +275,10 @@ export function ArtworkAdminClient() {
         : tab === "chest"     ? <ChestArtTab artMap={cosmetic.chest} onChange={reload} />
         : tab === "map_building"? <MapBuildingsTab strongholdArt={cosmetic.stronghold ?? {}} uiIconArt={cosmetic.ui_icon} silhouetteSlots={silhouetteSlots} onChange={reload} />
         : tab === "ui_icon"   ? <UiIconArtTab artMap={cosmetic.ui_icon} slots={nonSilhouetteSlots} onChange={reload} />
+        : tab === "nameplate" ? <NameplateArtTab artMap={cosmetic.nameplate} onChange={reload} />
+        : tab === "base_ring" ? <BaseRingArtTab artMap={cosmetic.base_ring} onChange={reload} />
+        : tab === "resource_node" ? <ResourceNodeArtTab artMap={cosmetic.resource_node} onChange={reload} />
+        : tab === "loot_drop" ? <LootDropArtTab artMap={cosmetic.loot_drop} onChange={reload} />
         : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
       )}
     </div>
@@ -1789,6 +1809,177 @@ function TroopArtTab({ artMap, slots, onChange }: {
                 hasImage={!!art?.image_url}
                 hasVideo={!!art?.video_url}
                 buildPrompt={(mode) => buildTroopPrompt({ slot: s, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Banner (Nameplates) — 20 Designs                     */
+/* ═════════════════════════════════════════════════════════ */
+function NameplateArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Banner liegen hinter dem Runner-Anzeigenamen — die zentralen ~60% Breite müssen frei für Text bleiben. Verzierungen nur auf left/right cap.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+        {NAMEPLATES_ART.map((p) => {
+          const art = artMap[p.id];
+          const c = p.rarity === "legendary" ? "#FFD700" : p.rarity === "epic" ? "#a855f7" : p.rarity === "advanced" ? "#5ddaf0" : "#9aa3b8";
+          return (
+            <div key={p.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 100, height: 36, background: `${c}22`, border: `1px solid ${c}` }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                    : art?.image_url ? <img src={art.image_url} alt={p.name} className="w-full h-full object-contain" />
+                    : <span style={{ fontSize: 14, color: c, fontWeight: 800 }}>{p.name.slice(0,8)}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: c }}>{p.rarity.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white truncate">{p.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{p.description}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="nameplate"
+                targetId={p.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildNameplatePrompt({ id: p.id, name: p.name, description: p.description, rarity: p.rarity, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Base-Rings — 20 Donuts mit transparenter Mitte       */
+/* ═════════════════════════════════════════════════════════ */
+function BaseRingArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Donut/Halo-Form — Mitte transparent, Base-Icon kommt zur Laufzeit ins Loch. Outer ~95% / inner hole ~55% des Canvas.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
+        {BASE_RINGS_ART.map((r) => {
+          const art = artMap[r.id];
+          return (
+            <div key={r.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-full overflow-hidden" style={{ width: 80, height: 80, border: `4px solid ${r.color}`, boxShadow: `0 0 14px ${r.color}66` }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    : art?.image_url ? <img src={art.image_url} alt={r.name} className="w-full h-full object-cover" />
+                    : <span style={{ fontSize: 24 }}>⭕</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: r.color }}>{r.rarity.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white truncate">{r.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{r.description}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="base_ring"
+                targetId={r.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildBaseRingPrompt({ id: r.id, name: r.name, description: r.description, color: r.color, rarity: r.rarity, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Resource-Nodes (Plünderpunkte) — 4 Map-Marker         */
+/* ═════════════════════════════════════════════════════════ */
+function ResourceNodeArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        4 Plünderpunkt-Typen für die Map (Schrottplatz/Fabrik/Krypto-ATM/Datacenter). Werden statt der Emoji-Boxen direkt am Pin gerendert.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+        {RESOURCE_NODES_ART.map((n) => {
+          const art = artMap[n.id];
+          return (
+            <div key={n.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 80, height: 80, background: `${n.color}22`, border: `2px solid ${n.color}`, boxShadow: `0 0 12px ${n.glow}66` }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                    : art?.image_url ? <img src={art.image_url} alt={n.name} className="w-full h-full object-contain" />
+                    : <span style={{ fontSize: 32 }}>📦</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: n.color }}>NODE</div>
+                  <div className="text-sm font-black text-white truncate">{n.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{n.hint}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="resource_node"
+                targetId={n.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildResourceNodePrompt({ id: n.id, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Loot-Drops (Map-Drops) — 4 Rarities                   */
+/* ═════════════════════════════════════════════════════════ */
+function LootDropArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  const rarityColor: Record<string, string> = { common: "#9aa3b8", rare: "#22D1C3", epic: "#a855f7", legendary: "#FFD700" };
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Loot-Drops auf der Karte (NICHT die Truhen-Tab Silber/Gold/Event!). Erscheinen für alle Runner zum Aufheben — Slot-IDs = rarity.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {LOOT_DROPS_ART.map((d) => {
+          const art = artMap[d.id];
+          const c = rarityColor[d.id] ?? "#5ddaf0";
+          return (
+            <div key={d.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 80, height: 80, background: `${c}22`, border: `2px solid ${c}`, boxShadow: `0 0 12px ${c}66` }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                    : art?.image_url ? <img src={art.image_url} alt={d.name} className="w-full h-full object-contain" />
+                    : <span style={{ fontSize: 32 }}>📦</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: c }}>{d.rarity.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white truncate">{d.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{d.hint}</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="loot_drop"
+                targetId={d.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildLootDropPrompt({ id: d.id, name: d.name, rarity: d.rarity, hint: d.hint, mode })}
                 onUploaded={onChange}
               />
             </div>

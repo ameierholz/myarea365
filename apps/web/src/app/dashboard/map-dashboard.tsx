@@ -4165,10 +4165,10 @@ function ProfilTab({
           <MonthlyCalendar runs={effectiveRecentRuns} color={teamColor} />
         </div>
 
-        {/* ═══ WÄCHTER ═══ */}
-        <SectionHeader title="WÄCHTER · MAP-ICON · RUNNER-LIGHT" action={<GuardianHelpButton />} />
+        {/* ═══ LOADOUT (Runner + Base) ═══ */}
+        <SectionHeader title="LOADOUT" action={<GuardianHelpButton />} />
 
-        {/* Kompaktes Loadout-Trio — alles Weitere in Modals */}
+        {/* Loadout-Sections: 1) Auf der Karte (Runner)  2) An der Base */}
         <LoadoutTrio
           userXp={userXp}
           equippedMarker={equippedMarker}
