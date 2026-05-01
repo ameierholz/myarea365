@@ -21,9 +21,9 @@ begin
   end if;
 
   v_clean := btrim(coalesce(p_new_name, ''));
-  if char_length(v_clean) < 2 or char_length(v_clean) > 8 then
+  if char_length(v_clean) < 2 or char_length(v_clean) > 15 then
     return jsonb_build_object('ok', false, 'error', 'name_length',
-      'message', 'Name muss 2-8 Zeichen lang sein');
+      'message', 'Name muss 2-15 Zeichen lang sein');
   end if;
   -- Erlaubte Zeichen: Buchstaben (auch Unicode), Zahlen, Leer/_/./-/Umlaute
   if v_clean !~ '^[\p{L}\p{N} _.\-äöüÄÖÜß]+$' then

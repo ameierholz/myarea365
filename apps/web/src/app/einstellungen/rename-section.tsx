@@ -34,13 +34,13 @@ export function RenameSection({ initial }: { initial: string }) {
     <section className="p-5 rounded-2xl bg-bg-card border border-border">
       <h2 className="text-lg font-bold text-white mb-2">Anzeigename</h2>
       <p className="text-sm text-text-muted mb-4">
-        So tauchst du auf der Karte und bei deiner Crew auf. 2–8 Zeichen.
+        So tauchst du auf der Karte und bei deiner Crew auf. 2–15 Zeichen.
       </p>
       <div className="flex gap-2">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          maxLength={8}
+          maxLength={15}
           className="flex-1 px-3 py-2 rounded-lg bg-black/30 text-white border border-white/10 focus:border-primary outline-none text-sm"
           placeholder="Dein Name"
         />
