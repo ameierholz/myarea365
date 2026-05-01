@@ -1,55 +1,126 @@
-// Runner-Light V2 Renderer.
-// Erzeugt für eine GeoJSON-LineString-Source einen Stack aus Bloom-Layern,
-// Core-Layer, optionalem Inner-White-Layer und dem animations-spezifischen
-// Effekt-Layer. Wiederverwendbar in app-map.tsx (Live-Trail) und in
-// /admin/lights-preview (alle 20 nebeneinander).
-//
-// Animations:
-//  - "static"      : kein extra Effekt
-//  - "shimmer"     : sanftes Atmen der Core-Opacity (RAF)
-//  - "comet"       : line-trim-offset bewegt einen Spot über die Linie
-//  - "plasma"      : zwei versetzte Cometen mit Chroma-Split
-//  - "color_cycle" : line-gradient rotiert die Farb-Stops
-//  - "flicker"     : Core-Opacity oszilliert irregulär (Pseudo-Random Walk)
+// Runner-Light V3 Renderer — name-passende organische Effekte.
+// KEINE line-trim-offset mehr (sah aus wie wandernde Boxen).
+// Stattdessen:
+//  - Bloom-Stack (3-4 Halos) für echtes HDR-Glow
+//  - Core mit optional gradient
+//  - Inner-White Hot-Core
+//  - Pro Animation organische Modifikation der Paint-Properties:
+//      * static / breathe / wave_breathe / wisp_drift / flame_glow → opacity-Modulation
+//      * flow / molten_flow / metal_sheen → animierter line-gradient
+//      * electric_arcs → kurze opacity/blur-Spikes
+//  - Particle-System: zusätzliche circle-layer mit Punkten entlang der Linie
+//      * sparkle: zwinkern in place
+//      * embers: driften nach oben + faden
+//      * stars: langsamere größere Twinkles
 
 import type { Map as MapboxMap, ExpressionSpecification } from "mapbox-gl";
-import type { LightVisualSpec, RunnerLightId, BloomLayer } from "./game-config";
+import type { LightVisualSpec, RunnerLightId } from "./game-config";
 
 export type LightRenderHandles = {
   sourceId: string;
   layerIds: string[];
+  particleSourceId?: string;
   raf?: number;
 };
 
 export type LightRenderInput = {
   light: { id: RunnerLightId; gradient: readonly string[]; width: number };
   spec: LightVisualSpec;
-  /** Override-Farbe für Legacy-Special-Trails (golden_trail, neon_trail). */
   overrideColor?: string | null;
-  /** Multiplier für alle Breiten — nutzbar wenn der Renderer eine zoom-responsive
-      width-expression statt Pixel-Werten haben will. */
   widthExpression?: (basePx: number) => number | ExpressionSpecification;
 };
 
-/** Erzeuge sortierte line-gradient-Stops aus den Light-Farben. */
-function gradientStops(colors: readonly string[], offset = 0): (number | string)[] {
+// ── Helpers ─────────────────────────────────────────────────────────
+
+function staticGradientStops(colors: readonly string[]): (number | string)[] {
   if (colors.length < 2) return [];
-  // Stops mit Offset rotiert (für color_cycle). Sicherstellen dass 0 und 1 abgedeckt sind.
-  const n = colors.length;
+  const flat: (number | string)[] = [];
+  colors.forEach((c, i) => { flat.push(i / (colors.length - 1), c); });
+  return flat;
+}
+
+// Soft "bright bump" gradient — zwei Stops links/rechts vom Bump dunkel,
+// in der Mitte hell. Bewegt sich mit `pos` von 0..1. Kein Wraparound, ist
+// einfach am Rand begrenzt damit keine harten Kanten entstehen.
+function bumpGradient(baseColor: string, brightColor: string, pos: number, width = 0.20): (number | string)[] {
+  const halfW = width / 2;
   const stops: Array<[number, string]> = [];
-  for (let i = 0; i <= n; i++) {
-    const t = ((i / n) + offset) % 1;
-    stops.push([t, colors[i % n]]);
-  }
-  // Sortiert nach Position
+  stops.push([0, baseColor]);
+  if (pos - halfW > 0) stops.push([pos - halfW, baseColor]);
+  stops.push([pos, brightColor]);
+  if (pos + halfW < 1) stops.push([pos + halfW, baseColor]);
+  stops.push([1, baseColor]);
+  // Sortieren + dedupen (für edge cases pos < 0 oder > 1)
   stops.sort((a, b) => a[0] - b[0]);
-  // Sicherstellen dass first=0 und last=1
+  const cleaned: Array<[number, string]> = [];
+  for (const s of stops) {
+    if (s[0] < 0 || s[0] > 1) continue;
+    if (cleaned.length === 0 || cleaned[cleaned.length - 1][0] < s[0]) cleaned.push(s);
+  }
+  if (cleaned.length === 0 || cleaned[0][0] !== 0) cleaned.unshift([0, baseColor]);
+  if (cleaned[cleaned.length - 1][0] !== 1) cleaned.push([1, baseColor]);
+  const flat: (number | string)[] = [];
+  for (const [p, c] of cleaned) flat.push(p, c);
+  return flat;
+}
+
+// Multi-color gradient mit geshiftedem Offset (für flow/aurora)
+function flowGradient(colors: readonly string[], offset: number): (number | string)[] {
+  if (colors.length < 2) {
+    // Mono-Farbe: simulate „flow" via bump
+    return bumpGradient(colors[0], "#FFFFFF", offset, 0.25);
+  }
+  // Wickel die Farben so dass eine glatte zyklische Übergabe entsteht
+  const seq = [...colors, colors[0]];
+  const stops: Array<[number, string]> = [];
+  for (let i = 0; i < seq.length; i++) {
+    let t = (i / (seq.length - 1) + offset) % 1;
+    if (t < 0) t += 1;
+    stops.push([t, seq[i]]);
+  }
+  // Sicherstellen dass 0 und 1 abgedeckt sind
+  stops.sort((a, b) => a[0] - b[0]);
   if (stops[0][0] > 0) stops.unshift([0, stops[stops.length - 1][1]]);
   if (stops[stops.length - 1][0] < 1) stops.push([1, stops[0][1]]);
   const flat: (number | string)[] = [];
-  for (const [pos, c] of stops) flat.push(pos, c);
+  for (const [p, c] of stops) flat.push(p, c);
   return flat;
 }
+
+// Sample N Punkte entlang einer LineString (in [lng, lat])
+function sampleLine(coords: Array<[number, number]>, n: number): Array<[number, number]> {
+  if (coords.length === 0 || n <= 0) return [];
+  if (coords.length === 1) return Array(n).fill(coords[0]);
+  // Cumulative distance per segment (euclid in lat/lng → reicht für sample)
+  const segLens: number[] = [];
+  let total = 0;
+  for (let i = 1; i < coords.length; i++) {
+    const dx = coords[i][0] - coords[i - 1][0];
+    const dy = coords[i][1] - coords[i - 1][1];
+    const d = Math.hypot(dx, dy);
+    segLens.push(d);
+    total += d;
+  }
+  if (total === 0) return Array(n).fill(coords[0]);
+  const out: Array<[number, number]> = [];
+  for (let k = 0; k < n; k++) {
+    const t = ((k + 0.5) / n) * total;
+    let acc = 0;
+    for (let i = 0; i < segLens.length; i++) {
+      if (acc + segLens[i] >= t) {
+        const local = (t - acc) / segLens[i];
+        const lng = coords[i][0] + (coords[i + 1][0] - coords[i][0]) * local;
+        const lat = coords[i][1] + (coords[i + 1][1] - coords[i][1]) * local;
+        out.push([lng, lat]);
+        break;
+      }
+      acc += segLens[i];
+    }
+  }
+  return out;
+}
+
+// ── Main: addRunnerLight ────────────────────────────────────────────
 
 export function addRunnerLight(
   map: MapboxMap,
@@ -72,7 +143,6 @@ export function addRunnerLight(
   const w = (px: number): number | ExpressionSpecification => widthExpression ? widthExpression(px) : px;
 
   // ── 1. Bloom-Stack (außen → innen) ───────────────────────────────
-  // Sortiere absteigend nach widthAdd damit die größten Halos UNTEN liegen.
   const bloomSorted = [...spec.bloom].sort((a, b) => b.widthAdd - a.widthAdd);
   bloomSorted.forEach((bl, i) => {
     const id = `${sourceId}-bloom-${i}`;
@@ -98,7 +168,7 @@ export function addRunnerLight(
     "line-blur": spec.coreBlur,
   };
   if (isMultiColor) {
-    const stops = gradientStops(light.gradient);
+    const stops = staticGradientStops(light.gradient);
     if (stops.length > 0) {
       corePaint["line-gradient"] = ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification;
     }
@@ -110,7 +180,7 @@ export function addRunnerLight(
   });
   handles.layerIds.push(coreId);
 
-  // ── 3. Inner-White (Hot-Core) ─────────────────────────────────────
+  // ── 3. Inner-White Hot-Core ──────────────────────────────────────
   let innerId: string | null = null;
   if (spec.innerWhite) {
     innerId = `${sourceId}-inner`;
@@ -127,117 +197,186 @@ export function addRunnerLight(
     handles.layerIds.push(innerId);
   }
 
-  // ── 4. Animation ─────────────────────────────────────────────────
-  if (spec.animation === "static") return handles;
-
-  // Comet-Layer (für comet + plasma): zusätzliche helle Linie die per
-  // line-trim-offset windowed wird. Bei plasma zwei versetzt mit Farb-Split.
-  let cometIds: string[] = [];
-  if (spec.animation === "comet" || spec.animation === "plasma") {
-    const isPlasma = spec.animation === "plasma";
-    const colors = isPlasma
-      ? [light.gradient[0], light.gradient[light.gradient.length - 1] !== light.gradient[0] ? light.gradient[light.gradient.length - 1] : "#FF00FF"]
-      : ["#FFFFFF"];
-    colors.forEach((c, idx) => {
-      const id = `${sourceId}-comet-${idx}`;
-      map.addLayer({
-        id, type: "line", source: sourceId,
-        paint: {
-          "line-color": c,
-          "line-opacity": isPlasma ? 0.85 : 0.95,
-          "line-width": w(Math.max(2, light.width * (isPlasma ? 0.6 : 0.8))),
-          "line-blur": 1,
-          "line-trim-offset": [0, 0] as unknown as [number, number],
-        },
-        layout: { "line-cap": "round", "line-join": "round" },
+  // ── 4. Particle-System (sparkle / embers / stars) ────────────────
+  let particleId: string | null = null;
+  let particles: Array<{ basePos: [number, number]; phase: number; born: number; lifeSec: number }> = [];
+  if (spec.particles && data.geometry.coordinates.length >= 2) {
+    const coords = data.geometry.coordinates as Array<[number, number]>;
+    const positions = sampleLine(coords, spec.particles.count);
+    particles = positions.map((p) => ({
+      basePos: p,
+      phase: Math.random() * Math.PI * 2,
+      born: performance.now() - Math.random() * (spec.particles!.lifeSec ?? 5) * 1000,
+      lifeSec: spec.particles!.lifeSec ?? 0,
+    }));
+    handles.particleSourceId = `${sourceId}-particles`;
+    if (!map.getSource(handles.particleSourceId)) {
+      map.addSource(handles.particleSourceId, {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
       });
-      cometIds.push(id);
-      handles.layerIds.push(id);
+    }
+    particleId = `${sourceId}-particle-layer`;
+    map.addLayer({
+      id: particleId, type: "circle", source: handles.particleSourceId,
+      paint: {
+        "circle-color": spec.particles.color,
+        "circle-radius": ["coalesce", ["get", "size"], spec.particles.sizeMin] as ExpressionSpecification,
+        "circle-opacity": ["coalesce", ["get", "opacity"], 0.8] as ExpressionSpecification,
+        "circle-blur": 0.6,
+      },
     });
+    handles.layerIds.push(particleId);
   }
 
+  // ── 5. Animation-Loop ────────────────────────────────────────────
   const start = performance.now();
-  const cometWindow = spec.cometWindow ?? 0.18;
-  const flickerAmp = spec.flickerAmp ?? 0.15;
+  const animAmp = spec.animAmp ?? 0.15;
+  const period = Math.max(0.1, spec.animSpeedSec || 1);
 
   const tick = (now: number) => {
-    const elapsed = (now - start) / 1000; // s
-    const t = (elapsed / Math.max(0.1, spec.animSpeedSec)) % 1;
+    const elapsed = (now - start) / 1000;
+    const t = (elapsed / period) % 1;
+    const tau = elapsed * 2 * Math.PI / period;
 
     try {
+      // ── Line-Animationen ──
       switch (spec.animation) {
-        case "comet": {
-          const head = t * (1 + cometWindow);
-          const tail = head - cometWindow;
-          // Mapbox: trim-offset hides the part WITHIN [start, end].
-          // Wir wollen NUR das Window zeigen → wir „verstecken" alles VOR tail
-          // und alles NACH head. Trick: trim hides between start..end. Also:
-          // Layer A versteckt 0..tail, Layer B versteckt head..1. Geht nicht
-          // mit einem trim. Alternative: verwende trim-offset = [tail, head]
-          // → versteckt das Window in der Mitte. Wir invertieren indem wir das
-          // Comet-Layer „löschen" außer im Window via line-opacity ramping.
-          // Praktisch: nutze trim-offset = [head, 1] kombiniert mit zweitem
-          // Trick. Mapbox-elegantester Weg ist ABER einfach:
-          //   line-trim-offset = [head, 1]  → versteckt die SCHWANZ-Hälfte
-          // Damit wandert die sichtbare „Front" mit. Für ein „Window" brauchen
-          // wir zwei Layer (komplex). Wir machen den simpleren Sweep-Effekt:
-          // Einer hellen Linie die NUR die Position 0..head zeigt + tail
-          // gradiert weg via opacity. Das gibt Comet-Look mit Schweif.
-          for (const id of cometIds) {
-            if (map.getLayer(id)) {
-              map.setPaintProperty(id, "line-trim-offset", [Math.max(0, head), 1]);
-              // Mehr Glanz an der Spitze: leichte opacity-Modulation
-              map.setPaintProperty(id, "line-opacity", 0.7 + 0.3 * Math.sin(t * Math.PI));
-            }
-          }
-          break;
-        }
-        case "plasma": {
-          // Zwei Cometen, leicht versetzt, mit unterschiedlichen Farben
-          cometIds.forEach((id, idx) => {
-            if (!map.getLayer(id)) return;
-            const offset = idx * 0.08; // 8% Versatz für Chroma-Split
-            const tt = ((elapsed + offset * spec.animSpeedSec) / Math.max(0.1, spec.animSpeedSec)) % 1;
-            const head = tt * (1 + cometWindow);
-            map.setPaintProperty(id, "line-trim-offset", [Math.max(0, head), 1]);
-            // Schnellerer flicker zusätzlich
-            const flicker = 0.7 + 0.3 * Math.sin(elapsed * 12 + idx);
-            map.setPaintProperty(id, "line-opacity", 0.6 + 0.3 * flicker);
-          });
-          break;
-        }
-        case "color_cycle": {
-          if (isMultiColor) {
-            const stops = gradientStops(light.gradient, t);
-            if (stops.length > 0) {
-              map.setPaintProperty(coreId, "line-gradient", ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification);
-            }
-          } else {
-            // Single-Color: pulsiere die Helligkeit (HSL-shift)
-            const pulse = 0.85 + 0.15 * Math.sin(elapsed * (Math.PI * 2 / spec.animSpeedSec));
-            map.setPaintProperty(coreId, "line-opacity", pulse);
-          }
-          break;
-        }
-        case "shimmer": {
-          // Sanftes Atmen
-          const breath = 1 - 0.12 * (0.5 + 0.5 * Math.sin(elapsed * (Math.PI * 2 / spec.animSpeedSec)));
-          if (innerId && map.getLayer(innerId)) map.setPaintProperty(innerId, "line-opacity", breath * (spec.innerWhite?.opacity ?? 0.7));
-          break;
-        }
-        case "flicker": {
-          // Pseudo-zufälliger Flicker via mehreren Sinus-Wellen
-          const f1 = Math.sin(elapsed * 9);
-          const f2 = Math.sin(elapsed * 23 + 1.7);
-          const f3 = Math.sin(elapsed * 47 + 0.3);
-          const noise = (f1 * 0.5 + f2 * 0.3 + f3 * 0.2);
-          const op = 1 - flickerAmp * (0.5 + 0.5 * noise);
+        case "static": break;
+
+        case "breathe": {
+          const op = 1 - animAmp * (0.5 + 0.5 * Math.sin(tau));
           map.setPaintProperty(coreId, "line-opacity", op);
-          if (innerId && map.getLayer(innerId)) {
-            map.setPaintProperty(innerId, "line-opacity", (spec.innerWhite?.opacity ?? 0.7) * (0.6 + 0.4 * (0.5 + 0.5 * noise)));
+          if (innerId) map.setPaintProperty(innerId, "line-opacity", (spec.innerWhite!.opacity) * op);
+          break;
+        }
+
+        case "wave_breathe": {
+          // 2 verschachtelte Wellen für organisches Wellen-Atmen
+          const v = 0.5 + 0.5 * (0.6 * Math.sin(tau) + 0.4 * Math.sin(tau * 1.7 + 0.5));
+          const op = 1 - animAmp * v;
+          map.setPaintProperty(coreId, "line-opacity", op);
+          break;
+        }
+
+        case "wisp_drift": {
+          // Sehr langsames, nicht-rhythmisches Wabern via 3 Sinus-Wellen
+          const v = 0.5 + 0.5 * (0.5 * Math.sin(tau) + 0.3 * Math.sin(tau * 0.7 + 1.3) + 0.2 * Math.sin(tau * 2.1));
+          map.setPaintProperty(coreId, "line-opacity", 1 - animAmp * v);
+          break;
+        }
+
+        case "flame_glow": {
+          // Pseudo-zufälliger Flicker via 3 hochfrequente Sinus
+          const f = 0.4 * Math.sin(elapsed * 11) + 0.3 * Math.sin(elapsed * 27 + 1.7) + 0.3 * Math.sin(elapsed * 53 + 0.3);
+          const v = 0.5 + 0.5 * f;
+          map.setPaintProperty(coreId, "line-opacity", 1 - animAmp * v);
+          if (innerId) {
+            map.setPaintProperty(innerId, "line-opacity", spec.innerWhite!.opacity * (0.6 + 0.4 * v));
           }
           break;
         }
+
+        case "metal_sheen": {
+          // Soft bump-gradient, läuft 0..1 und wieder zurück
+          const pos = 0.5 - 0.5 * Math.cos(tau); // ease in/out
+          const stops = bumpGradient(baseColor, "#FFFFFF", pos, 0.25);
+          map.setPaintProperty(coreId, "line-gradient", ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification);
+          break;
+        }
+
+        case "flow": {
+          if (isMultiColor) {
+            const stops = flowGradient(light.gradient, t);
+            map.setPaintProperty(coreId, "line-gradient", ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification);
+          } else {
+            const stops = bumpGradient(baseColor, "#FFFFFF", t, 0.30);
+            map.setPaintProperty(coreId, "line-gradient", ["interpolate", ["linear"], ["line-progress"], ...stops] as ExpressionSpecification);
+          }
+          break;
+        }
+
+        case "molten_flow": {
+          // Lava: drei Bumps versetzt, mit warmen Farben, sehr langsam
+          const colors = light.gradient.length >= 3 ? light.gradient : ["#7f1d1d", "#ef4444", "#fbbf24"];
+          // 3-Color flow: build a longer gradient with multiple repeating bumps
+          const segments = 4;
+          const stops: Array<[number, string]> = [];
+          for (let i = 0; i <= segments; i++) {
+            const pos = ((i / segments) + t) % 1;
+            const colorIdx = i % colors.length;
+            stops.push([pos, colors[colorIdx]]);
+          }
+          stops.sort((a, b) => a[0] - b[0]);
+          if (stops[0][0] > 0) stops.unshift([0, stops[stops.length - 1][1]]);
+          if (stops[stops.length - 1][0] < 1) stops.push([1, stops[0][1]]);
+          const flat: (number | string)[] = [];
+          for (const [p, c] of stops) flat.push(p, c);
+          map.setPaintProperty(coreId, "line-gradient", ["interpolate", ["linear"], ["line-progress"], ...flat] as ExpressionSpecification);
+          break;
+        }
+
+        case "electric_arcs": {
+          // Random short flashes: line-blur und line-width spiken
+          // Wir nutzen schnelle Sinus mit hoher Frequenz und Threshold
+          const noise = Math.sin(elapsed * 31 + Math.sin(elapsed * 7) * 4);
+          const burst = noise > 0.7 ? 1 : 0;
+          const intensityBase = 1 - 0.15 * Math.abs(Math.sin(elapsed * 4));
+          const opacity = burst === 1 ? 1 : intensityBase;
+          map.setPaintProperty(coreId, "line-opacity", opacity);
+          if (innerId) map.setPaintProperty(innerId, "line-opacity", burst === 1 ? 1 : spec.innerWhite!.opacity);
+          // kurzes Blur-Spike beim Burst
+          map.setPaintProperty(coreId, "line-blur", burst === 1 ? spec.coreBlur + 1.5 : spec.coreBlur);
+          break;
+        }
+      }
+
+      // ── Particle-Updates ──
+      if (particles.length > 0 && handles.particleSourceId) {
+        const p = spec.particles!;
+        const features: GeoJSON.Feature[] = [];
+        for (let i = 0; i < particles.length; i++) {
+          const part = particles[i];
+          const localT = elapsed + part.phase;
+          let opacity = 0;
+          let size = p.sizeMin;
+          let pos: [number, number] = part.basePos;
+
+          if (p.kind === "sparkle" || p.kind === "stars") {
+            // Twinkle: smooth pulsing
+            const tw = 0.5 + 0.5 * Math.sin(localT * (Math.PI * 2 / p.twinkleSec));
+            // Threshold so dass die meiste Zeit dim ist
+            opacity = Math.pow(tw, 2.5) * 0.95;
+            size = p.sizeMin + (p.sizeMax - p.sizeMin) * (0.3 + 0.7 * tw);
+          } else if (p.kind === "embers") {
+            // Lifetime in Sekunden seit Geburt
+            const ageSec = (now - part.born) / 1000;
+            const life = part.lifeSec;
+            if (ageSec >= life) {
+              // Respawn: setze born zurück und phase neu
+              part.born = now;
+              part.phase = Math.random() * Math.PI * 2;
+              continue;
+            }
+            const lifeT = ageSec / life;
+            opacity = (1 - lifeT) * 0.95;
+            size = p.sizeMin + (p.sizeMax - p.sizeMin) * (1 - lifeT * 0.5);
+            // Drift nach „oben" (norden = +lat)
+            // driftPxSec ist ungefähr — wir nehmen pseudo-lat-Schritt (small)
+            const latShift = ((p.driftPxSec ?? 10) * lifeT) * 0.000001;
+            pos = [part.basePos[0] + (Math.sin(part.phase) * 0.000003), part.basePos[1] + latShift];
+          }
+
+          if (opacity > 0.05) {
+            features.push({
+              type: "Feature",
+              geometry: { type: "Point", coordinates: pos },
+              properties: { opacity, size },
+            });
+          }
+        }
+        const src = map.getSource(handles.particleSourceId) as mapboxgl.GeoJSONSource | undefined;
+        if (src) src.setData({ type: "FeatureCollection", features });
       }
     } catch { /* layer entfernt */ }
     handles.raf = requestAnimationFrame(tick);
@@ -253,4 +392,7 @@ export function removeRunnerLight(map: MapboxMap, h: LightRenderHandles) {
     try { if (map.getLayer(id)) map.removeLayer(id); } catch { /* race */ }
   }
   try { if (map.getSource(h.sourceId)) map.removeSource(h.sourceId); } catch { /* race */ }
+  if (h.particleSourceId) {
+    try { if (map.getSource(h.particleSourceId)) map.removeSource(h.particleSourceId); } catch { /* race */ }
+  }
 }

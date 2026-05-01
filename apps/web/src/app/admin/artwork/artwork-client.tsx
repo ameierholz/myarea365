@@ -351,8 +351,8 @@ function LightCssPreview({ l }: { l: typeof RUNNER_LIGHTS[number] }) {
         position: "absolute", left: 4, right: 4, height: coreHeight,
         borderRadius: coreHeight / 2, background: grad,
         boxShadow: `0 0 6px ${l.color}cc`,
-        animation: animClass === "flicker" ? `light-flicker ${animDur} ease-in-out infinite alternate`
-          : animClass === "shimmer" ? `light-shimmer ${animDur} ease-in-out infinite alternate`
+        animation: animClass === "flame_glow" ? `light-flicker ${animDur} ease-in-out infinite alternate`
+          : animClass === "breathe" || animClass === "wave_breathe" || animClass === "wisp_drift" ? `light-shimmer ${animDur} ease-in-out infinite alternate`
           : undefined,
       }} />
       {/* Inner White Hot-Core */}
@@ -363,46 +363,58 @@ function LightCssPreview({ l }: { l: typeof RUNNER_LIGHTS[number] }) {
           borderRadius: 999, background: "#fff", opacity: spec.innerWhite.opacity,
         }} />
       )}
-      {/* Comet-Sweep (für comet/plasma) — kleine helle Linie die wandert */}
-      {(animClass === "comet" || animClass === "plasma") && (
-        <div style={{
-          position: "absolute", left: 4, right: 4, height: coreHeight, overflow: "hidden",
-          borderRadius: coreHeight / 2,
-        }}>
-          <div style={{
-            position: "absolute", top: 0, bottom: 0,
-            width: `${(spec?.cometWindow ?? 0.18) * 100}%`,
-            background: `linear-gradient(90deg, transparent, #fff, transparent)`,
-            animation: `light-comet ${animDur} linear infinite`,
-            mixBlendMode: "screen",
-          }} />
-          {animClass === "plasma" && (
-            <div style={{
-              position: "absolute", top: 0, bottom: 0,
-              width: `${(spec?.cometWindow ?? 0.18) * 100}%`,
-              background: `linear-gradient(90deg, transparent, ${l.gradient[l.gradient.length - 1]}, transparent)`,
-              animation: `light-comet ${animDur} linear infinite`,
-              animationDelay: `-${parseFloat(animDur) * 0.5}s`,
-              mixBlendMode: "screen",
-            }} />
-          )}
-        </div>
-      )}
-      {/* Color-Cycle */}
-      {animClass === "color_cycle" && l.gradient.length > 1 && (
+      {/* Flow / Molten / Metal Sheen — animated gradient overlay */}
+      {(animClass === "flow" || animClass === "molten_flow" || animClass === "metal_sheen") && (
         <div style={{
           position: "absolute", left: 4, right: 4, height: coreHeight,
           borderRadius: coreHeight / 2,
-          background: `linear-gradient(90deg, ${[...l.gradient, l.gradient[0]].join(", ")})`,
-          backgroundSize: "200% 100%",
-          animation: `light-cycle ${animDur} linear infinite`,
+          background: animClass === "metal_sheen"
+            ? `linear-gradient(90deg, ${l.color}, #fff, ${l.color})`
+            : l.gradient.length > 1
+              ? `linear-gradient(90deg, ${[...l.gradient, l.gradient[0]].join(", ")})`
+              : `linear-gradient(90deg, ${l.color}, #fff, ${l.color})`,
+          backgroundSize: animClass === "molten_flow" ? "300% 100%" : "200% 100%",
+          animation: `light-flow ${animDur} linear infinite`,
+          mixBlendMode: animClass === "metal_sheen" ? "screen" : undefined,
+        }} />
+      )}
+      {/* Particles — Sparkle/Stars/Embers als kleine pulsierende Dots */}
+      {spec?.particles && (
+        <div style={{ position: "absolute", left: 4, right: 4, height: coreHeight + 6, top: "50%", transform: "translateY(-50%)" }}>
+          {Array.from({ length: Math.min(8, spec.particles.count) }).map((_, i) => {
+            const left = (i / 7) * 100;
+            const delay = (i * 0.13) % 1.5;
+            return (
+              <div key={i} style={{
+                position: "absolute", left: `${left}%`, top: "50%",
+                width: spec.particles!.sizeMax + 1, height: spec.particles!.sizeMax + 1,
+                marginLeft: -(spec.particles!.sizeMax / 2),
+                background: spec.particles!.color, borderRadius: "50%",
+                boxShadow: `0 0 4px ${spec.particles!.color}`,
+                animation: spec.particles!.kind === "embers"
+                  ? `light-ember ${spec.particles!.lifeSec ?? 2}s linear infinite`
+                  : `light-twinkle ${spec.particles!.twinkleSec}s ease-in-out infinite`,
+                animationDelay: `${delay}s`,
+              }} />
+            );
+          })}
+        </div>
+      )}
+      {/* Electric Arcs — kurze Bursts */}
+      {animClass === "electric_arcs" && (
+        <div style={{
+          position: "absolute", left: 4, right: 4, height: coreHeight,
+          borderRadius: coreHeight / 2, background: "#fff",
+          opacity: 0, animation: `light-arc 0.4s steps(1, end) infinite`,
         }} />
       )}
       <style>{`
-        @keyframes light-comet { from { left: -30% } to { left: 100% } }
-        @keyframes light-cycle { from { background-position: 0 0 } to { background-position: -100% 0 } }
-        @keyframes light-flicker { 0% { opacity: 1 } 50% { opacity: 0.7 } 100% { opacity: 1 } }
+        @keyframes light-flow { from { background-position: 0 0 } to { background-position: -100% 0 } }
+        @keyframes light-flicker { 0% { opacity: 1 } 33% { opacity: 0.7 } 66% { opacity: 0.95 } 100% { opacity: 1 } }
         @keyframes light-shimmer { from { opacity: 0.85 } to { opacity: 1 } }
+        @keyframes light-twinkle { 0%, 100% { opacity: 0.2; transform: translateY(-50%) scale(0.8) } 50% { opacity: 1; transform: translateY(-50%) scale(1.2) } }
+        @keyframes light-ember { 0% { opacity: 1; transform: translateY(-50%) } 100% { opacity: 0; transform: translateY(-150%) } }
+        @keyframes light-arc { 0%, 90% { opacity: 0 } 91%, 95% { opacity: 0.8 } 96%, 100% { opacity: 0 } }
       `}</style>
     </div>
   );

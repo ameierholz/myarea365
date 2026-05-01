@@ -258,8 +258,8 @@ export function LightsPreviewClient() {
                   <div>Core-Blur: <b className="text-white">{selectedSpec.coreBlur}</b></div>
                   <div>Animation: <b className="text-white">{selectedSpec.animation}</b></div>
                   <div>Speed: <b className="text-white">{selectedSpec.animSpeedSec}s</b></div>
-                  {selectedSpec.cometWindow && <div>Comet-Window: <b className="text-white">{(selectedSpec.cometWindow * 100).toFixed(0)}%</b></div>}
-                  {selectedSpec.flickerAmp && <div>Flicker-Amp: <b className="text-white">{(selectedSpec.flickerAmp * 100).toFixed(0)}%</b></div>}
+                  {selectedSpec.animAmp && <div>Anim-Amp: <b className="text-white">{(selectedSpec.animAmp * 100).toFixed(0)}%</b></div>}
+                  {selectedSpec.particles && <div>Partikel: <b className="text-white">{selectedSpec.particles.count}× {selectedSpec.particles.kind}</b></div>}
                   {selectedSpec.innerWhite && <div>Inner-White: <b className="text-white">opacity {selectedSpec.innerWhite.opacity}</b></div>}
                 </div>
                 <div className="pt-1 border-t border-white/5"><span className="text-[#8B8FA3]">Vibe:</span> {selectedSpec.vibe}</div>
