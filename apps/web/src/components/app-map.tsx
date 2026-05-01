@@ -3348,11 +3348,16 @@ export function AppMap({
       const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${auraHtml}${visualBase}</div>`;
 
       const npArt = pin.nameplate_art;
-      const npStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:170%;height:28px;max-width:200px;object-fit:cover;object-position:center;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0";
-      const npLayer = npArt?.image_url
-        ? `<img src="${npArt.image_url}" alt="" style="${npStyle}" />`
-        : npArt?.video_url
-        ? `<video src="${npArt.video_url}" autoplay loop muted playsinline style="${npStyle}"></video>`
+      // Wrapper-Pattern: SVG-Filter auf <div> statt direkt auf <video> verhindert Flicker
+      // (Chrome rendert SVG-Filter auf Video sonst pro Frame neu → sichtbares Flackern).
+      // Will-change + translateZ(0) erzwingen einen eigenen Compositor-Layer.
+      const npWrapStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) translateZ(0);width:170%;height:28px;max-width:200px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0;will-change:transform;isolation:isolate;";
+      const npInnerStyle = "width:100%;height:100%;object-fit:cover;object-position:center;display:block;";
+      // Video bevorzugen wenn vorhanden (Animation > statisches Bild)
+      const npLayer = npArt?.video_url
+        ? `<div style="${npWrapStyle}"><video src="${npArt.video_url}" autoplay loop muted playsinline style="${npInnerStyle}"></video></div>`
+        : npArt?.image_url
+        ? `<div style="${npWrapStyle}"><img src="${npArt.image_url}" alt="" style="${npInnerStyle}" /></div>`
         : "";
 
       const lvColor = aura?.primary ?? pin.pin_color;
