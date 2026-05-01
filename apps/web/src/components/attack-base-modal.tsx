@@ -274,11 +274,12 @@ export function AttackBaseModal({
   if (loading) return null;
 
   // Popup-Position: rechts vom Pin, mit Viewport-Clamping
-  const POPUP_W = 360;
-  const POPUP_H_EST = 560;
   const PAD = 12;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
   const vh = typeof window !== "undefined" ? window.innerHeight : 768;
+  // Mobile: Popup-Breite an Viewport anpassen (vorher hartes 360 → overflow auf 360px Screens)
+  const POPUP_W = Math.min(360, vw - PAD * 2);
+  const POPUP_H_EST = Math.min(560, vh - PAD * 2);
   const ax = anchorX ?? vw / 2;
   const ay = anchorY ?? vh / 2;
   let left = ax + 24;

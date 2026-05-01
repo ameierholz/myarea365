@@ -145,12 +145,13 @@ function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; 
           key={t.id}
           onClick={() => onChange(t.id)}
           style={{
-            padding: "8px 14px", borderRadius: 10, whiteSpace: "nowrap",
+            padding: "11px 14px", borderRadius: 10, whiteSpace: "nowrap",
             background: tab === t.id ? `${PRIMARY}22` : "transparent",
             border: tab === t.id ? `1px solid ${PRIMARY}` : "1px solid transparent",
             color: tab === t.id ? PRIMARY : MUTED,
             fontSize: 12, fontWeight: 800, cursor: "pointer",
             display: "inline-flex", alignItems: "center", gap: 6,
+            minHeight: 40,
           }}
         >
           <UiIcon slot={t.slot} fallback={t.fallback} art={uiArt} size={16} />

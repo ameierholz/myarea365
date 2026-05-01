@@ -281,7 +281,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                 {tGS("buyGemsHeader")}
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(140px, 100%), 1fr))", gap: 6 }}>
               {GEM_BUNDLES.map((b) => {
                 const total = totalGemsOfBundle(b);
                 const badge = b.badge === "best_value" ? { text: tGS("badgeBestValue"), color: "#FFD700" }
@@ -392,7 +392,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
             <div style={{ color: "#a855f7", fontSize: 10, fontWeight: 900, letterSpacing: 1.5, marginBottom: 6 }}>
               {tGS("skinsHeader")}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100px, 100%), 1fr))", gap: 6 }}>
               {ALL_PIN_THEMES.map((tid) => {
                 const t = PIN_THEME_META[tid];
                 const unlocked = pinThemesUnlocked.has(tid);
@@ -449,7 +449,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100px, 100%), 1fr))", gap: 6 }}>
                 {daily.packs.filter((p) => !p.is_bundle).map((p) => {
                   const tm = TIER_META[p.tier];
                   const owned = daily.purchased_today.includes(p.id);
