@@ -323,9 +323,9 @@ export function LoadoutTrio({
         <div style={tileStyle()} onClick={() => setNameplateOpen(true)}>
           <div style={labelStyle()}>{tL("labelBaseBanner")}</div>
           {npArt?.video_url ? (
-            <video src={npArt.video_url} autoPlay loop muted playsInline style={{ width: 100, height: 36, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />
+            <video src={npArt.video_url} autoPlay loop muted playsInline style={{ width: 100, height: 36, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />
           ) : npArt?.image_url ? (
-            <img src={npArt.image_url} alt={nameplate?.name ?? ""} style={{ width: 100, height: 36, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />
+            <img src={npArt.image_url} alt={nameplate?.name ?? ""} style={{ width: 100, height: 36, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />
           ) : (
             <div style={{
               width: 100, height: 28, marginTop: 18, marginBottom: 6,
