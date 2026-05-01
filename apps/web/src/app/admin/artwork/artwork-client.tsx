@@ -324,47 +324,86 @@ function MarkerTab({ artMap, onChange }: { artMap: Record<string, Record<string,
   );
 }
 
-// Animierte CSS-Vorschau die die On-Map-Optik nachahmt:
-// gradient-Stripe + breite blur-Halo + (optional) animiertes Dash-Pulse-Overlay.
+// Animierte CSS-Vorschau die die On-Map-V2-Optik nachahmt:
+// Multi-Halo-Stack + Core + Inner-White + Animations (comet/flicker/etc.).
 // Damit siehst du im Admin-UI bevor du KI-Assets generierst was die Map rendert.
 function LightCssPreview({ l }: { l: typeof RUNNER_LIGHTS[number] }) {
   const spec = LIGHT_VISUAL_SPECS[l.id];
   const grad = l.gradient.length > 1
     ? `linear-gradient(90deg, ${l.gradient.join(", ")})`
     : l.color;
-  const haloHeight = Math.min(28, l.width + (spec?.haloWidthBoost ?? 8));
-  const coreHeight = Math.max(2, l.width - 1);
-  const pulseColor = l.gradient[l.gradient.length - 1];
-  const pulse = spec?.dasharray;
-  const pulseDuration = spec?.pulseSpeedSec ? `${spec.pulseSpeedSec}s` : "0s";
+  const coreHeight = Math.max(2, Math.min(6, l.width - 2));
+  const animClass = spec?.animation ?? "static";
+  const animDur = spec?.animSpeedSec ? `${spec.animSpeedSec}s` : "3s";
   return (
     <div className="relative w-20 h-12 flex items-center justify-center overflow-hidden rounded-lg bg-[#0F1115]">
-      {/* Halo */}
-      <div style={{
-        position: "absolute", left: 4, right: 4, height: haloHeight,
-        borderRadius: haloHeight / 2, background: grad,
-        opacity: spec?.haloOpacity ?? 0.35, filter: `blur(${(spec?.haloBlur ?? 4) * 0.7}px)`,
-      }} />
+      {/* Bloom-Stack: außen → innen */}
+      {[...(spec?.bloom ?? [])].sort((a, b) => b.widthAdd - a.widthAdd).map((bl, i) => (
+        <div key={i} style={{
+          position: "absolute", left: 4, right: 4,
+          height: Math.min(40, coreHeight + bl.widthAdd * 0.7),
+          borderRadius: 999, background: grad,
+          opacity: bl.opacity, filter: `blur(${bl.blur * 0.6}px)`,
+        }} />
+      ))}
       {/* Core */}
       <div style={{
         position: "absolute", left: 4, right: 4, height: coreHeight,
         borderRadius: coreHeight / 2, background: grad,
-        boxShadow: `0 0 ${(spec?.haloBlur ?? 4)}px ${l.color}aa`,
+        boxShadow: `0 0 6px ${l.color}cc`,
+        animation: animClass === "flicker" ? `light-flicker ${animDur} ease-in-out infinite alternate`
+          : animClass === "shimmer" ? `light-shimmer ${animDur} ease-in-out infinite alternate`
+          : undefined,
       }} />
-      {/* Pulse */}
-      {pulse && (
+      {/* Inner White Hot-Core */}
+      {spec?.innerWhite && (
         <div style={{
-          position: "absolute", left: 4, right: 4, height: Math.max(2, coreHeight - 1),
-          borderRadius: 2,
-          backgroundImage: `repeating-linear-gradient(90deg, ${pulseColor} 0 ${pulse[0] * 2}px, transparent ${pulse[0] * 2}px ${(pulse[0] + pulse[1]) * 2}px)`,
-          backgroundSize: `${(pulse[0] + pulse[1]) * 2}px 100%`,
-          animation: `light-pulse-${l.id} ${pulseDuration} linear infinite`,
-          mixBlendMode: "screen",
+          position: "absolute", left: 4, right: 4,
+          height: Math.max(1, coreHeight * spec.innerWhite.widthMult),
+          borderRadius: 999, background: "#fff", opacity: spec.innerWhite.opacity,
         }} />
       )}
-      {pulse && (
-        <style>{`@keyframes light-pulse-${l.id} { from { background-position: 0 0 } to { background-position: ${(pulse[0] + pulse[1]) * 2}px 0 } }`}</style>
+      {/* Comet-Sweep (für comet/plasma) — kleine helle Linie die wandert */}
+      {(animClass === "comet" || animClass === "plasma") && (
+        <div style={{
+          position: "absolute", left: 4, right: 4, height: coreHeight, overflow: "hidden",
+          borderRadius: coreHeight / 2,
+        }}>
+          <div style={{
+            position: "absolute", top: 0, bottom: 0,
+            width: `${(spec?.cometWindow ?? 0.18) * 100}%`,
+            background: `linear-gradient(90deg, transparent, #fff, transparent)`,
+            animation: `light-comet ${animDur} linear infinite`,
+            mixBlendMode: "screen",
+          }} />
+          {animClass === "plasma" && (
+            <div style={{
+              position: "absolute", top: 0, bottom: 0,
+              width: `${(spec?.cometWindow ?? 0.18) * 100}%`,
+              background: `linear-gradient(90deg, transparent, ${l.gradient[l.gradient.length - 1]}, transparent)`,
+              animation: `light-comet ${animDur} linear infinite`,
+              animationDelay: `-${parseFloat(animDur) * 0.5}s`,
+              mixBlendMode: "screen",
+            }} />
+          )}
+        </div>
       )}
+      {/* Color-Cycle */}
+      {animClass === "color_cycle" && l.gradient.length > 1 && (
+        <div style={{
+          position: "absolute", left: 4, right: 4, height: coreHeight,
+          borderRadius: coreHeight / 2,
+          background: `linear-gradient(90deg, ${[...l.gradient, l.gradient[0]].join(", ")})`,
+          backgroundSize: "200% 100%",
+          animation: `light-cycle ${animDur} linear infinite`,
+        }} />
+      )}
+      <style>{`
+        @keyframes light-comet { from { left: -30% } to { left: 100% } }
+        @keyframes light-cycle { from { background-position: 0 0 } to { background-position: -100% 0 } }
+        @keyframes light-flicker { 0% { opacity: 1 } 50% { opacity: 0.7 } 100% { opacity: 1 } }
+        @keyframes light-shimmer { from { opacity: 0.85 } to { opacity: 1 } }
+      `}</style>
     </div>
   );
 }

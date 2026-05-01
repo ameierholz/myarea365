@@ -110,151 +110,208 @@ export const RUNNER_LIGHTS = [
 
 export type RunnerLightId = (typeof RUNNER_LIGHTS)[number]["id"];
 
-// ─── Visual-Specs pro Light ────────────────────────────────────────
+// ─── Visual-Specs pro Light (V2 — echtes Neon-Bloom-System) ─────────
 // Single source of truth: AppMap-Render UND Artwork-Prompts greifen hier zu.
-// Damit sehen das KI-generierte Preview-PNG/MP4 und die On-Map-Animation
-// gleich aus → Runner picken im UI das, was sie auf der Map kriegen.
 //
-// Felder:
-//  - haloWidthBoost: zusätzliche Breite des Halo-Layers (in px) ggü. core
-//  - haloBlur: line-blur für Halo (0=hart, 16=sehr weich)
-//  - haloOpacity: 0..1
-//  - coreBlur: 0..3, kleiner Blur für Core-Layer (Anti-Alias)
-//  - dasharray: null = durchgezogene Linie. [a,b] = animierte Pulse-Striche.
-//  - pulseSpeedSec: Sekunden für einen Dasharray-Cycle (kleiner = schneller).
-//  - vibe / motion / texture: Prompt-Bausteine, beschreiben EXAKT den Map-Look.
+// Render-Pipeline pro Light:
+//  1. 1-4 BLOOM-Layer (außen→innen, breit/blurry/transparent → schmal/scharf/opak)
+//     → erzeugt echtes Neon-Glühen wie ein HDR-Bloom-Filter.
+//  2. CORE-Layer (die eigentliche Linie, voll deckend, line-color oder line-gradient).
+//  3. INNER-WHITE (optional, dünner heller Streifen oben drauf für „heißen Kern"-Look).
+//  4. ANIMATIONS-Effekt:
+//       - "static"      : nichts bewegt sich, nur Bloom (Classic, Coral, Sapphire)
+//       - "comet"       : line-trim-offset bewegt eine Helle Window-Sweep über die Linie
+//       - "flicker"     : Core-Opacity oszilliert irregulär (Fire, Lava)
+//       - "color_cycle" : line-gradient rotiert die Stops (Rainbow, Aurora, Cosmic)
+//       - "plasma"      : zwei Cometen versetzt mit Farb-Split (Plasma, Cosmic)
+//       - "shimmer"     : sanftes Atmen der Core-Opacity 0.85→1.0 (Gold, Emerald)
+//
+// Das ist meilenweit von „animierter Strichlinie" entfernt — pro Frame werden
+// 3-7 Mapbox-Properties geupdated, gibt echtes Neon-Vibe.
+
+export type BloomLayer = { widthAdd: number; blur: number; opacity: number };
+export type LightAnim = "static" | "comet" | "flicker" | "color_cycle" | "plasma" | "shimmer";
+
 export type LightVisualSpec = {
-  haloWidthBoost: number;
-  haloBlur: number;
-  haloOpacity: number;
-  coreBlur: number;
-  dasharray: [number, number] | null;
-  pulseSpeedSec: number;
+  bloom: BloomLayer[];        // Stack von Halos, längster zuerst
+  coreBlur: number;           // line-blur für Core (0=scharf, 2=glow)
+  innerWhite?: { widthMult: number; opacity: number }; // weißer Hot-Core
+  animation: LightAnim;
+  animSpeedSec: number;       // Periode des Effekts (kleiner = schneller)
+  cometWindow?: number;       // 0..1 — wie groß der Comet-Spot ist (default 0.18)
+  flickerAmp?: number;        // 0..0.5 — Stärke des Flicker (default 0.15)
   vibe: string;
   motion: string;
   texture: string;
 };
 
 export const LIGHT_VISUAL_SPECS: Record<RunnerLightId, LightVisualSpec> = {
+  // ─ Tier 1: Subtle bloom, no flashy animation ─────────────────────
   classic: {
-    haloWidthBoost: 8,  haloBlur: 4,  haloOpacity: 0.30, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
-    vibe:    "clean cyan plasma stripe with soft outer glow, smooth core, calm and timeless",
-    motion:  "static trail with very gentle inner glow breathing, no harsh pulses",
-    texture: "smooth glass-like core, hazy bloom around the edges",
+    bloom: [{ widthAdd: 14, blur: 12, opacity: 0.18 }, { widthAdd: 8, blur: 6, opacity: 0.32 }, { widthAdd: 4, blur: 2, opacity: 0.55 }],
+    coreBlur: 0.4, innerWhite: { widthMult: 0.35, opacity: 0.8 },
+    animation: "static", animSpeedSec: 0,
+    vibe:    "smooth cyan plasma ribbon with deep soft neon halo, hot white inner core, like a glowing sci-fi laser line",
+    motion:  "perfectly static trail, only the inner glow breathes very slightly",
+    texture: "polished glass core with hot white centerline, multi-layer outer bloom fading to transparent edges",
   },
   coral: {
-    haloWidthBoost: 8,  haloBlur: 5,  haloOpacity: 0.32, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
-    vibe:    "warm coral salmon ribbon, soft pastel glow, friendly and inviting",
-    motion:  "gentle warmth shimmer along the trail, no fast motion",
-    texture: "matte silky core, soft peach halo",
+    bloom: [{ widthAdd: 14, blur: 12, opacity: 0.18 }, { widthAdd: 8, blur: 6, opacity: 0.32 }, { widthAdd: 4, blur: 2, opacity: 0.55 }],
+    coreBlur: 0.4, innerWhite: { widthMult: 0.35, opacity: 0.7 },
+    animation: "shimmer", animSpeedSec: 5,
+    vibe:    "warm coral salmon ribbon with soft pastel bloom and golden-white inner glow, friendly and inviting",
+    motion:  "very gentle slow shimmer of inner brightness, like sunlight on water",
+    texture: "satin smooth core with hot white centerline, peachy outer halo",
   },
   emerald: {
-    haloWidthBoost: 9,  haloBlur: 6,  haloOpacity: 0.35, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
-    vibe:    "vibrant emerald jewel-tone glow, rich and lush green",
-    motion:  "slow soft pulse, like a heartbeat of nature",
-    texture: "polished gemstone core, faint mossy outer haze",
+    bloom: [{ widthAdd: 14, blur: 12, opacity: 0.20 }, { widthAdd: 8, blur: 6, opacity: 0.36 }, { widthAdd: 4, blur: 2, opacity: 0.58 }],
+    coreBlur: 0.4, innerWhite: { widthMult: 0.30, opacity: 0.7 },
+    animation: "shimmer", animSpeedSec: 4,
+    vibe:    "vibrant emerald jewel ribbon with deep green bloom and white-green inner glow, gemstone purity",
+    motion:  "slow gentle shimmer like light caught in a polished gem facet",
+    texture: "glassy gemstone core with bright centerline, mossy emerald outer halo",
   },
   gold: {
-    haloWidthBoost: 10, haloBlur: 7,  haloOpacity: 0.40, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 4,
-    vibe:    "luxurious polished gold ribbon with metallic sheen, royal and premium",
-    motion:  "slow specular sheen sweeping forward along the trail, no dashes",
-    texture: "liquid gold core with mirror highlights, warm glow halo",
+    bloom: [{ widthAdd: 16, blur: 14, opacity: 0.22 }, { widthAdd: 9, blur: 6, opacity: 0.40 }, { widthAdd: 4, blur: 2, opacity: 0.65 }],
+    coreBlur: 0.4, innerWhite: { widthMult: 0.40, opacity: 0.85 },
+    animation: "comet", animSpeedSec: 3.5, cometWindow: 0.2,
+    vibe:    "luxurious liquid gold ribbon with bright metallic sheen sweeping along, royal premium look",
+    motion:  "slow specular sheen highlight that sweeps from start to end of the trail like polished metal catching light",
+    texture: "liquid gold core with mirror-bright moving highlight, warm amber outer bloom",
   },
   sapphire: {
-    haloWidthBoost: 10, haloBlur: 6,  haloOpacity: 0.38, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
-    vibe:    "deep sapphire jewel ribbon, midnight-blue brilliance",
-    motion:  "subtle inner shimmer, like light caught in a faceted gem",
-    texture: "crystalline core, deep cobalt outer halo",
+    bloom: [{ widthAdd: 16, blur: 14, opacity: 0.22 }, { widthAdd: 9, blur: 6, opacity: 0.40 }, { widthAdd: 4, blur: 2, opacity: 0.65 }],
+    coreBlur: 0.4, innerWhite: { widthMult: 0.30, opacity: 0.7 },
+    animation: "shimmer", animSpeedSec: 3,
+    vibe:    "deep midnight sapphire ribbon with brilliant inner glow, faceted gemstone brilliance",
+    motion:  "rhythmic gem-twinkle shimmer of inner brightness",
+    texture: "crystalline core with hot white centerline catching light, deep cobalt outer halo",
   },
+
+  // ─ Tier 2: Comet sweep + multi-color ─────────────────────────────
   neon: {
-    haloWidthBoost: 11, haloBlur: 7,  haloOpacity: 0.45, coreBlur: 1.0, dasharray: [2, 4], pulseSpeedSec: 1.4,
-    vibe:    "vibrant synthwave neon: violet-purple bleeding into hot pink, retro arcade glow",
-    motion:  "fast pulsing energy segments traveling forward, electric vibe",
-    texture: "saturated neon core with bright bloom, slight chromatic flicker",
+    bloom: [{ widthAdd: 18, blur: 16, opacity: 0.24 }, { widthAdd: 10, blur: 7, opacity: 0.42 }, { widthAdd: 5, blur: 2, opacity: 0.65 }],
+    coreBlur: 0.6, innerWhite: { widthMult: 0.30, opacity: 0.8 },
+    animation: "comet", animSpeedSec: 1.6, cometWindow: 0.18,
+    vibe:    "vibrant synthwave neon ribbon: violet-purple core bleeding into hot pink, intense outer bloom, retro arcade laser",
+    motion:  "bright energy comet pulse traveling forward along the trail, hyperactive electric vibe",
+    texture: "saturated neon core with white-hot moving comet head, chromatic outer halo with pink-violet split",
   },
   sunset: {
-    haloWidthBoost: 11, haloBlur: 8,  haloOpacity: 0.42, coreBlur: 0.8, dasharray: null, pulseSpeedSec: 5,
-    vibe:    "warm sunset gradient flowing from coral-orange into golden-yellow, dreamy",
-    motion:  "slow gradient drift along the trail, soft shimmer",
-    texture: "smooth painterly gradient core, hazy warm halo",
+    bloom: [{ widthAdd: 18, blur: 16, opacity: 0.26 }, { widthAdd: 10, blur: 7, opacity: 0.44 }, { widthAdd: 5, blur: 2, opacity: 0.68 }],
+    coreBlur: 0.6, innerWhite: { widthMult: 0.30, opacity: 0.7 },
+    animation: "color_cycle", animSpeedSec: 5,
+    vibe:    "warm sunset gradient ribbon flowing coral-orange into golden-yellow with soft amber bloom, dreamy painterly look",
+    motion:  "color stops slowly drift forward along the trail, like sunlight gradient shifting at dusk",
+    texture: "smooth painterly gradient core with white centerline, hazy warm bloom halo",
   },
   fire: {
-    haloWidthBoost: 12, haloBlur: 9,  haloOpacity: 0.50, coreBlur: 1.2, dasharray: [3, 2], pulseSpeedSec: 0.8,
-    vibe:    "burning fire trail with flickering orange-to-yellow flames, ember sparks",
-    motion:  "fast irregular flicker, like a torch in motion, embers drifting upward",
-    texture: "rough flame core with crackling hot spots, smoky orange halo",
+    bloom: [{ widthAdd: 20, blur: 18, opacity: 0.30 }, { widthAdd: 11, blur: 8, opacity: 0.50 }, { widthAdd: 5, blur: 2, opacity: 0.75 }],
+    coreBlur: 0.8, innerWhite: { widthMult: 0.35, opacity: 0.9 },
+    animation: "flicker", animSpeedSec: 0.4, flickerAmp: 0.25,
+    vibe:    "burning fire ribbon with crimson red core, flickering orange-yellow flames, white-hot center, smoky orange bloom, ember sparks drifting up",
+    motion:  "rapid irregular flicker like a real torch in motion, intensity changes every fraction of a second",
+    texture: "rough flame core with crackling hot spots, smoky orange-red halo extending wide",
   },
   ocean: {
-    haloWidthBoost: 12, haloBlur: 8,  haloOpacity: 0.45, coreBlur: 0.8, dasharray: [6, 6], pulseSpeedSec: 3,
-    vibe:    "rolling ocean wave trail, aqua and deep cyan flowing currents",
-    motion:  "smooth wave-like pulses traveling forward, like surf breaking",
-    texture: "wet glassy core with rippling highlights, foamy pale halo",
+    bloom: [{ widthAdd: 20, blur: 16, opacity: 0.28 }, { widthAdd: 11, blur: 7, opacity: 0.46 }, { widthAdd: 5, blur: 2, opacity: 0.70 }],
+    coreBlur: 0.6, innerWhite: { widthMult: 0.30, opacity: 0.7 },
+    animation: "comet", animSpeedSec: 3.2, cometWindow: 0.25,
+    vibe:    "rolling ocean wave ribbon: aqua and deep cyan flowing currents with white wave-crest, foamy outer halo",
+    motion:  "smooth slow wave-crest sweeping forward like surf rolling along the trail",
+    texture: "wet glassy core with rippling white highlight, foamy pale-cyan halo extending wide",
   },
   ice: {
-    haloWidthBoost: 12, haloBlur: 6,  haloOpacity: 0.50, coreBlur: 0.6, dasharray: [4, 8], pulseSpeedSec: 2,
-    vibe:    "frozen ice-crystal trail, pale cyan-white shards with sparkle",
-    motion:  "sharp crystalline pulses, occasional bright flashes like frost glints",
-    texture: "sharp angular core, brittle crystalline halo with fine sparkles",
+    bloom: [{ widthAdd: 20, blur: 14, opacity: 0.30 }, { widthAdd: 11, blur: 6, opacity: 0.48 }, { widthAdd: 5, blur: 1, opacity: 0.75 }],
+    coreBlur: 0.4, innerWhite: { widthMult: 0.40, opacity: 0.95 },
+    animation: "comet", animSpeedSec: 2.0, cometWindow: 0.12,
+    vibe:    "frozen ice-crystal ribbon: pale cyan-white shards with razor-sharp white core and brittle crystalline outer halo, frost sparkles",
+    motion:  "sharp bright crystalline flash sweeping along like frost glints, occasional sparkle bursts",
+    texture: "sharp crystalline core with brilliant white centerline, brittle pale-cyan halo with fine sparkle dots",
   },
+
+  // ─ Tier 3: Multi-effect, premium ─────────────────────────────────
   forest: {
-    haloWidthBoost: 11, haloBlur: 7,  haloOpacity: 0.42, coreBlur: 0.8, dasharray: null, pulseSpeedSec: 6,
-    vibe:    "lush forest gradient from deep emerald to bright leaf-green, organic life",
-    motion:  "slow organic breathing pulse, like wind through leaves",
-    texture: "soft mossy core with warm undertones, leafy green halo",
+    bloom: [{ widthAdd: 18, blur: 16, opacity: 0.28 }, { widthAdd: 10, blur: 7, opacity: 0.44 }, { widthAdd: 5, blur: 2, opacity: 0.68 }],
+    coreBlur: 0.7, innerWhite: { widthMult: 0.30, opacity: 0.65 },
+    animation: "shimmer", animSpeedSec: 4.5,
+    vibe:    "lush forest gradient ribbon: deep emerald to bright leaf-green with warm white inner core, organic mossy bloom, alive feeling",
+    motion:  "slow organic breathing pulse like wind through leaves, gentle in-out brightness",
+    texture: "soft mossy core with warm undertones, leafy green outer halo",
   },
   rainbow: {
-    haloWidthBoost: 12, haloBlur: 7,  haloOpacity: 0.50, coreBlur: 1.0, dasharray: null, pulseSpeedSec: 2.5,
-    vibe:    "full rainbow spectrum ribbon flowing red-orange-green-blue-violet",
-    motion:  "continuous color cycle traveling forward, joyful and vibrant",
-    texture: "saturated multi-hue core, bright prismatic halo",
+    bloom: [{ widthAdd: 22, blur: 18, opacity: 0.32 }, { widthAdd: 12, blur: 7, opacity: 0.50 }, { widthAdd: 5, blur: 2, opacity: 0.75 }],
+    coreBlur: 0.8, innerWhite: { widthMult: 0.25, opacity: 0.6 },
+    animation: "color_cycle", animSpeedSec: 2,
+    vibe:    "full prismatic rainbow ribbon flowing red-orange-green-blue-violet with bright multi-hue bloom, joyful saturated colors",
+    motion:  "continuous rainbow color cycle flowing forward along the trail, mesmerizing prism shift",
+    texture: "saturated multi-hue core with white-hot pulses, bright prismatic outer halo",
   },
   candy: {
-    haloWidthBoost: 12, haloBlur: 8,  haloOpacity: 0.50, coreBlur: 1.0, dasharray: [5, 3], pulseSpeedSec: 1.6,
-    vibe:    "sugary candy ribbon swirling pink and golden-yellow, sweet and playful",
-    motion:  "bouncy pulses with tiny sparkle particles, like fizzing soda",
-    texture: "glossy candy-coated core with shiny highlights, soft sugar halo",
+    bloom: [{ widthAdd: 20, blur: 16, opacity: 0.30 }, { widthAdd: 11, blur: 7, opacity: 0.46 }, { widthAdd: 5, blur: 2, opacity: 0.70 }],
+    coreBlur: 0.7, innerWhite: { widthMult: 0.32, opacity: 0.85 },
+    animation: "comet", animSpeedSec: 1.8, cometWindow: 0.15,
+    vibe:    "sugary candy ribbon swirling hot-pink and golden-yellow, glossy candy-coated core with bouncy sparkle highlights, sweet playful look",
+    motion:  "bouncy sparkle highlights traveling forward, like fizzing soda or candy sprinkles in motion",
+    texture: "glossy candy-coated core with shiny moving highlights, soft sugar-pink outer halo",
   },
   shadow: {
-    haloWidthBoost: 13, haloBlur: 10, haloOpacity: 0.55, coreBlur: 1.5, dasharray: [4, 8], pulseSpeedSec: 2.5,
-    vibe:    "shadowy void trail, deep slate-black with violet undertones, mysterious",
-    motion:  "wispy smoke segments slowly drifting, ghostly and silent",
-    texture: "dark inky core with smoky purple haze, fading edges",
+    bloom: [{ widthAdd: 22, blur: 18, opacity: 0.40 }, { widthAdd: 12, blur: 8, opacity: 0.55 }, { widthAdd: 5, blur: 3, opacity: 0.75 }],
+    coreBlur: 1.4, innerWhite: { widthMult: 0.20, opacity: 0.4 },
+    animation: "flicker", animSpeedSec: 2.5, flickerAmp: 0.18,
+    vibe:    "shadowy void ribbon: deep slate-black core with violet undertones, dark mysterious outer wisps, ghostly purple-black smoke aura",
+    motion:  "slow ghostly wispy drift with subtle dark flicker, like smoke caught in moonlight",
+    texture: "dark inky core with subtle violet inner glow, smoky purple-black halo with fading edges",
   },
   lava: {
-    haloWidthBoost: 14, haloBlur: 10, haloOpacity: 0.60, coreBlur: 1.5, dasharray: [3, 3], pulseSpeedSec: 0.7,
-    vibe:    "molten lava flow with crimson core, orange cracks, golden-yellow ember tips",
-    motion:  "fast pulsing heat waves, glowing embers floating off, intense and dangerous",
-    texture: "rough cracked magma core with hot bright veins, smoky orange halo",
+    bloom: [{ widthAdd: 24, blur: 20, opacity: 0.40 }, { widthAdd: 14, blur: 10, opacity: 0.55 }, { widthAdd: 6, blur: 3, opacity: 0.80 }],
+    coreBlur: 1.0, innerWhite: { widthMult: 0.40, opacity: 1.0 },
+    animation: "flicker", animSpeedSec: 0.35, flickerAmp: 0.30,
+    vibe:    "molten lava flow ribbon: dark crimson outer to bright orange cracks to golden-yellow ember tips, white-hot bursting core, intense heat haze, ember particles drifting up",
+    motion:  "rapid intense heat-flicker, glowing veins pulsing irregularly, like real molten rock seething",
+    texture: "rough cracked magma core with white-hot bursting bright veins, smoky orange-red halo extending very wide",
   },
+
+  // ─ Tier 4: Endgame premium ───────────────────────────────────────
   plasma: {
-    haloWidthBoost: 14, haloBlur: 8,  haloOpacity: 0.65, coreBlur: 1.2, dasharray: [2, 2], pulseSpeedSec: 0.5,
-    vibe:    "high-energy electric plasma arc, alternating cyan and magenta bolts, sci-fi",
-    motion:  "very fast crackling pulses with electric arcs, hyperactive",
-    texture: "razor-sharp electric core with chromatic fringe, bright bloom halo",
+    bloom: [{ widthAdd: 24, blur: 20, opacity: 0.40 }, { widthAdd: 14, blur: 10, opacity: 0.55 }, { widthAdd: 6, blur: 2, opacity: 0.80 }],
+    coreBlur: 0.6, innerWhite: { widthMult: 0.35, opacity: 1.0 },
+    animation: "plasma", animSpeedSec: 0.6, cometWindow: 0.15,
+    vibe:    "high-energy electric plasma arc with razor-sharp white core, alternating cyan and magenta chromatic bolts, bright neon bloom, sci-fi laboratory feel",
+    motion:  "very fast crackling plasma pulses with chromatic split (cyan and magenta cometen offset slightly), hyperactive electric energy",
+    texture: "razor-sharp white-hot core with chromatic fringe (cyan one side, magenta other side), bright bloom halo with both colors",
   },
   galaxy: {
-    haloWidthBoost: 14, haloBlur: 11, haloOpacity: 0.60, coreBlur: 1.5, dasharray: [6, 4], pulseSpeedSec: 3,
-    vibe:    "galactic nebula ribbon, deep indigo blending into violet and pink, scattered stars",
-    motion:  "slow cosmic drift with twinkling star particles along the trail",
-    texture: "nebulous cloudy core with bright pinpoint stars, soft cosmic halo",
+    bloom: [{ widthAdd: 24, blur: 20, opacity: 0.40 }, { widthAdd: 14, blur: 10, opacity: 0.55 }, { widthAdd: 6, blur: 2, opacity: 0.78 }],
+    coreBlur: 1.0, innerWhite: { widthMult: 0.30, opacity: 0.85 },
+    animation: "color_cycle", animSpeedSec: 4, cometWindow: 0.20,
+    vibe:    "galactic nebula ribbon: deep indigo blending into royal violet and hot pink, bright pinpoint star sparkles along the trail, soft cosmic bloom",
+    motion:  "slow cosmic color drift with twinkling star particles flowing along, like staring into deep space",
+    texture: "nebulous cloudy core with bright pinpoint white stars, soft cosmic outer halo with deep purple wash",
   },
   arctic: {
-    haloWidthBoost: 15, haloBlur: 12, haloOpacity: 0.65, coreBlur: 1.2, dasharray: null, pulseSpeedSec: 4,
-    vibe:    "icy arctic aurora curtain, deep ocean-blue rising into cyan and pure white",
-    motion:  "slow flowing curtain ripple, like polar lights on a frozen sky",
-    texture: "smooth silky aurora core, hazy cold halo with snow-bright edges",
+    bloom: [{ widthAdd: 26, blur: 22, opacity: 0.45 }, { widthAdd: 14, blur: 11, opacity: 0.60 }, { widthAdd: 6, blur: 2, opacity: 0.82 }],
+    coreBlur: 1.0, innerWhite: { widthMult: 0.35, opacity: 0.9 },
+    animation: "color_cycle", animSpeedSec: 4.5,
+    vibe:    "icy arctic aurora curtain ribbon: deep ocean-blue rising into cyan and pure white, large soft hazy bloom, like polar lights on a frozen sky",
+    motion:  "slow flowing curtain ripple with shifting cyan-white-blue color bands, ethereal cold beauty",
+    texture: "smooth silky aurora core with bright white centerline, hazy cold halo extending very wide with snow-bright edges",
   },
   aurora: {
-    haloWidthBoost: 16, haloBlur: 13, haloOpacity: 0.70, coreBlur: 1.5, dasharray: null, pulseSpeedSec: 3.5,
-    vibe:    "northern lights aurora ribbon weaving cyan, violet, hot-pink and gold, ethereal",
-    motion:  "graceful flowing curtain ripples with shifting color bands, magical",
-    texture: "wispy ribbon core, large soft glowing halo, dreamlike bloom",
+    bloom: [{ widthAdd: 28, blur: 24, opacity: 0.50 }, { widthAdd: 16, blur: 12, opacity: 0.62 }, { widthAdd: 6, blur: 2, opacity: 0.85 }],
+    coreBlur: 1.2, innerWhite: { widthMult: 0.30, opacity: 0.85 },
+    animation: "color_cycle", animSpeedSec: 3.5,
+    vibe:    "dreamlike aurora borealis ribbon weaving cyan, royal violet, hot-pink and golden bands, huge soft glowing bloom, ethereal magical look",
+    motion:  "graceful flowing curtain ripples with shifting color bands, like real northern lights dancing across the sky",
+    texture: "wispy ribbon core with soft white centerline, very large soft glowing halo with all four colors blending dreamlike",
   },
   cosmic: {
-    haloWidthBoost: 18, haloBlur: 14, haloOpacity: 0.75, coreBlur: 2.0, dasharray: [4, 3], pulseSpeedSec: 1.8,
-    vibe:    "cosmic supernova ribbon: indigo, royal violet, electric cyan and hot pink swirling, godlike",
-    motion:  "epic energy pulses with star bursts and shooting comet sparks, ultra-premium",
-    texture: "complex multi-layered cosmic core, brilliant bloom halo, particle field around",
+    bloom: [{ widthAdd: 32, blur: 26, opacity: 0.55 }, { widthAdd: 18, blur: 14, opacity: 0.68 }, { widthAdd: 8, blur: 4, opacity: 0.85 }, { widthAdd: 3, blur: 1, opacity: 0.95 }],
+    coreBlur: 1.0, innerWhite: { widthMult: 0.40, opacity: 1.0 },
+    animation: "plasma", animSpeedSec: 1.8, cometWindow: 0.18,
+    vibe:    "cosmic supernova ribbon: deep indigo and royal violet blending with electric cyan and hot pink, brilliant white-hot core with chromatic fringe, godlike multi-layer epic premium look",
+    motion:  "epic plasma energy pulses with chromatic split (cyan and pink cometen offset), color bands shifting, star bursts and shooting comet sparks, ultra-premium feel",
+    texture: "complex multi-layered cosmic core with brilliant white centerline, massive bloom halo with all four cosmic colors, particle field around",
   },
 };
 

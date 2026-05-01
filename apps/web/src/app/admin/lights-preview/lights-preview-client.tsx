@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, type RunnerLightId } from "@/lib/game-config";
+import { addRunnerLight, removeRunnerLight, type LightRenderHandles } from "@/lib/runner-light-render";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 const BERLIN_CENTER: [number, number] = [13.3777, 52.5163];
@@ -30,113 +31,27 @@ const RALLY_ROUTES = {
 
 type LayerHandles = { sourceId: string; layerIds: string[]; raf?: number };
 
-// Render-Helper, identisch zur app-map.tsx-Logik aber gekapselt.
-// Lat-Offset erlaubt mehrere Lights vertikal gestaffelt darzustellen.
+// Wrapper um den shared V2-Renderer (siehe lib/runner-light-render.ts).
+// latOffset versetzt die Route vertikal damit alle 20 Lights nebeneinander
+// passen ohne sich zu überlagern.
 function addLightToMap(
   map: mapboxgl.Map,
   light: typeof RUNNER_LIGHTS[number],
   spec: typeof LIGHT_VISUAL_SPECS[RunnerLightId],
   uid: string,
   latOffset: number,
-): LayerHandles {
-  const sourceId = `light-${uid}`;
-  const haloId = `${sourceId}-halo`;
-  const coreId = `${sourceId}-core`;
-  const pulseId = `${sourceId}-pulse`;
-
+): LightRenderHandles {
   const coords = RUNNER_ROUTE.map(([lng, lat]) => [lng, lat + latOffset] as [number, number]);
-  const data = {
-    type: "Feature" as const,
-    geometry: { type: "LineString" as const, coordinates: coords },
+  const data: GeoJSON.Feature<GeoJSON.LineString> = {
+    type: "Feature",
+    geometry: { type: "LineString", coordinates: coords },
     properties: {},
   };
-
-  map.addSource(sourceId, { type: "geojson", data, lineMetrics: true });
-
-  const baseColor = light.gradient[0];
-  const isMultiColor = light.gradient.length > 1;
-  const lineGradient: mapboxgl.ExpressionSpecification | null = isMultiColor
-    ? (() => {
-        const stops: (number | string)[] = [];
-        light.gradient.forEach((c, i) => stops.push(i / (light.gradient.length - 1), c));
-        return ["interpolate", ["linear"], ["line-progress"], ...stops] as mapboxgl.ExpressionSpecification;
-      })()
-    : null;
-
-  // Auf Preview-Karte FIX-px statt zoomWidth (weil wir nicht zoomen).
-  const haloWidth = light.width + spec.haloWidthBoost;
-  const coreWidth = light.width;
-  const pulseWidth = Math.max(2, light.width - 1);
-
-  map.addLayer({
-    id: haloId, type: "line", source: sourceId,
-    paint: {
-      "line-color": baseColor,
-      "line-opacity": spec.haloOpacity,
-      "line-width": haloWidth,
-      "line-blur": spec.haloBlur,
-    },
-    layout: { "line-cap": "round", "line-join": "round" },
-  });
-  map.addLayer({
-    id: coreId, type: "line", source: sourceId,
-    paint: {
-      "line-color": baseColor,
-      "line-opacity": 1,
-      "line-width": coreWidth,
-      "line-blur": spec.coreBlur,
-      ...(lineGradient ? { "line-gradient": lineGradient } : {}),
-    },
-    layout: { "line-cap": "round", "line-join": "round" },
-  });
-
-  const layerIds = [haloId, coreId];
-  const handles: LayerHandles = { sourceId, layerIds };
-
-  if (spec.dasharray) {
-    map.addLayer({
-      id: pulseId, type: "line", source: sourceId,
-      paint: {
-        "line-color": light.gradient[light.gradient.length - 1],
-        "line-opacity": 0.85,
-        "line-width": pulseWidth,
-        "line-dasharray": spec.dasharray,
-      },
-      layout: { "line-cap": "butt", "line-join": "round" },
-    });
-    layerIds.push(pulseId);
-
-    const [dash, gap] = spec.dasharray;
-    const period = dash + gap;
-    const STEPS = 8;
-    const frames: [number, number, number][] = [];
-    for (let i = 0; i < STEPS; i++) {
-      const t = (i / STEPS) * period;
-      const head = Math.max(0.01, t);
-      const tail = Math.max(0.01, period - t);
-      frames.push([head, gap, tail]);
-    }
-    const start = performance.now();
-    const tick = (now: number) => {
-      const elapsed = (now - start) / 1000;
-      const progress = (elapsed / spec.pulseSpeedSec) % 1;
-      const idx = Math.floor(progress * STEPS) % STEPS;
-      if (map.getLayer(pulseId)) {
-        try { map.setPaintProperty(pulseId, "line-dasharray", frames[idx]); } catch { /* gone */ }
-      }
-      handles.raf = requestAnimationFrame(tick);
-    };
-    handles.raf = requestAnimationFrame(tick);
-  }
-  return handles;
+  return addRunnerLight(map, uid, data, { light, spec });
 }
 
-function removeLightFromMap(map: mapboxgl.Map, h: LayerHandles) {
-  if (h.raf) cancelAnimationFrame(h.raf);
-  for (const id of h.layerIds) {
-    if (map.getLayer(id)) map.removeLayer(id);
-  }
-  if (map.getSource(h.sourceId)) map.removeSource(h.sourceId);
+function removeLightFromMap(map: mapboxgl.Map, h: LightRenderHandles) {
+  removeRunnerLight(map, h);
 }
 
 function addRallyToMap(map: mapboxgl.Map, kind: keyof typeof RALLY_ROUTES, uid: string): LayerHandles {
@@ -201,7 +116,7 @@ function addRallyToMap(map: mapboxgl.Map, kind: keyof typeof RALLY_ROUTES, uid: 
 export function LightsPreviewClient() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const lightHandlesRef = useRef<Map<string, LayerHandles>>(new Map());
+  const lightHandlesRef = useRef<Map<string, LightRenderHandles>>(new Map());
   const rallyHandlesRef = useRef<Map<string, LayerHandles>>(new Map());
   const [mapReady, setMapReady] = useState(false);
 
@@ -339,12 +254,13 @@ export function LightsPreviewClient() {
               <div className="mt-3 p-2 bg-[#0F1115] rounded-lg border border-white/10 text-[10px] space-y-1">
                 <div className="font-bold text-[#22D1C3] uppercase">{selectedLightObj.name} Spec</div>
                 <div className="grid grid-cols-2 gap-x-2 text-[#a8b4cf]">
-                  <div>Halo-Boost: <b className="text-white">+{selectedSpec.haloWidthBoost}px</b></div>
-                  <div>Halo-Blur: <b className="text-white">{selectedSpec.haloBlur}</b></div>
-                  <div>Halo-Opacity: <b className="text-white">{selectedSpec.haloOpacity}</b></div>
+                  <div>Bloom-Layer: <b className="text-white">{selectedSpec.bloom.length}</b></div>
                   <div>Core-Blur: <b className="text-white">{selectedSpec.coreBlur}</b></div>
-                  <div>Pulse: <b className="text-white">{selectedSpec.dasharray ? `[${selectedSpec.dasharray.join(",")}]` : "—"}</b></div>
-                  <div>Speed: <b className="text-white">{selectedSpec.dasharray ? `${selectedSpec.pulseSpeedSec}s` : "—"}</b></div>
+                  <div>Animation: <b className="text-white">{selectedSpec.animation}</b></div>
+                  <div>Speed: <b className="text-white">{selectedSpec.animSpeedSec}s</b></div>
+                  {selectedSpec.cometWindow && <div>Comet-Window: <b className="text-white">{(selectedSpec.cometWindow * 100).toFixed(0)}%</b></div>}
+                  {selectedSpec.flickerAmp && <div>Flicker-Amp: <b className="text-white">{(selectedSpec.flickerAmp * 100).toFixed(0)}%</b></div>}
+                  {selectedSpec.innerWhite && <div>Inner-White: <b className="text-white">opacity {selectedSpec.innerWhite.opacity}</b></div>}
                 </div>
                 <div className="pt-1 border-t border-white/5"><span className="text-[#8B8FA3]">Vibe:</span> {selectedSpec.vibe}</div>
               </div>

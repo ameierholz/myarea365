@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { createClient } from "@/lib/supabase/client";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS } from "@/lib/game-config";
+import { addRunnerLight, removeRunnerLight, type LightRenderHandles } from "@/lib/runner-light-render";
 import type { ClaimedArea, SupplyDrop, GlitchZone, MapRunner } from "@/lib/game-config";
 
 export type ShopPin = {
@@ -1976,156 +1977,45 @@ export function AppMap({
     }
   }, [mapReady, glitchZones]);
 
-  // Active Route — 3-Layer-Stack (Halo + Core + optionaler Pulse) pro Light-Spec.
-  // - Halo: weite Blur-Aura → erzeugt den weichen Glow um den Trail.
-  // - Core: schmale, leuchtende Linie mit (bei Multi-Color) line-gradient
-  //   entlang des Pfads (lineMetrics nötig).
-  // - Pulse: nur wenn spec.dasharray gesetzt → animierte Strichmuster die
-  //   sich über die Route bewegen ("Energie strömt vorwärts"). rAF cycelt
-  //   acht vorgebackene Dasharray-Frames (Mapbox-Standardtrick — direktes
-  //   Animieren von line-dasharray ist diskret, aber per-Frame-Switch sieht
-  //   in 30 fps fließend aus).
+  // Active Route — V2-Renderer aus runner-light-render.ts.
+  // Jeder Light-Switch oder Daten-Update räumt komplett auf und baut neu auf.
+  // Das ist robust (keine stale Layer-IDs) und kostenlos weil < 10 Layer.
+  const lightHandlesRef = useRef<LightRenderHandles | null>(null);
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
     if (!map) return;
 
-    const sourceId = "active-route";
-    const haloId = "active-route-glow";   // Layer-IDs unverändert für Kompat.
-    const coreId = "active-route-main";
-    const pulseId = "active-route-pulse";
-    const showLine = activeRoute.length > 0;
+    // Cleanup vorherigen Render
+    if (lightHandlesRef.current) {
+      removeRunnerLight(map, lightHandlesRef.current);
+      lightHandlesRef.current = null;
+    }
+    if (activeRoute.length === 0) return;
 
-    const data = {
-      type: "Feature" as const,
-      geometry: {
-        type: "LineString" as const,
-        coordinates: showLine ? activeRoute.map((p) => [p.lng, p.lat]) : [],
-      },
-      properties: {},
-    };
-
-    // Override für Legacy-Special-Trails — überschreibt nur den Hauptcolor,
-    // Halo+Pulse-Spec bleiben aus dem aktuellen Light. Das hält das visuelle
-    // Verhalten der zwei alten Trail-Cosmetics konsistent mit dem neuen System.
     const overrideColor = equippedTrail === "golden_trail" ? "#FFD700"
       : equippedTrail === "neon_trail" ? "#FF2D78"
       : null;
 
-    const baseColor = overrideColor || light.gradient[0];
-    const isMultiColor = !overrideColor && light.gradient.length > 1;
-
-    // line-gradient erfordert lineMetrics: true an der Source. Verteilt die
-    // gradient-Farben gleichmäßig über die Trail-Länge (line-progress 0..1).
-    const lineGradient: mapboxgl.ExpressionSpecification | null = isMultiColor
-      ? (() => {
-          const stops: (number | string)[] = [];
-          light.gradient.forEach((c, i) => {
-            stops.push(i / (light.gradient.length - 1), c);
-          });
-          return ["interpolate", ["linear"], ["line-progress"], ...stops] as mapboxgl.ExpressionSpecification;
-        })()
-      : null;
-
-    const haloWidth = zoomWidth(light.width + lightSpec.haloWidthBoost);
-    const coreWidth = zoomWidth(light.width);
-    const pulseWidth = zoomWidth(Math.max(2, light.width - 1));
-
-    const existing = map.getSource(sourceId) as mapboxgl.GeoJSONSource | undefined;
-    if (!existing) {
-      map.addSource(sourceId, { type: "geojson", data, lineMetrics: true });
-      map.addLayer({
-        id: haloId, type: "line", source: sourceId,
-        paint: {
-          "line-color": baseColor,
-          "line-opacity": lightSpec.haloOpacity,
-          "line-width": haloWidth,
-          "line-blur": lightSpec.haloBlur,
-        },
-        layout: { "line-cap": "round", "line-join": "round" },
-      });
-      map.addLayer({
-        id: coreId, type: "line", source: sourceId,
-        paint: {
-          "line-color": baseColor,
-          "line-opacity": 1,
-          "line-width": coreWidth,
-          "line-blur": lightSpec.coreBlur,
-          ...(lineGradient ? { "line-gradient": lineGradient } : {}),
-        },
-        layout: { "line-cap": "round", "line-join": "round" },
-      });
-    } else {
-      existing.setData(data);
-    }
-
-    // Pulse-Layer-Rebuild: lege ihn neu an wenn nötig, entferne wenn nicht.
-    const pulseColor = overrideColor || light.gradient[light.gradient.length - 1];
-    const wantPulse = !!lightSpec.dasharray;
-    if (wantPulse && !map.getLayer(pulseId)) {
-      map.addLayer({
-        id: pulseId, type: "line", source: sourceId,
-        paint: {
-          "line-color": pulseColor,
-          "line-opacity": 0.85,
-          "line-width": pulseWidth,
-          "line-dasharray": lightSpec.dasharray as [number, number],
-        },
-        layout: { "line-cap": "butt", "line-join": "round" },
-      });
-    } else if (!wantPulse && map.getLayer(pulseId)) {
-      map.removeLayer(pulseId);
-    }
-
-    // Live-Updates auf alle vorhandenen Layer (Light-Switch ohne Re-Mount).
-    if (map.getLayer(haloId)) {
-      map.setPaintProperty(haloId, "line-color", baseColor);
-      map.setPaintProperty(haloId, "line-opacity", lightSpec.haloOpacity);
-      map.setPaintProperty(haloId, "line-width", haloWidth);
-      map.setPaintProperty(haloId, "line-blur", lightSpec.haloBlur);
-    }
-    if (map.getLayer(coreId)) {
-      // Bei Multi-Color: line-color als Fallback weiterhin setzen, line-gradient
-      // überschreibt es. Bei Single-Color line-gradient leeren via undefined.
-      map.setPaintProperty(coreId, "line-color", baseColor);
-      map.setPaintProperty(coreId, "line-width", coreWidth);
-      map.setPaintProperty(coreId, "line-blur", lightSpec.coreBlur);
-      if (lineGradient) {
-        try { map.setPaintProperty(coreId, "line-gradient", lineGradient); } catch { /* requires lineMetrics */ }
-      }
-    }
-    if (map.getLayer(pulseId)) {
-      map.setPaintProperty(pulseId, "line-color", pulseColor);
-      map.setPaintProperty(pulseId, "line-width", pulseWidth);
-    }
-
-    // ── Pulse-Animation: rAF cycelt vorgebackene Dasharray-Frames ──
-    if (!wantPulse) return;
-    const [dash, gap] = lightSpec.dasharray as [number, number];
-    const period = dash + gap;
-    const STEPS = 8;
-    // Frames: jeder Frame verschiebt den "Phasen-Offset" um period/STEPS px.
-    // Mapbox-Trick: kein direkter offset, sondern Variation der Längen.
-    const frames: [number, number, number][] = [];
-    for (let i = 0; i < STEPS; i++) {
-      const t = (i / STEPS) * period;
-      const head = Math.max(0.01, t);
-      const tail = Math.max(0.01, period - t);
-      frames.push([head, gap, tail]);
-    }
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const elapsed = (now - start) / 1000; // s
-      const progress = (elapsed / lightSpec.pulseSpeedSec) % 1;
-      const idx = Math.floor(progress * STEPS) % STEPS;
-      if (map.getLayer(pulseId)) {
-        try { map.setPaintProperty(pulseId, "line-dasharray", frames[idx]); } catch { /* layer gone */ }
-      }
-      raf = requestAnimationFrame(tick);
+    const data: GeoJSON.Feature<GeoJSON.LineString> = {
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: activeRoute.map((p) => [p.lng, p.lat]) },
+      properties: {},
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    lightHandlesRef.current = addRunnerLight(map, "active-route", data, {
+      light,
+      spec: lightSpec,
+      overrideColor,
+      widthExpression: (px) => zoomWidth(px),
+    });
+
+    return () => {
+      if (lightHandlesRef.current) {
+        removeRunnerLight(map, lightHandlesRef.current);
+        lightHandlesRef.current = null;
+      }
+    };
   }, [mapReady, activeRoute, trackingActive, light, lightSpec, equippedTrail]);
 
   // Saved Territories
