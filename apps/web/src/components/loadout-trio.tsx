@@ -91,6 +91,7 @@ export function LoadoutTrio({
     await fetch("/api/shop/pin-theme", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ theme: t }) });
     await loadTheme();
     onPinThemeChange?.(t);
+    window.dispatchEvent(new CustomEvent("ma365:cosmetic-changed"));
   }
   async function loadBaseAndNameplate() {
     try {

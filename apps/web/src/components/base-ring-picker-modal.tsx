@@ -59,6 +59,7 @@ export function BaseRingPickerModal({
       });
       await load();
       onChanged?.();
+      if (kind === "equip") window.dispatchEvent(new CustomEvent("ma365:cosmetic-changed"));
     } finally { setBusy(null); }
   };
 

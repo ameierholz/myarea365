@@ -266,6 +266,22 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
+  // Cosmetic-Change-Bumper: bei jedem Equip-Event hochzählen → alle abhängigen
+  // Effects (basePins, nameplateArt-Cache) re-fetchen sofort statt erst nach Reload
+  const [cosmeticVersion, setCosmeticVersion] = useState(0);
+  useEffect(() => {
+    const onChange = () => setCosmeticVersion((v) => v + 1);
+    window.addEventListener("ma365:cosmetic-changed", onChange);
+    return () => window.removeEventListener("ma365:cosmetic-changed", onChange);
+  }, []);
+  // Bei jedem Cosmetic-Change Profile von DB neu laden (für equipped_*-IDs)
+  useEffect(() => {
+    if (cosmeticVersion === 0 || !profile?.id) return;
+    void (async () => {
+      const { data } = await supabase.from("users").select("*").eq("id", profile.id).maybeSingle();
+      if (data) setProfile(data as unknown as Profile);
+    })();
+  }, [cosmeticVersion, profile?.id]);
   // Unified Shop-Hub: Listener auf Top-Level damit auch der Map-Tab-Quick-Access-SHOPS-Button funktioniert
   const [showShopHubGlobal, setShowShopHubGlobal] = useState(false);
   const [shopHubGlobalTab, setShopHubGlobalTab] = useState<"deals" | "plus" | "power" | "gems" | "cosmetics">("deals");
@@ -1539,7 +1555,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     void load();
     const iv = setInterval(load, 30000);
     return () => { cancelled = true; clearInterval(iv); };
-  }, [userCenter, themeMeta]);
+  }, [userCenter, themeMeta, cosmeticVersion]);
 
   // Crew-Turf laden (Repeater + Polygons in 10km bbox, alle 30s)
   useEffect(() => {
@@ -1597,7 +1613,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         }
       }
     }
-  }, [userCenter, themeMeta]);
+  }, [userCenter, themeMeta, cosmeticVersion]);
 
   // Live-Loot-Drops: Berlin-weite Verteilung (~60 Drops gleichzeitig).
   // Kisten werden auf das Gehwegnetz gesnappt (Mapbox Directions walking-Profile),
@@ -3412,11 +3428,13 @@ function ProfilTab({
     setEquippedMarker(id);
     setEquippedMarkerVariant(variant);
     if (p) await supabase.from("users").update({ equipped_marker_id: id, equipped_marker_variant: variant }).eq("id", p.id);
+    window.dispatchEvent(new CustomEvent("ma365:cosmetic-changed"));
   }
 
   async function equipLight(id: string) {
     setEquippedLight(id);
     if (p) await supabase.from("users").update({ equipped_light_id: id }).eq("id", p.id);
+    window.dispatchEvent(new CustomEvent("ma365:cosmetic-changed"));
   }
 
   async function updateSetting(key: string, value: boolean | string) {

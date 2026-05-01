@@ -43,6 +43,7 @@ export function NameplatePickerModal({ onClose, isAdmin = false }: { onClose: ()
         body: JSON.stringify({ action: kind, nameplate_id: id }),
       });
       await load();
+      if (kind === "equip") window.dispatchEvent(new CustomEvent("ma365:cosmetic-changed"));
     } finally { setBusy(null); }
   };
 

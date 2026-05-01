@@ -51,7 +51,11 @@ export function BaseThemeShopModal({ onClose, onChanged }: {
         body: JSON.stringify({ theme_id: id }),
       });
       const j = await r.json() as { ok?: boolean; error?: string };
-      if (j.ok) { setMsg(`✓ Theme aktiviert!`); await Promise.all([load(), onChanged()]); }
+      if (j.ok) {
+        setMsg(`✓ Theme aktiviert!`);
+        await Promise.all([load(), onChanged()]);
+        window.dispatchEvent(new CustomEvent("ma365:cosmetic-changed"));
+      }
       else if (j.error === "vip_too_low") setMsg("Dein VIP-Level reicht noch nicht.");
       else if (j.error === "not_unlocked") setMsg("Dieses Theme musst du erst freischalten.");
       else setMsg(j.error ?? "Fehler");
