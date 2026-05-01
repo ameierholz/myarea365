@@ -25,8 +25,9 @@ begin
     return jsonb_build_object('ok', false, 'error', 'name_length',
       'message', 'Name muss 2-15 Zeichen lang sein');
   end if;
-  -- Erlaubte Zeichen: Buchstaben (auch Unicode), Zahlen, Leer/_/./-/Umlaute
-  if v_clean !~ '^[\p{L}\p{N} _.\-äöüÄÖÜß]+$' then
+  -- Erlaubte Zeichen: Buchstaben, Zahlen, Umlaute, Leer/_/./-
+  -- Bindestrich am Ende der Klasse (kein \- Escape — PG-Regex unterstützt das nicht)
+  if v_clean !~ '^[[:alnum:] äöüÄÖÜß_.-]+$' then
     return jsonb_build_object('ok', false, 'error', 'name_invalid_chars',
       'message', 'Nur Buchstaben, Zahlen, Leerzeichen, _ . - erlaubt');
   end if;
