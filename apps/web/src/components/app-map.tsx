@@ -6,6 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { createClient } from "@/lib/supabase/client";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS } from "@/lib/game-config";
 import { addRunnerLight, removeRunnerLight, type LightRenderHandles } from "@/lib/runner-light-render";
+import { RunnerParticleOverlay } from "@/components/runner-particle-overlay";
 import type { ClaimedArea, SupplyDrop, GlitchZone, MapRunner } from "@/lib/game-config";
 
 export type ShopPin = {
@@ -5291,6 +5292,13 @@ export function AppMap({
   return (
     <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+      <RunnerParticleOverlay
+        map={mapRef.current}
+        posRef={posRef}
+        lightId={light.id}
+        containerEl={containerRef.current}
+        active={!!trackingActive}
+      />
     </div>
   );
 }

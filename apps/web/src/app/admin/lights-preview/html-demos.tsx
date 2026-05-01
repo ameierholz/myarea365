@@ -1,248 +1,169 @@
 "use client";
 
-// HTML/CSS/SVG Light-Demos — was 2026-Web wirklich kann.
-// Zeigt 20 Lights als FULL-FIDELITY-Vorschauen mit:
-//  - SVG <filter> Stacks: feGaussianBlur, feTurbulence + feDisplacementMap
-//    (für Hitze-Verzerrung), feMerge, feColorMatrix
-//  - CSS @keyframes für organische Animationen
-//  - mix-blend-mode: screen / overlay / lighten für additives Glow
-//  - <canvas> Particle-Engines für Sparkles, Embers, Stars
+// HTML/Canvas-Demos pro Light — 20 Mini-Karten die zeigen wie der Particle-
+// Trail am Runner aussieht. Identische Particle-Engine wie im
+// RunnerParticleOverlay (Production), aber statt echter GPS-Position wandert
+// hier ein interpolierter Punkt entlang einer fixen Spline-Route.
 //
-// Diese Komponenten sind die "Reference-Implementation" — wie es im idealen
-// Fall aussehen soll. Die Mapbox-Variante (siehe runner-light-render.ts)
-// ist eine notwendige Annäherung weil dort WebGL-Canvas die Linie zeichnet.
+// Pattern direkt vom User-Demo (Eis-Frost):
+//  - Trail-Linie als dünne dunkle Spur im Hintergrund
+//  - Punkt entlang der Linie via Catmull-Rom-Spline
+//  - Particle-Spawn am Punkt mit Core/Dust-System
 
 import { useEffect, useRef } from "react";
-import { RUNNER_LIGHTS, LIGHT_VISUAL_SPECS } from "@/lib/game-config";
+import { RUNNER_LIGHTS } from "@/lib/game-config";
+import { LIGHT_PARTICLE_SPECS, hexA, type ParticleSpec } from "@/lib/runner-light-particles";
 
-const W = 360, H = 80;
+const W = 360, H = 100;
+// Catmull-Rom-Waypoints durch die Demo-Card (S-Kurve)
+const WAYPOINTS: Array<{ x: number; y: number }> = [
+  { x: 20, y: 60 }, { x: 90, y: 35 }, { x: 160, y: 65 },
+  { x: 230, y: 40 }, { x: 300, y: 55 }, { x: 340, y: 45 },
+];
 
-// ── Shared Trail-Path (curve through preview area) ──────────────────
-const TRAIL_PATH = `M 10 50 Q 90 30 180 45 T 350 40`;
+function getSplinePoint(t: number, p0: { x: number; y: number }, p1: { x: number; y: number }, p2: { x: number; y: number }, p3: { x: number; y: number }) {
+  const t2 = t * t, t3 = t2 * t;
+  const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
+  const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
+  return { x, y };
+}
 
-// ── Particle-Engine via Canvas (Embers, Sparkles, Stars) ────────────
-function ParticleCanvas({ kind, color, count, size, lifeSec, w = W, h = H }: {
-  kind: "embers" | "sparkles" | "stars";
-  color: string; count: number; size: [number, number]; lifeSec?: number;
-  w?: number; h?: number;
-}) {
+type Particle = {
+  x: number; y: number;
+  vx: number; vy: number;
+  age: number; maxAge: number; size: number; isDust: boolean;
+};
+
+function LightDemoCanvas({ lightId, lineColor }: { lightId: string; lineColor: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
+
   useEffect(() => {
     const c = ref.current; if (!c) return;
-    c.width = w * 2; c.height = h * 2; // retina
+    const dpr = window.devicePixelRatio || 1;
+    c.width = W * dpr; c.height = H * dpr;
     const ctx = c.getContext("2d"); if (!ctx) return;
-    ctx.scale(2, 2);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    type P = { x: number; y0: number; y: number; vx: number; vy: number; r: number; born: number; phase: number; life: number };
-    const particles: P[] = [];
-    for (let i = 0; i < count; i++) {
-      const x = 10 + Math.random() * (w - 20);
-      const y0 = 35 + Math.random() * 20;
-      particles.push({
-        x, y0, y: y0,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: kind === "embers" ? -(8 + Math.random() * 12) / 60 : 0,
-        r: size[0] + Math.random() * (size[1] - size[0]),
-        born: performance.now() - Math.random() * 2000,
-        phase: Math.random() * Math.PI * 2,
-        life: lifeSec ?? 2,
-      });
-    }
+    const spec: ParticleSpec | null = LIGHT_PARTICLE_SPECS[lightId] ?? null;
+    const particles: Particle[] = [];
+    let segIdx = 0;
+    let t = 0;
+    const speed = 0.018; // wie schnell der Demo-Runner durch die Card läuft
     let raf = 0;
-    const tick = (now: number) => {
-      ctx.clearRect(0, 0, w, h);
-      for (const p of particles) {
-        const ageS = (now - p.born) / 1000;
-        let opacity = 0;
-        if (kind === "embers") {
-          if (ageS >= p.life) {
-            p.x = 10 + Math.random() * (w - 20);
-            p.y0 = 35 + Math.random() * 20;
-            p.y = p.y0; p.born = now; p.vy = -(8 + Math.random() * 12) / 60;
-            continue;
-          }
-          const t = ageS / p.life;
-          opacity = (1 - t);
-          p.y = p.y0 + p.vy * (now - p.born) * 0.06;
-          p.x += p.vx * 0.5;
-        } else {
-          // twinkle
-          const tw = 0.5 + 0.5 * Math.sin(ageS * 4 + p.phase);
-          opacity = Math.pow(tw, 2.5);
+
+    const tick = () => {
+      ctx.clearRect(0, 0, W, H);
+
+      // 1) Demo-Linie als statische Spur (so wie die "echte" Lauflinie)
+      ctx.beginPath();
+      ctx.moveTo(WAYPOINTS[0].x, WAYPOINTS[0].y);
+      for (let i = 1; i < WAYPOINTS.length; i++) ctx.lineTo(WAYPOINTS[i].x, WAYPOINTS[i].y);
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.shadowColor = lineColor;
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 2) Runner-Head Position berechnen
+      let headX = WAYPOINTS[WAYPOINTS.length - 1].x;
+      let headY = WAYPOINTS[WAYPOINTS.length - 1].y;
+      if (segIdx < WAYPOINTS.length - 1) {
+        const p0 = WAYPOINTS[Math.max(0, segIdx - 1)];
+        const p1 = WAYPOINTS[segIdx];
+        const p2 = WAYPOINTS[Math.min(WAYPOINTS.length - 1, segIdx + 1)];
+        const p3 = WAYPOINTS[Math.min(WAYPOINTS.length - 1, segIdx + 2)];
+        const pos = getSplinePoint(t, p0, p1, p2, p3);
+        headX = pos.x; headY = pos.y;
+        t += speed;
+        if (t >= 1) { t = 0; segIdx++; if (segIdx >= WAYPOINTS.length - 1) segIdx = 0; }
+      }
+
+      // 3) Spawn neue Partikel am Head
+      if (spec) {
+        for (let i = 0; i < spec.spawnPerFrame; i++) {
+          const isDust = Math.random() < spec.dustRatio;
+          const spread = isDust ? spec.dustSpread : spec.coreSpread;
+          const sizeMin = isDust ? spec.dustSize[0] : spec.coreSize[0];
+          const sizeMax = isDust ? spec.dustSize[1] : spec.coreSize[1];
+          const ageMin = isDust ? spec.dustMaxAge[0] : spec.coreMaxAge[0];
+          const ageMax = isDust ? spec.dustMaxAge[1] : spec.coreMaxAge[1];
+          particles.push({
+            x: headX + (Math.random() - 0.5) * spread,
+            y: headY + (Math.random() - 0.5) * spread,
+            vx: spec.driftVx + (Math.random() - 0.5) * spec.driftRandomX,
+            vy: spec.driftVy + (Math.random() - 0.5) * spec.driftRandomY,
+            age: 0,
+            maxAge: ageMin + Math.random() * (ageMax - ageMin),
+            size: sizeMin + Math.random() * (sizeMax - sizeMin),
+            isDust,
+          });
         }
-        if (opacity < 0.05) continue;
-        ctx.save();
-        ctx.globalCompositeOperation = "lighter";
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
-        grad.addColorStop(0, color);
-        grad.addColorStop(0.4, color);
-        grad.addColorStop(1, "transparent");
-        ctx.globalAlpha = opacity;
+      }
+
+      // 4) Update + draw
+      ctx.globalCompositeOperation = (spec?.blendMode ?? "lighter") as GlobalCompositeOperation;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.age++;
+        if (p.age > p.maxAge) { particles.splice(i, 1); continue; }
+        p.x += p.vx; p.y += p.vy;
+        const lifeT = p.age / p.maxAge;
+        const opacity = Math.max(0, 1 - Math.pow(lifeT, spec?.fadePower ?? 1.4));
+        let size = p.size * (1 - lifeT * 0.6);
+        if (spec?.pulse) size *= 0.7 + 0.3 * Math.abs(Math.sin(lifeT * Math.PI * 3));
+        if (size <= 0.3 || opacity <= 0.02) continue;
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size);
+        if (spec) {
+          if (p.isDust) {
+            grad.addColorStop(0, hexA(spec.dustColor, opacity));
+            grad.addColorStop(1, hexA(spec.dustColor, 0));
+          } else if (spec.coreColor2) {
+            grad.addColorStop(0, hexA(spec.coreColor, opacity));
+            grad.addColorStop(0.4, hexA(spec.coreColor2, opacity * 0.7));
+            grad.addColorStop(1, hexA(spec.coreColor2, 0));
+          } else {
+            grad.addColorStop(0, hexA(spec.coreColor, opacity));
+            grad.addColorStop(1, hexA(spec.coreColor, 0));
+          }
+        }
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = opacity * 0.9;
-        ctx.fillStyle = "#FFFFFF";
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * 0.6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
       }
+      ctx.globalCompositeOperation = "source-over";
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [kind, color, count, size, lifeSec, w, h]);
-  return <canvas ref={ref} style={{ position: "absolute", inset: 0, width: w, height: h, pointerEvents: "none" }} />;
-}
+  }, [lightId, lineColor]);
 
-// ── Trail-Renderer mit SVG-Filter und animiertem Stroke ─────────────
-function SvgTrail({ id, colors, glowSize = 12, animation }: {
-  id: string;
-  colors: readonly string[];
-  glowSize?: number;
-  animation?: "flow" | "metal_sheen" | "molten" | "flame" | "electric" | null;
-}) {
-  const grad = colors.length > 1 ? `url(#${id}-grad)` : colors[0];
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: "absolute", inset: 0 }}>
-      <defs>
-        {/* Bloom-Filter — multi-stack Gaussian Blur */}
-        <filter id={`${id}-bloom`} x="-20%" y="-50%" width="140%" height="200%">
-          <feGaussianBlur stdDeviation={glowSize} result="b1" />
-          <feGaussianBlur stdDeviation={glowSize * 0.6} result="b2" />
-          <feGaussianBlur stdDeviation={glowSize * 0.3} result="b3" />
-          <feMerge>
-            <feMergeNode in="b1" />
-            <feMergeNode in="b2" />
-            <feMergeNode in="b3" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Heat-Distortion-Filter für Fire/Lava — feTurbulence + feDisplacementMap */}
-        <filter id={`${id}-heat`} x="-20%" y="-50%" width="140%" height="200%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves="2" seed="3">
-            <animate attributeName="baseFrequency" dur="4s" values="0.02 0.05;0.04 0.08;0.02 0.05" repeatCount="indefinite" />
-          </feTurbulence>
-          <feDisplacementMap in="SourceGraphic" scale="6" />
-          <feGaussianBlur stdDeviation={glowSize * 0.7} result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        {/* Multi-Color-Gradient mit optional animierter Position */}
-        {colors.length > 1 && (
-          <linearGradient id={`${id}-grad`} x1="0%" x2="100%">
-            {colors.map((c, i) => (
-              <stop key={i} offset={`${(i / (colors.length - 1)) * 100}%`} stopColor={c}>
-                {animation === "flow" && (
-                  <animate attributeName="offset" dur="3s"
-                    values={`${(i / (colors.length - 1)) * 100}%;${((i / (colors.length - 1)) * 100 - 100)}%`}
-                    repeatCount="indefinite" />
-                )}
-              </stop>
-            ))}
-          </linearGradient>
-        )}
-
-        {/* Flow-Gradient mit Bewegung via animierte stops (für sunset etc.) */}
-        {animation === "metal_sheen" && (
-          <linearGradient id={`${id}-sheen`} x1="0%" x2="100%">
-            <stop offset="0%" stopColor={colors[0]} />
-            <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.9">
-              <animate attributeName="offset" dur="4s" values="-20%;120%" repeatCount="indefinite" />
-            </stop>
-            <stop offset="100%" stopColor={colors[0]} />
-          </linearGradient>
-        )}
-      </defs>
-
-      {/* Outer bloom layer */}
-      <path d={TRAIL_PATH} stroke={colors[0]} strokeWidth={glowSize * 1.6} strokeLinecap="round"
-        fill="none" opacity={0.35} filter={`url(#${id}-bloom)`} />
-
-      {/* Core — multi-color or solid */}
-      {animation === "flame" ? (
-        <path d={TRAIL_PATH} stroke={grad} strokeWidth={6} strokeLinecap="round"
-          fill="none" filter={`url(#${id}-heat)`}>
-          <animate attributeName="opacity" dur="0.4s"
-            values="1;0.7;0.95;0.8;1" repeatCount="indefinite" />
-        </path>
-      ) : animation === "molten" ? (
-        <path d={TRAIL_PATH} stroke={grad} strokeWidth={6} strokeLinecap="round"
-          fill="none" filter={`url(#${id}-heat)`} />
-      ) : animation === "metal_sheen" ? (
-        <>
-          <path d={TRAIL_PATH} stroke={colors[0]} strokeWidth={6} strokeLinecap="round" fill="none" />
-          <path d={TRAIL_PATH} stroke={`url(#${id}-sheen)`} strokeWidth={6} strokeLinecap="round" fill="none" style={{ mixBlendMode: "screen" }} />
-        </>
-      ) : animation === "electric" ? (
-        <path d={TRAIL_PATH} stroke={grad} strokeWidth={5} strokeLinecap="round" fill="none">
-          <animate attributeName="opacity" dur="0.3s" values="1;0.6;1;0.4;1;0.8;1" repeatCount="indefinite" />
-          <animate attributeName="stroke-width" dur="0.3s" values="5;7;4;6;5" repeatCount="indefinite" />
-        </path>
-      ) : (
-        <path d={TRAIL_PATH} stroke={grad} strokeWidth={6} strokeLinecap="round" fill="none" />
-      )}
-
-      {/* Inner white hot-core */}
-      <path d={TRAIL_PATH} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.7} />
-    </svg>
-  );
-}
-
-// ── Card-Renderer pro Light ─────────────────────────────────────────
-export function HtmlLightDemo({ lightId }: { lightId: string }) {
-  const light = RUNNER_LIGHTS.find((l) => l.id === lightId);
-  if (!light) return null;
-  const spec = LIGHT_VISUAL_SPECS[light.id];
-  const id = `lp-${light.id}`;
-
-  // Mapping spec → SVG-Animation-Modus
-  const svgAnim: "flow" | "metal_sheen" | "molten" | "flame" | "electric" | null =
-    spec.animation === "flow" ? "flow"
-    : spec.animation === "molten_flow" ? "molten"
-    : spec.animation === "metal_sheen" ? "metal_sheen"
-    : spec.animation === "flame_glow" ? "flame"
-    : spec.animation === "electric_arcs" ? "electric"
-    : null;
-
-  return (
-    <div style={{ position: "relative", width: W, height: H, overflow: "hidden", borderRadius: 12, background: "radial-gradient(ellipse at center, #1a1d23 0%, #0F1115 100%)" }}>
-      <SvgTrail id={id} colors={light.gradient} glowSize={Math.max(8, (spec.bloom[0]?.widthAdd ?? 18) * 0.5)} animation={svgAnim} />
-      {spec.particles && (
-        <ParticleCanvas
-          kind={spec.particles.kind === "embers" ? "embers" : spec.particles.kind === "stars" ? "stars" : "sparkles"}
-          color={spec.particles.color}
-          count={spec.particles.count}
-          size={[spec.particles.sizeMin, spec.particles.sizeMax]}
-          lifeSec={spec.particles.lifeSec ?? 2}
-        />
-      )}
-    </div>
-  );
+  return <canvas ref={ref} style={{ width: W, height: H, display: "block", borderRadius: 8 }} />;
 }
 
 export function HtmlLightGrid() {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${W + 20}px, 1fr))`, gap: 12 }}>
-      {RUNNER_LIGHTS.map((l) => (
-        <div key={l.id} style={{ background: "#151922", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ fontWeight: 800, fontSize: 14 }}>{l.name}</div>
-            <div style={{ fontSize: 10, color: "#8b8fa3" }}>{l.cost >= 1000 ? `${l.cost / 1000}k` : l.cost} XP</div>
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${W + 24}px, 1fr))`, gap: 12 }}>
+      {RUNNER_LIGHTS.map((l) => {
+        const spec = LIGHT_PARTICLE_SPECS[l.id];
+        return (
+          <div key={l.id} style={{ background: "#0b0f19", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>{l.name}</div>
+              <div style={{ fontSize: 10, color: "#8b8fa3" }}>{l.cost >= 1000 ? `${l.cost / 1000}k` : l.cost} XP</div>
+            </div>
+            <LightDemoCanvas lightId={l.id} lineColor={l.color} />
+            <div style={{ fontSize: 10, color: "#8b8fa3", marginTop: 8, lineHeight: 1.4 }}>
+              {spec
+                ? <>Spawn {spec.spawnPerFrame}/frame · Core <span style={{ color: spec.coreColor }}>●</span> {spec.coreColor}{spec.coreColor2 && <> + <span style={{ color: spec.coreColor2 }}>●</span> {spec.coreColor2}</>} · Drift {spec.driftVy.toFixed(2)}px/f</>
+                : <span style={{ color: "#4ade80" }}>Free-Tier — keine Partikel, nur saubere Linie</span>}
+            </div>
           </div>
-          <HtmlLightDemo lightId={l.id} />
-          <div style={{ fontSize: 10, color: "#8b8fa3", marginTop: 6 }}>
-            {LIGHT_VISUAL_SPECS[l.id]?.animation}
-            {LIGHT_VISUAL_SPECS[l.id]?.particles && ` + ${LIGHT_VISUAL_SPECS[l.id]!.particles!.count}× ${LIGHT_VISUAL_SPECS[l.id]!.particles!.kind}`}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
