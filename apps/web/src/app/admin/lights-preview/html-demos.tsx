@@ -1,21 +1,15 @@
 "use client";
 
-// HTML/Canvas-Demos pro Light — 20 Mini-Karten die zeigen wie der Particle-
-// Trail am Runner aussieht. Identische Particle-Engine wie im
-// RunnerParticleOverlay (Production), aber statt echter GPS-Position wandert
-// hier ein interpolierter Punkt entlang einer fixen Spline-Route.
-//
-// Pattern direkt vom User-Demo (Eis-Frost):
-//  - Trail-Linie als dünne dunkle Spur im Hintergrund
-//  - Punkt entlang der Linie via Catmull-Rom-Spline
-//  - Particle-Spawn am Punkt mit Core/Dust-System
+// HTML/Canvas-Demos pro Light. Nutzt dieselben Shape-Draw-Funktionen wie das
+// Production-Overlay (drawParticle aus runner-particle-overlay.tsx) damit
+// Demo und Live-Map 1:1 identisch aussehen.
 
 import { useEffect, useRef } from "react";
 import { RUNNER_LIGHTS } from "@/lib/game-config";
-import { LIGHT_PARTICLE_SPECS, hexA, type ParticleSpec } from "@/lib/runner-light-particles";
+import { LIGHT_PARTICLE_SPECS, type ParticleSpec, type ParticleShape } from "@/lib/runner-light-particles";
+import { drawParticle } from "@/components/runner-particle-overlay";
 
 const W = 360, H = 100;
-// Catmull-Rom-Waypoints durch die Demo-Card (S-Kurve)
 const WAYPOINTS: Array<{ x: number; y: number }> = [
   { x: 20, y: 60 }, { x: 90, y: 35 }, { x: 160, y: 65 },
   { x: 230, y: 40 }, { x: 300, y: 55 }, { x: 340, y: 45 },
@@ -31,7 +25,10 @@ function getSplinePoint(t: number, p0: { x: number; y: number }, p1: { x: number
 type Particle = {
   x: number; y: number;
   vx: number; vy: number;
-  age: number; maxAge: number; size: number; isDust: boolean;
+  age: number; maxAge: number;
+  size: number; isDust: boolean;
+  shape: ParticleShape;
+  rotation: number;
 };
 
 function LightDemoCanvas({ lightId, lineColor }: { lightId: string; lineColor: string }) {
@@ -48,13 +45,13 @@ function LightDemoCanvas({ lightId, lineColor }: { lightId: string; lineColor: s
     const particles: Particle[] = [];
     let segIdx = 0;
     let t = 0;
-    const speed = 0.018; // wie schnell der Demo-Runner durch die Card läuft
+    const speed = 0.018;
     let raf = 0;
 
     const tick = () => {
       ctx.clearRect(0, 0, W, H);
 
-      // 1) Demo-Linie als statische Spur (so wie die "echte" Lauflinie)
+      // Lauflinie als statische Spur (so wie die echte Lauflinie)
       ctx.beginPath();
       ctx.moveTo(WAYPOINTS[0].x, WAYPOINTS[0].y);
       for (let i = 1; i < WAYPOINTS.length; i++) ctx.lineTo(WAYPOINTS[i].x, WAYPOINTS[i].y);
@@ -66,7 +63,7 @@ function LightDemoCanvas({ lightId, lineColor }: { lightId: string; lineColor: s
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // 2) Runner-Head Position berechnen
+      // Runner-Head Position
       let headX = WAYPOINTS[WAYPOINTS.length - 1].x;
       let headY = WAYPOINTS[WAYPOINTS.length - 1].y;
       if (segIdx < WAYPOINTS.length - 1) {
@@ -80,10 +77,12 @@ function LightDemoCanvas({ lightId, lineColor }: { lightId: string; lineColor: s
         if (t >= 1) { t = 0; segIdx++; if (segIdx >= WAYPOINTS.length - 1) segIdx = 0; }
       }
 
-      // 3) Spawn neue Partikel am Head
+      // Spawn am Head
       if (spec) {
         for (let i = 0; i < spec.spawnPerFrame; i++) {
           const isDust = Math.random() < spec.dustRatio;
+          const useShape2 = !isDust && spec.shape2 && Math.random() < (spec.shape2Ratio ?? 0);
+          const shape: ParticleShape = isDust ? "circle" : (useShape2 ? spec.shape2! : spec.shape);
           const spread = isDust ? spec.dustSpread : spec.coreSpread;
           const sizeMin = isDust ? spec.dustSize[0] : spec.coreSize[0];
           const sizeMax = isDust ? spec.dustSize[1] : spec.coreSize[1];
@@ -97,41 +96,36 @@ function LightDemoCanvas({ lightId, lineColor }: { lightId: string; lineColor: s
             age: 0,
             maxAge: ageMin + Math.random() * (ageMax - ageMin),
             size: sizeMin + Math.random() * (sizeMax - sizeMin),
-            isDust,
+            isDust, shape,
+            rotation: Math.random() * Math.PI * 2,
           });
         }
       }
 
-      // 4) Update + draw
+      // Update + Draw
       ctx.globalCompositeOperation = (spec?.blendMode ?? "lighter") as GlobalCompositeOperation;
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.age++;
         if (p.age > p.maxAge) { particles.splice(i, 1); continue; }
+        if (spec?.windCurl) p.vx += Math.sin(p.age * 0.08 + p.rotation) * spec.windCurl * 0.05;
         p.x += p.vx; p.y += p.vy;
+        if (spec && spec.driftVy < 0) p.vy *= 0.985;
+        if (spec?.rotate) p.rotation += 0.04;
         const lifeT = p.age / p.maxAge;
         const opacity = Math.max(0, 1 - Math.pow(lifeT, spec?.fadePower ?? 1.4));
-        let size = p.size * (1 - lifeT * 0.6);
+        let size = p.size * (1 - lifeT * 0.5);
         if (spec?.pulse) size *= 0.7 + 0.3 * Math.abs(Math.sin(lifeT * Math.PI * 3));
+        if (spec?.shape === "ring" && !p.isDust) size = p.size * (1 + lifeT * 1.5);
         if (size <= 0.3 || opacity <= 0.02) continue;
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size);
         if (spec) {
-          if (p.isDust) {
-            grad.addColorStop(0, hexA(spec.dustColor, opacity));
-            grad.addColorStop(1, hexA(spec.dustColor, 0));
-          } else if (spec.coreColor2) {
-            grad.addColorStop(0, hexA(spec.coreColor, opacity));
-            grad.addColorStop(0.4, hexA(spec.coreColor2, opacity * 0.7));
-            grad.addColorStop(1, hexA(spec.coreColor2, 0));
-          } else {
-            grad.addColorStop(0, hexA(spec.coreColor, opacity));
-            grad.addColorStop(1, hexA(spec.coreColor, 0));
-          }
+          drawParticle(
+            ctx, p.shape, p.x, p.y, size, p.rotation,
+            p.isDust ? spec.dustColor : spec.coreColor,
+            p.isDust ? undefined : spec.coreColor2,
+            opacity, p.vx, p.vy, p.age + p.x,
+          );
         }
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-        ctx.fill();
       }
       ctx.globalCompositeOperation = "source-over";
 
@@ -158,8 +152,8 @@ export function HtmlLightGrid() {
             <LightDemoCanvas lightId={l.id} lineColor={l.color} />
             <div style={{ fontSize: 10, color: "#8b8fa3", marginTop: 8, lineHeight: 1.4 }}>
               {spec
-                ? <>Spawn {spec.spawnPerFrame}/frame · Core <span style={{ color: spec.coreColor }}>●</span> {spec.coreColor}{spec.coreColor2 && <> + <span style={{ color: spec.coreColor2 }}>●</span> {spec.coreColor2}</>} · Drift {spec.driftVy.toFixed(2)}px/f</>
-                : <span style={{ color: "#4ade80" }}>Free-Tier — keine Partikel, nur saubere Linie</span>}
+                ? <>Shape: <b style={{ color: "#fff" }}>{spec.shape}</b>{spec.shape2 && <> + {spec.shape2}</>} · {spec.spawnPerFrame}/frame</>
+                : <span style={{ color: "#4ade80" }}>Free-Tier — keine Partikel</span>}
             </div>
           </div>
         );
