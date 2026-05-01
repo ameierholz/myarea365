@@ -266,7 +266,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [walkSummary, setWalkSummary] = useState<WalkSummary | null>(null);
-  const [showDealsShop, setShowDealsShop] = useState(false);
+  // Unified Shop-Hub: Listener auf Top-Level damit auch der Map-Tab-Quick-Access-SHOPS-Button funktioniert
+  const [showShopHubGlobal, setShowShopHubGlobal] = useState(false);
+  const [shopHubGlobalTab, setShopHubGlobalTab] = useState<"deals" | "plus" | "power" | "gems" | "cosmetics">("deals");
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const ev = e as CustomEvent<{ tab?: "deals" | "plus" | "power" | "gems" | "cosmetics" } | undefined>;
+      setShopHubGlobalTab(ev.detail?.tab ?? "deals");
+      setShowShopHubGlobal(true);
+    };
+    window.addEventListener("ma365:open-deals-shop", onOpen as EventListener);
+    return () => window.removeEventListener("ma365:open-deals-shop", onOpen as EventListener);
+  }, []);
   const [preWalkModal, setPreWalkModal] = useState<null | "asking" | "playing">(null);
   const [preWalkAdProgress, setPreWalkAdProgress] = useState(0);
   const [supplyDropModal, setSupplyDropModal] = useState<null | { dropId: string; phase: "asking" | "playing" }>(null);
@@ -3092,8 +3103,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         />
       )}
 
-      {/* Neuer 7-Tab Deals-Shop — geöffnet via QuickAccess-Bar (ma365:open-deals-shop) */}
-      {showDealsShop && <DealsShopModal onClose={() => setShowDealsShop(false)} />}
+      {/* Unified Shop-Hub — top-level mount damit auch von der Map-Tab SHOPS-Button erreichbar */}
+      {showShopHubGlobal && profile && (
+        <ShopHubModal
+          userId={profile.id}
+          initialTab={shopHubGlobalTab}
+          isAdmin={["admin","super_admin"].includes((profile as unknown as { role?: string })?.role ?? "user")}
+          onClose={() => setShowShopHubGlobal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -3257,16 +3275,7 @@ function ProfilTab({
   const [shopHubInitialTab, setShopHubInitialTab] = useState<"deals" | "plus" | "power" | "gems" | "cosmetics">("deals");
   const [showShopDeals, setShowShopDeals] = useState(false);
 
-  // SHOPS-Bottom-Nav-Button + alle ma365:open-deals-shop-Events öffnen jetzt den Unified-Hub.
-  useEffect(() => {
-    const onOpen = (e: Event) => {
-      const ev = e as CustomEvent<{ tab?: "deals" | "plus" | "power" | "gems" | "cosmetics" } | undefined>;
-      setShopHubInitialTab(ev.detail?.tab ?? "deals");
-      setShowShopHub(true);
-    };
-    window.addEventListener("ma365:open-deals-shop", onOpen as EventListener);
-    return () => window.removeEventListener("ma365:open-deals-shop", onOpen as EventListener);
-  }, []);
+  // ShopHub-Listener lebt auf MapDashboard-Top-Level — nicht hier doppeln.
   const [runnerProfileUserId, setRunnerProfileUserId] = useState<string | null>(null);
   const [guideShopExpanded, setGuideShopExpanded] = useState(false);
 
