@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
-import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
+import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 
@@ -324,20 +324,70 @@ function MarkerTab({ artMap, onChange }: { artMap: Record<string, Record<string,
   );
 }
 
+// Animierte CSS-Vorschau die die On-Map-Optik nachahmt:
+// gradient-Stripe + breite blur-Halo + (optional) animiertes Dash-Pulse-Overlay.
+// Damit siehst du im Admin-UI bevor du KI-Assets generierst was die Map rendert.
+function LightCssPreview({ l }: { l: typeof RUNNER_LIGHTS[number] }) {
+  const spec = LIGHT_VISUAL_SPECS[l.id];
+  const grad = l.gradient.length > 1
+    ? `linear-gradient(90deg, ${l.gradient.join(", ")})`
+    : l.color;
+  const haloHeight = Math.min(28, l.width + (spec?.haloWidthBoost ?? 8));
+  const coreHeight = Math.max(2, l.width - 1);
+  const pulseColor = l.gradient[l.gradient.length - 1];
+  const pulse = spec?.dasharray;
+  const pulseDuration = spec?.pulseSpeedSec ? `${spec.pulseSpeedSec}s` : "0s";
+  return (
+    <div className="relative w-20 h-12 flex items-center justify-center overflow-hidden rounded-lg bg-[#0F1115]">
+      {/* Halo */}
+      <div style={{
+        position: "absolute", left: 4, right: 4, height: haloHeight,
+        borderRadius: haloHeight / 2, background: grad,
+        opacity: spec?.haloOpacity ?? 0.35, filter: `blur(${(spec?.haloBlur ?? 4) * 0.7}px)`,
+      }} />
+      {/* Core */}
+      <div style={{
+        position: "absolute", left: 4, right: 4, height: coreHeight,
+        borderRadius: coreHeight / 2, background: grad,
+        boxShadow: `0 0 ${(spec?.haloBlur ?? 4)}px ${l.color}aa`,
+      }} />
+      {/* Pulse */}
+      {pulse && (
+        <div style={{
+          position: "absolute", left: 4, right: 4, height: Math.max(2, coreHeight - 1),
+          borderRadius: 2,
+          backgroundImage: `repeating-linear-gradient(90deg, ${pulseColor} 0 ${pulse[0] * 2}px, transparent ${pulse[0] * 2}px ${(pulse[0] + pulse[1]) * 2}px)`,
+          backgroundSize: `${(pulse[0] + pulse[1]) * 2}px 100%`,
+          animation: `light-pulse-${l.id} ${pulseDuration} linear infinite`,
+          mixBlendMode: "screen",
+        }} />
+      )}
+      {pulse && (
+        <style>{`@keyframes light-pulse-${l.id} { from { background-position: 0 0 } to { background-position: ${(pulse[0] + pulse[1]) * 2}px 0 } }`}</style>
+      )}
+    </div>
+  );
+}
+
 function LightTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
   return (
     <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
       {RUNNER_LIGHTS.map((l) => {
         const art = artMap[l.id];
-        const grad = l.gradient.length > 1 ? `linear-gradient(90deg, ${l.gradient.join(", ")})` : l.color;
         return (
           <div key={l.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-20 h-12 flex items-center justify-center rounded-lg bg-[#0F1115]">
-                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-20 h-12 object-contain" />
-                  : art?.image_url ? <img src={art.image_url} alt={l.name} className="w-20 h-12 object-contain" />
-                  : <div style={{ width: 64, height: l.width, borderRadius: l.width/2, background: grad, boxShadow: `0 0 10px ${l.color}80` }} />}
-              </div>
+              {art?.video_url ? (
+                <div className="w-20 h-12 flex items-center justify-center rounded-lg bg-[#0F1115]">
+                  <video src={art.video_url} autoPlay loop muted playsInline className="w-20 h-12 object-contain" />
+                </div>
+              ) : art?.image_url ? (
+                <div className="w-20 h-12 flex items-center justify-center rounded-lg bg-[#0F1115]">
+                  <img src={art.image_url} alt={l.name} className="w-20 h-12 object-contain" />
+                </div>
+              ) : (
+                <LightCssPreview l={l} />
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] font-bold text-[#8B8FA3] tracking-wider">RUNNER-LIGHT</div>
                 <div className="text-sm font-black text-white truncate">{l.name}</div>
@@ -349,7 +399,13 @@ function LightTab({ artMap, onChange }: { artMap: Record<string, { image_url: st
               targetId={l.id}
               hasImage={!!art?.image_url}
               hasVideo={!!art?.video_url}
-              buildPrompt={(mode) => buildLightPrompt({ name: l.name, colors: [...l.gradient], mode })}
+              buildPrompt={(mode) => {
+                const spec = LIGHT_VISUAL_SPECS[l.id];
+                return buildLightPrompt({
+                  id: l.id, name: l.name, colors: [...l.gradient], mode,
+                  vibe: spec?.vibe, motion: spec?.motion, texture: spec?.texture,
+                });
+              }}
               onUploaded={onChange}
             />
           </div>

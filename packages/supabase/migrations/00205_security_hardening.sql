@@ -32,8 +32,10 @@ drop policy if exists "artwork_public_read" on storage.objects;
 drop policy if exists "shop_media_public_read" on storage.objects;
 
 -- ── 3) Bulk-Fix: search_path für alle public Functions ─────────────
--- War vorher implizit public,pg_temp — wir setzen es explizit, damit
--- Schema-Hijacking via session-config nicht möglich ist.
+-- War vorher implizit — wir setzen es explizit, damit Schema-Hijacking via
+-- session-config nicht möglich ist. WICHTIG: PostGIS liegt im `extensions`-
+-- Schema, daher muss `extensions` mit drin sein, sonst verlieren PostGIS-
+-- nutzende Functions ihren `geometry`-Type-Lookup (Bug erst beim Test gefangen).
 do $$
 declare r record; cnt int := 0;
 begin
@@ -45,7 +47,7 @@ begin
        and (p.proconfig is null or not exists (
             select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%'))
   loop
-    execute format('alter function %I.%I(%s) set search_path = public, pg_temp;',
+    execute format('alter function %I.%I(%s) set search_path = public, extensions, pg_temp;',
                    r.nspname, r.proname, r.args);
     cnt := cnt + 1;
   end loop;

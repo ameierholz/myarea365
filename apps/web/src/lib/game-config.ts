@@ -108,6 +108,156 @@ export const RUNNER_LIGHTS = [
   { id: "cosmic",   name: "Kosmos",     cost: 1500000,   color: "#22d3ee", gradient: ["#312e81", "#7c3aed", "#22d3ee", "#ec4899"],      width: 13 },
 ] as const;
 
+export type RunnerLightId = (typeof RUNNER_LIGHTS)[number]["id"];
+
+// ─── Visual-Specs pro Light ────────────────────────────────────────
+// Single source of truth: AppMap-Render UND Artwork-Prompts greifen hier zu.
+// Damit sehen das KI-generierte Preview-PNG/MP4 und die On-Map-Animation
+// gleich aus → Runner picken im UI das, was sie auf der Map kriegen.
+//
+// Felder:
+//  - haloWidthBoost: zusätzliche Breite des Halo-Layers (in px) ggü. core
+//  - haloBlur: line-blur für Halo (0=hart, 16=sehr weich)
+//  - haloOpacity: 0..1
+//  - coreBlur: 0..3, kleiner Blur für Core-Layer (Anti-Alias)
+//  - dasharray: null = durchgezogene Linie. [a,b] = animierte Pulse-Striche.
+//  - pulseSpeedSec: Sekunden für einen Dasharray-Cycle (kleiner = schneller).
+//  - vibe / motion / texture: Prompt-Bausteine, beschreiben EXAKT den Map-Look.
+export type LightVisualSpec = {
+  haloWidthBoost: number;
+  haloBlur: number;
+  haloOpacity: number;
+  coreBlur: number;
+  dasharray: [number, number] | null;
+  pulseSpeedSec: number;
+  vibe: string;
+  motion: string;
+  texture: string;
+};
+
+export const LIGHT_VISUAL_SPECS: Record<RunnerLightId, LightVisualSpec> = {
+  classic: {
+    haloWidthBoost: 8,  haloBlur: 4,  haloOpacity: 0.30, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
+    vibe:    "clean cyan plasma stripe with soft outer glow, smooth core, calm and timeless",
+    motion:  "static trail with very gentle inner glow breathing, no harsh pulses",
+    texture: "smooth glass-like core, hazy bloom around the edges",
+  },
+  coral: {
+    haloWidthBoost: 8,  haloBlur: 5,  haloOpacity: 0.32, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
+    vibe:    "warm coral salmon ribbon, soft pastel glow, friendly and inviting",
+    motion:  "gentle warmth shimmer along the trail, no fast motion",
+    texture: "matte silky core, soft peach halo",
+  },
+  emerald: {
+    haloWidthBoost: 9,  haloBlur: 6,  haloOpacity: 0.35, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
+    vibe:    "vibrant emerald jewel-tone glow, rich and lush green",
+    motion:  "slow soft pulse, like a heartbeat of nature",
+    texture: "polished gemstone core, faint mossy outer haze",
+  },
+  gold: {
+    haloWidthBoost: 10, haloBlur: 7,  haloOpacity: 0.40, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 4,
+    vibe:    "luxurious polished gold ribbon with metallic sheen, royal and premium",
+    motion:  "slow specular sheen sweeping forward along the trail, no dashes",
+    texture: "liquid gold core with mirror highlights, warm glow halo",
+  },
+  sapphire: {
+    haloWidthBoost: 10, haloBlur: 6,  haloOpacity: 0.38, coreBlur: 0.5, dasharray: null, pulseSpeedSec: 0,
+    vibe:    "deep sapphire jewel ribbon, midnight-blue brilliance",
+    motion:  "subtle inner shimmer, like light caught in a faceted gem",
+    texture: "crystalline core, deep cobalt outer halo",
+  },
+  neon: {
+    haloWidthBoost: 11, haloBlur: 7,  haloOpacity: 0.45, coreBlur: 1.0, dasharray: [2, 4], pulseSpeedSec: 1.4,
+    vibe:    "vibrant synthwave neon: violet-purple bleeding into hot pink, retro arcade glow",
+    motion:  "fast pulsing energy segments traveling forward, electric vibe",
+    texture: "saturated neon core with bright bloom, slight chromatic flicker",
+  },
+  sunset: {
+    haloWidthBoost: 11, haloBlur: 8,  haloOpacity: 0.42, coreBlur: 0.8, dasharray: null, pulseSpeedSec: 5,
+    vibe:    "warm sunset gradient flowing from coral-orange into golden-yellow, dreamy",
+    motion:  "slow gradient drift along the trail, soft shimmer",
+    texture: "smooth painterly gradient core, hazy warm halo",
+  },
+  fire: {
+    haloWidthBoost: 12, haloBlur: 9,  haloOpacity: 0.50, coreBlur: 1.2, dasharray: [3, 2], pulseSpeedSec: 0.8,
+    vibe:    "burning fire trail with flickering orange-to-yellow flames, ember sparks",
+    motion:  "fast irregular flicker, like a torch in motion, embers drifting upward",
+    texture: "rough flame core with crackling hot spots, smoky orange halo",
+  },
+  ocean: {
+    haloWidthBoost: 12, haloBlur: 8,  haloOpacity: 0.45, coreBlur: 0.8, dasharray: [6, 6], pulseSpeedSec: 3,
+    vibe:    "rolling ocean wave trail, aqua and deep cyan flowing currents",
+    motion:  "smooth wave-like pulses traveling forward, like surf breaking",
+    texture: "wet glassy core with rippling highlights, foamy pale halo",
+  },
+  ice: {
+    haloWidthBoost: 12, haloBlur: 6,  haloOpacity: 0.50, coreBlur: 0.6, dasharray: [4, 8], pulseSpeedSec: 2,
+    vibe:    "frozen ice-crystal trail, pale cyan-white shards with sparkle",
+    motion:  "sharp crystalline pulses, occasional bright flashes like frost glints",
+    texture: "sharp angular core, brittle crystalline halo with fine sparkles",
+  },
+  forest: {
+    haloWidthBoost: 11, haloBlur: 7,  haloOpacity: 0.42, coreBlur: 0.8, dasharray: null, pulseSpeedSec: 6,
+    vibe:    "lush forest gradient from deep emerald to bright leaf-green, organic life",
+    motion:  "slow organic breathing pulse, like wind through leaves",
+    texture: "soft mossy core with warm undertones, leafy green halo",
+  },
+  rainbow: {
+    haloWidthBoost: 12, haloBlur: 7,  haloOpacity: 0.50, coreBlur: 1.0, dasharray: null, pulseSpeedSec: 2.5,
+    vibe:    "full rainbow spectrum ribbon flowing red-orange-green-blue-violet",
+    motion:  "continuous color cycle traveling forward, joyful and vibrant",
+    texture: "saturated multi-hue core, bright prismatic halo",
+  },
+  candy: {
+    haloWidthBoost: 12, haloBlur: 8,  haloOpacity: 0.50, coreBlur: 1.0, dasharray: [5, 3], pulseSpeedSec: 1.6,
+    vibe:    "sugary candy ribbon swirling pink and golden-yellow, sweet and playful",
+    motion:  "bouncy pulses with tiny sparkle particles, like fizzing soda",
+    texture: "glossy candy-coated core with shiny highlights, soft sugar halo",
+  },
+  shadow: {
+    haloWidthBoost: 13, haloBlur: 10, haloOpacity: 0.55, coreBlur: 1.5, dasharray: [4, 8], pulseSpeedSec: 2.5,
+    vibe:    "shadowy void trail, deep slate-black with violet undertones, mysterious",
+    motion:  "wispy smoke segments slowly drifting, ghostly and silent",
+    texture: "dark inky core with smoky purple haze, fading edges",
+  },
+  lava: {
+    haloWidthBoost: 14, haloBlur: 10, haloOpacity: 0.60, coreBlur: 1.5, dasharray: [3, 3], pulseSpeedSec: 0.7,
+    vibe:    "molten lava flow with crimson core, orange cracks, golden-yellow ember tips",
+    motion:  "fast pulsing heat waves, glowing embers floating off, intense and dangerous",
+    texture: "rough cracked magma core with hot bright veins, smoky orange halo",
+  },
+  plasma: {
+    haloWidthBoost: 14, haloBlur: 8,  haloOpacity: 0.65, coreBlur: 1.2, dasharray: [2, 2], pulseSpeedSec: 0.5,
+    vibe:    "high-energy electric plasma arc, alternating cyan and magenta bolts, sci-fi",
+    motion:  "very fast crackling pulses with electric arcs, hyperactive",
+    texture: "razor-sharp electric core with chromatic fringe, bright bloom halo",
+  },
+  galaxy: {
+    haloWidthBoost: 14, haloBlur: 11, haloOpacity: 0.60, coreBlur: 1.5, dasharray: [6, 4], pulseSpeedSec: 3,
+    vibe:    "galactic nebula ribbon, deep indigo blending into violet and pink, scattered stars",
+    motion:  "slow cosmic drift with twinkling star particles along the trail",
+    texture: "nebulous cloudy core with bright pinpoint stars, soft cosmic halo",
+  },
+  arctic: {
+    haloWidthBoost: 15, haloBlur: 12, haloOpacity: 0.65, coreBlur: 1.2, dasharray: null, pulseSpeedSec: 4,
+    vibe:    "icy arctic aurora curtain, deep ocean-blue rising into cyan and pure white",
+    motion:  "slow flowing curtain ripple, like polar lights on a frozen sky",
+    texture: "smooth silky aurora core, hazy cold halo with snow-bright edges",
+  },
+  aurora: {
+    haloWidthBoost: 16, haloBlur: 13, haloOpacity: 0.70, coreBlur: 1.5, dasharray: null, pulseSpeedSec: 3.5,
+    vibe:    "northern lights aurora ribbon weaving cyan, violet, hot-pink and gold, ethereal",
+    motion:  "graceful flowing curtain ripples with shifting color bands, magical",
+    texture: "wispy ribbon core, large soft glowing halo, dreamlike bloom",
+  },
+  cosmic: {
+    haloWidthBoost: 18, haloBlur: 14, haloOpacity: 0.75, coreBlur: 2.0, dasharray: [4, 3], pulseSpeedSec: 1.8,
+    vibe:    "cosmic supernova ribbon: indigo, royal violet, electric cyan and hot pink swirling, godlike",
+    motion:  "epic energy pulses with star bursts and shooting comet sparks, ultra-premium",
+    texture: "complex multi-layered cosmic core, brilliant bloom halo, particle field around",
+  },
+};
+
 export const CREW_COLORS = [
   "#5ddaf0", // Cyan
   "#ef7169", // Koralle

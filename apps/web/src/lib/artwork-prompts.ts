@@ -1363,25 +1363,47 @@ export function buildChestPrompt(input: { chest: ChestArt; mode: "image" | "vide
   ].join(" ");
 }
 
-export function buildLightPrompt(input: { name: string; colors: string[]; mode: "image" | "video" }): string {
+// ─── Runner-Lights Prompt-Builder ──────────────────────────────────
+// Liest LIGHT_VISUAL_SPECS aus game-config.ts → jeder Light bekommt einen
+// individuellen Prompt der GENAU die On-Map-Animation beschreibt.
+// vibe = Look, motion = Animation, texture = Material/Oberfläche.
+// Damit matched die generierte Preview-Grafik im UI-Selector den tatsächlichen
+// Trail den der Runner auf der Karte hinter sich herzieht.
+export function buildLightPrompt(input: {
+  id?: string;
+  name: string;
+  colors: string[];
+  mode: "image" | "video";
+  vibe?: string;
+  motion?: string;
+  texture?: string;
+}): string {
   const colorStr = input.colors.join(", ");
+  const vibe = input.vibe || `glowing energy trail named "${input.name}"`;
+  const texture = input.texture || "smooth glowing core, soft outer halo";
+  const motion = input.motion || "subtle shimmer along the trail";
+
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping animated runner trail/light effect, horizontal 16:9, 1920x1080, 30 fps, fully transparent background.`,
-      `Subject: a glowing energy trail representing a runner's light named "${input.name}", stretching horizontally across the frame.`,
-      `Color palette: ${colorStr}. Smooth gradient along the trail.`,
-      `Motion: energy particles flowing from left to right, slight shimmer, subtle pulse. Trail stays in place, only particles animate.`,
-      `Style: neon, glowing, soft bloom, high contrast. Cyber-fantasy aesthetic.`,
-      `The final frame must exactly match the first frame for seamless looping.`,
-      `No audio. No text, no characters, no background — fully transparent outside the light trail.`,
-    ].filter(Boolean).join(" ");
+      `Shot: a 3-second seamlessly looping animated runner trail/light effect for the game "MyArea365", horizontal 16:9, 1920x1080, 30 fps, fully transparent background (alpha channel, NO solid background, NO sky).`,
+      `Subject: ${vibe}, stretching horizontally across the full frame from left edge to right edge as a single continuous light ribbon.`,
+      `Color palette (strict): ${colorStr}. Use ONLY these colors. Smooth gradient blending along the length of the trail.`,
+      `Surface character: ${texture}.`,
+      `Motion: ${motion}. The ribbon body itself stays in place — only inner energy/particles/highlights animate. Do NOT move the trail itself across the frame.`,
+      `Style: high-quality game-ready VFX, neon bloom, sharp bright core, soft glowing halo. Cyber-fantasy aesthetic. Premium look matching the trail's tier.`,
+      `Composition: trail centered vertically, occupies central ~30% of vertical space, ribbon thickness suits the look (thinner for low-tier, thicker for premium). NO characters, NO runners, NO map, NO scenery.`,
+      `Looping: the final frame must exactly match the first frame, frame-perfect seamless loop.`,
+      `Negative: no audio, no text, no labels, no watermarks, no UI, no background — only the glowing trail on full alpha transparency.`,
+    ].join(" ");
   }
   return [
-    `A glowing horizontal runner's light trail called "${input.name}", 16:9 landscape, 1920x1080, fully transparent background (PNG with alpha).`,
-    `Color palette: ${colorStr}. Smooth gradient along the trail, soft bloom, neon glow.`,
-    `Style: cyber-fantasy energy streak, sharp core, soft outer halo.`,
-    `No text, no characters, no watermark, no background.`,
-  ].filter(Boolean).join(" ");
+    `A premium game-ready runner's light trail asset called "${input.name}" for "MyArea365", 16:9 landscape, 1920x1080, fully transparent PNG with alpha (NO solid background).`,
+    `Subject: ${vibe}, stretching horizontally across the entire frame as one continuous light ribbon centered vertically.`,
+    `Color palette (strict): ${colorStr}. Smooth gradient along the length, no other colors.`,
+    `Surface character: ${texture}.`,
+    `Style: neon glow, sharp bright core, soft outer halo, premium VFX, cyber-fantasy aesthetic.`,
+    `Negative: no characters, no runners, no map, no scenery, no text, no watermark — only the glowing trail on full alpha transparency.`,
+  ].join(" ");
 }
 
 export const SIEGEL_TYPES = [

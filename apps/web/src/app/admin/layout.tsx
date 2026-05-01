@@ -34,8 +34,18 @@ const NAV: NavGroup[] = [
       { href: "/admin/deals",     label: "⚡ Deals" },
       { href: "/admin/qr-codes",  label: "📱 QR-Codes" },
       { href: "/admin/sales",      label: "💰 Vertrieb & Umsatz" },
-      { href: "/admin/marketing",  label: "📧 Marketing" },
-      { href: "/admin/broadcasts", label: "📢 Broadcasts" },
+      { href: "/admin/refunds",    label: "💸 Refunds" },
+    ],
+  },
+  {
+    title: "MARKETING & GROWTH",
+    items: [
+      { href: "/admin/marketing",         label: "📧 Marketing-Hub" },
+      { href: "/admin/marketing/cohorts", label: "🧮 Cohort-Builder" },
+      { href: "/admin/marketing/churn",   label: "📉 Churn-Risiko" },
+      { href: "/admin/banners",           label: "📢 In-App-Banner" },
+      { href: "/admin/events",            label: "🎉 Event-Trigger" },
+      { href: "/admin/broadcasts",        label: "📣 Broadcasts" },
     ],
   },
   {
@@ -46,14 +56,16 @@ const NAV: NavGroup[] = [
       { href: "/admin/seasons",      label: "🗓️ Saisons" },
       { href: "/admin/experiments",  label: "🧪 A/B-Tests" },
       { href: "/admin/artwork",      label: "🎨 Artwork" },
+      { href: "/admin/lights-preview", label: "✨ Lights Preview" },
     ],
   },
   {
     title: "SYSTEM",
     items: [
-      { href: "/admin/flags",  label: "🚩 Feature-Flags" },
-      { href: "/admin/audit",  label: "📋 Audit-Log" },
-      { href: "/admin/system", label: "⚙️ System" },
+      { href: "/admin/flags",    label: "🚩 Feature-Flags" },
+      { href: "/admin/security", label: "🔐 Security Center" },
+      { href: "/admin/audit",    label: "📋 Audit-Log" },
+      { href: "/admin/system",   label: "⚙️ System" },
     ],
   },
 ];
