@@ -13,6 +13,7 @@ import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildPinThemePrompt } from "@/lib/artwork-prompts";
+import { LightTrailPreview } from "@/components/light-trail-preview";
 
 const PRIMARY = "#5ddaf0";
 
@@ -173,13 +174,11 @@ export function LoadoutTrio({
             const lArt = cosmeticArt.light[currentLight.id];
             if (lArt?.video_url) return <video src={lArt.video_url} autoPlay loop muted playsInline style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
             if (lArt?.image_url) return <img src={lArt.image_url} alt={currentLight.name} style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6 }} />;
+            // Animierte Live-Vorschau (Particle-Engine, identisch zur Karte)
             return (
-              <div style={{
-                width: 70, height: currentLight.width,
-                borderRadius: currentLight.width / 2,
-                background: lightGradient, marginTop: 20, marginBottom: 6,
-                boxShadow: `0 0 14px ${currentLight.color}80`,
-              }} />
+              <div style={{ marginTop: 14, marginBottom: 6 }}>
+                <LightTrailPreview lightId={currentLight.id} width={90} height={40} />
+              </div>
             );
           })()}
           <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{currentLight.name}</div>

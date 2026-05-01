@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { RUNNER_LIGHTS } from "@/lib/game-config";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildLightPrompt } from "@/lib/artwork-prompts";
+import { LightTrailPreview } from "@/components/light-trail-preview";
 
 const PRIMARY = "#5ddaf0";
 
@@ -65,6 +66,7 @@ export function LightPickerModal({
               const active = l.id === currentId;
               const art = artMap[l.id];
               const hasArt = !!(art?.image_url || art?.video_url);
+              // gradientCss bleibt für locked-state Fallback (statischer Balken bei Locked)
               const gradientCss = l.gradient.length > 1
                 ? `linear-gradient(90deg, ${l.gradient.join(", ")})`
                 : l.color;
@@ -88,13 +90,16 @@ export function LightPickerModal({
                         <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 80, height: 36, objectFit: "contain" }} />
                       ) : art?.image_url ? (
                         <img src={art.image_url} alt={l.name} style={{ width: 80, height: 36, objectFit: "contain" }} />
+                      ) : unlocked ? (
+                        // Animierte Vorschau via Particle-Engine (identisch zur On-Map-Darstellung)
+                        <LightTrailPreview lightId={l.id} width={80} height={36} />
                       ) : (
+                        // Locked: statischer abgedunkelter Gradient (kein Render-Cost)
                         <div style={{
                           width: 70, height: l.width,
                           borderRadius: l.width / 2,
                           background: gradientCss,
-                          opacity: unlocked ? 1 : 0.3,
-                          boxShadow: unlocked ? `0 0 14px ${l.color}80` : "none",
+                          opacity: 0.3,
                         }} />
                       )}
                     </div>
