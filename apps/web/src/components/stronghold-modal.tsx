@@ -47,6 +47,24 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
   const strongholdArt = useStrongholdArt();
   const art = pickStrongholdArt(strongholdArt, stronghold.level);
 
+  // NPC-Lore für dieses Wegelager laden
+  const [npc, setNpc] = useState<{
+    name: string; archetype: string; emoji: string;
+    intro_line: string; lore: string;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch(`/api/stronghold/npc/${stronghold.id}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { ok?: boolean; name?: string; archetype?: string; emoji?: string; intro_line?: string; lore?: string };
+        if (!cancelled && j.ok && j.name) setNpc({ name: j.name, archetype: j.archetype!, emoji: j.emoji!, intro_line: j.intro_line!, lore: j.lore! });
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [stronghold.id]);
+
   // ESC schließt
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -98,6 +116,21 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
         </div>
 
         <div className="p-4 space-y-4">
+          {/* NPC-Banner — Hektor "Der Kassenwart" sagt: "..." */}
+          {npc && (
+            <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/35 p-3">
+              <div className="flex items-start gap-3">
+                <div className="text-3xl shrink-0" aria-hidden>{npc.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{npc.archetype.toUpperCase()}</div>
+                  <div className="text-sm font-black text-white mt-0.5">{npc.name}</div>
+                  <div className="text-[12px] italic text-[#FFEEAA] mt-1.5 leading-snug">"{npc.intro_line}"</div>
+                  <div className="text-[10px] text-[#a8b4cf] mt-2 leading-snug">{npc.lore}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-xl bg-black/40 border border-white/10 p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-black tracking-widest text-[#a8b4cf]">WEGELAGER-ABWEHR</span>
