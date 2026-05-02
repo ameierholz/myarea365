@@ -67,6 +67,11 @@ export async function computeAndApplyWalkBonuses(
     } catch { /* fail-open */ }
   }
 
+  // Mentor-Bonus: +50 Münzen für Mentee + Mentor wenn Mentee läuft
+  try {
+    await sb.rpc("process_mentor_walk_bonus", { p_mentee_user_id: userId });
+  } catch { /* fail-open */ }
+
   // Personal- und Crew-Boost kombinieren sich NICHT (max, nicht Produkt)
   // Verhindert 2× + 2× = 4× Exploit
   const boostCombined = Math.max(boostMult, crewBoostMult);

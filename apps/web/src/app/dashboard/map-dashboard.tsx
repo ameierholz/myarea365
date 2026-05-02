@@ -14,6 +14,7 @@ import { DiamantPill } from "@/components/diamant-pill";
 import { BerlinCoveragePill } from "@/components/berlin-coverage-pill";
 import { DividendClaimCard } from "@/components/dividend-claim-card";
 import { CrewSynergyCard } from "@/components/crew-synergy-card";
+import { MentorCard } from "@/components/mentor-card";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
@@ -3740,6 +3741,7 @@ function ProfilTab({
       <div style={{ paddingLeft: 20, paddingRight: 20, marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
         <DividendClaimCard />
         <CrewSynergyCard />
+        <MentorCard />
       </div>
 
       <div style={{ paddingLeft: 20, paddingRight: 20 }}>
