@@ -78,6 +78,11 @@ export async function computeAndApplyWalkBonuses(
   const totalMult = happyHourMult * boostCombined;
   const finalXp = Math.round((baseXp + streakBonus) * totalMult);
 
+  // Saison-XP: halbiertes finalXp wandert in Saison-Pass
+  try {
+    await sb.rpc("add_season_xp", { p_user_id: userId, p_amount: Math.round(finalXp / 2) });
+  } catch { /* fail-open */ }
+
   // Echte Zähler aus 3-Ebenen-Modell holen
   const [{ count: segmentCount }, { count: streetCount }, { count: polyCount }] = await Promise.all([
     sb.from("street_segments").select("id", { count: "exact", head: true }).eq("user_id", userId),

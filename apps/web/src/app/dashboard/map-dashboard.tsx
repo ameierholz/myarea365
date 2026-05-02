@@ -15,6 +15,7 @@ import { BerlinCoveragePill } from "@/components/berlin-coverage-pill";
 import { DividendClaimCard } from "@/components/dividend-claim-card";
 import { CrewSynergyCard } from "@/components/crew-synergy-card";
 import { MentorCard } from "@/components/mentor-card";
+import { SeasonPassPill } from "@/components/season-pass-pill";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
@@ -3643,6 +3644,7 @@ function ProfilTab({
             )}
             <DiamantPill />
             <BerlinCoveragePill />
+            <SeasonPassPill />
           </div>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 
