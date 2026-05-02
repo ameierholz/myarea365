@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { BerlinCoverageModal } from "@/components/berlin-coverage-modal";
 
 const ACCENT = "#22D1C3";
@@ -10,6 +11,7 @@ const ACCENT = "#22D1C3";
  * Lauscht auf `ma365:coverage-changed` für Live-Refresh nach Walks.
  */
 export function BerlinCoveragePill() {
+  const t = useTranslations("Motivation");
   const [percent, setPercent] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -40,7 +42,7 @@ export function BerlinCoveragePill() {
     <>
       <button
         onClick={() => setOpen(true)}
-        title="Berlin-Heatmap öffnen"
+        title={t("berlinPillTooltip")}
         style={{
           paddingLeft: 6, paddingRight: 14, paddingTop: 4, paddingBottom: 4,
           borderRadius: 999, border: "none",
@@ -61,7 +63,7 @@ export function BerlinCoveragePill() {
           fontFamily: "var(--font-display-stack)", lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
         }}>
-          Berlin · {display}
+          {t("berlinPillLabel")} · {display}
         </span>
         <span style={{
           position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",

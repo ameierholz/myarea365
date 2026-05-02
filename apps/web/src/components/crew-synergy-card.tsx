@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const ACCENT = "#22D1C3";
 const RED = "#FF6B4A";
@@ -25,11 +26,14 @@ type Synergy = {
   members?: Member[];
 };
 
-function fmtSinceWalk(h: number | null): string {
-  if (h == null) return "noch nie";
-  if (h < 24) return `vor ${Math.round(h)} h`;
-  const d = Math.round(h / 24);
-  return d === 1 ? "vor 1 Tag" : `vor ${d} Tagen`;
+function useFmtSinceWalk() {
+  const t = useTranslations("Motivation");
+  return (h: number | null): string => {
+    if (h == null) return t("synergyNeverWalked");
+    if (h < 24) return t("synergyHoursAgo", { h: Math.round(h) });
+    const d = Math.round(h / 24);
+    return d === 1 ? t("synergyOneDay") : t("synergyDaysAgo", { d });
+  };
 }
 
 /**
@@ -37,6 +41,8 @@ function fmtSinceWalk(h: number | null): string {
  * und namentlich wer 7+ Tage inaktiv ist (sanfter sozialer Druck).
  */
 export function CrewSynergyCard() {
+  const t = useTranslations("Motivation");
+  const fmtSinceWalk = useFmtSinceWalk();
   const [s, setS] = useState<Synergy | null>(null);
 
   useEffect(() => {
@@ -74,16 +80,16 @@ export function CrewSynergyCard() {
           boxShadow: `0 4px 12px ${ACCENT}55, inset 0 1px 0 rgba(255,255,255,0.5)`,
         }}>+{buff}%</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>Crew-Synergie</div>
+          <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>{t("synergyTitle")}</div>
           <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.4, marginTop: 2 }}>
-            <span style={{ color: ACCENT, fontWeight: 700 }}>{s.active_24h}</span> aktiv (24h)
+            <span style={{ color: ACCENT, fontWeight: 700 }}>{t("synergyActive", { n: s.active_24h ?? 0 })}</span>
             {" · "}
-            <span style={{ color: s.idle_7d ? RED : MUTED, fontWeight: 700 }}>{s.idle_7d}</span> inaktiv (7d)
+            <span style={{ color: s.idle_7d ? RED : MUTED, fontWeight: 700 }}>{t("synergyIdle", { n: s.idle_7d ?? 0 })}</span>
             {" · "}
-            <span>{s.total_members} insgesamt</span>
+            <span>{t("synergyTotal", { n: s.total_members ?? 0 })}</span>
           </div>
           <div style={{ color: MUTED, fontSize: 11, marginTop: 3 }}>
-            +1 % XP pro aktivem Mitglied (max +25 %), gilt für die ganze Crew
+            {t("synergyExplain")}
           </div>
         </div>
       </div>

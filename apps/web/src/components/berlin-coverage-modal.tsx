@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 
 const ACCENT = "#22D1C3";
@@ -28,6 +29,7 @@ type GeoJsonFC = {
  * - Liste der nächsten Schritte
  */
 export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("Motivation");
   const [stats, setStats] = useState<Stats | null>(null);
   const [geo, setGeo] = useState<GeoJsonFC | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,14 +140,14 @@ export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: MUTED, fontSize: 11, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase" }}>
-              Berlin-Erkundung
+              {t("berlinTitle")}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
               <div style={{ fontSize: 36, fontWeight: 900, color: TEXT, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
                 {loading ? "…" : `${stats?.percent ?? 0}%`}
               </div>
               <div style={{ color: MUTED, fontSize: 13, fontWeight: 600 }}>
-                {loading ? "" : `${stats?.covered_blocks ?? 0} / ${stats?.total_blocks ?? 0} Kieze`}
+                {loading ? "" : t("berlinKieze", { covered: stats?.covered_blocks ?? 0, total: stats?.total_blocks ?? 0 })}
               </div>
             </div>
           </div>
@@ -166,13 +168,13 @@ export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
             <div style={{
               position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
               color: MUTED, fontSize: 13,
-            }}>Lade Heatmap…</div>
+            }}>{t("berlinHeatmapLoading")}</div>
           )}
         </div>
 
         {/* Milestone-Liste */}
         <div style={{ padding: "12px 18px 18px", overflowY: "auto" }}>
-          <div style={{ color: TEXT, fontSize: 13, fontWeight: 800, marginBottom: 8 }}>Meilensteine</div>
+          <div style={{ color: TEXT, fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{t("berlinMilestones")}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {milestones.map((m) => (
               <span
@@ -190,8 +192,7 @@ export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
           <div style={{ color: MUTED, fontSize: 12, marginTop: 12, lineHeight: 1.55 }}>
-            Jeder Walk durch einen neuen Kiez färbt das Stück deiner Karte ein.
-            Wer schafft 100% Berlin?
+            {t("berlinMilestonesHint")}
           </div>
         </div>
       </div>

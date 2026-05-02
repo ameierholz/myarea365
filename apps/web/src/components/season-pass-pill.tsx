@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { SeasonPassModal } from "@/components/season-pass-modal";
 
 const ACCENT = "#FFD700";
@@ -9,6 +10,7 @@ const ACCENT = "#FFD700";
  * Saison-Pass-Pill: Level + Days-Left. Klick öffnet Saison-Pass-Modal.
  */
 export function SeasonPassPill() {
+  const t = useTranslations("Motivation");
   const [info, setInfo] = useState<{ level: number; days_left: number } | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -32,7 +34,7 @@ export function SeasonPassPill() {
     <>
       <button
         onClick={() => setOpen(true)}
-        title="Saison-Pass öffnen"
+        title={t("seasonOpenTooltip")}
         style={{
           paddingLeft: 6, paddingRight: 14, paddingTop: 4, paddingBottom: 4,
           borderRadius: 999, border: "none",
@@ -53,7 +55,7 @@ export function SeasonPassPill() {
           fontFamily: "var(--font-display-stack)", lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
         }}>
-          Saison · Lv {info?.level ?? "…"}
+          {t("seasonPillLabel")} · {info ? t("seasonLevelShort", { level: info.level }) : "…"}
         </span>
         <span style={{
           position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",

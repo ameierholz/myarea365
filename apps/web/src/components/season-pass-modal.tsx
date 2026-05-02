@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const ACCENT = "#FFD700";
 const PREMIUM = "#A855F7";
@@ -24,6 +25,7 @@ type Status = {
 };
 
 export function SeasonPassModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("Motivation");
   const [s, setS] = useState<Status | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ level, track }),
       });
       const j = await r.json() as { ok?: boolean; label?: string; error?: string };
-      setToast(j.ok ? `🎉 ${j.label}` : (j.error ?? "Fehler"));
+      setToast(j.ok ? `🎉 ${j.label}` : (j.error ?? t("dividendError")));
       if (j.ok) {
         try { window.dispatchEvent(new CustomEvent("ma365:gems-changed")); } catch { /* ignore */ }
         await load();
@@ -61,10 +63,10 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
       const r = await fetch("/api/season/unlock-premium", { method: "POST" });
       const j = await r.json() as { ok?: boolean; error?: string };
       if (j.ok) {
-        setToast("✨ Premium-Pass freigeschaltet!");
+        setToast(t("seasonPremiumUnlocked"));
         try { window.dispatchEvent(new CustomEvent("ma365:gems-changed")); } catch { /* ignore */ }
         await load();
-      } else setToast(j.error === "not_enough_gems" ? "Nicht genug Diamanten (750 nötig)" : (j.error ?? "Fehler"));
+      } else setToast(j.error === "not_enough_gems" ? t("seasonNotEnoughGems") : (j.error ?? t("dividendError")));
       setTimeout(() => setToast(null), 3000);
     } finally { setBusy(null); }
   };
@@ -72,7 +74,7 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
   if (!s?.ok) {
     return (
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: BG, padding: 30, borderRadius: 16, color: MUTED }}>Lade Saison…</div>
+        <div style={{ background: BG, padding: 30, borderRadius: 16, color: MUTED }}>{t("seasonLoading")}</div>
       </div>
     );
   }
@@ -100,13 +102,13 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: ACCENT, fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase" }}>
-              Saison-Pass · {season?.days_left ?? 0} Tage übrig
+              {t("seasonPillLabel")} · {t("seasonDaysLeft", { days: season?.days_left ?? 0 })}
             </div>
             <div style={{ color: TEXT, fontSize: 18, fontWeight: 900, marginTop: 2 }}>{season?.name}</div>
             <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-              Level <span style={{ color: ACCENT, fontWeight: 800 }}>{progress?.level ?? 0}</span> / 30
+              {t("seasonLevel", { level: progress?.level ?? 0 })}
               {" · "}
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>{xpInCurLevel}/1000 Saison-XP</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>{t("seasonXpProgress", { cur: xpInCurLevel, total: 1000 })}</span>
             </div>
             <div style={{ marginTop: 6, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${xpProgressPct}%`, background: `linear-gradient(90deg, ${ACCENT}, ${PREMIUM})`, transition: "width 300ms" }} />
@@ -126,9 +128,9 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
           }}>
             <span style={{ fontSize: 28 }}>✨</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>Premium-Track freischalten</div>
+              <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>{t("seasonPremiumTitle")}</div>
               <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-                Doppelte Belohnungen + exklusive Saison-Trophäe + Banner.
+                {t("seasonPremiumDesc")}
               </div>
             </div>
             <button
@@ -141,7 +143,7 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
                 opacity: busy === "unlock" ? 0.6 : 1, flexShrink: 0,
                 boxShadow: `0 4px 12px ${PREMIUM}66`,
               }}
-            >750 💎</button>
+            >{t("seasonPremiumPrice")}</button>
           </div>
         )}
 
@@ -184,7 +186,7 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
                       onClick={() => claim(r.level, "free")}
                       disabled={busy === `free-${r.level}`}
                       style={{ padding: "3px 8px", borderRadius: 6, border: "none", background: ACCENT, color: BG, fontSize: 10, fontWeight: 900, cursor: "pointer" }}
-                    >{busy === `free-${r.level}` ? "…" : "Hol"}</button>
+                    >{busy === `free-${r.level}` ? "…" : t("seasonClaim")}</button>
                   ) : null}
                 </div>
 
@@ -205,7 +207,7 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
                         onClick={() => claim(r.level, "premium")}
                         disabled={busy === `premium-${r.level}`}
                         style={{ padding: "3px 8px", borderRadius: 6, border: "none", background: PREMIUM, color: "#FFF", fontSize: 10, fontWeight: 900, cursor: "pointer" }}
-                      >{busy === `premium-${r.level}` ? "…" : "Hol"}</button>
+                      >{busy === `premium-${r.level}` ? "…" : t("seasonClaim")}</button>
                     ) : null
                   )}
                 </div>

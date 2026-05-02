@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const ACCENT = "#22D1C3";
 
@@ -49,6 +50,7 @@ function fmtGems(n: number): string {
  * `compact`: kleinere Variante für Map-Quick-Access-Bar.
  */
 export function DiamantPill({ compact = false }: { compact?: boolean }) {
+  const t = useTranslations("Motivation");
   const gems = useGemBalance();
   const display = gems == null ? "…" : fmtGems(gems);
 
@@ -60,7 +62,7 @@ export function DiamantPill({ compact = false }: { compact?: boolean }) {
     return (
       <button
         onClick={onClick}
-        title={gems != null ? `${gems.toLocaleString("de-DE")} Diamanten — Shop öffnen` : "Diamanten"}
+        title={gems != null ? `${gems.toLocaleString("de-DE")} ${t("diamantOpenTooltip")}` : t("diamantOpenTooltip")}
         style={{
           display: "inline-flex", alignItems: "center", gap: 4,
           padding: "4px 8px", borderRadius: 999,
@@ -83,7 +85,7 @@ export function DiamantPill({ compact = false }: { compact?: boolean }) {
   return (
     <button
       onClick={onClick}
-      title={gems != null ? `${gems.toLocaleString("de-DE")} Diamanten — Shop öffnen` : "Diamanten"}
+      title={gems != null ? `${gems.toLocaleString("de-DE")} ${t("diamantOpenTooltip")}` : t("diamantOpenTooltip")}
       style={{
         paddingLeft: 6, paddingRight: 14, paddingTop: 4, paddingBottom: 4,
         borderRadius: 999, border: "none",
@@ -104,7 +106,7 @@ export function DiamantPill({ compact = false }: { compact?: boolean }) {
         fontFamily: "var(--font-display-stack)", lineHeight: 1,
         fontVariantNumeric: "tabular-nums",
       }}>
-        Diamanten · {display}
+        {t("diamantLabel", { amount: display })}
       </span>
       <span style={{
         position: "absolute", top: 0, left: "-50%", width: "50%", height: "100%",

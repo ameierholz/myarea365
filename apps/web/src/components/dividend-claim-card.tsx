@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const ACCENT = "#FFD700";
 const TEXT = "#F0F0F0";
@@ -24,6 +25,7 @@ type Status = {
  * Inaktive sehen die Karte als "Lauf um zu claimen"-Hinweis.
  */
 export function DividendClaimCard() {
+  const t = useTranslations("Motivation");
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -44,12 +46,12 @@ export function DividendClaimCard() {
       const r = await fetch("/api/me/dividend", { method: "POST" });
       const j = await r.json() as { ok?: boolean; claimed_coins?: number; error?: string };
       if (j.ok) {
-        setToast(`+${j.claimed_coins?.toLocaleString("de-DE")} 🪙 kassiert`);
+        setToast(t("dividendClaimed", { coins: (j.claimed_coins ?? 0).toLocaleString("de-DE") }));
         try { window.dispatchEvent(new CustomEvent("ma365:profile-updated")); } catch { /* ignore */ }
         await load();
         setTimeout(() => setToast(null), 3500);
       } else {
-        setToast(j.error ?? "Fehler");
+        setToast(j.error ?? t("dividendError"));
         setTimeout(() => setToast(null), 2500);
       }
     } finally { setBusy(false); }
@@ -82,23 +84,23 @@ export function DividendClaimCard() {
       }}>📡</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: TEXT, fontSize: 14, fontWeight: 800, marginBottom: 2 }}>
-          Repeater-Tagesdividende
+          {t("dividendTitle")}
         </div>
         <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.4 }}>
-          {status.hq_count ?? 0}× HQ · {status.mega_count ?? 0}× Mega · {status.repeater_count ?? 0}× Repeater
+          {t("dividendBreakdown", { hq: status.hq_count ?? 0, mega: status.mega_count ?? 0, repeater: status.repeater_count ?? 0 })}
           {" → "}
           <span style={{ color: ACCENT, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
-            {total.toLocaleString("de-DE")} 🪙/Tag
+            {t("dividendDaily", { coins: total.toLocaleString("de-DE") })}
           </span>
         </div>
         {!status.active_in_24h && (
           <div style={{ color: "#FF6B4A", fontSize: 11, marginTop: 4, fontWeight: 700 }}>
-            Lauf in den letzten 24 h, um zu kassieren
+            {t("dividendNeedWalk")}
           </div>
         )}
         {status.already_claimed && (
           <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>
-            Heute schon kassiert — kommt morgen wieder
+            {t("dividendAlreadyClaimed")}
           </div>
         )}
       </div>
@@ -114,7 +116,7 @@ export function DividendClaimCard() {
             opacity: busy ? 0.6 : 1,
             flexShrink: 0,
           }}
-        >{busy ? "…" : "Kassieren"}</button>
+        >{busy ? "…" : t("dividendClaim")}</button>
       )}
       {toast && (
         <div style={{

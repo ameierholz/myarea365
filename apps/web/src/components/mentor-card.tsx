@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const ACCENT = "#A855F7";
 const TEXT = "#F0F0F0";
@@ -33,6 +34,7 @@ function daysLeft(graduatesAt: string): number {
  * Bietet Adoption via User-ID-Eingabe (vereinfachte v1, später Such-UI).
  */
 export function MentorCard() {
+  const t = useTranslations("Motivation");
   const [s, setS] = useState<MentorStatus | null>(null);
   const [adopting, setAdopting] = useState(false);
   const [menteeId, setMenteeId] = useState("");
@@ -57,7 +59,7 @@ export function MentorCard() {
         body: JSON.stringify({ mentee_user_id: menteeId.trim() }),
       });
       const j = await r.json() as { ok?: boolean; error?: string; message?: string };
-      setToast(j.ok ? "Mentee adoptiert!" : (j.message ?? j.error ?? "Fehler"));
+      setToast(j.ok ? t("mentorAdopted") : (j.message ?? j.error ?? t("dividendError")));
       if (j.ok) { setMenteeId(""); await load(); }
       setTimeout(() => setToast(null), 3500);
     } finally { setAdopting(false); }
@@ -75,7 +77,7 @@ export function MentorCard() {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontSize: 22 }}>🎓</span>
-        <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>Mentor-Programm</div>
+        <div style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>{t("mentorTitle")}</div>
       </div>
 
       {/* Mein Mentor */}
@@ -86,12 +88,12 @@ export function MentorCard() {
           border: "1px solid rgba(168,85,247,0.25)",
         }}>
           <div style={{ color: ACCENT, fontSize: 11, fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
-            DEIN MENTOR
+            {t("mentorYourMentor")}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <span style={{ color: TEXT, fontSize: 14, fontWeight: 800 }}>{s.my_mentor.mentor_name ?? "—"}</span>
             <span style={{ color: MUTED, fontSize: 11 }}>
-              · {s.my_mentor.walks_together} gemeinsame Walks · {daysLeft(s.my_mentor.graduates_at)}d übrig
+              · {t("mentorWalksTogether", { n: s.my_mentor.walks_together })} · {t("mentorDaysLeft", { n: daysLeft(s.my_mentor.graduates_at) })}
             </span>
           </div>
         </div>
@@ -106,13 +108,13 @@ export function MentorCard() {
           display: "flex", flexDirection: "column", gap: 6,
         }}>
           <div style={{ color: ACCENT, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>
-            DEINE MENTEES ({s.my_mentees.length}/3)
+            {t("mentorYourMentees", { n: s.my_mentees!.length })}
           </div>
-          {s.my_mentees.map((m) => (
+          {s.my_mentees!.map((m) => (
             <div key={m.rel_id} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12, flexWrap: "wrap" }}>
               <span style={{ color: TEXT, fontWeight: 800 }}>{m.mentee_name ?? "—"}</span>
               <span style={{ color: MUTED }}>
-                · {m.walks_together} Walks · {m.total_bonus_coins} 🪙 Bonus · {daysLeft(m.graduates_at)}d übrig
+                · {t("mentorWalksTogether", { n: m.walks_together })} · {t("mentorBonus", { coins: m.total_bonus_coins })} · {t("mentorDaysLeft", { n: daysLeft(m.graduates_at) })}
               </span>
             </div>
           ))}
@@ -125,7 +127,7 @@ export function MentorCard() {
           <input
             value={menteeId}
             onChange={(e) => setMenteeId(e.target.value)}
-            placeholder="Mentee User-ID einfügen…"
+            placeholder={t("mentorAdoptPlaceholder")}
             style={{
               flex: 1, minWidth: 0,
               background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.1)",
@@ -141,13 +143,12 @@ export function MentorCard() {
               background: ACCENT, color: "#FFF", fontSize: 12, fontWeight: 800,
               cursor: adopting ? "wait" : "pointer", opacity: adopting ? 0.6 : 1, flexShrink: 0,
             }}
-          >Adoptieren</button>
+          >{t("mentorAdopt")}</button>
         </div>
       )}
 
       <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
-        Pro Walk deines Mentees bekommt ihr beide +50 🪙. Beziehung läuft 30 Tage,
-        danach +500 🪙 für den Mentor.
+        {t("mentorExplain")}
       </div>
 
       {toast && (
