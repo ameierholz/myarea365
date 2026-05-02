@@ -11,7 +11,8 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "vercel-build": "turbo build --filter=web"
+    "vercel-build": "turbo build --filter=web",
+    "i18n:translate": "tsx scripts/translate-i18n.ts"
   },
   "devDependencies": {
     "next": "16.1.6",
