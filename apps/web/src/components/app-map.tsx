@@ -63,6 +63,23 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
     @keyframes basePinShimmer { 0%,100% { transform: translate(-50%,-45%) scale(1); opacity: 0.7; } 50% { transform: translate(-50%,-45%) scale(1.15); opacity: 1; } }
     @keyframes basePinAuraSpin { to { transform: translate(-50%,-45%) rotate(360deg); } }
+    @keyframes basePinAuraSpinReverse { from { transform: translate(-50%,-45%) rotate(360deg); } to { transform: translate(-50%,-45%) rotate(0deg); } }
+    @keyframes basePinTorch {
+      0%,100% { transform: translate(-50%,0) scale(1) rotate(-2deg); opacity: 1; filter: drop-shadow(0 0 6px #FF8C00) drop-shadow(0 0 12px #FF6B4A); }
+      30%     { transform: translate(-50%,0) scale(1.18) rotate(3deg); opacity: 0.85; filter: drop-shadow(0 0 9px #FFD700) drop-shadow(0 0 18px #FF8C00); }
+      55%     { transform: translate(-50%,0) scale(0.92) rotate(-3deg); opacity: 1; filter: drop-shadow(0 0 5px #FF6B4A) drop-shadow(0 0 10px #FF2D78); }
+      78%     { transform: translate(-50%,0) scale(1.08) rotate(2deg); opacity: 0.9; filter: drop-shadow(0 0 8px #FFD700) drop-shadow(0 0 14px #FF8C00); }
+    }
+    @keyframes basePinParticleOrbit {
+      0%   { transform: rotate(0deg) translateX(var(--orbit-r)) rotate(0deg) scale(0.8); opacity: 0.3; }
+      50%  { opacity: 1; transform: rotate(180deg) translateX(var(--orbit-r)) rotate(-180deg) scale(1.2); }
+      100% { transform: rotate(360deg) translateX(var(--orbit-r)) rotate(-360deg) scale(0.8); opacity: 0.3; }
+    }
+    @keyframes basePinSigilPulse {
+      0%,100% { transform: translate(-50%,0) scale(1); opacity: 0.85; filter: drop-shadow(0 0 6px var(--sigil-glow)); }
+      50%     { transform: translate(-50%,0) scale(1.12); opacity: 1; filter: drop-shadow(0 0 14px var(--sigil-glow)); }
+    }
+    @keyframes basePinSigilSpin { to { transform: translate(-50%,0) rotate(360deg); } }
     @keyframes runnerRipple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
     @keyframes runnerBob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
     @keyframes dropPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.5; } }
@@ -629,6 +646,8 @@ interface AppMapProps {
     theme_rarity?: "advanced" | "epic" | "legendary";
     /** Optional: equippiertes Nameplate-Artwork (nur für eigene Bases relevant) */
     nameplate_art?: { image_url: string | null; video_url: string | null } | null;
+    /** Optional: equippierter Base-Ring (Halo/Aura um das Badge) */
+    base_ring_art?: { image_url: string | null; video_url: string | null } | null;
   }>;
   onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }, screenX: number, screenY: number) => void;
   baseThemeArt?: Record<string, { image_url: string | null; video_url: string | null }>;
@@ -3230,6 +3249,7 @@ export function AppMap({
     silEl: HTMLElement | null;
     fullEl: HTMLElement | null;
     nameplate: HTMLElement | null;
+    nameplateWrap: HTMLElement | null;
     levelChip: HTMLElement | null;
   }>>([]);
   const onBasePinTapRef = useRef(onBasePinTap);
@@ -3268,7 +3288,7 @@ export function AppMap({
       const hasSilArt = !!(silArt?.image_url || silArt?.video_url);
       const silhouetteSvg = pin.kind === "crew" ? SVG_CASTLE : SVG_RUNNER;
 
-      const dropShadow = `drop-shadow(0 0 8px ${pin.pin_color}cc) drop-shadow(0 3px 6px rgba(0,0,0,0.55))${pin.is_own ? " drop-shadow(0 0 4px #FFD700)" : ""}`;
+      const dropShadow = `drop-shadow(0 3px 6px rgba(0,0,0,0.55))`;
 
       // ── Stage 1: STAMP — Mini-SVG-Silhouette (oder Mini-Artwork falls vorhanden)
       const stampEl = document.createElement("div");
@@ -3333,83 +3353,184 @@ export function AppMap({
         ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
         : `<div style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(ART_SIZE * 0.83)}px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
-      const auraColors: Record<string, { primary: string; secondary: string; ring: string; speed: string }> = {
-        advanced:  { primary: "#5ddaf0", secondary: "#22D1C3", ring: "rgba(93,218,240,0.35)", speed: "5s" },
-        epic:      { primary: "#a855f7", secondary: "#FF2D78", ring: "rgba(168,85,247,0.5)",  speed: "4s" },
-        legendary: { primary: "#FFD700", secondary: "#FF6B4A", ring: "rgba(255,215,0,0.6)",   speed: "3s" },
+      // ── RARITY-FX-SYSTEM ────────────────────────────────────────────────
+      // 3-Tier-Animation per Theme-Rarity, alles GPU-beschleunigt (transform+opacity).
+      // - advanced:  2 flackernde Fackeln (links+rechts an der Burg)
+      // - epic:      Fackeln + rotierende Aura + sanfter Pulse-Glow
+      // - legendary: Fackeln + 2 gegenrotierende Auras + 6 Orbit-Partikel +
+      //              Pulse-Glow + schwebendes Sigil oben mit Eigenrotation
+      const rarityPalette: Record<string, { primary: string; secondary: string; sigil: string }> = {
+        advanced:  { primary: "#5ddaf0", secondary: "#22D1C3", sigil: "#22D1C3" },
+        epic:      { primary: "#a855f7", secondary: "#FF2D78", sigil: "#FF2D78" },
+        legendary: { primary: "#FFD700", secondary: "#FF6B4A", sigil: "#FFD700" },
       };
-      const aura = pin.theme_rarity ? auraColors[pin.theme_rarity] : null;
-      const auraSize = Math.round(ART_SIZE * 0.7);
-      const auraSizeBig = Math.round(ART_SIZE * 0.78);
-      const auraHtml = aura
-        ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:${auraSize}px;height:${auraSize}px;border-radius:50%;background:radial-gradient(circle, ${aura.ring} 0%, transparent 65%);animation:basePinShimmer ${aura.speed} ease-in-out infinite;pointer-events:none;z-index:0"></div>
-           ${pin.theme_rarity === "legendary" ? `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:${auraSizeBig}px;height:${auraSizeBig}px;border-radius:50%;background:conic-gradient(from 0deg, ${aura.primary}55, transparent 30%, ${aura.secondary}55 60%, transparent 90%, ${aura.primary}55);opacity:0.45;animation:basePinAuraSpin 8s linear infinite;pointer-events:none;z-index:0"></div>` : ""}`
-        : "";
-      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${auraHtml}${visualBase}</div>`;
+      const rar = pin.theme_rarity ? rarityPalette[pin.theme_rarity] : null;
+
+      const torch = (xPct: number) => {
+        // Fackel = SVG-Flame mit CSS-Flicker (drop-shadow als Fire-Glow).
+        const torchW = Math.round(ART_SIZE * 0.07);
+        const torchH = Math.round(ART_SIZE * 0.11);
+        return `<svg viewBox="0 0 24 36" style="position:absolute;left:${xPct}%;top:62%;width:${torchW}px;height:${torchH}px;transform:translate(-50%,0);transform-origin:50% 100%;animation:basePinTorch 0.45s ease-in-out infinite;pointer-events:none;z-index:2;overflow:visible;">
+          <defs>
+            <radialGradient id="flameG-${pin.id}-${xPct}" cx="50%" cy="65%" r="55%">
+              <stop offset="0%" stop-color="#FFF6CC"/>
+              <stop offset="35%" stop-color="#FFD700"/>
+              <stop offset="65%" stop-color="#FF8C00"/>
+              <stop offset="100%" stop-color="#FF2D78" stop-opacity="0.4"/>
+            </radialGradient>
+          </defs>
+          <path d="M12 2 C 7 12, 4 18, 6 26 C 7 32, 10 35, 12 35 C 14 35, 17 32, 18 26 C 20 18, 17 12, 12 2 Z" fill="url(#flameG-${pin.id}-${xPct})"/>
+          <path d="M12 12 C 9.5 18, 8 22, 9.5 27 C 10.5 30, 12 31, 12 31 C 12 31, 13.5 30, 14.5 27 C 16 22, 14.5 18, 12 12 Z" fill="#FFF6CC" opacity="0.85"/>
+        </svg>`;
+      };
+
+      const auraRing = (color: string, secondary: string, sizePct: number, duration: string, reverse = false, opacity = 0.5) => {
+        const size = Math.round(ART_SIZE * sizePct);
+        return `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:${size}px;height:${size}px;border-radius:50%;background:conic-gradient(from 0deg, ${color}55, transparent 22%, ${secondary}66 48%, transparent 72%, ${color}55);animation:basePinAuraSpin${reverse ? "Reverse" : ""} ${duration} linear infinite;pointer-events:none;z-index:0;opacity:${opacity};mix-blend-mode:screen;filter:blur(2px);"></div>`;
+      };
+
+      const glowPulse = (color: string, sizePct: number, speed: string) => {
+        const size = Math.round(ART_SIZE * sizePct);
+        return `<div style="position:absolute;top:50%;left:50%;width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle, ${color}66 0%, transparent 60%);animation:basePinShimmer ${speed} ease-in-out infinite;pointer-events:none;z-index:0;mix-blend-mode:screen;"></div>`;
+      };
+
+      const orbitParticle = (color: string, idx: number, total: number, radiusPct: number) => {
+        const orbitR = Math.round(ART_SIZE * radiusPct);
+        const delay = (idx / total) * 4; // 4s = full cycle, evenly distributed
+        return `<div style="position:absolute;top:50%;left:50%;width:7px;height:7px;border-radius:50%;background:${color};box-shadow:0 0 14px ${color},0 0 24px ${color}99;--orbit-r:${orbitR}px;animation:basePinParticleOrbit 4s linear infinite ${delay}s;pointer-events:none;z-index:1;margin-left:-3.5px;margin-top:-3.5px;"></div>`;
+      };
+
+      const sigilStar = (color: string) => {
+        // Schwebendes Stern-Sigil über der Burg, langsam rotierend + Pulse-Glow.
+        const sigilSize = Math.round(ART_SIZE * 0.14);
+        return `<div style="position:absolute;left:50%;top:-${Math.round(sigilSize * 0.3)}px;transform:translate(-50%,0);width:${sigilSize}px;height:${sigilSize}px;pointer-events:none;z-index:3;--sigil-glow:${color};animation:basePinSigilPulse 2.5s ease-in-out infinite;">
+          <div style="width:100%;height:100%;animation:basePinSigilSpin 14s linear infinite;transform-origin:50% 50%;">
+            <svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block;">
+              <defs>
+                <radialGradient id="sigilCore-${pin.id}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="60%" stop-color="${color}"/><stop offset="100%" stop-color="${color}" stop-opacity="0.4"/></radialGradient>
+              </defs>
+              <polygon points="50,5 58,42 95,50 58,58 50,95 42,58 5,50 42,42" fill="url(#sigilCore-${pin.id})" stroke="${color}" stroke-width="2"/>
+              <circle cx="50" cy="50" r="14" fill="${color}" opacity="0.6"/>
+              <circle cx="50" cy="50" r="6" fill="#FFFFFF"/>
+            </svg>
+          </div>
+        </div>`;
+      };
+
+      let fxLayer = "";
+      if (rar) {
+        if (pin.theme_rarity === "advanced") {
+          fxLayer = torch(28) + torch(72);
+        } else if (pin.theme_rarity === "epic") {
+          fxLayer = auraRing(rar.primary, rar.secondary, 0.85, "12s", false, 0.55) +
+                    glowPulse(rar.primary, 0.7, "4s") +
+                    torch(28) + torch(72);
+        } else if (pin.theme_rarity === "legendary") {
+          const particles = Array.from({ length: 6 }, (_, i) => orbitParticle(rar.primary, i, 6, 0.42)).join("");
+          fxLayer = auraRing(rar.primary, rar.secondary, 1.0, "18s", true, 0.6) +
+                    auraRing(rar.secondary, rar.primary, 0.85, "12s", false, 0.55) +
+                    glowPulse(rar.primary, 0.75, "3s") +
+                    particles +
+                    torch(26) + torch(74) +
+                    sigilStar(rar.sigil);
+        }
+      }
+      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${fxLayer}${visualBase}</div>`;
+
+      // ── PROPORTIONS (relativ zu ART_SIZE = 300px) ───────────────────────
+      // Banner 200px (~67% des Castle, schlank unter dem Castle)
+      // Banner-Höhe 4:1 Aspect = 50px
+      // Runner-Badge 84px (~28% des Castle) — sitzt halb über Castle-Base
+      const BANNER_W = 200;
+      const BANNER_H = Math.round(BANNER_W / 4); // = 50px
+      const TEXT_ZONE_W = Math.round(BANNER_W * 0.58); // = 116px
+      const MIN_SCALE = 0.78;
+      const RUNNER_BADGE_SIZE = 84;
+      const BADGE_LIFT = Math.round(RUNNER_BADGE_SIZE / 2 + 32); // = 74
 
       const npArt = pin.nameplate_art;
-      // Wrapper-Pattern: SVG-Filter auf <div> statt direkt auf <video> verhindert Flicker
-      // (Chrome rendert SVG-Filter auf Video sonst pro Frame neu → sichtbares Flackern).
-      // Will-change + translateZ(0) erzwingen einen eigenen Compositor-Layer.
-      const npWrapStyle = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) translateZ(0);width:170%;height:28px;max-width:200px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0;will-change:transform;isolation:isolate;";
-      const npInnerStyle = "width:100%;height:100%;object-fit:cover;object-position:center;display:block;";
-      // Video bevorzugen wenn vorhanden (Animation > statisches Bild)
-      const npLayer = npArt?.video_url
-        ? `<div style="${npWrapStyle}"><video src="${npArt.video_url}" autoplay loop muted playsinline style="${npInnerStyle}"></video></div>`
-        : npArt?.image_url
+      // Banner-Artwork ist 4:1 wide. NUR IMAGE auf der Map — MP4 würde bei vielen
+      // sichtbaren Spielern Performance killen (jeder Pin = 1 Video-Decode-Thread).
+      const npWrapStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${BANNER_W}px;height:${BANNER_H}px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0;`;
+      const npInnerStyle = `width:100%;height:100%;object-fit:contain;object-position:center;display:block;`;
+      const npLayer = npArt?.image_url
         ? `<div style="${npWrapStyle}"><img src="${npArt.image_url}" alt="" style="${npInnerStyle}" /></div>`
         : "";
 
-      const lvColor = aura?.primary ?? pin.pin_color;
-      const lvSecondary = aura?.secondary ?? pin.pin_color;
+      const lvColor = rar?.primary ?? pin.pin_color;
+      const lvSecondary = rar?.secondary ?? pin.pin_color;
       // Runner-Marker-Icon über LV-Badge (nur eigene Runner-Base) — wenn der
       // Runner zu Hause ist, sitzt sein Map-Icon hier auf der Base.
       const showRunnerOnBase = pin.is_own && pin.kind === "runner";
-      const RUNNER_BADGE_SIZE = 64;
+      // Base-Ring (Halo/Aura um das Badge) — sitzt hinter dem Badge, etwas größer.
+      // Ring-Artwork wird mit chroma-Filter eingefärbt (greenscreen → transparent).
+      const ringArt = pin.base_ring_art;
+      const RING_SIZE = Math.round(RUNNER_BADGE_SIZE * 1.6); // = 134px
+      // Artwork hat oft viel Greenscreen-Padding — Scale-Up vergrößert das sichtbare Ring-Motiv.
+      const RING_SCALE = 1.5;
+      const ringStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(${RING_SCALE});width:${RING_SIZE}px;height:${RING_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) drop-shadow(0 0 8px ${pin.pin_color}77);pointer-events:none;z-index:1;`;
+      const ringHtml = (showRunnerOnBase && (ringArt?.image_url || ringArt?.video_url))
+        ? (ringArt.video_url
+            ? `<video src="${ringArt.video_url}" autoplay loop muted playsinline style="${ringStyle}"></video>`
+            : `<img src="${ringArt.image_url}" alt="" style="${ringStyle}" />`)
+        : "";
       const runnerBadge = showRunnerOnBase
         ? `<div style="
-              position:relative;z-index:3;margin-top:-65px;
+              position:relative;z-index:3;margin-top:-${BADGE_LIFT}px;
               width:${RUNNER_BADGE_SIZE}px;height:${RUNNER_BADGE_SIZE}px;border-radius:50%;
               display:flex;align-items:center;justify-content:center;
               background:radial-gradient(circle at 35% 30%, ${pin.pin_color}, rgba(15,17,21,0.92));
-              border:3px solid rgba(255,255,255,0.95);
-              box-shadow:0 0 18px ${pin.pin_color}cc, 0 4px 10px rgba(0,0,0,0.65);
-            ">${
+              border:4px solid rgba(255,255,255,0.95);
+              box-shadow:0 0 22px ${pin.pin_color}cc, 0 4px 12px rgba(0,0,0,0.65);
+            ">${ringHtml}${
               markerArt?.video_url
-                ? `<video src="${markerArt.video_url}" autoplay loop muted playsinline style="width:${RUNNER_BADGE_SIZE - 14}px;height:${RUNNER_BADGE_SIZE - 14}px;object-fit:contain;"></video>`
+                ? `<video src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;z-index:2;width:${RUNNER_BADGE_SIZE - 18}px;height:${RUNNER_BADGE_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);"></video>`
                 : markerArt?.image_url
-                  ? `<img src="${markerArt.image_url}" alt="" style="width:${RUNNER_BADGE_SIZE - 14}px;height:${RUNNER_BADGE_SIZE - 14}px;object-fit:contain;" />`
-                  : `<span style="font-size:${RUNNER_BADGE_SIZE - 30}px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));">${myEmoji}</span>`
+                  ? `<img src="${markerArt.image_url}" alt="" style="position:relative;z-index:2;width:${RUNNER_BADGE_SIZE - 18}px;height:${RUNNER_BADGE_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);" />`
+                  : `<span style="position:relative;z-index:2;font-size:${RUNNER_BADGE_SIZE - 38}px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));">${myEmoji}</span>`
             }</div>`
         : "";
       // Display-Name auf Runner-Pin: owner_username (echter Name) bevorzugt vor pin_label (z.B. "Homebase").
-      // Volle Länge (max 15 Zeichen) wird angezeigt — keine Truncation.
       const rawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;
       const displayLabel = rawLabel;
-      // Auto-Fit für Display-Name + optionalem Crew-Tag: Container hat feste Banner-Breite,
-      // Text wird via scaleX gestaucht wenn er nicht passt (statt überlaufen).
-      // Geschätzte Char-Breite: 6.2px bei font-size 10px; passt ~28 Zeichen in 180px hinein.
-      const labelText = (pin.kind === "crew" ? "⚔️ " : "@") + displayLabel + (pin.crew_tag ? ` [${pin.crew_tag}]` : "");
-      const estTextWidth = labelText.length * 6.2;
-      const NAMEPLATE_MAX_W = 180;
-      const fitScale = estTextWidth > NAMEPLATE_MAX_W ? NAMEPLATE_MAX_W / estTextWidth : 1;
+      const namePrefix = pin.kind === "crew" ? "⚔️ " : "@";
+      const fullText = namePrefix + displayLabel + (pin.crew_tag ? ` [${pin.crew_tag}]` : "");
+      // EXAKT messen statt schätzen: Canvas measureText mit gleicher Font wie Render.
+      // Bold 11px font ist breiter als normale → Schätzung war chronisch zu klein.
+      const measureCtx = (window as unknown as { __ma365NameMeasure?: CanvasRenderingContext2D }).__ma365NameMeasure
+        ?? (() => {
+          const c = document.createElement("canvas").getContext("2d");
+          if (c) {
+            c.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif";
+            (window as unknown as { __ma365NameMeasure?: CanvasRenderingContext2D }).__ma365NameMeasure = c;
+          }
+          return c;
+        })();
+      const exactTextWidth = measureCtx ? Math.ceil(measureCtx.measureText(fullText).width) : fullText.length * 7;
+      // Kein Floor mehr — Text muss in die Zone passen, fertig.
+      const fitScale = exactTextWidth > TEXT_ZONE_W ? TEXT_ZONE_W / exactTextWidth : 1;
+      void MIN_SCALE; // nicht mehr verwendet — keep für eventual debug
+      const crewTagHtml = pin.crew_tag
+        ? ` <span style="color:${pin.pin_color};font-weight:900;">[${escapeHtml(pin.crew_tag)}]</span>`
+        : "";
       inner.innerHTML = `
         ${visualHtml}
         ${runnerBadge}
-        <div style="position:relative;display:flex;align-items:center;justify-content:center;height:24px;width:${NAMEPLATE_MAX_W + 20}px;margin-top:${showRunnerOnBase ? "4px" : "-8px"}">
+        <div data-nameplate-wrap style="position:relative;display:flex;align-items:center;justify-content:center;height:${BANNER_H}px;width:${BANNER_W}px;margin-top:${showRunnerOnBase ? "-12px" : "-8px"};transform-origin:center top;">
           ${npLayer}
           <div data-nameplate style="
             position:relative;z-index:1;transform-origin:center center;
-            padding:1px 6px;border-radius:4px;
-            background:rgba(0,0,0,0.12);color:#fff;
-            font-size:10px;font-weight:800;letter-spacing:0.5px;
+            padding:1px 4px;
+            color:#fff;
+            font-size:11px;font-weight:900;letter-spacing:0.3px;
             white-space:nowrap;
             line-height:1.2;
-            text-shadow:0 1px 2px rgba(0,0,0,0.85);
+            text-align:center;
+            text-shadow:0 1px 0 #000, 0 0 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7);
             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
-            max-width:${NAMEPLATE_MAX_W}px;
+            width:${TEXT_ZONE_W}px;
             transform:${fitScale < 1 ? `scaleX(${fitScale.toFixed(3)})` : "none"};
-          ">${pin.kind === "crew" ? "⚔️ " : "@"}${escapeHtml(displayLabel)}${pin.crew_tag ? ` <span style="color:${pin.pin_color};">[${escapeHtml(pin.crew_tag)}]</span>` : ""}</div>
+          ">${namePrefix}${escapeHtml(displayLabel)}${crewTagHtml}</div>
         </div>
         <div data-levelchip style="
           padding:2px 9px;border-radius:999px;transform-origin:center top;
@@ -3419,7 +3540,7 @@ export function AppMap({
           box-shadow:0 0 8px ${lvColor}aa, inset 0 1px 0 rgba(255,255,255,0.35);
           text-shadow:0 1px 0 rgba(255,255,255,0.25);
           line-height:1.1;
-          margin-top:3px;position:relative;z-index:2;
+          margin-top:-8px;position:relative;z-index:2;
           font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
         ">${pin.level}</div>
       `;
@@ -3451,6 +3572,7 @@ export function AppMap({
         silEl: cachedSil,
         fullEl: cachedFull,
         nameplate: (cachedFull?.querySelector("[data-nameplate]") as HTMLElement | null) ?? null,
+        nameplateWrap: (cachedFull?.querySelector("[data-nameplate-wrap]") as HTMLElement | null) ?? null,
         levelChip: (cachedFull?.querySelector("[data-levelchip]") as HTMLElement | null) ?? null,
       });
     });
@@ -3490,7 +3612,8 @@ export function AppMap({
       const invStr = `scale(${inv})`;
 
       basePinMarkersRef.current.forEach((m) => {
-        const { el, stampEl, silEl, fullEl, nameplate, levelChip } = m;
+        const { el, stampEl, silEl, fullEl, nameplate: _nameplate, nameplateWrap, levelChip } = m;
+        void _nameplate;
         if (!stampEl || !silEl || !fullEl) return;
         if (stageChanged) {
           if (stage === "hidden") {
@@ -3509,10 +3632,14 @@ export function AppMap({
         }
         if (stage === "full" && (scaleChanged || stageChanged)) {
           fullEl.style.transform = transformStr;
-          // Nameplate + Level-Chip skalieren MIT dem Base (kein invStr mehr) —
-          // sonst wirken Text+Chip beim Rauszoomen monströs groß auf der kleinen Base.
-          if (nameplate) nameplate.style.transform = "";
-          if (levelChip) levelChip.style.transform = "";
+          // Label-Cluster (Nameplate-Wrap + Level-Chip): gedämpfter Inverse-Scale
+          // (1/s)^0.6 → kompensiert nur 60% der Basis-Schrumpfung. Bei s=1 keine
+          // Änderung, bei s=0.55 → faktor 1.43 (lesbar), nicht 1.82 (riesig).
+          // Wrap (Banner+Text als Einheit) bekommt den Scale, sonst poppt Text aus dem Banner.
+          const labelScale = Math.pow(1 / s, 0.6);
+          const labelStr = `scale(${labelScale.toFixed(3)})`;
+          if (nameplateWrap) nameplateWrap.style.transform = labelStr;
+          if (levelChip) levelChip.style.transform = labelStr;
         }
       });
     };

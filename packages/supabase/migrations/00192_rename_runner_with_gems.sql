@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════════════════
--- Runner-Anzeigename ändern: kostet 500 Edelsteine + Eindeutigkeitsprüfung
+-- Runner-Anzeigename ändern: kostet 500 Diamanten + Eindeutigkeitsprüfung
 -- (case-insensitive, ignoriert eigenen aktuellen Namen).
 --
 -- Free für den allerersten Set (display_name war bisher null/leer).
@@ -72,7 +72,7 @@ begin
     end if;
     if v_gems < v_cost then
       return jsonb_build_object('ok', false, 'error', 'insufficient_gems',
-        'message', format('Du brauchst %s Edelsteine (du hast %s)', v_cost, v_gems),
+        'message', format('Du brauchst %s Diamanten (du hast %s)', v_cost, v_gems),
         'cost', v_cost, 'have', v_gems);
     end if;
     update public.user_gems

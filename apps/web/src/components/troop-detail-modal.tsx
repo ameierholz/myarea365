@@ -87,7 +87,7 @@ export function TroopDetailModal({
         await onTrained();
         if (instant) setMsg(`✓ ${safeCount}× ${troop!.name} sofort trainiert (-${j.gem_cost} 💎)`);
         else setMsg(`✓ ${safeCount}× ${troop!.name} im Training (${fmtTime(j.training_seconds ?? j.seconds ?? totalSeconds)})`);
-      } else if (j.error === "not_enough_gems") setMsg(`💎 Nicht genug Edelsteine.`);
+      } else if (j.error === "not_enough_gems") setMsg(`💎 Nicht genug Diamanten.`);
       else if (j.error === "tier_locked") setMsg("Tier noch nicht erforscht — siehe Forschung-Tab.");
       else if (j.error === "building_required") setMsg("Trainings-Gebäude fehlt.");
       else if (j.error === "building_level_too_low") setMsg("Trainings-Gebäude zu niedrig.");

@@ -47,7 +47,7 @@ export default function AgbPage() {
             <li><b className="text-text">Unternehmer:</b> Person, die zu gewerblichen Zwecken handelt (§ 14 BGB)</li>
             <li><b className="text-text">Partner-Shop:</b> Geschäft, das Deals auf der Plattform anbietet</li>
             <li><b className="text-text">Inhalt:</b> alle vom Nutzer hochgeladenen oder erstellten Daten (Texte, Bilder, Chat-Nachrichten)</li>
-            <li><b className="text-text">Virtuelle Güter:</b> Wegemünzen, Edelsteine, Materialien, Items, Wächter, Siegel, Boost-Items, Cosmetics — siehe § 8</li>
+            <li><b className="text-text">Virtuelle Güter:</b> Wegemünzen, Diamanten, Materialien, Items, Wächter, Siegel, Boost-Items, Cosmetics — siehe § 8</li>
             <li><b className="text-text">Saison / Liga:</b> zeitlich begrenzter Spielabschnitt mit eigenen Ranglisten und Belohnungen</li>
             <li><b className="text-text">Fraktion / Klasse / Rolle:</b> Gruppierungen innerhalb des Spiels mit eigenen mechanischen Boni</li>
             <li><b className="text-text">Crew:</b> Gruppe von Runnern, die gemeinsam Gebiete erobern und an Wettbewerben teilnehmen</li>
@@ -122,7 +122,7 @@ export default function AgbPage() {
         <Section num="7" title="Kostenpflichtige Zusatzleistungen und Abonnements">
           <SubSection title="7.1 Einmalige Käufe">
             <p className="text-sm">
-              Wir bieten kostenpflichtige Einmal-Käufe an, insbesondere Edelstein-Pakete, Materialien-Pakete,
+              Wir bieten kostenpflichtige Einmal-Käufe an, insbesondere Diamant-Pakete, Materialien-Pakete,
               Streak-Freeze-Items, Kiez-Shouts, Cosmetics (Skins, Pin-Themes, Marker) sowie zeitlich begrenzte Boost-Items.
               Preise werden brutto inklusive gesetzlicher Umsatzsteuer angezeigt (§ 1 PAngV). Mit Klick auf &bdquo;Kaufen&ldquo;
               gibst du ein verbindliches Angebot ab; der Vertrag kommt mit Bestätigung durch uns oder mit dem Beginn der
@@ -183,7 +183,7 @@ export default function AgbPage() {
 
         <Section num="8" title="Virtuelle Güter und virtuelle Währungen">
           <p className="text-sm">
-            Wegemünzen, Edelsteine, Materialien (Schrott/Kristall/Essenz/Relikt-Splitter), Wächter, Items, Siegel, Wertung,
+            Wegemünzen, Diamanten, Materialien (Schrott/Kristall/Essenz/Relikt-Splitter), Wächter, Items, Siegel, Wertung,
             Achievements, Cosmetics und sonstige virtuelle Güter sind ausschließlich zur Nutzung innerhalb des Dienstes
             bestimmt.
           </p>
@@ -204,7 +204,7 @@ export default function AgbPage() {
           <p className="text-sm mt-2">
             <b className="text-text">Einstellung des Dienstes:</b> Sollten wir den Dienst dauerhaft einstellen, informieren
             wir dich mindestens 3 Monate vorher. Innerhalb dieses Zeitraums behalten bezahlte Abonnements ihre Funktion bis
-            zum bezahlten Ende. Für bereits gekaufte Einmal-Käufe (z.&nbsp;B. Edelstein-Pakete), die nicht vollständig
+            zum bezahlten Ende. Für bereits gekaufte Einmal-Käufe (z.&nbsp;B. Diamant-Pakete), die nicht vollständig
             verbraucht wurden, bieten wir eine anteilige Kulanz-Gutschrift oder Rückerstattung auf Basis der ursprünglichen
             Verweildauer an, soweit dies wirtschaftlich zumutbar ist.
           </p>
@@ -480,7 +480,7 @@ export default function AgbPage() {
         <Section num="19" title="Arena-Kämpfe, Ranked-Modus und Saison-System">
           <p className="text-sm">
             Arena-Kämpfe sind virtuelle 1-vs-1-Gefechte zwischen Wächtern verschiedener Runner. Pro Tag stehen dir eine
-            begrenzte Anzahl Gratis-Kämpfe zur Verfügung, darüber hinausgehende Kämpfe können mit Edelsteinen freigeschaltet
+            begrenzte Anzahl Gratis-Kämpfe zur Verfügung, darüber hinausgehende Kämpfe können mit Diamantenn freigeschaltet
             werden. Die genauen Parameter (Anzahl, Kosten) können wir aus Balance-Gründen anpassen.
           </p>
           <p className="text-sm mt-2">

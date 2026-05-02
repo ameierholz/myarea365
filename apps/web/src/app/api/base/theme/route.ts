@@ -18,7 +18,7 @@ export async function GET() {
 
   return NextResponse.json({
     themes: themes.data ?? [],
-    active_theme_id: (base.data as { theme_id: string } | null)?.theme_id ?? "medieval",
+    active_theme_id: (base.data as { theme_id: string } | null)?.theme_id ?? "plattenbau",
     vip_level: (vip.data as { vip_level: number } | null)?.vip_level ?? 0,
   });
 }

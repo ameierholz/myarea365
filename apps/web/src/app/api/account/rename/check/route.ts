@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/account/rename/check?name=Foo
  * Liefert ob der gewünschte Anzeigename frei ist (case-insensitive),
- * ohne tatsächlich zu ändern oder Edelsteine abzubuchen.
+ * ohne tatsächlich zu ändern oder Diamanten abzubuchen.
  *
  * → { ok, available: boolean, valid: boolean, reason?: string }
  */

@@ -10,6 +10,7 @@ import { claimIntensity } from "@/lib/claim-intensity";
 import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
+import { DiamantPill } from "@/components/diamant-pill";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
@@ -57,7 +58,7 @@ const ShopDealsModal = _IS_PROD ? dynamic(() => import("@/components/shop-deals-
 const DealsShopModal = _IS_PROD ? dynamic(() => import("@/components/deals-shop-modal").then(m => m.DealsShopModal)) : DealsShopModalDirect;
 import { ShopDealsContent } from "@/components/shop-deals-content";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
-import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useMarkerArt, useUiIconArt, UiIcon, useArtworkReady } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useBaseRingArt, useMarkerArt, useUiIconArt, UiIcon, useArtworkReady } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
 import { RunnerActivityCards } from "@/components/runner-activity-cards";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
@@ -1231,7 +1232,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [viewingShop, setViewingShop] = useState<string | null>(null);
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null };
+  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null; base_ring_id?: string | null; base_ring_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [shopsModalOpen, setShopsModalOpen] = useState(false);
@@ -1344,6 +1345,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const dashboardUiIconArt = useUiIconArt();
   const dashboardMarkerArt = useMarkerArt();
   const nameplateArt = useNameplateArt();
+  const baseRingArt = useBaseRingArt();
   const artworkReady = useArtworkReady();
   const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
     try {
@@ -1539,12 +1541,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
       const r = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
       if (!r.ok || cancelled) return;
-      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }> };
+      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean; base_ring_id?: string | null }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }> };
       const merged: BasePin[] = [];
       const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
       (j.runner ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, owner_username: b.owner_username, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, ...t });
+        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, owner_username: b.owner_username, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, base_ring_id: b.base_ring_id, ...t });
       });
       (j.crew ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
@@ -1956,18 +1958,23 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 setSupplyDropModal({ dropId: id, phase: "asking" });
               }}
               basePins={!artworkReady ? [] : basePins.map((b) => {
-                // Theme-Rarity-Lookup (Seed-IDs aus Migration 00116) für Aura-Effekt
+                // Theme-Rarity-Lookup (Migration 00209: Urban-Berlin-Themes) für FX-Layer
                 const themeRarity: Record<string, "advanced" | "epic" | "legendary"> = {
-                  medieval: "advanced",
-                  scifi: "epic", pirate: "epic", viking: "epic", halloween: "epic",
-                  scarlet_palace: "epic", hall_of_order: "epic", frost_keep: "epic",
-                  ninja: "legendary", eternal_garden: "legendary", night_rose: "legendary", volcanic_forge: "legendary",
+                  // common (plattenbau, altbau_hof) bekommen keinen FX-Layer → bewusst nicht im Mapping
+                  spaeti: "advanced", hinterhof: "advanced", werkstatt: "advanced", container_camp: "advanced",
+                  ubahn: "epic", graffiti_tower: "epic", techno_club: "epic", penthouse: "epic",
+                  dachterrasse: "legendary", wagenburg: "legendary",
+                  // Saisonale & Spezial-Themes behalten
+                  halloween: "epic", frost_keep: "epic", night_rose: "legendary",
                 };
                 const rar = b.theme_id ? themeRarity[b.theme_id] : undefined;
-                if (!b.is_own) return { ...b, theme_rarity: rar };
+                const ringArt = b.base_ring_id
+                  ? (baseRingArt[b.base_ring_id] ?? null)
+                  : null;
+                if (!b.is_own) return { ...b, theme_rarity: rar, base_ring_art: ringArt };
                 const npId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id;
                 const np = npId ? (nameplateArt[npId] ?? null) : null;
-                return { ...b, theme_rarity: rar, nameplate_art: np };
+                return { ...b, theme_rarity: rar, nameplate_art: np, base_ring_art: ringArt };
               })}
               baseThemeArt={dashboardBaseThemeArt}
               uiIconArt={dashboardUiIconArt}
@@ -3628,6 +3635,7 @@ function ProfilTab({
                 }} />
               </div>
             )}
+            <DiamantPill />
           </div>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 

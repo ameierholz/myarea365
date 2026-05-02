@@ -197,7 +197,7 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     return;
   }
   if (sku.startsWith("gems_")) {
-    // Edelstein-Kauf — Basis + Bonus anschreiben
+    // Diamant-Kauf — Basis + Bonus anschreiben
     const { findGemBundle, totalGemsOfBundle } = await import("@/lib/gem-bundles");
     const bundle = findGemBundle(sku);
     if (bundle) {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  *
  * Ruft `rename_runner_with_gems` (security definer) auf:
  *  - Erstes Setzen ist gratis.
- *  - Jede weitere Änderung kostet 500 Edelsteine.
+ *  - Jede weitere Änderung kostet 500 Diamanten.
  *  - Eindeutigkeit (case-insensitive) gegen display_name + username wird in DB geprüft.
  */
 export async function POST(req: Request) {

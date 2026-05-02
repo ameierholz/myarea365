@@ -144,7 +144,11 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
         body: JSON.stringify({ action: "purchase", item_id: itemId }),
       });
       const json = await res.json() as { ok?: boolean; error?: string; have?: number; need?: number };
-      if (json.ok) { setToast(tGS("purchaseSuccess")); await load(); }
+      if (json.ok) {
+        setToast(tGS("purchaseSuccess"));
+        try { window.dispatchEvent(new CustomEvent("ma365:gems-changed")); } catch { /* ignore */ }
+        await load();
+      }
       else setToast(json.error === "not_enough_gems" ? tGS("notEnoughGems", { have: json.have ?? 0, need: json.need ?? 0 }) : (json.error ?? tGS("purchaseFailed")));
     } finally {
       setBusy(null);
@@ -159,7 +163,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
           sku: b.sku,
-          name: `${totalGemsOfBundle(b)} Edelsteine`,
+          name: `${totalGemsOfBundle(b)} Diamanten`,
           amount_cents: b.price_cents,
         }),
       });
@@ -262,7 +266,7 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
         {/* Kategorien */}
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 14px" }}>
 
-          {/* 💎 EDELSTEINE KAUFEN */}
+          {/* 💎 Diamanten KAUFEN */}
           {gemTab === "home" && (
           <section style={{ marginBottom: 16 }}>
             <details style={{ marginBottom: 10 }}>

@@ -121,6 +121,18 @@ export function useNameplateArt(): ResourceArtMap {
   return art;
 }
 
+export function useBaseRingArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_cache?.base_ring ?? {});
+  useEffect(() => {
+    if (_cache) { setArt(_cache.base_ring); return; }
+    const sub = (m: AllArt) => setArt(m.base_ring);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
 export function useResourceNodeArt(): ResourceArtMap {
   const [art, setArt] = useState<ResourceArtMap>(_cache?.resource_node ?? {});
   useEffect(() => {

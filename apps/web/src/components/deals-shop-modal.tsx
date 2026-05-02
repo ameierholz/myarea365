@@ -42,7 +42,7 @@ const TABS: { id: TabId; icon: string; label: string }[] = [
   { id: "seasonal",   icon: "🥚", label: "Saison-Pack" },
   { id: "thresholds", icon: "🏆", label: "Schwellen" },
   { id: "themed",     icon: "📦", label: "Themen-Pakete" },
-  { id: "gems",       icon: "💎", label: "Edelsteine" },
+  { id: "gems",       icon: "💎", label: "Diamanten" },
   { id: "daily",      icon: "🔥", label: "Tagesangebote" },
   { id: "battlepass", icon: "📜", label: "Battle Pass" },
   { id: "subs",       icon: "🎒", label: "Monats-Abos" },
@@ -180,10 +180,10 @@ function ThresholdsView({ thresholds, progress }: { thresholds: Threshold[]; pro
     <div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ color: GOLD, fontWeight: 900, fontSize: 18, fontFamily: "var(--font-display-stack)", letterSpacing: 0.6 }}>
-          KAUFE EDELSTEINE — SCHALTE BELOHNUNGEN FREI
+          KAUFE Diamanten — SCHALTE BELOHNUNGEN FREI
         </div>
         <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 4 }}>
-          Diese Woche bereits gekauft: <strong style={{ color: "#fff" }}>{formatNum(purchased)}</strong> Edelsteine
+          Diese Woche bereits gekauft: <strong style={{ color: "#fff" }}>{formatNum(purchased)}</strong> Diamanten
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
@@ -512,7 +512,7 @@ function SubsView({ subs, active, onCheckout, busy }: { subs: Subscription[]; ac
             <div style={{ color: GOLD, fontWeight: 900, fontSize: 18, fontFamily: "var(--font-display-stack)", letterSpacing: 0.5 }}>{s.title}</div>
             <div style={{ color: "#a8b4cf", fontSize: 12, marginTop: 6, lineHeight: 1.4 }}>{s.description}</div>
             <div style={{ marginTop: 10, fontSize: 11, color: "#a8b4cf" }}>
-              <strong style={{ color: GOLD }}>{formatNum(s.daily_gems)}</strong> Edelsteine täglich
+              <strong style={{ color: GOLD }}>{formatNum(s.daily_gems)}</strong> Diamanten täglich
             </div>
             {isActive && active && (
               <div style={{ color: "#4ade80", fontSize: 11, fontWeight: 700, marginTop: 8 }}>
@@ -555,7 +555,7 @@ function HeroCard({ hero, gradient, title, subtitle, description, price, ctaLabe
         {description && <div style={{ color: "#a8b4cf", fontSize: 13, marginBottom: 12, lineHeight: 1.4 }}>{description}</div>}
         {bonusGems !== undefined && bonusGems > 0 && (
           <div style={{ color: GOLD, fontWeight: 900, fontSize: 14, marginBottom: 8 }}>
-            💎 +{formatNum(bonusGems)} Edelsteine
+            💎 +{formatNum(bonusGems)} Diamanten
           </div>
         )}
         <RewardList rewards={rewards} />
@@ -584,7 +584,7 @@ function PackCard({ title, description, price, disabled, ctaLabel, onCta, bonusG
       <div style={{ color: themeColor, fontWeight: 900, fontSize: 18, fontFamily: "var(--font-display-stack)", letterSpacing: 0.6 }}>{title}</div>
       {description && <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 4, lineHeight: 1.3 }}>{description}</div>}
       {bonusGems !== undefined && bonusGems > 0 && (
-        <div style={{ color: GOLD, fontWeight: 900, fontSize: 13, marginTop: 8 }}>💎 +{formatNum(bonusGems)} Edelsteine</div>
+        <div style={{ color: GOLD, fontWeight: 900, fontSize: 13, marginTop: 8 }}>💎 +{formatNum(bonusGems)} Diamanten</div>
       )}
       <RewardList rewards={rewards} compact />
       <button disabled={disabled} onClick={onCta} style={{

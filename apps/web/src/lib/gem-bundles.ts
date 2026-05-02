@@ -1,5 +1,5 @@
-// Edelstein-Pakete fuer Echtgeld-Kauf via Stripe.
-// SKU-Format: "gems_<amount>" — der Webhook schreibt die Edelsteine gut.
+// Diamant-Pakete fuer Echtgeld-Kauf via Stripe.
+// SKU-Format: "gems_<amount>" — der Webhook schreibt die Diamanten gut.
 
 export type GemBundle = {
   sku: string;

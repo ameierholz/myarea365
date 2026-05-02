@@ -207,7 +207,7 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
     if (!isFirstNameSet) {
       const ok = await appConfirm({
         title: "Namen ändern",
-        message: `Das Ändern deines Anzeigenamens kostet ${RENAME_COST} Edelsteine. Fortfahren?`,
+        message: `Das Ändern deines Anzeigenamens kostet ${RENAME_COST} Diamanten. Fortfahren?`,
         danger: false,
         confirmLabel: `Für ${RENAME_COST}💎 ändern`,
       });
@@ -221,7 +221,12 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
       });
       const j = await r.json() as { ok?: boolean; error?: string; message?: string; cost?: number };
       if (!j.ok) appAlert(j.message ?? j.error ?? "Fehler");
-      else appAlert(j.cost ? `Name geändert (−${j.cost}💎)` : "Name geändert");
+      else {
+        if (j.cost) {
+          try { window.dispatchEvent(new CustomEvent("ma365:gems-changed")); } catch { /* ignore */ }
+        }
+        appAlert(j.cost ? `Name geändert (−${j.cost}💎)` : "Name geändert");
+      }
     } catch { appAlert("Netzwerkfehler"); }
     finally { setRenameBusy(false); }
   };

@@ -301,9 +301,9 @@ export function LoadoutTrio({
         <div style={tileStyle()} onClick={() => setBaseRingOpen(true)}>
           <div style={labelStyle()}>{tL("labelBaseRing")}</div>
           {baseRingArt?.video_url ? (
-            <video src={baseRingArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+            <video src={baseRingArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />
           ) : baseRingArt?.image_url ? (
-            <img src={baseRingArt.image_url} alt={baseRing?.name ?? ""} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4 }} />
+            <img src={baseRingArt.image_url} alt={baseRing?.name ?? ""} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />
           ) : (
             <div style={{
               width: 72, height: 72, borderRadius: "50%", marginTop: 4,

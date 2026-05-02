@@ -147,7 +147,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
     if (earliest <= now) void reload();
   }, [data, now, reload]);
 
-  const theme = useMemo(() => data?.themes.find((t) => t.id === (data.base?.theme_id ?? "medieval")) ?? null, [data]);
+  const theme = useMemo(() => data?.themes.find((t) => t.id === (data.base?.theme_id ?? "plattenbau")) ?? null, [data]);
   const accent = theme?.accent_color ?? "#22D1C3";
 
   async function build(buildingId: string) {
@@ -269,7 +269,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-5xl shrink-0 overflow-hidden"
                  style={{ background: `radial-gradient(circle at 50% 30%, ${accent}66, ${accent}22 50%, rgba(15,17,21,0.6))`, border: `2px solid ${accent}99`, boxShadow: `0 0 20px ${accent}55` }}>
               {(() => {
-                const tid = theme?.id ?? base.theme_id ?? "medieval";
+                const tid = theme?.id ?? base.theme_id ?? "plattenbau";
                 const a = baseThemeArt[`${tid}_runner_pin`] ?? baseThemeArt[`${tid}_runner_banner`] ?? baseThemeArt[tid];
                 const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
                 if (a?.image_url) return <img src={a.image_url} alt={theme?.name ?? "Base"} style={{ width: 72, height: 72, objectFit: "contain", filter: f }} />;
@@ -1918,7 +1918,7 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
       const errMap: Record<string, string> = {
         vip_level_too_low: "Premium-Stufe zu niedrig",
         daily_limit_reached: "Tageslimit erreicht",
-        not_enough_gems: "Nicht genug Edelsteine",
+        not_enough_gems: "Nicht genug Diamanten",
       };
       setMsg(`❌ ${errMap[r?.error ?? ""] ?? r?.error ?? error?.message ?? "Fehler"}`);
     } else {

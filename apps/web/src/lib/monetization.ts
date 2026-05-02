@@ -165,7 +165,7 @@ export function resolveSkuPrice(sku: string): PriceEntry | null {
     const { GEM_BUNDLES } = require("./gem-bundles") as { GEM_BUNDLES: Array<{ sku: string; price_cents: number }> };
     const bundle = GEM_BUNDLES.find((b) => b.sku === sku);
     if (bundle && bundle.price_cents > 0) {
-      return { price: bundle.price_cents, name: `Edelsteine ${sku}` };
+      return { price: bundle.price_cents, name: `Diamanten ${sku}` };
     }
   } catch { /* ignore */ }
   return null;

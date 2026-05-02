@@ -330,7 +330,7 @@ async function handleChallenge(req: Request) {
     applyOutcome(gB, result.winner === "B", result.final_hp_b, "B"),
   ]);
 
-  // Siegel + Edelsteine für den Sieger (typ-spezifisch basierend auf Gegner-Typ)
+  // Siegel + Diamanten für den Sieger (typ-spezifisch basierend auf Gegner-Typ)
   let arenaRewards: {
     ok: boolean; siegel_type?: string; siegel_amount?: number; universal_siegel?: number; gems?: number;
   } | null = null;

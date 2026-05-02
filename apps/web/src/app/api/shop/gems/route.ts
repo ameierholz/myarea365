@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/shop/gems
- * Liefert Shop-Katalog + Edelstein-Stand + aktive Käufe.
+ * Liefert Shop-Katalog + Diamant-Stand + aktive Käufe.
  */
 export async function GET() {
   const sb = await createClient();
@@ -28,8 +28,8 @@ export async function GET() {
 
 /**
  * POST /api/shop/gems
- * Body: { action: "purchase", item_id }  — Edelstein-Kauf eines Shop-Items
- * Body: { action: "topup", gems }        — Nur Dev/Demo: Edelstein-Top-up (in Prod: Stripe-Webhook)
+ * Body: { action: "purchase", item_id }  — Diamant-Kauf eines Shop-Items
+ * Body: { action: "topup", gems }        — Nur Dev/Demo: Diamant-Top-up (in Prod: Stripe-Webhook)
  */
 export async function POST(req: Request) {
   const sb = await createClient();

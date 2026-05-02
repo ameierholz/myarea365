@@ -152,7 +152,7 @@ export default function DatenschutzPage() {
           <SubSection title="4.4 Arena-Kämpfe (PvP-Gefechte)">
             <DataList items={[
               "Identifier Angreifer, Verteidiger, Gewinner",
-              "Gesetzte Edelsteine (kostenpflichtige Kämpfe nach Tagesquote)",
+              "Gesetzte Diamanten (kostenpflichtige Kämpfe nach Tagesquote)",
               "Runden-Protokoll mit Aktionen, Schadenswerten, Kritischen Treffern",
               "Seed für deterministische Kampf-Reproduktion",
               "Zeitstempel des Kampfes und zugeordnete Saison",
@@ -194,7 +194,7 @@ export default function DatenschutzPage() {
           <SubSection title="4.7 Zahlungsdaten">
             <DataList items={[
               "Kaufhistorie: Zeitstempel, Produktnummer (SKU), Betrag, Währung",
-              "Wegemünzen- und Edelsteine-Salden sowie Transaktionen (Gutschrift, Verbrauch, Grund)",
+              "Wegemünzen- und Diamanten-Salden sowie Transaktionen (Gutschrift, Verbrauch, Grund)",
               "Zahlungs-Provider-Referenz (Stripe Payment Intent, Checkout-Session-ID)",
               "Abonnement-Status und Verlängerungs-Termine (MyArea+, Supporter-Badges Bronze/Silber/Gold, Crew-Pro, Shop-Pakete, Arena-Pass)",
               "Supporter-Tier (bronze / silver / gold) sofern ein entsprechendes Abo aktiv ist",
