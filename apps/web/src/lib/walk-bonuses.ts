@@ -56,6 +56,15 @@ export async function computeAndApplyWalkBonuses(
     if (crew?.xp_boost_until && new Date(crew.xp_boost_until).getTime() > Date.now()) {
       crewBoostMult = Number(crew.xp_boost_multiplier ?? 1);
     }
+
+    // Crew-Synergie-Buff: +1% pro aktivem Mitglied (24h), max +25%
+    try {
+      const { data: synergy } = await sb.rpc("get_crew_synergy");
+      const buffPct = (synergy as { buff_pct?: number } | null)?.buff_pct ?? 0;
+      if (buffPct > 0) {
+        crewBoostMult = Math.max(crewBoostMult, 1 + buffPct / 100);
+      }
+    } catch { /* fail-open */ }
   }
 
   // Personal- und Crew-Boost kombinieren sich NICHT (max, nicht Produkt)
