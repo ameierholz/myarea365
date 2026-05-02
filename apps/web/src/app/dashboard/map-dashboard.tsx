@@ -11,6 +11,7 @@ import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
 import { DiamantPill } from "@/components/diamant-pill";
+import { BerlinCoveragePill } from "@/components/berlin-coverage-pill";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
@@ -1113,6 +1114,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     // activeRoute bewusst NICHT leeren — Walk-Line bleibt als fertiger Pfad
     // bis der naechste Walk startet (setActiveRoute([]) im startWalk).
     setCurrentStreet(null);
+    // Heatmap-Coverage könnte sich um neue Kieze erweitert haben → Pill triggern
+    try { window.dispatchEvent(new CustomEvent("ma365:coverage-changed")); } catch { /* ignore */ }
   };
 
   const clearMap = async () => {
@@ -3636,6 +3639,7 @@ function ProfilTab({
               </div>
             )}
             <DiamantPill />
+            <BerlinCoveragePill />
           </div>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 
