@@ -93,6 +93,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const [themeShopOpen, setThemeShopOpen] = useState(false);
   const [ringPickerOpen, setRingPickerOpen] = useState(false);
   const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
+  const [showRoadmap, setShowRoadmap] = useState(false);
   const [now, setNow]   = useState(Date.now());
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr]   = useState<string | null>(null);
@@ -308,6 +309,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             </div>
             {/* Action-Cluster: Settings + Close, rechts oben */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => setShowRoadmap(true)}
+                title={t("roadmapTitle")}
+                className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center">
+                📜
+              </button>
               <button onClick={() => setTab("settings")}
                 title={t("settingsTitle")}
                 className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center">
@@ -688,6 +694,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                           };
                           const canPay = (["wood","stone","gold","mana"] as const).every((k) => resources[k] >= cost[k]);
                           const lvlLocked = base.level < cat.required_base_level;
+                          // CoD-Style: Kein Building > Burg-Level (außer Burg selbst).
+                          const burgCapped = cat.id !== "burg" && !isMax && targetLvl > Math.max(burgLevel, 1);
                           const effectAtNext = cat.effect_per_level * targetLvl;
                           const buildTime = cat.base_buildtime_minutes * (lvl === 0 ? 1 : Math.ceil(mult));
                           return (
@@ -739,6 +747,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                                 <div className="text-[10px] text-[#FF6B4A] font-black text-center py-1 rounded bg-[#FF6B4A]/10">{t("buildCtaInBuild")}</div>
                               ) : lvlLocked ? (
                                 <div className="text-[10px] text-[#6c7590] text-center py-1 rounded bg-white/5">{t("buildCtaLocked", { level: cat.required_base_level })}</div>
+                              ) : burgCapped ? (
+                                <div className="text-[10px] text-[#FFD700] text-center py-1 rounded bg-[#FFD700]/10" title={t("buildCtaBurgCappedTooltip", { needed: targetLvl, have: burgLevel })}>
+                                  🏰 {t("buildCtaBurgCapped", { needed: targetLvl })}
+                                </div>
                               ) : (
                                 <button onClick={() => build(cat.id)} disabled={!canPay || busy === cat.id || isCatalogPreview}
                                   className="text-[11px] font-black py-1.5 rounded-lg disabled:opacity-40"
@@ -1074,7 +1086,77 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
       {bannerPickerOpen && (
         <NameplatePickerModal onClose={() => { setBannerPickerOpen(false); void reload(); }} />
       )}
+      {showRoadmap && (
+        <BurgRoadmapModal currentLevel={burgLevel} accent={accent} onClose={() => setShowRoadmap(false)} />
+      )}
     </Backdrop>
+  );
+}
+
+// Festung-Roadmap: zeigt alle Burg-Level-Unlocks (March-Queue, Kapazität,
+// Bau-Slots, Truppen-Tiers + Pre-Reqs).
+const BURG_MILESTONES: Array<{ level: number; unlocks: string[] }> = [
+  { level: 1,  unlocks: ["1 March-Queue", "30 March-Capacity", "1 Bau-Slot"] },
+  { level: 4,  unlocks: ["+1 Bau-Slot (=2)", "March-Capacity 60"] },
+  { level: 5,  unlocks: ["T2 Truppen freigeschaltet"] },
+  { level: 10, unlocks: ["T3 Truppen freigeschaltet"] },
+  { level: 11, unlocks: ["+1 March-Queue (=3)", "March-Capacity 100", "+2 Bau-Slots (=3)"] },
+  { level: 15, unlocks: ["T4 Truppen freigeschaltet"] },
+  { level: 17, unlocks: ["+1 March-Queue (=4)", "March-Capacity 150", "+3 Bau-Slots (=4)"] },
+  { level: 20, unlocks: ["T5 Truppen freigeschaltet"] },
+  { level: 22, unlocks: ["+1 March-Queue (=5)", "March-Capacity 200", "+4 Bau-Slots (=5)"] },
+  { level: 25, unlocks: ["MAX — alle Slots offen"] },
+];
+
+function BurgRoadmapModal({ currentLevel, accent, onClose }: { currentLevel: number; accent: string; onClose: () => void }) {
+  const t = useTranslations("BaseModal");
+  return (
+    <div onClick={onClose} className="fixed inset-0 z-[9300]" style={{ background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-[#1A1D23] border overflow-hidden flex flex-col"
+        style={{ borderColor: `${accent}66`, boxShadow: `0 0 40px ${accent}33`, maxHeight: "90vh" }}>
+        <div className="p-4 border-b border-white/10 flex items-center gap-3">
+          <span className="text-2xl">📜</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] font-black tracking-widest" style={{ color: accent }}>{t("roadmapKicker")}</div>
+            <div className="text-base font-black text-white">{t("roadmapTitle")}</div>
+            <div className="text-[11px] text-[#a8b4cf] mt-0.5">{t("roadmapSub", { level: currentLevel })}</div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-lg shrink-0">×</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {BURG_MILESTONES.map((m) => {
+            const reached = currentLevel >= m.level;
+            const next = !reached && BURG_MILESTONES.filter((x) => x.level > currentLevel)[0]?.level === m.level;
+            return (
+              <div key={m.level} className="rounded-lg p-3 flex gap-3"
+                style={{
+                  background: reached ? "rgba(74,222,128,0.08)" : next ? `${accent}14` : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${reached ? "rgba(74,222,128,0.4)" : next ? `${accent}66` : "rgba(255,255,255,0.08)"}`,
+                }}>
+                <div className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-base font-black"
+                  style={{
+                    background: reached ? "#4ade80" : next ? accent : "rgba(255,255,255,0.1)",
+                    color: reached || next ? "#0F1115" : "#8B8FA3",
+                  }}>
+                  {reached ? "✓" : `Lv${m.level}`}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-black mb-1" style={{ color: reached ? "#4ade80" : next ? accent : "#fff" }}>
+                    {reached ? t("roadmapReached", { level: m.level }) : next ? t("roadmapNext", { level: m.level }) : t("roadmapFuture", { level: m.level })}
+                  </div>
+                  <ul className="text-[11px] text-[#a8b4cf] leading-relaxed list-disc list-inside space-y-0.5">
+                    {m.unlocks.map((u, i) => <li key={i}>{u}</li>)}
+                  </ul>
+                </div>
+              </div>
+            );
+          })}
+          <div className="text-[10px] text-[#8B8FA3] text-center pt-2 leading-relaxed">
+            {t("roadmapFooter")}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
