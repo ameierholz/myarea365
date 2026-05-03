@@ -3393,7 +3393,7 @@ export function AppMap({
       silName.style.cssText = `padding:1px 6px;border-radius:4px;background:rgba(0,0,0,0.12);color:#fff;font-size:9px;font-weight:900;letter-spacing:0.3px;white-space:nowrap;line-height:1.15;font-family:system-ui;margin-top:1px;text-shadow:0 1px 2px rgba(0,0,0,0.85);`;
       const silRawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;
       const silDisplayLabel = silRawLabel;
-      silName.innerHTML = (pin.kind === "crew" ? "⚔️ " : "@") + escapeHtml(silDisplayLabel) + (pin.crew_tag ? ` <span style="color:${ownColor};font-weight:800;">[${escapeHtml(pin.crew_tag)}]</span>` : "");
+      silName.innerHTML = (pin.kind === "crew" ? "⚔️ " : "") + escapeHtml(silDisplayLabel) + (pin.crew_tag ? ` <span style="color:${ownColor};font-weight:800;">[${escapeHtml(pin.crew_tag)}]</span>` : "");
       silWrap.appendChild(silName);
       silWrap.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -3503,12 +3503,12 @@ export function AppMap({
       const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${fxLayer}${visualBase}</div>`;
 
       // ── PROPORTIONS (relativ zu ART_SIZE = 300px) ───────────────────────
-      // Banner 200px (~67% des Castle, schlank unter dem Castle)
-      // Banner-Höhe 4:1 Aspect = 50px
-      // Runner-Badge 84px (~28% des Castle) — sitzt halb über Castle-Base
-      const BANNER_W = 200;
-      const BANNER_H = Math.round(BANNER_W / 4); // = 50px
-      const TEXT_ZONE_W = Math.round(BANNER_W * 0.58); // = 116px
+      // Banner 320×64 (5:1 Aspect, matcht den Prompt) — deutlich prominenter
+      // als vorher, Aspect-Match mit Banner-Art = kein Letterbox mehr.
+      // Runner-Badge 84px sitzt halb über Castle-Base.
+      const BANNER_W = 320;
+      const BANNER_H = Math.round(BANNER_W / 5); // = 64px
+      const TEXT_ZONE_W = Math.round(BANNER_W * 0.78); // = 250px (Name+Tag mit Luft)
       const MIN_SCALE = 0.78;
       const RUNNER_BADGE_SIZE = 84;
       const BADGE_LIFT = Math.round(RUNNER_BADGE_SIZE / 2 + 32); // = 74
@@ -3516,7 +3516,7 @@ export function AppMap({
       const npArt = pin.nameplate_art;
       // Banner-Artwork ist 4:1 wide. NUR IMAGE auf der Map — MP4 würde bei vielen
       // sichtbaren Spielern Performance killen (jeder Pin = 1 Video-Decode-Thread).
-      const npWrapStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${BANNER_W}px;height:${BANNER_H}px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:0;`;
+      const npWrapStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${BANNER_W}px;height:${BANNER_H}px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:1;`;
       const npInnerStyle = `width:100%;height:100%;object-fit:contain;object-position:center;display:block;`;
       const npLayer = npArt?.image_url
         ? `<div style="${npWrapStyle}"><img src="${npArt.image_url}" alt="" style="${npInnerStyle}" /></div>`
@@ -3533,7 +3533,8 @@ export function AppMap({
       const RING_SIZE = Math.round(RUNNER_BADGE_SIZE * 1.6); // = 134px
       // Artwork hat oft viel Greenscreen-Padding — Scale-Up vergrößert das sichtbare Ring-Motiv.
       const RING_SCALE = 1.5;
-      const ringStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(${RING_SCALE});width:${RING_SIZE}px;height:${RING_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) drop-shadow(0 0 8px ${pin.pin_color}77);pointer-events:none;z-index:1;`;
+      // Layer-Order (z-index): Name(4) > Basering(3) > Map-Icon(2) > Banner(1)
+      const ringStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(${RING_SCALE});width:${RING_SIZE}px;height:${RING_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) drop-shadow(0 0 8px ${pin.pin_color}77);pointer-events:none;z-index:3;`;
       const ringHtml = (showRunnerOnBase && (ringArt?.image_url || ringArt?.video_url))
         ? (ringArt.video_url
             ? `<video src="${ringArt.video_url}" autoplay loop muted playsinline style="${ringStyle}"></video>`
@@ -3558,7 +3559,8 @@ export function AppMap({
       // Display-Name auf Runner-Pin: owner_username (echter Name) bevorzugt vor pin_label (z.B. "Homebase").
       const rawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;
       const displayLabel = rawLabel;
-      const namePrefix = pin.kind === "crew" ? "⚔️ " : "@";
+      // KEIN @ vor dem Anzeigenamen mehr — User-Wunsch (cleaner ohne Prefix).
+      const namePrefix = pin.kind === "crew" ? "⚔️ " : "";
       const fullText = namePrefix + displayLabel + (pin.crew_tag ? ` [${pin.crew_tag}]` : "");
       // EXAKT messen statt schätzen: Canvas measureText mit gleicher Font wie Render.
       // Bold 11px font ist breiter als normale → Schätzung war chronisch zu klein.
@@ -3566,7 +3568,7 @@ export function AppMap({
         ?? (() => {
           const c = document.createElement("canvas").getContext("2d");
           if (c) {
-            c.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif";
+            c.font = "900 11px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
             (window as unknown as { __ma365NameMeasure?: CanvasRenderingContext2D }).__ma365NameMeasure = c;
           }
           return c;
@@ -3584,7 +3586,7 @@ export function AppMap({
         <div data-nameplate-wrap style="position:relative;display:flex;align-items:center;justify-content:center;height:${BANNER_H}px;width:${BANNER_W}px;margin-top:${showRunnerOnBase ? "-12px" : "-8px"};transform-origin:center top;">
           ${npLayer}
           <div data-nameplate style="
-            position:relative;z-index:1;transform-origin:center center;
+            position:relative;z-index:4;transform-origin:center center;
             padding:1px 4px;
             color:#fff;
             font-size:11px;font-weight:900;letter-spacing:0.3px;
@@ -3592,7 +3594,7 @@ export function AppMap({
             line-height:1.2;
             text-align:center;
             text-shadow:0 1px 0 #000, 0 0 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7);
-            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
             width:${TEXT_ZONE_W}px;
             transform:${fitScale < 1 ? `scaleX(${fitScale.toFixed(3)})` : "none"};
           ">${namePrefix}${escapeHtml(displayLabel)}${crewTagHtml}</div>

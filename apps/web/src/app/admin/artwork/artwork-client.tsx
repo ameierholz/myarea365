@@ -1832,7 +1832,7 @@ function NameplateArtTab({ artMap, onChange }: { artMap: Record<string, { image_
   return (
     <div>
       <div className="text-[10px] text-[#a8b4cf] mb-3">
-        Banner sind 6:1 breit. Mitte = transparent (Chroma-Key), Runner-Name wird zur Laufzeit reingerendert. Verzierungen NUR oben+unten — mit asymmetrischen Spikes/Hörnern/Ranken/Klauen, die ÜBER und UNTER den Streifen rauswachsen. Linke+rechte Kante: glatter Schnitt, keine Side-Caps.
+        Banner sind 5:1 breit. Mitte = transparent (Chroma-Key), Runner-Name wird zur Laufzeit reingerendert. Top+Bottom-Strips je ~32% mit asymmetrischen Spikes/Hörnern/Ranken/Klauen, die ÜBER und UNTER den Streifen rauswachsen. Mitte nur ~36% (Text-Höhe, ohne überflüssigen Gap). Linke+rechte Kante: glatter Schnitt.
       </div>
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))" }}>
         {NAMEPLATES_ART.map((p) => {
@@ -1841,7 +1841,7 @@ function NameplateArtTab({ artMap, onChange }: { artMap: Record<string, { image_
           return (
             <div key={p.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
               {/* 6:1 breite Vorschau-Tile, dahinter Runner-Name als Overlay zur Vorschau der Transparenz */}
-              <div className="relative mb-2 rounded-lg overflow-hidden" style={{ aspectRatio: "6 / 1", width: "100%", background: "rgba(15,17,21,0.6)", border: `1px solid ${c}55` }}>
+              <div className="relative mb-2 rounded-lg overflow-hidden" style={{ aspectRatio: "5 / 1", width: "100%", background: "rgba(15,17,21,0.6)", border: `1px solid ${c}55` }}>
                 {/* Transparenz-Schachbrett, damit man "leere Mitte" sieht */}
                 <div className="absolute inset-0 opacity-30" style={{
                   backgroundImage: "linear-gradient(45deg, #888 25%, transparent 25%), linear-gradient(-45deg, #888 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #888 75%), linear-gradient(-45deg, transparent 75%, #888 75%)",
