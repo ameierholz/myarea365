@@ -6,7 +6,7 @@ import { uploadArtworkDirect } from "@/lib/artwork-upload";
 export function AdminArtworkControls({
   targetType, targetId, variant, buildPrompt, hasImage, hasVideo, onUploaded,
 }: {
-  targetType: "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "material" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "loot_drop" | "resource_node";
+  targetType: "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "material" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "loot_drop" | "resource_node" | "inventory_item";
   targetId: string;
   variant?: "neutral" | "male" | "female";
   buildPrompt: (mode: "image" | "video") => string;

@@ -75,6 +75,14 @@ import { markOnboardingSeen, shouldShowOnboarding } from "@/components/onboardin
 import { OnboardingModal as OnboardingModalDirect } from "@/components/onboarding-modal";
 import { FaqModal as FaqModalDirect } from "@/components/faq-modal";
 import { PotionInventoryModal as PotionInventoryModalDirect } from "@/components/potion-inventory-modal";
+import { PopupOfferGate } from "@/components/popup-offer-modal";
+import { RunnerInventoryModal } from "@/components/runner-inventory-modal";
+import { GrowthFundModal } from "@/components/growth-fund-modal";
+import { MonthlyPackModal } from "@/components/monthly-pack-modal";
+import { LuckyWheelModal } from "@/components/lucky-wheel-modal";
+import { ForgeOfLightModal } from "@/components/forge-of-light-modal";
+import { LootHubModal, DesktopWebBonusTrigger } from "@/components/loot-hub-modal";
+import { ResourceBar } from "@/components/resource-bar";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal as RunnerStatsModalDirect } from "@/components/runner-stats-modal";
 const OnboardingModal = _IS_PROD ? dynamic(() => import("@/components/onboarding-modal").then(m => m.OnboardingModal)) : OnboardingModalDirect;
@@ -468,6 +476,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     shop_trail: Array<{ business_id: string; name: string; lat: number; lng: number; icon: string; color: string; visit_count: number }>;
   } | null>(null);
   const [lootDrops, setLootDrops] = useState<Array<{ id: string; lat: number; lng: number; rarity: string; kind: string; expires_at: number }>>([]);
+  const [lorePieces, setLorePieces] = useState<Array<{ piece_id: string; lat: number; lng: number; name: string; set_name?: string }>>([]);
+  const [mapGemShopOpen, setMapGemShopOpen] = useState(false);
   const [viewingBoss, setViewingBoss] = useState<string | null>(null);
   const [viewingSanctuary, setViewingSanctuary] = useState<string | null>(null);
   const [viewingPowerZone, setViewingPowerZone] = useState<string | null>(null);
@@ -782,7 +792,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         }
       } catch { /* noop */ }
     }
-    appAlert(`🎁 Loot! +${totalXp} 🪙${potionText ? ` ${potionText}` : ""}${withAdBonus ? " (dank Video-Bonus!)" : ""}`);
+    appAlert(withAdBonus
+      ? tMD("lootWithBonus", { xp: totalXp, potion: potionText ? ` ${potionText}` : "" })
+      : tMD("lootNoBonus", { xp: totalXp, potion: potionText ? ` ${potionText}` : "" }));
   };
 
   const playSupplyDropAd = () => {
@@ -868,7 +880,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       await supabase.from("ad_views").insert({
         user_id: profile.id, placement: "streak_save", xp_awarded: 0, completed: true,
       });
-      appAlert(`🔥 Streak gerettet! ${profile.streak_days}-Tage-Serie läuft weiter.`);
+      appAlert(tMD("streakSaved", { days: profile.streak_days ?? 0 }));
     } catch { /* noop */ }
     setStreakSaveModal(null);
   };
@@ -1070,7 +1082,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           const data = await ms.json();
           if (data.new_stones > 0) {
             const unlocks = (data.new_unlocks as number[]).join(", ");
-            appAlert(`🎉 Meilenstein erreicht (${unlocks} km)! +${data.new_stones} Beschwörungsstein für einen neuen Wächter.`);
+            appAlert(tMD("milestoneReached", { km: unlocks, stones: data.new_stones }));
           }
         }
       } catch { /* non-blocking */ }
@@ -1129,6 +1141,32 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   };
 
   const [userCenter, setUserCenter] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Lore-Pieces laden — API stellt Spawn-Coords pro User sicher (in dessen Stadt um Base/letzte Walk-Position).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const r = await fetch("/api/runner/lore");
+      if (!r.ok) return;
+      const j = await r.json() as {
+        spawns?: Array<{ piece_id: string; lat: number; lng: number }>;
+        pieces?: Array<{ id: string; name: string; set_id: string }>;
+        sets?: Array<{ id: string; name: string }>;
+        found?: Array<{ piece_id: string }>;
+      };
+      if (cancelled) return;
+      const foundIds = new Set((j.found ?? []).map((f) => f.piece_id));
+      const pieceMeta = new Map((j.pieces ?? []).map((p) => [p.id, p]));
+      const setNames = new Map((j.sets ?? []).map((s) => [s.id, s.name]));
+      setLorePieces((j.spawns ?? [])
+        .filter((s) => !foundIds.has(s.piece_id))
+        .map((s) => {
+          const p = pieceMeta.get(s.piece_id);
+          return { piece_id: s.piece_id, lat: s.lat, lng: s.lng, name: p?.name ?? s.piece_id, set_name: p ? setNames.get(p.set_id) : undefined };
+        }));
+    })();
+    return () => { cancelled = true; };
+  }, [userCenter?.lat]);
 
   const onLocationUpdate = useCallback(
     (lng: number, lat: number) => {
@@ -1858,6 +1896,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               shadowRoute={shadowRoute}
               shopReviews={mapFeatures?.shop_reviews ?? []}
               lootDrops={dropsHidden ? [] : lootDrops}
+              lorePieces={lorePieces}
+              onLorePickup={async (pieceId) => {
+                if (!userCenter) return;
+                const r = await fetch("/api/runner/lore", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "pickup", piece_id: pieceId, lat: userCenter.lat, lng: userCenter.lng }),
+                });
+                const j = await r.json().catch(() => null) as { ok?: boolean; set_complete?: boolean } | null;
+                if (j?.ok) {
+                  setLorePieces((prev) => prev.filter((p) => p.piece_id !== pieceId));
+                }
+              }}
               arenaCountdowns={arenaCountdowns}
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
@@ -1957,7 +2007,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
                   const distM = 2 * R * Math.asin(Math.sqrt(x));
                   if (distM > 25) {
-                    appAlert(`🚶 Zu weit! Du bist ${Math.round(distM)}m entfernt — komm näher (max 25m).`);
+                    appAlert(tMD("tooFarFromTarget", { meters: Math.round(distM) }));
                     return;
                   }
                 }
@@ -2248,7 +2298,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                       lightPreset === "day" ? "☀️" :
                       lightPreset === "dusk" ? "🌆" : "🌙"
                     }
-                    label="Tageszeit"
+                    label={tMD("labelTimeOfDay")}
                     onClick={() => {
                       const order: Array<typeof lightPreset> = ["auto", "day", "dusk", "night", "dawn"];
                       const idx = order.indexOf(lightPreset);
@@ -2258,15 +2308,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   />
                   <MapIconButton
                     icon={overviewMode ? "🎯" : "🗺️"}
-                    label={overviewMode ? "Zurück" : "Übersicht"}
+                    label={overviewMode ? tMD("labelBack") : tMD("labelOverview")}
                     onClick={() => setOverviewMode(!overviewMode)}
                     active={overviewMode}
                   />
-                  <MapIconButton icon="📋" label="Missionen" onClick={() => setMissionsOpen(true)} badge={4} />
+                  <MapIconButton icon="📋" label={tMD("labelMissions")} onClick={() => setMissionsOpen(true)} badge={4} />
                   {/* Drops auf der Karte ein-/ausblenden — versteckt zusätzlich Wegelager, Repeater, Bauwerke, Bases */}
                   <MapIconButton
                     icon={dropsHidden ? "🚫" : "🎁"}
-                    label={dropsHidden ? "Drops einblenden" : "Drops ausblenden"}
+                    label={dropsHidden ? tMD("labelShowDrops") : tMD("labelHideDrops")}
                     onClick={() => setDropsHidden((v) => !v)}
                     active={dropsHidden}
                     accent="#FFD700"
@@ -2275,7 +2325,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   {myCrew && (
                     <MapIconButton
                       icon="📡"
-                      label={crewRepeaters.some((r) => r.is_own && r.kind === "hq") ? "Repeater setzen" : "Hauptquartier setzen"}
+                      label={crewRepeaters.some((r) => r.is_own && r.kind === "hq") ? tMD("labelPlaceRepeater") : tMD("labelPlaceHQ")}
                       onClick={() => {
                         const hasHQ = crewRepeaters.some((r) => r.is_own && r.kind === "hq");
                         setRepeaterPlaceMode({ kind: hasHQ ? "repeater" : "hq" });
@@ -2296,7 +2346,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                         color: ACCENT, fontSize: 11, fontWeight: 700, cursor: "pointer",
                       }}
                     >
-                      🗑 Karte leeren
+                      {tMD("labelClearMap")}
                     </button>
                   )}
                   {/* Hilfe / Intro / Karten-Legende / FAQ — als Submenü ans Ende des Controls-Stacks */}
@@ -2333,7 +2383,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 >🔒 Sperren</button>
                 <button
                   onClick={() => setWakeHintDismissed(true)}
-                  aria-label="Hinweis schließen"
+                  aria-label={tMD("ariaCloseHint")}
                   style={{
                     background: "transparent", border: "none", color: MUTED,
                     fontSize: 16, lineHeight: 1, cursor: "pointer", padding: 2,
@@ -2578,7 +2628,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 color: "#fff", fontSize: 18, fontWeight: 900,
                 cursor: "pointer", zIndex: 5,
               }}
-              aria-label="Schließen"
+              aria-label={tMD("ariaClose")}
             >×</button>
             <div style={{ padding: "0 0 80px" }}>
               <ProfilTab
@@ -2639,7 +2689,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 color: "#fff", fontSize: 18, fontWeight: 900,
                 cursor: "pointer", zIndex: 5,
               }}
-              aria-label="Schließen"
+              aria-label={tMD("ariaClose")}
             >×</button>
             <div style={{ padding: "0 0 80px" }}>
               <CrewTab
@@ -2762,21 +2812,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {/* Sammel-Modal (Resource-Node-Click) */}
       {/* Shops/Deals-Übersicht-Modal */}
       {shopsModalOpen && (
-        <FullscreenMapModal title="DEALS — SHOPS-ÜBERSICHT" onClose={() => setShopsModalOpen(false)}>
+        <FullscreenMapModal title={tMD("labelDealsShopsOverview")} onClose={() => setShopsModalOpen(false)}>
           <ShopsTab />
         </FullscreenMapModal>
       )}
 
       {/* Inbox-Modal */}
       {inboxModalOpen && (
-        <FullscreenMapModal title="POSTEINGANG" onClose={() => setInboxModalOpen(false)}>
+        <FullscreenMapModal title={tMD("labelInbox")} onClose={() => setInboxModalOpen(false)}>
           <InboxClient />
         </FullscreenMapModal>
       )}
 
       {/* Ranking-Modal */}
       {rankingModalOpen && (
-        <FullscreenMapModal title="RANGLISTE" onClose={() => setRankingModalOpen(false)}>
+        <FullscreenMapModal title={tMD("labelLeaderboard")} onClose={() => setRankingModalOpen(false)}>
           <RankingTab profile={p} leaderboard={leaderboard} initialMode={rankingInitialMode} />
         </FullscreenMapModal>
       )}
@@ -2832,7 +2882,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[900] px-4 py-2 rounded-full text-[#0F1115] text-xs font-black shadow-2xl flex items-center gap-3"
              style={{ background: myCrew?.territory_color || "#22D1C3" }}>
           <span>
-            👆 {repeaterPlaceMode.kind === "hq" ? "Hauptquartier" : repeaterPlaceMode.kind === "mega" ? "Mega-Funk" : "Repeater"} platzieren — Coverage muss bestehenden Repeater berühren
+            👆 {repeaterPlaceMode.kind === "hq" ? tMD("labelHQ") : repeaterPlaceMode.kind === "mega" ? tMD("labelMegaRepeater") : tMD("labelRepeater")} platzieren — Coverage muss bestehenden Repeater berühren
           </span>
           <button onClick={() => { setRepeaterPlaceMode(null); setRepeaterPlaceCursor(null); }} className="opacity-70 hover:opacity-100">✕</button>
         </div>
@@ -2884,7 +2934,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             inRange={inRange}
             onClose={() => setViewingBoss(null)}
             onAttack={async () => {
-              if (!userCenter) { await appAlert("GPS-Position wird benötigt."); return; }
+              if (!userCenter) { await appAlert(tMD("gpsRequired")); return; }
               const res = await fetch("/api/map-features", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -2897,9 +2947,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               });
               const data = await res.json();
               if (data.error === "too_far") { await appAlert(tMD("tooFar", { meters: data.distance_m })); return; }
-              if (data.error === "location_required") { await appAlert("GPS wird benötigt."); return; }
-              if (data.error === "crew_full") { await appAlert(`Deine Crew hat schon 10 Teilnehmer. Kein Slot mehr frei.`); return; }
-              if (data.defeated) await appAlert("🏆 AREA-BOSS BESIEGT! Nur die Crew mit dem meisten Schaden bekommt den Loot.");
+              if (data.error === "location_required") { await appAlert(tMD("gpsRequiredShort")); return; }
+              if (data.error === "crew_full") { await appAlert(tMD("crewFull")); return; }
+              if (data.defeated) await appAlert(tMD("areaBossDefeated"));
               const r = await fetch("/api/map-features", { cache: "no-store" });
               if (r.ok) setMapFeatures(await r.json());
             }}
@@ -2933,7 +2983,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             inRange={inRange}
             onClose={() => setViewingSanctuary(null)}
             onTrain={async () => {
-              if (!userCenter) { await appAlert("GPS-Position wird benötigt."); return; }
+              if (!userCenter) { await appAlert(tMD("gpsRequired")); return; }
               const res = await fetch("/api/map-features", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "train_sanctuary", sanctuary_id: s.id, user_lat: userCenter.lat, user_lng: userCenter.lng }),
@@ -2941,7 +2991,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               const data = await res.json();
               if (data.error === "already_trained_today") { await appAlert(tMD("alreadyTrainedToday")); return; }
               if (data.error === "too_far") { await appAlert(tMD("tooFarTemple", { meters: data.distance_m })); return; }
-              if (data.error === "location_required") { await appAlert("GPS-Position wird benötigt."); return; }
+              if (data.error === "location_required") { await appAlert(tMD("gpsRequired")); return; }
               if (data.ok) {
                 await appAlert(`🙏 +${data.xp_gained} Wächter-Erfahrung`);
                 const r = await fetch("/api/map-features", { cache: "no-store" });
@@ -3142,6 +3192,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           onClose={() => setShowShopHubGlobal(false)}
         />
       )}
+
+      {/* Top-Level Overlays: Pop-Ups, Desktop-Bonus, ResourceBar */}
+      <PopupOfferGate />
+      <DesktopWebBonusTrigger />
+      <ResourceBar onAddGems={() => setMapGemShopOpen(true)} />
+      {mapGemShopOpen && <GemShopModal onClose={() => setMapGemShopOpen(false)} />}
     </div>
   );
 }
@@ -3204,6 +3260,14 @@ function ProfilTab({
   const baseThemeArt = useBaseThemeArt();
   const markerArt = useMarkerArt();
   const uiIconArt = useUiIconArt();
+
+  // ═══ Premium-Hub Modals (Inventar, Wachstumsfond, Monatspakete, Berlin-Rad, Schmiede) ═══
+  const [showInventory, setShowInventory] = useState(false);
+  const [showGrowthFund, setShowGrowthFund] = useState(false);
+  const [showMonthly, setShowMonthly] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const [showForge, setShowForge] = useState(false);
+  const [showLootHub, setShowLootHub] = useState(false);
 
   // ═══ Base-Banner-State (eigene Base-Daten für Hero-Banner) ═══
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
@@ -3367,7 +3431,7 @@ function ProfilTab({
   async function openGuardianGallery() {
     try {
       const res = await fetch("/api/guardian/my-collection");
-      if (!res.ok) { alert("Konnte Wächter-Sammlung nicht laden"); return; }
+      if (!res.ok) { alert(tMD("guardianCollectionLoadFailed")); return; }
       const j = await res.json() as {
         owned: Array<{ id: string; archetype_id: string; level: number; is_active: boolean }>;
         archetypes: import("@/lib/guardian").GuardianArchetype[];
@@ -3434,7 +3498,7 @@ function ProfilTab({
 
   const handleRewardedAd = async () => {
     if (await appConfirm("📺 Schau dir ein kurzes Video an, um sofort +250 🪙 zu erhalten!")) {
-      appAlert("Danke! Du hast 250 Wegemünzen erhalten! (Simulation)");
+      appAlert(tMD("donationThanks"));
     }
   };
 
@@ -3586,7 +3650,7 @@ function ProfilTab({
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 14, flexWrap: "wrap", justifyContent: "center" }}>
             <button
               onClick={() => setOpenModal("ranks")}
-              title="🪙 Wegemünzen: deine Runner-Währung. Laufe Straßen (50), Straßenzüge (+250) oder Gebiete mit Crew (+500) und steige im Rang auf. Tippen für alle Ränge."
+              title={tMD("titleCoinsExplain")}
               style={{
                 paddingLeft: 6, paddingRight: 28, paddingTop: 4, paddingBottom: 4,
                 borderRadius: 999, border: "none",
@@ -3595,7 +3659,7 @@ function ProfilTab({
                 boxShadow: `0 4px 24px ${currentRankLive.color}60, inset 0 1px 0 rgba(255,255,255,0.4)`,
                 display: "inline-flex", alignItems: "center", gap: 8,
               }}
-              aria-label="Alle Ränge anzeigen"
+              aria-label={tMD("ariaShowAllRanks")}
             >
               <span style={{ position: "relative", zIndex: 1 }}>
                 <RankBadge rankId={currentRankLive.id} color={currentRankLive.color} size={32} rankArt={rankArt} />
@@ -3613,7 +3677,7 @@ function ProfilTab({
             </button>
             {ansehen !== null && (
               <div
-                title={`Ansehen ${ansehen.toLocaleString()} — Power-Score aus Bauen, Forschen, Truppen-Training, Wächter-Level-Ups und Crew-Repeater`}
+                title={tMD("titlePowerScore", { n: ansehen.toLocaleString() })}
                 style={{
                   paddingLeft: 6, paddingRight: 14, paddingTop: 4, paddingBottom: 4,
                   borderRadius: 999, border: "none",
@@ -3772,9 +3836,9 @@ function ProfilTab({
           gap: 8, marginTop: 14, width: "100%",
         }}>
           {[
-            { key: "arena",      icon: "⚔️", label: "Arena",    color: "#FF2D78", title: "⚔️ Sessionehre verdienen: 1v1 Wächter-Kampf. 5 Gratis-Kämpfe/Tag. Sieg = Siegel, Ausrüstung, Ehre.", onClick: () => setOpenModal("arena") },
+            { key: "arena",      icon: "⚔️", label: "Arena",    color: "#FF2D78", title: tMD("titleSessionHonor"), onClick: () => setOpenModal("arena") },
             { key: "deals",      icon: "🔥", label: "Angebote", color: "#FFD700", title: "🔥 Tagesangebote: Bronze / Silber / Gold + SUPER-Bundle. Reset um 00:00 UTC.", onClick: () => { setShopHubInitialTab("deals"); setShowShopHub(true); } },
-            { key: "crew",       icon: "👥", label: "Crew",     color: "#FFD700", title: "🏴 Gebietsruf verdienen: Crew beitreten für +500 🪙/Gebiet, Crew-Wars (5000 🏴) und Flaggen-Capture (3000 🏴).", onClick: () => setActiveTab("crew") },
+            { key: "crew",       icon: "👥", label: "Crew",     color: "#FFD700", title: tMD("titleTerritoryFame"), onClick: () => setActiveTab("crew") },
             { key: "shop",       icon: "💎", label: "Shop",     color: "#22D1C3", title: "💎 Alles was du kaufen kannst — Tagesangebote, Gems, Premium, Power-Boosts, Kosmetik. Niemals Pay-to-Win.", onClick: () => { setShopHubInitialTab("deals"); setShowShopHub(true); } },
             { key: "shop-deals", icon: "🏪", label: "Deals",    color: "#4ade80", title: "🏪 Lokale Shop-Deals: alle Rabatte filterbar nach Stadt, PLZ, Kategorie und Radius.", onClick: () => setShowShopDeals(true) },
             { key: "inbox",      icon: "📬", label: "Inbox",    color: "#a855f7", title: "📬 Nachrichten, Crew-Einladungen und Event-Benachrichtigungen.", onClick: () => setOpenModal("inbox") },
@@ -3823,7 +3887,7 @@ function ProfilTab({
               cursor: "pointer", textAlign: "left",
               boxShadow: `0 2px 16px ${ownBaseInfo.accent}22`,
             }}
-            aria-label="Base öffnen"
+            aria-label={tMD("ariaOpenBase")}
           >
             {/* Theme-Icon (Artwork aus cosmetic_artwork.kind=base_theme) */}
             <div style={{
@@ -3885,7 +3949,7 @@ function ProfilTab({
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
               whiteSpace: "nowrap",
             }}>
-              <span>{ownBaseHasPos ? "Öffnen" : "Setzen"}</span>
+              <span>{ownBaseHasPos ? tMD("labelOpen") : tMD("labelPlace")}</span>
               <span style={{ fontSize: 14 }}>›</span>
             </span>
           </button>
@@ -3893,7 +3957,7 @@ function ProfilTab({
 
         {/* ═══ AKTIVER WÄCHTER — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
         {activeGuardian && activeGuardian.archetype && (
-          <SectionHeader title="WÄCHTER" action={<GuardianHelpButton />} />
+          <SectionHeader title={tMD("labelGuardian")} action={<GuardianHelpButton />} />
         )}
         {activeGuardian && activeGuardian.archetype && (
           <button
@@ -3906,7 +3970,7 @@ function ProfilTab({
               cursor: "pointer", textAlign: "left",
               boxShadow: "0 2px 16px rgba(255,45,120,0.15)",
             }}
-            aria-label="Wächter-Details öffnen"
+            aria-label={tMD("ariaOpenGuardianDetails")}
           >
             {/* Portrait — bunter Gradient damit chroma-keyed Wächter pop'pt */}
             {(() => {
@@ -4013,7 +4077,7 @@ function ProfilTab({
                 cursor: "pointer", textAlign: "left",
                 boxShadow: `0 2px 16px ${accent}25`,
               }}
-              aria-label="Crew öffnen"
+              aria-label={tMD("ariaOpenCrew")}
             >
               {/* Crew-Wappen / Initial */}
               <div style={{
@@ -4036,7 +4100,7 @@ function ProfilTab({
                 <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, flexWrap: "wrap" }}>
                   <span style={{ color: "#a8b4cf", fontWeight: 800 }}>👤 {myCrew.member_count}</span>
                   <span style={{ color: hqCount > 0 ? "#22D1C3" : "#FFD700", fontWeight: 800 }}>
-                    {hqCount > 0 ? "🏛️" : "⚠️"} {hqCount > 0 ? "Hauptquartier" : "Kein Hauptquartier"}
+                    {hqCount > 0 ? "🏛️" : "⚠️"} {hqCount > 0 ? tMD("labelHQ") : tMD("labelNoHQ")}
                   </span>
                   <span style={{ color: "#FF6B4A", fontWeight: 800 }}>📶 {repCount} Repeater</span>
                   {repCount > 0 && (
@@ -4054,15 +4118,25 @@ function ProfilTab({
                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
                 whiteSpace: "nowrap",
               }}>
-                <span>{isAdmin ? "Verwalten" : "Öffnen"}</span>
+                <span>{isAdmin ? tMD("labelManage") : tMD("labelOpen")}</span>
                 <span style={{ fontSize: 14 }}>›</span>
               </span>
             </button>
           );
         })()}
 
+        {/* ═══ PREMIUM-HUB: Inventar + Monetarisierung ═══ */}
+        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <ProfilHubButton color="#FFD700" icon="📦" label="Inventar"            onClick={() => setShowInventory(true)} />
+          <ProfilHubButton color="#FFD700" icon="📈" label="Wachstumsfond"       onClick={() => setShowGrowthFund(true)} />
+          <ProfilHubButton color="#22D1C3" icon="📅" label="Monatspakete"        onClick={() => setShowMonthly(true)} />
+          <ProfilHubButton color="#FF2D78" icon="🎡" label="Glücksrad"           onClick={() => setShowWheel(true)} />
+          <ProfilHubButton color="#a855f7" icon="🔥" label="Schmiede des Lichts" onClick={() => setShowForge(true)} style={{ gridColumn: "1 / -1" }} />
+          <ProfilHubButton color="#4ade80" icon="🎁" label="Loot-Zentrale"        onClick={() => setShowLootHub(true)}  style={{ gridColumn: "1 / -1" }} />
+        </div>
+
         {/* ═══ LETZTE LÄUFE ═══ */}
-        <SectionHeader title="LETZTE LÄUFE" />
+        <SectionHeader title={tMD("labelLastRuns")} />
         {effectiveRecentRuns.length === 0 ? (
           <div style={{ background: "rgba(70, 82, 122, 0.45)", padding: 20, borderRadius: 18, textAlign: "center", color: MUTED, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
             Noch keine Läufe. Starte deine erste Eroberung auf der Karte!
@@ -4084,7 +4158,7 @@ function ProfilTab({
           return (
             <>
               <SectionHeader
-                title={isAdmin ? "VERWALTETE CREW" : "DEINE CREW"}
+                title={isAdmin ? tMD("labelManagedCrew") : tMD("labelYourCrew")}
                 action={myCrew ? (
                   <button
                     onClick={() => setActiveTab("crew")}
@@ -4093,7 +4167,7 @@ function ProfilTab({
                       borderRadius: 14, padding: "6px 12px",
                       color: myCrew.color, fontSize: 12, fontWeight: 800, cursor: "pointer",
                     }}
-                  >{isAdmin ? "Dashboard →" : "Öffnen →"}</button>
+                  >{isAdmin ? tMD("labelDashboardArrow") : tMD("labelOpenArrow")}</button>
                 ) : null}
               />
               {myCrew ? (
@@ -4161,7 +4235,7 @@ function ProfilTab({
 
         {/* ═══ GESUNDHEITSDATEN (nur 2 Kennzahlen, Rest im Modal) ═══ */}
         <SectionHeader
-          title="GESUNDHEITSDATEN"
+          title={tMD("labelHealthData")}
           action={
             <button
               onClick={() => setOpenModal("health")}
@@ -4176,13 +4250,13 @@ function ProfilTab({
           }
         />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <StatBox emoji="👣" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label="KM Gesamt" />
-          <StatBox emoji="🔥" value={(p?.total_calories || 0).toLocaleString()} label="KCAL Verbrannt" />
+          <StatBox emoji="👣" value={((p?.total_distance_m || 0) / 1000).toFixed(1)} label={tMD("labelKmTotal")} />
+          <StatBox emoji="🔥" value={(p?.total_calories || 0).toLocaleString()} label={tMD("labelKcalBurned")} />
         </div>
 
         {/* ═══ ERFOLGE (Top 5 als Balken + Modal für Rest) ═══ */}
         <SectionHeader
-          title="ERFOLGE"
+          title={tMD("labelAchievements")}
           action={
             <button
               onClick={() => setOpenModal("achievements")}
@@ -4216,7 +4290,7 @@ function ProfilTab({
         </div>
 
         {/* ═══ AKTIVITÄT (aktueller Monat, zentriert) ═══ */}
-        <SectionHeader title="AKTUELLER MONAT" />
+        <SectionHeader title={tMD("labelCurrentMonth")} />
         <div style={{
           background: "rgba(70, 82, 122, 0.45)", borderRadius: 16, padding: 16,
           border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -4225,7 +4299,7 @@ function ProfilTab({
         </div>
 
         {/* ═══ LOADOUT (Runner + Base) ═══ */}
-        <SectionHeader title="LOADOUT" />
+        <SectionHeader title={tMD("labelLoadout")} />
 
         {/* Loadout-Sections: 1) Auf der Karte (Runner)  2) An der Base */}
         <LoadoutTrio
@@ -4261,18 +4335,18 @@ function ProfilTab({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {[
-              { icon: "❓", label: "Hilfe",  onClick: () => setOpenModal("faq") },
+              { icon: "❓", label: tMD("labelHelp"),  onClick: () => setOpenModal("faq") },
               { icon: "📤", label: tMD("shareProfile"), onClick: async () => {
                 const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Gebiete · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
                 const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
                 try {
                   if (navigator.share) await navigator.share(shareData);
-                  else { await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`); appAlert("Profil-Text in Zwischenablage kopiert!"); }
+                  else { await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`); appAlert(tMD("profileTextCopied")); }
                 } catch { /* cancel */ }
               } },
-              { icon: "🪙", label: "Währungen-Guide", onClick: () => setOpenModal("xpguide") },
+              { icon: "🪙", label: tMD("labelCurrencyGuide"), onClick: () => setOpenModal("xpguide") },
               { icon: "🎫", label: "Support",      onClick: () => setOpenModal("support") },
-              { icon: "⚙️", label: "Einstellungen", onClick: () => setOpenModal("settings") },
+              { icon: "⚙️", label: tMD("labelSettings"), onClick: () => setOpenModal("settings") },
             ].map((b, i) => (
               <button key={i} onClick={b.onClick} style={{
                 padding: "14px 10px", borderRadius: 12,
@@ -4414,7 +4488,7 @@ function ProfilTab({
       {/* ═══════════ MODALS ═══════════ */}
       {openModal === "health" && (
         <Modal
-          title="Gesundheitsdaten"
+          title={tMD("labelHealthDataModal")}
           subtitle={tMD("fitnessOverviewSubtitle")}
           icon="💪"
           accent={PRIMARY}
@@ -4431,7 +4505,7 @@ function ProfilTab({
       )}
 
       {openModal === "settings" && (
-        <Modal title="Einstellungen" subtitle="Deine App-Präferenzen" icon="⚙️" accent="#5ddaf0" onClose={() => setOpenModal(null)}>
+        <Modal title={tMD("labelSettingsModal")} subtitle={tMD("labelAppPreferences")} icon="⚙️" accent="#5ddaf0" onClose={() => setOpenModal(null)}>
           <AppSettingsContent
             p={p}
             updateSetting={updateSetting}
@@ -4482,7 +4556,7 @@ function ProfilTab({
 
       {openModal === "achievements" && (
         <Modal
-          title="Alle Erfolge"
+          title={tMD("labelAllAchievements")}
           subtitle={`${achievementsUnlocked} von ${ACHIEVEMENTS.length} freigeschaltet · ${ACHIEVEMENT_CATEGORIES.length} Kategorien`}
           icon="🏆"
           accent="#FFD700"
@@ -4513,8 +4587,8 @@ function ProfilTab({
 
       {openModal === "ranks" && (
         <Modal
-          title="Alle Ränge"
-          subtitle={`${RUNNER_RANKS.length} Stufen von Straßen-Scout bis Straßen-Gott`}
+          title={tMD("labelAllRanks")}
+          subtitle={tMD("labelRankRange", { n: RUNNER_RANKS.length })}
           icon="🏅"
           accent={currentRankLive.color}
           onClose={() => setOpenModal(null)}
@@ -4549,7 +4623,7 @@ function ProfilTab({
                       display: "flex", alignItems: "center", gap: 6,
                     }}>
                       {r.name}
-                      {current && <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: r.color, color: BG_DEEP, fontWeight: 900 }}>AKTUELL</span>}
+                      {current && <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: r.color, color: BG_DEEP, fontWeight: 900 }}>{tMD("labelCurrent")}</span>}
                     </div>
                     <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
                       {r.minXp.toLocaleString("de-DE")} 🪙 {next && `— ${(next.minXp - 1).toLocaleString("de-DE")} 🪙`}
@@ -4560,7 +4634,7 @@ function ProfilTab({
                       <span style={{ color: r.color, fontSize: 18 }}>✓</span>
                     ) : (
                       <div style={{ color: MUTED, fontSize: 10 }}>
-                        <div>noch</div>
+                        <div>{tMD("labelStillNeeded")}</div>
                         <div style={{ color: r.color, fontWeight: 800, fontSize: 12 }}>{xpToRank.toLocaleString("de-DE")} 🪙</div>
                       </div>
                     )}
@@ -4582,13 +4656,13 @@ function ProfilTab({
       )}
 
       {openModal === "inbox" && (
-        <Modal title="Posteingang" subtitle="Nachrichten, Berichte, Crew & Events" icon="📬" accent="#a855f7" maxWidth={1100} onClose={() => setOpenModal(null)}>
+        <Modal title={tMD("labelInboxModal")} subtitle={tMD("labelInboxSubtitle")} icon="📬" accent="#a855f7" maxWidth={1100} onClose={() => setOpenModal(null)}>
           <InboxClient />
         </Modal>
       )}
 
       {openModal === "support" && (
-        <Modal title="Support & Kontakt" subtitle="Bug, Frage oder Partner-Anfrage" icon="🎫" accent="#FFD700" onClose={() => setOpenModal(null)}>
+        <Modal title={tMD("labelSupportContact")} subtitle={tMD("labelSupportSubtitle")} icon="🎫" accent="#FFD700" onClose={() => setOpenModal(null)}>
           <SupportContent
             prefillEmail={(p as unknown as { email?: string })?.email ?? ""}
             prefillName={p?.display_name ?? p?.username ?? ""}
@@ -4816,7 +4890,34 @@ function ProfilTab({
           }}
         />
       )}
+
+      {/* ═══ Premium-Hub Modals ═══ */}
+      {showInventory  && <RunnerInventoryModal onClose={() => setShowInventory(false)} />}
+      {showGrowthFund && <GrowthFundModal      onClose={() => setShowGrowthFund(false)} />}
+      {showMonthly    && <MonthlyPackModal     onClose={() => setShowMonthly(false)} />}
+      {showWheel      && <LuckyWheelModal      onClose={() => setShowWheel(false)} />}
+      {showForge      && <ForgeOfLightModal    onClose={() => setShowForge(false)} />}
+      {showLootHub    && <LootHubModal          onClose={() => setShowLootHub(false)} />}
     </div>
+  );
+}
+
+function ProfilHubButton({ color, icon, label, onClick, style }: {
+  color: string; icon: string; label: string; onClick: () => void; style?: React.CSSProperties;
+}) {
+  return (
+    <button onClick={onClick} style={{
+      padding: "12px 14px", borderRadius: 12,
+      background: `linear-gradient(135deg, ${color}22, ${color}0a)`,
+      border: `1px solid ${color}55`,
+      color: "#FFF", fontSize: 13, fontWeight: 800, cursor: "pointer",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      boxShadow: `0 0 16px ${color}22`,
+      ...style,
+    }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <span>{label}</span>
+    </button>
   );
 }
 
@@ -5347,6 +5448,7 @@ function RunnerStat({ emoji, value, label, unit, color }: {
  * ═══════════════════════════════════════════════════════ */
 
 function HappyHourBanner() {
+  const tMD = useTranslations("MapDashboard");
   const hh = getCurrentHappyHour();
   const [remaining, setRemaining] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -5384,7 +5486,7 @@ function HappyHourBanner() {
     return (
       <button
         onClick={() => setExpanded(true)}
-        aria-label="Happy-Hour-Bonus erweitern"
+        aria-label={tMD("ariaExpandHappyHour")}
         style={{
           ...baseStyle,
           borderRadius: 999,
@@ -5404,7 +5506,7 @@ function HappyHourBanner() {
   return (
     <button
       onClick={() => setExpanded(false)}
-      aria-label="Happy-Hour-Bonus einklappen"
+      aria-label={tMD("ariaCollapseHappyHour")}
       style={{
         ...baseStyle,
         borderRadius: 999,
@@ -5553,7 +5655,7 @@ function LockOverlay({ onUnlock, teamColor, walking, currentStreet, distance }: 
             animation: walking ? "lockDot 1.6s ease-in-out infinite" : "none",
           }} />
           <span style={{ color: walking ? teamColor : "#a8b4cf" }}>
-            {walking ? "LAUF LÄUFT" : "BILDSCHIRM GESPERRT"}
+            {walking ? tMD("labelRunRunning") : tMD("labelScreenLocked")}
           </span>
         </div>
         <style>{`@keyframes lockDot { 0%,100% { transform: scale(1); } 50% { transform: scale(1.5); } }`}</style>
@@ -5581,7 +5683,7 @@ function LockOverlay({ onUnlock, teamColor, walking, currentStreet, distance }: 
         }}>
           {pressing
             ? tMD("holdToUnlock")
-            : "🔒 Tap & Hold unten zum Entsperren"}
+            : tMD("labelTapHoldUnlock")}
         </div>
         <button
           onMouseDown={startPress}
@@ -5590,7 +5692,7 @@ function LockOverlay({ onUnlock, teamColor, walking, currentStreet, distance }: 
           onTouchStart={(e) => { e.preventDefault(); startPress(); }}
           onTouchEnd={cancelPress}
           onTouchCancel={cancelPress}
-          aria-label="Zum Entsperren halten"
+          aria-label={tMD("ariaHoldToUnlock")}
           style={{
             position: "relative",
             width: 96, height: 96, borderRadius: 48,
@@ -5682,8 +5784,8 @@ function ShopDetailModal({ shop, userXp, onClose }: {
         rating,
         comment: reviewText.trim() || null,
       }, { onConflict: "business_id,user_id" });
-      if (error) { await appAlert(`Fehler: ${error.message}`); return; }
-      await appAlert("⭐ Danke für deine Bewertung!");
+      if (error) { await appAlert(tMD("errorWithMessage", { message: error.message })); return; }
+      await appAlert(tMD("thanksForReview"));
       setShowReview(false); setRating(0); setReviewText("");
       // Aggregat neu laden, damit die Sterne-Anzeige sich sofort aktualisiert
       const { data: agg } = await sb.from("shop_reviews_agg")
@@ -5773,7 +5875,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
               <>
                 <span>⭐ {Number(ratingAgg.avg_rating).toFixed(1)}</span>
                 <span style={{ color: MUTED, opacity: 0.7 }}>
-                  ({ratingAgg.review_count} {ratingAgg.review_count === 1 ? "Bewertung" : "Bewertungen"})
+                  ({ratingAgg.review_count} {ratingAgg.review_count === 1 ? tMD("labelRating") : tMD("labelRatings")})
                 </span>
               </>
             ) : (
@@ -5821,7 +5923,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                 cursor: userXp >= 300 ? "pointer" : "not-allowed",
               }}
             >
-              {userXp >= 300 ? "✨ Jetzt einlösen" : `Noch ${300 - userXp} 🪙 sammeln`}
+              {userXp >= 300 ? tMD("labelRedeemNow") : tMD("labelCollectMore", { n: 300 - userXp })}
             </button>
           </div>
 
@@ -5862,7 +5964,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                   cursor: arenaStatus.i_eligible ? "pointer" : "not-allowed",
                 }}
               >
-                {arenaStatus.i_eligible ? "🏟️ Arena betreten" : "🔒 Erst einlösen"}
+                {arenaStatus.i_eligible ? tMD("labelEnterArena") : tMD("labelRedeemFirst")}
               </button>
             </div>
           )}
@@ -5871,8 +5973,8 @@ function ShopDetailModal({ shop, userXp, onClose }: {
           <div style={{
             marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8,
           }}>
-            <RunMiniStat icon="🕐" value={shop.hours?.split(",")[0]?.trim() || "Mo–Fr 10–18"} label="Öffnungszeiten" color="#4ade80" />
-            <RunMiniStat icon="📞" value={shop.phone || "—"} label="Telefon" color="#5ddaf0" />
+            <RunMiniStat icon="🕐" value={shop.hours?.split(",")[0]?.trim() || "Mo–Fr 10–18"} label={tMD("labelOpeningHours")} color="#4ade80" />
+            <RunMiniStat icon="📞" value={shop.phone || "—"} label={tMD("labelPhone")} color="#5ddaf0" />
           </div>
 
           {/* ═══ BEWERTUNG ═══ */}
@@ -5906,7 +6008,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                         onMouseEnter={() => setHoverRating(n)}
                         onMouseLeave={() => setHoverRating(0)}
                         onClick={() => setRating(n)}
-                        aria-label={`${n} Sterne`}
+                        aria-label={tMD("ariaStarsCount", { n })}
                         style={{
                           background: "transparent", border: "none", cursor: "pointer",
                           fontSize: 28, padding: 2, lineHeight: 1,
@@ -5923,7 +6025,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                 <textarea
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value.slice(0, 280))}
-                  placeholder="Wie war's? (kurz & ehrlich, max. 280 Zeichen)"
+                  placeholder={tMD("placeholderReview")}
                   rows={3}
                   style={{
                     width: "100%", resize: "vertical",
@@ -5990,7 +6092,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
             >🧭 Route anzeigen</button>
             <button
               onClick={toggleFavorite}
-              aria-label={isFavorite ? "Favorit entfernen" : "Als Favorit markieren"}
+              aria-label={isFavorite ? tMD("ariaRemoveFavorite") : tMD("ariaMarkFavorite")}
               style={{
                 ...actionBtnStyle(),
                 ...(isFavorite ? {
@@ -6002,7 +6104,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
             >{isFavorite ? "★" : "⭐"}</button>
             <button
               onClick={() => setReportOpen(true)}
-              aria-label="Shop melden"
+              aria-label={tMD("ariaReportShop")}
               style={actionBtnStyle()}
             >⚠️</button>
           </div>
@@ -6490,6 +6592,7 @@ type FavoriteShop = {
 };
 
 function ShopFavoritesSection({ userId }: { userId: string }) {
+  const tMD = useTranslations("MapDashboard");
   const [favorites, setFavorites] = useState<FavoriteShop[] | null>(null);
   const sb = createClient();
 
@@ -6529,7 +6632,7 @@ function ShopFavoritesSection({ userId }: { userId: string }) {
 
   return (
     <>
-      <SectionHeader title="SHOP-FAVORITEN" action={
+      <SectionHeader title={tMD("labelShopFavorites")} action={
         <span style={{ color: MUTED, fontSize: 11, fontWeight: 700 }}>{favorites.length} gespeichert</span>
       } />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -6561,7 +6664,7 @@ function ShopFavoritesSection({ userId }: { userId: string }) {
                   : `https://www.google.com/maps/dir/?api=1&destination=${f.lat},${f.lng}`;
                 window.open(url, "_blank", "noopener,noreferrer");
               }}
-              aria-label="Route anzeigen"
+              aria-label={tMD("ariaShowRoute")}
               style={{
                 padding: "6px 10px", borderRadius: 8,
                 background: "rgba(34,209,195,0.15)", border: "1px solid rgba(34,209,195,0.4)",
@@ -6570,7 +6673,7 @@ function ShopFavoritesSection({ userId }: { userId: string }) {
             >🧭</button>
             <button
               onClick={() => remove(f.business_id)}
-              aria-label="Favorit entfernen"
+              aria-label={tMD("ariaRemoveFavorite")}
               style={{
                 padding: "6px 10px", borderRadius: 8,
                 background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
@@ -6593,6 +6696,7 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
   teamColor: string;
   onSwitchToMap: () => void;
 }) {
+  const tMD = useTranslations("MapDashboard");
   const now = new Date();
   const msPerDay = 24 * 60 * 60 * 1000;
   // Lokaler YYYY-MM-DD (NICHT UTC) — sonst landet ein Lauf am Abend der falschen Tag
@@ -6656,7 +6760,7 @@ function TodayHero({ walking, currentStreet, currentDistance, runs, streak, team
           color: walking ? "#4ade80" : teamColor,
           fontSize: 11, fontWeight: 800, letterSpacing: 1.2, flexShrink: 0,
         }}>
-          {walking ? "LÄUFT GERADE" : "BEREIT ZUM START"}
+          {walking ? tMD("labelRunningNow") : tMD("labelReadyToStart")}
         </div>
         {walking && currentStreet && (
           <div style={{
@@ -7359,6 +7463,7 @@ function CrewTab({
 }) {
   const supabase = createClient();
   const tC = useTranslations("Crew");
+  const tMD = useTranslations("MapDashboard");
   const [mode, setMode] = useState<"idle" | "create" | "join" | "discover">("idle");
   const [subTab, setSubTab] = useState<CrewSubTab>("overview");
 
@@ -7373,7 +7478,7 @@ function CrewTab({
   const [joinCode, setJoinCode] = useState("");
 
   async function handleCreate() {
-    if (!newName.trim() || !newZip.trim()) return appAlert("Bitte Name und PLZ eingeben");
+    if (!newName.trim() || !newZip.trim()) return appAlert(tMD("enterNameAndZip"));
     if (!p) return;
 
     const { data, error } = await supabase.from("crews").insert({
@@ -7399,9 +7504,9 @@ function CrewTab({
     setProfile({ ...p, current_crew_id: data.id, team_color: newColor });
     setMode("idle");
     if (promoted && promoted.promoted_count > 0) {
-      appAlert(`✅ "${newName}" gegründet! 🏆 ${promoted.promoted_count} Solo-Gebiete aktiviert · +${promoted.xp_granted} 🪙 Wegemünzen`);
+      appAlert(tMD("crewFoundedWithSolo", { name: newName, count: promoted.promoted_count, xp: promoted.xp_granted }));
     } else {
-      appAlert(`✅ "${newName}" gegründet — ${CREW_TYPES.find(t => t.id === newType)?.name}!`);
+      appAlert(tMD("crewFoundedWithType", { name: newName, typeLabel: CREW_TYPES.find(ct => ct.id === newType)?.name ?? "" }));
     }
   }
 
@@ -8502,6 +8607,7 @@ function fmtDateLocal(iso: string): string {
 }
 
 function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
+  const tMD = useTranslations("MapDashboard");
   const [open, setOpen] = useState(false);
   const [routeOpen, setRouteOpen] = useState(false);
   const [actionBusy, setActionBusy] = useState<null | "share" | "gpx">(null);
@@ -8584,7 +8690,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
             <RunMiniStat icon="⏱️" value={fmtDurationLocal(duration)}     label="Dauer"      color="#5ddaf0" />
             <RunMiniStat icon="⚡" value={pace}                            label="Ø Pace"     color="#FFD700" />
             <RunMiniStat icon="👣" value={steps.toLocaleString("de-DE")}  label="Schritte"    color="#a855f7" />
-            <RunMiniStat icon="🔥" value={`${kcal} kcal`}                 label="Verbrannt"   color="#FF6B4A" />
+            <RunMiniStat icon="🔥" value={`${kcal} kcal`}                 label={tMD("labelBurned")}   color="#FF6B4A" />
             <RunMiniStat icon="❤️" value={`${avgHr} bpm`}                 label="Ø Puls"      color="#FF2D78" />
           </div>
 
@@ -8729,8 +8835,8 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
                   duration_s: run.duration_s,
                   xp_earned: run.xp_earned,
                 });
-                if (r.ok && r.shared) await appAlert("✓ Geteilt oder in Zwischenablage kopiert.");
-                else if (!r.ok) await appAlert("Teilen nicht möglich.");
+                if (r.ok && r.shared) await appAlert(tMD("sharedOrCopied"));
+                else if (!r.ok) await appAlert(tMD("shareNotPossible"));
               } finally { setActionBusy(null); }
             }}>
               {actionBusy === "share" ? "…" : "📤 Teilen"}
@@ -8740,7 +8846,7 @@ function RunCard({ run, teamColor }: { run: Territory; teamColor: string }) {
               try {
                 const { exportRunAsGPX } = await import("@/lib/run-export");
                 const r = await exportRunAsGPX(run.id, run.street_name);
-                if (!r.ok) await appAlert(r.error || "GPX-Export fehlgeschlagen.");
+                if (!r.ok) await appAlert(r.error || tMD("gpxExportFailed"));
               } finally { setActionBusy(null); }
             }}>
               {actionBusy === "gpx" ? "…" : "📥 GPX-Export"}
@@ -8933,6 +9039,7 @@ function breadcrumbStyle(active: boolean): React.CSSProperties {
 }
 
 function NearbyCrewCard({ crew: c }: { crew: typeof DEMO_NEARBY_CREWS[number] }) {
+  const tMD = useTranslations("MapDashboard");
   const t = CREW_TYPES.find((x) => x.id === c.type)!;
   const priv = CREW_PRIVACY_OPTIONS.find((x) => x.id === c.privacy)!;
   return (
@@ -8975,7 +9082,7 @@ function NearbyCrewCard({ crew: c }: { crew: typeof DEMO_NEARBY_CREWS[number] })
           <span>📏 <b style={{ color: "#FFF" }}>{c.weekly_km}</b> km/Wo</span>
         </div>
         <button
-          onClick={() => appAlert(`Anfrage an "${c.name}" — wird mit Backend verknüpft.`)}
+          onClick={() => appAlert(tMD("joinRequestSent", { name: c.name }))}
           disabled={c.privacy === "closed"}
           style={{
             padding: "7px 14px", borderRadius: 10,
@@ -9036,10 +9143,11 @@ function CreateCrewForm({
   onSubmit: () => void; onCancel: () => void;
 }) {
   const tC = useTranslations("Crew");
+  const tMD = useTranslations("MapDashboard");
   const selectedType = CREW_TYPES.find((t) => t.id === type)!;
-  const initial = (name.trim() || placeholderForType(type)).charAt(0).toUpperCase();
-  const displayName = name.trim() || placeholderForType(type);
-  const displayMotto = motto.trim() || mottoForType(type);
+  const initial = (name.trim() || placeholderForType(type, tMD)).charAt(0).toUpperCase();
+  const displayName = name.trim() || placeholderForType(type, tMD);
+  const displayMotto = motto.trim() || mottoForType(type, tMD);
   const displayZip = zip || "_____";
 
   const [isWide, setIsWide] = useState(false);
@@ -9120,13 +9228,13 @@ function CreateCrewForm({
           <Label>{tC("labelCrewName")}</Label>
           <input
             value={name} onChange={(e) => setName(e.target.value.slice(0, 32))}
-            placeholder={placeholderForType(type)}
+            placeholder={placeholderForType(type, tMD)}
             style={{ ...inputStyle(), marginBottom: 12 }}
           />
           <Label>{tC("labelMotto")} <span style={{ color: MUTED, fontWeight: 400 }}>{tC("labelMottoOptional")}</span></Label>
           <input
             value={motto} onChange={(e) => setMotto(e.target.value.slice(0, 60))}
-            placeholder={mottoForType(type)}
+            placeholder={mottoForType(type, tMD)}
             style={{ ...inputStyle(), marginBottom: 12 }}
           />
           <Label>{tC("labelColor")}</Label>
@@ -9373,27 +9481,27 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-function placeholderForType(t: CrewTypeId): string {
+function placeholderForType(t: CrewTypeId, tMD: (key: string) => string): string {
   const map: Record<CrewTypeId, string> = {
-    friends: "z.B. Die Läuf-Kumpels",
-    family: "z.B. Familie Müller Runs",
-    school: "z.B. 10b Running Squad",
-    work: "z.B. Acme GmbH Runners",
-    sports: "z.B. TSV 1860 Lauftreff",
-    neighborhood: "z.B. Kiez Läufer 13435",
-    open: "z.B. Berlin Evening Runners",
+    friends: tMD("placeholderCrewFriends"),
+    family: tMD("placeholderCrewFamily"),
+    school: tMD("placeholderCrewSchool"),
+    work: tMD("placeholderCrewWork"),
+    sports: tMD("placeholderCrewSports"),
+    neighborhood: tMD("placeholderCrewNeighborhood"),
+    open: tMD("placeholderCrewOpen"),
   };
   return map[t];
 }
-function mottoForType(t: CrewTypeId): string {
+function mottoForType(t: CrewTypeId, tMD: (key: string) => string): string {
   const map: Record<CrewTypeId, string> = {
-    friends: "Keiner bleibt zu Hause.",
-    family: "Zusammen laufen, zusammen wachsen.",
-    school: "Wir dominieren den Schulhof UND den Kiez.",
-    work: "Nach der Arbeit die eigentliche Arbeit.",
-    sports: "Der Verein lebt auf der Straße weiter.",
-    neighborhood: "Ein Kiez, eine Crew.",
-    open: "Komm vorbei — wir laufen gleich los.",
+    friends: tMD("mottoCrewFriends"),
+    family: tMD("mottoCrewFamily"),
+    school: tMD("mottoCrewSchool"),
+    work: tMD("mottoCrewWork"),
+    sports: tMD("mottoCrewSports"),
+    neighborhood: tMD("mottoCrewNeighborhood"),
+    open: tMD("mottoCrewOpen"),
   };
   return map[t];
 }
@@ -9805,6 +9913,7 @@ function CrewOverview({ crew, isAdmin, onLeave }: { crew: Crew; isAdmin: boolean
       )}
 
       {potionsOpen && <PotionInventoryModal onClose={() => setPotionsOpen(false)} />}
+
 
       {/* Rivalen-Duell */}
       <div style={{
@@ -12987,6 +13096,7 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
   onClose: () => void;
   onAttack: () => void | Promise<void>;
 }) {
+  const tMD = useTranslations("MapDashboard");
   const pct = Math.round((boss.current_hp / boss.max_hp) * 100);
   const [attacking, setAttacking] = useState(false);
   const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
@@ -13073,8 +13183,8 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
             marginBottom: 8, letterSpacing: 0.5,
             boxShadow: !inRange ? "none" : "0 4px 14px rgba(255,45,120,0.5)",
           }}
-        >{attacking ? "Angreife…" : !inRange ? "🔒 Zu weit entfernt" : "⚔️ Angreifen (500–2000 DMG)"}</button>
-        <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
+        >{attacking ? tMD("labelAttacking") : !inRange ? tMD("labelTooFar") : tMD("labelAttack")}</button>
+        <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{tMD("labelBack")}</button>
       </div>
     </div>
   );
@@ -13390,6 +13500,7 @@ type MmrSort = "mmr" | "peak" | "winrate" | "games";
 type MmrFactionFilter = "all" | "kronenwacht" | "gossenbund";
 
 function MmrLeaderboardView() {
+  const tMD = useTranslations("MapDashboard");
   const [entries, setEntries] = useState<MmrEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<MmrSort>("mmr");
@@ -13409,11 +13520,11 @@ function MmrLeaderboardView() {
     (async () => {
       try {
         const res = await fetch("/api/runner/mmr/leaderboard?limit=100");
-        if (!res.ok) { setError("Leaderboard konnte nicht geladen werden"); return; }
+        if (!res.ok) { setError(tMD("leaderboardLoadFailed")); return; }
         const j = await res.json() as { entries: MmrEntry[] };
         setEntries(j.entries);
       } catch {
-        setError("Netzwerkfehler");
+        setError(tMD("networkError"));
       }
     })();
   }, []);
@@ -14057,6 +14168,7 @@ function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
   onClose: () => void;
   onTrain: () => void | Promise<void>;
 }) {
+  const tMD = useTranslations("MapDashboard");
   const [training, setTraining] = useState(false);
   const done = !!sanctuary.trained_today;
   const disabled = done || training || !inRange;
@@ -14098,8 +14210,8 @@ function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
             color: done ? "#4ade80" : !inRange ? "#8B8FA3" : "#0F1115",
             fontSize: 14, fontWeight: 900, cursor: disabled ? "not-allowed" : "pointer", marginBottom: 8,
           }}
-        >{done ? "✓ Heute schon trainiert" : training ? "Trainiere…" : !inRange ? "🔒 Zu weit entfernt" : `🙏 Trainieren (+${sanctuary.xp_reward} XP)`}</button>
-        <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Zurück</button>
+        >{done ? tMD("labelAlreadyTrainedToday") : training ? tMD("labelTraining") : !inRange ? tMD("labelTooFar") : tMD("labelTrainAction", { xp: sanctuary.xp_reward })}</button>
+        <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{tMD("labelBack")}</button>
       </div>
     </div>
   );

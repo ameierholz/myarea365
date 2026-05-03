@@ -580,6 +580,8 @@ interface AppMapProps {
   shadowRoute?: { id: string; runner_color: string; geom: Array<{ lat: number; lng: number }> } | null;
   shopReviews?: Array<{ business_id: string; avg_rating: number; review_count: number }>;
   lootDrops?: Array<{ id: string; lat: number; lng: number; rarity: string; kind: string; expires_at?: number }>;
+  lorePieces?: Array<{ piece_id: string; lat: number; lng: number; name: string; set_name?: string }>;
+  onLorePickup?: (pieceId: string) => void;
   arenaCountdowns?: Array<{ business_id: string; business_lat: number; business_lng: number; starts_at: string }>;
   onBossClick?: (raidId: string) => void;
   onSanctuaryClick?: (sanctuaryId: string) => void;
@@ -991,6 +993,8 @@ export function AppMap({
   shadowRoute = null,
   shopReviews = [],
   lootDrops = [],
+  lorePieces = [],
+  onLorePickup,
   arenaCountdowns = [],
   onBossClick,
   onSanctuaryClick,
@@ -3129,6 +3133,60 @@ export function AppMap({
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [mapReady, lootDrops]);
+
+  // ─── Lore-Pieces (per-User Spawn-Coords aus user_lore_piece_spawns) ────
+  const loreMarkersRef = useRef<Array<{ marker: mapboxgl.Marker; el: HTMLElement; piece: typeof lorePieces[0] }>>([]);
+  const lorePiecesInView = useMemo(() => cull(lorePieces), [cull, lorePieces]);
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const wantIds = new Set(lorePiecesInView.map((p) => p.piece_id));
+    loreMarkersRef.current = loreMarkersRef.current.filter((m) => {
+      if (wantIds.has(m.piece.piece_id)) return true;
+      m.marker.remove();
+      return false;
+    });
+    const haveIds = new Set(loreMarkersRef.current.map((m) => m.piece.piece_id));
+    lorePiecesInView.forEach((p) => {
+      if (haveIds.has(p.piece_id)) return;
+      const outer = document.createElement("div");
+      outer.style.pointerEvents = "auto";
+      outer.style.cursor = "pointer";
+      outer.title = `${p.name}${p.set_name ? " — " + p.set_name : ""}`;
+      outer.innerHTML = `
+        <div class="ma365-lore-wrap" style="position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;inset:4px;border-radius:50%;background:rgba(255,215,0,0.18);box-shadow:0 0 14px rgba(255,215,0,0.55);animation:lorePulse 2s ease-in-out infinite;"></div>
+          <span style="position:relative;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.6))">📜</span>
+        </div>
+        <style>@keyframes lorePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:0.55}}</style>`;
+      outer.addEventListener("click", () => onLorePickup?.(p.piece_id));
+      const marker = new mapboxgl.Marker({ element: outer, anchor: "center" })
+        .setLngLat([p.lng, p.lat]).addTo(map);
+      loreMarkersRef.current.push({ marker, el: outer.querySelector(".ma365-lore-wrap") as HTMLElement, piece: p });
+    });
+  }, [mapReady, lorePiecesInView, onLorePickup]);
+
+  // Proximity-Auto-Pickup für Lore-Pieces (≤30m)
+  useEffect(() => {
+    if (!pos || loreMarkersRef.current.length === 0) return;
+    const haversineM = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const la1 = (a.lat * Math.PI) / 180, la2 = (b.lat * Math.PI) / 180;
+      const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(x));
+    };
+    loreMarkersRef.current.forEach(({ el, piece }) => {
+      if (!el || el.dataset.pickingUp === "1") return;
+      const d = haversineM(pos, { lat: piece.lat, lng: piece.lng });
+      if (d <= 30) {
+        el.dataset.pickingUp = "1";
+        el.style.opacity = "0";
+        setTimeout(() => onLorePickup?.(piece.piece_id), 400);
+      }
+    });
+  }, [pos, onLorePickup]);
 
   // Proximity-Check: User-Position vs Loot-Drops. 30m = auto-pickup, 100m = "ready"-Glow
   useEffect(() => {

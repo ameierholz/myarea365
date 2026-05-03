@@ -10,6 +10,7 @@ import {
   type GuardianArchetype, type GuardianType,
 } from "@/lib/guardian";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS } from "@/lib/game-config";
+import { useMarkerName, useLightName } from "@/lib/i18n-game";
 import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildPinThemePrompt } from "@/lib/artwork-prompts";
@@ -55,6 +56,8 @@ export function LoadoutTrio({
   onPinThemeChange?: (theme: PinTheme) => void;
 }) {
   const tL = useTranslations("Loadout");
+  const markerName = useMarkerName();
+  const lightName = useLightName();
   const [col, setCol] = useState<CollectionResponse | null>(null);
   const [markerOpen, setMarkerOpen] = useState(false);
   const [lightOpen, setLightOpen] = useState(false);
@@ -149,6 +152,8 @@ export function LoadoutTrio({
   const active = col?.owned.find((g) => g.is_active) ?? null;
   const currentMarker = UNLOCKABLE_MARKERS.find((m) => m.id === equippedMarker) || UNLOCKABLE_MARKERS[0];
   const currentLight = RUNNER_LIGHTS.find((l) => l.id === equippedLight) || RUNNER_LIGHTS[0];
+  const currentMarkerName = markerName(currentMarker.id);
+  const currentLightName = lightName(currentLight.id);
   const lightGradient = currentLight.gradient.length > 1
     ? `linear-gradient(90deg, ${currentLight.gradient.join(", ")})`
     : currentLight.color;
@@ -218,10 +223,10 @@ export function LoadoutTrio({
             const variants = cosmeticArt.marker[currentMarker.id];
             const mArt = variants?.[equippedMarkerVariant] ?? variants?.neutral;
             if (mArt?.video_url) return <video src={mArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />;
-            if (mArt?.image_url) return <img src={mArt.image_url} alt={currentMarker.name} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />;
+            if (mArt?.image_url) return <img src={mArt.image_url} alt={currentMarkerName} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />;
             return <div style={{ fontSize: 44, marginTop: 4 }}>{currentMarker.icon}</div>;
           })()}
-          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{currentMarker.name}</div>
+          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{currentMarkerName}</div>
           <div style={{ fontSize: 8, color: "#8B8FA3", marginTop: 1, fontWeight: 700 }}>{tL("avatarSharedHint")}</div>
           <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
         </div>
@@ -232,7 +237,7 @@ export function LoadoutTrio({
           {(() => {
             const lArt = cosmeticArt.light[currentLight.id];
             if (lArt?.video_url) return <video src={lArt.video_url} autoPlay loop muted playsInline style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />;
-            if (lArt?.image_url) return <img src={lArt.image_url} alt={currentLight.name} style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />;
+            if (lArt?.image_url) return <img src={lArt.image_url} alt={currentLightName} style={{ width: 90, height: 40, objectFit: "contain", marginTop: 14, marginBottom: 6, filter: "url(#ma365-chroma-black)" }} />;
             // Animierte Live-Vorschau (Particle-Engine, identisch zur Karte)
             return (
               <div style={{ marginTop: 14, marginBottom: 6 }}>
@@ -240,7 +245,7 @@ export function LoadoutTrio({
               </div>
             );
           })()}
-          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{currentLight.name}</div>
+          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{currentLightName}</div>
           <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
         </div>
 

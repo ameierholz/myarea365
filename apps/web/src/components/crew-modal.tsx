@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt } from "@/components/resource-icon";
 
@@ -24,6 +25,7 @@ type Bounty = { id: string; target_user_id: string; target_name: string; reward_
 type ShopItem = { id: string; name: string; description: string; category: string; price_coins: number };
 
 export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; onPlaceBuilding?: (kind: "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel") => void }) {
+  const t = useTranslations("CrewModal");
   const [tab, setTab] = useState<Tab>("uebersicht");
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,16 +59,16 @@ export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; o
         }}>
           <div style={{ color: TEXT, fontSize: 20, fontWeight: 400, fontFamily: "var(--font-display-stack)", letterSpacing: 1.2, display: "flex", alignItems: "center", gap: 8 }}>
             <UiIcon slot="quick_crew" fallback="⚔" art={uiArt} size={22} />
-            CREW
+            {t("title")}
           </div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 22, cursor: "pointer" }}>✕</button>
         </div>
 
         {error && (
-          <div style={{ padding: 18, color: "#FF6B4A" }}>Fehler: {error}</div>
+          <div style={{ padding: 18, color: "#FF6B4A" }}>{t("errorPrefix", { msg: error })}</div>
         )}
         {!error && !overview && (
-          <div style={{ padding: 18, color: MUTED }}>Lade…</div>
+          <div style={{ padding: 18, color: MUTED }}>{t("loading")}</div>
         )}
         {!error && overview && (
           <>
@@ -91,6 +93,7 @@ export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; o
 }
 
 function Header({ overview }: { overview: Overview }) {
+  const t = useTranslations("CrewModal");
   const { crew, leader, stats } = overview;
   const uiArt = useUiIconArt();
   return (
@@ -111,7 +114,7 @@ function Header({ overview }: { overview: Overview }) {
           [{crew.tag}] {crew.name}
         </div>
         <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-          Anführer: <span style={{ color: TEXT, fontWeight: 700 }}>{leader?.name ?? "—"}</span> · PLZ {crew.zip}
+          {t("leaderLabel")} <span style={{ color: TEXT, fontWeight: 700 }}>{leader?.name ?? t("noLeader")}</span> · {t("zipPrefix", { zip: crew.zip })}
         </div>
       </div>
       <div style={{ textAlign: "right" }}>
@@ -119,21 +122,22 @@ function Header({ overview }: { overview: Overview }) {
           <UiIcon slot="stat_ansehen" fallback="⚜" art={uiArt} size={22} />
           {stats.ansehen_total.toLocaleString()}
         </div>
-        <div style={{ color: MUTED, fontSize: 11 }}>Crew-Ansehen</div>
+        <div style={{ color: MUTED, fontSize: 11 }}>{t("ansehenLabel")}</div>
       </div>
     </div>
   );
 }
 
 function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; uiArt: ReturnType<typeof useUiIconArt> }) {
+  const tt = useTranslations("CrewModal");
   const tabs: Array<{ id: Tab; label: string; slot: string; fallback: string }> = [
-    { id: "uebersicht",    label: "Übersicht",     slot: "crew_tab_overview", fallback: "📋" },
-    { id: "mitglieder",    label: "Mitglieder",    slot: "crew_tab_members",  fallback: "👥" },
-    { id: "tech",          label: "Forschung",     slot: "crew_tab_research", fallback: "🧪" },
-    { id: "bauwerke",      label: "Bauwerke",      slot: "crew_tab_buildings", fallback: "🏗" },
-    { id: "kopfgelder",    label: "Kopfgelder",    slot: "crew_tab_bounties", fallback: "🎯" },
-    { id: "shop",          label: "Lagerhaus",     slot: "crew_tab_shop",     fallback: "📦" },
-    { id: "einstellungen", label: "Einstellungen", slot: "crew_tab_settings", fallback: "⚙" },
+    { id: "uebersicht",    label: tt("tabOverview"),  slot: "crew_tab_overview", fallback: "📋" },
+    { id: "mitglieder",    label: tt("tabMembers"),   slot: "crew_tab_members",  fallback: "👥" },
+    { id: "tech",          label: tt("tabResearch"),  slot: "crew_tab_research", fallback: "🧪" },
+    { id: "bauwerke",      label: tt("tabBuildings"), slot: "crew_tab_buildings", fallback: "🏗" },
+    { id: "kopfgelder",    label: tt("tabBounties"),  slot: "crew_tab_bounties", fallback: "🎯" },
+    { id: "shop",          label: tt("tabShop"),      slot: "crew_tab_shop",     fallback: "📦" },
+    { id: "einstellungen", label: tt("tabSettings"),  slot: "crew_tab_settings", fallback: "⚙" },
   ];
   return (
     <div style={{
@@ -163,25 +167,26 @@ function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; 
 }
 
 function TabUebersicht({ overview }: { overview: Overview }) {
+  const t = useTranslations("CrewModal");
   const { stats, resources } = overview;
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-        <StatCard label="Mitglieder" value={stats.member_count.toString()} />
-        <StatCard label="Repeater"   value={stats.repeater_count.toString()} />
-        <StatCard label="Straßen"    value={stats.territory_count.toString()} />
-        <StatCard label="Ansehen"    value={stats.ansehen_total.toLocaleString()} accent="#FFD700" />
+        <StatCard label={t("statMembers")} value={stats.member_count.toString()} />
+        <StatCard label={t("statRepeaters")} value={stats.repeater_count.toString()} />
+        <StatCard label={t("statTerritories")} value={stats.territory_count.toString()} />
+        <StatCard label={t("statAnsehen")} value={stats.ansehen_total.toLocaleString()} accent="#FFD700" />
       </div>
       {resources && (
         <>
           <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginTop: 18, marginBottom: 8 }}>
-            CREW-LAGER (RSS)
+            {t("rssHeader")}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-            <StatCard label="Holz"  value={resources.wood.toLocaleString()} />
-            <StatCard label="Stein" value={resources.stone.toLocaleString()} />
-            <StatCard label="Gold"  value={resources.gold.toLocaleString()} />
-            <StatCard label="Mana"  value={resources.mana.toLocaleString()} />
+            <StatCard label={t("rssWood")}  value={resources.wood.toLocaleString()} />
+            <StatCard label={t("rssStone")} value={resources.stone.toLocaleString()} />
+            <StatCard label={t("rssGold")}  value={resources.gold.toLocaleString()} />
+            <StatCard label={t("rssMana")}  value={resources.mana.toLocaleString()} />
           </div>
         </>
       )}
@@ -203,6 +208,7 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
 }
 
 function TabMitglieder({ crewId }: { crewId: string }) {
+  const t = useTranslations("CrewModal");
   type Member = { id: string; display_name: string | null; username: string; ansehen: number };
   const [list, setList] = useState<Member[] | null>(null);
   const uiArt = useUiIconArt();
@@ -217,8 +223,8 @@ function TabMitglieder({ crewId }: { crewId: string }) {
       setList(sorted);
     })();
   }, [crewId]);
-  if (!list) return <div style={{ color: MUTED }}>Lade Mitglieder…</div>;
-  if (list.length === 0) return <div style={{ color: MUTED }}>Keine Mitglieder.</div>;
+  if (!list) return <div style={{ color: MUTED }}>{t("membersLoading")}</div>;
+  if (list.length === 0) return <div style={{ color: MUTED }}>{t("membersEmpty")}</div>;
   return (
     <div>
       {list.map((m, i) => (
@@ -240,9 +246,9 @@ function TabMitglieder({ crewId }: { crewId: string }) {
   );
 }
 
-function fmtCountdown(iso: string): string {
+function fmtCountdown(iso: string, doneLabel: string): string {
   const ms = new Date(iso).getTime() - Date.now();
-  if (ms <= 0) return "fertig";
+  if (ms <= 0) return doneLabel;
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -250,6 +256,7 @@ function fmtCountdown(iso: string): string {
 }
 
 export function TabTech() {
+  const t = useTranslations("CrewModal");
   const [defs, setDefs] = useState<TechDef[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [queue, setQueue] = useState<TechQueue[]>([]);
@@ -272,8 +279,8 @@ export function TabTech() {
     const sb = createClient();
     const { data } = await sb.rpc("start_crew_tech", { p_tech_id: techId });
     const r = data as { ok: boolean; error?: string };
-    if (!r?.ok) setMsg(`Fehler: ${r?.error ?? "unbekannt"}`);
-    else setMsg("Forschung gestartet.");
+    if (!r?.ok) setMsg(t("techErrorPrefix", { msg: r?.error ?? t("techErrorUnknown") }));
+    else setMsg(t("techStarted"));
     await load();
     setBusy(false);
   }
@@ -288,7 +295,11 @@ export function TabTech() {
           background: `${PRIMARY}11`, border: `1px solid ${PRIMARY}55`,
           color: TEXT, fontSize: 13, fontWeight: 700,
         }}>
-          🧪 In Forschung: <strong>{defs.find((d) => d.id === inQueue.tech_id)?.name}</strong> Stufe {inQueue.target_level} · noch {fmtCountdown(inQueue.ends_at)}
+          {t("techInProgress", {
+            name: defs.find((d) => d.id === inQueue.tech_id)?.name ?? "",
+            level: inQueue.target_level,
+            countdown: fmtCountdown(inQueue.ends_at, t("countdownDone")),
+          })}
         </div>
       )}
       {msg && <div style={{ color: MUTED, fontSize: 12, marginBottom: 10 }}>{msg}</div>}
@@ -305,7 +316,7 @@ export function TabTech() {
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <span style={{ color: TEXT, fontSize: 14, fontWeight: 900 }}>{d.name}</span>
-                <span style={{ color: PRIMARY, fontSize: 12, fontWeight: 800 }}>Stufe {lvl}/{d.max_level}</span>
+                <span style={{ color: PRIMARY, fontSize: 12, fontWeight: 800 }}>{t("techLevelLabel", { level: lvl, max: d.max_level })}</span>
               </div>
               <div style={{ color: MUTED, fontSize: 11, marginBottom: 8 }}>{d.description}</div>
               {!maxed && (
@@ -319,10 +330,10 @@ export function TabTech() {
                     cursor: inQueue || busy ? "not-allowed" : "pointer",
                   }}
                 >
-                  Stufe {next} forschen · {(d.cost_gold_per_level * next).toLocaleString()} Gold
+                  {t("techResearchBtn", { level: next, cost: (d.cost_gold_per_level * next).toLocaleString() })}
                 </button>
               )}
-              {maxed && <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>✓ Maximal-Stufe</div>}
+              {maxed && <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 800 }}>{t("techMaxed")}</div>}
             </div>
           );
         })}
@@ -332,6 +343,7 @@ export function TabTech() {
 }
 
 export function TabKopfgelder({ crewId }: { crewId: string }) {
+  const t = useTranslations("CrewModal");
   void crewId;
   const [list, setList] = useState<Bounty[] | null>(null);
   const [target, setTarget] = useState("");
@@ -353,11 +365,11 @@ export function TabKopfgelder({ crewId }: { crewId: string }) {
     const sb = createClient();
     // Lookup target by username
     const { data: u } = await sb.from("users").select("id").eq("username", target).maybeSingle();
-    if (!u) { setMsg("Spieler nicht gefunden."); setBusy(false); return; }
+    if (!u) { setMsg(t("bountyNotFound")); setBusy(false); return; }
     const { data } = await sb.rpc("post_crew_bounty", { p_target_user_id: (u as { id: string }).id, p_reward_gold: reward, p_reason: reason || null });
     const r = data as { ok: boolean; error?: string };
-    if (!r?.ok) setMsg(`Fehler: ${r?.error ?? "unbekannt"}`);
-    else { setMsg("Kopfgeld ausgesetzt."); setTarget(""); setReason(""); }
+    if (!r?.ok) setMsg(t("techErrorPrefix", { msg: r?.error ?? t("techErrorUnknown") }));
+    else { setMsg(t("bountyPosted")); setTarget(""); setReason(""); }
     await load();
     setBusy(false);
   }
@@ -368,24 +380,24 @@ export function TabKopfgelder({ crewId }: { crewId: string }) {
         padding: 12, borderRadius: 12, marginBottom: 14,
         background: "rgba(255,107,74,0.08)", border: "1px solid rgba(255,107,74,0.35)",
       }}>
-        <div style={{ color: TEXT, fontSize: 13, fontWeight: 900, marginBottom: 8 }}>🎯 Kopfgeld aussetzen</div>
+        <div style={{ color: TEXT, fontSize: 13, fontWeight: 900, marginBottom: 8 }}>{t("bountyTitle")}</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Spieler-Username"
+          <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder={t("bountyTargetPh")}
             style={{ flex: 1, minWidth: 140, padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: TEXT, fontSize: 12 }} />
           <input type="number" value={reward} min={100} step={100} onChange={(e) => setReward(parseInt(e.target.value || "0"))}
             style={{ width: 110, padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: TEXT, fontSize: 12 }} />
-          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Grund (optional)"
+          <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t("bountyReasonPh")}
             style={{ flex: 1, minWidth: 140, padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: TEXT, fontSize: 12 }} />
           <button onClick={post} disabled={busy || !target || reward < 100}
             style={{ padding: "8px 14px", borderRadius: 8, background: "linear-gradient(135deg, #FF6B4A, #FF2D78)", border: "none", color: "#FFF", fontSize: 12, fontWeight: 900, cursor: busy ? "wait" : "pointer" }}>
-            Aussetzen
+            {t("bountyPostBtn")}
           </button>
         </div>
         {msg && <div style={{ color: MUTED, fontSize: 11, marginTop: 6 }}>{msg}</div>}
       </div>
 
-      {!list && <div style={{ color: MUTED }}>Lade Kopfgelder…</div>}
-      {list && list.length === 0 && <div style={{ color: MUTED }}>Keine offenen Kopfgelder.</div>}
+      {!list && <div style={{ color: MUTED }}>{t("bountyLoading")}</div>}
+      {list && list.length === 0 && <div style={{ color: MUTED }}>{t("bountyEmpty")}</div>}
       {list && list.map((b) => (
         <div key={b.id} style={{
           display: "flex", alignItems: "center", gap: 10, padding: "10px 8px",
@@ -394,10 +406,14 @@ export function TabKopfgelder({ crewId }: { crewId: string }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>🎯 {b.target_name}</div>
             <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-              von {b.posted_by_name}{b.reason ? ` · „${b.reason}"` : ""} · läuft {fmtCountdown(b.expires_at)}
+              {t("bountyMeta", {
+                by: b.posted_by_name,
+                reason: b.reason ? t("bountyReasonInline", { reason: b.reason }) : "",
+                countdown: fmtCountdown(b.expires_at, t("countdownDone")),
+              })}
             </div>
           </div>
-          <div style={{ color: "#FFD700", fontSize: 14, fontWeight: 900 }}>{b.reward_gold.toLocaleString()} Gold</div>
+          <div style={{ color: "#FFD700", fontSize: 14, fontWeight: 900 }}>{t("bountyRewardSuffix", { gold: b.reward_gold.toLocaleString() })}</div>
         </div>
       ))}
     </div>
@@ -405,6 +421,7 @@ export function TabKopfgelder({ crewId }: { crewId: string }) {
 }
 
 export function TabShop() {
+  const t = useTranslations("CrewModal");
   const [items, setItems] = useState<ShopItem[]>([]);
   const [crewGold, setCrewGold] = useState<number>(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -424,8 +441,8 @@ export function TabShop() {
     const sb = createClient();
     const { data } = await sb.rpc("buy_crew_shop_item", { p_item_id: id });
     const r = data as { ok: boolean; error?: string };
-    if (!r?.ok) setMsg(`Fehler: ${r?.error ?? "unbekannt"}`);
-    else setMsg("Gekauft.");
+    if (!r?.ok) setMsg(t("techErrorPrefix", { msg: r?.error ?? t("techErrorUnknown") }));
+    else setMsg(t("shopBoughtMsg"));
     await load();
     setBusy(null);
   }
@@ -433,7 +450,7 @@ export function TabShop() {
   return (
     <div>
       <div style={{ color: TEXT, fontSize: 13, fontWeight: 800, marginBottom: 10 }}>
-        💰 Crew-Lager: <span style={{ color: "#FFD700" }}>{crewGold.toLocaleString()} Gold</span>
+        {t("shopGoldLabel", { gold: crewGold.toLocaleString() })}
       </div>
       {msg && <div style={{ color: MUTED, fontSize: 12, marginBottom: 8 }}>{msg}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
@@ -456,7 +473,7 @@ export function TabShop() {
                   border: "none", color: ok ? BG : MUTED, fontSize: 11, fontWeight: 900,
                   cursor: ok ? "pointer" : "not-allowed",
                 }}
-              >Kaufen · {it.price_coins.toLocaleString()} Gold</button>
+              >{t("shopBuyBtn", { price: it.price_coins.toLocaleString() })}</button>
             </div>
           );
         })}
@@ -466,6 +483,7 @@ export function TabShop() {
 }
 
 function TabEinstellungen() {
+  const t = useTranslations("CrewModal");
   const [hudOn, setHudOn] = useState<boolean | null>(null);
   const [territoryColor, setTerritoryColor] = useState<string | null>(null);
   const [savingColor, setSavingColor] = useState(false);
@@ -518,10 +536,10 @@ function TabEinstellungen() {
         body: JSON.stringify(body),
       });
       const j = await r.json() as { ok?: boolean; error?: string; message?: string };
-      if (!j.ok) { setIdMsg({ type: "err", text: j.message ?? j.error ?? "Fehler" }); return; }
+      if (!j.ok) { setIdMsg({ type: "err", text: j.message ?? j.error ?? t("settingsError") }); return; }
       if (body.name) setOrigName(body.name);
       if (body.tag) setOrigTag(body.tag);
-      setIdMsg({ type: "ok", text: "✓ Crew aktualisiert" });
+      setIdMsg({ type: "ok", text: t("settingsSaved") });
       setTimeout(() => setIdMsg(null), 2500);
     } finally {
       setSavingId(false);
@@ -544,11 +562,11 @@ function TabEinstellungen() {
     const { data, error } = await sb.rpc("set_crew_territory_color", { p_color: color });
     setSavingColor(false);
     if (error || !(data as { ok?: boolean } | null)?.ok) {
-      setColorMsg(error?.message || (data as { error?: string } | null)?.error || "Fehler");
+      setColorMsg(error?.message || (data as { error?: string } | null)?.error || t("settingsError"));
       return;
     }
     setTerritoryColor(color);
-    setColorMsg("✓ gespeichert — Karte aktualisiert");
+    setColorMsg(t("settingsColorSaved"));
     // Map-Dashboard hört auf dieses Event und lädt das Turf neu (sonst wartet
     // der User auf den nächsten Polling-Tick, ~30s).
     window.dispatchEvent(new CustomEvent("ma365:refresh-turf"));
@@ -571,21 +589,21 @@ function TabEinstellungen() {
       {/* Crew-Identität (nur Owner) */}
       {isOwner && (
         <div>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>CREW-NAME &amp; KÜRZEL</div>
-          <div style={{ color: MUTED, fontSize: 11, marginBottom: 10 }}>Name 2–12 Zeichen, Tag exakt 4 (A–Z, 0–9). Nur Owner.</div>
+          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>{t("settingsIdentityHeader")}</div>
+          <div style={{ color: MUTED, fontSize: 11, marginBottom: 10 }}>{t("settingsIdentityHint")}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 8, marginBottom: 8 }}>
             <input
               value={crewName}
               onChange={(e) => setCrewName(e.target.value)}
               maxLength={12}
-              placeholder="Crew-Name"
+              placeholder={t("settingsCrewNamePh")}
               style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(0,0,0,0.3)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", fontSize: 13 }}
             />
             <input
               value={crewTag}
               onChange={(e) => setCrewTag(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4))}
               maxLength={4}
-              placeholder="TAG"
+              placeholder={t("settingsCrewTagPh")}
               style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(0,0,0,0.3)", color: "#FFD700", border: "1px solid rgba(255,255,255,0.1)", fontSize: 13, fontWeight: 800, letterSpacing: 1, textAlign: "center" }}
             />
           </div>
@@ -594,7 +612,7 @@ function TabEinstellungen() {
             onClick={() => void saveIdentity()}
             style={{ padding: "8px 14px", borderRadius: 8, background: "rgba(34,209,195,0.2)", color: PRIMARY, border: "1px solid rgba(34,209,195,0.4)", fontSize: 12, fontWeight: 800, cursor: savingId ? "wait" : "pointer", opacity: (idDirty && nameOk && tagOk) ? 1 : 0.5 }}
           >
-            {savingId ? "…" : "Speichern"}
+            {savingId ? "…" : t("settingsSave")}
           </button>
           {idMsg && (
             <div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, color: idMsg.type === "ok" ? "#4ade80" : "#FF6B4A" }}>
@@ -606,10 +624,10 @@ function TabEinstellungen() {
 
       {/* Crew-Farbe (nur Leader/Officer) */}
       <div>
-        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>CREW-FARBE</div>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>{t("settingsColorHeader")}</div>
         <div style={{ color: MUTED, fontSize: 11, marginBottom: 10, lineHeight: 1.4 }}>
-          Bestimmt die Farbe eures Crew-Turfs auf der Karte (Repeater-Coverage, eigene Polygone, Pin-Akzente).
-          {!canEditColor && <span style={{ color: "#FF6B4A", fontWeight: 800 }}> Nur Leader oder Officer dürfen ändern.</span>}
+          {t("settingsColorHint")}
+          {!canEditColor && <span style={{ color: "#FF6B4A", fontWeight: 800 }}>{t("settingsColorLeaderOnly")}</span>}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
           {COLOR_PRESETS.map((c) => {
@@ -643,7 +661,7 @@ function TabEinstellungen() {
 
       {/* Anzeige-Toggles */}
       <div>
-        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>ANZEIGE</div>
+        <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>{t("settingsDisplayHeader")}</div>
         <button
           onClick={toggle}
           style={{
@@ -655,9 +673,9 @@ function TabEinstellungen() {
           }}
         >
           <div style={{ textAlign: "left" }}>
-            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800 }}>⚔ Crew-Angriffe-Symbol auf der Karte</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 800 }}>{t("settingsHudTitle")}</div>
             <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>
-              Schwebender Knopf rechts unten zeigt offene Aufgebote zum Beitreten.
+              {t("settingsHudHint")}
             </div>
           </div>
           <div style={{
@@ -681,45 +699,21 @@ function TabEinstellungen() {
    TAB: BAUWERKE — Crew-Strukturen (HQ/Mega/Repeater + geplante)
    ───────────────────────────────────────────────────────────────── */
 type RepeaterRow = { id: string; kind: "hq" | "repeater" | "mega"; label: string | null; hp: number; max_hp: number; lat: number; lng: number };
-type PlannedBuilding = { slot: string; fallback: string; name: string; tagline: string; description: string };
+type PlannedBuilding = { slot: string; fallback: string; nameKey: string; taglineKey: string; descKey: string };
 
 const PLANNED_BUILDINGS: PlannedBuilding[] = [
-  {
-    slot: "building_siege_repeater", fallback: "🚀",
-    name: "Belagerungs-Repeater",
-    tagline: "Upgrade für Standard-Repeater",
-    description: "Upgegradeter Repeater mit Angriffs-Reichweite — kann gegnerische Bases im Umkreis automatisch belagern und HP runterbomben.",
-  },
-  {
-    slot: "building_bunker", fallback: "🛡",
-    name: "Bunker",
-    tagline: "Verteidigungs-Bauwerk · max 6",
-    description: "Hält Wächter zur passiven Verteidigung — automatisches Gegenfeuer auf alle Crew-Member-Angreifer im Umkreis. Strategisch an Engstellen platzieren.",
-  },
-  {
-    slot: "building_blackmarket", fallback: "💰",
-    name: "Schwarzmarkt",
-    tagline: "Passive Resource-Generierung",
-    description: "Reservoir das sich durch Crew-Walks füllt. Mitglieder können daraus Ressourcen abholen — fairer Pool statt jeder für sich.",
-  },
-  {
-    slot: "building_hangout", fallback: "🍻",
-    name: "Kiez-Treffpunkt",
-    tagline: "Random Buffs · refresh-bar",
-    description: "Spawnt zufällige Crew-weite Buffs (Ressourcen +10%, Speed +5%, Drop-Rate +15%, etc.). Refresh via Wegemünzen rollt einen neuen Buff.",
-  },
-  {
-    slot: "building_tunnel", fallback: "🚇",
-    name: "Tunnel",
-    tagline: "Überbrückt Chain-Distanz",
-    description: "Verbindet zwei weit entfernte Repeater unter Umgehung der Chain-Rule — z.B. um über Park-Lücken hinweg zu expandieren. Beide Endpunkte müssen eigene Repeater sein.",
-  },
+  { slot: "building_siege_repeater", fallback: "🚀", nameKey: "plannedSiegeName",       taglineKey: "plannedSiegeTagline",       descKey: "plannedSiegeDesc" },
+  { slot: "building_bunker",         fallback: "🛡", nameKey: "plannedBunkerName",      taglineKey: "plannedBunkerTagline",      descKey: "plannedBunkerDesc" },
+  { slot: "building_blackmarket",    fallback: "💰", nameKey: "plannedBlackmarketName", taglineKey: "plannedBlackmarketTagline", descKey: "plannedBlackmarketDesc" },
+  { slot: "building_hangout",        fallback: "🍻", nameKey: "plannedHangoutName",     taglineKey: "plannedHangoutTagline",     descKey: "plannedHangoutDesc" },
+  { slot: "building_tunnel",         fallback: "🚇", nameKey: "plannedTunnelName",      taglineKey: "plannedTunnelTagline",      descKey: "plannedTunnelDesc" },
 ];
 
 export type BuildingKind = "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel";
 type BuildingRow = { id: string; kind: string; label: string | null; hp: number; max_hp: number; lat: number; lng: number };
 
 export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: BuildingKind) => void }) {
+  const t = useTranslations("CrewModal");
   const [reps, setReps] = useState<RepeaterRow[] | null>(null);
   const [buildings, setBuildings] = useState<BuildingRow[] | null>(null);
   const uiArt = useUiIconArt();
@@ -760,7 +754,7 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
     window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", { detail: { lat, lng, zoom: 17 } }));
   }
 
-  if (reps === null || buildings === null) return <div style={{ color: MUTED }}>Lade Bauwerke…</div>;
+  if (reps === null || buildings === null) return <div style={{ color: MUTED }}>{t("buildingsLoading")}</div>;
   const groupedBld = {
     blackmarket: buildings.filter((b) => b.kind === "blackmarket"),
     bunker:      buildings.filter((b) => b.kind === "bunker"),
@@ -773,8 +767,8 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
       {/* Existierende Bauwerke */}
       <BuildingGroup
         slot="repeater_hq" fallback="🏛"
-        name="Hauptquartier"
-        meta={`${grouped.hq.length}/1 · Crew-Anker, max 1`}
+        name={t("buildingHq")}
+        meta={t("buildingHqMeta", { count: grouped.hq.length })}
         items={grouped.hq}
         onItemClick={flyTo}
         onErrichten={grouped.hq.length === 0 ? () => onPlaceBuilding?.("hq") : undefined}
@@ -782,8 +776,8 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
       />
       <BuildingGroup
         slot="repeater_mega" fallback="📡"
-        name="Mega-Funk"
-        meta={`${grouped.mega.length} · Premium-Sekundäranker`}
+        name={t("buildingMega")}
+        meta={t("buildingMegaMeta", { count: grouped.mega.length })}
         items={grouped.mega}
         onItemClick={flyTo}
         onErrichten={() => onPlaceBuilding?.("mega")}
@@ -791,25 +785,24 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
       />
       <BuildingGroup
         slot="repeater_normal" fallback="📶"
-        name="Repeater"
-        meta={`${grouped.repeater.length} · Standard-Markierung · Crew bekommt +25% Ressourcen + 15% Wegemünzen wenn sie hier laufen`}
+        name={t("buildingRepeater")}
+        meta={t("buildingRepeaterMeta", { count: grouped.repeater.length })}
         items={grouped.repeater}
         onItemClick={flyTo}
         onErrichten={() => onPlaceBuilding?.("repeater")}
         uiArt={uiArt}
       />
 
-      {/* Phase 4 Bauwerke (Foundation: platzierbar, Mechanik teils Stub) */}
       <div style={{ marginTop: 8 }}>
         <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 8 }}>
-          CREW-BAUWERKE (ALPHA) — platzierbar, Game-Mechanik in Arbeit
+          {t("buildingsAlphaHeader")}
         </div>
       </div>
 
       <BuildingGroup
         slot="building_blackmarket" fallback="💰"
-        name="Schwarzmarkt"
-        meta={`${groupedBld.blackmarket.length}/1 · Passive Resource-Generierung (Mechanik kommt)`}
+        name={t("buildingBlackmarket")}
+        meta={t("buildingBlackmarketMeta", { count: groupedBld.blackmarket.length })}
         items={groupedBld.blackmarket}
         onItemClick={flyTo}
         onErrichten={groupedBld.blackmarket.length === 0 ? () => onPlaceBuilding?.("blackmarket") : undefined}
@@ -817,8 +810,8 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
       />
       <BuildingGroup
         slot="building_bunker" fallback="🛡"
-        name="Bunker"
-        meta={`${groupedBld.bunker.length}/6 · Verteidigungs-Bauwerk, Wächter-Deploy`}
+        name={t("buildingBunker")}
+        meta={t("buildingBunkerMeta", { count: groupedBld.bunker.length })}
         items={groupedBld.bunker}
         onItemClick={flyTo}
         onErrichten={groupedBld.bunker.length < 6 ? () => onPlaceBuilding?.("bunker") : undefined}
@@ -826,8 +819,8 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
       />
       <BuildingGroup
         slot="building_hangout" fallback="🍻"
-        name="Kiez-Treffpunkt"
-        meta={`${groupedBld.hangout.length}/3 · Random-Buff-Spawn, refresh via Wegemünzen`}
+        name={t("buildingHangout")}
+        meta={t("buildingHangoutMeta", { count: groupedBld.hangout.length })}
         items={groupedBld.hangout}
         onItemClick={flyTo}
         onErrichten={groupedBld.hangout.length < 3 ? () => onPlaceBuilding?.("hangout") : undefined}
@@ -835,8 +828,8 @@ export function TabBauwerke({ onPlaceBuilding }: { onPlaceBuilding?: (kind: Buil
       />
       <BuildingGroup
         slot="building_tunnel" fallback="🚇"
-        name="Tunnel"
-        meta={`${groupedBld.tunnel.length}/10 · Überbrückt Chain-Distanz zwischen Repeatern`}
+        name={t("buildingTunnel")}
+        meta={t("buildingTunnelMeta", { count: groupedBld.tunnel.length })}
         items={groupedBld.tunnel}
         onItemClick={flyTo}
         onErrichten={groupedBld.tunnel.length < 10 ? () => onPlaceBuilding?.("tunnel") : undefined}
@@ -858,6 +851,7 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErric
   onErrichten?: () => void;
   uiArt: ReturnType<typeof useUiIconArt>;
 }) {
+  const t = useTranslations("CrewModal");
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
@@ -878,7 +872,7 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErric
               boxShadow: `0 2px 8px ${PRIMARY}66`,
             }}
           >
-            🏗 ERRICHTEN
+            {t("buildErectBtn")}
           </button>
         )}
       </div>
@@ -886,7 +880,7 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErric
         <div style={{ color: MUTED, fontSize: 11, padding: "10px 12px",
           borderRadius: 8, background: "rgba(255,255,255,0.03)",
           border: "1px dashed rgba(255,255,255,0.1)", textAlign: "center" }}>
-          Noch keins gebaut
+          {t("buildEmpty")}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -909,7 +903,7 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErric
                     {r.label || name}
                   </div>
                   <div style={{ color: MUTED, fontSize: 10 }}>
-                    HP {r.hp.toLocaleString("de-DE")}/{r.max_hp.toLocaleString("de-DE")}
+                    {t("buildHpLabel", { hp: r.hp.toLocaleString(), max: r.max_hp.toLocaleString() })}
                   </div>
                 </div>
                 <div style={{ width: 50, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
@@ -927,6 +921,7 @@ function BuildingGroup({ slot, fallback, name, meta, items, onItemClick, onErric
 }
 
 function PlannedRow({ building, uiArt }: { building: PlannedBuilding; uiArt: ReturnType<typeof useUiIconArt> }) {
+  const t = useTranslations("CrewModal");
   const [open, setOpen] = useState(false);
   return (
     <div style={{
@@ -945,18 +940,18 @@ function PlannedRow({ building, uiArt }: { building: PlannedBuilding; uiArt: Ret
       >
         <UiIcon slot={building.slot} fallback={building.fallback} art={uiArt} size={42} />
         <div style={{ flex: 1, opacity: 0.7 }}>
-          <div style={{ color: TEXT, fontSize: 13, fontWeight: 700 }}>{building.name}</div>
-          <div style={{ color: MUTED, fontSize: 10 }}>{building.tagline}</div>
+          <div style={{ color: TEXT, fontSize: 13, fontWeight: 700 }}>{t(building.nameKey)}</div>
+          <div style={{ color: MUTED, fontSize: 10 }}>{t(building.taglineKey)}</div>
         </div>
         <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 800,
           padding: "2px 6px", borderRadius: 6,
           background: "rgba(255,215,0,0.12)", border: "1px solid rgba(255,215,0,0.3)",
-        }}>GEPLANT</span>
+        }}>{t("buildPlanned")}</span>
         <span style={{ color: MUTED, fontSize: 12 }}>{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div style={{ padding: "0 12px 12px 48px", color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
-          {building.description}
+          {t(building.descKey)}
         </div>
       )}
     </div>

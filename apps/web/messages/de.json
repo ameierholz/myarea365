@@ -1,15 +1,12 @@
 {
   "Common": {
-    "save": "Speichern",
     "cancel": "Abbrechen",
-    "continue": "Weiter",
-    "back": "Zurück",
-    "loading": "Lädt…",
-    "error": "Fehler",
-    "yes": "Ja",
-    "no": "Nein",
-    "settings": "Einstellungen",
-    "language": "Sprache"
+    "confirm": "Bestätigen",
+    "delete": "Löschen",
+    "ok": "OK",
+    "close": "Schließen",
+    "save": "Speichern",
+    "back": "Zurück"
   },
   "Nav": {
     "profile": "Profil",
@@ -48,7 +45,7 @@
     "autoPause": "Auto-Pause bei Stillstand"
   },
   "Account": {
-    "title": "Account",
+    "title": "Konto",
     "changeEmail": "E-Mail ändern",
     "changePassword": "Passwort ändern",
     "exportData": "Meine Daten exportieren",
@@ -310,7 +307,6 @@
     "testimonial2Quote": "Unser Revier — das ist unser. Nachbar-Crew hat versucht, unseren Kiez zu nehmen. Pustekuchen.",
     "testimonial3Role": "Weißensee Walker · Member",
     "testimonial3Quote": "Wochenziel 150 km. Wir schaffen's zu acht in 5 Tagen. Einfach weil's um was geht.",
-
     "ovArenaTitles": "🏆 AREA-LIGA-TITEL",
     "ovGuardianHeader": "🛡️ DEIN WÄCHTER",
     "ovPotionsButton": "🧪 Tränke",
@@ -335,7 +331,6 @@
     "ovManageSoonAlert": "Crew-Einstellungen — kommt bald",
     "ovDisband": "Crew auflösen",
     "ovLeave": "Crew verlassen",
-
     "memDemoHint": "Echte Mitgliederliste wird sichtbar, sobald echte Crew-Mitglieder beigetreten sind",
     "memInactiveWarningOne": "💤 <b>{count} Mitglied</b> ist diese Woche inaktiv.",
     "memInactiveWarningMany": "💤 <b>{count} Mitglieder</b> sind diese Woche inaktiv.",
@@ -353,17 +348,14 @@
     "memInviteMember": "➕ Mitglied einladen",
     "memManageRoles": "🎭 Rollen verwalten",
     "memRolesAlert": "Rollen-Editor (Mod, Event-Planner, Motivator) folgt.",
-
     "chDemoHint": "Live-Challenges werden ab Launch aus der Datenbank geladen",
     "chRewardXp": "+{xp} Erfahrung",
     "chOwnChallenge": "🏁 Eigene Challenge starten",
-
     "evDemoHint": "Live-Events werden ab Launch aus der Datenbank geladen",
     "evHostLabel": "Host: @{name}",
     "evJoin": "✓ Dabei",
     "evDetails": "Details",
     "evNew": "📅 Neues Event planen",
-
     "chatDemoHint": "Echter Crew-Chat wird mit Supabase Realtime ab Launch aktiv",
     "chatReactTitle": "Doppelklick für Reaktion",
     "chatReactAria": "Reagieren",
@@ -372,10 +364,8 @@
     "chatPlaceholder": "Nachricht an die Crew…",
     "chatSendAlert": "Chat-Senden wird mit Realtime-Backend verknüpft.",
     "chatSendSoon": "Chat-Senden kommt bald.",
-
     "feedHeader": "CREW-AKTIVITÄT",
     "feedDemoHint": "Echter Feed zeigt Aktivität echter Crew-Mitglieder ab Launch",
-
     "setIdentity": "🎨 IDENTITÄT",
     "setCoverUpload": "🖼️ Cover hochladen",
     "setCoverAlert": "Cover-Upload folgt (Supabase Storage)",
@@ -407,7 +397,6 @@
     "setMerchDesc": "Crew-T-Shirts mit Wappen-Print via Print-on-Demand. Kein Lager, kein Risiko.",
     "setMerchBtn": "Merch designen",
     "setMerchAlert": "Merch-Shop folgt.",
-
     "relNow": "jetzt",
     "relMin": "{n} Min",
     "relHour": "{n} Std",
@@ -417,7 +406,6 @@
     "daysMany": "noch {n} Tage",
     "evtToday": "Heute, {time}",
     "evtTomorrow": "Morgen, {time}",
-
     "gdLoading": "Lade Wächter…",
     "gdMyHeader": "⚔️ DEIN WÄCHTER",
     "gdMiniWins": "Siege",
@@ -439,7 +427,6 @@
     "gdBattleWin": "SIEG",
     "gdBattleDraw": "UNENTSCHIEDEN",
     "gdBattleLoss": "NIEDERLAGE",
-
     "gdNoActive": "Noch kein aktiver Wächter — wähle einen unter „Meine Wächter-Sammlung\" weiter unten."
   },
   "Deals": {
@@ -451,17 +438,14 @@
     "helpKicker": "ONBOARDING",
     "helpTitle": "Was sind Kiez-Deals?",
     "closeAria": "Schließen",
-
     "heroTitle1": "Deine Schritte sind echte ",
     "heroTitleAccent": "Währung",
     "heroTitle2": ".",
     "heroBodyRich": "<a>Tu was für deine Gesundheit</a>, hab <a>Spaß</a>, <b>spare echtes Geld</b> in lokalen Shops und <c>unterstütze deinen Kiez</c> — alles mit einem Lauf. Scanne den QR an der Theke, Erfahrung wird zu Rabatt. Kein Punkte-Zirkus.",
-
     "pillarHealth": "Gesundheit",
     "pillarFun": "Spaß",
     "pillarSave": "Spare echtes Geld",
     "pillarLocal": "Lokal stärken",
-
     "shopCategoriesHeader": "SHOP-KATEGORIEN",
     "catCafe": "Café & Bäcker",
     "catSport": "Sport & Mode",
@@ -471,7 +455,6 @@
     "catServices": "Services",
     "catIce": "Eis & Dessert",
     "catPet": "Tier",
-
     "doubleWinTitle": "Doppelter Gewinn: Gesundheit + Rabatt",
     "doubleWinBodyRich": "Jeder km zum Partner-Shop ist ein km für deine <a>Gesundheit</a> — Studien zeigen messbare Effekte. Und an der Kasse bekommst du den Rabatt noch oben drauf.",
     "stat1Title": "Herz-Kreislauf",
@@ -483,7 +466,6 @@
     "stat4Title": "Schlafqualität",
     "stat4Desc": "Tägliche Schritte verbessern Tiefschlaf.",
     "statSourceNote": "Werte aus WHO/Cochrane/RKI-Studien zu täglicher Bewegung.",
-
     "whyLocalHeader": "WARUM LOKAL EINKAUFEN",
     "whyLocalIntro": "Deine Wegemünzen fließen direkt in deinen Kiez — nicht zu Amazon.",
     "wl1Title": "Dein Kiez bleibt lebendig",
@@ -502,7 +484,6 @@
     "wl7Desc": "Ein kurzer Abstecher zum Café, Bäcker oder Blumenladen — viel netter als Amazon-Paket annehmen.",
     "wl8Title": "Echte Qualität",
     "wl8Desc": "Vor Ort ausprobieren, anfassen, beraten lassen. Keine Billig-Kopie im Karton, keine Rücksendung.",
-
     "exampleDealsHeader": "BEISPIEL-DEALS",
     "exampleDealsIntro": "So sehen typische Rabatte aus — individuell je Shop.",
     "ed1Shop": "Café Liebling",
@@ -522,7 +503,6 @@
     "ed8Shop": "Bio-Markt Ecke",
     "ed8Deal": "Gratis Kombucha zur Bowl",
     "exampleDealsNote": "Platzhalter-Deals — echte Shops folgen beim Launch in deiner Stadt.",
-
     "redeemHeader": "IN 3 SCHRITTEN EINLÖSEN",
     "step1Title": "Lauf vorbei",
     "step1Desc": "Komm in den 20m-Radius eines Partner-Shops — egal ob gezielt oder zufällig.",
@@ -530,7 +510,6 @@
     "step2Desc": "Kurz an der Theke abscannen. Dauer: 2 Sekunden. Anwesenheit bewiesen.",
     "step3Title": "Rabatt kassieren",
     "step3Desc": "Deal auf Handy zeigen, Wegemünzen gehen auto ab, du sparst direkt an der Kasse.",
-
     "earnHeader": "🪙 WEGEMÜNZEN VERDIENEN = DEALS FREISCHALTEN",
     "earnIntro": "Je aktiver du läufst, desto mehr Deals kannst du einlösen.",
     "earn1Label": "Pro km",
@@ -539,7 +518,6 @@
     "earn4Label": "Neues Gebiet",
     "earn5Label": "Streak-Tag",
     "earn6Label": "Crew-Win",
-
     "fairnessHeader": "🛡️ FAIR & TRANSPARENT",
     "fair1Title": "Nur vor Ort einlösbar",
     "fair1Desc": "GPS-Check + rotierender QR. Kein Online-Missbrauch — der Shop hat was davon, nicht irgendein Bot.",
@@ -549,12 +527,10 @@
     "fair3Desc": "Shops sehen nur: anonymer Check-in + gelaufene km. Kein Profil-Tracking, keine Werbe-IDs.",
     "fair4Title": "Keine Ablauf-Währung",
     "fair4Desc": "Deine 🪙 Wegemünzen laufen nicht ab. Du tauschst sie ein, wenn du willst — nicht weil eine Zahl bald verfällt.",
-
     "comingSoonTitle": "Noch keine Shops in deinem Kiez",
     "comingSoonBodyRich": "Kennst du einen Laden, der perfekt passt? Schreib uns — wir nehmen Kontakt auf und du bekommst <b>1.000 Bonus-Erfahrung</b>, sobald er live ist.",
     "comingSoonBtn": "💡 Shop empfehlen (+1.000 🪙)",
     "comingSoonAlert": "Shop-Empfehlung: partner@myarea365.de — Name + Stadt genügt.",
-
     "partnerBadge": "🏪 FÜR LOKALE SHOPS",
     "partnerHero1": "Laufkundschaft war noch nie so ",
     "partnerHeroAccent": "wörtlich",
@@ -564,13 +540,11 @@
     "partnerCtaSignupAlert": "Partner-Anmeldung: Bitte kontaktiere partner@myarea365.de — Self-Service-Onboarding folgt.",
     "partnerCtaDemo": "📅 Demo buchen",
     "partnerCtaDemoAlert": "Demo-Termin: partner@myarea365.de",
-
     "liveStatRunners": "Runner in deinem Kiez",
     "liveStatKm": "km/Woche gelaufen",
     "liveStatRetention": "kommen wöchentlich",
     "liveStatPrice": "Pay-per-Visit · 0 € Fix-Kosten",
     "liveStatPriceValue": "ab 1 €",
-
     "impactTitle": "Dein Shop wird Teil der Bewegung",
     "impactBodyRich": "Du verkaufst nicht nur Kaffee, Brot oder Schuhe — du motivierst Menschen in deinem Kiez, aktiv zu werden. Jeder Check-in in deinem Shop ist ein <a>km mehr</a>, den jemand für seine Gesundheit gelaufen ist. <b>Umsatz + Community-Impact in einem.</b>",
     "imp1Title": "pro Einlösung",
@@ -581,14 +555,12 @@
     "imp3Desc": "Outdoor-Aktivität senkt Stress + Angst.",
     "imp4Title": "Altersgruppen",
     "imp4Desc": "Vom Schüler bis zum Rentner — alle laufen mit.",
-
     "roiHeader": "💰 WAS BRINGT DIR DAS KONKRET",
     "roiIntro": "Zahlen aus unserer Pilot-Phase (60 Shops, 6 Monate in Berlin + München). Jeder Shop individuell — Richtwerte.",
     "roi1Label": "Ø Warenkorb pro Check-in",
     "roi2Label": "kommen innerhalb 30 Tagen wieder",
     "roi3Label": "Umsatz in der Woche nach Launch",
     "roi4Label": "Kosten-Umsatz-Verhältnis",
-
     "calcKicker": "RECHENBEISPIEL · CAFÉ MIT 100 CHECK-INS / MONAT",
     "calcCostsLabel": "Kosten",
     "calcCostsHint": "100 × 2 € (Pro-Paket)",
@@ -597,7 +569,6 @@
     "calcNetLabel": "Netto-Plus",
     "calcNetHint": "nach MyArea-Kosten",
     "calcRealityRich": "💡 <b>Realität ist besser:</b> 38 % der neuen Kund:innen kommen wieder. Eine Einlösung bringt durchschnittlich <a>3 weitere Besuche</a> im Folgequartal — ohne zusätzliche MyArea-Kosten.",
-
     "benchmarksHeader": "BRANCHEN-BENCHMARKS (Ø WARENKORB)",
     "bm1Name": "Café / Bäcker",
     "bm2Name": "Gastro / Bistro",
@@ -608,7 +579,6 @@
     "bmBasket": "Ø Korb",
     "bmMargin": "Marge",
     "bmRoi": "ROI",
-
     "tt1Name": "Café Liebling",
     "tt1Loc": "Prenzlauer Berg, Berlin",
     "tt1Quote": "In den ersten 4 Wochen 142 Check-ins, ca. 1.700 € Zusatz-Umsatz. Beste Werbung die wir je gemacht haben — und günstiger als ein halber Instagram-Post.",
@@ -622,7 +592,6 @@
     "tt3Quote": "Mittagszeit war tot. Mit MyArea365 haben wir eine feste Läufer-Crew die Dienstag + Donnerstag kommt. Tisch-Reservierung kommt bald.",
     "tt3Stat": "+36 % Mittagsumsatz",
     "ttDisclaimer": "Zahlen aus der MyArea365-Pilot-Phase. Individuelle Ergebnisse können abweichen.",
-
     "uspHeader": "WARUM MYAREA365",
     "usp1Title": "Pay-per-Visit",
     "usp1Desc": "Du zahlst nur wenn jemand wirklich bei dir ankommt. Keine Impressionen, keine Streuverluste.",
@@ -636,7 +605,6 @@
     "usp5Desc": "Sponsor werden für lokale Crews = wöchentliche Stammkundschaft + Marketing-Content gratis.",
     "usp6Title": "Steuer-safe",
     "usp6Desc": "Rabatte = keine MwSt-Stolperfalle wie Gutscheine. Alles DATEV-kompatibel exportierbar.",
-
     "howHeader": "SO STARTEST DU IN 10 MINUTEN",
     "how1Title": "Shop-Profil anlegen",
     "how1Desc": "Name, Adresse, Öffnungszeiten — dauert 3 Min.",
@@ -646,7 +614,6 @@
     "how3Desc": "Wir senden dir den Tresen-Sticker kostenlos zu.",
     "how4Title": "Runner kommen",
     "how4Desc": "Deal geht live. Sobald Runner in deinem Kiez aktiv sind, erscheinst du auf ihrer Karte.",
-
     "safetyHeader": "EINLÖSE-SICHERHEIT",
     "safetyTitle": "Du bestimmst die Spielregeln",
     "safetyBodyRich": "Pro Deal entscheidest du, wie oft ein Runner einlösen kann. Missbrauch wird durch GPS + rotierende QR-Codes + DB-Limits <b>automatisch</b> verhindert.",
@@ -665,7 +632,6 @@
     "freqYearHint": "Geburtstag",
     "freqUnlimitedLabel": "Unbegrenzt",
     "freqUnlimitedHint": "Jeder Besuch",
-
     "abuseKicker": "SO VERHINDERN WIR MISSBRAUCH",
     "abuse1Title": "GPS-Check",
     "abuse1Desc": "Nur im 20m-Radius zum Shop einlösbar — kein Online-Shopping, nur vor Ort.",
@@ -675,7 +641,6 @@
     "abuse3Desc": "Zähler pro Account + Zeitraum — kein Workaround.",
     "abuse4Title": "Manuelle Prüfung",
     "abuse4Desc": "Bei Verdacht: Lauf-Log + Check-in-Historie prüfbar.",
-
     "pricingHeader": "PREISE",
     "pricingIntro": "Keine Fix-Kosten. Du zahlst nur, wenn Runner bei dir ankommen.",
     "popularBadge": "BELIEBT",
@@ -712,7 +677,6 @@
     "planSelectBtn": "Paket wählen",
     "planRequestBtn": "Angebot anfragen",
     "planSelectAlert": "{name}-Paket wählen — Kontakt: partner@myarea365.de",
-
     "useCasesHeader": "PASST ZU DIR, WENN",
     "uc1": "du ein Café betreibst und mehr Morgen- oder After-Work-Gäste willst",
     "uc2": "du einen Sportladen hast — perfekte Zielgruppe läuft schon vor der Tür",
@@ -728,7 +692,6 @@
     "uc12": "du Wein- oder Feinkostladen führst — Premium-Publikum auf Erkundungstour",
     "uc13": "du Buchhandlung bist — Läufer:innen sind auch Leser:innen",
     "uc14": "du Tierbedarf verkaufst — viele laufen mit ihrem Hund",
-
     "faqHeader": "HÄUFIGE FRAGEN",
     "faq1Q": "Muss ich Technik installieren?",
     "faq1A": "Nein. Du brauchst nur einen ausgedruckten QR-Code (wir senden den Sticker kostenlos). Dein Kassensystem bleibt wie es ist.",
@@ -742,7 +705,6 @@
     "faq5A": "GPS + rotierender QR + Account-Historie machen's extrem schwer. Bei Verdacht sperren wir den Account auf deinen Hinweis.",
     "faq6Q": "Kann ich jederzeit kündigen?",
     "faq6A": "Ja, monatlich. Keine Mindestlaufzeit, keine Einrichtungsgebühr.",
-
     "bottomCtaTitle": "Bereit, Runner zu dir zu bringen?",
     "bottomCtaBody": "Anmeldung in 10 Min. Dein Shop ist am selben Tag live auf der Karte. Keine Vertragsbindung, keine Fix-Kosten.",
     "bottomCtaSignup": "🚀 Shop anmelden",
@@ -753,10 +715,8 @@
   },
   "Modals": {
     "closeAria": "Schließen",
-
     "sdmKicker": "SHOP-DEALS",
     "sdmTitle": "Kiez-Angebote in deiner Nähe",
-
     "shKicker": "MYAREA365",
     "shTitle": "Shop",
     "shTabPlus": "MyArea+",
@@ -764,7 +724,6 @@
     "shTabGems": "Diamanten",
     "shGuideKicker": "💎 SHOP-GUIDE · KEIN PAY-TO-WIN",
     "shGuideRich": "<a>MyArea+</a> — Premium-Abo: werbefrei, Streak-Freeze-Vorrat, Map-Themes.<br /><b>Power</b> — 🪙-Boosts & Komfort (Zeit sparen, keine Macht).<br /><c>Diamanten</c> — Premium-Währung für Kosmetik & Wächter-Skins.<br /><d>Alle Ränge, Gebiete, Crews & Arena sind ohne Euro spielbar.</d>",
-
     "owUnclaimed": "Unbeansprucht",
     "owCrewArea": "Crew-Gebiet",
     "owRunnerArea": "Runner-Gebiet",
@@ -795,14 +754,12 @@
     "owDash": "—",
     "owStolenFromHeader": "⚔️ Zurückerobert von",
     "owReclaimHint": "💡 Lauf eine neue Runde durch dieses Gebiet um es zurückzuerobern. Crew-Gebiete sind nur als Crew schützbar.",
-
     "rtRouteUnavailable": "Route nicht verfügbar",
     "rtKicker": "ROUTE",
     "rtUnknownPath": "Unbekannter Weg",
     "rtLoading": "Lade Route …",
     "rtStart": "Start",
     "rtEnd": "Ziel",
-
     "potKicker": "ARENA",
     "potTitle": "Trank-Inventar",
     "potIntroRich": "🧪 Tränke geben <a>1 Stunde</a> temporären Kampf-Bonus (Arena + Boss). Bei <b>verlorenem Kampf</b> werden aktive Tränke verbraucht.",
@@ -818,7 +775,6 @@
     "potRarityCommon": "GEWÖHNLICH",
     "potRarityRare": "SELTEN",
     "potRarityEpic": "EPISCH",
-
     "acTitle": "Arena · {name}",
     "acKicker": "RUNNER VS RUNNER",
     "acNotLoggedIn": "Nicht eingeloggt",
@@ -862,7 +818,6 @@
     "rsCancel": "Abbrechen",
     "rsSubmit": "Melden",
     "rsSending": "Sende…",
-
     "adOwnerMe": "Dein Gebiet",
     "adOwnerCrew": "Crew-Gebiet",
     "adOwnerEnemyCrew": "Feindliches Crew-Gebiet",
@@ -880,7 +835,6 @@
     "adLevelLabel": "Level {n}",
     "adUpgradeBtn": "⬆ UPGRADE AUF LEVEL {next} ({cost} 🪙)",
     "adUpgradeAlert": "Upgrade auf Level {next} für {cost} 🪙 Wegemünzen – kommt bald",
-
     "fpExpandAria": "Fraktion & Crews",
     "fpCloseAria": "Einklappen",
     "fpLeaderHint": "{icon} führt · {city}",
@@ -889,7 +843,6 @@
     "fpThisWeek": "diese Woche",
     "fpCrewsNearby": "👥 CREWS IN DER NÄHE",
     "fpAllCrewsBtn": "Alle Crews ansehen →",
-
     "lpExpandAria": "Live-Info erweitern",
     "lpCollapseAria": "Einklappen",
     "lpLiveLabel": "LIVE",
@@ -899,7 +852,6 @@
     "lpAttackInactive": "Kein Angriff",
     "lpTerritoryActive": "GEBIET!",
     "lpTerritoryInactive": "Gebiete sicher",
-
     "rpFactionEnemy": "FEINDLICHE FRAKTION",
     "rpFactionAllied": "VERBÜNDETE FRAKTION",
     "rpFactionKronenwacht": "👑 Kronenwacht",
@@ -916,13 +868,11 @@
     "rpLightLabel": "LIGHT",
     "rpMemberSince": "Mitglied seit {date}",
     "rpSubtitle": "@{username} · {lastSeen}",
-
     "achTierBronze": "BRONZE",
     "achTierSilber": "SILBER",
     "achTierGold": "GOLD",
     "achTierPlatin": "PLATIN",
     "achTierDiamant": "DIAMANT",
-
     "calWeekday0": "M",
     "calWeekday1": "D",
     "calWeekday2": "M",
@@ -977,7 +927,6 @@
     "tabEffects": "Buffs & Debuffs",
     "tabFair": "Fair-Play",
     "gotIt": "Verstanden",
-
     "ovHeroRich": "Dein <b>Wächter</b> ist dein persönlicher Kiez-Kämpfer. Er levelt mit jedem Lauf, wird stärker durch Ausrüstung und kämpft für dich & deine Crew.",
     "ovStep1Title": "1. Laufen",
     "ovStep1Text": "Erobere Straßen → 🪙 Wegemünzen für dich + Wächter-Erfahrung",
@@ -994,7 +943,6 @@
     "ovSpecial4Rich": "<b>5 Fähigkeiten</b> pro Wächter (Aktiv/Passiv/Kampf/Rolle/Expertise) × 5 Stufen",
     "ovSpecial5Rich": "<b>Rage-Kampfsystem</b> — bei voll (1000) feuert der Aktiv-Skill automatisch",
     "ovSpecial6Rich": "<b>Kein Pay-to-Win</b> — Siegel, Wegemünzen & Wächter-Erfahrung nur durch Laufen + Kämpfen",
-
     "gdHeroRich": "<b>60 humanoide Wächter</b> in 4 Typen und 3 Raritäten (Elite / Episch / Legendär). Du beginnst mit einem Elite-Starter deiner Wahl und sammelst neue durch Kämpfe und Meilensteine.",
     "gdRpsTitle": "⚔️ Stein-Schere-Papier",
     "gdRpsBodyRich": "Jeder Typ hat einen natürlichen Gegner: <b>Infanterie schlägt Kavallerie</b>, <b>Kavallerie schlägt Scharfschützen</b>, <b>Scharfschützen schlagen Infanterie</b>. Magier ist neutral — er kann nicht gekontert werden.",
@@ -1008,7 +956,6 @@
     "gdMageLabel": "Magier",
     "gdMageDesc": "Wildcard — neutral gegen alle Typen-Counter",
     "gdTypeHeader": "{emoji} {label} ({count})",
-
     "talHeroRich": "Jedes Level-Up bringt <b>1 Talentpunkt</b>. Du vergibst ihn im individuellen <b>Talentbaum</b> deines Wächters — bis Level 60 (Max) hast du 59 Punkte zum Investieren.",
     "talBranchesTitle": "3 Äste pro Wächter",
     "talBranchSpecLabel": "Spezialisierung",
@@ -1022,7 +969,6 @@
     "talNode2Rich": "<b>Keystones</b> (Tier 5): einzigartige Buffs wie „Berserker\" (bei Leben<30% +50% Angriff) oder „Bollwerk\" (absorbiert 1× tödlichen Treffer)",
     "talNode3Rich": "<b>Prereq</b>: Tier N kann nur freigeschaltet werden, wenn Tier N-1 mindestens Rang 1 hat",
     "talNode4Rich": "<b>Respec</b>: alle 7 Tage kostenlos — danach Universal-Siegel-Kosten",
-
     "skHeroRich": "Jeder Wächter hat <b>5 Fähigkeiten</b>. Jede Fähigkeit muss mit <b>Siegeln</b> freigeschaltet werden. Stufe 5 (Expertise) öffnet sich erst, wenn die anderen 4 auf Max sind.",
     "skSlotsTitle": "5 Slots pro Wächter",
     "skSlotActiveLabel": "Aktiv",
@@ -1044,7 +990,6 @@
     "skSiegelCost": "Kosten pro Stufe: 5 → 10 → 20 → 40 → 80 Siegel (Expertise ×2)",
     "skRageTitle": "Rage-System",
     "skRageBodyRich": "Im Kampf baut sich eine <b>Rage-Leiste</b> auf (0–1000). Jeder Angriff: +100 Rage · jeder erlittene Treffer: +50 Rage. Bei <b>voll</b> feuert deine Aktiv-Fähigkeit automatisch mit <b>massivem Schaden</b> und setzt Rage auf 0 zurück.",
-
     "arHeroRich": "<b>Arena-Shops</b> (⚔️-Symbol auf der Karte) sind Shops die regelmäßig Runner-Duelle hosten. Dein Wächter kämpft gegen den Wächter eines anderen Runners/einer anderen Crew.",
     "arRulesTitle": "Regeln",
     "arRule1Rich": "<b>GPS-Nähe</b>: Du musst ≤ <b>2 km</b> vom Shop sein um zu kämpfen",
@@ -1069,7 +1014,6 @@
     "arLeague4Rich": "<b>Crew-Paket 3. Platz</b>: 25 Siegel",
     "arSpecialTitle": "Spezialkräfte",
     "arSpecialBodyRich": "Skills + Talente deines Wächters fließen ein: <b>Active-Ultimate</b> zündet bei Rage 1000, <b>Passive</b> gibt permanenten Stat-Bonus, <b>Combat</b> triggert bei Events (z.B. Krit), <b>Role</b> gibt Typ-Counter-Bonus, <b>Expertise</b> löst Zweitwirkung der Active aus.",
-
     "bsHeroRich": "<b>Area-Bosses</b> sind riesige Gegner an Landmarks (z.B. Fernsehturm). <b>Winner-takes-all:</b> Nur die Crew mit dem meisten Gesamt-Schaden gewinnt den Loot.",
     "bsWinnerTitle": "🏆 Gewinner-Crew",
     "bsWinnerBodyRich": "Am Ende zählt nur der <b>gesamte Schaden</b> pro Crew. Die Crew mit dem höchsten Wert räumt alles ab — die anderen gehen leer aus.",
@@ -1093,7 +1037,6 @@
     "bsRole4Rich": "<b>Member</b> — kämpft mit, wartet auf Zuteilung",
     "bsImportantTitle": "Wichtig",
     "bsImportantBodyRich": "Bosse haben oft <b>250k+ Leben</b> und eine <b>48-h-Timer</b>. Koordiniert euch im Crew-Chat um früh vor Ort zu sein — wer zuletzt kommt, findet evtl. schon volle Slots. Einmal besiegt = ein Loot-Pool, nur für die Top-Damage-Crew.",
-
     "efHeroRich": "Alle <b>Buffs, Debuffs & Kampf-Effekte</b>, die während eines Arena- oder Boss-Kampfs auftreten können. Aktive Effekte werden als <b>Icons unter der Leben-Leiste</b> angezeigt.",
     "efDebuffsTitle": "☠️ Debuffs (negativ)",
     "efDebuffStunName": "Betäubt",
@@ -1149,7 +1092,6 @@
     "efRoleBonusDesc": "Role-Skill: +3% pro Stufe gegen natürlichen Typ-Gegner. Magier: +2% gegen alle.",
     "efPowerZoneName": "Power-Zone-Buff",
     "efPowerZoneDesc": "Parks/Landmarks: flat +Leben/+Angriff/+Verteidigung/+Tempo solange du in der Zone bist (nur Angreifer).",
-
     "frHeroRich": "MyArea365 ist <b>keine Pay-to-Win-App</b>. Fortschritt kommt durch <b>echtes Laufen</b>. Hier unsere Versprechen.",
     "frP2WTitle": "✓ Kein Pay-to-Win",
     "frP2W1Rich": "Alle kaufbaren Items sind als <b>cosmetic_only</b> markiert — keine Kampf-Stats",
@@ -1166,15 +1108,6 @@
     "frGps4Rich": "<b>Loot-Kisten</b> ≤ 20 m (Auto-Pickup)",
     "frMonetTitle": "💰 Monetarisierung",
     "frMonetBodyRich": "Wir finanzieren uns über <b>Premium-Abos</b> (Skins/Boosts/Sichtbarkeit), <b>Shop-Pakete</b> (Arena-Hosting) und <b>Werbung</b> (Flash-Deals). Nie durch Kampf-Vorteile."
-  },
-  "Common": {
-    "cancel": "Abbrechen",
-    "confirm": "Bestätigen",
-    "delete": "Löschen",
-    "ok": "OK",
-    "close": "Schließen",
-    "save": "Speichern",
-    "back": "Zurück"
   },
   "Cookie": {
     "ariaLabel": "Cookie-Einstellungen",
@@ -1364,7 +1297,12 @@
     "noEquipmentHint": "Noch keine Ausrüstung — gewinn Items bei Einlösungen oder Kämpfen"
   },
   "RunnerStats": {
-    "loading": "Lade Runner-Profil …"
+    "loading": "Lade Runner-Profil …",
+    "openInventory": "Inventar",
+    "openGrowthFund": "Wachstumsfond",
+    "openMonthly": "Monatspakete",
+    "openWheel": "Glücksrad",
+    "openForge": "Schmiede des Lichts"
   },
   "Forge": {
     "errNotEnoughMat": "Nicht genug Materialien.",
@@ -1408,7 +1346,6 @@
     "rewards": "🎁 BELOHNUNGEN",
     "closeAria": "Schließen",
     "ctaArena": "Zur Arena →",
-
     "walkTitle": "Gehen & Laufen",
     "walkHook": "Die Basis — wandle Schritte in 🪙 Wegemünzen.",
     "walkSubtitle": "Dein Schrittzähler ist deine Waffe.",
@@ -1419,7 +1356,6 @@
     "walkTip2": "Jeden Tag laufen → Streak-Bonus wächst.",
     "walkTip3": "Gebiete im Radius deines Lieblings-Shops? Gebietsfürst-Bonus!",
     "walkReward": "🪙 Wegemünzen · Level-Ups · Wächter-Erfahrung · Siegel über Zeit",
-
     "shopTitle": "Shop-Einlösungen",
     "shopHook": "Rabatte + Bonus-Loot per Kassenbon.",
     "shopSubtitle": "🪙 Wegemünzen gegen echte Rabatte — plus Bonus-Loot.",
@@ -1431,7 +1367,6 @@
     "shopTip2": "Shops mit aktiven Quests (🎯) geben Extra-🪙 bei bestimmten Artikeln.",
     "shopTip3": "Gebietsfürst eines Shops? +🪙 und Extra-Siegel bei jeder Einlösung.",
     "shopReward": "Rabatt · Bonus-Loot (Siegel + Items) · Quest-🪙 · Gebietsfürst-Bonus",
-
     "fightTitle": "Arena",
     "fightHook": "10/Tag PvP mit Matchmaking.",
     "fightSubtitle": "PvP-Grind mit fairem Matchmaking.",
@@ -1443,7 +1378,6 @@
     "fightTip2": "Max 2× gleicher Gegner pro Tag (Anti-Farming).",
     "fightTip3": "Matchmaker mischen: 1× gratis pro Tag, danach 30 💎.",
     "fightReward": "⚔️ Sessionehre · Wächter-Erfahrung · Siegel (Common → Epic) · Ausrüstung",
-
     "ligaTitle": "Area-Liga",
     "ligaHook": "30-Tage-Meta mit Titeln & Belohnung.",
     "ligaSubtitle": "30-Tage-Wettkampf um Ruhm und Titel.",
@@ -1455,7 +1389,6 @@
     "ligaTip2": "Glückstreffer-Bonus: Gegner knapp besiegt → +100 Wächter-Erfahrung.",
     "ligaTip3": "Underdog-Bonus: gegen höher-leveligen Gegner → +200 Wächter-Erfahrung.",
     "ligaReward": "Session-Punkte · Titel · Crew-Pakete (80/50/25 Universal-Siegel)",
-
     "bossTitle": "Area-Boss",
     "bossHook": "Crew-Raid auf Karte — größter Schaden gewinnt.",
     "bossSubtitle": "Crew-Raid — wer am meisten Schaden macht, gewinnt.",
@@ -1467,7 +1400,6 @@
     "bossTip2": "Power-Zone-Buffs addieren sich auf deine Stats.",
     "bossTip3": "Leben-Regen pro Runde — hält dich auch bei starken Bossen am Leben.",
     "bossReward": "Universal-Siegel · Rare/Epic-Items · Crew-Erfahrung · Trophäen",
-
     "baseTitle": "Deine Base",
     "baseHook": "Bauen, sammeln, Boni freischalten.",
     "baseSubtitle": "Dein Heimat-Hub auf der Karte — passive Resourcen + permanente Boni.",
@@ -1513,7 +1445,7 @@
     "showAtCheckout": "✓ AN DER KASSE VORZEIGEN",
     "vorortBestaetigt": "VOR ORT BESTÄTIGT · {time}",
     "minOrderHeader": "MINDESTUMSATZ",
-    "minOrderEur": "{eur} €",
+    "minOrderEur": "{eur} € {minimumFractionDigits} {maximumFractionDigits}",
     "minOrderHint": "muss an der Kasse erreicht werden",
     "validFor": "Gültig noch {min}:{sec}",
     "liveRingHint": "Der Live-Ring rotiert — Screenshot erkennt man an stehendem Ring.",
@@ -1716,7 +1648,12 @@
     "tooltipHp": "Lebenspunkte — wie viel Schaden dein Wächter einstecken kann. Bei 0 ist er verwundet.",
     "tooltipAtk": "Angriff — Basis-Schaden pro Treffer. Skaliert mit Waffe, Talenten und Klassen-Buff.",
     "tooltipDef": "Verteidigung — reduziert eingehenden Schaden. Rüstung + Tank-Buff erhöhen sie.",
-    "tooltipSpd": "Tempo — bestimmt wer zuerst angreift. Höchste Tempo schlägt zuerst zu."
+    "tooltipSpd": "Tempo — bestimmt wer zuerst angreift. Höchste Tempo schlägt zuerst zu.",
+    "errorLoad": "Error Load",
+    "loading": "Lädt",
+    "levelLine": "Level Line {level} {wins} {losses}",
+    "tabTalentsWithPoints": "Tab Talents With Points {n}",
+    "signatureKicker": "Signature Kicker"
   },
   "GemShop": {
     "headerKicker": "Diamant-SHOP",
@@ -2176,7 +2113,137 @@
     "cacheCleared": "Cache geleert",
     "cacheSize": "2,4 MB",
     "pushDeniedHint": "Browser hat Push-Benachrichtigungen abgelehnt. Bitte in den Browser-Einstellungen erlauben.",
-    "codeCopied": "Code kopiert!"
+    "codeCopied": "Code kopiert!",
+    "lootWithBonus": "🎁 Loot! +{XP} 🪙{potion} (Danke zum Bonus Video!)",
+    "lootNoBonus": "🎁 Loot! +{XP} 🪙{potion}",
+    "streakSaved": "🔥 Serie gerettet! Setze die deine Serie über {days} Tage.",
+    "milestoneReached": "🎉 Meilenstein erreicht ({km} km)! +{stones} Beschwörungsstein für einen neuen Wächter.",
+    "tooFarFromTarget": "🚶 Zu viel lontano! Bist zu {meters}m — avvicinati (max 25m).",
+    "labelTimeOfDay": "Stunde des Tag",
+    "labelBack": "Zurück",
+    "labelOverview": "Übersicht",
+    "labelMissions": "Missionen",
+    "labelShowDrops": "Zeigen Drop",
+    "labelHideDrops": "Ausblenden Drop",
+    "labelPlaceRepeater": "Platzieren Repeater",
+    "labelPlaceHQ": "Platzieren HQ",
+    "labelClearMap": "🗑 Karte leeren",
+    "ariaCloseHint": "Schließen Hinweis",
+    "ariaClose": "Schließen",
+    "labelDealsShopsOverview": "ANGEBOTE — ANSICHT SHOPS",
+    "labelInbox": "POSTA IN EINGANG",
+    "labelLeaderboard": "RANGLISTE",
+    "labelHQ": "HQ",
+    "labelMegaRepeater": "Mega Repeater",
+    "labelRepeater": "Repeater",
+    "gpsRequired": "Position GPS notwendig.",
+    "gpsRequiredShort": "GPS notwendig.",
+    "crewFull": "Deine Crew hat bereits 10 Mitglieder. Kein Platz.",
+    "areaBossDefeated": "🏆 BOSS VON ZONA SCONFITTO! Nur die Crew mit mehr Schaden nimmt der Loot.",
+    "guardianCollectionLoadFailed": "Nicht möglich laden die collezione von Wächter",
+    "donationThanks": "Danke! Hast ricevuto 250 Wegemünzen! (Simulazione)",
+    "motto${Math": {
+      "max(1, Math": {
+        "min(10, currentRankLive": {
+          "id))}": "Id))}"
+        }
+      }
+    },
+    "titleCoinsExplain": "🪙 Wegemünzen: deine Währung Runner. Lauf Straßen (50), tratti (+250) oder Territorien mit Crew (+500) und steig im Rang auf. Tippen für den Ränge.",
+    "ariaShowAllRanks": "Den anzeigen die Ränge",
+    "titlePowerScore": "Reputazione {n} — punteggio von Macht für costruire, ricercare, addestrare Truppen, salire Wächter und Repeater der Crew",
+    "titleSessionHonor": "⚔️ Verdienen onore von sessione: Kampf 1v1 von Wächter. 5 Kämpfe gratis/Tag. Sieg = sigilli, equipaggiamento, onore.",
+    "titleTerritoryFame": "🏴 Verdienen Territoriumsruhm: tritt einer Crew bei für +500 🪙/Territorium, Crew-Kriege (5000 🏴) und Flaggen-Eroberung (3000 🏴).",
+    "ariaOpenBase": "Öffnen Basis",
+    "labelOpen": "Öffnen",
+    "labelPlace": "Platzieren",
+    "labelGuardian": "WÄCHTER",
+    "ariaOpenGuardianDetails": "Öffnen Wächter-Details",
+    "ariaOpenCrew": "Öffnen Crew",
+    "labelNoHQ": "Kein HQ",
+    "labelManage": "Verwalten",
+    "labelLastRuns": "LETZTE LÄUFE",
+    "labelManagedCrew": "CREW VERWALTET",
+    "labelYourCrew": "DEINE CREW",
+    "labelDashboardArrow": "Dashboard →",
+    "labelOpenArrow": "Öffnen →",
+    "labelHealthData": "DATEN GESUNDHEIT",
+    "labelKmTotal": "KM gesamt",
+    "labelKcalBurned": "KCAL verbrannt",
+    "labelAchievements": "ERFOLGE",
+    "labelCurrentMonth": "MONAT CORRENTE",
+    "labelLoadout": "LOADOUT",
+    "labelHelp": "Hilfe",
+    "profileTextCopied": "Text des Profil copiato in den appunti!",
+    "labelCurrencyGuide": "Anleitung valute",
+    "labelSettings": "Einstellungen",
+    "labelHealthDataModal": "Daten Gesundheit",
+    "labelSettingsModal": "Einstellungen",
+    "labelAppPreferences": "Die deine Präferenzen App",
+    "labelAllAchievements": "Alle die Erfolge",
+    "labelAllRanks": "Alle die Ränge",
+    "labelRankRange": "{n} Level von Straßen-Scout zu Straßengott",
+    "labelCurrent": "AKTUELL",
+    "labelStillNeeded": "noch",
+    "labelInboxModal": "Posta in Eingang",
+    "labelInboxSubtitle": "Nachrichten, rapporti, Crew und Events",
+    "labelSupportContact": "Supporto und Kontakt",
+    "labelSupportSubtitle": "Bug, Frage oder Anfrage Partner",
+    "ariaExpandHappyHour": "Espandi Bonus happy-hour",
+    "ariaCollapseHappyHour": "Comprimi Bonus happy-hour",
+    "labelRunRunning": "LAUF AKTIVIEREN",
+    "labelScreenLocked": "BILDSCHIRM GESPERRT",
+    "labelTapHoldUnlock": "🔒 Tippen und Halt premuto sotto für sbloccare",
+    "ariaHoldToUnlock": "Halt premuto für sbloccare",
+    "errorWithMessage": "Fehler: {message}",
+    "thanksForReview": "⭐ Danke für deine Bewertung!",
+    "labelRating": "Bewertung",
+    "labelRatings": "Bewertungen",
+    "labelRedeemNow": "✨ Einlösen Stunde",
+    "labelCollectMore": "Sammeln {n} 🪙 in mehr",
+    "labelEnterArena": "🏟️ Tritt ein in Arena",
+    "labelRedeemFirst": "🔒 Einlösen vor",
+    "labelOpeningHours": "Öffnungszeiten",
+    "labelPhone": "Telefon",
+    "ariaStarsCount": "{n} Sterne",
+    "placeholderReview": "Com'ist Status? (breve und onesto, max 280 caratteri)",
+    "ariaRemoveFavorite": "Entfernen von den Favoriten",
+    "ariaMarkFavorite": "Segna wie Favorit",
+    "ariaReportShop": "Melden Shop",
+    "labelShopFavorites": "SHOPS FAVORITEN",
+    "ariaShowRoute": "Zeigen percorso",
+    "labelRunningNow": "CORRENDO STUNDE",
+    "labelReadyToStart": "PRONTO Zu BEGINNEN",
+    "enterNameAndZip": "Inserisci Name und CAP",
+    "crewFoundedWithSolo": "✅ \"{name}\" gegründet! 🏆 {count} Territorien nur attivati · +{XP} 🪙 Wegemünzen",
+    "crewFoundedWithType": "✅ \"{name}\" gegründet — {typeLabel}!",
+    "labelBurned": "Verbrannt",
+    "sharedOrCopied": "✓ Condiviso oder copiato in den appunti.",
+    "shareNotPossible": "Nicht möglich teilen.",
+    "gpxExportFailed": "Export GPX fehlgeschlagen.",
+    "joinRequestSent": "Anfrage zu \"{name}\" — wird collegata zum backend.",
+    "placeholderCrewFriends": "z.B.. Die Compagni von Lauf",
+    "placeholderCrewFamily": "z.B.. Läufe Familie Rossi",
+    "placeholderCrewSchool": "z.B.. Squadrone Runner 4°B",
+    "placeholderCrewWork": "z.B.. Runner Acme S.r.l.",
+    "placeholderCrewSports": "z.B.. Club Atletica TSV",
+    "placeholderCrewNeighborhood": "z.B.. Runner von Viertel 20121",
+    "placeholderCrewOpen": "z.B.. Runner Serali Milano",
+    "mottoCrewFriends": "Niemand resta zu Heim.",
+    "mottoCrewFamily": "Rennen insieme, crescere insieme.",
+    "mottoCrewSchool": "Dominiamo der cortile Und der Viertel.",
+    "mottoCrewWork": "Nach der Arbeit, Beginnen der echt Arbeit.",
+    "mottoCrewSports": "Der club vive in Straße.",
+    "mottoCrewNeighborhood": "Ein Viertel, eine Crew.",
+    "mottoCrewOpen": "Komm vorbei — los geht's bald.",
+    "labelAttacking": "Greift an…",
+    "labelTooFar": "🔒 Zu viel lontano",
+    "labelAttack": "⚔️ Angreifen (500–2000 DMG)",
+    "leaderboardLoadFailed": "Nicht möglich laden die Rangliste",
+    "networkError": "Fehler von Netzwerk",
+    "labelAlreadyTrainedToday": "✓ Bereits allenato heute",
+    "labelTraining": "Training…",
+    "labelTrainAction": "🙏 Allena (+{XP} XP)"
   },
   "Arena": {
     "loadingOpponents": "Lade Gegner …",
@@ -2401,7 +2468,7 @@
     "pendingTerritoryHint": "Tritt einer Crew bei, um je +500 Wegemünzen rückwirkend zu kassieren.",
     "bonusActiveHeader": "BONI AKTIV",
     "bonusStreak": "🔥 Streak-Bonus: <b>+{xp} 🪙</b>",
-    "bonusHappyHour": "⏰ Happy Hour: <b>{mult}× 🪙</b>",
+    "bonusHappyHour": "⏰ Happy Hour: <b>{mult}× 🪙</b> {b}",
     "bonusCoinBoost": "⚡ Münzen-Boost: <b>{mult}× 🪙</b>",
     "bonusCrewBoost": "👥 Crew-Boost: <b>{mult}× 🪙</b>",
     "achievementsHeader": "🏆 {count} NEU FREIGESCHALTET",
@@ -2488,6 +2555,13 @@
         "a2": "Wir speichern nur den Minimalsatz (Strecken, Währungsstände, Profil). Keine Weitergabe. Vollständige DSGVO-Info im Datenschutz-Link im Profil-Footer.",
         "q3": "Ich habe einen Bug / Vorschlag gefunden",
         "a3": "Profil → Menü → 🎫 Support. Wir antworten meistens binnen 48 h."
+      },
+      "${def": {
+        "key}": {
+          "title": "Title",
+          "q${i + 1}": "Q${i + 1}",
+          "a${i + 1}": "A${i + 1}"
+        }
       }
     }
   },
@@ -2609,7 +2683,7 @@
     "flagBadge": "🚩 FLAGGEN-KAMPF",
     "flagDetails": "PLZ {plz} · Radius {radius}m · endet in {hours}h",
     "flagDetailsNoPlz": "Radius {radius}m · endet in {hours}h",
-    "flagPrize": "+{xp} 🏴",
+    "flagPrize": "+{XP} 🏴",
     "flagWinnerTo": "an Winner-Crew",
     "flagYourCrew": "Deine Crew: {visits} / {target} Visits",
     "flagAtSpot": "🚩 Ich bin vor Ort!",
@@ -2636,7 +2710,7 @@
     "challengeNewBtn": "+ Neue Crew-Challenge anlegen",
     "challengeEmpty": "Noch keine aktiven Challenges.",
     "challengeProgress": "{progress} / {target}",
-    "challengeReward": "+{xp} 🏴",
+    "challengeReward": "+{XP} 🏴",
     "challengeDays": "{n}d",
     "challengeEditorTitle": "🎯 Neue Crew-Challenge",
     "challengeFieldName": "Titel",
@@ -2716,7 +2790,7 @@
     "powerCost": "💎 {cost}",
     "powerGemPacksHeading": "💎 DIAMANTEN-PAKETE (IN POOL)",
     "powerGemAmount": "{gems} 💎",
-    "powerGemBonus": " +{bonus}",
+    "powerGemBonus": " +{Bonus}",
     "powerSlotsHeading": "👥 MITGLIEDER-SLOTS",
     "powerSlotsOccupied": "Belegt",
     "powerSlotsMax": "(max 100)",
@@ -2794,6 +2868,12 @@
         "how": "Gemeinsame Crew-Kasse mit Diamanten. Mitglieder zahlen 💎 aus ihrem Konto in den Pool, Anführer aktivieren damit 7 Power-Items (Score-Boosts, Shield, Flaggen-Spawn, Reroll, Duel-Pick). Boosts pushen NUR Crew-Rankings (Duell/War/Saison), nicht die persönliche Erfahrung — damit Runner-Ränge wertvoll bleiben.",
         "loot": "Kein direktes Erfahrung. Aber: +50 % Crew-Score-Multiplier in Duell/War/Saison/Challenges, Schutz vor Gebiet-Diebstahl, strategische Vorteile. Limit: max 1 Boost aktiv gleichzeitig, max 72 h Boost-Zeit pro Woche.",
         "tips": "Score-Boosts lohnen vor allem kurz vor Ende eines Duells/Krieges. Territory-Shield bei laufenden Feindangriffen. Member-Slot-Packs (€) wenn Crew voll wird (Start: 10 Slots, max. 100)."
+      },
+      "${tab}": {
+        "title": "Title",
+        "how": "How",
+        "loot": "Loot",
+        "tips": "Tips"
       }
     }
   },
@@ -3274,7 +3354,7 @@
     "blockBilling": "💳 Abrechnung & Paket",
     "billingTitle": "Paket ansehen · Rechnungen · Stripe-Portal",
     "billingSub": "Aktuelles Paket, Add-ons, Rechnungshistorie und Self-Service-Kündigung.",
-    "blockAccount": "⚠️ Account",
+    "blockAccount": "⚠️ Konto",
     "accountPasswordLink": "🔒 Passwort ändern / Account-Einstellungen",
     "shopPausedTitle": "⏸️ Shop ist aktuell pausiert",
     "shopLiveTitle": "✓ Shop ist live",
@@ -4042,5 +4122,2303 @@
     "seasonLoading": "Lade Saison…",
     "diamantOpenTooltip": "Diamanten — Shop öffnen",
     "diamantLabel": "Diamanten · {amount}"
+  },
+  "AttackBaseModal": {
+    "guardianFallback": "Wächter",
+    "defenderFallback": "Gegner",
+    "scoutMinutes": "{n} min.",
+    "scoutEtaShort": "bald",
+    "scoutEta": "🔍 Scout inviato — Report in Posta in Eingang in etwa {eta}.",
+    "scoutErrNotEnoughGold": "Gold insufficiente (servono {need} 🪙).",
+    "scoutErrAlreadyScouting": "Hast bereits ein Scout in viaggio Richtung dies Gegner.",
+    "scoutErrBaseMissing": "Manca die deine Basis oder jene des bersaglio auf der Karte.",
+    "scoutErrGeneric": "Spionaggio fehlgeschlagen",
+    "minTroops": "Minimum 10 Truppen Anfragen.",
+    "rallyStarted": "✓ Ralliement iniziato — die Crew kann beitreten.",
+    "rallyErrNoCrew": "Nicht bist in eine Crew.",
+    "rallyErrAlreadyActive": "Deine Crew hat bereits ein ralliement aktiv.",
+    "rallyErrShielded": "🛡️ Der Gegner hat der Schild.",
+    "rallyErrGeneric": "Ralliement fehlgeschlagen",
+    "marchStarted": "✓ Marcia iniziata — ETA {min}:{sec} ({distance} m). Der Report appare nach in Posta.",
+    "attackErrShielded": "🛡️ Der Gegner hat der Schild.",
+    "attackErrAlreadyActive": "Hast bereits ein Angriff aktiv.",
+    "attackErrNoBase": "Nicht hast Basis.",
+    "attackErrGeneric": "Fehler",
+    "infoStatPlayerLevel": "Level giocatore",
+    "infoLevelN": "Level {n}",
+    "infoStatBaseLevel": "Level Basis",
+    "infoStatBaseHp": "HP Basis",
+    "infoStatCrew": "Crew",
+    "infoNoCrew": "—",
+    "infoStatPower": "Macht",
+    "infoPowerHidden": "???  (Senden Scout)",
+    "actionScout": "SCOUT",
+    "actionScoutSub": "Spiona · 500 🪙",
+    "actionRally": "ANGRIFF VON CREW",
+    "actionRallySub": "Beginnen ralliement",
+    "actionAttack": "ANGREIFEN",
+    "actionAttackSub": "Colpo von nur",
+    "rallyPrep3min": "3 min",
+    "rallyPrep8min": "8 min",
+    "rallyPrep28min": "28 min",
+    "rallyHeader": "ANGRIFF VON CREW",
+    "rallyTitle": "📣 Angriff der Crew contro {name}",
+    "rallyPrepLabel": "Zeit von preparazione",
+    "rallyPrepHint": "Die Mitglieder der Crew können beitreten während dies Zeit.",
+    "rallyGuardianLabel": "Comandante Wächter",
+    "rallyGuardianBonus": "+{pct}% Angriff",
+    "rallyNoGuardian": "Ohne Wächter",
+    "rallyNoActiveGuardians": "Kein Wächter aktiv — Schau Profil.",
+    "rallyGuardianLevel": "Lv {level}",
+    "marchCapLabel": "📦 Cap von marcia:",
+    "marchCapBurg": "· Burgo Lv {level}",
+    "marchCapGuardian": "+{pct}% Wächter",
+    "marchesUsed": "{used}/{total} marce",
+    "marchesQueueFull": "⚠ Alle die slot von marcia usati — wartet dass finisca ein Angriff aktiv.",
+    "noTroops": "Keine Truppe verfügbar — addestrane qualcuna.",
+    "classClickHint": "★ {name}",
+    "classAvailable": "verfügbare {n}",
+    "troopTier": "T{tier}",
+    "troopStats": "ATQ {atk} · DEF {def} · HP {hp} · hast {have}",
+    "qtyMax": "MAX",
+    "footerTroopsLabel": "Truppen:",
+    "footerAttackLabel": "Angriff:",
+    "footerClear": "Svuota",
+    "footerAll": "Alle",
+    "btnQueueFull": "⛔ Alle die slot von marcia usati",
+    "btnOverCap": "⚠ Sopra cap von marcia ({n}/{cap})",
+    "btnRallyStartCount": "📣 BEGINNEN ANGRIFF VON CREW ({n})",
+    "btnRallyStart": "📣 BEGINNEN ANGRIFF VON CREW",
+    "attackHeader": "ANGREIFEN",
+    "marchCapShortGuardian": "+{pct}%",
+    "footerMaxCap": "Cap max",
+    "btnAttackStartCount": "⚔️ ANGREIFEN ({n})",
+    "btnAttackStart": "⚔️ ANGREIFEN"
+  },
+  "BaseModal": {
+    "errBurgRequirements": "Mancano requisiti des burgo: {list}",
+    "errBurgLevelLow": "Level burgo zu viel niedrig: serve Level {needed}, hast Level {have}.",
+    "errQueueFull": "Slot von Bau pieni — ein burgo mehr hoch oder Premium gibt mehr slot.",
+    "errMaxLevel": "Level Maximum erreicht.",
+    "errNotEnoughRes": "Ressourcen insufficienti.",
+    "errGeneric": "Fehler",
+    "errThemeNotUnlocked": "Theme nicht freigeschaltet",
+    "loading": "Lädt Basis…",
+    "resWoodLabel": "Rottame Tech",
+    "resWoodHint": "🏚 km in rottamai / km industria",
+    "resStoneLabel": "Componenti",
+    "resStoneHint": "🏗 km in ferramenta / km logistica",
+    "resGoldLabel": "Cripto",
+    "resGoldHint": "🏦 km in Bezirk bancario / corporate",
+    "resManaLabel": "Larghezza von banda",
+    "resManaHint": "📶 km in hotspot WiFi / antenne",
+    "burgLevelHeader": "🏰 {label} · CAP {plz}",
+    "burgTitle": "{theme} · Burgo Level {level}",
+    "burgProgressLabel": "LEVEL BURGO {level}/25",
+    "burgNext": "→ Level {level}",
+    "burgMax": "MAX",
+    "settingsTitle": "Einstellungen Basis",
+    "close": "Schließen",
+    "vipTickets": "⭐ Ticket Premium",
+    "guardianXp": "⚔️ XP Wächter",
+    "tabOverview": "Übersicht",
+    "tabRes": "Ressourcen",
+    "tabBuild": "Costruisci",
+    "tabTroops": "Truppen",
+    "tabResearch": "Suche",
+    "tabChest": "Truhen",
+    "tabVip": "Premium",
+    "tabBtnOverview": "📊 Info",
+    "tabBtnRes": "💰 RSS",
+    "tabBtnBuild": "🏗 Costruisci",
+    "tabBtnTroops": "⚔ Truppen",
+    "tabBtnResearch": "🔬 Tech",
+    "tabBtnChest": "🗝 Loot",
+    "tabBtnVip": "⭐ Premium",
+    "statBurgLabel": "Level burgo",
+    "statBurgSubBuild": "Costruisci in der tab Costruisci → Burgo",
+    "statBurgSubMax": "Maximum erreicht",
+    "statBuildingsLabel": "Gebäude",
+    "statBuildingsSubMaxed": "{n} zu Level MAX",
+    "statBuildingsSubMore": "Sehr von costruire",
+    "statVipLabel": "Level Premium",
+    "statVipSubStreak": "🔥 Serie über {n} Tage",
+    "statSpeedLabel": "Token von Tempo",
+    "statSpeedSub": "Rennen 1 km = 1 token. Überspringen Zeit von Bau (5 min/token).",
+    "sectionResources": "💰 RESSOURCEN",
+    "sectionActivities": "⏱️ ATTIVITÀ",
+    "buildingsInBuild": "{n, plural, =1 {{n} Gebäude in Bau} other {{n} Gebäude in Bau}}",
+    "nextDoneIn": "Nächster finito in {time}",
+    "toBuildBtn": "→ Costruisci",
+    "chestsReady": "{n} Truhen pronte!",
+    "tapToOpen": "Tippe für öffnen.",
+    "toOpenBtn": "→ Öffnen",
+    "chestsWaiting": "{n} Truhen in attesa",
+    "nextChestIn": "Nächste in {h}h {m}min",
+    "sectionTopEffects": "⚡ TOP EFFEKTE",
+    "effectLevelTag": "Level {level}",
+    "emptyTitle": "Zu laufen und Sammeln Ressourcen!",
+    "emptyHint": "100/km von jeder Ressource. Poi kannst costruire der dein erster Gebäude.",
+    "introResTitle": "🏰 COS'Ist DIE DEINE BASIS?",
+    "introResBody1": "Die deine fortezza persönlich. Jeder Schritt in der Leben reale riempie die deine tesoreria:",
+    "introResWoodBold": " km in den parchi → Legno",
+    "introResStoneBold": " km in residenziale → Pietra",
+    "introResGoldBold": " centro Stadt → Gold",
+    "introResManaBold": " acqua → Bandbreite",
+    "introResBody2": "Mit Ressourcen costruisci Gebäude dass Schaden Bonus permanenti zu Wächter, Drop von Ressourcen und Zeit von Bau.",
+    "resDropLabel": "📥 Drop:",
+    "resPerKm": "{n}/km",
+    "resPassive": "⏱ Passivo:",
+    "resPerHour": "+{n}/h",
+    "speedTokensHeader": "TOKEN VON TEMPO",
+    "activeEffectsTitle": "⚡ EFFEKTE ATTIVI ({n})",
+    "activeEffectsHint": "Bonus von den deine Gebäude costruiti — passivi auf Drop von Ressourcen, Zeit von Bau und Wächter.",
+    "introBuildTitle": "🏗️ WIE FUNZIONA COSTRUIRE?",
+    "introBuildBody1": "Jeder Gebäude gibt ein ",
+    "introBuildPassive": "Bonus passivo",
+    "introBuildBody2": " zu alle die Wächter, Ressourcen oder Zeit von Bau. Costruire costa Ressourcen + Zeit. Mit ",
+    "introBuildSpeedTokens": "⚡ token von Tempo",
+    "introBuildBody3": " (Rennen 1 km = 1 token) salti 5 min von Zeit von Bau ciascuno. Level mehr alti necessitano esponenzialmente mehr Ressourcen aber Schaden Bonus mehr forti.",
+    "previewModeNote": "⚠ Modus preview · migrazione DB in attesa. Die Bau sich Aktivieren wann wird lanciata die migrazione des server.",
+    "buildToLevel": "→ Level {target}",
+    "buildReady": "FATTO …",
+    "buildRemain": "restano {min}:{sec}",
+    "buildSkip": "⚡ Überspringen",
+    "categoryProduction": "PRODUZIONE",
+    "categoryStorage": "STOCCAGGIO",
+    "categoryCombat": "KAMPF",
+    "categoryUtility": "UTILITÀ",
+    "categoryCosmetic": "COSMETICO",
+    "buildLevel": "Level {lvl}/{max}",
+    "buildEffectAtLevel": "· {value} Gesamt zum Level {level}",
+    "buildTime": "Zeit Bau ⏱{n}m",
+    "buildCtaMax": "★ MAX",
+    "buildCtaInBuild": "🔨 Bau",
+    "buildCtaLocked": "🔒 Level Basis {level} richiesto",
+    "buildCtaPreview": "🔒 Preview",
+    "buildCtaBuild": "🏗️ Costruisci",
+    "buildCtaUpgrade": "⬆️ Level {level}",
+    "chestKindSilver": "Silber",
+    "chestKindGold": "Gold",
+    "chestKindEvent": "Event",
+    "introChestTitle": "🗝️ VON WO WERDEN DIE TRUHEN?",
+    "introChestBody1": "Die Truhen cadono in ",
+    "introChestArena": "Kämpfe d'Arena",
+    "introChestRaids": "raid von Boss",
+    "introChestVip": "Belohnungen giornaliere Premium",
+    "introChestBody2": " und attività der Crew.",
+    "introChestSilver": "🥈 Silber: 24h von attesa, oggetti gewöhnlich + Ressourcen.",
+    "introChestGold": "🥇 Gold: 24h, oggetti selten, frammenti von Wächter, Drop grandi von Ressourcen.",
+    "introChestPity": "Garanzia pity: jeder 10 Truhen mindestens 1 episch, jeder 30 mindestens 1 legendär.",
+    "chestReady": "{n} pronti",
+    "chestOpenBtn": "Öffnen",
+    "chestRemainHr": "{h}h {m}m",
+    "chestRemainMin": "{m}m",
+    "chestEmpty": "leer",
+    "yourChests": "DIE DEINE TRUHEN",
+    "chestKindSuffix": "Truhe {kind}",
+    "chestReadyToOpen": "Pronta für öffnen",
+    "chestOpensIn": "Öffnet in {h}h {m}min",
+    "chestEmptyAll": "Noch ohne Truhen — Kämpfen in Arena, Abmelden zu rennen oder controlla die Belohnung giornaliera Premium!",
+    "vipSubtabStatus": "📊 Status",
+    "vipSubtabShop": "🛒 Shop",
+    "vipSubtabTiers": "📈 Tier",
+    "introVipTitle": "⭐ COS'Ist PREMIUM?",
+    "introVipBody1": "Sammeln Punkte Premium über ",
+    "introVipDailyLogins": "login giornalieri",
+    "introVipQuests": "quest completate",
+    "introVipPurchases": "Käufe Premium",
+    "introVipBody2": ". Maggior Level Premium = mehr ",
+    "introVipChests": "🥈/🥇 Truhen giornaliere",
+    "introVipResBonus": "+% Drop von Ressourcen",
+    "introVipBuildBonus": "−% Zeit von Bau",
+    "introVipBody3": " und Themes esclusivi. Tier Maximum 15.",
+    "vipLevelHeader": "LEVEL PREMIUM",
+    "vipStreakHeader": "🔥 SERIE",
+    "vipPoints": "{cur} / {max} pti",
+    "vipNextLevel": "→ Level {level}",
+    "vipBenefitsHeader": "🎁 Die DEINE BENEFICI GIORNALIERI",
+    "benefitSilver": "Truhen Silber",
+    "benefitPerDay": "{n}/Tag",
+    "benefitGold": "Truhen Gold",
+    "benefitResources": "📦 Ressourcen",
+    "benefitPercent": "+{n}%",
+    "benefitBuildtime": "⏱ Zeit Bau",
+    "benefitMinusPercent": "-{n}%",
+    "benefitBuildSlots": "🔨 Slot Bau",
+    "benefitPlus": "+{n}",
+    "benefitResearchSlots": "🔬 Slot Suche",
+    "benefitTraining": "⚔️ Addestramento",
+    "benefitResearch": "📚 Suche",
+    "benefitGather": "🌾 Raccolta",
+    "benefitMarchSpeed": "🐎 Tempo von marcia",
+    "benefitTroopAtk": "⚔ ATQ Truppe",
+    "benefitTroopDef": "🛡 DEF Truppe",
+    "benefitTroopHp": "❤ HP Truppe",
+    "introSettingsTitle": "⚙️ EINSTELLUNGEN BASIS",
+    "introSettingsBody1": "Definisci ",
+    "introSettingsVis": "wer sieht die deine Basis auf der Karte",
+    "introSettingsBody2": ", von den ein ",
+    "introSettingsName": "Name personalisiert",
+    "introSettingsBody3": " und Wähle eine ",
+    "introSettingsTheme": "skin von Theme",
+    "introSettingsBody4": ". Die Themes sind puramente cosmetici — l'Symbol des pin, der Farbe des modal und die Symbole der Ressourcen cambiano, die stat restano.",
+    "visibilityHeader": "VISIBILITÀ",
+    "visibilityPublic": "🌍 Alle",
+    "visibilityCrew": "⚔️ Crew",
+    "visibilityShielded": "🛡️ Schild aktiv — visibilità gesperrt bis zum scadere des Schild.",
+    "visibilityHint": "Determina wer sieht der pin der deine Basis auf der Karte.",
+    "appearanceHeader": "ASPETTO BASIS",
+    "appearanceTheme": "THEME",
+    "appearanceThemeAvail": "{n} verfügbare",
+    "appearanceRing": "RING",
+    "appearanceRingName": "Ring Basis",
+    "appearanceBanner": "STENDARDO",
+    "appearanceBannerName": "Targa Name",
+    "private": "Diese Basis ist privat",
+    "foreignOwnerFallback": "Runner",
+    "foreignBaseTitle": "Basis von {owner}",
+    "foreignBaseSubtitle": "Level {level} · CAP {plz}",
+    "foreignRunner": "RUNNER",
+    "foreignCrewLabel": "⚔️ {name}",
+    "foreignCrewSolo": "Nur · ohne Crew",
+    "foreignBuildings": "GEBÄUDE",
+    "foreignBuildingsEmpty": "Kein Gebäude.",
+    "crewStubTitle": "Basis der Crew",
+    "crewStubSubtitle": "Ansicht dettagliata in Eingang",
+    "crewStubBody": "Modal von Basis der Crew im nächster patch.",
+    "labelEditorErrShort": "3-10 lettere.",
+    "labelEditorErrChars": "Nur lettere.",
+    "labelEditorErrThrottle": "Für favore wartet 10s zwischen die cambi.",
+    "labelEditorErrTooShort": "Mindestens 3 lettere.",
+    "labelEditorErrTooLong": "Max 10 lettere.",
+    "labelEditorErrTaken": "Name bereits preso.",
+    "labelEditorHeader": "📝 NAME DER BASIS",
+    "labelEditorPlaceholder": "z.B.. Drachenfels",
+    "labelEditorSave": "Speichern",
+    "labelEditorHint": "3-10 lettere · unico · moderato",
+    "labelEditorChecking": "Überprüfung…",
+    "labelEditorFree": "✓ verfügbar",
+    "labelEditorTaken": "✗ preso",
+    "labelEditorSaved": "✓ gespeichert",
+    "troopsLoading": "Lädt…",
+    "troopClassInfantry": "🛡️ Portieri",
+    "troopBuildingBar": "Bar",
+    "troopClassCavalry": "🏍️ Messaggeri",
+    "troopBuildingGarage": "Garage",
+    "troopClassMarksman": "🎯 Frombolieri",
+    "troopBuildingGym": "Palestra",
+    "troopClassSiege": "🔨 Demolitori",
+    "troopBuildingWerkhof": "Officina",
+    "introTroopsTitle": "⚔️ ADDESTRA TRUPPEN",
+    "introTroopsBody1": "Recluta deine Crew in ",
+    "introTroopsBuildings": "Bar / Garage / Palestra / Officina",
+    "introTroopsBody2": ". ",
+    "introTroopsT1": "T1",
+    "introTroopsBody3": " ist verfügbar all'istante. ",
+    "introTroopsT2T5": "T2-T5",
+    "introTroopsBody4": " devono sein ricercate — Schau ",
+    "introTroopsResearchTab": "🔬 tab SUCHE → Militare",
+    "introTroopsBody5": ". Die Suche T5 richiede diversi Tage.",
+    "introTroopsBody6": "Cap von addestramento für ordine = Level dell'Gebäude × 10.",
+    "trainingHeader": "⏱ IN ADDESTRAMENTO",
+    "trainingMin": "{n} min",
+    "troopTier": "T{tier}",
+    "troopResearchSuffix": " · 🔬 Suche",
+    "troopTapToOpen": "Tippen ›",
+    "researchStarted": "✓ Suche iniziata ({min} min)",
+    "researchErrPrereq": "Manca Suche predecessore.",
+    "researchErrBurgLow": "Der burgo muss sein mehr hoch.",
+    "researchErrQueueFull": "Slot von Suche pieni (mehr mit Premium 4 / 7).",
+    "researchErrNotEnoughRes": "Ressourcen insufficienti.",
+    "researchBranchEconomy": "💰 Economia",
+    "researchBranchMilitary": "⚔️ Militare",
+    "researchBranchInfra": "🏗️ Infrastruttura",
+    "researchBranchSocial": "🤝 Sociale",
+    "introResearchTitle": "🔬 SUCHE",
+    "introResearchBody1": "Die Suche gibt ",
+    "introResearchBoni": "% von Bonus",
+    "introResearchBody2": " permanenti (Ressourcen, Truppen, Zeit von Bau). Die tier mehr alti richiedono Suche predecessore + Level von burgo corrispondente.",
+    "introResearchBody3": "Slot von Suche: 1 (Premium 4 → 2 · Premium 7 → 3).",
+    "researchInProgress": "⏱ SUCHE",
+    "researchToLevel": "{name} → Level {target}",
+    "researchTier": "TIER {tier}",
+    "researchItemMeta": "T{tier} · Level {lvl}/{max} · Burgo {burg}+",
+    "researchPrereqLocked": "🔒 Predecessore richiesto",
+    "researchToNextLevel": "→ Level {level}",
+    "relocateNeedToken": "Dir serve ein token von trasloco (Drop von den Truhen).",
+    "relocateConfirm": "Spostare Basis? Nach OK, Klicken auf dem neu Punkt der Karte.",
+    "relocatePickHint": "Tippen die neue Position auf der Karte.",
+    "relocateHeader": "SPOSTA BASIS",
+    "relocateBody1": "Sposta die deine Basis in eine neue Position. Costa ",
+    "relocateBody2": " token von trasloco. Die token cadono von Truhen Gold/epiche.",
+    "relocateTokens": "Token: {n}",
+    "relocateBtn": "Wähle Position",
+    "shieldOk": "✓ Schild attivato!",
+    "shieldErrGold": "Insufficienti 🪙 (servono 500).",
+    "shieldErrCooldown": "Cooldown aktiv ({h}h).",
+    "shieldErrAlreadyActive": "Schild bereits in azione.",
+    "shieldEndConfirm": "Terminare Schild Stunde? Die Basis diventa sichtbar und attaccabile von neu.",
+    "shieldHeader": "SCHILD",
+    "shieldActive": "Aktiv · scade in {time}",
+    "shieldActiveHint": "Die Basis ist unsichtbar und inattaccabile während dies Zeit.",
+    "shieldEndBtn": "Beenden Schild Stunde",
+    "shieldCooldown": "Cooldown · nächster uso in {time}",
+    "shieldCooldownHint": "Der Schild sich kann aktivieren max 1× jeder 7 Tage.",
+    "shieldOfferBefore": "{hours}h unsichtbar + inattaccabile. Costa",
+    "shieldOfferAfter": ". Cooldown: 7 Tage.",
+    "shieldActivating": "Attivazione…",
+    "shieldActivateBtn": "Aktivieren Schild · {cost}",
+    "reportLabelSent": "✓ Danke — der team controllerà.",
+    "reportLabelDuplicate": "Hast bereits segnalato diese Basis (max 1× jeder 24h).",
+    "reportLabelBtn": "🚩 Melden Name",
+    "reportLabelHeader": "🚩 MELDEN NAME",
+    "reportLabelHint": "Weil dies Name ist inappropriato? (opzionale)",
+    "reportLabelPlaceholder": "z.B.. insulto, spam, simboli d'odio…",
+    "reportLabelCancel": "Abbrechen",
+    "reportLabelSubmit": "Melden",
+    "reportLabelErr": "Fehler von invio.",
+    "vipShopErrLevel": "Level Premium zu viel niedrig",
+    "vipShopErrLimit": "Limit Täglich erreicht",
+    "vipShopErrGems": "Diamanten insufficienti",
+    "vipShopErrPrefix": "❌ {msg}",
+    "vipShopOk": "✅ +{amount} {kind}",
+    "vipShopHeader": "🛒 SHOP PREMIUM",
+    "vipShopHint": "(Angebote scontate)",
+    "vipShopLoading": "Lädt Angebote…",
+    "vipShopLockedAt": "🔒 Von Premium {level}",
+    "vipShopRemaining": "{remain}/{limit} verfügbare heute",
+    "vipShopSoldOut": "✓ Esaurito",
+    "vipDailySilver": "Truhe Silber",
+    "vipDailyGold": "Truhe Gold",
+    "vipDailySpeedToken": "Token von Tempo",
+    "vipDailyTicket": "Ticket Premium",
+    "vipDailyHeader": "🎁 BELOHNUNG GIORNALIERA PREMIUM",
+    "vipDailyClaimed": "Bereits riscattata heute — Zurück morgen.",
+    "vipDailyOncePerDay": "Level {level} · eine volta zum Tag",
+    "vipDailyClaimedBtn": "✓ Riscattato",
+    "vipDailyClaimBtn": "Einlösen",
+    "vipTicketsResultOk": "✅ +{points} Punkte Premium",
+    "vipTicketsHeader": "🎟 EINLÖSEN TICKET PREMIUM",
+    "vipTicketsSub": "1 ticket = 50 Punkte Premium · {n} verfügbare",
+    "vipTicketsMax": "MAX",
+    "vipTicketsRedeemBtn": "+{points} pti",
+    "earnHeader": "🎁 VERDIENEN RESSOURCEN",
+    "earnAdsTitle": "🎬 SCHAU VIDEO",
+    "earnAdsHint": "Schau ein Video breve → +200 von jeder Ressource + 1 token von Tempo. Bis zu 5× zum Tag.",
+    "earnQuestsTitle": "🎯 QUEST GIORNALIERE",
+    "earnQuestsHint": "4 task casuali zum Tag — die maggior Teil ohne bisogno von laufen.",
+    "earnCrewTitle": "🤝 DONAZIONE VON CREW",
+    "earnCrewHint": "Teilen Ressourcen mit Mitglieder der Crew. Max 5.000 ricevuti zum Tag.",
+    "earnStepsTitle": "👣 SCHRITTE / SPINTE",
+    "earnStepsHint": "Registra die Schritte von heute oder die spinte von sedia zu rotelle — 50 von jeder Ressource für km.",
+    "earnPackagesTitle": "💎 PACK VON RESSOURCEN",
+    "earnPackagesHint": "Boost mit denaro reale — Fortschritt mehr schnell ohne warten (ohne pay-to-win, nur comodità).",
+    "adCancelledNoReward": "Video annullato — keine Belohnung.",
+    "adCancelled": "Annullato.",
+    "adTokensSuffix": " + {n}⚡",
+    "adRewardOk": "✓ +{n} von jeder Ressource{tokens} ricevuti!",
+    "adErrDailyClaimed": "Bonus Täglich bereits riscattato heute — Zurück morgen!",
+    "adErrCooldown": "Cooldown aktiv ({min} min).",
+    "adErrCooldownLimit": "Limit Täglich von Video Bonus erreicht.",
+    "adVideoLoading": "Video in Lädt…",
+    "adDailyClaimed": "✓ Bonus Täglich riscattato",
+    "adDailyOfferTokens": "🎬 Video Täglich → +{n} von jeder Ressource + {tokens}⚡",
+    "adDailyOffer": "🎬 Video Täglich → +{n} von jeder Ressource",
+    "adDailyToday": "{used}/{limit} Video giornalieri heute",
+    "adCooldownExhausted": "✓ Video Bonus esauriti heute",
+    "adCooldownActive": "⏱ Cooldown {min}:{sec}",
+    "adCooldownOffer": "🎬 Video Bonus → +{n} von jeder Ressource",
+    "adCooldownToday": "{used}/{limit} Video Bonus heute · cooldown {min} min",
+    "questsLoading": "Lädt…",
+    "questsEmpty": "Keine quest Aktivieren heute.",
+    "questReward": "Belohnung:",
+    "questClaimBtn": "Einlösen",
+    "crewDonateOk": "✓ {amount} {res} inviati zu {name}",
+    "crewDonateErrLimit": "Der destinatario hat erreicht der Limit Täglich.",
+    "crewDonateErrInsuff": "Nicht hast ziemlich.",
+    "crewDonateErrSameCrew": "Entrambi devono sein in der selbe Crew.",
+    "crewDonateLoading": "Lädt Crew…",
+    "crewDonateNoCrew": "Nicht bist in eine Crew oder nicht hast co-Mitglieder.",
+    "crewDonatePickRecipient": "— Wähle destinatario —",
+    "crewDonatePlaceholder": "Quantità (1-1000)",
+    "crewDonateSendBtn": "Senden",
+    "stepsOk": "✓ {km} km · +{each} von jeder Ressource · ⚡ {tokens}",
+    "stepsErrDailyLimit": "Limit Täglich erreicht (50.000 Schritte).",
+    "stepsManual": "🚶 Schritte",
+    "stepsWheelchair": "♿ Spinte",
+    "stepsHealthkit": "🍎 HealthKit",
+    "stepsGoogleFit": "🤖 GoogleFit",
+    "stepsKmHint": "≈ {km} km · +{coins} di ogni risorsa {1000}",
+    "stepsRecordBtn": "Registra",
+    "packagesLoading": "Lädt…",
+    "packagesEmpty": "Kein pack verfügbar.",
+    "packagesNote": "Die Käufe vanno über der Shop. Die Ressourcen werden accreditate immediatamente nach die Bestätigen des Zahlung.",
+    "vipTiersHeader": "ALLE Die 15 TIER — TIPPEN FÜR DETAILS",
+    "vipTierLabel": "Level {level}"
+  },
+  "Buildings": {
+    "${id}": {
+      "name": "Name"
+    },
+    "${cat": {
+      "id}": {
+        "description": "Ription"
+      }
+    },
+    "${b": {
+      "building_id}": {
+        "name": "Name"
+      }
+    }
+  },
+  "CrewModal": {
+    "title": "CREW",
+    "errorPrefix": "Fehler: {msg}",
+    "loading": "Lädt…",
+    "leaderLabel": "Leader:",
+    "noLeader": "—",
+    "zipPrefix": "CAP {zip}",
+    "ansehenLabel": "Reputazione von Crew",
+    "statMembers": "Mitglieder",
+    "statRepeaters": "Repeater",
+    "statTerritories": "Straßen",
+    "statAnsehen": "Reputazione",
+    "rssHeader": "MAGAZZINO VON CREW (RSS)",
+    "rssWood": "Legno",
+    "rssStone": "Pietra",
+    "rssGold": "Gold",
+    "rssMana": "Bandbreite",
+    "membersLoading": "Lädt Mitglieder…",
+    "membersEmpty": "Kein Mitglied.",
+    "techErrorPrefix": "Fehler: {msg}",
+    "techStarted": "Suche iniziata.",
+    "techInProgress": "🧪 Suche: {name} Level {level} · restano {countdown}",
+    "techLevelLabel": "Level {level}/{max}",
+    "techResearchBtn": "Suche Level {level} · {cost} Gold",
+    "techMaxed": "✓ Level Maximum",
+    "bountyNotFound": "Giocatore nicht gefunden.",
+    "bountyPosted": "Taglia pubblicata.",
+    "bountyTitle": "🎯 Öffentlich taglia",
+    "bountyTargetPh": "Name des giocatore",
+    "bountyReasonPh": "Grund (opzionale)",
+    "bountyPostBtn": "Öffentlich",
+    "bountyLoading": "Lädt taglie…",
+    "bountyEmpty": "Keine taglia offen.",
+    "bountyMeta": "von {by}{reason} · scade {countdown}",
+    "countdownDone": "fatto",
+    "bountyRewardSuffix": "{gold} Gold",
+    "shopBoughtMsg": "Acquistato.",
+    "shopGoldLabel": "💰 Magazzino der Crew: {gold} Gold",
+    "shopBuyBtn": "Kaufen · {price} Gold",
+    "settingsError": "Fehler",
+    "settingsSaved": "✓ Crew aktualisiert",
+    "settingsColorSaved": "✓ gespeichert — Karte aktualisiert",
+    "settingsIdentityHeader": "NAME Und TAG VON CREW",
+    "settingsIdentityHint": "Name 2–12 caratteri, Tag genau 4 (Zu–Z, 0–9). Nur owner.",
+    "settingsCrewNamePh": "Name der Crew",
+    "settingsCrewTagPh": "TAG",
+    "settingsSave": "Speichern",
+    "settingsColorHeader": "FARBE VON CREW",
+    "settingsColorHint": "Determina der Farbe des dein turf der Crew auf der Karte (copertura Repeater, die deine poligoni, accenti des pin).",
+    "settingsColorLeaderOnly": " Nur der leader oder ein ufficiale kann cambiarlo.",
+    "settingsDisplayHeader": "DISPLAY",
+    "settingsHudTitle": "⚔ Symbol Angriffe der Crew auf der Karte",
+    "settingsHudHint": "Der Button flottante in niedrig zu destra Zeigen die ralliement aperti zu cui beitreten.",
+    "buildingsLoading": "Lädt Gebäude…",
+    "buildingHq": "Quartier generale",
+    "buildingHqMeta": "{count}/1 · Noch der Crew, max 1",
+    "buildingMega": "Mega Faro",
+    "buildingMegaMeta": "{count} · Noch secondaria Premium",
+    "buildingRepeater": "Repeater",
+    "buildingRepeaterMeta": "{count} · Marker standard · Die Crew riceve +25% Ressourcen + 15% Münzen correndo hier",
+    "buildingsAlphaHeader": "GEBÄUDE VON CREW (ALPHA) — posizionabili, meccanica von gioco in Eingang",
+    "buildingBlackmarket": "Markt Nero",
+    "buildingBlackmarketMeta": "{count}/1 · Generazione passiva von Ressourcen (meccanica in Eingang)",
+    "buildingBunker": "Bunker",
+    "buildingBunkerMeta": "{count}/6 · Gebäude difensivo, schieramento von Wächter",
+    "buildingHangout": "Punkt von Ritrovo",
+    "buildingHangoutMeta": "{count}/3 · Spawn von Buff casuale, refresh mit Münzen",
+    "buildingTunnel": "Tunnel",
+    "buildingTunnelMeta": "{count}/10 · Erstellen ein ponte zwischen Repeater",
+    "buildErectBtn": "🏗 ERIGI",
+    "buildEmpty": "Niemand costruito noch",
+    "buildHpLabel": "HP {hp}/{max}",
+    "buildPlanned": "PIANIFICATO",
+    "tabOverview": "Übersicht",
+    "tabMembers": "Mitglieder",
+    "tabResearch": "Suche",
+    "tabBuildings": "Gebäude",
+    "tabBounties": "Taglie",
+    "tabShop": "Magazzino",
+    "tabSettings": "Einstellungen"
+  },
+  "ForgeOfLight": {
+    "error": "Fehler",
+    "kicker": "Kicker",
+    "noEvent": "No Event",
+    "daysLeft": "Days Left {n}",
+    "noEventBody": "No Event Body",
+    "featured": "Featured",
+    "featuredHint": "Featured Hint",
+    "pityEpic": "Pity Epic",
+    "pityLegendary": "Pity Legendary",
+    "pullOne": "Pull One {gems}",
+    "pullTen": "Pull Ten {gems}",
+    "results": "Results",
+    "history": "History"
+  },
+  "GrowthFund": {
+    "purchased": "Purchased",
+    "error": "Fehler",
+    "claimed": "Claimed {gems}",
+    "kicker": "Kicker",
+    "title": "Title",
+    "subtitle": "Subtitle {gems}",
+    "purchaseBtn": "Purchase Btn",
+    "purchaseHint": "Purchase Hint",
+    "activeStatus": "Active Status",
+    "milestoneN": "Milestone N {n}",
+    "claim": "Einlösen",
+    "notPurchased": "Not Purchased"
+  },
+  "LuckyWheel": {
+    "error": "Fehler",
+    "kicker": "Kicker",
+    "noEvent": "No Event",
+    "daysLeft": "Days Left {n}",
+    "noEventBody": "No Event Body",
+    "youWon": "You Won",
+    "pityHint": "Pity Hint {n}",
+    "spinFor": "Spin For {gems}",
+    "noSpinsLeft": "No Spins Left",
+    "totalWon": "Total Won {n}"
+  },
+  "MonthlyPacks": {
+    "purchased": "Purchased",
+    "error": "Fehler",
+    "claimedN": "Claimed N {n}",
+    "nothingToClaim": "Nothing To Claim",
+    "kicker": "Kicker",
+    "title": "Title",
+    "subtitle": "Subtitle",
+    "activePacks": "Active Packs",
+    "daysLeft": "Days Left {n}",
+    "claimReady": "Claim Ready",
+    "claimedToday": "Claimed Today",
+    "claimAllBtn": "Claim All Btn",
+    "durationDays": "Duration Days {n}",
+    "dailyReward": "Daily Reward {gems} {coins}",
+    "instantGems": "Instant Gems {gems}",
+    "alreadyOwned": "Already Owned",
+    "purchaseBtn": "Purchase Btn"
+  },
+  "PopupOffer": {
+    "purchased": "Purchased",
+    "error": "Fehler",
+    "limitedOffer": "Limited Offer",
+    "expiresIn": "Expires In {hours} {minutes}",
+    "notInterested": "Not Interested"
+  },
+  "RunnerInventory": {
+    "title": "Inventar",
+    "loading": "Lädt …",
+    "loadError": "Konnte Inventar nicht laden.",
+    "consumed": "Verbraucht.",
+    "consumeError": "Verbrauch fehlgeschlagen.",
+    "tabEquipment": "Ausrüstung",
+    "tabPotions": "Tränke",
+    "tabXp": "Vertrauen",
+    "tabMaterials": "Materialien",
+    "tabSpeedup": "Speedups",
+    "tabBoost": "Buffs",
+    "tabOther": "Sonstiges",
+    "emptyEquipment": "Keine Ausrüstung im Inventar.",
+    "emptyPotions": "Keine Tränke vorhanden.",
+    "emptyXp": "Keine Vertrauensmünzen vorhanden.",
+    "emptyMaterials": "Keine Materialien vorhanden.",
+    "emptyGeneric": "Hier ist noch nichts.",
+    "matScrap": "Tech-Schrott",
+    "matCrystal": "Komponenten",
+    "matEssence": "Bandbreite",
+    "matRelikt": "Relikt",
+    "matDesc": "Material für Crew-Bauten und Forschung.",
+    "count": "Anzahl",
+    "use": "Benutzen",
+    "close": "Schließen"
+  },
+  "AppSettings": {
+    "renameDialogTitle": "Cambia Name",
+    "renameDialogMsg": "Cambiare der dein Name sichtbar costa {cost} Diamanten. Fortsetzen?",
+    "renameDialogConfirm": "Cambia für {cost}💎",
+    "renameError": "Fehler",
+    "renameSuccessCost": "Name cambiato (−{cost}💎)",
+    "renameSuccess": "Name cambiato",
+    "renameNetworkError": "Fehler von Netzwerk",
+    "groupProfile": "👤 PROFIL",
+    "renameLabel": "Name sichtbar des Runner (2–15 caratteri)",
+    "renameCost": "· Costo: {cost}💎",
+    "renamePlaceholder": "Der dein Name",
+    "renameAriaLabel": "Name sichtbar",
+    "renameSave": "Speichern",
+    "renameInvalid": "Der Name muss haben 2–15 caratteri",
+    "renameChecking": "Überprüfung disponibilità…",
+    "renameFree": "✓ Name verfügbar",
+    "renameTaken": "✗ Name bereits preso",
+    "renameSelf": "Jenes ist bereits der dein Name",
+    "renameCrewHint": "Cambia Name und Tag der Crew: modal Crew → Einstellungen (nur owner)",
+    "groupLanguage": "🌐 SPRACHE Und UNITÀ",
+    "languagesMore": "Andere Sprachen in Eingang: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …",
+    "labelUnits": "📏 Unità",
+    "groupNotifPush": "🔔 BENACHRICHTIGUNGEN (PUSH)",
+    "notifPushEnable": "Aktivieren push",
+    "notifCrewChat": "💬 Chat der Crew",
+    "notifCrewEvents": "📅 Events und meetup der Crew",
+    "notifDuels": "⚔️ Duello rivale iniziato",
+    "notifAchievements": "🏆 Meilenstein freigeschaltet",
+    "notifRankUp": "⭐ Neu Rang erreicht",
+    "notifShopDeals": "🏪 Angebot von Shop vicina",
+    "notifStreakWarn": "🔥 Serie sta für beenden",
+    "notifQuietMode": "🌙 Modus silenzio (Nacht)",
+    "notifQuietFrom": "⏰ Silenzio von",
+    "notifQuietTo": "⏰ Silenzio bis zu",
+    "groupNotifEmail": "📧 BENACHRICHTIGUNGEN E-MAIL",
+    "emailWeekly": "📊 Report Wöchentlich",
+    "emailMonthly": "🏁 Stat mensili",
+    "emailNewsletter": "📬 Newsletter von Block (Monatlich)",
+    "emailFlashDeals": "⚡ Flash deal von Shops",
+    "groupPrivacy": "🔒 DATENSCHUTZ",
+    "privacyPublic": "🌍 Profil öffentlich",
+    "privacyLeaderboard": "🏆 Zeigen in Rangliste",
+    "privacyLiveCrew": "📍 Teilen Position live mit die Crew",
+    "privacyTerritories": "🗺️ Territorien pubblici",
+    "privacyRoutes": "🏃 Percorsi von Lauf pubblici",
+    "privacySearchable": "🔎 Trovabile für Name von Runner",
+    "privacyCrewInvites": "👥 Permetti inviti der Crew",
+    "privacyFriends": "🤝 Anfragen von amicizia",
+    "groupTracking": "🏃 TRACKING Und LAUF",
+    "trackAutoPause": "⏸ Auto-pausa wann fermo",
+    "trackWakeLock": "🔆 Mantieni Bildschirm acceso (wake lock)",
+    "trackSnap": "🧲 Aggancia den Straßen",
+    "trackAutoStart": "🎬 Auto-start zum Bewegung",
+    "trackGps": "📡 Precisione GPS",
+    "trackGpsHigh": "Alta (batteria ↓)",
+    "trackGpsBalanced": "Equilibrata",
+    "trackGpsLow": "Risparmio batteria",
+    "trackPaceAnnounce": "🔊 Anzeige von ritmo (für km)",
+    "trackVoice": "🗣️ Voce dell'Anzeige",
+    "trackVoiceFemale": "Femminile",
+    "trackVoiceMale": "Maschile",
+    "trackVoiceNeutral": "Neutra",
+    "trackPaceInterval": "⏱️ Intervallo von Anzeige",
+    "paceEvery500": "Jeder 500 m",
+    "paceEveryKm": "Jeder km",
+    "paceEvery2Km": "Jeder 2 km",
+    "paceEvery5Km": "Jeder 5 km",
+    "groupDisplay": "🎨 DISPLAY",
+    "displayTheme": "🎭 Theme",
+    "themeDark": "Dunkel",
+    "themeLight": "Klar",
+    "themeSystem": "Segui System",
+    "displayMapStyle": "🗺️ Stile Karte",
+    "mapStandard": "Standard 3D",
+    "mapSatellite": "Satellite",
+    "mapNeon": "Neon Notturno",
+    "mapMinimal": "Minimal",
+    "displayAccent": "🎨 Farbe von accento",
+    "accentTeal": "Teal (Standard)",
+    "accentPink": "Rosa",
+    "accentGold": "Gold",
+    "accentViolet": "Viola",
+    "display3d": "🏢 Zeigen Gebäude 3D",
+    "displayAnimations": "✨ Animazioni",
+    "displayReducedMotion": "♿ Riduci Bewegung",
+    "displayFontSize": "🔠 Dimensione font",
+    "fontSmall": "Klein",
+    "fontNormal": "Normal",
+    "fontLarge": "Groß",
+    "fontXLarge": "Extra groß",
+    "groupSound": "🔊 SUONO Und HAPTIC",
+    "soundEffects": "🔊 Effekte sonori",
+    "soundAchievement": "🏆 Suono von Meilenstein",
+    "soundMusic": "🎵 Musica während die Lauf",
+    "soundHaptics": "📳 Haptic / vibrazione",
+    "groupPerformance": "⚡ PRESTAZIONI Und BATTERIA",
+    "perfDataMode": "📶 Modus Daten",
+    "dataFull": "Abschließen (Standard)",
+    "dataSaver": "Modus risparmio",
+    "dataWifi": "Nur WiFi",
+    "perfPreload": "🗺️ Pre-Laden tile der Karte",
+    "perfBgSync": "🔄 Sincronizzazione in background",
+    "perfOffline": "📴 Modus offline",
+    "groupAds": "💰 WERBUNG Und PARTNER",
+    "adsPersonalized": "🎯 Suggerimenti von Shop personalizzati",
+    "adsAnonymous": "📊 Statistiken von uso anonime",
+    "groupBeta": "🧪 BETA",
+    "betaEnable": "🚀 Aktivieren Funktionen Beta",
+    "groupAccount": "🔐 KONTO Und DATEN",
+    "accountChangeEmail": "📧 Cambia E-Mail",
+    "accountEmailPrompt": "Neue E-Mail:",
+    "accountEmailError": "Fehler: {msg}",
+    "accountEmailSent": "E-Mail von Bestätigen inviata zu entrambi die indirizzi.",
+    "accountChangePw": "🔑 Cambia Passwort",
+    "accountPwPrompt": "Neue Passwort (min 8 caratteri):",
+    "accountPwTooShort": "Mindestens 8 caratteri.",
+    "accountExport": "📥 Esporta Daten (DSGVO)",
+    "accountConsent": "🛡️ Verwalten Einwilligung pubblicitario",
+    "accountLogout": "🚪 Abmelden",
+    "accountDelete": "⚠️ Löschen Konto",
+    "accountDeleteHint": "Richiedi l'eliminazione dell'Konto über E-Mail zu support@MyArea365.de. (Flusso automatizzato in Eingang.)",
+    "groupCache": "🧹 CACHE",
+    "version": "MyArea365 · v0.9.0 (Beta)",
+    "privacyLink": "Datenschutz",
+    "termsLink": "AGB",
+    "supportLink": "Supporto"
+  },
+  "_meta": {
+    "locale": "it",
+    "status": "complete",
+    "note": "Hand-translated full coverage in session."
+  },
+  "Game": {
+    "ranks": {
+      "1": "Straßen-Scout",
+      "2": "Vagabund von Block",
+      "3": "Scout von Block",
+      "4": "Pionier Stadt",
+      "5": "Erkunder von Bezirk",
+      "6": "Anführer von Viertel",
+      "7": "König von Block",
+      "8": "Legende Metropolen",
+      "9": "Mythos Stadt",
+      "10": "Straßengott"
+    },
+    "factions": {
+      "syndicate": {
+        "name": "Syndikat der Fogna",
+        "short": "SF",
+        "motto": "Spingi die Limits. Conquista der turf altrui. Nie fermo."
+      },
+      "vanguard": {
+        "name": "Guardia der Corona",
+        "short": "GC",
+        "motto": "Setze radici. Mantieni der Territorium. Heilung der Viertel."
+      }
+    },
+    "markers": {
+      "foot": "Basis",
+      "walker": "Spaziergänger",
+      "runner": "Athlet",
+      "paw": "Pfoten",
+      "hedgehog": "Igel",
+      "rabbit": "Kaninchen",
+      "turtle": "Tartaruga",
+      "dog": "Hund",
+      "cat": "Katze",
+      "fox": "Fuchs",
+      "deer": "Cervo",
+      "wolf": "Wolf",
+      "bear": "Bär",
+      "horse": "Cavallo",
+      "cheetah": "Ghepardo",
+      "tiger": "Tiger",
+      "lion": "Löwe",
+      "elephant": "Elefante",
+      "gorilla": "Gorilla",
+      "bat": "Pipistrello",
+      "owl": "Eule",
+      "dove": "Colomba",
+      "butterfly": "Farfalla",
+      "swan": "Cigno",
+      "eagle": "Adler",
+      "ghost": "Fantasma",
+      "phoenix": "Phönix",
+      "dragon": "Drache",
+      "unicorn": "Unicorno",
+      "hero": "Legende"
+    },
+    "markerVariant": {
+      "neutral": "Standard",
+      "male": "Maschile",
+      "female": "Femminile"
+    },
+    "lights": {
+      "classic": "Classica",
+      "coral": "Corallo",
+      "emerald": "Smeraldo",
+      "gold": "Gold",
+      "sapphire": "Zaffiro",
+      "neon": "Neon",
+      "sunset": "Tramonto",
+      "fire": "Fuoco",
+      "ocean": "Oceano",
+      "ice": "Ghiaccio",
+      "forest": "Foresta",
+      "rainbow": "Arcobaleno",
+      "candy": "Caramella",
+      "shadow": "Ombra",
+      "lava": "Lava",
+      "plasma": "Plasma",
+      "galaxy": "Galassia",
+      "arctic": "Artica",
+      "aurora": "Aurora",
+      "cosmic": "Cosmica"
+    },
+    "crewTypes": {
+      "friends": {
+        "name": "Freunde",
+        "tagline": "Compagni uniti",
+        "description": "Die deine migliori Freunde — raccogliete km insieme, incoraggiatevi, divertitevi."
+      },
+      "family": {
+        "name": "Familie",
+        "tagline": "Alle die generazioni",
+        "description": "Genitori, figli, nonni — die Herausforderungen familiari mettono alle in moto insieme."
+      },
+      "school": {
+        "name": "Schule / Uni",
+        "tagline": "Classe oder campus",
+        "description": "Die deine classe, corso oder compagni von università. Wer conquista mehr Territorium — die deine Schule oder die rivali?"
+      },
+      "work": {
+        "name": "Colleghi",
+        "tagline": "Fitness in Team in pausa",
+        "description": "Nach der Arbeit oder in pausa pranzo — rennen insieme unisce mehr der riunioni."
+      },
+      "sports": {
+        "name": "Club Sportivo",
+        "tagline": "Club und Gruppe Training",
+        "description": "Club von running, Gruppe von marcia, Team von triathlon — usa der spirito von Team oltre l'Training."
+      },
+      "neighborhood": {
+        "name": "Viertel",
+        "tagline": "Der dein Block, deine Crew",
+        "description": "Vicini dass von solito sich salutano nur — diventate die Team von Block dass domina die zona."
+      },
+      "open": {
+        "name": "Community Offen",
+        "tagline": "Alle benvenuti",
+        "description": "Offen zu alle — conosci gente neue, costruisci eine Community locale in Bewegung."
+      }
+    },
+    "privacy": {
+      "open": {
+        "label": "Öffentlich",
+        "hint": "Chiunque kann beitreten"
+      },
+      "invite": {
+        "label": "Nur auf invito",
+        "hint": "Nur mit codice von invito"
+      },
+      "closed": {
+        "label": "Geschlossen",
+        "hint": "L'admin muss approvare"
+      }
+    },
+    "leagues": {
+      "bronze": "Bronze",
+      "silver": "Silber",
+      "gold": "Gold",
+      "diamond": "Diamant",
+      "legend": "Legende"
+    },
+    "months": {
+      "0": "Gennaio",
+      "1": "Febbraio",
+      "2": "Marzo",
+      "3": "Aprile",
+      "4": "Maggio",
+      "5": "Giugno",
+      "6": "Luglio",
+      "7": "Agosto",
+      "8": "Settembre",
+      "9": "Ottobre",
+      "10": "Novembre",
+      "11": "Dicembre"
+    },
+    "tiers": {
+      "easy": "Bronze",
+      "medium": "Silber",
+      "hard": "Gold",
+      "epic": "Platino",
+      "legend": "Diamant"
+    },
+    "categories": {
+      "distance": {
+        "name": "Campione von Distanz",
+        "description": "Läufe singole mehr lunghe"
+      },
+      "endurance": {
+        "name": "Giramondo",
+        "description": "Chilometri gesamt"
+      },
+      "pathfinder": {
+        "name": "Erkunder von Percorsi",
+        "description": "Tratti von Straße"
+      },
+      "streetboss": {
+        "name": "Completatore von Straßen",
+        "description": "Straßen completate zum 100%"
+      },
+      "explorer": {
+        "name": "Signore des Territorium",
+        "description": "Territorien chiusi"
+      },
+      "streak": {
+        "name": "Costante",
+        "description": "Serie giornaliere"
+      },
+      "consistency": {
+        "name": "Abituale",
+        "description": "Läufe gesamt"
+      },
+      "speed": {
+        "name": "Cacciatore von Tempo",
+        "description": "Distanze maratona"
+      },
+      "elite": {
+        "name": "Legende",
+        "description": "Erfolge hardcore"
+      }
+    },
+    "guardianRarity": {
+      "common": "Gewöhnlich",
+      "rare": "Selten",
+      "epic": "Episch",
+      "legendary": "Legendär"
+    },
+    "units": {
+      "metric": "Metrico (km)",
+      "imperial": "Imperiale (mi)"
+    },
+    "languages": {
+      "de": "Deutsch 🇩🇪",
+      "en": "English 🇬🇧"
+    },
+    "shop": {
+      "plans": {
+        "plus_monthly": {
+          "name": "MyArea+ Monatlich"
+        },
+        "plus_yearly": {
+          "name": "MyArea+ Jährlich"
+        },
+        "crew_pro_monthly": {
+          "name": "Crew Pro Monatlich"
+        },
+        "crew_pro_yearly": {
+          "name": "Crew Pro Jährlich"
+        }
+      },
+      "boostPacks": {
+        "boost_24h": {
+          "name": "24 Stunden 2× Münzen"
+        },
+        "boost_48h": {
+          "name": "48 Stunden 2× Münzen"
+        },
+        "boost_weekend": {
+          "name": "Weekend 2× Münzen",
+          "desc": "2× 🪙 für 2 Tage"
+        },
+        "boost_week_2x": {
+          "name": "1 Woche 2× Münzen"
+        },
+        "crew_boost_24h": {
+          "name": "Boost von Crew 24h",
+          "desc": "2× 🪙 für alle die Mitglieder deldeine Crew"
+        }
+      },
+      "xpPacks": {
+        "xp_1k": {
+          "name": "500 Wegemünzen"
+        },
+        "xp_5k": {
+          "name": "2.500 Wegemünzen"
+        },
+        "xp_15k": {
+          "name": "6.000 Wegemünzen"
+        }
+      },
+      "gameplayItems": {
+        "reclaim_ticket": {
+          "name": "Ticket von Reclamo",
+          "desc": "Recupera ein Territorium verloren"
+        },
+        "mystery_box": {
+          "name": "Mystery Box (Cosmetico)",
+          "desc": "Skin/marker/scia casuale — puramente visivo, ohne stat von Kampf (ohne P2W)"
+        },
+        "ghost_mode": {
+          "name": "Modus Fantasma (1 Lauf)",
+          "desc": "Unsichtbar zur Fraktion rivale"
+        },
+        "double_claim": {
+          "name": "Reclamo Doppio (1 Lauf)",
+          "desc": "Territorien doppi in der nächste Lauf"
+        },
+        "faction_switch": {
+          "name": "Cambio von Fraktion",
+          "desc": "Komm vorbei all'andere Fraktion (max 1×/Monat)"
+        },
+        "explorer_compass": {
+          "name": "Bussola dell'Erkunder 7g",
+          "desc": "Zeigen Straßen nicht reclamate auf der Karte"
+        }
+      },
+      "cosmetics": {
+        "golden_trail": {
+          "name": "Scia Dorata (30g)",
+          "desc": "Die Lauf Verlassen eine scia von brillio dorato"
+        },
+        "neon_trail": {
+          "name": "Scia Neon (30g)",
+          "desc": "Scia von brillio neon rosa/viola"
+        },
+        "aura_effect": {
+          "name": "Effekt Aura (30g)",
+          "desc": "Der marker pulsa mit brillio"
+        },
+        "map_cyberpunk": {
+          "name": "Theme Karte Cyberpunk",
+          "desc": "Freigeschaltet permanentemente"
+        },
+        "map_retro": {
+          "name": "Theme Karte Retro-80s",
+          "desc": "Freigeschaltet permanentemente"
+        },
+        "rainbow_name": {
+          "name": "Name Arcobaleno (30g)",
+          "desc": "Name arcobaleno animato in Rangliste"
+        },
+        "victory_dance": {
+          "name": "Danza der Sieg",
+          "desc": "Animazione zur conquista, permanente"
+        }
+      },
+      "extras": {
+        "streak_pack_5": {
+          "name": "5× Congelamento Serie"
+        },
+        "streak_pack_15": {
+          "name": "15× Congelamento Serie"
+        },
+        "shout_pack_10": {
+          "name": "10× Anzeige von Block",
+          "desc": "Nachricht zu alle die Runner in 500m"
+        },
+        "badge_bronze": {
+          "name": "Badge Supporter Bronze"
+        },
+        "badge_silver": {
+          "name": "Badge Supporter Silber"
+        },
+        "badge_gold": {
+          "name": "Badge Supporter Gold"
+        }
+      },
+      "crewGemPacks": {
+        "crew_gems_500": {
+          "name": "Pack von Crew S"
+        },
+        "crew_gems_1500": {
+          "name": "Pack von Crew M"
+        },
+        "crew_gems_5000": {
+          "name": "Pack von Crew L"
+        },
+        "crew_gems_12000": {
+          "name": "Pack von Crew XL"
+        }
+      },
+      "crewSlotPacks": {
+        "crew_slots_plus5": {
+          "name": "+5 Slot Mitglied"
+        },
+        "crew_slots_plus10": {
+          "name": "+10 Slot Mitglied"
+        }
+      },
+      "shopPlans": {
+        "shop_basis": {
+          "name": "Basic",
+          "desc": "Pin auf der Karte · 1 Angebot · Stat von scansione"
+        },
+        "shop_pro": {
+          "name": "Pro",
+          "desc": "Angebote illimitate · Analitica erweitert · 3 Flash Push/Monat inclusi"
+        },
+        "shop_ultra": {
+          "name": "Ultra",
+          "desc": "Spotlight permanente · Push Broadcast · Report von Block · Funktion von Stadt"
+        }
+      },
+      "shopBoosts": {
+        "flash_push": {
+          "name": "Flash Push",
+          "desc": "Benachrichtigung ~200 Runner in 1 km, gültig 30 min"
+        },
+        "spotlight_3d": {
+          "name": "Spotlight 3 Tage",
+          "desc": "Pin dorato auf der Karte + raggio von visibilità ampliato (5 km)"
+        },
+        "event_host": {
+          "name": "Organizza Event",
+          "desc": "Event von Lauf im dein locale — die Runner sich iscrivono, pin + Liste partecipanti"
+        }
+      },
+      "guardianItems": {
+        "revival_token": {
+          "name": "Token von Rianimazione",
+          "desc": "Heilung die ferita des dein Wächter all'istante"
+        },
+        "guardian_xp": {
+          "name": "Boost XP von Wächter",
+          "desc": "+2.500 XP für der dein Wächter"
+        },
+        "guardian_skin": {
+          "name": "Skin von Brillio des Wächter",
+          "desc": "Cornice luminosa für der dein Wächter (permanente)"
+        }
+      },
+      "adRewards": {
+        "post_walk": {
+          "label": "Bonus Lauf",
+          "description": "+100 🪙 Münzen für Video von 30 sec"
+        },
+        "pre_walk": {
+          "label": "Starter Pre-Lauf",
+          "description": "+250 🪙 vor von beginnen"
+        },
+        "boost_24h": {
+          "label": "Doppio 🪙 24h",
+          "description": "Video breve für 24h 2× Münzen"
+        },
+        "double_xp": {
+          "label": "Doppio 🪙 15 Min",
+          "description": "Boost diretto für die nächste Lauf"
+        },
+        "streak_save": {
+          "label": "Speichern Serie",
+          "description": "Perdona der Tag verloren eine volta"
+        }
+      },
+      "plusFeatures": {
+        "adFree": {
+          "title": "Ohne Werbung",
+          "desc": "Ohne banner, ohne Video obbligatori"
+        },
+        "streakFreeze": {
+          "title": "Congelamento Serie",
+          "desc": "3× / Monat setzt in pausa deine Serie"
+        },
+        "gpxExport": {
+          "title": "Export GPX/TCX",
+          "desc": "Esporta auf Strava/Garmin"
+        },
+        "customMarker": {
+          "title": "Marker personalisiert",
+          "desc": "Mix personalisiert von Farbe und emoji für der dein pin"
+        },
+        "profileThemes": {
+          "title": "Themes von Profil",
+          "desc": "Banner animati und badge esclusivi"
+        },
+        "offlineMaps": {
+          "title": "Karten Offline",
+          "desc": "Registra Läufe ohne Daten"
+        },
+        "advancedStats": {
+          "title": "Stat Erweiterte",
+          "desc": "Confronto Jährlich, heatmap von Block, importazione FC"
+        },
+        "flashPriority": {
+          "title": "Priorità Flash Deal",
+          "desc": "Die Schau 5 min vor der andere"
+        },
+        "privateRuns": {
+          "title": "Läufe Private",
+          "desc": "Halt die Läufe fuori von der Rangliste öffentlich"
+        },
+        "paceCoach": {
+          "title": "Voce Coach von Ritmo",
+          "desc": "Motivazione IA während die Lauf"
+        }
+      },
+      "crewProFeatures": {
+        "members200": {
+          "title": "Bis zu 200 Mitglieder",
+          "desc": "Gratis: max 50 für Crew"
+        },
+        "treasure": {
+          "title": "Tesoreria von Crew",
+          "desc": "Pool 🪙 condiviso für Rabatte von Gruppe"
+        },
+        "matchmaking": {
+          "title": "Auto Matchmaking",
+          "desc": "Duelli settimanali contro rivali"
+        },
+        "branding": {
+          "title": "Branding Personalisiert",
+          "desc": "Logo, Farbe, stile von Territorium"
+        },
+        "analytics": {
+          "title": "Dashboard von Analitica",
+          "desc": "Attività für Mitglied, allerte von inattività"
+        },
+        "chat": {
+          "title": "Chat Privat + Bacheca",
+          "desc": "Nachrichten vocali, fissa Post importanti"
+        },
+        "merch": {
+          "title": "Shop Merch von Crew",
+          "desc": "Magliette und cappellini mit der vostro logo"
+        }
+      },
+      "shopFeaturesByPlan": {
+        "free": [
+          "📍 Pin auf der Karte",
+          "🏪 Profil des Shop mit Foto und Öffnungszeiten",
+          "🎁 1 Angebot configurabile"
+        ],
+        "basis": [
+          "✓ Alles von Free",
+          "📊 Statistiken von scansioni und visite",
+          "🗂️ Tessera fedeltà der Crew (retention abituali)",
+          "🔔 1× Flash Push gratis für provare",
+          "✓ Badge verifiziert"
+        ],
+        "pro": [
+          "✓ Alles von Basic",
+          "♾️ Angebote illimitate (stattdessen von 1)",
+          "⚡ 3 Flash Push/Monat inclusi",
+          "⭐ Spotlight 3 Tage/Monat incluso",
+          "📈 Analitica erweitert: Stunden von punta, tasso von ritorno, benchmark von Block",
+          "🔍 Confronto mit concorrenza nell'Block",
+          "📱 Template von Social Durchschnitt",
+          "✉️ 1 campagna E-Mail zu abituali/Monat"
+        ],
+        "ultra": [
+          "✓ Alles von Pro",
+          "💎 Spotlight permanente (pin dorato permanente)",
+          "📣 Push broadcast zu ganze die Stadt",
+          "🥇 Funktion von Stadt (1× zum Monat Shop der Woche)",
+          "🎯 Targeting demografico für Angebote",
+          "📄 Report von Block PDF (Monatlich)",
+          "🎨 Design pin personalisiert",
+          "🏆 Supporto prioritario"
+        ]
+      },
+      "statusLive": "Live",
+      "statusSoon": "Bald"
+    }
+  },
+  "Effects": {
+    "storage_cap_pct": "Capacità von stoccaggio",
+    "wood_per_km_pct": "Legno für km von parco",
+    "stone_per_km_pct": "Pietra für km residenziale",
+    "gold_per_km_pct": "Gold für km centro Stadt",
+    "mana_per_km_pct": "Bandbreite für km d'acqua",
+    "guardian_xp_pct": "XP Wächter nach Lauf",
+    "map_range_km": "Portata Karte (km)",
+    "rare_storage_pct": "Stoccaggio oggetti selten",
+    "craft_speed_pct": "Tempo von artigianato",
+    "base_defense_pct": "Verteidigung der Basis",
+    "wood_per_hour": "Legno/Stunde (passivo)",
+    "stone_per_hour": "Pietra/Stunde (passivo)",
+    "gold_per_hour": "Gold/Stunde (passivo)",
+    "mana_per_hour": "Bandbreite/Stunde (passivo)",
+    "safe_storage_pct": "Ressourcen protette",
+    "wood_storage_pct": "Capacità stoccaggio legno",
+    "stone_storage_pct": "Capacità stoccaggio pietra",
+    "heal_speed_pct": "Tempo von Heilung",
+    "arena_xp_pct": "XP Arena",
+    "siege_strength_pct": "Stärke von assedio",
+    "melee_train_speed_pct": "Addestramento spadaccini",
+    "ranged_train_speed_pct": "Addestramento arcieri",
+    "research_speed_pct": "Tempo von Suche",
+    "event_preview_days": "Vorschau Event (Tage)",
+    "daily_quest_count": "Quest giornaliere",
+    "build_queue_slots": "Slot Bau",
+    "market_fee_pct": "Commissione Markt",
+    "cosmetic_drop_chance": "Probabilità Drop cosmetico",
+    "visitor_attract_pct": "Boost visitatori",
+    "crew_resource_pct": "Ressourcen Crew",
+    "chest_speed_pct": "Zeit von apertura Truhe",
+    "crew_help_speedup_pct": "Accelerazione Hilfe Crew",
+    "scout_strength_pct": "Stärke Scout",
+    "rally_capacity_pct": "Capacità ralliement",
+    "legendary_recruit_pct": "Probabilità reclutamento legendär",
+    "crew_heal_speed_pct": "Tempo Heilung Crew",
+    "crew_research_pct": "Suche Crew",
+    "celestial_strength_pct": "Stärke celeste",
+    "salvage_yield_pct": "Resa von recupero"
+  },
+  "Privacy": {
+    "metaTitle": "Informativa auf der Datenschutz",
+    "metaDescription": "Datenschutzerklärung von MyArea365 – DSGVO, TDDDG, CCPA, UK-DSGVO, FADP, LGPD.",
+    "title": "Informativa auf der Datenschutz",
+    "back": "← Zurück",
+    "lastUpdated": "Letzter Update: {Daten}",
+    "intro": "Diese Datenschutzerklärung dir informa, in conformità den articoli 13 und 14 des Regolamento Generale auf der Protezione der Daten (DSGVO) und den normative internazionali equivalenti (UK-DSGVO, FADP svizzera, CCPA/CPRA californiana, LGPD brasiliana, PIPEDA canadese), auf dem Verarbeitung der personenbezogene Daten wann utilizzi der unser sito web <b>MyArea365.de</b> nonché l'App web und l'App mobile associate (insieme der «Dienst»).",
+    "footer": "Diese Datenschutzerklärung ist stata preparata mit die massima Heilung und tenendo conto der normative internazionali (DSGVO, UK-DSGVO, FADP, CCPA/CPRA, LGPD, PIPEDA, Datenschutz Act australiano). Descrive der Status aktuell des unser Verarbeitung der Daten. Vor der messa in onda und all'introduzione von neue funzionalità importanti, raccomandiamo eine revisione endgültig von Teil von ein avvocato specializzato in Recht IT und Datenschutz.",
+    "s1": {
+      "title": "Titolare des Verarbeitung",
+      "p1": "Der titolare des Verarbeitung gemäß des DSGVO, controller gemäß des UK-DSGVO, responsabile gemäß des FADP, business gemäß des CCPA und controlador gemäß des LGPD ist:",
+      "country": "Germania",
+      "emailLabel": "E-Mail:",
+      "imprintNote": "Für die note legali complete, Schau <impressumLink>/impressum</impressumLink>."
+    },
+    "s2": {
+      "title": "Kontakt für Anfragen auf der Datenschutz",
+      "body": "Nicht wir haben nominato ein responsabile der Datenschutz gemäß des § 38 BDSG, weil die requisiti legali nicht sind soddisfatti. Für alle die questioni von Datenschutz – in besondere für esercitare die deine Rechte (Schau Bereich 14) – kannst contattarci über E-Mail zu <Support-Mail>support@MyArea365.de</Support-Mail>. Rispondiamo entro 30 Tage (DSGVO) oder 45 Tage (CCPA/LGPD)."
+    },
+    "s3": {
+      "title": "Basen giuridiche des Verarbeitung",
+      "intro": "Trattiamo die personenbezogene Daten auf den seguenti Basen giuridiche:",
+      "li1": "<b>Art. 6(1)(zu) DSGVO</b> – Einwilligung (newsletter, Benachrichtigungen push, condivisione Position, cookie analitici opzionali, comunicazioni marketing)",
+      "li2": "<b>Art. 6(1)(b) DSGVO</b> – esecuzione von ein Vertrag oder misure precontrattuali (Konto Nutzer, gamification, riscatti von Angebote, elaborazione Zahlungen)",
+      "li3": "<b>Art. 6(1)(c) DSGVO</b> – obbligo legale (obblighi von conservazione commerciale und fiscale, obblighi von Meldung Sekunde § 146zu AO, liest antiriciclaggio)",
+      "li4": "<b>Art. 6(1)(F) DSGVO</b> – interesse legittimo (Sicherheit IT, prevenzione abusi, analisi Fehler, miglioramento qualità des Dienst)",
+      "li5": "<b>Art. 9(2)(zu) DSGVO</b> – Einwilligung esplicito sich trattiamo Kategorien particolari von personenbezogene Daten (z.B.. Daten sanitari dedotti von Profile von Bewegung in forma aggregata – nur mit der dein Einwilligung)",
+      "li6": "<b>§ 25 TDDDG</b> (vom 14 maggio 2024 successore des TTDSG) – memorizzazione und Zugriff zu Informationen auf Geräte terminali (cookie, LocalStorage)"
+    },
+    "s4": {
+      "title": "Concretamente: quali Daten memorizziamo und tracciamo",
+      "intro": "Von seguito trovi eine Liste Abschließen von alle die campi von personenbezogene Daten memorizzati oder trattati in den nostri Systeme. Rispettiamo der principio von minimizzazione der Daten (Art. 5(1)(c) DSGVO) und nicht raccogliamo Daten «für jeder evenienza».",
+      "s1": {
+        "title": "4.1 Daten von Konto und Profil",
+        "items": [
+          "Adresse E-Mail (identificatore von Zugriff, comunicazione)",
+          "Name Nutzer (identificatore öffentlich)",
+          "Name visualizzato (Name zu Text frei)",
+          "Passwort wie hash salato (nie in Klar; Argon2/bcrypt)",
+          "Indicatore ruolo/Erlaubnis (Nutzer, supporto, marketing, Verkäufe, admin)",
+          "Status von ban und Grund eventuale",
+          "Affiliazione von Fraktion (Guardia der Corona oder Lega der Fogna)",
+          "Classe und ruolo des Wächter aktiv (Tank/Supporto/Distanz/Mischia + sotto-archetipo)",
+          "CAP von Heim (opzionale, 5 cifre, für Funktionen von Viertel)",
+          "Appartenenza Crew aktuell (chiave esterna zu Crew)",
+          "URL avatar (caricato personalmente, öffentlich nach Moderation)",
+          "URL banner (caricato personalmente, öffentlich nach Moderation)",
+          "Statistiken giocatore: Level, XP Gesamt, Distanz Gesamt, Zahl von Läufe",
+          "Sprache gewählt, Farbe von Team, Text lore von Profil",
+          "Timestamp: registrazione, letzte attività",
+          "Position approssimativa: paese, Stadt (sich fornita volontariamente im Profil)"
+        ],
+        "basis": "Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+      },
+      "s2": {
+        "title": "4.2 Daten von Position und Bewegung",
+        "items": [
+          "Coordinate GPS (latitudine, longitudine, altitudine, precisione) während eine sessione von Lauf Aktivieren",
+          "Timestamp von jeder Punkt GPS",
+          "Tempo und Distanz calcolate zwischen die Punkte",
+          "Mappatura der Punkte den segmenti von Straße (snap-to-road)",
+          "Percorso percorso wie oggetto geometrico (PostGIS)",
+          "Gebiete catturate wie geometria poligonale",
+          "Timestamp der cattura von Gebiet und XP assegnato"
+        ],
+        "note": "Catturato esclusivamente während eine sessione von Lauf Aktivieren, nur nach autorizzazione esplicita des Browser oder des System operativo. Kein dato von Position wird raccolto in background. Rechtsgrundlage: Art. 6(1)(zu) und (b) DSGVO."
+      },
+      "s3": {
+        "title": "4.3 Daten von gamification, Wächter und salvataggio",
+        "items": [
+          "Liste der deine archetipi von Wächter, Level, Wegemünzen, Siege, Niederlagen, Status von ferita",
+          "Punkte Talent, Level von Fähigkeit, Punkte investiti für nodo",
+          "Inventario von equipaggiamento: oggetti, slot, rarità, Level von upgrade, materiali ricevuti (rottame, cristallo, essenza, frammenti von reliquia)",
+          "Partecipazione zu Saisons von Arena und Rangliste endgültig",
+          "Storico prestigio: Punkte, Titel, Rang für Saison abgeschlossen",
+          "Sigilli guadagnati (Tank, Supporto, Distanz, Mischia, Universale)",
+          "Contatori von serie (Tage consecutivi mit attività)",
+          "Azioni limitate giornalmente (contatore Kämpfe d'Arena, Angebote giornaliere)",
+          "Bewertung / Elo (Modus classificata), picco von Bewertung, storico Siege/Niederlagen"
+        ],
+        "basis": "Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+      },
+      "s4": {
+        "title": "4.4 Kämpfe d'Arena (Kämpfe PvP)",
+        "items": [
+          "Identificatori von attaccante, difensore, vincitore",
+          "Diamanten scommessi (Kämpfe zu Zahlung oltre die quota giornaliera)",
+          "Protocollo von round mit azioni, valori von Schaden, colpi critici",
+          "Seed für riproduzione deterministica des Kampf",
+          "Timestamp des Kampf und Saison assegnata",
+          "Variazione von Bewertung (delta) für attaccante und difensore"
+        ],
+        "basis": "Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+      },
+      "s5": {
+        "title": "4.5 Daten von Crew und comunicazione",
+        "items": [
+          "Name von Crew, Farbe, emblema, motto",
+          "Appartenenza: wer ist Mitglied, ruolo (Mitglied, admin)",
+          "Inviti aperti und accettati",
+          "Nachrichten von Chat in der Crew: Inhalt, mittente, timestamp",
+          "Events von Crew, Post von Feed, Herausforderungen"
+        ],
+        "note": "Die Nachrichten von Chat sind visibili nur den Mitglieder der Crew und sind memorizzati lato server für die Moderation. Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+      },
+      "s6": {
+        "title": "4.6 Check-in in Shops Partner und riscatti von Angebote",
+        "items": [
+          "Stunde des check-in",
+          "ID des Shop Partner und Angebot riscattata",
+          "ID des codice QR (sich scansionato)",
+          "Scontrino caricato (nur für promozioni mit Beute Bonus, breve termine)",
+          "Importo des scontrino riconosciuto über OCR",
+          "Indicatore «scontrino verifiziert» (nach Kontrolle automatisch)"
+        ],
+        "note": "Der gestore des Shop sieht nur der dein Name anonym von Runner und der fatto des riscatto – keine E-Mail, kein Name reale, kein dato von Profil. Die Bilder der scontrini werden eliminate entro 7 Tage nach der Kontrolle OCR. Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+      },
+      "s7": {
+        "title": "4.7 Daten von Zahlung",
+        "items": [
+          "Storico Käufe: timestamp, Zahl prodotto (SKU), importo, valuta",
+          "Saldi und transazioni von Wegemünzen und Diamanten (credito, consumo, Grund)",
+          "Riferimento provider von Zahlung (Stripe Payment Intent, ID sessione Checkout)",
+          "Status von Abo und Daten von rinnovo (MyArea+, Badge Supporter Bronze/Silber/Gold, Crew Pro, Pakete Shop, Pass Arena)",
+          "Level Supporter (Bronze / Silber / Gold) sich ist aktiv ein Abo corrispondente",
+          "Daten von fattura und ricevuta gemäß der §§ 14, 14zu UStG"
+        ],
+        "note": "Nicht riceviamo Zahlen von carta von credito, Daten bancari oder identificativi von metodo von Zahlung completi – restano bei der provider von Zahlung. Rechtsgrundlage: Art. 6(1)(b) und (c) DSGVO."
+      },
+      "s8": {
+        "title": "4.8 Anfragen von assistenza und ticket",
+        "items": [
+          "Adresse E-Mail und Name (sich forniti)",
+          "Text der Anfrage und qualsiasi comunicazione successiva",
+          "Note interne des team von assistenza",
+          "Status, priorità, Kategorie, assegnazione zum persönlich",
+          "Origine der Anfrage (modulo von Kontakt, E-Mail, in-App)",
+          "User agent des Browser, sich verfügbar"
+        ],
+        "basis": "Rechtsgrundlage: Art. 6(1)(b) oder (F) DSGVO."
+      },
+      "s9": {
+        "title": "4.9 Caricamenti Nutzer und Moderation IA",
+        "items": [
+          "Bild caricata (avatar, banner, bozze von artwork)",
+          "Scontrino caricato (scontrino von Truhe für Beute Bonus)",
+          "Ergebnis der revisione (accettato, rifiutato, Grund)",
+          "Timestamp der revisione und modello utilizzato (Dienst IA)"
+        ],
+        "note": "Die caricamenti werden automaticamente verificati für Inhalte vietati vor der pubblicazione (Schau Bereich 5). Die caricamenti rifiutati sind conservati 30 Tage für revisione, poi eliminati. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+      },
+      "s10": {
+        "title": "4.10 Daten tecnici und log des server",
+        "items": [
+          "Adresse IP (anonimizzato nach 7 Tage troncando die letzten 8 bit)",
+          "User agent (Typ und Version des Browser)",
+          "System operativo und Version",
+          "URL von riferimento (von wo proviene die visita)",
+          "URL richiesto und codice von Status HTTP",
+          "Stunde von Zugriff und Zeit von Antwort",
+          "Typ von Gerät (desktop, mobile, tablet)",
+          "Version dell'App (nur App mobile)",
+          "Sprache des Gerät"
+        ],
+        "note": "Die Daten tecnici sind necessari für fornire der Dienst und prevenire abusi. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+      },
+      "s11": {
+        "title": "4.11 Marketing, push und Nachrichten in-App",
+        "items": [
+          "Adresse E-Mail für newsletter (nur auf opt-in)",
+          "Token push des Gerät für Benachrichtigungen push mobili (nur auf opt-in)",
+          "Statistiken von consegna: consegnato, offen, cliccato, rimbalzato",
+          "Registrazione des Einwilligung: timestamp, IP, Version des Text von Einwilligung",
+          "Assegnazione von segmento für campagne mirate (Fraktion, paese, Level)",
+          "Posta in Eingang in-App: ID broadcast, Datum von lettura"
+        ],
+        "note": "Rechtsgrundlage: Art. 6(1)(zu) DSGVO. Kannst revocare der Einwilligung in qualsiasi momento über der link von disiscrizione, die Einstellungen von Benachrichtigung oder der Dialog des System operativo."
+      },
+      "s12": {
+        "title": "4.12 Test Zu/B und esperimenti",
+        "body": "Die Test Zu/B <b>nicht sind attualmente attivi</b>. L'infrastruttura dell'App (Tabelle <Code>experiment_assignments</Code>) ist preparata für uso Zukunft. Nicht gerade erst werden attivati esperimenti, diese informativa wird aktualisiert. Die assegnazioni sarebbero Daher pseudonimizzate auf der Basis dell'ID Nutzer."
+      },
+      "s13": {
+        "title": "4.13 System von Moderation und Meldung",
+        "items": [
+          "Inhalt oder Nutzer segnalato, Grund der Meldung",
+          "ID des segnalante, timestamp",
+          "Status von revisione, decisione, nota interna"
+        ],
+        "note": "Die segnalazioni sind conservate 24 Monate für rilevare Fälle ricorrenti. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+      },
+      "s14": {
+        "title": "4.14 Registro von audit dell'amministratore",
+        "items": [
+          "Timestamp von jeder azione amministrativa",
+          "ID und ruolo des Mitglied des persönlich",
+          "Typ von azione (z.B.. sospensione Nutzer, Export Daten, impersonation)",
+          "Oggetto target und metadati rilevanti"
+        ],
+        "note": "Der registro von audit serve für die tracciabilità und die Sicherheit. Die voci dass dir riguardano können sein ottenute nell'ambito des dein Recht von Zugriff. Rechtsgrundlage: Art. 6(1)(c) und (F) DSGVO."
+      },
+      "s15": {
+        "title": "4.15 Inhalte pubblicamente visibili",
+        "items": [
+          "Name Nutzer, Name visualizzato, avatar, banner",
+          "Level, Fraktion, appartenenza Crew",
+          "Position in Rangliste (globale, regionale, für Kategorie)",
+          "Titel von prestigio von Saisons completate (Hall of Fame)",
+          "Sigilli und Erfolge guadagnati",
+          "Selezione von Wächter aktiv auf dem Profil öffentlich",
+          "Heatmap aggregata der deine attività von Lauf (nur zu Level von Straße, nicht attribuibile zu eine persona)"
+        ],
+        "note": "In den Einstellungen des dein Profil kannst decidere quali von diese Daten sind pubblicamente visibili. Nachrichten von Chat, Adresse E-Mail, tracce GPS precise, Daten von Zahlung und ticket von assistenza nicht sind nie pubblici."
+      },
+      "s16": {
+        "title": "4.16 Inviti und condivisioni",
+        "items": [
+          "Codici von invito für Crew (contiene ID Crew, token in Ablauf)",
+          "Link von condivisione zum dein Profil (/u/[username]) mit Tab von condivisione generata",
+          "Parametri UTM der link condivisi für misurare der Erfolg der campagne",
+          "E-Mail destinatario für inviti zwischen Freunde (usata eine sola volta, nicht memorizzata)"
+        ],
+        "note": "Sich inviti ein Freund über E-Mail, nicht memorizziamo der sein Adresse in Weise permanente; wird utilizzato nur für senden l'invito und poi scartato. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+      },
+      "s17": {
+        "title": "4.17 Programmi Beta und Feedback",
+        "items": [
+          "Status von partecipazione zu Funktionen Beta",
+          "Voci des modulo von Feedback inclusi Text, Bewertung, contesto (URL, user agent)"
+        ],
+        "note": "Die Feedback sind conservati 24 Monate. Rechtsgrundlage: Art. 6(1)(F) DSGVO. Der rapporto automatisch von crash <b>nicht ist attualmente aktiv</b>; eine volta introdotto, diese informativa wird aktualisiert."
+      },
+      "s18": {
+        "title": "4.18 Suggerimenti von Shops Partner von Teil der Nutzer",
+        "body": "Sich suggerisci ein neu Shop Partner, memorizziamo die Informationen des Shop (Name, Adresse, Kategorie) und der dein ID wie suggeritore für scopi von Folgen-up. Der dein Name nicht wird trasmesso zum gestore des Shop.",
+        "note": "Die suggerimenti sind memorizzati bis zur revisione und poi für 12 Monate wie riferimento. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+      },
+      "s19": {
+        "title": "4.19 Telemetria und monitoraggio der prestazioni",
+        "body": "Attualmente <b>keine telemetria Aktivieren</b> (kein Sentry, kein Dienst von analytics) ist integrata. Vercel Speed Insights und Vercel Analytics sind tecnicamente preparati aber nicht attivati im dashboard. Vor dell'attivazione, diese informativa wird aktualisiert und — in der misura in cui werden trattati personenbezogene Daten — der Einwilligung wird ottenuto über banner von Einwilligung."
+      },
+      "s20": {
+        "title": "4.20 Anti-cheat und rilevamento von abusi",
+        "items": [
+          "Valori von Tempo sospetti (z.B.. teletrasporto, rilevamento von veicolo)",
+          "Schemi von registrazioni multiple vom selbe Gerät",
+          "Comportamento von Kampf sospetto (sospetto von bot)",
+          "Superamenti des rate-limit und throttling",
+          "Fälle sospetti mit timestamp, Grund und Antwort"
+        ],
+        "note": "Die log anti-cheat sind conservati 24 Monate für rilevare schemi ricorrenti. Rechtsgrundlage: Art. 6(1)(F) DSGVO (protezione dell'integrità des Dienst)."
+      },
+      "s21": {
+        "title": "4.21 Moderation von Chat und Inhalte",
+        "items": [
+          "Filtri von Wörter automatizzati für AGB vietati noti",
+          "Moderation assistita von IA für Bilder caricate (Anthropic Claude)",
+          "Segnalazioni Nutzer mit Grund und timestamp",
+          "Decisioni von Moderation (avvertimento, eliminazione, sospensione) mit motivazione"
+        ],
+        "note": "Die log von Moderation sind conservati 24 Monate. Rechtsgrundlage: Art. 6(1)(F) DSGVO (protezione der Community und conformità den requisiti legali, in besondere Regolamento EU 2022/2065 «Digital Services Act»)."
+      },
+      "s22": {
+        "title": "4.22 Werbung (Google AdSense / AdMob)",
+        "p1": "Finanziamo Teile des Dienst kostenlos über Werbung von <b>Google Ireland Ltd.</b> (AdSense auf dem web, AdMob nell'App mobile). Die Werbung personalizzata wird erogata <b>nur mit Einwilligung esplicito</b> über die unsere gestione des Einwilligung (Google User Messaging Platform, UMP). Ohne Einwilligung, werden erogate nur Werbung nicht personalizzate.",
+        "p2": "Google kann trattare Adresse IP, identificatore des Gerät, Position approssimativa und Daten von interazione. Von mehr: <googlePolicies>policies.Google.com/Datenschutz</googlePolicies>. Bearbeiten die Einstellungen pubblicitarie: <googleAdsSettings>adssettings.Google.com</googleAdsSettings>.",
+        "p3": "Die Nutzer mit ein Abo <b>MyArea+</b> oder <b>Badge Supporter</b> aktiv nicht vedono Werbung oder nur Werbung ridotta, wo tecnicamente fattibile.",
+        "basis": "Rechtsgrundlage: Art. 6(1)(zu) DSGVO, § 25(1) TDDDG (Einwilligung für cookie/ID von Gerät) und Art. 6(1)(F) DSGVO (rifinanziamento des Dienst über Werbung nicht personalizzata)."
+      },
+      "s23": {
+        "title": "4.23 Was NICHT tracciamo",
+        "items": [
+          "Kein cookie oder pixel pubblicitario cross-device ohne Einwilligung",
+          "Keine analisi von impronta (Canvas, WebGL, Audio)",
+          "Keine rivendita der deine Daten zu terzi",
+          "Kein Profil für Werbung Dritter ohne Einwilligung",
+          "Kein dato von Position zum von fuori der sessioni von Lauf attive",
+          "Kein Zugriff zu Kontakte, Kalender, Foto oder file auf dem dein Gerät",
+          "Kein dato biometrico (riconoscimento facciale, analisi vocale)",
+          "Keine osservazione von App Dritter oder cronologia des Browser",
+          "Keine raccolta in background wann l'App ist geschlossen",
+          "Keine Verkauf oder scambio von Listen E-Mail"
+        ]
+      }
+    },
+    "s5": {
+      "title": "Decisioni automatizzate und profilazione",
+      "p1": "Von den deine attività (Läufe, Kämpfe, riscatti) der Dienst deriva metriche wie Level, prestigio, Ranglisten und matchmaking d'Arena. Ciò costituisce <die>profilazione</die> gemäß'Art. 4(4) DSGVO aber nicht produce Effekte giuridici in den deine confronti né impatti significativi comparabili.",
+      "p2": "Für die caricamenti von Bilder und die scansioni von scontrini, wird utilizzato ein System von revisione automatizzato (modello <die>Anthropic Claude</die>). Kannst escalare Inhalte rifiutati für revisione manuell über ticket von assistenza. Nicht c'ist alcuna decisione puramente automatizzata gemäß'Art. 22 DSGVO mit Effekt giuridico."
+    },
+    "s6": {
+      "title": "Destinatari und responsabili des Verarbeitung",
+      "intro": "Utilizziamo die seguenti fornitori von Dienste auf der Basis von accordi gemäß'Art. 28 DSGVO. Für die trasferimenti von Daten Richtung paesi terzi, applichiamo die Clausole Contrattuali Standard dell'EU (CCS) und ulteriori garanzie tecniche.",
+      "colService": "Dienst",
+      "colPurpose": "Finalità",
+      "colLocation": "Sede / garanzie",
+      "rows": [
+        {
+          "d": "Supabase Inc.",
+          "z": "Autenticazione, database, archiviazione file",
+          "l": "EU (Frankfurt, eu-central-1)"
+        },
+        {
+          "d": "Vercel Inc.",
+          "z": "Hosting, CDN, edge functions",
+          "l": "EU (zwischen1, Frankfurt)"
+        },
+        {
+          "d": "Mapbox Inc.",
+          "z": "Visualizzazione Karte, geocoding, snap-to-road",
+          "l": "USA &ndash; CCS + DPF"
+        },
+        {
+          "d": "Resend Inc.",
+          "z": "E-Mail transazionali und newsletter",
+          "l": "USA &ndash; CCS + DPF"
+        },
+        {
+          "d": "Anthropic PBC",
+          "z": "Moderation IA und riconoscimento scontrini",
+          "l": "USA &ndash; CCS; zero-retention Sekunde politica des fornitore, DPA in Phase von finalizzazione"
+        },
+        {
+          "d": "Stripe Payments Europe Ltd.",
+          "z": "Elaborazione Zahlungen",
+          "l": "EU (Irlanda) &ndash; sub-processor US mit CCS"
+        },
+        {
+          "d": "Apple Push Notification Service",
+          "z": "Benachrichtigungen push (iOS)",
+          "l": "USA &ndash; CCS"
+        },
+        {
+          "d": "Google Firebase Cloud Messaging",
+          "z": "Benachrichtigungen push (Android, web)",
+          "l": "USA &ndash; CCS + DPF"
+        },
+        {
+          "d": "Google AdSense",
+          "z": "Werbung web (nur mit Einwilligung)",
+          "l": "USA &ndash; CCS + DPF"
+        },
+        {
+          "d": "Google AdMob",
+          "z": "Werbung nell'App mobile (nur mit Einwilligung)",
+          "l": "USA &ndash; CCS + DPF"
+        },
+        {
+          "d": "Nominatim / OpenStreetMap",
+          "z": "Geocoding inverso (Suche CAP)",
+          "l": "EU (Francia, Germania)"
+        }
+      ],
+      "footnote": "CCS = Clausole Contrattuali Standard dell'EU gemäß'Art. 46(2) DSGVO. DPF = EU-US Datum Datenschutz Framework (decisione von adeguatezza des 10 luglio 2023)."
+    },
+    "s7": {
+      "title": "Trasferimenti internazionali von Daten",
+      "intro": "Wann die Daten werden trasferiti Richtung paesi terzi zum von fuori des Spazio Economico Europeo, garantiamo ein Level von protezione adeguato attraverso die seguenti meccanismi:",
+      "items": [
+        "Decisione von adeguatezza der Commissione europea (z.B.. EU-US DPF, Regno Unito, Svizzera)",
+        "Clausole Contrattuali Standard dell'EU (CCS) in der Version aktuell von giugno 2021",
+        "Bewertung d'impatto des trasferimento (TIA) für ciascun fornitore US",
+        "Garanzie tecniche aggiuntive (cifratura in transito und zu riposo, pseudonimizzazione)",
+        "Restrizioni contrattuali concordate mit der fornitore interessato (z.B.. zero-retention, nein-training-on-user-Datum mit Anthropic — DPA in Phase von finalizzazione)"
+      ],
+      "footnote": "Copie der CCS und andere garanzie sind verfügbare auf Anfrage."
+    },
+    "s8": {
+      "title": "Periodo von conservazione und concetto von Löschung",
+      "colCategory": "Kategorie von Daten",
+      "colDuration": "Periodo von conservazione",
+      "rows": [
+        {
+          "d": "Daten von Konto und Profil",
+          "l": "bis zur Löschung dell'Konto + 30 Tage von backup"
+        },
+        {
+          "d": "Position und tracce GPS",
+          "l": "max 24 Monate, poi anonimizzati in heatmap"
+        },
+        {
+          "d": "Wächter, inventario, salvataggio",
+          "l": "bis zur Löschung dell'Konto"
+        },
+        {
+          "d": "Kämpfe d'Arena (protocollo von round)",
+          "l": "6 Monate, poi Statistiken aggregate"
+        },
+        {
+          "d": "Storico Saison und prestigio",
+          "l": "indefinito (Hall of Fame) oder bis zur Löschung dell'Konto"
+        },
+        {
+          "d": "Nachrichten Chat von Crew",
+          "l": "12 Monate oder bis zum Auflösung der Crew"
+        },
+        {
+          "d": "Check-in Shops, riscatti Angebote",
+          "l": "24 Monate für prove von abuso"
+        },
+        {
+          "d": "Bilder von scontrini",
+          "l": "7 Tage (nur für Kontrolle OCR)"
+        },
+        {
+          "d": "Fatture und Daten von Zahlung",
+          "l": "10 Jahre (§ 147 AO, § 257 HGB)"
+        },
+        {
+          "d": "Registrazioni von Einwilligung",
+          "l": "bis zu 3 Jahre nach die revoca"
+        },
+        {
+          "d": "Log server mit IP",
+          "l": "7 Tage, poi troncamento IP"
+        },
+        {
+          "d": "Registro von audit admin",
+          "l": "36 Monate"
+        },
+        {
+          "d": "Caricamenti rifiutati",
+          "l": "30 Tage für revisione"
+        },
+        {
+          "d": "Segnalazioni von Moderation",
+          "l": "24 Monate"
+        },
+        {
+          "d": "Ticket von assistenza",
+          "l": "36 Monate nach die chiusura"
+        },
+        {
+          "d": "Assegnazioni Test Zu/B",
+          "l": "durata dell'esperimento + 90 Tage für Bewertung"
+        },
+        {
+          "d": "Events newsletter",
+          "l": "24 Monate"
+        },
+        {
+          "d": "Lead commerciali (B2B)",
+          "l": "36 Monate dall'letzter Kontakt"
+        },
+        {
+          "d": "Registri von Verarbeitung",
+          "l": "permanenti wie prova interna"
+        }
+      ]
+    },
+    "s9": {
+      "title": "Cookie, LocalStorage und tecnologie simili",
+      "intro": "Der Dienst utilizza nur cookie strettamente necessari oder voci LocalStorage consentiti ohne Einwilligung gemäß des § 25(2) n. 2 TDDDG (precedentemente TTDSG):",
+      "colName": "Name",
+      "colPurpose": "Finalità",
+      "colDuration": "Durata",
+      "rows": [
+        {
+          "d": "sb-access-token",
+          "z": "Autenticazione (Supabase)",
+          "l": "1 Stunde"
+        },
+        {
+          "d": "sb-refresh-token",
+          "z": "Rinnovo sessione",
+          "l": "30 Tage"
+        },
+        {
+          "d": "aber365-locale",
+          "z": "Präferenz von Sprache",
+          "l": "1 Jahr"
+        },
+        {
+          "d": "aber365-consent",
+          "z": "Status von Einwilligung für Funktionen opzionali",
+          "l": "6 Monate"
+        },
+        {
+          "d": "aber365-theme",
+          "z": "Präferenz Modus scura/chiara",
+          "l": "1 Jahr"
+        }
+      ],
+      "note": "<b>Nicht</b> utilizziamo pixel von tracking, cookie pubblicitari oder identificatori cross-device. Sich in Zukunft venissero aggiunti cookie analitici oder von marketing opzionali, ciò avverrà nur previo Einwilligung über banner von Einwilligung."
+    },
+    "s10": {
+      "title": "Bambini und adolescenti",
+      "body": "Der Dienst ist destinato zu persone von età pari oder superiore zu 16 Jahre (EU), 13 Jahre (USA, Sekunde COPPA — 15 U.S.C. § 6501 und seguenti), oder l'età minima rispettiva Sekunde die regole nazionali. Die persone zum von sotto von dies Limit von età können utilizzare der Dienst nur mit der Einwilligung esplicito der ihr tutori legali (Art. 8 DSGVO, COPPA Rule 16 CFR Part 312). Sich veniamo zu conoscenza dass Daten von bambini werden trattati ohne der Einwilligung richiesto, li elimineremo prontamente."
+    },
+    "s11": {
+      "title": "Sicherheit der Daten und misure tecniche",
+      "items": [
+        "Cifratura von trasporto HTTPS mit TLS 1.2+ auf alle die endpoint",
+        "Cifratura zu riposo für alles der Inhalt von database und archiviazione (AES-256)",
+        "Hashing der Passwort mit tecniche all'Avantgarde (Argon2id / bcrypt mit sale)",
+        "Sicherheit zu Level von riga im database für die Tabellen relative den Nutzer",
+        "Zugriff des persönlich nur über ein System von ruoli dedicato mit registro von audit vollständig",
+        "Autenticazione zu due fattori für die Konto amministratore",
+        "Backup regolari mit conservazione limitata und archiviazione cifrata",
+        "Scansioni von Sicherheit automatizzate des codice Basis und der dipendenze",
+        "Gestione der incidenti mit obblighi von Meldung gemäß'Art. 33/34 DSGVO (Ablauf 72 Stunden)"
+      ]
+    },
+    "s12": {
+      "title": "Norme aggiuntive für giurisdizioni specifiche",
+      "s1": {
+        "title": "12.1 Regno Unito (UK-DSGVO)",
+        "body": "Für die Nutzer residenti im Regno Unito sich applica der UK-DSGVO oltre zum Datum Protection Act 2018. Die deine Rechte corrispondono in sostanza zu jene elencati in der Bereich 14. L'autorità von Kontrolle competente ist l'<icoLink>Information Commissioner's Office (ICO)</icoLink>."
+      },
+      "s2": {
+        "title": "12.2 Svizzera (FADP / revDSG)",
+        "body": "Für die Nutzer residenti in Svizzera sich applica die Liest federale rivista auf der Datenschutz (revDSG, in vigore vom 1° settembre 2023). Die deine Rechte corrispondono zu jene des DSGVO. L'autorità von Kontrolle competente ist l'<edoebLink>Incaricato federale der Datenschutz und der trasparenza (IFPDT/EDÖB)</edoebLink>."
+      },
+      "s3": {
+        "title": "12.3 California (CCPA / CPRA)",
+        "intro": "Die Nutzer residenti in California haben Rechte aggiuntivi gemäß des California Consumer Datenschutz Act (CCPA) wie geändert vom California Datenschutz Rights Act (CPRA):",
+        "rights": [
+          "<b>Right to Know</b> – quali Kategorien von Informationen personenbezogene werden raccolte",
+          "<b>Right to Delete</b> – Löschung der Informationen personenbezogene",
+          "<b>Right to Correct</b> – correzione von Informationen inesatte",
+          "<b>Right to Opt-Out of Sale/Sharing</b> – opposizione zur Verkauf/condivisione",
+          "<b>Right to Limit Use of Sensitive Personal Information</b>",
+          "<b>Right to Nicht-Discrimination</b> nell'esercizio von diese Rechte",
+          "Rappresentanza über agente autorizzato ist possibile"
+        ],
+        "note": "Dichiariamo espressamente: <b>Nicht vendiamo Informationen personenbezogene</b> und nicht die condividiamo für Werbung mirata Dritter («Do Not Sell or Teilen My Personal Information»). Kategorien dass raccogliamo gemäß des CCPA: identificatori (Zu), attività Internet (F), geolocalizzazione (G), Informationen commerciali (D), inferenze (K). Anfragen zu <Support-Mail>support@MyArea365.de</Support-Mail>."
+      },
+      "s4": {
+        "title": "12.4 Brasile (LGPD)",
+        "body": "Für die Nutzer residenti in Brasile sich applica die Lei Geral de Proteção de Dados (LGPD). Die deine Rechte gemäß'Art. 18 LGPD includono Zugriff, correzione, Löschung, portabilità der Daten, ritiro des Einwilligung und reclamo all'<anpdLink>Autoridade Nacional de Proteção de Dados (ANPD)</anpdLink>."
+      },
+      "s5": {
+        "title": "12.5 Canada (PIPEDA) und Australia (Datenschutz Act)",
+        "body": "Für die Nutzer residenti in Canada oder Australia sich applicano die Lesen locali auf der Datenschutz (PIPEDA und Australian Datenschutz Act 1988 rispettivamente). Die Rechte concessi in diese informativa rispettano oder superano die requisiti locali. Die reclami können sein presentati all'<privCanada>Office of the Datenschutz Commissioner of Canada</privCanada> oder all'<oaicLink>Office of the Australian Information Commissioner</oaicLink>."
+      }
+    },
+    "s13": {
+      "title": "Kategorien particolari von personenbezogene Daten (Art. 9 DSGVO)",
+      "intro": "Die Daten von Bewegung GPS im contesto dell'attività sportiva können permettere von trarre conclusioni auf Daten sanitari. Trattiamo Daher diese Daten mit besondere Heilung:",
+      "items": [
+        "Kein trasferimento zu terzi zu fini von analisi sanitaria",
+        "Kein collegamento mit assicurazioni sanitarie, datori von Arbeit oder entità simili",
+        "Aggregazione in heatmap nur in forma anonimizzata zu Level von segmento von Straße",
+        "Verarbeitung nur auf der Basis des dein Einwilligung esplicito (Art. 9(2)(zu) DSGVO)"
+      ]
+    },
+    "s14": {
+      "title": "Die deine Rechte in sintesi",
+      "intro": "Hast die seguenti Rechte gemäß des DSGVO:",
+      "rights": [
+        "<b>Zugriff</b> den Daten trattati dass dir riguardano (Art. 15 DSGVO)",
+        "<b>Rettifica</b> von Daten inesatti oder incompleti (Art. 16 DSGVO)",
+        "<b>Löschung</b> – der «Recht all'oblio» (Art. 17 DSGVO)",
+        "<b>Limitazione</b> des Verarbeitung (Art. 18 DSGVO)",
+        "<b>Portabilità der Daten</b> in ein formato strutturato und von uso gewöhnlich (Art. 20 DSGVO)",
+        "<b>Opposizione</b> zum Verarbeitung basato sull'interesse legittimo (Art. 21 DSGVO)",
+        "<b>Ritiro</b> des Einwilligung fornito, mit Effekt für der Zukunft (Art. 7(3) DSGVO)"
+      ],
+      "complaint": "<b>Reclamo</b> zu ein'autorità von Kontrolle der Datenschutz (Art. 77 DSGVO). Competente für Berlin ist der <berlinDpa>Commissario von Berlin für die Datenschutz und die libertà von Information</berlinDpa>.",
+      "note": "Eine E-Mail informale zu <Support-Mail>support@MyArea365.de</Support-Mail> ist sufficiente. Rispondiamo gratuitamente entro 30 Tage (oder 45 Tage Sekunde CCPA/LGPD). Ein'Export Abschließen der Daten gemäß'Art. 20 DSGVO ist inoltre verfügbar in den Einstellungen des dein Konto wie download JSON."
+    },
+    "s15": {
+      "title": "Violazioni von Daten und Benachrichtigung",
+      "p1": "In Fall von violazione von personenbezogene Daten suscettibile von comportare ein rischio elevato für die deine Rechte und libertà, dir notificheremo ohne indebito ritardo gemäß'Art. 34 DSGVO. Informeremo l'autorità von Kontrolle competente entro 72 Stunden zum mehr tardi (Art. 33 DSGVO).",
+      "p2": "Manteniamo ein registro interno von alle die incidenti, inclusi jene zum von sotto der soglia von Meldung, für migliorare continuamente der unser Level von Sicherheit. Die Nutzer interessati werden informati direttamente über E-Mail und Benachrichtigung in-App, wann der ihr record von Daten ist Status specificamente coinvolto."
+    },
+    "s16": {
+      "title": "Löschung und disattivazione dell'Konto in Detail",
+      "intro": "Kannst cancellare der dein Konto in qualsiasi momento in den Einstellungen oder Sendet eine E-Mail informale zu <Support-Mail>support@MyArea365.de</Support-Mail>. Der processo ist der seguente:",
+      "items": [
+        "<b>Immediatamente:</b> disattivazione dell'Zugriff, Profil mostrato wie «cancellato»",
+        "<b>Nach 14 Tage:</b> Löschung von alle die personenbezogene Daten (periodo von revoca)",
+        "<b>Rimanente:</b> Statistiken aggregate, nicht personenbezogene (z.B.. «100 km corsi zu Kreuzberg»)",
+        "<b>Conservazione verpflichtend:</b> die Daten von fatturazione und Zahlung sind conservati 10 Jahre (§ 147 AO)",
+        "<b>Nachrichten von Chat:</b> restano visibili den andere Mitglieder von Crew sotto «[Nutzer cancellato]»",
+        "<b>Titel von Crew/Saison guadagnati:</b> sind anonimizzati in der Hall of Fame",
+        "<b>Consensi:</b> sind conservati wie prova von revoca bis zu 3 Jahre"
+      ],
+      "note": "Der recupero nach der periodo von 14 Tage nicht ist tecnicamente possibile."
+    },
+    "s17": {
+      "title": "Divulgazione den autorità und divulgazione legale",
+      "p1": "Divulghiamo die deine Daten zu organi governativi nur sich sind legalmente obbligati zu farlo, zu Beispiel auf der Basis von ein'ordinanza des tribunale, misure von indagine in procedura penale (z.B.. §§ 100zu, 100g StPO) oder ein'ordinanza gemäß des Regolamento EU 2022/2065 (Digital Services Act, Art. 9/10).",
+      "p2": "Jeder divulgazione wird documentata. Verifichiamo die legittimità von jeder Anfrage von Informationen und divulghiamo nur die Daten specificamente richiesti. Wann legalmente consentito, informiamo l'Nutzer interessato der Anfrage."
+    },
+    "s18": {
+      "title": "Successione und morte von ein Nutzer",
+      "intro": "Die eredi können, auf Anfrage, erhalten Zugriff all'Konto von eine persona deceduta (sentenza der Corte federale von giustizia tedesca des 12 luglio 2018, rif. III ZR 183/17). Sind Anfragen die seguenti prove:",
+      "items": [
+        "Certificato von morte (copia certificata)",
+        "Certificato von eredità oder testamento notarile",
+        "Copia des documento von identità des richiedente"
+      ],
+      "note": "In alternativa, kannst stipulare für Abonnent während die deine Leben dass der dein Konto debba sein cancellato in Fall von morte. Scrivici zu <Support-Mail>support@MyArea365.de</Support-Mail> zu tale scopo."
+    },
+    "s19": {
+      "title": "Dienste und Inhalte esterni collegati",
+      "intro": "Der unser Dienst contiene link zu siti web esterni von cui nicht controlliamo der Inhalt. Nicht assumiamo alcuna responsabilità für die pratiche von Datenschutz von diese terze Teile. Ciò vale in besondere für:",
+      "items": [
+        "Siti web von Shops Partner collegati",
+        "Piattaforme von Social Durchschnitt während die condivisione von Profile",
+        "Link von App store zu Apple App Store und Google Play",
+        "Dienste cartografici (OpenStreetMap, Mapbox)"
+      ],
+      "note": "Für favore Lesen separatamente die rispettive informative auf der Datenschutz."
+    },
+    "s20": {
+      "title": "Bewertung d'impatto auf der Datenschutz (DPIA)",
+      "intro": "Weil der unser Dienst tratta auf larga scala Daten von Bewegung GPS und Erstellen Ranglisten pubbliche, wir haben effettuato eine Bewertung d'impatto auf der Datenschutz gemäß'Art. 35 DSGVO. Die DPIA documenta:",
+      "items": [
+        "Die Beschreibung sistematica der operazioni von Verarbeitung",
+        "Die Bewertung der necessità und proporzionalità",
+        "Die rischi identificati für die interessati",
+        "Die misure correttive (pseudonimizzazione, cifratura, restrizioni von Zugriff)"
+      ],
+      "note": "Ein riepilogo ist verfügbar auf Anfrage. Die DPIA Abschließen ist soggetta zu protezione des segreto commerciale."
+    },
+    "s21": {
+      "title": "Portabilità und Export der Daten",
+      "intro": "Gemäß dell'Art. 20 DSGVO hast der Recht von empfangen die deine Daten in ein formato strutturato, comunemente utilizzato und leggibile von macchina. Forniamo die seguenti opzioni:",
+      "items": [
+        "Export self-service in den Einstellungen des dein Konto (JSON)",
+        "Auf Anfrage auch in CSV für Kategorie von Daten",
+        "Daten inclusi: Profil, Läufe, Gebiete, XP, Erfolge, riscatti, Wächter, oggetti, prestigio, Kämpfe"
+      ],
+      "note": "L'Export ist verfügbar gratuitamente eine volta zum Monat. Für Anfragen manifestamente infondate oder eccessive (Art. 12(5) DSGVO) uns riserviamo der Recht von addebitare ein compenso ragionevole oder von ablehnen."
+    },
+    "s22": {
+      "title": "Recht applicabile und foro competente",
+      "p1": "Der Recht tedesco sich applica zu diese Datenschutzerklärung und zum Verarbeitung der deine personenbezogene Daten, esclusa die Convenzione der Nazioni Unite auf den Verträge von Verkauf internazionale von merci. Die norme imperative von tutela des consumatore des dein paese von residenza restano impregiudicate.",
+      "p2": "Der foro competente für die controversie mit imprenditori und persone ohne foro generale in Germania ist Berlin. Die consumatori können auch promuovere azioni im ihr Ort von residenza."
+    },
+    "s23": {
+      "title": "Uso von Teil von Partner contrattuali und clienti business (B2B)",
+      "body": "Sich utilizzi der unser Dienst wie Shop Partner, inserzionista oder Partner commerciale, die regole von diese informativa sich applicano analogicamente. Für die Daten dass uns trasmetti auf den deine clienti oder dipendenti, stipuliamo sich notwendig ein accordo separato von Verarbeitung der Daten gemäß'Art. 28 DSGVO."
+    },
+    "s24": {
+      "title": "Reclami und Auflösung alternativa der controversie",
+      "intro": "Sich ritieni dass nicht stiamo trattando correttamente die deine Daten, kannst:",
+      "li1": "Contattarci direttamente (<Support-Mail>support@MyArea365.de</Support-Mail>)",
+      "li2": "Presentare ein reclamo zur deine autorità von Kontrolle (Übersicht Schau Bereiche 12 und 14)",
+      "li3": "Utilizzare die piattaforma von Auflösung online der controversie dell'EU: <odrLink>ec.europa.eu/consumers/odr</odrLink>",
+      "li4": "Suchen protezione giudiziaria gemäß'Art. 79 DSGVO",
+      "note": "Die partecipazione zu eine procedura von Auflösung der controversie davanti zu ein organo von arbitrato der consumatori nicht ist verpflichtend."
+    },
+    "s25": {
+      "title": "Modifiche zu diese Datenschutzerklärung",
+      "body": "Adatteremo diese informativa in Fall von cambiamenti tecnici oder legali. Die Version aktuell ist immer verfügbar zu <datenschutzLink>MyArea365.de/datenschutz</datenschutzLink>. Für modifiche sostanziali dass riguardano die deine Rechte, dir informeremo inoltre über E-Mail oder Benachrichtigung in-App. Die Versionen precedenti sind archiviate und rese verfügbare auf Anfrage."
+    }
+  },
+  "Terms": {
+    "metaTitle": "AGB von Dienst",
+    "metaDescription": "Bedingungen generali / AGB von Dienst von MyArea365.",
+    "title": "Bedingungen Generali von Vertrag",
+    "subtitle": "AGB von Dienst für MyArea365",
+    "back": "← Zurück",
+    "lastUpdated": "Letzter Update: {Daten}",
+    "intro": "Diese Bedingungen Generali von Vertrag (von seguito «Bedingungen») disciplinano l'uso des Dienst <b>MyArea365</b>, composto vom sito web MyArea365.de, applicazioni web associate und App mobili (insieme «Dienst» oder «Piattaforma»). Insieme all'<datenschutzLink>Informativa auf der Datenschutz</datenschutzLink> und all'<impressumLink>Impressum</impressumLink>, diese Bedingungen costituiscono die Basis contrattuale zwischen te und der gestore.",
+    "footer": "Diese AGB von Dienst sind Status preparati tenendo conto der norme rilevanti (BGB, UWG, TMG, TTDSG, DSGVO, PAngV, ZAG, DSA, JMStV, BFSG). Vor der messa in onda, raccomandiamo eine revisione legale endgültig, in besondere wann sich aggiungono neue Dienste oder neue modelli von Zahlung. Die Versionen precedenti sind verfügbare auf Anfrage.",
+    "s1": {
+      "title": "Ambito von App und fornitore",
+      "body": "Der fornitore und Teil contraente ist Andre Meierholz (Adresse Schau <impressumLink>Impressum</impressumLink>), von seguito «Fornitore», «noi» oder «unser». Diese Bedingungen sich applicano den consumatori gemäß des § 13 BGB und den imprenditori gemäß des § 14 BGB. Bedingungen divergenti, contrastanti oder supplementari dell'Nutzer nicht diventeranno Teil des Vertrag zu weniger dass nicht accettiamo espressamente die ihr applicabilità für Abonnent."
+    },
+    "s2": {
+      "title": "Definizioni",
+      "items": [
+        "<b>Nutzer / Runner:</b> persona fisica dass utilizza der Dienst",
+        "<b>Consumatore:</b> persona fisica dass agisce für scopi privati (§ 13 BGB)",
+        "<b>Imprenditore:</b> persona dass agisce für scopi commerciali (§ 14 BGB)",
+        "<b>Shop Partner:</b> impresa dass offre Angebote auf der piattaforma",
+        "<b>Inhalt:</b> alle die Daten caricati oder creati dall'Nutzer (Texte, Bilder, Nachrichten von Chat)",
+        "<b>Beni virtuelle:</b> Wegemünzen, Diamanten, materiali, oggetti, Wächter, sigilli, oggetti boost, cosmetici — Schau § 8",
+        "<b>Saison / Lega:</b> Phase von gioco zu Zeit limitato mit Ranglisten und Belohnungen proprie",
+        "<b>Fraktion / Classe / Ruolo:</b> raggruppamenti in gioco mit Bonus meccanici propri",
+        "<b>Crew:</b> Gruppe von Runner dass conquistano Gebiete und partecipano zu competizioni insieme"
+      ]
+    },
+    "s3": {
+      "title": "Beschreibung des Dienst",
+      "intro": "MyArea365 ist eine Community von running und Spaziergang gamificata. Die Funktionen principali includono in besondere:",
+      "items": [
+        "Registrazione von sessioni von Lauf über GPS",
+        "Cattura von Straßen und Gebiete virtuelle basata auf den percorsi corsi",
+        "Assegnazione von Wegemünzen, Level und Erfolge",
+        "Raccolta und miglioramento von «Wächter» und equipaggiamento virtuell, System von forgia für materiali",
+        "Partecipazione zu Kämpfe d'Arena (Runner contro Runner) und Ranglisten von Saison inclusa Modus classificata Elo/rating",
+        "System von Fraktion und classe mit Bonus meccanici",
+        "Fondazione oder adesione zu Crew incluse Chat von Crew und Territorien von Crew",
+        "Riscatto von Rabatte in den Shops Partner partecipanti über scansione QR",
+        "Profil öffentlich, Hall of Fame und Ranglisten (globale, Stadt, Viertel)",
+        "Finanziamento in Teil über Werbung (z.B.. Google AdSense, AdMob) und extra zu Zahlung opzionali"
+      ],
+      "note": "L'insieme spezifisch von Funktionen evolve costantemente. Uns riserviamo der Recht von hinzufügen, bearbeiten, sostituire oder interrompere singole Funktionen vorausgesetzt ciò sia ragionevole für l'Nutzer und die obblighi contrattuali essenziali nicht siano interessati. In besondere, adattiamo continuamente meccaniche von gioco, formule von Rangliste und equilibrio Fraktion/classe für equilibrio und equità."
+    },
+    "s4": {
+      "title": "Conclusione des Vertrag und registrazione",
+      "p1": "Die presentazione des Dienst auf dem unser sito web nicht costituisce ein'Angebot vincolante aber ein invito zu presentare ein'Angebot (invitatio zu offerendum). Mit die deine registrazione presenti ein'Angebot von concludere ein Vertrag von utilizzo. Der Vertrag ist concluso mit die unsere Bestätigen über E-Mail oder mit l'attivazione des dein Zugriff.",
+      "p2": "Garantisci von fornire Informationen veritiere, complete und attuali zur registrazione. Uns informerai der cambiamenti ohne indebito ritardo. <b>Ist consentito ein nur Konto für persona fisica.</b> L'Konto ist persönlich, nicht trasferibile und nicht kann sein condiviso mit terzi. L'uso condiviso (z.B.. condivisione Konto, multi-Konto) costituisce Grund gültig von Auflösung straordinaria.",
+      "p3": "Bist responsabile der Sicherheit des dein Zugriff. Ciò include in besondere mantenere riservata die deine Passwort, utilizzare metodi von autenticazione sicuri und notificarci immediatamente qualsiasi sospetto ragionevole von uso nicht autorizzato."
+    },
+    "s5": {
+      "title": "Età minima und minorenni",
+      "p1": "L'uso ist offen zu persone von età pari oder superiore zu <b>16 Jahre</b>. Die persone von età inferiore zu 16 Jahre können utilizzare der Dienst nur mit der Einwilligung esplicito der ihr tutori legali (Art. 8 DSGVO, §§ 107, 108 BGB). In Fall von dubbi ragionevoli sull'età minima, uns riserviamo der Recht von richiedere eine prova oder sospendere l'Konto precauzionalmente.",
+      "p2": "Der Dienst contiene Funktionen von gamification und sociali adattate zum Trattato interstatale tedesco auf der protezione der minori in den Durchschnitt (JMStV). Die Funktionen von Chat für minorenni sind soggette zu Moderation speziell."
+    },
+    "s6": {
+      "title": "Angebot Basis kostenlos",
+      "body": "Die Funktionen Basis (tracking Lauf, Gebiete, XP, Crew, riscatto Rabatte bei Shops Partner) sind verfügbare in Weise permanente und kostenlos. Hast bisogno nur von ein Gerät verbunden zu Internet und, sich des Fall, von Daten mobili. Eventuali costi von connessione risultanti sind zu dein carico."
+    },
+    "s7": {
+      "title": "Dienste aggiuntivi zu Zahlung und Abos",
+      "s1": {
+        "title": "7.1 Käufe eine tantum",
+        "body": "Offriamo Käufe eine tantum zu Zahlung, in besondere Pakete von Diamanten, Pakete von materiali, oggetti streak-freeze, Anzeigen von Viertel, cosmetici (skin, Themes von pin, marker) und oggetti boost zu Zeit limitato. Die Preise sind indicati lordi inclusa IVA legale (§ 1 PAngV). Cliccando «Kaufen» Mach ein'Angebot vincolante; der Vertrag ist concluso mit die unsere Bestätigen oder mit l'Anfang dell'esecuzione."
+      },
+      "s2": {
+        "title": "7.2 Abos (MyArea+, Badge Supporter, Crew Pro, piani Shop)",
+        "intro": "Die Abos sich rinnovano automaticamente zur Ende von jeder periodo von fatturazione (Monat oder Jahr) für die selbe durata zu weniger dass tu nicht annulli <b>vor der Ende des periodo</b>. Die Abos includono attualmente in besondere:",
+        "items": [
+          "<b>MyArea+ Plus</b> (Funktionen Premium, ohne Werbung)",
+          "<b>Badge Supporter</b> Bronze / Silber / Gold (Abos mensili, badge + Bonus)",
+          "<b>Crew Pro</b> (Funktionen Crew estese)",
+          "<b>Shop Basic / Shop Pro / Shop Ultra</b> (Pakete B2B für Shops Partner)",
+          "<b>Pass Arena</b> (z.B.. für die durata von eine Saison)",
+          "<b>Social Pro / Analytics Pro / Competitor Insights</b> (moduli aggiuntivi für Shops Partner)"
+        ],
+        "note": "Durata, Preis, Bedingungen von rinnovo und termine von preavviso dir werden mostrati in Weise trasparente vor dell'ordine. Der <b>termine von preavviso corrisponde zum periodo von fatturazione aktuell</b> (cioè die Löschung hat Effekt zur Ende des periodo bereits pagato)."
+      },
+      "s3": {
+        "title": "7.3 Mezzi von Zahlung",
+        "body": "Die Zahlungen werden elaborati über der unser provider von Zahlung <b>Stripe Payments Europe Ltd.</b> (1 Grand Canal Street Lower, Dublino, Irlanda). Die metodi von Zahlung accettati (addebito SEPA, carta von credito, Apple Pay, Google Pay, Klarna ecc.) sind mostrati während der checkout. Die fatturazione avviene immediatamente zur conclusione des Vertrag. Selezionando ein metodo von Zahlung acconsenti zur trasmissione von Daten zu Stripe für l'esecuzione des Vertrag (Art. 6(1)(b) DSGVO)."
+      },
+      "s4": {
+        "title": "7.4 Ablauf, fattura und rinnovo automatisch",
+        "body": "Der Preis von Kauf ist dovuto immediatamente. Für die Abos, der metodo von Zahlung memorizzato wird addebitato automaticamente zur nächste Datum von fatturazione. Sich l'addebito fallisce, können sospendere l'Zugriff den Dienste zu Zahlung bis zum Zahlung. Forniamo eine fattura elettronica über der dein Konto oder über E-Mail."
+      },
+      "s5": {
+        "title": "7.5 Riserva von proprietà und prestazione",
+        "body": "Die beni virtuelle restano von unsere proprietà oder soggetti zur unsere riserva d'uso bis zum Zahlung integrale. Nach der Zahlung riuscito Empfangen der Recht d'uso descritto zum § 8."
+      },
+      "s6": {
+        "title": "7.6 Button von Löschung einfach (§ 312k BGB)",
+        "body": "In den Einstellungen des dein Konto, sotto <die>Verwalten Abos</die>, troverai ein Button von Löschung accessibile in qualsiasi momento, mit cui kannst terminare die Abos in corso ohne ostacolo von Zugriff. Die Löschung hat Effekt zur Ende des periodo von fatturazione aktuell."
+      }
+    },
+    "s8": {
+      "title": "Beni virtuelle und valute virtuelle",
+      "intro": "Münzen des cammino, Diamanten, materiali (rottame/cristallo/essenza/frammenti von reliquia), Wächter, oggetti, sigilli, rating, Erfolge, cosmetici und andere beni virtuelle sind destinati esclusivamente all'uso all'interno des Dienst.",
+      "items": [
+        "Nicht costituiscono <b>Münze avente corso legale</b> né Münze elettronica gemäßzu ZAG",
+        "<b>Nicht können sein scambiati mit denaro reale</b> oder prelevati",
+        "Sind <b>nicht trasferibili zwischen Konto</b> (salvo sich espressamente previsto)",
+        "Scadono zur Löschung des dein Konto, ohne Recht zu compensazione",
+        "Empfangen ein <b>Recht d'uso einfach, nicht esclusivo, limitato im Zeit zur durata des Vertrag</b>",
+        "Der commercio, die Verkauf, der scambio oder der trasferimento von beni virtuelle zum von fuori der meccaniche ufficiali des gioco ist vietato"
+      ],
+      "balance": "<b>Aggiustamenti von equilibrio:</b> Für Gründe von bilanciamento, uns riserviamo der Recht von aggiustare, entfernen oder sostituire singoli beni virtuelle mit equivalenti, in der misura in cui ciò sia ragionevole Respekt den deine interessi. Ciò include in besondere modifiche zu valori von stat, tassi von Drop, Systeme von contatori, Buff von Fraktion und classe.",
+      "discontinue": "<b>Cessazione des Dienst:</b> Sich dovessimo cessare definitivamente der Dienst, dir informeremo mindestens 3 Monate in anticipo. Während dies periodo, die Abos pagati mantengono die ihr Funktion bis zur Ende der durata pagata. Für die Käufe eine tantum bereits effettuati (z.B.. Pakete von Diamanten) dass nicht sind Status interamente consumati, offriremo ein credito von gut volontà oder rimborso pro-rata basato auf der durata von conservazione anfänglich, in der misura in cui ciò sia economicamente ragionevole."
+    },
+    "s9": {
+      "title": "Widerrufsrecht für consumatori",
+      "s1": {
+        "title": "9.1 Istruzioni von Widerruf",
+        "p1": "Hast der Recht von recedere von dies Vertrag entro <b>14 Tage</b> ohne fornire alcun Grund. Der termine von Widerruf ist von 14 Tage vom Tag der conclusione des Vertrag.",
+        "p2": "Für esercitare der dein Recht von Widerruf, musst informarci mit eine dichiarazione chiara (z.B.. über E-Mail) der deine decisione von recedere von dies Vertrag:",
+        "address": "Adresse postale Schau <impressumLink>Impressum</impressumLink>",
+        "emailLabel": "E-Mail:",
+        "p3": "Für rispettare der termine von Widerruf, ist sufficiente dass tu invii die Benachrichtigung von esercizio des Recht von Widerruf vor der Ablauf des termine."
+      },
+      "s2": {
+        "title": "9.2 Conseguenze des Widerruf",
+        "body": "Sich receddi von dies Vertrag, dir rimborseremo alle die Zahlungen ricevuti von te, ohne indebito ritardo und zum mehr tardi entro 14 Tage vom Tag in cui wir haben ricevuto die Benachrichtigung des dein Widerruf. Für der rimborso utilizzeremo der selbe mezzo von Zahlung utilizzato für die transazione originale, salvo diverso accordo espresso."
+      },
+      "s3": {
+        "title": "9.3 Ablauf anticipata des Recht von Widerruf für Inhalt digitale",
+        "intro": "Für die Verträge von fornitura von Inhalt digitale nicht fornito auf supporto fisico (in besondere <b>Diamanten, skin und andere beni virtuelle</b>), der Recht von Widerruf scade gemäß des § 356(5) BGB sich:",
+        "items": [
+          "hast espressamente acconsentito dass iniziassimo l'esecuzione vor der Ende des termine von Widerruf",
+          "hast confermato die deine consapevolezza dass Verlieren der dein Recht von Widerruf fornendo der Einwilligung all'Anfang dell'esecuzione",
+          "dir wir haben fornito Bestätigen des Vertrag und von dies Einwilligung"
+        ],
+        "note": "All'Kauf von Diamanten und andere sblocchi istantanei, otteniamo dies Einwilligung während der checkout. Nach dass der credito ist Status concesso, der Widerruf nicht ist quinmehr possibile."
+      },
+      "s4": {
+        "title": "9.4 Modulo von Widerruf modello",
+        "intro": "Sich desideri recedere vom Vertrag, kannst utilizzare dies modulo (nicht richiesto, aber consentito):",
+        "form": "Zu: Andre Meierholz, Adresse Schau Impressum, support@MyArea365.de\n\nIo/noi (*) euch notifichiamo mit die Gegenwart die meine/unsere (*) recessione vom Vertrag concluso von me/noi (*) für l'Kauf der seguenti merci (*) / die fornitura des seguente Dienst (*):\n\nOrdinato der (*) / ricevuto der (*):\nName des/der consumatore/die:\nAdresse des/der consumatore/die:\nFirma des/der consumatore/die (nur in Fall von Benachrichtigung cartacea):\nDatum:\n\n(*) Cancellare der superfluo."
+      }
+    },
+    "s10": {
+      "title": "Preise und Bedingungen von Zahlung",
+      "p1": "Alle die Preise sind Preise lordi inclusa l'IVA legale und andere componenti von Preis gemäß'Ordinanza tedesca sull'indicazione der Preise (PAngV). Annunciamo die cambi von Preis mindestens 4 Wochen in anticipo; die Abos esistenti continuano zum Preis originariamente concordato bis zur nächste Datum von rinnovo.",
+      "p2": "In Fall von mora des Zahlung uns riserviamo der Recht von sospendere die Dienste aggiuntivi und von far valere die interessi legali von mora gemäß der §§ 288, 286 BGB und ragionevoli costi von sollecito."
+    },
+    "s11": {
+      "title": "Rechte d'uso der piattaforma",
+      "body": "Dir concediamo, für die durata des Vertrag, ein Recht einfach, nicht trasferibile, nicht sublicenziabile von utilizzare der Dienst für der scopo contrattualmente previsto. Die query automatizzate oder sistematiche (scraping, crawling) und l'ingegneria inversa sind vietate salvo dass sich applichino eccezioni legali imperative (§§ 69zu und seguenti UrhG)."
+    },
+    "s12": {
+      "title": "Rechte d'uso auf dem dein Inhalt",
+      "intro": "Mantieni alle die Rechte auf dem Inhalt dass carichi oder crei (avatar, banner, Beschreibung von Crew, Nachrichten von Chat, suggerimenti von Shop, Feedback). Jedoch, uns concedi ein Recht einfach, illimitato im Zeit und im Territorium, kostenlos von utilizzare der dein Inhalt",
+      "items": [
+        "für memorizzarlo, mostrarlo, riprodurlo und trasmetterlo zu andere Nutzer all'interno des Dienst",
+        "für elaborarlo zu fini tecnici (backup, scaling, Moderation)",
+        "für utilizzarlo in forma anonimizzata oder aggregata für Statistiken und miglioramento des prodotto"
+      ],
+      "note": "Garantisci von detenere die Rechte necessari auf dem Inhalt und von nicht violare Rechte Dritter. In Fall von violazioni, uns indennizzi von den pretese Dritter inclusi die ragionevoli costi von Verteidigung legale.",
+      "moderation": "<b>Moderation:</b> Der Inhalt caricato (in besondere Bilder von avatar und banner, Beschreibungen von Crew, nomi Nutzer, Nachrichten von Chat) kann sein moderato vor oder nach die pubblicazione. Uns riserviamo der Recht von rivedere, nascondere oder entfernen Inhalte dass violano diese Bedingungen, der Recht applicabile oder die nostre linee Anleitung der Community. Kannst machen appello den decisioni von Moderation gemäß des § 15.",
+      "aiContent": "<b>Inhalt generato von IA:</b> Teile dell'artwork dass forniamo (z.B.. Bilder von Wächter, Symbole der Karte, Themes von pin) können sein create mit der supporto von Systeme IA. Confermi dass mit die deine caricamenti, nicht carichi Inhalte dass violano Rechte Dritter — incluso Inhalt generato von IA (z.B.. imitando indebitamente stili protetti oder persone viventi)."
+    },
+    "s13": {
+      "title": "Codice von condotta / Linee Anleitung der Community",
+      "intro": "Sind in besondere vietati:",
+      "items": [
+        "Daten GPS manipolati, percorsi falsi, Bewegung automatizzato (veicolo, bot, emulatore)",
+        "Konto multipli oder aggiramento von ein ban mit ein neu Konto",
+        "Comportamento offensivo, odioso, discriminatorio, molesto oder minaccioso Richtung andere Nutzer",
+        "Inhalte illegali, dass mettono in pericolo die giovani, pornografici oder dass violano der Recht d'autore",
+        "Spam, Werbung commerciale ohne Einwilligung, schemi piramidali, phishing",
+        "Tentativo von aggirare limitazioni tecniche (rate limit, anti-cheat)",
+        "Malware, exploit, Zugriff nicht autorizzato zu andere Konto oder zur unsere infrastruttura",
+        "Uso commerciale ohne Einwilligung espresso",
+        "Commercio von Konto, beni virtuelle oder vantaggi in gioco zum von fuori des Shop ufficiale",
+        "Divulgazione von personenbezogene Daten Dritter"
+      ],
+      "safety": "<b>Die Sicherheit vor von alles:</b> Sii prudente im traffico, rispetta der codice der Straße und nicht lasciarti distrarre dall'App. Bist responsabile der deine Sicherheit (Schau § 16)."
+    },
+    "s14": {
+      "title": "Conseguenze der violazioni",
+      "intro": "Zu seconda der gravità und frequenza, uns riserviamo der Recht von adottare die seguenti misure:",
+      "items": [
+        "Avvertimento",
+        "Eliminazione oder nascondimento von Inhalte individuali",
+        "Reset von beni virtuelle ottenuti illecitamente",
+        "Sospensione temporanea dell'Konto oder von Funktionen individuali",
+        "Ban permanente für violazioni gravi",
+        "Auflösung des Vertrag von utilizzo für Grund gültig (§ 314 BGB)",
+        "Conservazione von valori ottenuti illecitamente ohne rimborso",
+        "Denuncia penale in Fall von Inhalte illeciti"
+      ],
+      "note": "Vor der misure permanenti, generalmente dir verrà Datum die possibilità von commentare, salvo dass l'urgenza richieda diversamente."
+    },
+    "s15": {
+      "title": "Procedure von reclamo, Benachrichtigung und rimedio (DSA)",
+      "intro": "In qualità von fornitore von ein Dienst intermediario und von hosting gemäß des Regolamento EU 2022/2065 (Digital Services Act), forniamo die seguenti procedure:",
+      "li1": "<b>Benachrichtigung von Inhalt illegale</b> (Art. 16 DSA): Benachrichtigung informale zu <Support-Mail>support@MyArea365.de</Support-Mail> oder über die Funktion von Meldung in-App. Informationen: Inhalt/URL, Typ von violazione, recapiti des notificante.",
+      "li2": "<b>Gestione interna der reclami</b> (Art. 20 DSA): die persone interessate können contestare gratuitamente die decisioni von Moderation entro 6 Monate. Decidiamo entro 14 Tage.",
+      "li3": "<b>Auflösung extragiudiziale der controversie</b> (Art. 21 DSA): kannst rivolgerti zu ein organo von Auflösung extragiudiziale der controversie certificato dall'autorità von Kontrolle nazionale.",
+      "li4": "<b>Trusted flagger</b> (Art. 22 DSA): die Benachrichtigungen von Trusted Flagger riconosciuti werden trattate mit priorità.",
+      "li5": "<b>Rapporti von trasparenza</b>: pubblichiamo annualmente Informationen auf den decisioni von Moderation und auf den segnalazioni der Nutzer."
+    },
+    "s16": {
+      "title": "Responsabilità und limitazione von responsabilità",
+      "s1": {
+        "title": "16.1 Generale",
+        "body": "Sind responsabili ohne limitazione für dolo und colpa grave, für Schaden causati colpevolmente zur Leben, zum corpo oder zur Gesundheit, für difetti dolosamente nascosti, in Fall von assunzione von garanzia und Sekunde die liest tedesca auf der responsabilità von prodotto."
+      },
+      "s2": {
+        "title": "16.2 Negligenza einfach",
+        "body": "In Fall von violazione lievemente negligente von ein obbligo contrattuale essenziale (Pflicht cardinale), die unsere responsabilità ist limitata zum Schaden prevedibile tipico des Vertrag zum momento der seine conclusione. Nicht sind responsabili für violazioni lievemente negligenti von Pflichten zum von fuori der obblighi contrattuali essenziali."
+      },
+      "s3": {
+        "title": "16.3 Esonero für attività von Lauf und Spaziergang",
+        "p1": "<b>Utilizzi l'App zu dein rischio</b>, in besondere im spazio öffentlich stradale. Nicht assumiamo alcuna responsabilità für cadute, lesioni, incidenti, perdita oder Schaden zum dein Gerät und andere Schaden causati von der deine attività von Lauf oder Spaziergang, salvo dass wir haben causato der Schaden colposamente.",
+        "p2": "Bist obbligato zu rispettare der codice der Straße, prestare Achtung zum traffico, zum meteo, den Bedingungen von illuminazione, zum dein Status von Gesundheit und zur deine condizione fisica und, in Fall von dubbio, fragen Tipp medico vor von beginnen l'attività sportiva. L'App nicht sostituisce der Tipp medico, nicht ist ein programma von Training und nicht ist ein System von Sicherheit oder von chiamata d'emergenza.",
+        "p3": "<b>Für die minorenni</b>, die tutori legali portano die voll responsabilità für l'uso sicuro in öffentlich. Die attività von Lauf devono sein scelte geograficamente und temporalmente in Weise von minimizzare die rischi von Sicherheit."
+      },
+      "s4": {
+        "title": "16.4 Responsabilità für disponibilità von Netzwerk und accuratezza der Daten",
+        "body": "Uns sforziamo von raggiungere ein'alta disponibilità aber nicht garantiamo der 100 %. Manutenzione und disturbi tecnici können causare interruzioni. Die Daten cartografici und die calcoli von Distanz sind effettuati zum meglio der nostre conoscenze aber können sein inaccurati, in besondere mit scarsa ricezione GPS."
+      },
+      "s5": {
+        "title": "16.5 Responsabilità für Angebote esterne collegate",
+        "body": "Für der Inhalt und die Dienste Dritter collegati (in besondere Shops Partner), sind responsabili nur sich wir haben conoscenza positiva von eine violazione und wir haben omesso von agire."
+      }
+    },
+    "s17": {
+      "title": "Werbung und integrazioni Dritter",
+      "p1": "Finanziamo Teile des Dienst kostenlos über Werbung. Lavoriamo in besondere mit <b>Google AdSense</b> (web) und <b>Google AdMob</b> (App mobile). Für ulteriori Informationen auf dem Verarbeitung der Daten von Teil Dritter pubblicitari und opzioni von opt-out, Schau l'<datenschutzLink>Informativa auf der Datenschutz</datenschutzLink>.",
+      "p2": "Die Nutzer mit ein Abo <b>MyArea+</b> oder <b>Badge Supporter</b> aktiv nicht vedono Werbung personalizzata oder nur ridotta nell'App, wo tecnicamente fattibile.",
+      "p3": "Die rispettivi inserzionisti sind responsabili des Inhalt und der correttezza der Anzeigen visualizzati. Nicht assumiamo alcuna responsabilità für Angebote, concorsi oder prodotti pubblicizzati über Anzeigen."
+    },
+    "s18": {
+      "title": "Shops Partner und riscatti von Rabatte",
+      "p1": "Die Rabatte werden concessi direttamente vom rispettivo Shop Partner. <b>Nicht sind Teil des Vertrag von Kauf zwischen te und der Shop</b>. Die controversie auf qualità des prodotto, consegna oder garanzia devono sein risolte direttamente mit der Shop.",
+      "p2": "Verifichiamo die Shops Partner vor dell'onboarding zum meglio der nostre conoscenze aber nicht assumiamo alcuna garanzia für die ihr affidabilità oder qualità. In Fall von Probleme, kannst segnalare ein Shop über die Funktion in-App."
+    },
+    "s19": {
+      "title": "Kämpfe d'Arena, Modus classificata und System von Saison",
+      "p1": "Die Kämpfe d'Arena sind Kämpfe virtuelle 1 contro 1 zwischen Wächter von diversi Runner. Ein Zahl limitato von Kämpfe gratis zum Tag ist verfügbar; Kämpfe aggiuntivi können sein sbloccati mit Diamanten. Können aggiustare die parametri esatti (Zahl, costo) für Gründe von bilanciamento.",
+      "p2": "In <b>Modus classificata</b>, die giocatori werden classificati utilizzando ein System von rating basato auf Elo. Der rating wird aktualisiert automaticamente nach jeder Kampf classificato. Uns riserviamo der Recht von resettare der rating und applicare die conseguenze gemäß des § 14 in Fall von segni von manipolazione (match fixing, win trading, uso von bot, smurfing).",
+      "p3": "Die Saisons durano tipicamente 90 Tage. Zur Ende von eine Saison, werden assegnati Ranglisten von Saison und Belohnungen stagionali. Die Fortschritte permanenti (collezione von Wächter, Level, Erfolge, Punkte prestigio, Titel guadagnati) werden accreditati permanentemente zum dein Profil. Die oggetti und cosmetici stagionali restano verfügbare nell'inventario nach die Ende der Saison, salvo diversa indicazione. Details: Schau Informationen in-App."
+    },
+    "s20": {
+      "title": "Marchio und Recht d'autore",
+      "body": "Der Name «MyArea365», der logo, der design, die grafica, die design der Wächter und andere elementi protetti sind protetti vom Recht d'autore, vom Recht der marchi und vom Recht der concorrenza. Qualsiasi uso nicht espressamente consentito ist vietato. Brevi citazioni zu fini von Information oder reportage restano consentite."
+    },
+    "s21": {
+      "title": "Durata des Vertrag und Auflösung",
+      "s1": {
+        "title": "20.1 Konto kostenlos",
+        "body": "Der Vertrag für l'Konto kostenlos ist zu Zeit indeterminato. Kannst risolverlo in qualsiasi momento ohne fornire Gründe cancellando der dein Konto in den Einstellungen oder inviandoci ein Nachricht corrispondente. Können risolvere der Vertrag mit preavviso von 30 Tage zur Ende des Monat."
+      },
+      "s2": {
+        "title": "20.2 Abos",
+        "body": "Kannst abbrechen die Abos in corso in qualsiasi momento zur Ende des periodo von fatturazione aktuell. Gemäß des § 312k BGB forniamo ein Button von Löschung chiaramente sichtbar in den Einstellungen des dein Konto («Abbrechen Stunde»). Die Löschung hat Effekt zur Ende des periodo bereits pagato."
+      },
+      "s3": {
+        "title": "20.3 Auflösung straordinaria",
+        "body": "Der Recht von entrambe die Teile zur Auflösung straordinaria für Grund gültig (§ 314 BGB) resta impregiudicato. Für noi, ein Grund gültig esiste in besondere in Fall von violazioni gravi oder ripetute des § 13."
+      },
+      "s4": {
+        "title": "20.4 Conseguenze der Auflösung",
+        "body": "Nach die Auflösung, der dein Zugriff wird sospeso und l'Konto wird cancellato nach ein periodo von grazia von 14 Tage (Details Schau Informativa auf der Datenschutz, Bereich «Löschung Konto»). Die beni virtuelle scadono ohne compensazione, salvo dass sich applichi ein Recht von Widerruf oder dass uns sia eine violazione colposa von Pflicht von Teil unsere."
+      }
+    },
+    "s22": {
+      "title": "Modifiche der Bedingungen",
+      "p1": "Sind autorizzati zu adeguare diese Bedingungen sich notwendig für sviluppi tecnici, cambiamenti der situazione legale, giurisprudenza oder für Gründe economici, und die deine Rechte nicht sind interessati in Weise irragionevole.",
+      "p2": "Annunciamo die modifiche über E-Mail oder Benachrichtigung in-App mindestens 6 Wochen vor der ihr entrata in vigore. Sich nicht dir opponi den modifiche entro 6 Wochen von der ricezione, sind considerate approvate. Richiamiamo esplicitamente l'Achtung auf dies Recht von opposizione in der Benachrichtigung. Sich dir opponi, die Bedingungen precedenti continuano zu applicarsi; jedoch, uns riserviamo der Recht von Auflösung ordinaria gemäß des § 21.1."
+    },
+    "s23": {
+      "title": "Datenschutz",
+      "body": "Die Informationen auf dem Verarbeitung der personenbezogene Daten sind in der unsere <datenschutzLink>Informativa auf der Datenschutz</datenschutzLink>. Ne macht Teil der Basis contrattuale."
+    },
+    "s24": {
+      "title": "Disposizioni supplementari für Shops Partner (B2B)",
+      "p1": "Für die Shops Partner, die Bedingungen concordate individualmente (pay-für-visit, Bonus territoriale, quest von Shop) sich applicano in hinzugefügt zu diese Bedingungen. In den confronti der imprenditori, der foro competente und der Ort von esecuzione ist esclusivamente Berlin. § 312die BGB nicht sich applica gegenüber der imprenditori.",
+      "p2": "Die obblighi der Shops Partner includono in besondere:",
+      "items": [
+        "Divulgazione veritiera der Daten des Shop, Öffnungszeiten von apertura und Angebote",
+        "Respekt von alle die requisiti von tutela der consumatori Richtung die clienti finali",
+        "Accettazione der Angebote riscattate den Bedingungen indicate",
+        "Verarbeitung nicht discriminatorio der Runner"
+      ]
+    },
+    "s25": {
+      "title": "Stärke maggiore",
+      "body": "Keine Teil ist responsabile für die nicht esecuzione der obblighi contrattuali sich ciò ist dovuto zu Stärke maggiore (Krieg, sciopero, catastrofi naturali, pandemie, ordini ufficiali, interruzioni Internet auf larga scala). Die Teil interessata informerà l'andere ohne indebito ritardo."
+    },
+    "s26": {
+      "title": "Cessione und subentro contrattuale",
+      "body": "Kannst trasferire die deine Rechte und obblighi gemäß von dies Vertrag zu terzi nur mit der unser Einwilligung scritto. Sind autorizzati zu trasferire der Vertrag zu eine società affiliata; in dies Fall hast ein Recht speziell von Auflösung."
+    },
+    "s27": {
+      "title": "Accessibilità",
+      "body": "Uns sforziamo von progettare der unser Dienst im Weise mehr accessibile possibile gemäßzu Liest tedesca auf dem rafforzamento dell'accessibilità (BFSG) und der criteri WCAG 2.2. Accogliamo Feedback auf den ostacoli zu <Support-Mail>support@MyArea365.de</Support-Mail>."
+    },
+    "s28": {
+      "title": "Auflösung online der controversie und arbitrato der consumatori",
+      "body": "Die Commissione europea fornisce eine piattaforma für die Auflösung online der controversie: <odrLink>ec.europa.eu/consumers/odr</odrLink>. Nicht sind né disposti né obbligati zu partecipare zu procedure von Auflösung der controversie davanti zu ein organo von arbitrato der consumatori."
+    },
+    "s29": {
+      "title": "Recht applicabile und foro competente",
+      "p1": "Sich applica der Recht der Repubblica federale von Germania, esclusa die Convenzione der Nazioni Unite auf den Verträge von Verkauf internazionale von merci. Die gewählt des Recht sich applica den consumatori nur in der misura in cui nicht tritt ein in conflitto mit die norme imperative von tutela des consumatore des paese in cui der consumatore hat die seine residenza abituale (Art. 6(2) Regolamento Roma Die).",
+      "p2": "Der foro competente für die controversie mit imprenditori und persone ohne foro generale in Germania ist Berlin. Die consumatori können auch promuovere azioni im ihr Ort von residenza."
+    },
+    "s30": {
+      "title": "Sprache und Version facente fede",
+      "body": "Die Sprache contrattuale ist der tedesco. Sich forniamo traduzioni von diese Bedingungen, ist nur zu Titel informativo; in Fall von discrepanze, macht fede die Version tedesca."
+    },
+    "s31": {
+      "title": "Disposizioni finali",
+      "p1": "Nicht uns sind accordi accessori orali. Modifiche und integrazioni zu diese Bedingungen devono sein in forma testuale; ciò vale auch für die rinuncia zum requisito von forma testuale.",
+      "p2": "<b>Clausola von salvaguardia:</b> Sich eine disposizione von diese Bedingungen dovesse sein oder diventare invalida oder inapplicabile, die validità der disposizioni rimanenti resterà impregiudicata. Die disposizione invalida wird sostituita von der regola legale oder von eine regola dass sich avvicina der mehr possibile zum scopo economico der disposizione invalida."
+    }
   }
 }

@@ -30,6 +30,7 @@ export async function GET() {
   const base_ring:     Record<string, Art> = {};
   const loot_drop:     Record<string, Art> = {};
   const resource_node: Record<string, Art> = {};
+  const inventory_item: Record<string, Art> = {};
   for (const r of (data ?? []) as Array<{ kind: string; slot_id: string; variant: string; image_url: string | null; video_url: string | null }>) {
     const art: Art = { image_url: r.image_url, video_url: r.video_url };
     if (r.kind === "marker") {
@@ -67,11 +68,13 @@ export async function GET() {
       loot_drop[r.slot_id] = art;
     } else if (r.kind === "resource_node") {
       resource_node[r.slot_id] = art;
+    } else if (r.kind === "inventory_item") {
+      inventory_item[r.slot_id] = art;
     }
   }
   // Artwork ändert sich selten (Admin-Upload). Lange Edge-Cache + lange SWR.
   return NextResponse.json(
-    { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop, base_ring, loot_drop, resource_node },
+    { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop, base_ring, loot_drop, resource_node, inventory_item },
     { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } }
   );
 }

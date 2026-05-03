@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
@@ -83,6 +84,9 @@ export function BaseModal({ target, onClose }: Props) {
 // ───────────────────────── OWN RUNNER BASE ─────────────────────────────
 
 function OwnRunnerBase({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("BaseModal");
+  const tBld = useTranslations("Buildings");
+  const tEff = useTranslations("Effects");
   const [data, setData] = useState<OwnBaseData | null>(null);
   const [tab, setTab]   = useState<"overview" | "res" | "build" | "troops" | "research" | "chest" | "vip" | "settings">("overview");
   const [vipSection, setVipSection] = useState<"status" | "shop" | "tiers">("status");
@@ -160,17 +164,17 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
       if (!r.ok || j?.ok === false) {
         if (j.error === "burg_requirements_unmet" && j.unmet?.length) {
           const list = j.unmet.map((u) => `${u.name} ${u.have_level}/${u.required_level}`).join(", ");
-          setErr(`Burg-Voraussetzungen fehlen: ${list}`);
+          setErr(t("errBurgRequirements", { list }));
         } else if (j.error === "burg_level_too_low") {
-          setErr(`Burg-Level zu niedrig: brauchst Stufe${j.needed}, hast Stufe${j.burg_level}.`);
+          setErr(t("errBurgLevelLow", { needed: j.needed ?? 0, have: j.burg_level ?? 0 }));
         } else if (j.error === "queue_full") {
-          setErr("Bauslots voll — höhere Burg oder Premium erhöht Slots.");
+          setErr(t("errQueueFull"));
         } else if (j.error === "max_level_reached") {
-          setErr("Maximales Level erreicht.");
+          setErr(t("errMaxLevel"));
         } else if (j.error === "not_enough_resources") {
-          setErr("Nicht genug Resourcen.");
+          setErr(t("errNotEnoughRes"));
         } else {
-          setErr(j?.error ?? "Fehler");
+          setErr(j?.error ?? t("errGeneric"));
         }
       } else { await reload(); }
     } finally { setBusy(null); }
@@ -187,7 +191,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
     try {
       const r = await fetch("/api/base/chest/open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chest_id: chestId }) });
       const j = await r.json();
-      if (!r.ok || j?.ok === false) setErr(j?.error ?? "Fehler");
+      if (!r.ok || j?.ok === false) setErr(j?.error ?? t("errGeneric"));
       await reload();
     } finally { setBusy(null); }
   }
@@ -199,11 +203,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
     setErr(null);
     const r = await fetch("/api/base/theme", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme_id: themeId }) });
     const j = await r.json();
-    if (!r.ok || j?.ok === false) setErr(j?.error ?? "Theme nicht freigeschaltet"); else await reload();
+    if (!r.ok || j?.ok === false) setErr(j?.error ?? t("errThemeNotUnlocked")); else await reload();
   }
 
   if (!data || !data.base) {
-    return <Backdrop onClose={onClose}><Spinner label="Lade Base …" /></Backdrop>;
+    return <Backdrop onClose={onClose}><Spinner label={t("loading")} /></Backdrop>;
   }
   const { base, buildings, queue, resources, vip, chests, themes, vip_thresholds } = data;
   const vipDailyClaimed = data.vip_daily_claim?.claimed_today ?? false;
@@ -218,10 +222,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   // Resource-Icon-Fallback (Theme-Override > Default-Emoji). Artwork-Image wird
   // separat via <ResourceIcon> gerendert wenn ein Bild im cosmetic_artwork-Slot liegt.
   const RES = {
-    wood:  { icon: theme?.resource_icon_wood  ?? "⚙️", color: "#FF6B4A", label: "Tech-Schrott", hint: "🏚 Schrottplatz-km / Industrie-km", rate: 100 },
-    stone: { icon: theme?.resource_icon_stone ?? "🔩", color: "#8B8FA3", label: "Komponenten",  hint: "🏗 Baumarkt-km / Logistik-km",     rate: 100 },
-    gold:  { icon: theme?.resource_icon_gold  ?? "💸", color: "#FFD700", label: "Krypto",       hint: "🏦 Bankenviertel-km / Konzerne",   rate: 100 },
-    mana:  { icon: theme?.resource_icon_mana  ?? "📡", color: "#22D1C3", label: "Bandbreite",   hint: "📶 WLAN-Hotspot-km / Funkmasten",  rate: 100 },
+    wood:  { icon: theme?.resource_icon_wood  ?? "⚙️", color: "#FF6B4A", label: t("resWoodLabel"),  hint: t("resWoodHint"),  rate: 100 },
+    stone: { icon: theme?.resource_icon_stone ?? "🔩", color: "#8B8FA3", label: t("resStoneLabel"), hint: t("resStoneHint"), rate: 100 },
+    gold:  { icon: theme?.resource_icon_gold  ?? "💸", color: "#FFD700", label: t("resGoldLabel"),  hint: t("resGoldHint"),  rate: 100 },
+    mana:  { icon: theme?.resource_icon_mana  ?? "📡", color: "#22D1C3", label: t("resManaLabel"),  hint: t("resManaHint"),  rate: 100 },
   } as const;
 
   // Passive Produktion pro Stunde — summiert effect_per_level × level für die
@@ -242,13 +246,21 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   // Progress-Bar-Approximation: Anteil Burg-Level an Maximum 25.
   const xpPct = Math.min(100, (burgLevel / 25) * 100);
 
+  // Helper: building name from translations (falls back to catalog name if no key exists)
+  const bldName = (id: string, fallback: string): string => {
+    try { return tBld(`${id}.name`); } catch { return fallback; }
+  };
+  const effLabel = (key: string): string => {
+    try { return tEff(key); } catch { return key; }
+  };
+
   // Effekte aller gebauten Buildings als Zusammenfassung
   const activeEffects = buildings
     .map((b) => {
       const c = catalog.find((x) => x.id === b.building_id);
       if (!c?.effect_key) return null;
       const value = c.effect_per_level * b.level;
-      return { name: c.name, emoji: c.emoji, key: c.effect_key, value, level: b.level };
+      return { name: bldName(c.id, c.name), emoji: c.emoji, key: c.effect_key, value, level: b.level };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
 
@@ -279,15 +291,15 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[10px] font-black tracking-widest" style={{ color: accent }}>
-                🏰 {base.pin_label ?? "RUNNER-BASE"} · PLZ {base.plz}
+                {t("burgLevelHeader", { label: base.pin_label ?? t("pinLabelDefault"), plz: base.plz })}
               </div>
               <div className="text-xl font-black text-white truncate mt-0.5">
-                {theme?.name ?? "Mittelalter"} · Burg Stufe {burgLevel}
+                {t("burgTitle", { theme: theme?.name ?? t("themeFallback"), level: burgLevel })}
               </div>
               <div className="mt-2">
                 <div className="flex justify-between text-[9px] text-[#a8b4cf] font-black mb-1">
-                  <span>BURG-LEVEL {burgLevel}/25</span>
-                  <span>{burgLevel < 25 ? `→ Stufe${burgLevel + 1}` : "MAX"}</span>
+                  <span>{t("burgProgressLabel", { level: burgLevel })}</span>
+                  <span>{burgLevel < 25 ? t("burgNext", { level: burgLevel + 1 }) : t("burgMax")}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${xpPct}%`, background: `linear-gradient(90deg, ${accent}, ${accent}cc)`, boxShadow: `0 0 8px ${accent}` }} />
@@ -297,12 +309,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             {/* Action-Cluster: Settings + Close, rechts oben */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button onClick={() => setTab("settings")}
-                title="Base-Einstellungen"
+                title={t("settingsTitle")}
                 className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center">
                 ⚙️
               </button>
               <button onClick={onClose}
-                title="Schließen"
+                title={t("close")}
                 className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-lg font-black transition-colors flex items-center justify-center">
                 ×
               </button>
@@ -333,13 +345,13 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             <div className="px-3 pb-3 flex gap-2">
               {(resources.vip_tickets ?? 0) > 0 && (
                 <div className="flex-1 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 px-2 py-1.5 text-center">
-                  <div className="text-[9px] text-[#a8b4cf]">⭐ Premium-Tickets</div>
+                  <div className="text-[9px] text-[#a8b4cf]">{t("vipTickets")}</div>
                   <div className="text-[11px] font-black text-[#a855f7]">{resources.vip_tickets}</div>
                 </div>
               )}
               {(resources.guardian_xp ?? 0) > 0 && (
                 <div className="flex-1 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 px-2 py-1.5 text-center">
-                  <div className="text-[9px] text-[#a8b4cf]">⚔️ Wächter-Erfahrung</div>
+                  <div className="text-[9px] text-[#a8b4cf]">{t("guardianXp")}</div>
                   <div className="text-[11px] font-black text-[#22D1C3]">{compactNum(resources.guardian_xp ?? 0)}</div>
                 </div>
               )}
@@ -349,17 +361,21 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
         {/* Tabs (Settings ist als ⚙️ im Header) — kompakte Labels, alle 7 immer sichtbar */}
         <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]">
-          {(["overview","res","build","troops","research","chest","vip"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              title={{overview:"Übersicht", res:"Ressourcen", build:"Bau", troops:"Bande", research:"Forschung", chest:"Truhen", vip:"Premium"}[t]}
-              className={`flex-1 min-w-0 py-2.5 px-1 whitespace-nowrap transition-colors ${tab === t ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
-              style={tab === t ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
+          {(["overview","res","build","troops","research","chest","vip"] as const).map((tk) => {
+            const titles: Record<string,string> = {overview:t("tabOverview"), res:t("tabRes"), build:t("tabBuild"), troops:t("tabTroops"), research:t("tabResearch"), chest:t("tabChest"), vip:t("tabVip")};
+            const labels: Record<string,string> = {overview:t("tabBtnOverview"), res:t("tabBtnRes"), build:t("tabBtnBuild"), troops:t("tabBtnTroops"), research:t("tabBtnResearch"), chest:t("tabBtnChest"), vip:t("tabBtnVip")};
+            return (
+            <button key={tk} onClick={() => setTab(tk)}
+              title={titles[tk]}
+              className={`flex-1 min-w-0 py-2.5 px-1 whitespace-nowrap transition-colors ${tab === tk ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
+              style={tab === tk ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
             >
-              {{overview:"📊 Info", res:"💰 RSS", build:"🏗 Bau", troops:"⚔ Bande", research:"🔬 Tech", chest:"🗝 Loot", vip:"⭐ Premium"}[t]}
-              {t === "build" && queue.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FF6B4A] text-white">{queue.length}</span>}
-              {t === "chest" && chests.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FFD700] text-[#0F1115]">{chests.length}</span>}
+              {labels[tk]}
+              {tk === "build" && queue.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FF6B4A] text-white">{queue.length}</span>}
+              {tk === "chest" && chests.length > 0 && <span className="ml-1 px-1 rounded text-[9px] bg-[#FFD700] text-[#0F1115]">{chests.length}</span>}
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {err && <div className="px-4 py-2 bg-[#FF2D78]/15 text-[#FF2D78] text-[11px] font-black">⚠ {err}</div>}
@@ -395,24 +411,24 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {/* Quick-Stats Grid */}
                 <div className="grid grid-cols-2 gap-2">
                   <StatCard
-                    icon="🏰" label="Burg-Stufe" value={`${burgLevel}/25`}
-                    sub={burgLevel < 25 ? "Bauen via Bau-Tab → Burg" : "Maximum erreicht"}
+                    icon="🏰" label={t("statBurgLabel")} value={`${burgLevel}/25`}
+                    sub={burgLevel < 25 ? t("statBurgSubBuild") : t("statBurgSubMax")}
                     accent={accent} progress={xpPct}
                   />
                   <StatCard
-                    icon="🏗️" label="Gebäude" value={`${builtCount}/${totalBuildings}`}
-                    sub={maxedCount > 0 ? `${maxedCount} auf MAX-Stufe` : "Noch viel zu bauen"}
+                    icon="🏗️" label={t("statBuildingsLabel")} value={`${builtCount}/${totalBuildings}`}
+                    sub={maxedCount > 0 ? t("statBuildingsSubMaxed", { n: maxedCount }) : t("statBuildingsSubMore")}
                     accent="#4ade80" progress={(builtCount / totalBuildings) * 100}
                   />
                   <StatCard
-                    icon="⭐" label="Premium-Stufe" value={String(vip.vip_level)}
-                    sub={`🔥 ${vip.daily_login_streak} Tage Streak`}
+                    icon="⭐" label={t("statVipLabel")} value={String(vip.vip_level)}
+                    sub={t("statVipSubStreak", { n: vip.daily_login_streak })}
                     accent="#FFD700" progress={vipProgress}
                   />
                   <StatCard
                     icon={<ResourceIcon kind="speed_token" size={40} fallback="⚡" art={resourceArt} />}
-                    label="Speed-Tokens" value={resources.speed_tokens.toLocaleString("de-DE")}
-                    sub="1 km laufen = 1 Token. Skippt Bauzeit (5 Min/Token)."
+                    label={t("statSpeedLabel")} value={resources.speed_tokens.toLocaleString()}
+                    sub={t("statSpeedSub")}
                     subInline
                     accent="#22D1C3"
                   />
@@ -420,7 +436,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
                 {/* Resourcen kompakt */}
                 <div>
-                  <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">💰 RESSOURCEN</div>
+                  <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("sectionResources")}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
                     {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                       <div key={k} className="rounded-lg bg-[#1A1D23] border border-white/10 p-2 text-center">
@@ -437,28 +453,28 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {/* Aktivitäten — Bau + Truhen */}
                 {(queue.length > 0 || chests.length > 0) && (
                   <div>
-                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">⏱️ AKTIVITÄTEN</div>
+                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("sectionActivities")}</div>
                     <div className="space-y-2">
                       {nextQueueMs !== null && nextQueueMs > 0 && (
                         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#FF6B4A]/10 border border-[#FF6B4A]/30">
                           <span className="text-2xl">🔨</span>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black text-white">{queue.length} {queue.length === 1 ? "Gebäude" : "Gebäude"} in Bau</div>
+                            <div className="text-xs font-black text-white">{t("buildingsInBuild", { n: queue.length })}</div>
                             <div className="text-[10px] text-[#a8b4cf]">
-                              Nächstes fertig in {Math.floor(nextQueueMs / 60000)}:{String(Math.floor((nextQueueMs / 1000) % 60)).padStart(2, "0")}
+                              {t("nextDoneIn", { time: `${Math.floor(nextQueueMs / 60000)}:${String(Math.floor((nextQueueMs / 1000) % 60)).padStart(2, "0")}` })}
                             </div>
                           </div>
-                          <button onClick={() => setTab("build")} className="text-[10px] font-black px-2 py-1 rounded bg-[#FF6B4A]/20 border border-[#FF6B4A]/40 text-[#FF6B4A]">→ Bau</button>
+                          <button onClick={() => setTab("build")} className="text-[10px] font-black px-2 py-1 rounded bg-[#FF6B4A]/20 border border-[#FF6B4A]/40 text-[#FF6B4A]">{t("toBuildBtn")}</button>
                         </div>
                       )}
                       {nextChestReady && (
                         <div className="flex items-center gap-2 p-2 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30">
                           <ChestIcon kind={nextChestReady.kind} size={28} fallback="🗝️" art={chestArt} />
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black text-white">{chests.filter((c) => new Date(c.opens_at).getTime() <= now).length} Truhen bereit!</div>
-                            <div className="text-[10px] text-[#a8b4cf]">Tippen zum Öffnen.</div>
+                            <div className="text-xs font-black text-white">{t("chestsReady", { n: chests.filter((c) => new Date(c.opens_at).getTime() <= now).length })}</div>
+                            <div className="text-[10px] text-[#a8b4cf]">{t("tapToOpen")}</div>
                           </div>
-                          <button onClick={() => setTab("chest")} className="text-[10px] font-black px-2 py-1 rounded bg-[#FFD700]/20 border border-[#FFD700]/40 text-[#FFD700]">→ Öffnen</button>
+                          <button onClick={() => setTab("chest")} className="text-[10px] font-black px-2 py-1 rounded bg-[#FFD700]/20 border border-[#FFD700]/40 text-[#FFD700]">{t("toOpenBtn")}</button>
                         </div>
                       )}
                       {!nextChestReady && nextChestPending && (
@@ -468,12 +484,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                             <span className="absolute -bottom-1 -right-1 text-[10px]">🔒</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-black text-white">{chests.length} Truhen wartend</div>
+                            <div className="text-xs font-black text-white">{t("chestsWaiting", { n: chests.length })}</div>
                             <div className="text-[10px] text-[#a8b4cf]">
-                              Nächste in {(() => {
+                              {(() => {
                                 const ms = new Date(nextChestPending.opens_at).getTime() - now;
                                 const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000);
-                                return `${h}h ${m}min`;
+                                return t("nextChestIn", { h, m });
                               })()}
                             </div>
                           </div>
@@ -486,18 +502,18 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {/* Top-Effekte */}
                 {topEffects.length > 0 && (
                   <div>
-                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">⚡ TOP-EFFEKTE</div>
+                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("sectionTopEffects")}</div>
                     <div className="space-y-1">
                       {topEffects.map((e) => {
-                        const effectLabel = EFFECT_LABEL[e.key] ?? e.key;
+                        const effectLabel = effLabel(e.key);
                         const valueStr = e.isAbs
-                          ? `+${e.value.toLocaleString("de-DE", { maximumFractionDigits: 1 })}`
+                          ? `+${e.value.toLocaleString(undefined, { maximumFractionDigits: 1 })}`
                           : `+${Math.round(e.value * 100)}%`;
                         return (
                           <div key={e.key} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1A1D23] border border-white/5 text-[11px]">
                             <span className="text-base">{e.emoji}</span>
                             <div className="flex-1 min-w-0">
-                              <div className="font-black text-white truncate">{e.name} <span className="text-[9px] text-[#FFD700]">Stufe {e.level}</span></div>
+                              <div className="font-black text-white truncate">{e.name} <span className="text-[9px] text-[#FFD700]">{t("effectLevelTag", { level: e.level })}</span></div>
                               <div className="text-[9px] text-[#a8b4cf] truncate">{effectLabel}</div>
                             </div>
                             <span className="font-black whitespace-nowrap" style={{ color: accent }}>{valueStr}</span>
@@ -512,8 +528,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {builtCount === 0 && queue.length === 0 && (
                   <div className="rounded-xl border border-[#22D1C3]/40 bg-[#22D1C3]/5 p-4 text-center">
                     <div className="text-3xl mb-2">🚶</div>
-                    <div className="text-sm font-black text-white mb-1">Lauf los und sammle Resourcen!</div>
-                    <div className="text-[10px] text-[#a8b4cf]">100/km für jede Resource. Dann kannst du dein erstes Gebäude bauen.</div>
+                    <div className="text-sm font-black text-white mb-1">{t("emptyTitle")}</div>
+                    <div className="text-[10px] text-[#a8b4cf]">{t("emptyHint")}</div>
                   </div>
                 )}
               </div>
@@ -523,13 +539,13 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           {/* RESSOURCEN */}
           {tab === "res" && (
             <div className="space-y-3">
-              <IntroBox accent={accent} title="🏰 WAS IST DEINE BASE?">
-                Deine persönliche Festung. Jeder Schritt im echten Leben füllt deine Schatzkammer:
-                <b className="text-white"> Park-km → Holz</b>,
-                <b className="text-white"> Wohngebiet-km → Stein</b>,
-                <b className="text-white"> Stadtkern → Gold</b>,
-                <b className="text-white"> Wasser → Mana</b>.
-                Mit den Resourcen baust du Gebäude, die deinen Wächtern, Resourcen-Drops und Bauzeit dauerhafte Boni geben.
+              <IntroBox accent={accent} title={t("introResTitle")}>
+                {t("introResBody1")}
+                <b className="text-white">{t("introResWoodBold")}</b>,
+                <b className="text-white">{t("introResStoneBold")}</b>,
+                <b className="text-white">{t("introResGoldBold")}</b>,
+                <b className="text-white">{t("introResManaBold")}</b>.
+                {t("introResBody2")}
               </IntroBox>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -544,11 +560,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     </div>
                     <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
                       <div className="text-[9px] text-[#a8b4cf]">
-                        <span className="text-[#6c7590]">📥 Drop:</span> <span className="font-black text-white">{RES[k].rate}/km</span> · {RES[k].hint}
+                        <span className="text-[#6c7590]">{t("resDropLabel")}</span> <span className="font-black text-white">{t("resPerKm", { n: RES[k].rate })}</span> · {RES[k].hint}
                       </div>
                       {passivePerHour[k] > 0 && (
                         <div className="text-[9px]" style={{ color: RES[k].color }}>
-                          <span className="text-[#6c7590]">⏱ Passiv:</span> <span className="font-black">+{Math.round(passivePerHour[k])}/Std</span>
+                          <span className="text-[#6c7590]">{t("resPassive")}</span> <span className="font-black">{t("resPerHour", { n: Math.round(passivePerHour[k]) })}</span>
                         </div>
                       )}
                     </div>
@@ -558,9 +574,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               <div className="rounded-xl bg-[#FFD700]/8 border border-[#FFD700]/30 p-3 flex items-center gap-3">
                 <ResourceIcon kind="speed_token" size={72} fallback="⚡" art={resourceArt} />
                 <div className="flex-1">
-                  <div className="text-[10px] font-black tracking-wider text-[#FFD700]">SPEED-TOKENS</div>
+                  <div className="text-[10px] font-black tracking-wider text-[#FFD700]">{t("speedTokensHeader")}</div>
                   <div className="text-lg font-black text-[#FFD700]">{resources.speed_tokens}</div>
-                  <div className="text-[9px] text-[#a8b4cf] mt-1">1 km laufen = 1 Token. Skippt Bauzeit (5 Min/Token).</div>
+                  <div className="text-[9px] text-[#a8b4cf] mt-1">{t("statSpeedSub")}</div>
                 </div>
               </div>
               {/* RESOURCEN VERDIENEN — alle Wege ohne (oder mit weniger) Laufen */}
@@ -569,23 +585,23 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               {activeEffects.length > 0 && (
                 <CollapsibleSection
                   storageKey="ma365.base.activeEffects"
-                  title={`⚡ AKTIVE EFFEKTE (${activeEffects.length})`}
-                  hint="Boni aus deinen gebauten Gebäuden — wirken passiv auf Resourcen-Drops, Bauzeit und Wächter."
+                  title={t("activeEffectsTitle", { n: activeEffects.length })}
+                  hint={t("activeEffectsHint")}
                   accent={accent}
                 >
                   <div className="space-y-1">
                     {activeEffects.map((e) => {
-                      const effectLabel = EFFECT_LABEL[e.key] ?? e.key;
+                      const effectLabel = effLabel(e.key);
                       const isAbsolute = ABSOLUTE_EFFECTS.has(e.key);
                       const valueStr = isAbsolute
-                        ? `+${e.value.toLocaleString("de-DE", { maximumFractionDigits: 1 })}`
+                        ? `+${e.value.toLocaleString(undefined, { maximumFractionDigits: 1 })}`
                         : `+${Math.round(e.value * 100)}%`;
                       return (
                         <div key={e.key} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1A1D23] border border-white/5 text-[11px]">
                           <span>{e.emoji}</span>
                           <div className="flex-1 min-w-0">
                             <div className="font-black text-white truncate">
-                              {e.name} <span className="text-[9px] text-[#FFD700]">Stufe {e.level}</span>
+                              {e.name} <span className="text-[9px] text-[#FFD700]">{t("effectLevelTag", { level: e.level })}</span>
                             </div>
                             <div className="text-[9px] text-[#a8b4cf] truncate">{effectLabel}</div>
                           </div>
@@ -602,14 +618,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           {/* BAU */}
           {tab === "build" && (
             <div className="space-y-3">
-              <IntroBox accent={accent} title="🏗️ WIE FUNKTIONIERT BAUEN?">
-                Jedes Gebäude gibt einen <b className="text-white">passiven Bonus</b> auf alle Wächter, Resourcen oder Bauzeit.
-                Bauen kostet Resourcen + Zeit. Mit <b className="text-white">⚡ Speed-Tokens</b> (1 km laufen = 1 Token) skippst du je 5 Min Bauzeit.
-                Höhere Stufen brauchen exponentiell mehr Resourcen, geben aber stärkere Boni.
+              <IntroBox accent={accent} title={t("introBuildTitle")}>
+                {t("introBuildBody1")}<b className="text-white">{t("introBuildPassive")}</b>{t("introBuildBody2")}<b className="text-white">{t("introBuildSpeedTokens")}</b>{t("introBuildBody3")}
               </IntroBox>
               {isCatalogPreview && (
                 <div className="rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/5 px-3 py-2 text-[11px] text-[#FFD700] font-black">
-                  ⚠ Vorschau-Modus · DB-Migration ausstehend. Bauen wird aktiv sobald die Server-Migration gepusht ist.
+                  {t("previewModeNote")}
                 </div>
               )}
               {queue.length > 0 && (
@@ -624,12 +638,12 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                       <div key={q.id} className="flex items-center gap-2">
                         <BuildingThumb id={q.building_id} fallback={cat?.emoji ?? "🏗️"} art={buildingArt} size={28} />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-black">{cat?.name ?? q.building_id} → Stufe {q.target_level}</div>
-                          <div className="text-[10px] text-[#a8b4cf]">{ready ? <span className="text-[#4ade80] font-black">FERTIG …</span> : `Noch ${min}:${String(restSec).padStart(2,"0")}`}</div>
+                          <div className="text-sm font-black">{t("buildToLevel", { target: q.target_level })} {cat ? bldName(cat.id, cat.name) : q.building_id}</div>
+                          <div className="text-[10px] text-[#a8b4cf]">{ready ? <span className="text-[#4ade80] font-black">{t("buildReady")}</span> : t("buildRemain", { min, sec: String(restSec).padStart(2,"0") })}</div>
                         </div>
                         {!ready && resources.speed_tokens > 0 && (
                           <button onClick={() => speedUp(q.id, Math.min(resources.speed_tokens, Math.ceil(sec/60/5)))} disabled={busy===q.id}
-                            className="text-[10px] font-black px-2 py-1 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 text-[#22D1C3]">⚡ Skip</button>
+                            className="text-[10px] font-black px-2 py-1 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 text-[#22D1C3]">{t("buildSkip")}</button>
                         )}
                       </div>
                     );
@@ -643,7 +657,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                   .map((c) => ({ category: c, items: catalog.filter((x) => x.category === c) }))
                   .filter((g) => g.items.length > 0);
                 return grouped.map((g) => {
-                  const meta = CATEGORY_META[g.category] ?? { label: g.category.toUpperCase(), emoji: "🏗️" };
+                  const catLabelMap: Record<string,string> = {
+                    production: t("categoryProduction"), storage: t("categoryStorage"), combat: t("categoryCombat"),
+                    utility: t("categoryUtility"), cosmetic: t("categoryCosmetic"),
+                  };
+                  const meta = { label: catLabelMap[g.category] ?? g.category.toUpperCase(), emoji: CATEGORY_META[g.category]?.emoji ?? "🏗️" };
                   const builtInCat = g.items.filter((c) => builtMap.has(c.id)).length;
                   const isOpen = openCategories.has(g.category);
                   return (
@@ -678,19 +696,19 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                               <div className="flex items-center gap-2">
                                 <BuildingThumb id={cat.id} fallback={cat.emoji} art={buildingArt} size={28} />
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-black text-white truncate">{cat.name}</div>
-                                  <div className="text-[9px] text-[#a8b4cf]">Stufe {lvl}/{cat.max_level} {cat.effect_key && !isMax && (() => {
+                                  <div className="text-xs font-black text-white truncate">{bldName(cat.id, cat.name)}</div>
+                                  <div className="text-[9px] text-[#a8b4cf]">{t("buildLevel", { lvl, max: cat.max_level })} {cat.effect_key && !isMax && (() => {
                                     const isAbs = ABSOLUTE_EFFECTS.has(cat.effect_key);
                                     const v = isAbs
-                                      ? `+${effectAtNext.toLocaleString("de-DE", { maximumFractionDigits: 1 })}`
+                                      ? `+${effectAtNext.toLocaleString(undefined, { maximumFractionDigits: 1 })}`
                                       : `+${Math.round(effectAtNext * 100)}%`;
-                                    return <span style={{ color: accent }} title={`Pro Stufe: ${isAbs ? `+${cat.effect_per_level}` : `+${Math.round(cat.effect_per_level * 100)}%`}`}>· {v} gesamt auf Stufe {targetLvl}</span>;
+                                    return <span style={{ color: accent }} title={`+${isAbs ? cat.effect_per_level : Math.round(cat.effect_per_level * 100) + "%"}`}>{t("buildEffectAtLevel", { value: v, level: targetLvl })}</span>;
                                   })()}</div>
                                 </div>
                               </div>
 
                               {/* Beschreibung 1 Zeile */}
-                              <div className="text-[10px] text-[#a8b4cf] leading-snug line-clamp-1">{cat.description}</div>
+                              <div className="text-[10px] text-[#a8b4cf] leading-snug line-clamp-1">{(() => { try { return tBld(`${cat.id}.description`); } catch { return cat.description; } })()}</div>
 
                               {/* Zeile 1: Kosten-Pills */}
                               {!isMax && (
@@ -710,22 +728,22 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                               {/* Zeile 2: Bauzeit eigene Pill */}
                               {!isMax && (
                                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-white/5 text-[#a8b4cf] self-start">
-                                  Bauzeit ⏱{buildTime}m
+                                  {t("buildTime", { n: buildTime })}
                                 </span>
                               )}
 
                               {/* CTA */}
                               {isMax ? (
-                                <div className="text-[10px] text-[#FFD700] font-black text-center py-1 rounded bg-[#FFD700]/10">★ MAX</div>
+                                <div className="text-[10px] text-[#FFD700] font-black text-center py-1 rounded bg-[#FFD700]/10">{t("buildCtaMax")}</div>
                               ) : inQueue ? (
-                                <div className="text-[10px] text-[#FF6B4A] font-black text-center py-1 rounded bg-[#FF6B4A]/10">🔨 In Bau</div>
+                                <div className="text-[10px] text-[#FF6B4A] font-black text-center py-1 rounded bg-[#FF6B4A]/10">{t("buildCtaInBuild")}</div>
                               ) : lvlLocked ? (
-                                <div className="text-[10px] text-[#6c7590] text-center py-1 rounded bg-white/5">🔒 Base Stufe {cat.required_base_level} nötig</div>
+                                <div className="text-[10px] text-[#6c7590] text-center py-1 rounded bg-white/5">{t("buildCtaLocked", { level: cat.required_base_level })}</div>
                               ) : (
                                 <button onClick={() => build(cat.id)} disabled={!canPay || busy === cat.id || isCatalogPreview}
                                   className="text-[11px] font-black py-1.5 rounded-lg disabled:opacity-40"
                                   style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-                                  {isCatalogPreview ? "🔒 Vorschau" : lvl === 0 ? "🏗️ Bauen" : `⬆️ Stufe${targetLvl}`}
+                                  {isCatalogPreview ? t("buildCtaPreview") : lvl === 0 ? t("buildCtaBuild") : t("buildCtaUpgrade", { level: targetLvl })}
                                 </button>
                               )}
                             </div>
@@ -749,9 +767,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           {/* TRUHEN */}
           {tab === "chest" && (() => {
             const KINDS: Array<{ k: Chest["kind"]; emoji: string; label: string; tint: string }> = [
-              { k: "silver", emoji: "🥈", label: "Silber", tint: "#d8d8d8" },
-              { k: "gold",   emoji: "🥇", label: "Gold",   tint: "#FFD700" },
-              { k: "event",  emoji: "🎉", label: "Event",  tint: "#FF2D78" },
+              { k: "silver", emoji: "🥈", label: t("chestKindSilver"), tint: "#d8d8d8" },
+              { k: "gold",   emoji: "🥇", label: t("chestKindGold"),   tint: "#FFD700" },
+              { k: "event",  emoji: "🎉", label: t("chestKindEvent"),  tint: "#FF2D78" },
             ];
             const byKind = (k: Chest["kind"]) => chests.filter((c) => c.kind === k);
             const nextReady = (k: Chest["kind"]) => byKind(k).find((c) => new Date(c.opens_at).getTime() <= now);
@@ -759,11 +777,11 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
             return (
               <div className="space-y-3">
-                <IntroBox accent={accent} title="🗝️ WO KOMMEN TRUHEN HER?">
-                  Truhen droppen aus <b className="text-white">Arena-Kämpfen</b>, <b className="text-white">Boss-Raids</b>, <b className="text-white">Premium-Tagesbelohnungen</b> und Crew-Aktivitäten.
-                  <span className="block mt-1">🥈 <b>Silber</b>: 24h Wartezeit, häufige Items + Resourcen.</span>
-                  <span className="block">🥇 <b>Gold</b>: 24h, seltene Items, Wächter-Splitter, große Resource-Drops.</span>
-                  <span className="block mt-1 text-[#6c7590]">Pity-Garantie: alle 10 Truhen mind. 1 Episch, alle 30 mind. 1 Legendär.</span>
+                <IntroBox accent={accent} title={t("introChestTitle")}>
+                  {t("introChestBody1")}<b className="text-white">{t("introChestArena")}</b>, <b className="text-white">{t("introChestRaids")}</b>, <b className="text-white">{t("introChestVip")}</b>{t("introChestBody2")}
+                  <span className="block mt-1">{t("introChestSilver")}</span>
+                  <span className="block">{t("introChestGold")}</span>
+                  <span className="block mt-1 text-[#6c7590]">{t("introChestPity")}</span>
                 </IntroBox>
 
                 {/* Kategorie-Übersicht: immer sichtbar, mit Counter + Öffne-Button */}
@@ -783,7 +801,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                         <div className="text-[9px] font-black tracking-wider" style={{ color: tint }}>{label.toUpperCase()}</div>
                         <div className="text-xl font-black text-white leading-none">{total}</div>
                         {ready > 0 && (
-                          <div className="text-[9px] font-black text-[#4ade80]">{ready} bereit</div>
+                          <div className="text-[9px] font-black text-[#4ade80]">{t("chestReady", { n: ready })}</div>
                         )}
                         {nextR ? (
                           <button
@@ -792,14 +810,14 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                             className="w-full text-[10px] font-black px-2 py-1.5 rounded-lg disabled:opacity-40"
                             style={{ background: tint, color: "#0F1115" }}
                           >
-                            {busy === nextR.id ? "…" : "Öffnen"}
+                            {busy === nextR.id ? "…" : t("chestOpenBtn")}
                           </button>
                         ) : upcoming ? (
                           <div className="w-full text-[9px] font-black text-center py-1 rounded-lg bg-white/5 text-[#a8b4cf]">
-                            {hr > 0 ? `${hr}h ${restMin}m` : `${restMin}m`}
+                            {hr > 0 ? t("chestRemainHr", { h: hr, m: restMin }) : t("chestRemainMin", { m: restMin })}
                           </div>
                         ) : (
-                          <div className="w-full text-[9px] text-center py-1 text-[#6c7590]">leer</div>
+                          <div className="w-full text-[9px] text-center py-1 text-[#6c7590]">{t("chestEmpty")}</div>
                         )}
                       </div>
                     );
@@ -809,23 +827,24 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                 {/* Detail-Liste aller Truhen (wenn vorhanden) */}
                 {chests.length > 0 && (
                   <div className="space-y-1.5">
-                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf]">DEINE TRUHEN</div>
+                    <div className="text-[10px] font-black tracking-widest text-[#a8b4cf]">{t("yourChests")}</div>
                     {chests.map((c) => {
                       const ms = new Date(c.opens_at).getTime() - now;
                       const ready = ms <= 0;
                       const min = Math.max(0, Math.floor(ms / 60000));
                       const hr  = Math.floor(min / 60); const restMin = min % 60;
+                      const kindLabel = c.kind === "gold" ? t("chestKindGold") : c.kind === "silver" ? t("chestKindSilver") : t("chestKindEvent");
                       return (
                         <div key={c.id} className="flex items-center gap-2 p-2 rounded-xl bg-[#1A1D23] border border-white/10">
                           <ChestIcon kind={c.kind} size={36} fallback={c.kind === "gold" ? "🥇" : c.kind === "silver" ? "🥈" : "🎉"} art={chestArt} />
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-black capitalize">{c.kind}-Truhe</div>
-                            <div className="text-[10px] text-[#a8b4cf]">{ready ? "Bereit zum Öffnen" : `Öffnet in ${hr}h ${restMin}min`}</div>
+                            <div className="text-sm font-black">{t("chestKindSuffix", { kind: kindLabel })}</div>
+                            <div className="text-[10px] text-[#a8b4cf]">{ready ? t("chestReadyToOpen") : t("chestOpensIn", { h: hr, m: restMin })}</div>
                           </div>
                           <button onClick={() => openChest(c.id)} disabled={!ready || busy === c.id}
                             className="text-[10px] font-black px-3 py-1.5 rounded-lg disabled:opacity-40"
                             style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-                            {ready ? "Öffnen" : "🔒"}
+                            {ready ? t("chestOpenBtn") : "🔒"}
                           </button>
                         </div>
                       );
@@ -835,7 +854,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
                 {chests.length === 0 && (
                   <div className="text-center text-[#6c7590] text-xs py-2">
-                    Noch keine Truhen — kämpfe in der Arena, geh laufen oder check Premium-Tagesbelohnung!
+                    {t("chestEmptyAll")}
                   </div>
                 )}
               </div>
@@ -847,36 +866,37 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
             <div className="space-y-3">
               {/* Sub-Tab-Leiste */}
               <div className="flex border border-[#FFD700]/30 rounded-lg overflow-hidden text-[12px] font-black">
-                {(["status","shop","tiers"] as const).map((s) => (
+                {(["status","shop","tiers"] as const).map((s) => {
+                  const labels: Record<string,string> = { status: t("vipSubtabStatus"), shop: t("vipSubtabShop"), tiers: t("vipSubtabTiers") };
+                  return (
                   <button key={s} onClick={() => setVipSection(s)}
                     className={`flex-1 py-2 transition-colors ${vipSection === s ? "bg-[#FFD700]/20 text-[#FFD700]" : "bg-transparent text-[#a8b4cf] hover:text-white"}`}>
-                    {{ status: "📊 Status", shop: "🛒 Shop", tiers: "📈 Stufen" }[s]}
+                    {labels[s]}
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
               {vipSection === "status" && <>
-              <IntroBox accent="#FFD700" title="⭐ WAS IST PREMIUM?">
-                Premium-Punkte sammelst du durch <b className="text-white">tägliche Logins</b>, <b className="text-white">erfüllte Quests</b>, <b className="text-white">Premium-Käufe</b> und <b className="text-white">Events</b>.
-                Höheres Premium-Stufe = mehr tägliche <b>🥈/🥇 Truhen</b>, <b>+% Resourcen-Drops</b>, <b>−% Bauzeit</b> und exklusive Themes.
-                Maximal Tier 15.
+              <IntroBox accent="#FFD700" title={t("introVipTitle")}>
+                {t("introVipBody1")}<b className="text-white">{t("introVipDailyLogins")}</b>, <b className="text-white">{t("introVipQuests")}</b>, <b className="text-white">{t("introVipPurchases")}</b> {t("introVipBody2")} <b>{t("introVipChests")}</b>, <b>{t("introVipResBonus")}</b>, <b>{t("introVipBuildBonus")}</b>{t("introVipBody3")}
               </IntroBox>
               <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/20 to-[#FFD700]/5 border border-[#FFD700]/40 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] font-black tracking-widest text-[#FFD700]">PREMIUM-STUFE</div>
+                    <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("vipLevelHeader")}</div>
                     <div className="text-4xl font-black text-[#FFD700] mt-1">{vip.vip_level}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-[#a8b4cf]">🔥 STREAK</div>
+                    <div className="text-[10px] text-[#a8b4cf]">{t("vipStreakHeader")}</div>
                     <div className="text-2xl font-black text-[#FF6B4A]">{vip.daily_login_streak}</div>
                   </div>
                 </div>
                 {nextTier && (
                   <div className="mt-3">
                     <div className="flex justify-between text-[9px] text-[#a8b4cf] font-black mb-1">
-                      <span>{vip.vip_points.toLocaleString("de-DE")} / {nextTier.required_points.toLocaleString("de-DE")} Pkt</span>
-                      <span>→ Stufe {nextTier.vip_level}</span>
+                      <span>{t("vipPoints", { cur: vip.vip_points.toLocaleString(), max: nextTier.required_points.toLocaleString() })}</span>
+                      <span>{t("vipNextLevel", { level: nextTier.vip_level })}</span>
                     </div>
                     <div className="h-2 rounded-full bg-black/40 overflow-hidden">
                       <div className="h-full rounded-full transition-all bg-gradient-to-r from-[#FFD700] to-[#FF6B4A]" style={{ width: `${vipProgress}%` }} />
@@ -887,38 +907,38 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
               {currentTier && currentTier.vip_level > 0 && (
                 <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
-                  <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">🎁 DEINE TÄGLICHEN BENEFITS</div>
+                  <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("vipBenefitsHeader")}</div>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <Benefit label={<><ChestIcon kind="silver" size={16} fallback="🥈" art={chestArt} />Silber-Truhen</>} value={`${currentTier.daily_chest_silver}/Tag`} />
-                    <Benefit label={<><ChestIcon kind="gold"   size={16} fallback="🥇" art={chestArt} />Gold-Truhen</>} value={`${currentTier.daily_chest_gold}/Tag`} />
-                    <Benefit label="📦 Resourcen" value={`+${Math.round(currentTier.resource_bonus_pct*100)}%`} />
-                    <Benefit label="⏱ Bauzeit" value={`-${Math.round(currentTier.buildtime_bonus_pct*100)}%`} />
+                    <Benefit label={<><ChestIcon kind="silver" size={16} fallback="🥈" art={chestArt} />{t("benefitSilver")}</>} value={t("benefitPerDay", { n: currentTier.daily_chest_silver })} />
+                    <Benefit label={<><ChestIcon kind="gold"   size={16} fallback="🥇" art={chestArt} />{t("benefitGold")}</>} value={t("benefitPerDay", { n: currentTier.daily_chest_gold })} />
+                    <Benefit label={t("benefitResources")} value={t("benefitPercent", { n: Math.round(currentTier.resource_bonus_pct*100) })} />
+                    <Benefit label={t("benefitBuildtime")} value={t("benefitMinusPercent", { n: Math.round(currentTier.buildtime_bonus_pct*100) })} />
                     {(currentTier.extra_build_slots ?? 0) > 0 && (
-                      <Benefit label="🔨 Bau-Slots" value={`+${currentTier.extra_build_slots}`} />
+                      <Benefit label={t("benefitBuildSlots")} value={t("benefitPlus", { n: currentTier.extra_build_slots ?? 0 })} />
                     )}
                     {(currentTier.extra_research_slots ?? 0) > 0 && (
-                      <Benefit label="🔬 Forsch.-Slots" value={`+${currentTier.extra_research_slots}`} />
+                      <Benefit label={t("benefitResearchSlots")} value={t("benefitPlus", { n: currentTier.extra_research_slots ?? 0 })} />
                     )}
                     {(currentTier.training_speed_pct ?? 0) > 0 && (
-                      <Benefit label="⚔️ Training" value={`+${Math.round((currentTier.training_speed_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitTraining")} value={t("benefitPercent", { n: Math.round((currentTier.training_speed_pct ?? 0)*100) })} />
                     )}
                     {(currentTier.research_speed_pct ?? 0) > 0 && (
-                      <Benefit label="📚 Forschung" value={`+${Math.round((currentTier.research_speed_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitResearch")} value={t("benefitPercent", { n: Math.round((currentTier.research_speed_pct ?? 0)*100) })} />
                     )}
                     {(currentTier.gather_speed_pct ?? 0) > 0 && (
-                      <Benefit label="🌾 Sammeln" value={`+${Math.round((currentTier.gather_speed_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitGather")} value={t("benefitPercent", { n: Math.round((currentTier.gather_speed_pct ?? 0)*100) })} />
                     )}
                     {(currentTier.march_speed_pct ?? 0) > 0 && (
-                      <Benefit label="🐎 March-Speed" value={`+${Math.round((currentTier.march_speed_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitMarchSpeed")} value={t("benefitPercent", { n: Math.round((currentTier.march_speed_pct ?? 0)*100) })} />
                     )}
                     {(currentTier.troop_atk_pct ?? 0) > 0 && (
-                      <Benefit label="⚔ Truppen-Angriff" value={`+${Math.round((currentTier.troop_atk_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitTroopAtk")} value={t("benefitPercent", { n: Math.round((currentTier.troop_atk_pct ?? 0)*100) })} />
                     )}
                     {(currentTier.troop_def_pct ?? 0) > 0 && (
-                      <Benefit label="🛡 Truppen-Verteidigung" value={`+${Math.round((currentTier.troop_def_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitTroopDef")} value={t("benefitPercent", { n: Math.round((currentTier.troop_def_pct ?? 0)*100) })} />
                     )}
                     {(currentTier.troop_hp_pct ?? 0) > 0 && (
-                      <Benefit label="❤ Truppen-Leben" value={`+${Math.round((currentTier.troop_hp_pct ?? 0)*100)}%`} />
+                      <Benefit label={t("benefitTroopHp")} value={t("benefitPercent", { n: Math.round((currentTier.troop_hp_pct ?? 0)*100) })} />
                     )}
                   </div>
                 </div>
@@ -955,9 +975,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           {/* SETTINGS */}
           {tab === "settings" && (
             <div className="space-y-4">
-              <IntroBox accent={accent} title="⚙️ BASE-EINSTELLUNGEN">
-                Stell ein, <b className="text-white">wer deine Base auf der Karte sieht</b>, gib ihr einen <b className="text-white">eigenen Namen</b> und wähle einen <b className="text-white">Theme-Skin</b>.
-                Themes sind rein kosmetisch — Pin-Icon, Modal-Farbe und Resource-Icons ändern sich, Stats bleiben gleich.
+              <IntroBox accent={accent} title={t("introSettingsTitle")}>
+                {t("introSettingsBody1")}<b className="text-white">{t("introSettingsVis")}</b>{t("introSettingsBody2")}<b className="text-white">{t("introSettingsName")}</b>{t("introSettingsBody3")}<b className="text-white">{t("introSettingsTheme")}</b>{t("introSettingsBody4")}
               </IntroBox>
 
               <BaseLabelEditor
@@ -967,21 +986,21 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               />
 
               <div>
-                <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">SICHTBARKEIT</div>
+                <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("visibilityHeader")}</div>
                 <div className="grid grid-cols-2 gap-1">
                   {(["public","crew"] as const).map((v) => (
                     <button key={v} onClick={() => setVisibility(v)}
                       disabled={base.visibility === "private"}
                       className={`py-2 text-[10px] font-black rounded-lg ${base.visibility === v ? "text-white" : "text-[#a8b4cf] bg-white/5"} ${base.visibility === "private" ? "opacity-40 cursor-not-allowed" : ""}`}
                       style={base.visibility === v ? { background: `${accent}26`, border: `1px solid ${accent}66` } : undefined}>
-                      {v === "public" ? "🌍 Alle" : "⚔️ Crew"}
+                      {v === "public" ? t("visibilityPublic") : t("visibilityCrew")}
                     </button>
                   ))}
                 </div>
                 <div className="text-[9px] text-[#6c7590] mt-1">
                   {base.visibility === "private"
-                    ? "🛡️ Schutzschild aktiv — Sichtbarkeit gesperrt bis Schild abläuft."
-                    : "Bestimmt, wer deinen Base-Pin auf der Karte sieht."}
+                    ? t("visibilityShielded")
+                    : t("visibilityHint")}
                 </div>
               </div>
 
@@ -990,7 +1009,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               <BaseRelocatePanel accent={accent} reload={reload} tokenCount={(base as { relocate_tokens?: number }).relocate_tokens ?? 0} />
 
               <div>
-                <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">BASE-AUSSEHEN</div>
+                <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("appearanceHeader")}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {/* Theme */}
                   <button onClick={() => setThemeShopOpen(true)}
@@ -1003,9 +1022,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     }}>
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFD700] via-[#a855f7] to-[#22D1C3] flex items-center justify-center text-2xl shadow-lg">🏰</div>
                     <div className="min-w-0">
-                      <div className="text-[8px] font-black tracking-[2px] text-[#FFD700]">THEME</div>
-                      <div className="text-[11px] font-black text-white truncate">{themes.find((t) => t.id === base.theme_id)?.name ?? "—"}</div>
-                      <div className="text-[9px] text-white/60 mt-0.5">{themes.length} verfügbar</div>
+                      <div className="text-[8px] font-black tracking-[2px] text-[#FFD700]">{t("appearanceTheme")}</div>
+                      <div className="text-[11px] font-black text-white truncate">{themes.find((th) => th.id === base.theme_id)?.name ?? "—"}</div>
+                      <div className="text-[9px] text-white/60 mt-0.5">{t("appearanceThemeAvail", { n: themes.length })}</div>
                     </div>
                   </button>
                   {/* Ring */}
@@ -1019,9 +1038,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     }}>
                     <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-lg" style={{ border: "4px solid #22D1C3", boxShadow: "0 0 10px #22D1C388, inset 0 0 8px #22D1C355" }}>💍</div>
                     <div className="min-w-0">
-                      <div className="text-[8px] font-black tracking-[2px] text-[#22D1C3]">RING</div>
-                      <div className="text-[11px] font-black text-white truncate">Base-Ring</div>
-                      <div className="text-[9px] text-white/60 mt-0.5">20 verfügbar</div>
+                      <div className="text-[8px] font-black tracking-[2px] text-[#22D1C3]">{t("appearanceRing")}</div>
+                      <div className="text-[11px] font-black text-white truncate">{t("appearanceRingName")}</div>
+                      <div className="text-[9px] text-white/60 mt-0.5">{t("appearanceThemeAvail", { n: 20 })}</div>
                     </div>
                   </button>
                   {/* Banner */}
@@ -1035,9 +1054,9 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                     }}>
                     <div className="w-20 h-8 rounded-md bg-gradient-to-r from-[#FF2D78]/40 via-[#FF2D78]/20 to-[#FF2D78]/40 flex items-center justify-center text-base shadow-lg" style={{ border: "1px solid #FF2D78" }}>🎀</div>
                     <div className="min-w-0">
-                      <div className="text-[8px] font-black tracking-[2px] text-[#FF2D78]">BANNER</div>
-                      <div className="text-[11px] font-black text-white truncate">Namensschild</div>
-                      <div className="text-[9px] text-white/60 mt-0.5">20 verfügbar</div>
+                      <div className="text-[8px] font-black tracking-[2px] text-[#FF2D78]">{t("appearanceBanner")}</div>
+                      <div className="text-[11px] font-black text-white truncate">{t("appearanceBannerName")}</div>
+                      <div className="text-[9px] text-white/60 mt-0.5">{t("appearanceThemeAvail", { n: 20 })}</div>
                     </div>
                   </button>
                 </div>
@@ -1062,6 +1081,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 // ───────────────────────── FOREIGN BASE ─────────────────────────────
 
 function ForeignRunnerBase({ baseId, onClose }: { baseId: string; onClose: () => void }) {
+  const t = useTranslations("BaseModal");
+  const tBld = useTranslations("Buildings");
   const [data, setData] = useState<ForeignBaseData | null>(null);
   useEffect(() => {
     void (async () => {
@@ -1070,24 +1091,24 @@ function ForeignRunnerBase({ baseId, onClose }: { baseId: string; onClose: () =>
     })();
   }, [baseId]);
 
-  if (!data) return <Backdrop onClose={onClose}><Spinner label="Lade Base …" /></Backdrop>;
+  if (!data) return <Backdrop onClose={onClose}><Spinner label={t("loading")} /></Backdrop>;
   if (!data.ok || !data.base) {
     return <Backdrop onClose={onClose}>
       <div className="bg-[#0F1115] border border-white/10 rounded-2xl p-6 text-center max-w-sm">
         <div className="text-3xl mb-2">🔒</div>
-        <div className="text-sm font-black text-white">Diese Base ist privat</div>
-        <button onClick={onClose} className="mt-4 px-4 py-2 rounded-lg bg-white/10 text-white text-xs font-black">Schließen</button>
+        <div className="text-sm font-black text-white">{t("private")}</div>
+        <button onClick={onClose} className="mt-4 px-4 py-2 rounded-lg bg-white/10 text-white text-xs font-black">{t("close")}</button>
       </div>
     </Backdrop>;
   }
 
-  const owner = data.owner?.display_name ?? "Runner";
+  const owner = data.owner?.display_name ?? t("foreignOwnerFallback");
   const crew = data.crew;
   const accent = crew?.color || "#22D1C3";
   return (
     <Backdrop onClose={onClose}>
-      <ModalShell accent={accent} pinEmoji="🏰" title={data.base.pin_label ?? `${owner}'s Base`}
-        subtitle={`Stufe ${data.base.level} · PLZ ${data.base.plz}`} onClose={onClose}>
+      <ModalShell accent={accent} pinEmoji="🏰" title={data.base.pin_label ?? t("foreignBaseTitle", { owner })}
+        subtitle={t("foreignBaseSubtitle", { level: data.base.level, plz: data.base.plz })} onClose={onClose}>
         <div className="p-4 space-y-3">
           {/* Owner + Crew-Karte */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1A1D23] border border-white/10">
@@ -1096,30 +1117,30 @@ function ForeignRunnerBase({ baseId, onClose }: { baseId: string; onClose: () =>
               ? <img src={data.owner.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover border border-white/15" />
               : <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-base">👤</div>}
             <div className="flex-1 min-w-0">
-              <div className="text-[9px] font-black tracking-widest text-[#a8b4cf]">RUNNER</div>
+              <div className="text-[9px] font-black tracking-widest text-[#a8b4cf]">{t("foreignRunner")}</div>
               <div className="text-sm font-black text-white truncate">{owner}</div>
               {crew ? (
                 <div className="text-[10px] mt-0.5 truncate" style={{ color: crew.color || "#a8b4cf" }}>
-                  ⚔️ {crew.name}
+                  {t("foreignCrewLabel", { name: crew.name })}
                 </div>
               ) : (
-                <div className="text-[10px] text-[#6c7590] mt-0.5">Solo · keine Crew</div>
+                <div className="text-[10px] text-[#6c7590] mt-0.5">{t("foreignCrewSolo")}</div>
               )}
             </div>
           </div>
 
-          <div className="text-[10px] font-black tracking-widest text-[#a8b4cf]">GEBÄUDE</div>
+          <div className="text-[10px] font-black tracking-widest text-[#a8b4cf]">{t("foreignBuildings")}</div>
           <div className="grid grid-cols-2 gap-2">
             {(data.buildings ?? []).map((b) => (
               <div key={b.building_id} className="flex items-center gap-2 p-2 rounded-lg bg-[#1A1D23] border border-white/10">
                 <span className="text-2xl">{b.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-black truncate">{b.name}</div>
-                  <div className="text-[9px] text-[#a8b4cf]">Stufe {b.level}</div>
+                  <div className="text-xs font-black truncate">{(() => { try { return tBld(`${b.building_id}.name`); } catch { return b.name; } })()}</div>
+                  <div className="text-[9px] text-[#a8b4cf]">{t("buildLevel", { lvl: b.level, max: 10 })}</div>
                 </div>
               </div>
             ))}
-            {(data.buildings ?? []).length === 0 && <div className="col-span-2 text-center text-[#6c7590] text-xs py-4">Keine Gebäude.</div>}
+            {(data.buildings ?? []).length === 0 && <div className="col-span-2 text-center text-[#6c7590] text-xs py-4">{t("foreignBuildingsEmpty")}</div>}
           </div>
           {/* Report-Button für Base-Label (nur sinnvoll wenn überhaupt eines gesetzt) */}
           {data.base.pin_label && (
@@ -1134,10 +1155,11 @@ function ForeignRunnerBase({ baseId, onClose }: { baseId: string; onClose: () =>
 // ───────────────────────── CREW STUB ─────────────────────────────
 
 function CrewStub({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("BaseModal");
   return (
     <Backdrop onClose={onClose}>
-      <ModalShell accent="#22D1C3" pinEmoji="⚔️" title="Crew-Base" subtitle="Detail-View kommt bald" onClose={onClose}>
-        <div className="p-6 text-center text-[#a8b4cf] text-sm">Crew-Base-Modal folgt im nächsten Patch.</div>
+      <ModalShell accent="#22D1C3" pinEmoji="⚔️" title={t("crewStubTitle")} subtitle={t("crewStubSubtitle")} onClose={onClose}>
+        <div className="p-6 text-center text-[#a8b4cf] text-sm">{t("crewStubBody")}</div>
       </ModalShell>
     </Backdrop>
   );
@@ -1264,6 +1286,7 @@ function CollapsibleSection({ storageKey, title, hint, accent, children }: {
 function BaseLabelEditor({ accent, currentLabel, onSaved }: {
   accent: string; currentLabel: string | null; onSaved: () => void;
 }) {
+  const t = useTranslations("BaseModal");
   const [val, setVal] = useState(currentLabel ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1291,9 +1314,9 @@ function BaseLabelEditor({ accent, currentLabel, onSaved }: {
   async function save() {
     setErr(null);
     const trimmed = val.trim();
-    if (trimmed && (trimmed.length < 3 || trimmed.length > 10)) { setErr("3-10 Buchstaben."); return; }
-    if (trimmed && !/^[A-Za-zÄÖÜäöüß]+$/.test(trimmed)) { setErr("Nur Buchstaben."); return; }
-    if (Date.now() - savedAt < 10000) { setErr("Bitte warte 10s zwischen Änderungen."); return; }
+    if (trimmed && (trimmed.length < 3 || trimmed.length > 10)) { setErr(t("labelEditorErrShort")); return; }
+    if (trimmed && !/^[A-Za-zÄÖÜäöüß]+$/.test(trimmed)) { setErr(t("labelEditorErrChars")); return; }
+    if (Date.now() - savedAt < 10000) { setErr(t("labelEditorErrThrottle")); return; }
     setBusy(true);
     try {
       const r = await fetch("/api/base/label", {
@@ -1302,11 +1325,11 @@ function BaseLabelEditor({ accent, currentLabel, onSaved }: {
       });
       const j = await r.json();
       if (!r.ok || j?.error) {
-        setErr(j?.error === "label_bad_chars" ? "Nur Buchstaben."
-             : j?.error === "label_too_short" ? "Mindestens 3 Buchstaben."
-             : j?.error === "label_too_long"  ? "Maximal 10 Buchstaben."
-             : j?.error === "label_taken"     ? "Name bereits vergeben."
-             : j?.error ?? "Fehler");
+        setErr(j?.error === "label_bad_chars" ? t("labelEditorErrChars")
+             : j?.error === "label_too_short" ? t("labelEditorErrTooShort")
+             : j?.error === "label_too_long"  ? t("labelEditorErrTooLong")
+             : j?.error === "label_taken"     ? t("labelEditorErrTaken")
+             : j?.error ?? t("errGeneric"));
       } else {
         setSavedAt(Date.now());
         onSaved();
@@ -1318,26 +1341,26 @@ function BaseLabelEditor({ accent, currentLabel, onSaved }: {
 
   return (
     <div>
-      <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">📝 BASE-NAME</div>
+      <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">{t("labelEditorHeader")}</div>
       <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
         <div className="flex gap-2">
           <input value={val} onChange={(e) => setVal(e.target.value)} maxLength={10}
-            placeholder="z.B. Drachenfels"
+            placeholder={t("labelEditorPlaceholder")}
             className="flex-1 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-sm text-white placeholder-[#6c7590] focus:outline-none focus:border-white/30"
           />
           <button onClick={save} disabled={!canSave}
             className="px-3 py-2 rounded-lg text-xs font-black disabled:opacity-40"
             style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-            {busy ? "…" : "Speichern"}
+            {busy ? "…" : t("labelEditorSave")}
           </button>
         </div>
         <div className="flex items-center justify-between mt-2 text-[9px]">
-          <span className="text-[#6c7590]">3-10 Buchstaben · einzigartig · wird moderiert</span>
+          <span className="text-[#6c7590]">{t("labelEditorHint")}</span>
           {err && <span className="text-[#FF2D78] font-black">{err}</span>}
-          {!err && checking && <span className="text-[#a8b4cf]">prüfe …</span>}
-          {!err && !checking && available === true && <span className="text-[#4ade80] font-black">✓ frei</span>}
-          {!err && !checking && available === false && <span className="text-[#FF2D78] font-black">✗ vergeben</span>}
-          {!err && Date.now() - savedAt < 3000 && <span className="text-[#4ade80] font-black">✓ gespeichert</span>}
+          {!err && checking && <span className="text-[#a8b4cf]">{t("labelEditorChecking")}</span>}
+          {!err && !checking && available === true && <span className="text-[#4ade80] font-black">{t("labelEditorFree")}</span>}
+          {!err && !checking && available === false && <span className="text-[#FF2D78] font-black">{t("labelEditorTaken")}</span>}
+          {!err && Date.now() - savedAt < 3000 && <span className="text-[#4ade80] font-black">{t("labelEditorSaved")}</span>}
         </div>
       </div>
     </div>
@@ -1350,6 +1373,7 @@ function BaseLabelEditor({ accent, currentLabel, onSaved }: {
  */
 // ───────────────────────── TRUPPEN-TAB ─────────────────────────────
 function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   type Troop = {
     id: string; name: string; emoji: string; troop_class: string; tier: number;
     base_atk: number; base_def: number; base_hp: number;
@@ -1378,34 +1402,33 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
+  if (!data) return <div className="text-[11px] text-[#a8b4cf]">{t("troopsLoading")}</div>;
   const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
   const classes: Array<{ id: string; label: string; building: string }> = [
-    { id: "infantry",  label: "🛡️ Türsteher",    building: "Bar" },
-    { id: "cavalry",   label: "🏍️ Kuriere",      building: "Garage" },
-    { id: "marksman",  label: "🎯 Schleuderer",  building: "Gym" },
-    { id: "siege",     label: "🔨 Brecher",      building: "Werkhof" },
+    { id: "infantry",  label: t("troopClassInfantry"), building: t("troopBuildingBar") },
+    { id: "cavalry",   label: t("troopClassCavalry"),  building: t("troopBuildingGarage") },
+    { id: "marksman",  label: t("troopClassMarksman"), building: t("troopBuildingGym") },
+    { id: "siege",     label: t("troopClassSiege"),    building: t("troopBuildingWerkhof") },
   ];
 
   return (
     <div className="space-y-3">
-      <IntroBox accent={accent} title="⚔️ TRUPPEN AUSBILDEN">
-        Heuere deine Crew in <b className="text-white">Bar / Garage / Gym / Werkhof</b> an.
-        <b className="text-white">T1</b> ist sofort verfügbar. <b className="text-white">T2-T5</b> müssen erst erforscht werden — siehe <b className="text-white">🔬 FORSCHUNG-Tab → Militär</b>. T5-Forschungen dauern mehrere Tage.
-        <span className="block mt-1 text-[#6c7590]">Trainings-Cap pro Auftrag = Gebäude-Level × 10.</span>
+      <IntroBox accent={accent} title={t("introTroopsTitle")}>
+        {t("introTroopsBody1")}<b className="text-white">{t("introTroopsBuildings")}</b>{t("introTroopsBody2")}<b className="text-white">{t("introTroopsT1")}</b>{t("introTroopsBody3")}<b className="text-white">{t("introTroopsT2T5")}</b>{t("introTroopsBody4")}<b className="text-white">{t("introTroopsResearchTab")}</b>{t("introTroopsBody5")}
+        <span className="block mt-1 text-[#6c7590]">{t("introTroopsBody6")}</span>
       </IntroBox>
 
 
       {data.queue.length > 0 && (
         <div className="rounded-lg p-2 bg-[#FF6B4A]/10 border border-[#FF6B4A]/40 text-[11px]">
-          <div className="font-black text-[#FF6B4A] mb-1">⏱ IM TRAINING</div>
+          <div className="font-black text-[#FF6B4A] mb-1">{t("trainingHeader")}</div>
           {data.queue.map((q) => {
-            const t = data.catalog.find((x) => x.id === q.troop_id);
+            const tr = data.catalog.find((x) => x.id === q.troop_id);
             const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
             return (
               <div key={q.id} className="flex justify-between text-[10px] text-white">
-                <span>{t?.emoji} {t?.name} × {q.count}</span>
-                <span className="text-[#a8b4cf]">{remain} min</span>
+                <span>{tr?.emoji} {tr?.name} × {q.count}</span>
+                <span className="text-[#a8b4cf]">{t("trainingMin", { n: remain })}</span>
               </div>
             );
           })}
@@ -1429,27 +1452,27 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
             </button>
             {open && (
               <div className="p-2 space-y-1.5">
-                {troops.map((t) => {
-                  const have = ownedMap.get(t.id) ?? 0;
+                {troops.map((tr) => {
+                  const have = ownedMap.get(tr.id) ?? 0;
                   return (
-                    <button key={t.id} onClick={() => setSelectedTroopId(t.id)}
+                    <button key={tr.id} onClick={() => setSelectedTroopId(tr.id)}
                       className="w-full text-left rounded p-2 flex items-center gap-2 bg-[#0F1115]/60 border border-white/5 hover:bg-[#0F1115]/80 hover:border-white/15 transition">
-                      <span className="text-2xl">{t.emoji}</span>
+                      <span className="text-2xl">{tr.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-black text-white truncate">
-                          {t.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">T{t.tier}{t.tier > 1 ? " · 🔬 Forschung" : ""}</span>
+                          {tr.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">{t("troopTier", { tier: tr.tier })}{tr.tier > 1 ? t("troopResearchSuffix") : ""}</span>
                         </div>
-                        <div className="text-[9px] text-[#a8b4cf]">⚔️ {t.base_atk} · 🛡 {t.base_def} · ❤️ {t.base_hp} · ⏱ {t.train_time_seconds}s</div>
+                        <div className="text-[9px] text-[#a8b4cf]">⚔️ {tr.base_atk} · 🛡 {tr.base_def} · ❤️ {tr.base_hp} · ⏱ {tr.train_time_seconds}s</div>
                         <div className="text-[9px] text-[#a8b4cf] flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={11} fallback="⚙️" art={resourceArt} />{t.cost_wood}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={11} fallback="🔩" art={resourceArt} />{t.cost_stone}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={11} fallback="💸" art={resourceArt} />{t.cost_gold}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={11} fallback="📡" art={resourceArt} />{t.cost_mana}</span>
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={11} fallback="⚙️" art={resourceArt} />{tr.cost_wood}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={11} fallback="🔩" art={resourceArt} />{tr.cost_stone}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={11} fallback="💸" art={resourceArt} />{tr.cost_gold}</span>·
+                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={11} fallback="📡" art={resourceArt} />{tr.cost_mana}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <div className="text-[10px] text-[#FFD700] font-black">×{have}</div>
-                        <div className="text-[9px] text-[#a8b4cf]">tippen ›</div>
+                        <div className="text-[9px] text-[#a8b4cf]">{t("troopTapToOpen")}</div>
                       </div>
                     </button>
                   );
@@ -1476,6 +1499,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
 
 // ───────────────────────── FORSCHUNG-TAB ─────────────────────────────
 function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   type Def = {
     id: string; name: string; emoji: string; description: string; branch: string; tier: number;
     prereq_id: string | null; max_level: number;
@@ -1505,42 +1529,41 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
         body: JSON.stringify({ research_id: researchId }),
       });
       const j = await r.json() as { ok?: boolean; error?: string; minutes?: number };
-      if (j.ok) { setMsg(`✓ Forschung gestartet (${j.minutes} min)`); await Promise.all([load(), reload()]); }
-      else if (j.error === "prereq_missing") setMsg("Vorgänger-Forschung fehlt.");
-      else if (j.error === "burg_level_too_low") setMsg("Burg muss höher sein.");
-      else if (j.error === "queue_full") setMsg("Forschungs-Slots voll (mehr ab Premium 4 / 7).");
-      else if (j.error === "not_enough_resources") setMsg("Nicht genug Resourcen.");
-      else setMsg(j.error ?? "Fehler");
+      if (j.ok) { setMsg(t("researchStarted", { min: j.minutes ?? 0 })); await Promise.all([load(), reload()]); }
+      else if (j.error === "prereq_missing") setMsg(t("researchErrPrereq"));
+      else if (j.error === "burg_level_too_low") setMsg(t("researchErrBurgLow"));
+      else if (j.error === "queue_full") setMsg(t("researchErrQueueFull"));
+      else if (j.error === "not_enough_resources") setMsg(t("researchErrNotEnoughRes"));
+      else setMsg(j.error ?? t("errGeneric"));
     } finally { setBusy(null); }
   }
 
-  if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
+  if (!data) return <div className="text-[11px] text-[#a8b4cf]">{t("troopsLoading")}</div>;
   const progressMap = new Map(data.progress.map((p) => [p.research_id, p.level]));
   const branches: Array<{ id: string; label: string; color: string }> = [
-    { id: "economy",        label: "💰 Wirtschaft",     color: "#FFD700" },
-    { id: "military",       label: "⚔️ Militär",        color: "#FF2D78" },
-    { id: "infrastructure", label: "🏗️ Infrastruktur",  color: "#22D1C3" },
-    { id: "social",         label: "🤝 Sozial",         color: "#a855f7" },
+    { id: "economy",        label: t("researchBranchEconomy"),  color: "#FFD700" },
+    { id: "military",       label: t("researchBranchMilitary"), color: "#FF2D78" },
+    { id: "infrastructure", label: t("researchBranchInfra"),    color: "#22D1C3" },
+    { id: "social",         label: t("researchBranchSocial"),   color: "#a855f7" },
   ];
 
   return (
     <div className="space-y-3">
-      <IntroBox accent={accent} title="🔬 FORSCHUNG">
-        Forschungen geben permanente <b className="text-white">%-Boni</b> (Resourcen, Truppen, Bauzeit).
-        Höhere Tiers brauchen Vorgänger-Forschung + entsprechendes Burg-Level.
-        <span className="block mt-1 text-[#6c7590]">Forschungs-Slots: 1 (Premium 4 → 2 · Premium 7 → 3).</span>
+      <IntroBox accent={accent} title={t("introResearchTitle")}>
+        {t("introResearchBody1")}<b className="text-white">{t("introResearchBoni")}</b>{t("introResearchBody2")}
+        <span className="block mt-1 text-[#6c7590]">{t("introResearchBody3")}</span>
       </IntroBox>
 
       {data.queue.length > 0 && (
         <div className="rounded-lg p-2 bg-[#22D1C3]/10 border border-[#22D1C3]/40 text-[11px]">
-          <div className="font-black text-[#22D1C3] mb-1">⏱ IN FORSCHUNG</div>
+          <div className="font-black text-[#22D1C3] mb-1">{t("researchInProgress")}</div>
           {data.queue.map((q) => {
             const d = data.definitions.find((x) => x.id === q.research_id);
             const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
             return (
               <div key={q.id} className="flex justify-between text-[10px] text-white">
-                <span>{d?.emoji} {d?.name} → Stufe {q.target_level}</span>
-                <span className="text-[#a8b4cf]">{remain} min</span>
+                <span>{d?.emoji} {t("researchToLevel", { name: d?.name ?? "", target: q.target_level })}</span>
+                <span className="text-[#a8b4cf]">{t("trainingMin", { n: remain })}</span>
               </div>
             );
           })}
@@ -1561,7 +1584,7 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
               <div className="p-2 space-y-3">
                 {tiers.map((tier) => (
                 <div key={tier} className="space-y-1.5">
-                  <div className="text-[9px] font-black tracking-widest text-[#6c7590] px-1">TIER {tier}</div>
+                  <div className="text-[9px] font-black tracking-widest text-[#6c7590] px-1">{t("researchTier", { tier })}</div>
                 {items.filter((d) => d.tier === tier).map((d) => {
                   const lvl = progressMap.get(d.id) ?? 0;
                   const prereqLvl = d.prereq_id ? (progressMap.get(d.prereq_id) ?? 0) : 1;
@@ -1573,15 +1596,15 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
                         <span className="text-xl">{d.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-[11px] font-black text-white">
-                            {d.name} <span className="text-[9px] text-[#a8b4cf] ml-1">T{d.tier} · Stufe {lvl}/{d.max_level} · Burg {d.required_burg_level}+</span>
+                            {d.name} <span className="text-[9px] text-[#a8b4cf] ml-1">{t("researchItemMeta", { tier: d.tier, lvl, max: d.max_level, burg: d.required_burg_level })}</span>
                           </div>
                           <div className="text-[9px] text-[#a8b4cf]">{d.description}</div>
-                          {locked && <div className="text-[9px] text-[#FF6B4A]">🔒 Vorgänger nötig</div>}
+                          {locked && <div className="text-[9px] text-[#FF6B4A]">{t("researchPrereqLocked")}</div>}
                         </div>
                         <button onClick={() => start(d.id)} disabled={busy === d.id || locked || maxed}
                           className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40"
                           style={{ background: `${b.color}26`, border: `1px solid ${b.color}66`, color: b.color }}>
-                          {maxed ? "MAX" : busy === d.id ? "…" : `→ Stufe${lvl + 1}`}
+                          {maxed ? "MAX" : busy === d.id ? "…" : t("researchToNextLevel", { level: lvl + 1 })}
                         </button>
                       </div>
                     </div>
@@ -1600,20 +1623,20 @@ function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise
 }
 
 function BaseRelocatePanel({ accent, reload, tokenCount }: { accent: string; reload: () => Promise<void>; tokenCount: number }) {
+  const t = useTranslations("BaseModal");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   async function relocate() {
     if (tokenCount < 1) {
-      setMsg("Du brauchst einen Verlege-Token (Drop aus Truhen).");
+      setMsg(t("relocateNeedToken"));
       return;
     }
-    if (!window.confirm("Base verlegen? Klicke nach OK auf den neuen Punkt auf der Karte.")) return;
+    if (!window.confirm(t("relocateConfirm"))) return;
     setBusy(true); setMsg(null);
     try {
-      // Trigger Place-Mode via globaler Event — der Map-Layer fängt den nächsten Klick.
       window.dispatchEvent(new CustomEvent("ma365:relocate-base-mode"));
-      setMsg("Tippe auf der Karte den neuen Standort.");
+      setMsg(t("relocatePickHint"));
     } finally { setBusy(false); }
   }
 
@@ -1621,27 +1644,27 @@ function BaseRelocatePanel({ accent, reload, tokenCount }: { accent: string; rel
     <div className="rounded-xl p-3" style={{ background: "rgba(34,209,195,0.06)", border: "1px solid rgba(34,209,195,0.3)" }}>
       <div className="flex items-center gap-2 mb-1">
         <span className="text-base">📍</span>
-        <div className="text-[10px] font-black tracking-widest" style={{ color: "#22D1C3" }}>BASE VERLEGEN</div>
+        <div className="text-[10px] font-black tracking-widest" style={{ color: "#22D1C3" }}>{t("relocateHeader")}</div>
       </div>
       <div className="text-[10px] text-[#a8b4cf] mb-2">
-        Verlege deine Base auf einen neuen Standort. Kostet <b style={{ color: "#22D1C3" }}>1 Verlege-Token</b>.
-        Tokens droppen aus Gold/Epic-Truhen.
+        {t("relocateBody1")}<b style={{ color: "#22D1C3" }}>1</b>{t("relocateBody2")}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-white font-black">Tokens: {tokenCount}</span>
+        <span className="text-[11px] text-white font-black">{t("relocateTokens", { n: tokenCount })}</span>
         <button onClick={relocate} disabled={busy || tokenCount < 1}
           className="text-[10px] font-black px-3 py-1.5 rounded disabled:opacity-40"
           style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-          {busy ? "…" : "Standort wählen"}
+          {busy ? "…" : t("relocateBtn")}
         </button>
       </div>
-      {msg && <div className="text-[10px] text-center font-black mt-1" style={{ color: msg.startsWith("✓") || msg.startsWith("Tippe") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
+      {msg && <div className="text-[10px] text-center font-black mt-1" style={{ color: msg.startsWith("✓") || msg === t("relocatePickHint") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
       <button onClick={() => void reload()} className="hidden" />
     </div>
   );
 }
 
 function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   type Status = {
     ok?: boolean; active?: boolean;
     remaining_seconds?: number; cooldown_remaining_seconds?: number;
@@ -1671,15 +1694,15 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
     try {
       const r = await fetch("/api/base/shield", { method: "POST" });
       const j = await r.json() as Status;
-      if (j.ok) { setMsg("✓ Schild aktiviert!"); await Promise.all([load(), reload()]); }
-      else if (j.error === "not_enough_gold") setMsg("Nicht genug 🪙 (500 nötig).");
-      else if (j.error === "cooldown_active") setMsg(`Cooldown aktiv (${Math.ceil((j.cooldown_remaining_seconds ?? 0) / 3600)}h).`);
-      else if (j.error === "already_active") setMsg("Schild läuft bereits.");
-      else setMsg(j.error ?? "Fehler");
+      if (j.ok) { setMsg(t("shieldOk")); await Promise.all([load(), reload()]); }
+      else if (j.error === "not_enough_gold") setMsg(t("shieldErrGold"));
+      else if (j.error === "cooldown_active") setMsg(t("shieldErrCooldown", { h: Math.ceil((j.cooldown_remaining_seconds ?? 0) / 3600) }));
+      else if (j.error === "already_active") setMsg(t("shieldErrAlreadyActive"));
+      else setMsg(j.error ?? t("errGeneric"));
     } finally { setBusy(false); }
   }
   async function deactivate() {
-    if (!window.confirm("Schild jetzt beenden? Die Base wird wieder sichtbar und angreifbar.")) return;
+    if (!window.confirm(t("shieldEndConfirm"))) return;
     setBusy(true); setMsg(null);
     try {
       await fetch("/api/base/shield", { method: "DELETE" });
@@ -1700,35 +1723,35 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
     <div className="rounded-xl p-3" style={{ background: "rgba(255,107,74,0.06)", border: "1px solid rgba(255,107,74,0.3)" }}>
       <div className="flex items-center gap-2 mb-1">
         <span className="text-base">🛡️</span>
-        <div className="text-[10px] font-black tracking-widest" style={{ color: "#FF6B4A" }}>SCHUTZSCHILD</div>
+        <div className="text-[10px] font-black tracking-widest" style={{ color: "#FF6B4A" }}>{t("shieldHeader")}</div>
       </div>
       {status.active ? (
         <>
-          <div className="text-[11px] text-white font-black">Aktiv · läuft ab in {fmt(status.remaining_seconds ?? 0)}</div>
-          <div className="text-[9px] text-[#a8b4cf] mt-0.5 mb-2">Base ist während dieser Zeit unsichtbar und unangreifbar.</div>
+          <div className="text-[11px] text-white font-black">{t("shieldActive", { time: fmt(status.remaining_seconds ?? 0) })}</div>
+          <div className="text-[9px] text-[#a8b4cf] mt-0.5 mb-2">{t("shieldActiveHint")}</div>
           <button onClick={deactivate} disabled={busy}
             className="w-full px-3 py-1.5 rounded-lg text-[10px] font-black bg-white/5 text-[#a8b4cf] disabled:opacity-40">
-            {busy ? "…" : "Schild jetzt beenden"}
+            {busy ? "…" : t("shieldEndBtn")}
           </button>
         </>
       ) : cdActive ? (
         <>
-          <div className="text-[11px] text-white font-black">Cooldown · nächster Einsatz in {fmt(status.cooldown_remaining_seconds ?? 0)}</div>
-          <div className="text-[9px] text-[#a8b4cf] mt-0.5">Schutzschild kann max. 1× pro 7 Tage aktiviert werden.</div>
+          <div className="text-[11px] text-white font-black">{t("shieldCooldown", { time: fmt(status.cooldown_remaining_seconds ?? 0) })}</div>
+          <div className="text-[9px] text-[#a8b4cf] mt-0.5">{t("shieldCooldownHint")}</div>
         </>
       ) : (
         <>
           <div className="text-[10px] text-[#a8b4cf] mb-2 inline-flex items-center gap-1 flex-wrap">
-            <span>{status.duration_hours ?? 24}h unsichtbar + unangreifbar. Kostet</span>
+            <span>{t("shieldOfferBefore", { hours: status.duration_hours ?? 24 })}</span>
             <b style={{ color: "#FFD700" }} className="inline-flex items-center gap-0.5">
               {status.cost_gold ?? 500}<ResourceIcon kind="gold" size={12} fallback="💸" art={resourceArt} />
             </b>
-            <span>. Cooldown: 7 Tage.</span>
+            <span>{t("shieldOfferAfter")}</span>
           </div>
           <button onClick={activate} disabled={busy}
             className="w-full px-3 py-2 rounded-lg text-[11px] font-black disabled:opacity-40 inline-flex items-center justify-center gap-1.5"
             style={{ background: "linear-gradient(135deg, #FF6B4A, #FF6B4Acc)", color: "#0F1115" }}>
-            🛡️ {busy ? "Aktiviere…" : `Schild aktivieren · ${status.cost_gold ?? 500}`}
+            🛡️ {busy ? t("shieldActivating") : t("shieldActivateBtn", { cost: status.cost_gold ?? 500 })}
             {!busy && <ResourceIcon kind="gold" size={14} fallback="💸" art={resourceArt} />}
           </button>
         </>
@@ -1739,6 +1762,7 @@ function BaseShieldPanel({ accent, reload }: { accent: string; reload: () => Pro
 }
 
 function ReportLabelButton({ baseId, crewBaseId, kind }: { baseId?: string; crewBaseId?: string; kind: "runner" | "crew" }) {
+  const t = useTranslations("BaseModal");
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1759,34 +1783,34 @@ function ReportLabelButton({ baseId, crewBaseId, kind }: { baseId?: string; crew
   }
 
   if (done === "ok") {
-    return <div className="text-[10px] text-[#4ade80] text-center py-2">✓ Danke — wird vom Team geprüft.</div>;
+    return <div className="text-[10px] text-[#4ade80] text-center py-2">{t("reportLabelSent")}</div>;
   }
   if (done === "duplicate") {
-    return <div className="text-[10px] text-[#a8b4cf] text-center py-2">Du hast diese Base bereits gemeldet (max 1× pro 24h).</div>;
+    return <div className="text-[10px] text-[#a8b4cf] text-center py-2">{t("reportLabelDuplicate")}</div>;
   }
   if (!open) {
     return (
       <button onClick={() => setOpen(true)}
         className="w-full text-[10px] text-[#6c7590] hover:text-[#FF2D78] py-2 transition-colors">
-        🚩 Namen melden
+        {t("reportLabelBtn")}
       </button>
     );
   }
   return (
     <div className="rounded-xl border border-[#FF2D78]/40 bg-[#FF2D78]/5 p-3 space-y-2">
-      <div className="text-[11px] font-black text-[#FF2D78]">🚩 NAMEN MELDEN</div>
-      <div className="text-[10px] text-[#a8b4cf]">Warum ist dieser Name unangemessen? (optional)</div>
+      <div className="text-[11px] font-black text-[#FF2D78]">{t("reportLabelHeader")}</div>
+      <div className="text-[10px] text-[#a8b4cf]">{t("reportLabelHint")}</div>
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={200}
-        placeholder="z.B. Beleidigung, Werbung, Hass-Symbole …"
+        placeholder={t("reportLabelPlaceholder")}
         className="w-full px-2 py-1.5 rounded bg-black/40 border border-white/10 text-[11px] text-white placeholder-[#6c7590] focus:outline-none"
       />
       <div className="flex gap-2">
-        <button onClick={() => setOpen(false)} className="flex-1 text-[10px] font-black py-1.5 rounded bg-white/5 text-[#a8b4cf]">Abbrechen</button>
+        <button onClick={() => setOpen(false)} className="flex-1 text-[10px] font-black py-1.5 rounded bg-white/5 text-[#a8b4cf]">{t("reportLabelCancel")}</button>
         <button onClick={submit} disabled={busy} className="flex-1 text-[10px] font-black py-1.5 rounded bg-[#FF2D78]/20 border border-[#FF2D78]/50 text-[#FF2D78] disabled:opacity-40">
-          {busy ? "…" : "Melden"}
+          {busy ? "…" : t("reportLabelSubmit")}
         </button>
       </div>
-      {done === "error" && <div className="text-[10px] text-[#FF2D78]">Fehler beim Senden.</div>}
+      {done === "error" && <div className="text-[10px] text-[#FF2D78]">{t("reportLabelErr")}</div>}
     </div>
   );
 }
@@ -1831,12 +1855,13 @@ function VipTierProgression({ thresholds, currentLevel, chestArt, resourceArt }:
   chestArt: ResourceArtMap;
   resourceArt: ResourceArtMap;
 }) {
+  const tt = useTranslations("BaseModal");
   const [expanded, setExpanded] = useState<number | null>(currentLevel + 1);
   const tiers = thresholds.filter((t) => t.vip_level > 0);
 
   return (
     <div className="space-y-1.5">
-      <div className="text-[10px] font-black text-[#a8b4cf] tracking-widest mb-2">ALLE 15 STUFEN — TIPP FÜR DETAILS</div>
+      <div className="text-[10px] font-black text-[#a8b4cf] tracking-widest mb-2">{tt("vipTiersHeader")}</div>
       {tiers.map((t) => {
         const reached = t.vip_level <= currentLevel;
         const isNext = t.vip_level === currentLevel + 1;
@@ -1857,7 +1882,7 @@ function VipTierProgression({ thresholds, currentLevel, chestArt, resourceArt }:
               className="w-full flex items-center gap-2 px-3 py-2 text-left"
             >
               <span className={`text-sm font-black w-16 shrink-0 ${reached ? "text-[#FFD700]" : isNext ? "text-[#FFD700]" : "text-[#6c7590]"}`}>
-                {reached ? "✓ " : ""}Stufe {t.vip_level}
+                {reached ? "✓ " : ""}{tt("vipTierLabel", { level: t.vip_level })}
               </span>
               <div className="flex-1 min-w-0 flex items-center gap-2 text-[12px] text-white">
                 {highlights.slice(0, 3)}
@@ -1892,6 +1917,7 @@ function VipTierProgression({ thresholds, currentLevel, chestArt, resourceArt }:
 }
 
 function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: number; reload: () => Promise<void>; defaultOpen?: boolean }) {
+  const t = useTranslations("BaseModal");
   type Offer = { id: string; name: string; description: string; emoji: string; required_vip: number; reward_kind: string; reward_amount: number; price_gems: number; original_gems: number | null; daily_limit: number; sort: number };
   type Data = { ok: boolean; offers: Offer[]; purchased_today: Record<string, number> };
   const [data, setData] = useState<Data | null>(null);
@@ -1916,13 +1942,13 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
     const r = (res ?? null) as Res | null;
     if (error || !r?.ok) {
       const errMap: Record<string, string> = {
-        vip_level_too_low: "Premium-Stufe zu niedrig",
-        daily_limit_reached: "Tageslimit erreicht",
-        not_enough_gems: "Nicht genug Diamanten",
+        vip_level_too_low: t("vipShopErrLevel"),
+        daily_limit_reached: t("vipShopErrLimit"),
+        not_enough_gems: t("vipShopErrGems"),
       };
-      setMsg(`❌ ${errMap[r?.error ?? ""] ?? r?.error ?? error?.message ?? "Fehler"}`);
+      setMsg(t("vipShopErrPrefix", { msg: errMap[r?.error ?? ""] ?? r?.error ?? error?.message ?? t("errGeneric") }));
     } else {
-      setMsg(`✅ +${r.reward_amount} ${r.reward_kind}`);
+      setMsg(t("vipShopOk", { amount: r.reward_amount ?? 0, kind: r.reward_kind ?? "" }));
       await Promise.all([load(), reload()]);
     }
     setTimeout(() => setMsg(null), 2800);
@@ -1932,13 +1958,13 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
     <div className="rounded-xl bg-[#1A1D23] border border-[#FFD700]/30 overflow-hidden">
       {!defaultOpen && (
         <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-3 py-3 text-[13px] font-black text-[#FFD700]">
-          <span>🛒 PREMIUM-SHOP <span className="text-[10px] text-[#a8b4cf] font-normal ml-1">(Rabatt-Angebote)</span></span>
+          <span>{t("vipShopHeader")} <span className="text-[10px] text-[#a8b4cf] font-normal ml-1">{t("vipShopHint")}</span></span>
           <span>{open ? "▾" : "▸"}</span>
         </button>
       )}
       {open && (
         <div className="p-2 space-y-2">
-          {!data && <div className="text-[11px] text-[#a8b4cf] text-center py-3">Lade Angebote …</div>}
+          {!data && <div className="text-[11px] text-[#a8b4cf] text-center py-3">{t("vipShopLoading")}</div>}
           {data && data.offers.filter((o) => o.required_vip <= 15).sort((a, b) => a.sort - b.sort).map((o) => {
             const purchasedToday = data.purchased_today[o.id] ?? 0;
             const remaining = Math.max(0, o.daily_limit - purchasedToday);
@@ -1969,13 +1995,13 @@ function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: n
                   <div className="text-[12px] font-black text-white">{o.name}</div>
                   <div className="text-[10px] text-[#a8b4cf]">{o.description}</div>
                   <div className="text-[9px] text-[#6c7590] mt-0.5">
-                    {locked ? `🔒 Ab Premium ${o.required_vip}` : `${remaining}/${o.daily_limit} verfügbar heute`}
+                    {locked ? t("vipShopLockedAt", { level: o.required_vip }) : t("vipShopRemaining", { remain: remaining, limit: o.daily_limit })}
                   </div>
                 </div>
                 <button onClick={() => buy(o.id)} disabled={disabled}
                   className="text-[11px] font-black px-3 py-2 rounded-lg disabled:opacity-40 shrink-0"
                   style={{ background: disabled ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FF6B4A)", color: disabled ? "#6c7590" : "#0F1115" }}>
-                  {busy === o.id ? "…" : soldOut ? "✓ Aus" : (
+                  {busy === o.id ? "…" : soldOut ? t("vipShopSoldOut") : (
                     <span className="flex flex-col items-center leading-tight">
                       {discount > 0 && <span className="text-[8px] line-through opacity-60">💎{o.original_gems}</span>}
                       <span>💎{o.price_gems}</span>
@@ -1997,6 +2023,7 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
   alreadyClaimed: boolean;
   reload: () => Promise<void>;
 }) {
+  const t = useTranslations("BaseModal");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const sb = createClient();
@@ -2005,10 +2032,10 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
 
   type GiftItem = { node: React.ReactNode; label: string; n: number };
   const items: GiftItem[] = [
-    { node: <ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />, label: "Silber-Truhe", n: tier.daily_chest_silver },
-    { node: <ChestIcon kind="gold"   size={20} fallback="🥇" art={chestArt} />, label: "Gold-Truhe",   n: tier.daily_chest_gold },
-    { node: <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />, label: "Speed-Token", n: tier.daily_speed_tokens ?? 0 },
-    { node: <span className="text-[16px]">🎟</span>, label: "Premium-Ticket", n: tier.daily_vip_tickets ?? 0 },
+    { node: <ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />, label: t("vipDailySilver"), n: tier.daily_chest_silver },
+    { node: <ChestIcon kind="gold"   size={20} fallback="🥇" art={chestArt} />, label: t("vipDailyGold"),   n: tier.daily_chest_gold },
+    { node: <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />, label: t("vipDailySpeedToken"), n: tier.daily_speed_tokens ?? 0 },
+    { node: <span className="text-[16px]">🎟</span>, label: t("vipDailyTicket"), n: tier.daily_vip_tickets ?? 0 },
   ].filter((i) => i.n > 0);
 
   if (items.length === 0) return null;
@@ -2021,7 +2048,7 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
     type Res = { ok?: boolean; error?: string; silver_chests?: number; gold_chests?: number; speed_tokens?: number; vip_tickets?: number };
     const res = (data ?? null) as Res | null;
     if (error || !res?.ok) {
-      setMsg(`❌ ${res?.error ?? error?.message ?? "Fehler"}`);
+      setMsg(t("vipShopErrPrefix", { msg: res?.error ?? error?.message ?? t("errGeneric") }));
     } else {
       const parts: string[] = [];
       if ((res.silver_chests ?? 0) > 0) parts.push(`🥈×${res.silver_chests}`);
@@ -2038,9 +2065,9 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
     <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-[#FF6B4A]/10 border border-[#FFD700]/40 p-3">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎁 TÄGLICHE PREMIUM-BELOHNUNG</div>
+          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("vipDailyHeader")}</div>
           <div className="text-[10px] text-[#a8b4cf] mt-0.5">
-            {alreadyClaimed ? "Heute schon abgeholt — kommt morgen wieder." : `Stufe ${tier.vip_level} · einmal pro Tag`}
+            {alreadyClaimed ? t("vipDailyClaimed") : t("vipDailyOncePerDay", { level: tier.vip_level })}
           </div>
         </div>
       </div>
@@ -2052,7 +2079,7 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
         ))}
         <button onClick={claim} disabled={busy || alreadyClaimed}
           className="ml-auto px-3 h-9 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-xs disabled:opacity-40">
-          {busy ? "…" : alreadyClaimed ? "✓ Abgeholt" : "Abholen"}
+          {busy ? "…" : alreadyClaimed ? t("vipDailyClaimedBtn") : t("vipDailyClaimBtn")}
         </button>
       </div>
       {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
@@ -2061,6 +2088,7 @@ function VipDailyClaim({ tier, alreadyClaimed, reload }: {
 }
 
 function VipTicketRedeem({ available, reload }: { available: number; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   const [count, setCount] = useState(1);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -2074,9 +2102,9 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
     type RedeemResult = { ok?: boolean; error?: string; points_added?: number };
     const res = (data ?? null) as RedeemResult | null;
     if (error || !res?.ok) {
-      setMsg(`❌ ${res?.error ?? error?.message ?? "Fehler"}`);
+      setMsg(t("vipShopErrPrefix", { msg: res?.error ?? error?.message ?? t("errGeneric") }));
     } else {
-      setMsg(`✅ +${res.points_added ?? 0} Premium-Punkte`);
+      setMsg(t("vipTicketsResultOk", { points: res.points_added ?? 0 }));
       await reload();
     }
     setTimeout(() => setMsg(null), 2600);
@@ -2086,8 +2114,8 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
     <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/40 p-3">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">🎟 PREMIUM-TICKETS EINLÖSEN</div>
-          <div className="text-[10px] text-[#a8b4cf] mt-0.5">1 Ticket = 50 Premium-Punkte · {available} verfügbar</div>
+          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("vipTicketsHeader")}</div>
+          <div className="text-[10px] text-[#a8b4cf] mt-0.5">{t("vipTicketsSub", { n: available })}</div>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -2099,10 +2127,10 @@ function VipTicketRedeem({ available, reload }: { available: number; reload: () 
         <button onClick={() => setCount((c) => Math.min(available, c + 1))} disabled={count >= available}
           className="w-8 h-8 rounded-lg bg-white/5 text-white font-black disabled:opacity-30">+</button>
         <button onClick={() => setCount(available)} disabled={count === available}
-          className="px-2 h-8 rounded-lg bg-white/5 text-[#a8b4cf] text-[10px] font-black disabled:opacity-30">MAX</button>
+          className="px-2 h-8 rounded-lg bg-white/5 text-[#a8b4cf] text-[10px] font-black disabled:opacity-30">{t("vipTicketsMax")}</button>
         <button onClick={redeem} disabled={busy || count < 1 || count > available}
           className="ml-auto px-3 h-8 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-xs disabled:opacity-40">
-          {busy ? "…" : `+${count * 50} Pkt`}
+          {busy ? "…" : t("vipTicketsRedeemBtn", { points: count * 50 })}
         </button>
       </div>
       {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
@@ -2238,46 +2266,42 @@ type QuestDef = { id: string; name: string; description: string; emoji: string; 
 type ResourcePackage = { id: string; name: string; description: string; price_cents: number; reward_wood: number; reward_stone: number; reward_gold: number; reward_mana: number; reward_speed_tokens: number; bonus_label: string | null };
 
 function EarnResourcesSection({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   return (
     <div className="space-y-2">
-      <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mt-3 mb-1">🎁 RESSOURCEN VERDIENEN</div>
+      <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mt-3 mb-1">{t("earnHeader")}</div>
 
-      {/* A) Ad-Rewards */}
       <CollapsibleSection storageKey="ma365.earn.ads"
-        title="🎬 VIDEO SCHAUEN"
-        hint="Schau ein kurzes Video → +200 jeder Resource + 1 Speed-Token. Bis zu 5× pro Tag."
+        title={t("earnAdsTitle")}
+        hint={t("earnAdsHint")}
         accent={accent}>
         <AdRewardCard accent={accent} reload={reload} />
       </CollapsibleSection>
 
-      {/* B) Daily Quests */}
       <CollapsibleSection storageKey="ma365.earn.quests"
-        title="🎯 TAGES-QUESTS"
-        hint="4 zufällige Tasks pro Tag — die meisten ohne Laufen erledigbar."
+        title={t("earnQuestsTitle")}
+        hint={t("earnQuestsHint")}
         accent={accent}>
         <QuestsCard accent={accent} reload={reload} />
       </CollapsibleSection>
 
-      {/* C) Crew-Donations */}
       <CollapsibleSection storageKey="ma365.earn.crew"
-        title="🤝 CREW-SPENDE"
-        hint="Resourcen mit Crew-Mitgliedern teilen. Max 5.000 pro Tag empfangen."
+        title={t("earnCrewTitle")}
+        hint={t("earnCrewHint")}
         accent={accent}>
         <CrewDonateCard accent={accent} reload={reload} />
       </CollapsibleSection>
 
-      {/* D) Steps */}
       <CollapsibleSection storageKey="ma365.earn.steps"
-        title="👣 SCHRITTE / SCHÜBE"
-        hint="Schritte oder Rollstuhl-Schübe vom Tag eintragen — 50 jeder Resource pro km."
+        title={t("earnStepsTitle")}
+        hint={t("earnStepsHint")}
         accent={accent}>
         <StepsCard accent={accent} reload={reload} />
       </CollapsibleSection>
 
-      {/* E) Packages */}
       <CollapsibleSection storageKey="ma365.earn.packages"
-        title="💎 RESOURCE-PAKETE"
-        hint="Echtgeld-Boost — schneller voran ohne Wartezeit (kein Pay-to-Win, nur Komfort)."
+        title={t("earnPackagesTitle")}
+        hint={t("earnPackagesHint")}
         accent={accent}>
         <PackagesCard accent={accent} />
       </CollapsibleSection>
@@ -2297,6 +2321,7 @@ type AdStatus = {
 };
 
 function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   const [busy, setBusy] = useState<"daily" | "cooldown" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [status, setStatus] = useState<AdStatus | null>(null);
@@ -2323,7 +2348,7 @@ function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promis
       const { showRewardedAd } = await import("@/lib/admob");
       const adResult = await showRewardedAd(kind);
       if (!adResult.rewarded) {
-        setMsg(adResult.native ? "Video abgebrochen — kein Reward." : "Abgebrochen.");
+        setMsg(adResult.native ? t("adCancelledNoReward") : t("adCancelled"));
         return;
       }
       const r = await fetch("/api/base/claim-ad-reward", {
@@ -2338,25 +2363,25 @@ function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promis
       };
       if (j.ok) {
         const rw = j.reward;
-        const tokens = rw && rw.speed_tokens > 0 ? ` + ${rw.speed_tokens}⚡` : "";
-        setMsg(`✓ +${rw?.wood ?? 0} jede Resource${tokens} erhalten!`);
+        const tokens = rw && rw.speed_tokens > 0 ? t("adTokensSuffix", { n: rw.speed_tokens }) : "";
+        setMsg(t("adRewardOk", { n: rw?.wood ?? 0, tokens }));
         await Promise.all([loadStatus(), reload()]);
       } else if (j.error === "daily_already_claimed") {
-        setMsg("Tagesbonus heute schon kassiert — morgen wieder!");
+        setMsg(t("adErrDailyClaimed"));
         await loadStatus();
       } else if (j.error === "cooldown_active") {
-        setMsg(`Cooldown aktiv (${Math.ceil((j.cooldown_remaining ?? 0) / 60)} min).`);
+        setMsg(t("adErrCooldown", { min: Math.ceil((j.cooldown_remaining ?? 0) / 60) }));
         await loadStatus();
       } else if (j.error === "cooldown_limit_reached") {
-        setMsg("Tageslimit für Bonus-Videos erreicht.");
+        setMsg(t("adErrCooldownLimit"));
         await loadStatus();
       } else {
-        setMsg(j.error ?? "Fehler");
+        setMsg(j.error ?? t("errGeneric"));
       }
     } finally { setBusy(null); }
   }
 
-  if (!status) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
+  if (!status) return <div className="text-[11px] text-[#a8b4cf]">{t("troopsLoading")}</div>;
 
   const dailyDone = status.daily_used >= status.daily_limit;
   const cdLimitReached = status.cooldown_used >= status.cooldown_limit;
@@ -2372,13 +2397,13 @@ function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promis
         className="w-full px-4 py-3 rounded-lg text-sm font-black disabled:opacity-40"
         style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, color: "#0F1115", boxShadow: `0 0 14px ${accent}66` }}>
         {busy === "daily"
-          ? "Video lädt …"
+          ? t("adVideoLoading")
           : dailyDone
-            ? "✓ Tagesbonus erhalten"
-            : `🎬 Tagesvideo → +${dailyReward.wood} jede Resource${dailyReward.speed_tokens > 0 ? ` + ${dailyReward.speed_tokens}⚡` : ""}`}
+            ? t("adDailyClaimed")
+            : (dailyReward.speed_tokens > 0 ? t("adDailyOfferTokens", { n: dailyReward.wood, tokens: dailyReward.speed_tokens }) : t("adDailyOffer", { n: dailyReward.wood }))}
       </button>
       <div className="text-[10px] text-[#a8b4cf] text-center">
-        {status.daily_used}/{status.daily_limit} Tagesvideo heute
+        {t("adDailyToday", { used: status.daily_used, limit: status.daily_limit })}
       </div>
 
       {/* COOLDOWN BUTTON: 4×/Tag, +50 jede, 60min Cooldown */}
@@ -2392,15 +2417,15 @@ function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promis
           border: `1px solid ${accent}55`,
         }}>
         {busy === "cooldown"
-          ? "Video lädt …"
+          ? t("adVideoLoading")
           : cdLimitReached
-            ? "✓ Bonus-Videos heute aufgebraucht"
+            ? t("adCooldownExhausted")
             : cdActive
-              ? `⏱ Cooldown ${Math.floor(cdRemain / 60)}:${String(cdRemain % 60).padStart(2, "0")}`
-              : `🎬 Bonus-Video → +${cdReward.wood} jede Resource`}
+              ? t("adCooldownActive", { min: Math.floor(cdRemain / 60), sec: String(cdRemain % 60).padStart(2, "0") })
+              : t("adCooldownOffer", { n: cdReward.wood })}
       </button>
       <div className="text-[10px] text-[#a8b4cf] text-center">
-        {status.cooldown_used}/{status.cooldown_limit} Bonus-Videos heute · {Math.round(status.cooldown_seconds / 60)} min Cooldown
+        {t("adCooldownToday", { used: status.cooldown_used, limit: status.cooldown_limit, min: Math.round(status.cooldown_seconds / 60) })}
       </div>
 
       {msg && <div className="text-[11px] text-center font-black" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
@@ -2409,6 +2434,7 @@ function AdRewardCard({ accent, reload }: { accent: string; reload: () => Promis
 }
 
 function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   const [data, setData] = useState<{ quests: QuestRow[]; definitions: QuestDef[] } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const resourceArt = useResourceArt();
@@ -2427,11 +2453,11 @@ function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<
     } finally { setBusy(null); }
   }
 
-  if (!data) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
+  if (!data) return <div className="text-[11px] text-[#a8b4cf]">{t("questsLoading")}</div>;
   const defMap = new Map(data.definitions.map((d) => [d.id, d]));
   return (
     <div className="space-y-2">
-      {data.quests.length === 0 && <div className="text-[11px] text-[#a8b4cf]">Heute keine Quests aktiv.</div>}
+      {data.quests.length === 0 && <div className="text-[11px] text-[#a8b4cf]">{t("questsEmpty")}</div>}
       {data.quests.map((q) => {
         const def = defMap.get(q.quest_id);
         if (!def) return null;
@@ -2453,7 +2479,7 @@ function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<
                 <span className="text-[9px] text-[#a8b4cf]">{q.progress}/{q.target}</span>
               </div>
               <div className="text-[9px] text-[#a8b4cf] mt-1 inline-flex flex-wrap items-center gap-1">
-                <span>Belohnung:</span>
+                <span>{t("questReward")}</span>
                 {rewards.map((x) => (
                   <span key={x.k} className="inline-flex items-center gap-0.5">
                     <ResourceIcon kind={x.k} size={11} fallback={fbMap[x.k]} art={resourceArt} />{x.v}
@@ -2462,7 +2488,7 @@ function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<
               </div>
             </div>
             {q.claimed ? <span className="text-[10px] text-[#4ade80] font-black px-2">✓</span>
-              : done ? <button onClick={() => claim(q.id)} disabled={busy === q.id} className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40" style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>{busy === q.id ? "…" : "Holen"}</button>
+              : done ? <button onClick={() => claim(q.id)} disabled={busy === q.id} className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40" style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>{busy === q.id ? "…" : t("questClaimBtn")}</button>
               : <span className="text-[10px] text-[#6c7590] px-2">⏳</span>}
           </div>
         );
@@ -2474,6 +2500,7 @@ function QuestsCard({ accent, reload }: { accent: string; reload: () => Promise<
 type CrewMate = { user_id: string; display_name: string };
 
 function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   const [mates, setMates] = useState<CrewMate[] | null>(null);
   const [target, setTarget] = useState<string>("");
   const [resType, setResType] = useState<"wood" | "stone" | "gold" | "mana">("gold");
@@ -2499,26 +2526,26 @@ function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Prom
     try {
       const r = await fetch("/api/base/donate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to_user: target, resource_type: resType, amount }) });
       const j = await r.json();
-      if (j.ok) { setMsg(`✓ ${amount} ${resType} an ${mates?.find((m) => m.user_id === target)?.display_name ?? "?"} gesendet`); await reload(); }
-      else if (j.error === "recipient_daily_limit") setMsg("Empfänger hat Tageslimit erreicht.");
-      else if (j.error === "insufficient") setMsg("Du hast nicht genug.");
-      else if (j.error === "not_same_crew") setMsg("Beide müssen in derselben Crew sein.");
-      else setMsg(j.error ?? "Fehler");
+      if (j.ok) { setMsg(t("crewDonateOk", { amount, res: resType, name: mates?.find((m) => m.user_id === target)?.display_name ?? t("crewDonateUnknown") })); await reload(); }
+      else if (j.error === "recipient_daily_limit") setMsg(t("crewDonateErrLimit"));
+      else if (j.error === "insufficient") setMsg(t("crewDonateErrInsuff"));
+      else if (j.error === "not_same_crew") setMsg(t("crewDonateErrSameCrew"));
+      else setMsg(j.error ?? t("errGeneric"));
     } finally { setBusy(false); }
   }
 
-  if (!mates) return <div className="text-[11px] text-[#a8b4cf]">Lade Crew …</div>;
-  if (mates.length === 0) return <div className="text-[11px] text-[#a8b4cf]">Du bist in keiner Crew oder hast keine Mit-Mitglieder.</div>;
+  if (!mates) return <div className="text-[11px] text-[#a8b4cf]">{t("crewDonateLoading")}</div>;
+  if (mates.length === 0) return <div className="text-[11px] text-[#a8b4cf]">{t("crewDonateNoCrew")}</div>;
 
   return (
     <div className="space-y-2">
       <select value={target} onChange={(e) => setTarget(e.target.value)} className="w-full px-2 py-2 rounded bg-black/40 border border-white/10 text-sm text-white">
-        <option value="">— Empfänger wählen —</option>
+        <option value="">{t("crewDonatePickRecipient")}</option>
         {mates.map((m) => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}
       </select>
       <div className="flex gap-1">
         {(["wood","stone","gold","mana"] as const).map((k) => {
-          const labels = { wood: "Tech-Schrott", stone: "Komponenten", gold: "Krypto", mana: "Bandbreite" } as const;
+          const labels = { wood: t("resWoodLabel"), stone: t("resStoneLabel"), gold: t("resGoldLabel"), mana: t("resManaLabel") } as const;
           const fbs = { wood: "🪵", stone: "🪨", gold: "🪙", mana: "💧" } as const;
           return (
             <button key={k} onClick={() => setResType(k)}
@@ -2530,11 +2557,11 @@ function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Prom
         })}
       </div>
       <input type="number" min={1} max={1000} value={amount} onChange={(e) => setAmount(Math.max(1, Math.min(1000, Number(e.target.value) || 0)))}
-        className="w-full px-3 py-2 rounded bg-black/40 border border-white/10 text-sm text-white" placeholder="Menge (1-1000)" />
+        className="w-full px-3 py-2 rounded bg-black/40 border border-white/10 text-sm text-white" placeholder={t("crewDonatePlaceholder")} />
       <button onClick={send} disabled={busy || !target || amount <= 0}
         className="w-full py-2 rounded-lg text-sm font-black disabled:opacity-40"
         style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-        {busy ? "…" : "Senden"}
+        {busy ? "…" : t("crewDonateSendBtn")}
       </button>
       {msg && <div className="text-[10px] text-center" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
     </div>
@@ -2542,6 +2569,7 @@ function CrewDonateCard({ accent, reload }: { accent: string; reload: () => Prom
 }
 
 function StepsCard({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
+  const t = useTranslations("BaseModal");
   const [steps, setSteps] = useState<number>(2000);
   const [source, setSource] = useState<"manual" | "wheelchair" | "healthkit" | "googlefit">("manual");
   const [busy, setBusy] = useState(false);
@@ -2552,17 +2580,17 @@ function StepsCard({ accent, reload }: { accent: string; reload: () => Promise<v
     try {
       const r = await fetch("/api/base/record-steps", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ steps, source }) });
       const j = await r.json() as { ok?: boolean; error?: string; km?: number; reward?: { each: number; speed_tokens: number } };
-      if (j.ok) { setMsg(`✓ ${j.km} km · +${j.reward?.each} jede Resource · ⚡ ${j.reward?.speed_tokens}`); await reload(); }
-      else if (j.error === "daily_limit") setMsg("Tageslimit erreicht (50.000 Schritte).");
-      else setMsg(j.error ?? "Fehler");
+      if (j.ok) { setMsg(t("stepsOk", { km: j.km ?? 0, each: j.reward?.each ?? 0, tokens: j.reward?.speed_tokens ?? 0 })); await reload(); }
+      else if (j.error === "daily_limit") setMsg(t("stepsErrDailyLimit"));
+      else setMsg(j.error ?? t("errGeneric"));
     } finally { setBusy(false); }
   }
 
   return (
     <div className="space-y-2">
       <div className="flex gap-1">
-        {([["manual","🚶 Schritte"],["wheelchair","♿ Schübe"],["healthkit","🍎 HealthKit"],["googlefit","🤖 GoogleFit"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setSource(k)}
+        {([["manual", t("stepsManual")], ["wheelchair", t("stepsWheelchair")], ["healthkit", t("stepsHealthkit")], ["googlefit", t("stepsGoogleFit")]] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setSource(k as "manual" | "wheelchair" | "healthkit" | "googlefit")}
             className={`flex-1 py-1.5 rounded text-[10px] font-black ${source === k ? "text-[#0F1115]" : "bg-white/5 text-[#a8b4cf]"}`}
             style={source === k ? { background: accent } : undefined}>
             {label}
@@ -2572,12 +2600,12 @@ function StepsCard({ accent, reload }: { accent: string; reload: () => Promise<v
       <input type="number" min={1} max={50000} value={steps} onChange={(e) => setSteps(Math.max(1, Math.min(50000, Number(e.target.value) || 0)))}
         className="w-full px-3 py-2 rounded bg-black/40 border border-white/10 text-sm text-white" />
       <div className="text-[9px] text-[#6c7590]">
-        ≈ {(steps / (source === "wheelchair" ? 1000 : 1300)).toFixed(2)} km · +{Math.round((steps / (source === "wheelchair" ? 1000 : 1300)) * 50)} jede Resource
+        {t("stepsKmHint", { km: (steps / (source === "wheelchair" ? 1000 : 1300)).toFixed(2), coins: Math.round((steps / (source === "wheelchair" ? 1000 : 1300)) * 50) })}
       </div>
       <button onClick={record} disabled={busy || steps <= 0}
         className="w-full py-2 rounded-lg text-sm font-black disabled:opacity-40"
         style={{ background: `${accent}26`, border: `1px solid ${accent}66`, color: accent }}>
-        {busy ? "…" : "Eintragen"}
+        {busy ? "…" : t("stepsRecordBtn")}
       </button>
       {msg && <div className="text-[10px] text-center" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
     </div>
@@ -2585,6 +2613,7 @@ function StepsCard({ accent, reload }: { accent: string; reload: () => Promise<v
 }
 
 function PackagesCard({ accent }: { accent: string }) {
+  const t = useTranslations("BaseModal");
   const [pkgs, setPkgs] = useState<ResourcePackage[] | null>(null);
   const resourceArt = useResourceArt();
   useEffect(() => {
@@ -2595,8 +2624,8 @@ function PackagesCard({ accent }: { accent: string }) {
     })();
   }, []);
 
-  if (!pkgs) return <div className="text-[11px] text-[#a8b4cf]">Lade …</div>;
-  if (pkgs.length === 0) return <div className="text-[11px] text-[#a8b4cf]">Keine Pakete verfügbar.</div>;
+  if (!pkgs) return <div className="text-[11px] text-[#a8b4cf]">{t("packagesLoading")}</div>;
+  if (pkgs.length === 0) return <div className="text-[11px] text-[#a8b4cf]">{t("packagesEmpty")}</div>;
 
   return (
     <div className="space-y-2">
@@ -2621,7 +2650,7 @@ function PackagesCard({ accent }: { accent: string }) {
           </a>
         </div>
       ))}
-      <div className="text-[9px] text-[#6c7590] text-center">Käufe laufen über den Shop. Resourcen werden nach Zahlungsbestätigung sofort gutgeschrieben.</div>
+      <div className="text-[9px] text-[#6c7590] text-center">{t("packagesNote")}</div>
     </div>
   );
 }

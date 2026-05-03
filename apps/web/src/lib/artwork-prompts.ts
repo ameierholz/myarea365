@@ -1447,7 +1447,163 @@ export const CHESTS_ART: ChestArt[] = [
   { id: "event",  name: "Event-Truhe",  fallbackEmoji: "🎁", accent: "#FF2D78", rarity: "legendary",
     subject: "a magical limited-event chest with crimson-magenta lacquered wood, iridescent rainbow-prismatic banding that shifts colors, ornate star-shaped clasp glowing with magenta light, swirling event-particles (sparkles, runes) around it",
     style: "stylized 3D-render, ultra-premium event aesthetic, prismatic shifting reflections, swirling magenta-pink particles, dramatic key-light, magical glow halo" },
+  { id: "legendary", name: "Legendäre Truhe", fallbackEmoji: "👑", accent: "#FFD700", rarity: "legendary",
+    subject: "an ancient legendary chest carved from obsidian with brilliant gold-leaf engravings, massive ornate gold lock with a crown emblem, lid radiating intense divine light, golden runes glowing along the banding, single legendary gem floating above the keyhole",
+    style: "stylized 3D-render, godly mythic vibe, brilliant golden volumetric god-rays, swirling divine particles, deep obsidian black with hot gold rim-light, premium endgame loot aesthetic" },
 ];
+
+// ─── INVENTORY-ITEMS catalog (Speedups, Boosts, Keys, Elixirs, Tokens) ──
+// Matched zur DB-Tabelle inventory_item_catalog (Migration 00217).
+// Diese Items landen im Runner-Inventar und brauchen Artwork (sonst nur Emoji).
+export type InventoryItemArt = {
+  id: string;            // matches inventory_item_catalog.item_id
+  category: "speedup" | "boost" | "key" | "elixir" | "token" | "chest";
+  name: string;
+  fallbackEmoji: string;
+  accent: string;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  subject: string;       // visual subject for the prompt
+};
+
+export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
+  // ── SPEEDUPS (build / universal / training / healing × 1m–24h) ─────
+  // Visual: hourglass / clock with sparking energy. Color = duration tier.
+  { id: "speedup_build_1m",   category: "speedup", name: "Bau-Speedup 1 Min",   fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
+    subject: "a small glowing hourglass icon with a tiny hammer overlay, soft blue-grey glow, 1-minute time chip" },
+  { id: "speedup_build_5m",   category: "speedup", name: "Bau-Speedup 5 Min",   fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
+    subject: "a small glowing hourglass icon with a hammer overlay, blue-grey glow, 5-minute label glyph" },
+  { id: "speedup_build_15m",  category: "speedup", name: "Bau-Speedup 15 Min",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "common",
+    subject: "a polished hourglass with a hammer crest, cyan glow, 15-minute glyph" },
+  { id: "speedup_build_30m",  category: "speedup", name: "Bau-Speedup 30 Min",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "a polished hourglass with a hammer crest, bright cyan glow, 30-minute glyph" },
+  { id: "speedup_build_60m",  category: "speedup", name: "Bau-Speedup 1 Std",   fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "ornate hourglass + hammer emblem, vivid cyan core glow, 1-hour glyph" },
+  { id: "speedup_build_3h",   category: "speedup", name: "Bau-Speedup 3 Std",   fallbackEmoji: "⚡", accent: "#a855f7", rarity: "rare",
+    subject: "premium ornate hourglass + hammer crest, violet glow, 3-hour glyph" },
+  { id: "speedup_build_8h",   category: "speedup", name: "Bau-Speedup 8 Std",   fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
+    subject: "epic ornate hourglass with hammer crest, intense violet aura, 8-hour glyph" },
+  { id: "speedup_build_15h",  category: "speedup", name: "Bau-Speedup 15 Std",  fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
+    subject: "epic engraved hourglass with hammer crest, swirling violet particles, 15-hour glyph" },
+  { id: "speedup_build_24h",  category: "speedup", name: "Bau-Speedup 24 Std",  fallbackEmoji: "⚡", accent: "#FFD700", rarity: "legendary",
+    subject: "legendary golden hourglass with hammer crest, brilliant gold beams, 24-hour glyph" },
+
+  { id: "speedup_uni_1m",     category: "speedup", name: "Universal-Speedup 1 Min",  fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
+    subject: "small glowing hourglass with universal infinity-loop overlay, neutral blue-grey glow, 1-minute glyph" },
+  { id: "speedup_uni_5m",     category: "speedup", name: "Universal-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
+    subject: "small glowing hourglass with infinity-loop overlay, blue-grey glow, 5-minute glyph" },
+  { id: "speedup_uni_15m",    category: "speedup", name: "Universal-Speedup 15 Min", fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "polished hourglass with infinity-loop crest, cyan glow, 15-minute glyph" },
+  { id: "speedup_uni_60m",    category: "speedup", name: "Universal-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "ornate hourglass with infinity-loop crest, bright cyan glow, 1-hour glyph" },
+
+  { id: "speedup_train_5m",   category: "speedup", name: "Training-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
+    subject: "small hourglass with crossed swords overlay, blue-grey glow, 5-minute glyph" },
+  { id: "speedup_train_60m",  category: "speedup", name: "Training-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "ornate hourglass with crossed swords crest, bright cyan glow, 1-hour glyph" },
+
+  { id: "speedup_heal_5m",    category: "speedup", name: "Heilungs-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#4ade80", rarity: "common",
+    subject: "small hourglass with red heart-cross overlay, soft green-white healing glow, 5-minute glyph" },
+  { id: "speedup_heal_60m",   category: "speedup", name: "Heilungs-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#4ade80", rarity: "rare",
+    subject: "ornate hourglass with heart-cross crest, vibrant green healing glow, 1-hour glyph" },
+
+  // ── BOOSTS / BUFFS (shield, gather, gold, wood, stone, mana, xp × 8h/24h) ──
+  // Visual: a flask / charm / sigil with the boost-type emblem. Color = type.
+  { id: "boost_shield_2k",   category: "boost", name: "Schild 2.000",  fallbackEmoji: "🛡", accent: "#5ddaf0", rarity: "rare",
+    subject: "a glowing cyan crystal shield with a small 2K rune, energy barrier swirling around it" },
+  { id: "boost_shield_10k",  category: "boost", name: "Schild 10.000", fallbackEmoji: "🛡", accent: "#5ddaf0", rarity: "epic",
+    subject: "a large ornate cyan crystal shield with bright 10K rune, intense energy barrier, magical force-field aura" },
+  { id: "boost_shield_8h",   category: "boost", name: "Schild-Buff 8 Std",  fallbackEmoji: "🛡", accent: "#5ddaf0", rarity: "rare",
+    subject: "a glowing cyan tower-shield charm with 8h time glyph, protective aura" },
+  { id: "boost_shield_24h",  category: "boost", name: "Schild-Buff 24 Std", fallbackEmoji: "🛡", accent: "#5ddaf0", rarity: "epic",
+    subject: "an ornate cyan tower-shield charm with 24h time glyph, intense protective aura" },
+
+  { id: "boost_gather_8h",   category: "boost", name: "Sammel-Buff 8 Std",  fallbackEmoji: "📦", accent: "#FFD700", rarity: "rare",
+    subject: "a stylized loot basket charm with golden glow and 8h time glyph, gather-bonus aura" },
+  { id: "boost_gather_24h",  category: "boost", name: "Sammel-Buff 24 Std", fallbackEmoji: "📦", accent: "#FFD700", rarity: "epic",
+    subject: "an ornate gold loot-basket charm with 24h time glyph, brilliant gather aura" },
+
+  { id: "boost_gold_8h",     category: "boost", name: "Gold-Buff 8 Std",   fallbackEmoji: "💰", accent: "#FFD700", rarity: "rare",
+    subject: "a glowing gold-coin stack charm with 8h time glyph, golden sparkle aura" },
+  { id: "boost_gold_24h",    category: "boost", name: "Gold-Buff 24 Std",  fallbackEmoji: "💰", accent: "#FFD700", rarity: "epic",
+    subject: "an ornate gold-coin pile charm with 24h time glyph, brilliant gold aura" },
+
+  { id: "boost_wood_8h",     category: "boost", name: "Holz-Buff 8 Std",   fallbackEmoji: "🪵", accent: "#a07a3c", rarity: "rare",
+    subject: "a stack of glowing wood logs charm with 8h time glyph, warm forest aura" },
+  { id: "boost_wood_24h",    category: "boost", name: "Holz-Buff 24 Std",  fallbackEmoji: "🪵", accent: "#a07a3c", rarity: "epic",
+    subject: "an ornate wood-stack charm with 24h time glyph, intense warm forest aura" },
+
+  { id: "boost_stone_8h",    category: "boost", name: "Stein-Buff 8 Std",  fallbackEmoji: "🪨", accent: "#9ba8c7", rarity: "rare",
+    subject: "a glowing stone-pile charm with 8h time glyph, cool grey aura" },
+  { id: "boost_stone_24h",   category: "boost", name: "Stein-Buff 24 Std", fallbackEmoji: "🪨", accent: "#9ba8c7", rarity: "epic",
+    subject: "an ornate stone-pile charm with 24h time glyph, deep grey aura" },
+
+  { id: "boost_mana_8h",     category: "boost", name: "Mana-Buff 8 Std",   fallbackEmoji: "💎", accent: "#a855f7", rarity: "rare",
+    subject: "a glowing violet mana-crystal charm with 8h time glyph, swirling magic aura" },
+  { id: "boost_mana_24h",    category: "boost", name: "Mana-Buff 24 Std",  fallbackEmoji: "💎", accent: "#a855f7", rarity: "epic",
+    subject: "an ornate violet mana-crystal charm with 24h time glyph, brilliant magic aura" },
+
+  { id: "boost_xp_8h",       category: "boost", name: "XP-Buff 8 Std",    fallbackEmoji: "📚", accent: "#FF2D78", rarity: "rare",
+    subject: "a glowing pink star-medal charm with 8h time glyph, XP-burst aura" },
+  { id: "boost_xp_24h",      category: "boost", name: "XP-Buff 24 Std",   fallbackEmoji: "📚", accent: "#FF2D78", rarity: "epic",
+    subject: "an ornate pink star-medal charm with 24h time glyph, brilliant XP aura" },
+
+  // ── KEYS (silver / gold) ─────────────────────────────────────────
+  { id: "key_silver", category: "key", name: "Silberner Schlüssel", fallbackEmoji: "🗝", accent: "#C0C0D8", rarity: "rare",
+    subject: "an ornate medieval silver skeleton-key with intricate filigree bow, polished silver, soft cool glow, slight ring-loop" },
+  { id: "key_gold",   category: "key", name: "Goldener Schlüssel",  fallbackEmoji: "🗝", accent: "#FFD700", rarity: "epic",
+    subject: "an ornate medieval gold skeleton-key with intricate dragon-shaped bow, polished brilliant gold, warm radiant glow, gem-inset ring-loop" },
+
+  // ── ELIXIRS (Wächter-XP 5k / 20k) ────────────────────────────────
+  { id: "elixir_5k",  category: "elixir", name: "Wächter-Elixier (5.000 XP)",  fallbackEmoji: "🧪", accent: "#a855f7", rarity: "rare",
+    subject: "a tall ornate glass elixir bottle with swirling violet liquid and golden bubble caps, a small XP-rune label, magical violet glow" },
+  { id: "elixir_20k", category: "elixir", name: "Wächter-Elixier (20.000 XP)", fallbackEmoji: "🧪", accent: "#FFD700", rarity: "epic",
+    subject: "a regal large ornate glass elixir bottle with swirling gold liquid and prismatic cap, brilliant XP-burst rune label, intense golden god-light" },
+
+  // ── TOKENS (Umsiedlung / Namensänderung / Premium-Ticket) ────────
+  { id: "token_relocate", category: "token", name: "Umsiedlungs-Token", fallbackEmoji: "🎫", accent: "#5ddaf0", rarity: "rare",
+    subject: "an ornate hexagonal coin-medallion with a stylized map-pin + arrow emblem, polished cyan-silver finish, soft teleport glow" },
+  { id: "token_rename",   category: "token", name: "Namens-Token",      fallbackEmoji: "🎫", accent: "#FF2D78", rarity: "rare",
+    subject: "an ornate hexagonal coin-medallion with a stylized name-tag + quill emblem, polished pink-silver finish, soft magenta glow" },
+  { id: "token_fastvip",  category: "token", name: "Premium-Ticket",     fallbackEmoji: "🎫", accent: "#FFD700", rarity: "epic",
+    subject: "an ornate hexagonal coin-medallion with a stylized crown + VIP star emblem, polished brilliant gold finish, dramatic golden god-rays" },
+
+  // ── RESSOURCEN-PAKETE / AUSWAHL-TRUHEN (Migration 00234) ─────────
+  { id: "res_pack_normal", category: "chest", name: "Normales Ressourcen-Paket", fallbackEmoji: "📦", accent: "#9ba8c7", rarity: "rare",
+    subject: "a sturdy iron-banded wooden crate with a glowing blue question-mark sigil on the lid, hint of mixed loot peeking out (a coin, a gear, a circuit-chip, a wifi-bar shape), neutral grey-blue glow indicating random contents" },
+  { id: "res_chest_choice_t1", category: "chest", name: "Auswahl-Ressourcen-Truhe (Stufe 1)", fallbackEmoji: "🎁", accent: "#5ddaf0", rarity: "rare",
+    subject: "a polished iron-banded oak chest with four equal-size resource emblems on its facade (gold coin / gear / chip / wifi-bar) in a 2x2 grid, soft cyan glow from the inside, lid slightly ajar showing a player's choice prompt" },
+  { id: "res_chest_choice_t2", category: "chest", name: "Auswahl-Ressourcen-Truhe (Stufe 2)", fallbackEmoji: "🎁", accent: "#a855f7", rarity: "epic",
+    subject: "an ornate violet-banded chest with four glowing resource emblems (gold coin / gear / chip / wifi-bar) inset as gem-cabochons on the facade, lid slightly ajar with brilliant violet inner light, magical floating particles" },
+  { id: "res_chest_choice_t3", category: "chest", name: "Auswahl-Ressourcen-Truhe (Stufe 3)", fallbackEmoji: "🎁", accent: "#FFD700", rarity: "legendary",
+    subject: "a regal gold-filigree chest with four large faceted gemstone emblems on the facade representing each resource (golden coin, polished gear, glowing chip, wifi-bar antenna), lid radiating intense god-light, crown motif above the lock" },
+];
+
+export function buildInventoryItemPrompt(input: { item: InventoryItemArt; mode: "image" | "video" }): string {
+  const { item, mode } = input;
+  const greenscreenNegative = `CRITICAL: NO green tones on the subject. Use only the listed colors. The ONLY green is the pure #00FF00 background. No text, no labels (except symbolic glyphs/runes), no UI overlays, no watermark, no border frames, no environment.`;
+  if (mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated game-icon "${item.name}" (${item.rarity} ${item.category} item), square 1:1, 1024×1024, 30 fps.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform color filling the ENTIRE 1024×1024 frame including a clean ~12% margin around the subject. No gradients, no patterns, no shadows on the green.`,
+      `Subject: ${item.subject}.`,
+      `Style: stylized 3D game-icon, premium fantasy / urban-cyber loot vibe, painterly highlights, sharp readable silhouette at small inventory sizes (~64px).`,
+      `Composition: subject perfectly centered, slight 3/4 angle, occupies ~70% of frame. Silhouette must NOT touch any frame edge.`,
+      `Lighting: bright key light upper-left, ${item.accent} rim-light upper-right, subtle ${item.accent} inner glow.`,
+      `Motion: gentle bob (±2 px), soft glow pulse (${item.accent}), ${item.accent} sparkle particles drifting upward CLOSE to the subject only — NO particles drifting through empty green space. Camera fully static. First and last frame identical.`,
+      `No audio.`,
+      greenscreenNegative,
+    ].join(" ");
+  }
+  return [
+    `A stylized 3D game-icon of "${item.name}" (${item.rarity} ${item.category} item), square 1:1, 1024×1024.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame with ~12% margin around the subject — no gradient, no pattern.`,
+    `Subject: ${item.subject}.`,
+    `Style: stylized 3D game-icon, premium fantasy / urban-cyber loot vibe, painterly highlights, sharp readable silhouette at small inventory sizes (~64px).`,
+    `Composition: subject perfectly centered, slight 3/4 angle. Silhouette must NOT touch any frame edge.`,
+    `Lighting: bright key light upper-left, ${item.accent} rim-light upper-right, subtle ${item.accent} inner glow from the central feature.`,
+    greenscreenNegative,
+  ].join(" ");
+}
 
 export function buildChestPrompt(input: { chest: ChestArt; mode: "image" | "video" }): string {
   const { chest, mode } = input;

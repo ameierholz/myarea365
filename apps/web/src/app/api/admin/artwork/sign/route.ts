@@ -67,6 +67,7 @@ export async function POST(req: Request) {
     base_ring:    "base-rings",
     loot_drop:    "loot-drops",
     resource_node:"resource-nodes",
+    inventory_item:"inventory-items",
   };
   const folder = folderMap[body.target_type] ?? "items";
   const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;

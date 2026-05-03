@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { UNLOCKABLE_MARKERS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
+import { UNLOCKABLE_MARKERS, GENDERED_MARKER_IDS } from "@/lib/game-config";
+import { useMarkerName, useMarkerVariantLabel } from "@/lib/i18n-game";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildMarkerPrompt } from "@/lib/artwork-prompts";
 
@@ -89,6 +90,9 @@ function MarkerCard({
   onArtReload: () => void;
 }) {
   const tP = useTranslations("Picker");
+  const markerName = useMarkerName();
+  const variantLabel = useMarkerVariantLabel();
+  const displayName = markerName(m.id);
   const isGendered = (GENDERED_MARKER_IDS as readonly string[]).includes(m.id);
   // Gendered Markers haben nur male/female — "neutral" wird auf "male" normalisiert.
   const initialVariant: Variant = isGendered
@@ -122,14 +126,14 @@ function MarkerCard({
           {art?.video_url ? (
             <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 64, height: 64, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
           ) : art?.image_url ? (
-            <img src={art.image_url} alt={m.name} style={{ width: 64, height: 64, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+            <img src={art.image_url} alt={displayName} style={{ width: 64, height: 64, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
           ) : (
             <span style={{ fontSize: 34 }}>{m.icon}</span>
           )}
         </div>
         <span style={{ fontSize: 11, fontWeight: 800, marginBottom: 3 }}>
-          {m.name}
-          {isGendered && <span style={{ fontSize: 9, color: "#a8b4cf", marginLeft: 4 }}>· {MARKER_VARIANT_LABEL[effectiveVariant]}</span>}
+          {displayName}
+          {isGendered && <span style={{ fontSize: 9, color: "#a8b4cf", marginLeft: 4 }}>· {variantLabel(effectiveVariant)}</span>}
         </span>
         {active
           ? <span style={{ fontSize: 9, fontWeight: 900, color: PRIMARY }}>{tP("lightActive")}</span>

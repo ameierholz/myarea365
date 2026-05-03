@@ -6,6 +6,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { UNITS } from "@/lib/game-config";
+import { useUnitLabel } from "@/lib/i18n-game";
 
 const PRIMARY = "#22D1C3";
 
@@ -36,7 +37,6 @@ function SettingRow({ label, checked, onChange, last }: { label: string; checked
         aria-labelledby={labelId}
         onClick={() => onChange(!checked)}
         onKeyDown={(e) => {
-          // Space/Enter toggeln bereits per Default; Pfeil-Tasten zusätzlich
           if (e.key === "ArrowLeft") { e.preventDefault(); onChange(false); }
           if (e.key === "ArrowRight") { e.preventDefault(); onChange(true); }
         }}
@@ -166,6 +166,8 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   onLogout: () => void;
 }) {
   const tMD = useTranslations("MapDashboard");
+  const t = useTranslations("AppSettings");
+  const unitLabel = useUnitLabel();
 
   // Profil: Anzeigename
   const initialName = (p?.display_name ?? p?.username ?? "").trim();
@@ -179,7 +181,6 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   const nameDirty = trimmedName !== initialName;
   const nameValid = trimmedName.length >= 2 && trimmedName.length <= 15;
 
-  // Debounced Live-Check ob Name frei ist
   useEffect(() => {
     if (!nameDirty || !nameValid) {
       setAvail({ state: nameValid ? "idle" : "invalid" });
@@ -187,7 +188,7 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
     }
     setAvail({ state: "checking" });
     const ctl = new AbortController();
-    const t = window.setTimeout(async () => {
+    const tid = window.setTimeout(async () => {
       try {
         const r = await fetch(`/api/account/rename/check?name=${encodeURIComponent(trimmedName)}`, {
           signal: ctl.signal, cache: "no-store",
@@ -200,16 +201,16 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
         else setAvail({ state: j.available ? "free" : "taken" });
       } catch { /* aborted */ }
     }, 350);
-    return () => { ctl.abort(); window.clearTimeout(t); };
+    return () => { ctl.abort(); window.clearTimeout(tid); };
   }, [trimmedName, nameDirty, nameValid]);
 
   const saveDisplayName = async () => {
     if (!isFirstNameSet) {
       const ok = await appConfirm({
-        title: "Namen ändern",
-        message: `Das Ändern deines Anzeigenamens kostet ${RENAME_COST} Diamanten. Fortfahren?`,
+        title: t("renameDialogTitle"),
+        message: t("renameDialogMsg", { cost: RENAME_COST }),
         danger: false,
-        confirmLabel: `Für ${RENAME_COST}💎 ändern`,
+        confirmLabel: t("renameDialogConfirm", { cost: RENAME_COST }),
       });
       if (!ok) return;
     }
@@ -220,14 +221,14 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
         body: JSON.stringify({ display_name: trimmedName }),
       });
       const j = await r.json() as { ok?: boolean; error?: string; message?: string; cost?: number };
-      if (!j.ok) appAlert(j.message ?? j.error ?? "Fehler");
+      if (!j.ok) appAlert(j.message ?? j.error ?? t("renameError"));
       else {
         if (j.cost) {
           try { window.dispatchEvent(new CustomEvent("ma365:gems-changed")); } catch { /* ignore */ }
         }
-        appAlert(j.cost ? `Name geändert (−${j.cost}💎)` : "Name geändert");
+        appAlert(j.cost ? t("renameSuccessCost", { cost: j.cost }) : t("renameSuccess"));
       }
-    } catch { appAlert("Netzwerkfehler"); }
+    } catch { appAlert(t("renameNetworkError")); }
     finally { setRenameBusy(false); }
   };
 
@@ -244,13 +245,11 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   const [quietStart, setQuietStart] = useLocalPref<string>("notif_quiet_start", "22");
   const [quietEnd, setQuietEnd] = useLocalPref<string>("notif_quiet_end", "7");
 
-  // E-Mail
   const [emailWeekly, setEmailWeekly] = useLocalPref<boolean>("email_weekly", false);
   const [emailMonthly, setEmailMonthly] = useLocalPref<boolean>("email_monthly", true);
   const [emailNewsletter, setEmailNewsletter] = useLocalPref<boolean>("email_newsletter", false);
   const [emailFlashDeals, setEmailFlashDeals] = useLocalPref<boolean>("email_flash_deals", false);
 
-  // Privatsphäre
   const [leaderboardVisible, setLeaderboardVisible] = useLocalPref<boolean>("privacy_leaderboard", true);
   const [liveLocationCrew, setLiveLocationCrew] = useLocalPref<boolean>("privacy_live_crew", true);
   const [publicTerritories, setPublicTerritories] = useLocalPref<boolean>("privacy_territories", true);
@@ -259,7 +258,6 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   const [allowCrewInvites, setAllowCrewInvites] = useLocalPref<boolean>("privacy_crew_invites", true);
   const [allowFriends, setAllowFriends] = useLocalPref<boolean>("privacy_friends", true);
 
-  // Tracking & Lauf
   const [gpsAccuracy, setGpsAccuracy] = useLocalPref<string>("track_gps", "high");
   const [snapToRoads, setSnapToRoads] = useLocalPref<boolean>("track_snap", true);
   const [wakeLock, setWakeLock] = useLocalPref<boolean>("track_wakelock", true);
@@ -268,7 +266,6 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   const [paceInterval, setPaceInterval] = useLocalPref<string>("track_pace_interval", "1");
   const [autoStart, setAutoStart] = useLocalPref<boolean>("track_autostart", false);
 
-  // Darstellung
   const [theme, setTheme] = useLocalPref<string>("display_theme", "dark");
   const [mapStyle, setMapStyle] = useLocalPref<string>("display_mapstyle", "standard");
   const [buildings3d, setBuildings3d] = useLocalPref<boolean>("display_3d", true);
@@ -277,34 +274,30 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   const [fontSize, setFontSize] = useLocalPref<string>("display_font", "normal");
   const [accentColor, setAccentColor] = useLocalPref<string>("display_accent", "teal");
 
-  // Sound & Haptik
   const [musicDuringRun, setMusicDuringRun] = useLocalPref<boolean>("sound_music", false);
   const [haptics, setHaptics] = useLocalPref<boolean>("sound_haptics", true);
   const [achievementSound, setAchievementSound] = useLocalPref<boolean>("sound_achievement", true);
 
-  // Performance
   const [dataMode, setDataMode] = useLocalPref<string>("perf_data", "full");
   const [mapPreload, setMapPreload] = useLocalPref<boolean>("perf_preload", true);
   const [backgroundSync, setBackgroundSync] = useLocalPref<boolean>("perf_bg_sync", true);
   const [offlineMode, setOfflineMode] = useLocalPref<boolean>("perf_offline", false);
 
-  // Werbung
   const [personalizedDeals, setPersonalizedDeals] = useLocalPref<boolean>("ads_personalized", true);
   const [anonymousStats, setAnonymousStats] = useLocalPref<boolean>("ads_anon_stats", true);
 
-  // Beta
   const [betaFeatures, setBetaFeatures] = useLocalPref<boolean>("app_beta", false);
 
   const sb = createClient();
 
   return (
     <>
-      <SettingsGroup title="👤 PROFIL" defaultOpen>
+      <SettingsGroup title={t("groupProfile")} defaultOpen>
         <div style={{ padding: 16, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
           <div style={{ color: "#a8b4cf", fontSize: 11, marginBottom: 6 }}>
-            Runner-Anzeigename (2–15 Zeichen)
+            {t("renameLabel")}
             {!isFirstNameSet && (
-              <span style={{ color: "#FFD700", fontWeight: 700, marginLeft: 6 }}>· Kosten: {RENAME_COST}💎</span>
+              <span style={{ color: "#FFD700", fontWeight: 700, marginLeft: 6 }}>{t("renameCost", { cost: RENAME_COST })}</span>
             )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -312,8 +305,8 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
               value={displayName}
               maxLength={15}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Dein Name"
-              aria-label="Anzeigename"
+              placeholder={t("renamePlaceholder")}
+              aria-label={t("renameAriaLabel")}
               aria-describedby="rename-status"
               style={{
                 flex: 1, padding: "10px 12px", borderRadius: 10,
@@ -337,40 +330,40 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
                 opacity: (renameBusy || !nameDirty || !nameValid || avail.state === "checking" || avail.state === "taken") ? 0.5 : 1,
                 whiteSpace: "nowrap",
               }}
-            >{renameBusy ? "…" : isFirstNameSet ? "Speichern" : `${RENAME_COST}💎`}</button>
+            >{renameBusy ? "…" : isFirstNameSet ? t("renameSave") : `${RENAME_COST}💎`}</button>
           </div>
           <div id="rename-status" aria-live="polite" style={{ minHeight: 18, marginTop: 6, fontSize: 11, fontWeight: 600 }}>
             {!nameDirty && <span style={{ color: "#a8b4cf" }}>&nbsp;</span>}
-            {nameDirty && !nameValid && <span style={{ color: "#FF2D78" }}>Name muss 2–15 Zeichen sein</span>}
-            {nameDirty && nameValid && avail.state === "checking" && <span style={{ color: "#a8b4cf" }}>Prüfe Verfügbarkeit…</span>}
-            {nameDirty && avail.state === "free"  && <span style={{ color: "#22D1C3" }}>✓ Name ist frei</span>}
-            {nameDirty && avail.state === "taken" && <span style={{ color: "#FF2D78" }}>✗ Name ist bereits vergeben</span>}
-            {nameDirty && avail.state === "self"  && <span style={{ color: "#a8b4cf" }}>Das ist bereits dein Name</span>}
+            {nameDirty && !nameValid && <span style={{ color: "#FF2D78" }}>{t("renameInvalid")}</span>}
+            {nameDirty && nameValid && avail.state === "checking" && <span style={{ color: "#a8b4cf" }}>{t("renameChecking")}</span>}
+            {nameDirty && avail.state === "free"  && <span style={{ color: "#22D1C3" }}>{t("renameFree")}</span>}
+            {nameDirty && avail.state === "taken" && <span style={{ color: "#FF2D78" }}>{t("renameTaken")}</span>}
+            {nameDirty && avail.state === "self"  && <span style={{ color: "#a8b4cf" }}>{t("renameSelf")}</span>}
           </div>
           <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
-            Crew-Name & Tag ändern: Crew-Modal → Einstellungen (nur Owner)
+            {t("renameCrewHint")}
           </div>
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title="🌐 SPRACHE & EINHEITEN">
+      <SettingsGroup title={t("groupLanguage")}>
         <div style={{ padding: 16, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
           <LanguageSwitcher />
           <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 8 }}>
-            Weitere Sprachen folgen: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …
+            {t("languagesMore")}
           </div>
         </div>
         <SettingSelect
-          label="📏 Einheiten"
+          label={t("labelUnits")}
           value={p?.setting_units || "metric"}
-          options={UNITS.map(u => ({ id: u.id, label: u.label }))}
+          options={UNITS.map(u => ({ id: u.id, label: unitLabel(u.id) }))}
           onChange={(v) => updateSetting("setting_units", v)}
           last
         />
       </SettingsGroup>
 
-      <SettingsGroup title="🔔 BENACHRICHTIGUNGEN (PUSH)">
-        <SettingRow label="Push aktivieren" checked={pushEnabled} onChange={async (v) => {
+      <SettingsGroup title={t("groupNotifPush")}>
+        <SettingRow label={t("notifPushEnable")} checked={pushEnabled} onChange={async (v) => {
           if (v) {
             const { requestPushPermission } = await import("@/lib/prefs");
             const ok = await requestPushPermission();
@@ -378,22 +371,22 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
           }
           setPushEnabled(v);
         }} />
-        <SettingRow label="💬 Crew-Chat" checked={notifCrewChat} onChange={setNotifCrewChat} />
-        <SettingRow label="📅 Crew-Events & Treffen" checked={notifCrewEvents} onChange={setNotifCrewEvents} />
-        <SettingRow label="⚔️ Rival-Duell gestartet" checked={notifDuels} onChange={setNotifDuels} />
-        <SettingRow label="🏆 Achievement freigeschaltet" checked={notifAchievements} onChange={setNotifAchievements} />
-        <SettingRow label="⭐ Neuer Rang erreicht" checked={notifRankUp} onChange={setNotifRankUp} />
-        <SettingRow label="🏪 Shop-Deal in der Nähe" checked={notifShopDeals} onChange={setNotifShopDeals} />
-        <SettingRow label="🔥 Streak läuft ab" checked={notifStreakWarn} onChange={setNotifStreakWarn} />
-        <SettingRow label="🌙 Ruhe-Modus (Nacht)" checked={notifQuietMode} onChange={setNotifQuietMode} />
+        <SettingRow label={t("notifCrewChat")} checked={notifCrewChat} onChange={setNotifCrewChat} />
+        <SettingRow label={t("notifCrewEvents")} checked={notifCrewEvents} onChange={setNotifCrewEvents} />
+        <SettingRow label={t("notifDuels")} checked={notifDuels} onChange={setNotifDuels} />
+        <SettingRow label={t("notifAchievements")} checked={notifAchievements} onChange={setNotifAchievements} />
+        <SettingRow label={t("notifRankUp")} checked={notifRankUp} onChange={setNotifRankUp} />
+        <SettingRow label={t("notifShopDeals")} checked={notifShopDeals} onChange={setNotifShopDeals} />
+        <SettingRow label={t("notifStreakWarn")} checked={notifStreakWarn} onChange={setNotifStreakWarn} />
+        <SettingRow label={t("notifQuietMode")} checked={notifQuietMode} onChange={setNotifQuietMode} />
         <SettingSelect
-          label="⏰ Ruhe ab"
+          label={t("notifQuietFrom")}
           value={quietStart}
           options={Array.from({ length: 24 }, (_, i) => ({ id: String(i), label: `${i}:00` }))}
           onChange={setQuietStart}
         />
         <SettingSelect
-          label="⏰ Ruhe bis"
+          label={t("notifQuietTo")}
           value={quietEnd}
           options={Array.from({ length: 24 }, (_, i) => ({ id: String(i), label: `${i}:00` }))}
           onChange={setQuietEnd}
@@ -401,174 +394,174 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
         />
       </SettingsGroup>
 
-      <SettingsGroup title="📧 E-MAIL-BENACHRICHTIGUNGEN">
-        <SettingRow label="📊 Wöchentlicher Report" checked={emailWeekly} onChange={setEmailWeekly} />
-        <SettingRow label="🏁 Monats-Statistik" checked={emailMonthly} onChange={setEmailMonthly} />
-        <SettingRow label="📬 Kiez-Newsletter (monatlich)" checked={emailNewsletter} onChange={setEmailNewsletter} />
-        <SettingRow label="⚡ Flash-Deals von Shops" checked={emailFlashDeals} onChange={setEmailFlashDeals} last />
+      <SettingsGroup title={t("groupNotifEmail")}>
+        <SettingRow label={t("emailWeekly")} checked={emailWeekly} onChange={setEmailWeekly} />
+        <SettingRow label={t("emailMonthly")} checked={emailMonthly} onChange={setEmailMonthly} />
+        <SettingRow label={t("emailNewsletter")} checked={emailNewsletter} onChange={setEmailNewsletter} />
+        <SettingRow label={t("emailFlashDeals")} checked={emailFlashDeals} onChange={setEmailFlashDeals} last />
       </SettingsGroup>
 
-      <SettingsGroup title="🔒 PRIVATSPHÄRE">
-        <SettingRow label="🌍 Öffentliches Profil" checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
-        <SettingRow label="🏆 Auf Leaderboard erscheinen" checked={leaderboardVisible} onChange={setLeaderboardVisible} />
-        <SettingRow label="📍 Live-Position in Crew teilen" checked={liveLocationCrew} onChange={setLiveLocationCrew} />
-        <SettingRow label="🗺️ Gebiete öffentlich" checked={publicTerritories} onChange={setPublicTerritories} />
-        <SettingRow label="🏃 Lauf-Routen öffentlich" checked={publicRoutes} onChange={setPublicRoutes} />
-        <SettingRow label="🔎 Per Runner-Name findbar" checked={searchable} onChange={setSearchable} />
-        <SettingRow label="👥 Crew-Einladungen zulassen" checked={allowCrewInvites} onChange={setAllowCrewInvites} />
-        <SettingRow label="🤝 Freundschaftsanfragen" checked={allowFriends} onChange={setAllowFriends} last />
+      <SettingsGroup title={t("groupPrivacy")}>
+        <SettingRow label={t("privacyPublic")} checked={p?.setting_privacy_public ?? true} onChange={(v) => updateSetting("setting_privacy_public", v)} />
+        <SettingRow label={t("privacyLeaderboard")} checked={leaderboardVisible} onChange={setLeaderboardVisible} />
+        <SettingRow label={t("privacyLiveCrew")} checked={liveLocationCrew} onChange={setLiveLocationCrew} />
+        <SettingRow label={t("privacyTerritories")} checked={publicTerritories} onChange={setPublicTerritories} />
+        <SettingRow label={t("privacyRoutes")} checked={publicRoutes} onChange={setPublicRoutes} />
+        <SettingRow label={t("privacySearchable")} checked={searchable} onChange={setSearchable} />
+        <SettingRow label={t("privacyCrewInvites")} checked={allowCrewInvites} onChange={setAllowCrewInvites} />
+        <SettingRow label={t("privacyFriends")} checked={allowFriends} onChange={setAllowFriends} last />
       </SettingsGroup>
 
-      <SettingsGroup title="🏃 TRACKING & LAUF">
-        <SettingRow label="⏸ Auto-Pause bei Stillstand" checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
-        <SettingRow label="🔆 Bildschirm-Wachhalten (Wake-Lock)" checked={wakeLock} onChange={setWakeLock} />
-        <SettingRow label="🧲 Snap-to-Roads" checked={snapToRoads} onChange={setSnapToRoads} />
-        <SettingRow label="🎬 Auto-Start bei Bewegung" checked={autoStart} onChange={setAutoStart} />
+      <SettingsGroup title={t("groupTracking")}>
+        <SettingRow label={t("trackAutoPause")} checked={p?.setting_auto_pause ?? true} onChange={(v) => updateSetting("setting_auto_pause", v)} />
+        <SettingRow label={t("trackWakeLock")} checked={wakeLock} onChange={setWakeLock} />
+        <SettingRow label={t("trackSnap")} checked={snapToRoads} onChange={setSnapToRoads} />
+        <SettingRow label={t("trackAutoStart")} checked={autoStart} onChange={setAutoStart} />
         <SettingSelect
-          label="📡 GPS-Genauigkeit"
+          label={t("trackGps")}
           value={gpsAccuracy}
           options={[
-            { id: "high", label: "Hoch (Akku ↓)" },
-            { id: "balanced", label: "Ausgewogen" },
-            { id: "low", label: "Spar-Modus" },
+            { id: "high", label: t("trackGpsHigh") },
+            { id: "balanced", label: t("trackGpsBalanced") },
+            { id: "low", label: t("trackGpsLow") },
           ]}
           onChange={setGpsAccuracy}
         />
-        <SettingRow label="🔊 Pace-Ansage (pro km)" checked={paceAnnounce} onChange={setPaceAnnounce} />
+        <SettingRow label={t("trackPaceAnnounce")} checked={paceAnnounce} onChange={setPaceAnnounce} />
         <SettingSelect
-          label="🗣️ Ansage-Stimme"
+          label={t("trackVoice")}
           value={paceVoice}
           options={[
-            { id: "female", label: "Weiblich" },
-            { id: "male", label: "Männlich" },
-            { id: "neutral", label: "Neutral" },
+            { id: "female", label: t("trackVoiceFemale") },
+            { id: "male", label: t("trackVoiceMale") },
+            { id: "neutral", label: t("trackVoiceNeutral") },
           ]}
           onChange={setPaceVoice}
         />
         <SettingSelect
-          label="⏱️ Ansage-Intervall"
+          label={t("trackPaceInterval")}
           value={paceInterval}
           options={[
-            { id: "0.5", label: "Alle 500 m" },
-            { id: "1", label: "Jeden km" },
-            { id: "2", label: "Alle 2 km" },
-            { id: "5", label: "Alle 5 km" },
+            { id: "0.5", label: t("paceEvery500") },
+            { id: "1", label: t("paceEveryKm") },
+            { id: "2", label: t("paceEvery2Km") },
+            { id: "5", label: t("paceEvery5Km") },
           ]}
           onChange={setPaceInterval}
           last
         />
       </SettingsGroup>
 
-      <SettingsGroup title="🎨 DARSTELLUNG">
+      <SettingsGroup title={t("groupDisplay")}>
         <SettingSelect
-          label="🎭 Theme"
+          label={t("displayTheme")}
           value={theme}
           options={[
-            { id: "dark", label: "Dunkel" },
-            { id: "light", label: "Hell" },
-            { id: "system", label: "System folgen" },
+            { id: "dark", label: t("themeDark") },
+            { id: "light", label: t("themeLight") },
+            { id: "system", label: t("themeSystem") },
           ]}
           onChange={setTheme}
         />
         <SettingSelect
-          label="🗺️ Map-Style"
+          label={t("displayMapStyle")}
           value={mapStyle}
           options={[
-            { id: "standard", label: "Standard 3D" },
-            { id: "satellite", label: "Satellit" },
-            { id: "neon", label: "Neon Nacht" },
-            { id: "minimal", label: "Minimal" },
+            { id: "standard", label: t("mapStandard") },
+            { id: "satellite", label: t("mapSatellite") },
+            { id: "neon", label: t("mapNeon") },
+            { id: "minimal", label: t("mapMinimal") },
           ]}
           onChange={setMapStyle}
         />
         <SettingSelect
-          label="🎨 Akzent-Farbe"
+          label={t("displayAccent")}
           value={accentColor}
           options={[
-            { id: "teal", label: "Teal (Standard)" },
-            { id: "pink", label: "Pink" },
-            { id: "gold", label: "Gold" },
-            { id: "violet", label: "Violett" },
+            { id: "teal", label: t("accentTeal") },
+            { id: "pink", label: t("accentPink") },
+            { id: "gold", label: t("accentGold") },
+            { id: "violet", label: t("accentViolet") },
           ]}
           onChange={setAccentColor}
         />
-        <SettingRow label="🏢 3D-Gebäude anzeigen" checked={buildings3d} onChange={setBuildings3d} />
-        <SettingRow label="✨ Animationen" checked={animations} onChange={setAnimations} />
-        <SettingRow label="♿ Bewegungen reduzieren" checked={reducedMotion} onChange={setReducedMotion} />
+        <SettingRow label={t("display3d")} checked={buildings3d} onChange={setBuildings3d} />
+        <SettingRow label={t("displayAnimations")} checked={animations} onChange={setAnimations} />
+        <SettingRow label={t("displayReducedMotion")} checked={reducedMotion} onChange={setReducedMotion} />
         <SettingSelect
-          label="🔠 Schriftgröße"
+          label={t("displayFontSize")}
           value={fontSize}
           options={[
-            { id: "small", label: "Klein" },
-            { id: "normal", label: "Normal" },
-            { id: "large", label: "Groß" },
-            { id: "xlarge", label: "Sehr groß" },
+            { id: "small", label: t("fontSmall") },
+            { id: "normal", label: t("fontNormal") },
+            { id: "large", label: t("fontLarge") },
+            { id: "xlarge", label: t("fontXLarge") },
           ]}
           onChange={setFontSize}
           last
         />
       </SettingsGroup>
 
-      <SettingsGroup title="🔊 SOUND & HAPTIK">
-        <SettingRow label="🔊 Sound-Effekte" checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
-        <SettingRow label="🏆 Achievement-Sound" checked={achievementSound} onChange={setAchievementSound} />
-        <SettingRow label="🎵 Musik während Lauf" checked={musicDuringRun} onChange={setMusicDuringRun} />
-        <SettingRow label="📳 Haptik / Vibration" checked={haptics} onChange={setHaptics} last />
+      <SettingsGroup title={t("groupSound")}>
+        <SettingRow label={t("soundEffects")} checked={p?.setting_sound ?? true} onChange={(v) => updateSetting("setting_sound", v)} />
+        <SettingRow label={t("soundAchievement")} checked={achievementSound} onChange={setAchievementSound} />
+        <SettingRow label={t("soundMusic")} checked={musicDuringRun} onChange={setMusicDuringRun} />
+        <SettingRow label={t("soundHaptics")} checked={haptics} onChange={setHaptics} last />
       </SettingsGroup>
 
-      <SettingsGroup title="⚡ PERFORMANCE & AKKU">
+      <SettingsGroup title={t("groupPerformance")}>
         <SettingSelect
-          label="📶 Daten-Modus"
+          label={t("perfDataMode")}
           value={dataMode}
           options={[
-            { id: "full", label: "Voll (Standard)" },
-            { id: "saver", label: "Spar-Modus" },
-            { id: "wifi", label: "Nur WLAN" },
+            { id: "full", label: t("dataFull") },
+            { id: "saver", label: t("dataSaver") },
+            { id: "wifi", label: t("dataWifi") },
           ]}
           onChange={setDataMode}
         />
-        <SettingRow label="🗺️ Map-Tiles vorladen" checked={mapPreload} onChange={setMapPreload} />
-        <SettingRow label="🔄 Hintergrund-Sync" checked={backgroundSync} onChange={setBackgroundSync} />
-        <SettingRow label="📴 Offline-Modus" checked={offlineMode} onChange={setOfflineMode} last />
+        <SettingRow label={t("perfPreload")} checked={mapPreload} onChange={setMapPreload} />
+        <SettingRow label={t("perfBgSync")} checked={backgroundSync} onChange={setBackgroundSync} />
+        <SettingRow label={t("perfOffline")} checked={offlineMode} onChange={setOfflineMode} last />
       </SettingsGroup>
 
-      <SettingsGroup title="💰 WERBUNG & PARTNER">
-        <SettingRow label="🎯 Personalisierte Shop-Vorschläge" checked={personalizedDeals} onChange={setPersonalizedDeals} />
-        <SettingRow label="📊 Anonyme Nutzungsstatistik" checked={anonymousStats} onChange={setAnonymousStats} last />
+      <SettingsGroup title={t("groupAds")}>
+        <SettingRow label={t("adsPersonalized")} checked={personalizedDeals} onChange={setPersonalizedDeals} />
+        <SettingRow label={t("adsAnonymous")} checked={anonymousStats} onChange={setAnonymousStats} last />
       </SettingsGroup>
 
-      <SettingsGroup title="🧪 BETA">
-        <SettingRow label="🚀 Beta-Features aktivieren" checked={betaFeatures} onChange={setBetaFeatures} last />
+      <SettingsGroup title={t("groupBeta")}>
+        <SettingRow label={t("betaEnable")} checked={betaFeatures} onChange={setBetaFeatures} last />
       </SettingsGroup>
 
-      <SettingsGroup title="🔐 ACCOUNT & DATEN">
-        <SettingAction label="📧 E-Mail-Adresse ändern" onClick={async () => {
-          const newEmail = prompt("Neue E-Mail-Adresse:");
+      <SettingsGroup title={t("groupAccount")}>
+        <SettingAction label={t("accountChangeEmail")} onClick={async () => {
+          const newEmail = prompt(t("accountEmailPrompt"));
           if (!newEmail) return;
           const { error } = await sb.auth.updateUser({ email: newEmail });
-          if (error) appAlert("Fehler: " + error.message);
-          else appAlert("Bestätigungs-Mail an beide Adressen gesendet.");
+          if (error) appAlert(t("accountEmailError", { msg: error.message }));
+          else appAlert(t("accountEmailSent"));
         }} />
-        <SettingAction label="🔑 Passwort ändern" onClick={async () => {
-          const newPw = prompt("Neues Passwort (min. 8 Zeichen):");
-          if (!newPw || newPw.length < 8) { if (newPw) appAlert("Mindestens 8 Zeichen."); return; }
+        <SettingAction label={t("accountChangePw")} onClick={async () => {
+          const newPw = prompt(t("accountPwPrompt"));
+          if (!newPw || newPw.length < 8) { if (newPw) appAlert(t("accountPwTooShort")); return; }
           const { error } = await sb.auth.updateUser({ password: newPw });
-          if (error) appAlert("Fehler: " + error.message);
+          if (error) appAlert(t("accountEmailError", { msg: error.message }));
           else appAlert(tMD("passwordChanged"));
         }} />
-        <SettingAction label="📥 Daten exportieren (DSGVO)" onClick={onExportData} />
-        <SettingAction label="🛡️ Werbe-Einwilligung verwalten" onClick={async () => {
+        <SettingAction label={t("accountExport")} onClick={onExportData} />
+        <SettingAction label={t("accountConsent")} onClick={async () => {
           const { openPrivacyOptions } = await import("@/components/ump-consent");
           openPrivacyOptions();
         }} />
-        <SettingAction label="🚪 Ausloggen" onClick={onLogout} danger />
-        <SettingAction label="⚠️ Konto löschen" onClick={async () => {
+        <SettingAction label={t("accountLogout")} onClick={onLogout} danger />
+        <SettingAction label={t("accountDelete")} onClick={async () => {
           if (!(await appConfirm({ title: tMD("deleteAccountTitle"), message: tMD("deleteAccountMessage"), danger: true, confirmLabel: tMD("deleteAccountConfirm") }))) return;
-          appAlert("Account-Löschung per E-Mail an support@myarea365.de anfordern. (Automatisierter Flow folgt.)");
+          appAlert(t("accountDeleteHint"));
         }} danger last />
       </SettingsGroup>
 
-      <SettingsGroup title="🧹 CACHE">
+      <SettingsGroup title={t("groupCache")}>
         <SettingAction label={tMD("cacheClearedLabel")} value={tMD("cacheSize")} onClick={() => {
           try { Object.keys(localStorage).filter(k => k.startsWith("cache:")).forEach(k => localStorage.removeItem(k)); } catch {}
           appAlert(tMD("cacheCleared"));
@@ -576,7 +569,7 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
       </SettingsGroup>
 
       <div style={{ textAlign: "center", color: "#a8b4cf", fontSize: 11, padding: "8px 0 4px", lineHeight: 1.6 }}>
-        MyArea365 · v0.9.0 (Beta) · <a href="/datenschutz" style={{ color: "#22D1C3" }}>Datenschutz</a> · <a href="/agb" style={{ color: "#22D1C3" }}>AGB</a> · <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>Support</a>
+        {t("version")} · <a href="/datenschutz" style={{ color: "#22D1C3" }}>{t("privacyLink")}</a> · <a href="/agb" style={{ color: "#22D1C3" }}>{t("termsLink")}</a> · <a href="mailto:support@myarea365.de" style={{ color: "#22D1C3" }}>{t("supportLink")}</a>
       </div>
     </>
   );

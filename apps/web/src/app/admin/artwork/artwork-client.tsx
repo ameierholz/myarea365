@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, BASE_RINGS_ART, buildBaseRingPrompt, NAMEPLATES_ART, buildNameplatePrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, BASE_RINGS_ART, buildBaseRingPrompt, NAMEPLATES_ART, buildNameplatePrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt, INVENTORY_ITEMS_ART, buildInventoryItemPrompt, type InventoryItemArt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -90,9 +90,10 @@ type CosmeticArt = {
   base_ring:    Record<string, Art>;  // slot_id = ring_id (default, iron, golden, ...)
   resource_node:Record<string, Art>;  // slot_id = scrapyard|factory|atm|datacenter
   loot_drop:    Record<string, Art>;  // slot_id = common|rare|epic|legendary
+  inventory_item: Record<string, Art>;  // slot_id = item_id (speedup_*, boost_*, key_*, elixir_*, token_*)
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "resource_node" | "loot_drop";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "resource_node" | "loot_drop" | "inventory_item";
 
 type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -113,7 +114,7 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {}, inventory_item: {} });
   const [uiIconSlots, setUiIconSlots] = useState<UiIconSlot[]>([]);
   const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,6 +171,7 @@ export function ArtworkAdminClient() {
         base_ring:    bustMap(raw.base_ring    ?? {}),
         resource_node:bustMap(raw.resource_node?? {}),
         loot_drop:    bustMap(raw.loot_drop    ?? {}),
+        inventory_item: bustMap(raw.inventory_item ?? {}),
       });
     }
     setLoading(false);
@@ -208,6 +210,7 @@ export function ArtworkAdminClient() {
   const doneBaseRing  = Object.values(cosmetic.base_ring ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneRNode     = Object.values(cosmetic.resource_node ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneLootDrop  = Object.values(cosmetic.loot_drop ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneInventoryItem = Object.values(cosmetic.inventory_item ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
@@ -230,6 +233,7 @@ export function ArtworkAdminClient() {
     { id: "base_ring", label: "💍 Base-Rings",       done: doneBaseRing,  total: 20 },
     { id: "resource_node", label: "⛏️ Plünderpunkte", done: doneRNode,    total: 4 },
     { id: "loot_drop", label: "🎁 Loot-Drops",       done: doneLootDrop,  total: 4 },
+    { id: "inventory_item", label: "📦 Inventar-Items", done: doneInventoryItem, total: INVENTORY_ITEMS_ART.length },
   ];
 
   return (
@@ -279,6 +283,7 @@ export function ArtworkAdminClient() {
         : tab === "base_ring" ? <BaseRingArtTab artMap={cosmetic.base_ring} onChange={reload} />
         : tab === "resource_node" ? <ResourceNodeArtTab artMap={cosmetic.resource_node} onChange={reload} />
         : tab === "loot_drop" ? <LootDropArtTab artMap={cosmetic.loot_drop} onChange={reload} />
+        : tab === "inventory_item" ? <InventoryItemArtTab artMap={cosmetic.inventory_item} onChange={reload} />
         : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
       )}
     </div>
@@ -1986,6 +1991,62 @@ function LootDropArtTab({ artMap, onChange }: { artMap: Record<string, { image_u
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Inventar-Items (Speedups, Boosts, Keys, Elixirs, Tokens) */
+/* ═════════════════════════════════════════════════════════ */
+function InventoryItemArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  const rarityColor: Record<string, string> = { common: "#9aa3b8", rare: "#22D1C3", epic: "#a855f7", legendary: "#FFD700" };
+  const categoryLabel: Record<InventoryItemArt["category"], string> = {
+    speedup: "⚡ Speedups", boost: "🛡 Buffs", key: "🗝 Schlüssel", elixir: "🧪 Elixiere", token: "🎫 Tokens", chest: "📦 Truhen",
+  };
+  const grouped = INVENTORY_ITEMS_ART.reduce((acc, item) => {
+    (acc[item.category] = acc[item.category] || []).push(item);
+    return acc;
+  }, {} as Record<InventoryItemArt["category"], InventoryItemArt[]>);
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Inventar-Items (matched zu DB-Tabelle <code>inventory_item_catalog</code> in Migration 00217). Slot-IDs = item_id.
+      </div>
+      {(Object.keys(grouped) as InventoryItemArt["category"][]).map((cat) => (
+        <div key={cat} className="mb-6">
+          <div className="text-xs font-black tracking-wider text-white mb-2">{categoryLabel[cat]} <span className="text-[#a8b4cf] font-normal">({grouped[cat].length})</span></div>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+            {grouped[cat].map((it) => {
+              const art = artMap[it.id];
+              const c = rarityColor[it.rarity] ?? it.accent;
+              return (
+                <div key={it.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 80, height: 80, background: `${c}22`, border: `2px solid ${c}`, boxShadow: `0 0 12px ${c}66` }}>
+                      {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
+                        : art?.image_url ? <img src={art.image_url} alt={it.name} className="w-full h-full object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
+                        : <span style={{ fontSize: 32 }}>{it.fallbackEmoji}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-bold tracking-wider" style={{ color: c }}>{it.rarity.toUpperCase()}</div>
+                      <div className="text-sm font-black text-white truncate">{it.name}</div>
+                      <div className="text-[10px] text-[#a8b4cf] truncate">{it.id}</div>
+                    </div>
+                  </div>
+                  <AdminArtworkControls
+                    targetType="inventory_item"
+                    targetId={it.id}
+                    hasImage={!!art?.image_url}
+                    hasVideo={!!art?.video_url}
+                    buildPrompt={(mode) => buildInventoryItemPrompt({ item: it, mode })}
+                    onUploaded={onChange}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

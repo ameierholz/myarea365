@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
+import { RunnerInventoryModal } from "@/components/runner-inventory-modal";
+import { GrowthFundModal } from "@/components/growth-fund-modal";
+import { MonthlyPackModal } from "@/components/monthly-pack-modal";
+import { LuckyWheelModal } from "@/components/lucky-wheel-modal";
+import { ForgeOfLightModal } from "@/components/forge-of-light-modal";
 import {
   rarityMeta, TYPE_META, statsAtLevel,
   type GuardianArchetype,
@@ -10,6 +15,7 @@ import {
 import { CREW_FACTIONS, type CrewFactionId } from "@/lib/crew-factions";
 import { useRankArt, RankBadge, rankIdByXp, rankColorById } from "@/components/rank-badge";
 import { RUNNER_RANKS } from "@/lib/game-config";
+import { useRankName } from "@/lib/i18n-game";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -58,6 +64,7 @@ type ArenaTitle = { id: string; rank: number; title: string; awarded_at: string;
 
 export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { userId: string; onClose: () => void; canEditBanner?: boolean }) {
   const tRS = useTranslations("RunnerStats");
+  const rankName = useRankName();
   const rankArt = useRankArt();
   const [data, setData] = useState<RunnerProfileData | null>(null);
   const [titles, setTitles] = useState<ArenaTitle[]>([]);
@@ -132,6 +139,11 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
 
   const [showSupporter, setShowSupporter] = useState(false);
   const [buyingSku, setBuyingSku] = useState<string | null>(null);
+  const [showInventory, setShowInventory] = useState(false);
+  const [showGrowthFund, setShowGrowthFund] = useState(false);
+  const [showMonthly, setShowMonthly] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const [showForge, setShowForge] = useState(false);
 
   async function buySupporterTier(sku: "badge_bronze" | "badge_silver" | "badge_gold") {
     if (buyingSku) return;
@@ -331,7 +343,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                     <RankBadge rankId={rId} color={rColor} size={48} rankArt={rankArt} fallbackEmoji="🏅" showNumberOverlay />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: MUTED, fontSize: 9, fontWeight: 900, letterSpacing: 1.2 }}>RANG</div>
-                      <div style={{ color: rColor, fontSize: 15, fontWeight: 900 }}>{rankRow?.name ?? `Rang ${rId}`}</div>
+                      <div style={{ color: rColor, fontSize: 15, fontWeight: 900 }}>{rankRow ? rankName(rankRow.id) : `Rang ${rId}`}</div>
                     </div>
                   </div>
                 );
@@ -525,6 +537,17 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                 );
               })()}
 
+              {/* ══ INVENTAR & PREMIUM-HUB (nur eigener Profil) ══ */}
+              {data.is_owner && (
+                <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <HubButton color={GOLD}    icon="📦" label={tRS("openInventory")}  onClick={() => setShowInventory(true)} />
+                  <HubButton color={GOLD}    icon="📈" label={tRS("openGrowthFund")} onClick={() => setShowGrowthFund(true)} />
+                  <HubButton color={PRIMARY} icon="📅" label={tRS("openMonthly")}    onClick={() => setShowMonthly(true)} />
+                  <HubButton color={PINK}    icon="🎡" label={tRS("openWheel")}      onClick={() => setShowWheel(true)} />
+                  <HubButton color="#a855f7" icon="🔥" label={tRS("openForge")}      onClick={() => setShowForge(true)} style={{ gridColumn: "1 / -1" }} />
+                </div>
+              )}
+
               {/* ══ KAMPF ══ */}
               <SectionCard title="KAMPF-STATISTIK" color={PINK} icon="⚔️" style={{ marginTop: 14 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
@@ -575,6 +598,11 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
           </div>
         )}
       </div>
+      {showInventory && <RunnerInventoryModal onClose={() => setShowInventory(false)} />}
+      {showGrowthFund && <GrowthFundModal onClose={() => setShowGrowthFund(false)} />}
+      {showMonthly && <MonthlyPackModal onClose={() => setShowMonthly(false)} />}
+      {showWheel && <LuckyWheelModal onClose={() => setShowWheel(false)} />}
+      {showForge && <ForgeOfLightModal onClose={() => setShowForge(false)} />}
     </div>
   );
 }
@@ -610,6 +638,25 @@ function Stat({ label, value, color }: { label: string; value: number | string; 
       <div style={{ color: MUTED, fontSize: 8, fontWeight: 800, letterSpacing: 1 }}>{label}</div>
       <div style={{ color, fontSize: 14, fontWeight: 900, marginTop: 3 }}>{value}</div>
     </div>
+  );
+}
+
+function HubButton({ color, icon, label, onClick, style }: {
+  color: string; icon: string; label: string; onClick: () => void; style?: React.CSSProperties;
+}) {
+  return (
+    <button onClick={onClick} style={{
+      padding: "12px 14px", borderRadius: 12,
+      border: `1px solid ${color}66`,
+      background: `linear-gradient(135deg, ${color}1f, rgba(15,17,21,0.6))`,
+      color: "#FFF", fontSize: 12, fontWeight: 900, cursor: "pointer",
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      boxShadow: `0 0 10px ${color}26`,
+      ...style,
+    }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <span>{label}</span>
+    </button>
   );
 }
 

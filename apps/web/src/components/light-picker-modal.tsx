@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { RUNNER_LIGHTS } from "@/lib/game-config";
+import { useLightName } from "@/lib/i18n-game";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildLightPrompt } from "@/lib/artwork-prompts";
 import { LightTrailPreview } from "@/components/light-trail-preview";
@@ -21,6 +22,7 @@ export function LightPickerModal({
   isAdmin?: boolean;
 }) {
   const tP = useTranslations("Picker");
+  const lightName = useLightName();
   const [artMap, setArtMap] = useState<Record<string, Art>>({});
   async function loadArt() {
     try {
@@ -70,6 +72,7 @@ export function LightPickerModal({
               const gradientCss = l.gradient.length > 1
                 ? `linear-gradient(90deg, ${l.gradient.join(", ")})`
                 : l.color;
+              const displayName = lightName(l.id);
               return (
                 <div key={l.id} style={{
                   display: "flex", flexDirection: "column", alignItems: "stretch",
@@ -89,7 +92,7 @@ export function LightPickerModal({
                       {art?.video_url ? (
                         <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 80, height: 36, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                       ) : art?.image_url ? (
-                        <img src={art.image_url} alt={l.name} style={{ width: 80, height: 36, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+                        <img src={art.image_url} alt={displayName} style={{ width: 80, height: 36, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                       ) : unlocked ? (
                         // Animierte Vorschau via Particle-Engine (identisch zur On-Map-Darstellung)
                         <LightTrailPreview lightId={l.id} width={80} height={36} />
@@ -103,7 +106,7 @@ export function LightPickerModal({
                         }} />
                       )}
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, marginBottom: 3 }}>{l.name}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, marginBottom: 3 }}>{displayName}</span>
                     {active
                       ? <span style={{ fontSize: 9, fontWeight: 900, color: PRIMARY }}>{tP("lightActive")}</span>
                       : unlocked

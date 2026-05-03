@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
 
@@ -43,11 +44,11 @@ type Intel = {
   active_guardian: { archetype_id: string; name: string; emoji: string; rarity: string; level: number } | null;
 };
 
-const CLASS_LABEL: Record<string, string> = {
-  infantry: "Türsteher",
-  cavalry: "Kuriere",
-  marksman: "Schleuderer",
-  siege: "Brecher",
+const CLASS_LABEL_KEY: Record<string, string> = {
+  infantry: "classInfantry",
+  cavalry: "classCavalry",
+  marksman: "classMarksman",
+  siege: "classSiege",
 };
 
 export function AttackBaseModal({
@@ -62,6 +63,7 @@ export function AttackBaseModal({
   anchorX?: number;
   anchorY?: number;
 }) {
+  const t = useTranslations("AttackBaseModal");
   const [troops, setTroops] = useState<Troop[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [selected, setSelected] = useState<Record<string, number>>({});
@@ -111,7 +113,7 @@ export function AttackBaseModal({
     type GRow = { id: string; level: number; archetype: { id: string; name: string; image_url: string | null; video_url: string | null } | null };
     setGuardians(((gRows.data ?? []) as unknown as GRow[]).map((r) => ({
       id: r.id, level: r.level,
-      name: r.archetype?.name ?? "Wächter",
+      name: r.archetype?.name ?? t("guardianFallback"),
       image_url: r.archetype?.image_url ?? null,
       video_url: r.archetype?.video_url ?? null,
     })));
@@ -144,7 +146,7 @@ export function AttackBaseModal({
     if (defBase.data) {
       setDefender({
         user_id: defenderUserId,
-        display_name: (defUser.data as { display_name?: string } | null)?.display_name ?? "Gegner",
+        display_name: (defUser.data as { display_name?: string } | null)?.display_name ?? t("defenderFallback"),
         avatar_url: (defUser.data as { avatar_url?: string | null } | null)?.avatar_url ?? null,
         user_level: ((defUser.data as { level?: number } | null)?.level) ?? 1,
         base_level: defBase.data.level as number,
@@ -218,18 +220,18 @@ export function AttackBaseModal({
       });
       const j = await r.json() as Intel & { ok?: boolean; error?: string; need?: number; travel_seconds?: number };
       if (j.ok) {
-        const eta = j.travel_seconds ? `${Math.round((j.travel_seconds * 2 + 5) / 60)} Min.` : "kurz";
-        setMsg(`🔍 Späher unterwegs — Bericht in ca. ${eta} im Postfach.`);
+        const eta = j.travel_seconds ? t("scoutMinutes", { n: Math.round((j.travel_seconds * 2 + 5) / 60) }) : t("scoutEtaShort");
+        setMsg(t("scoutEta", { eta }));
         setTimeout(onClose, 1800);
-      } else if (j.error === "not_enough_gold") setMsg(`Nicht genug Gold (${j.need} 🪙 nötig).`);
-      else if (j.error === "already_scouting") setMsg("Du hast bereits einen Späher zu diesem Gegner unterwegs.");
-      else if (j.error === "base_missing") setMsg("Eigene oder Ziel-Base fehlt auf der Karte.");
-      else setMsg(j.error ?? "Spionage fehlgeschlagen");
+      } else if (j.error === "not_enough_gold") setMsg(t("scoutErrNotEnoughGold", { need: j.need ?? 0 }));
+      else if (j.error === "already_scouting") setMsg(t("scoutErrAlreadyScouting"));
+      else if (j.error === "base_missing") setMsg(t("scoutErrBaseMissing"));
+      else setMsg(j.error ?? t("scoutErrGeneric"));
     } finally { setSpying(false); }
   }
 
   async function startRally() {
-    if (totalCount < 10) { setMsg("Mindestens 10 Truppen nötig."); return; }
+    if (totalCount < 10) { setMsg(t("minTroops")); return; }
     setBusy(true); setMsg(null);
     try {
       const r = await fetch("/api/base/rally", {
@@ -239,17 +241,17 @@ export function AttackBaseModal({
       });
       const j = await r.json() as { ok?: boolean; error?: string; rally_id?: string };
       if (j.ok) {
-        setMsg("✓ Aufgebot gestartet — Crew kann beitreten.");
+        setMsg(t("rallyStarted"));
         setTimeout(onClose, 1500);
-      } else if (j.error === "no_crew") setMsg("Du bist in keiner Crew.");
-      else if (j.error === "crew_rally_already_active") setMsg("Deine Crew hat bereits ein laufendes Aufgebot.");
-      else if (j.error === "defender_shielded") setMsg("🛡️ Gegner ist geschützt.");
-      else setMsg(j.error ?? "Aufgebot fehlgeschlagen");
+      } else if (j.error === "no_crew") setMsg(t("rallyErrNoCrew"));
+      else if (j.error === "crew_rally_already_active") setMsg(t("rallyErrAlreadyActive"));
+      else if (j.error === "defender_shielded") setMsg(t("rallyErrShielded"));
+      else setMsg(j.error ?? t("rallyErrGeneric"));
     } finally { setBusy(false); }
   }
 
   async function launch() {
-    if (totalCount < 10) { setMsg("Mindestens 10 Truppen nötig."); return; }
+    if (totalCount < 10) { setMsg(t("minTroops")); return; }
     setBusy(true); setMsg(null);
     try {
       const r = await fetch("/api/base/attack", {
@@ -261,13 +263,13 @@ export function AttackBaseModal({
       if (j.ok) {
         const min = Math.floor((j.march_seconds ?? 0) / 60);
         const sec = (j.march_seconds ?? 0) % 60;
-        setMsg(`✓ Marsch gestartet — ETA ${min}:${String(sec).padStart(2, "0")} (${j.distance_m} m). Bericht erscheint danach in der Inbox.`);
+        setMsg(t("marchStarted", { min, sec: String(sec).padStart(2, "0"), distance: j.distance_m ?? 0 }));
         setTimeout(onClose, 1500);
-      } else if (j.error === "defender_shielded") setMsg("🛡️ Gegner ist geschützt.");
-      else if (j.error === "march_already_active") setMsg("Du hast bereits einen laufenden Angriff.");
-      else if (j.error === "min_troops_10") setMsg("Mindestens 10 Truppen nötig.");
-      else if (j.error === "no_base") setMsg("Du hast keine Base.");
-      else setMsg(j.error ?? "Fehler");
+      } else if (j.error === "defender_shielded") setMsg(t("attackErrShielded"));
+      else if (j.error === "march_already_active") setMsg(t("attackErrAlreadyActive"));
+      else if (j.error === "min_troops_10") setMsg(t("minTroops"));
+      else if (j.error === "no_base") setMsg(t("attackErrNoBase"));
+      else setMsg(j.error ?? t("attackErrGeneric"));
     } finally { setBusy(false); }
   }
 
@@ -374,6 +376,7 @@ function InfoCard({
   onRally: () => void;
   onAttack: () => void;
 }) {
+  const t = useTranslations("AttackBaseModal");
   const uiIcon = useUiIconArt();
   if (!defender) return null;
   const accent = defender.theme_accent ?? "#FF2D78";
@@ -420,11 +423,11 @@ function InfoCard({
 
       <div className="px-4 py-3 shrink-0 space-y-2">
         {[
-          { label: "Spieler-Stufe",  value: `Stufe ${defender.user_level}` },
-          { label: "Base-Stufe",     value: `Stufe ${defender.base_level}` },
-          { label: "Base-Leben",     value: `${defender.current_hp.toLocaleString("de-DE")} / ${defender.max_hp.toLocaleString("de-DE")}` },
-          { label: "Crew",           value: defender.crew_name ?? "—" },
-          { label: "Stärke",         value: "???  (Späher senden)", muted: true },
+          { label: t("infoStatPlayerLevel"), value: t("infoLevelN", { n: defender.user_level }) },
+          { label: t("infoStatBaseLevel"),   value: t("infoLevelN", { n: defender.base_level }) },
+          { label: t("infoStatBaseHp"),      value: `${defender.current_hp.toLocaleString()} / ${defender.max_hp.toLocaleString()}` },
+          { label: t("infoStatCrew"),        value: defender.crew_name ?? t("infoNoCrew") },
+          { label: t("infoStatPower"),       value: t("infoPowerHidden"), muted: true },
         ].map((r) => (
           <div key={r.label} className="flex items-baseline justify-between text-[12px] border-b border-white/5 pb-1.5">
             <span className="text-white/55 font-black">{r.label}</span>
@@ -442,9 +445,9 @@ function InfoCard({
           </div>
         )}
         <div className="flex gap-2">
-          <ActionButton onClick={onSpy} disabled={spying} color="#5ddaf0" slot="action_spy"    fallback="🔍" art={uiIcon} label="SPÄHER"        sub="Spionage · 500 🪙" />
-          <ActionButton onClick={onRally}                    color="#FF6B4A" slot="action_rally"  fallback="📣" art={uiIcon} label="CREW-ANGRIFF" sub="Aufgebot starten" />
-          <ActionButton onClick={onAttack}                   color="#FF2D78" slot="action_attack" fallback="⚔️" art={uiIcon} label="ANGRIFF"       sub="Allein stürmen" />
+          <ActionButton onClick={onSpy} disabled={spying} color="#5ddaf0" slot="action_spy"    fallback="🔍" art={uiIcon} label={t("actionScout")}  sub={t("actionScoutSub")} />
+          <ActionButton onClick={onRally}                    color="#FF6B4A" slot="action_rally"  fallback="📣" art={uiIcon} label={t("actionRally")}  sub={t("actionRallySub")} />
+          <ActionButton onClick={onAttack}                   color="#FF2D78" slot="action_attack" fallback="⚔️" art={uiIcon} label={t("actionAttack")} sub={t("actionAttackSub")} />
         </div>
       </div>
     </>
@@ -506,15 +509,15 @@ function RallyPicker({
   marchCaps: { march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number } | null;
   activeMarches: number;
 }) {
+  const t = useTranslations("AttackBaseModal");
   const [openClass, setOpenClass] = useState<string | null>(null);
   const cap = marchCaps?.march_capacity ?? null;
-  const remaining = cap !== null ? Math.max(0, cap - totalCount) : null;
   const overCap = cap !== null && totalCount > cap;
   const queueFull = marchCaps !== null && activeMarches >= marchCaps.march_queue;
   const prepOptions = [
-    { value: 180,  label: "3 Min" },
-    { value: 480,  label: "8 Min" },
-    { value: 1680, label: "28 Min" },
+    { value: 180,  label: t("rallyPrep3min") },
+    { value: 480,  label: t("rallyPrep8min") },
+    { value: 1680, label: t("rallyPrep28min") },
   ];
   return (
     <>
@@ -538,8 +541,8 @@ function RallyPicker({
           return null;
         })()}
         <div className="flex-1 min-w-0">
-          <div className="text-[8px] font-black tracking-[2px] text-[#FF6B4A]/90">CREW-ANGRIFF</div>
-          <div className="text-[13px] font-black text-white truncate">📣 Crew-Angriff gegen {defender?.display_name}</div>
+          <div className="text-[8px] font-black tracking-[2px] text-[#FF6B4A]/90">{t("rallyHeader")}</div>
+          <div className="text-[13px] font-black text-white truncate">{t("rallyTitle", { name: defender?.display_name ?? "" })}</div>
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-base font-black">×</button>
       </div>
@@ -547,7 +550,7 @@ function RallyPicker({
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {/* Vorbereitungszeit */}
         <div>
-          <div className="text-[10px] font-black tracking-[1.5px] text-white/50 mb-1.5 px-1">Vorbereitungszeit</div>
+          <div className="text-[10px] font-black tracking-[1.5px] text-white/50 mb-1.5 px-1">{t("rallyPrepLabel")}</div>
           <div className="flex gap-1.5">
             {prepOptions.map((o) => (
               <button key={o.value} onClick={() => setPrepSeconds(o.value)}
@@ -560,16 +563,16 @@ function RallyPicker({
               </button>
             ))}
           </div>
-          <div className="text-[9px] text-white/40 mt-1 px-1">Crew-Mitglieder können während dieser Zeit beitreten.</div>
+          <div className="text-[9px] text-white/40 mt-1 px-1">{t("rallyPrepHint")}</div>
         </div>
 
         {/* Wächter-Kommandant */}
         <div>
           <div className="text-[10px] font-black tracking-[1.5px] text-white/50 mb-1.5 px-1">
-            Wächter-Kommandant
+            {t("rallyGuardianLabel")}
             {selectedGuardianId && (() => {
               const g = guardians.find((x) => x.id === selectedGuardianId);
-              return g ? <span className="ml-2 text-[#FFD700]">+{Math.min(100, g.level * 5)}% Angriff</span> : null;
+              return g ? <span className="ml-2 text-[#FFD700]">{t("rallyGuardianBonus", { pct: Math.min(100, g.level * 5) })}</span> : null;
             })()}
           </div>
           <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -578,10 +581,10 @@ function RallyPicker({
                 selectedGuardianId === null ? "bg-white/10 border-white/40 text-white" : "bg-black/30 border-white/10 text-white/50"
               }`}>
               <span className="text-xl">—</span>
-              <span className="text-[9px] mt-0.5">Kein Wächter</span>
+              <span className="text-[9px] mt-0.5">{t("rallyNoGuardian")}</span>
             </button>
             {guardians.length === 0 && (
-              <div className="text-[10px] text-white/40 self-center px-2">Keine aktiven Wächter — siehe Profil.</div>
+              <div className="text-[10px] text-white/40 self-center px-2">{t("rallyNoActiveGuardians")}</div>
             )}
             {guardians.map((g) => (
               <button key={g.id} onClick={() => setSelectedGuardianId(g.id)}
@@ -597,7 +600,7 @@ function RallyPicker({
                   ) : (<span className="text-xl">🛡</span>)}
                 </div>
                 <span className="text-[9px] text-white truncate w-full px-1 text-center">{g.name}</span>
-                <span className="text-[8px] text-[#FFD700] mb-0.5">Lv {g.level}</span>
+                <span className="text-[8px] text-[#FFD700] mb-0.5">{t("rallyGuardianLevel", { level: g.level })}</span>
               </button>
             ))}
           </div>
@@ -610,22 +613,21 @@ function RallyPicker({
             : "bg-[#22D1C3]/10 border border-[#22D1C3]/30 text-white/80"
           }`}>
             <span>
-              📦 March-Cap: <b className="text-white">{totalCount}/{cap}</b>
-              <span className="text-white/50 ml-2">· Burg Lv {marchCaps.burg_level}</span>
-              {marchCaps.guardian_bonus_pct > 0 && <span className="text-[#FFD700] ml-2">+{marchCaps.guardian_bonus_pct}% Wächter</span>}
+              {t("marchCapLabel")} <b className="text-white">{totalCount}/{cap}</b>
+              <span className="text-white/50 ml-2">{t("marchCapBurg", { level: marchCaps.burg_level })}</span>
+              {marchCaps.guardian_bonus_pct > 0 && <span className="text-[#FFD700] ml-2">{t("marchCapGuardian", { pct: marchCaps.guardian_bonus_pct })}</span>}
             </span>
             <span className={queueFull ? "text-[#FF2D78]" : "text-white/60"}>
-              {activeMarches}/{marchCaps.march_queue} Marches
+              {t("marchesUsed", { used: activeMarches, total: marchCaps.march_queue })}
             </span>
           </div>
         )}
         {queueFull && (
-          <div className="text-[10px] text-[#FF2D78] font-bold px-1">⚠ Alle March-Slots belegt — warte bis ein laufender Angriff fertig ist.</div>
+          <div className="text-[10px] text-[#FF2D78] font-bold px-1">{t("marchesQueueFull")}</div>
         )}
 
-        {/* Truppen-Picker (kollabierte Klassen) */}
         {Object.keys(grouped).length === 0 && (
-          <div className="text-center text-[12px] text-white/60 py-8">Keine Truppen verfügbar — bilde welche aus.</div>
+          <div className="text-center text-[12px] text-white/60 py-8">{t("noTroops")}</div>
         )}
         {Object.entries(grouped).map(([cls, list]) => {
           const open = openClass === cls;
@@ -635,29 +637,29 @@ function RallyPicker({
             <div key={cls} className="rounded-lg bg-black/20 border border-white/5 overflow-hidden">
               <button onClick={() => setOpenClass(open ? null : cls)}
                 className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white hover:bg-white/5">
-                <span>★ {CLASS_LABEL[cls] ?? cls}</span>
+                <span>{t("classClickHint", { name: CLASS_LABEL_KEY[cls] ? t(CLASS_LABEL_KEY[cls]) : cls })}</span>
                 <span className="text-white/60 text-[10px] flex items-center gap-2">
                   {classSel > 0 && <span className="text-[#FFD700] font-black">{classSel}</span>}
-                  <span className="text-white/40">verfügbar {classHave}</span>
+                  <span className="text-white/40">{t("classAvailable", { n: classHave })}</span>
                   <span>{open ? "▾" : "▸"}</span>
                 </span>
               </button>
               {open && (
                 <div className="p-2 space-y-1.5 border-t border-white/5">
-                  {list.map((t) => {
-                    const have = counts[t.id] ?? 0;
-                    const v = selected[t.id] ?? 0;
+                  {list.map((tr) => {
+                    const have = counts[tr.id] ?? 0;
+                    const v = selected[tr.id] ?? 0;
                     return (
-                      <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/30 border border-white/5">
-                        <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
+                      <div key={tr.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/30 border border-white/5">
+                        <span className="text-base shrink-0 w-6 text-center">{tr.emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                          <div className="text-[9px] text-white/50">Angriff {t.base_atk} · Verteidigung {t.base_def} · Leben {t.base_hp} · da {have}</div>
+                          <div className="text-[11px] font-black text-white truncate">{tr.name} <span className="text-white/40">{t("troopTier", { tier: tr.tier })}</span></div>
+                          <div className="text-[9px] text-white/50">{t("troopStats", { atk: tr.base_atk, def: tr.base_def, hp: tr.base_hp, have })}</div>
                         </div>
                         <input type="number" min={0} max={have} value={v}
-                          onChange={(e) => setQty(t.id, Number(e.target.value))}
+                          onChange={(e) => setQty(tr.id, Number(e.target.value))}
                           className="w-16 text-right text-[11px] font-black px-2 py-1 rounded bg-black/50 border border-white/10 text-white" />
-                        <button onClick={() => setQty(t.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">MAX</button>
+                        <button onClick={() => setQty(tr.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">{t("qtyMax")}</button>
                       </div>
                     );
                   })}
@@ -672,15 +674,15 @@ function RallyPicker({
         style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.4), transparent)" }}>
         <div className="flex items-center justify-between text-[11px]">
           <div>
-            <span className="text-white/60">Truppen: </span>
-            <span className="text-white font-black">{totalCount.toLocaleString("de-DE")}</span>
+            <span className="text-white/60">{t("footerTroopsLabel")} </span>
+            <span className="text-white font-black">{totalCount.toLocaleString()}</span>
             <span className="text-white/40 mx-2">·</span>
-            <span className="text-white/60">Angriff: </span>
-            <span className="text-[#FF6B4A] font-black">{totalAtk.toLocaleString("de-DE")}</span>
+            <span className="text-white/60">{t("footerAttackLabel")} </span>
+            <span className="text-[#FF6B4A] font-black">{totalAtk.toLocaleString()}</span>
           </div>
           <div className="flex gap-1">
-            <button onClick={clearAll} className="text-[10px] font-black text-white/60 px-2 py-1 rounded bg-white/5">Leer</button>
-            <button onClick={fillMax} className="text-[10px] font-black text-[#FFD700] px-2 py-1 rounded bg-[#FFD700]/10">Alle</button>
+            <button onClick={clearAll} className="text-[10px] font-black text-white/60 px-2 py-1 rounded bg-white/5">{t("footerClear")}</button>
+            <button onClick={fillMax} className="text-[10px] font-black text-[#FFD700] px-2 py-1 rounded bg-[#FFD700]/10">{t("footerAll")}</button>
           </div>
         </div>
         {msg && (
@@ -693,9 +695,9 @@ function RallyPicker({
           className="w-full text-[13px] font-black px-4 py-3 rounded-xl text-white disabled:opacity-40 transition"
           style={{ background: "linear-gradient(135deg, #FF6B4A, #FFD700)", boxShadow: "0 4px 16px rgba(255,107,74,0.4)" }}>
           {busy ? "…"
-            : queueFull ? "⛔ Alle March-Slots belegt"
-            : overCap ? `⚠ Über March-Cap (${totalCount}/${cap})`
-            : `📣 CREW-ANGRIFF STARTEN${totalCount > 0 ? ` (${totalCount})` : ""}`}
+            : queueFull ? t("btnQueueFull")
+            : overCap ? t("btnOverCap", { n: totalCount, cap: cap ?? 0 })
+            : totalCount > 0 ? t("btnRallyStartCount", { n: totalCount }) : t("btnRallyStart")}
         </button>
       </div>
     </>
@@ -725,6 +727,7 @@ function AttackPicker({
   marchCaps: { march_capacity: number; march_queue: number; burg_level: number; guardian_bonus_pct: number } | null;
   activeMarches: number;
 }) {
+  const t = useTranslations("AttackBaseModal");
   const [openClass, setOpenClass] = useState<string | null>(null);
   const cap = marchCaps?.march_capacity ?? null;
   const overCap = cap !== null && totalCount > cap;
@@ -736,7 +739,7 @@ function AttackPicker({
         style={{ background: "linear-gradient(135deg, rgba(255,45,120,0.18) 0%, rgba(255,107,74,0.12) 100%)" }}>
         <button onClick={onBack} className="w-8 h-8 rounded-full bg-black/40 text-white text-base font-black">‹</button>
         <div className="flex-1 min-w-0">
-          <div className="text-[8px] font-black tracking-[2px] text-[#FF6B4A]/90">ANGRIFF</div>
+          <div className="text-[8px] font-black tracking-[2px] text-[#FF6B4A]/90">{t("attackHeader")}</div>
           <div className="text-[13px] font-black text-white truncate">{defender?.display_name}</div>
         </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-base font-black">×</button>
@@ -749,17 +752,17 @@ function AttackPicker({
             : "bg-[#22D1C3]/10 border border-[#22D1C3]/30 text-white/80"
           }`}>
             <span>
-              📦 March-Cap: <b className="text-white">{totalCount}/{cap}</b>
-              <span className="text-white/50 ml-2">· Burg Lv {marchCaps.burg_level}</span>
-              {marchCaps.guardian_bonus_pct > 0 && <span className="text-[#FFD700] ml-2">+{marchCaps.guardian_bonus_pct}%</span>}
+              {t("marchCapLabel")} <b className="text-white">{totalCount}/{cap}</b>
+              <span className="text-white/50 ml-2">{t("marchCapBurg", { level: marchCaps.burg_level })}</span>
+              {marchCaps.guardian_bonus_pct > 0 && <span className="text-[#FFD700] ml-2">{t("marchCapShortGuardian", { pct: marchCaps.guardian_bonus_pct })}</span>}
             </span>
             <span className={queueFull ? "text-[#FF2D78]" : "text-white/60"}>
-              {activeMarches}/{marchCaps.march_queue} Marches
+              {t("marchesUsed", { used: activeMarches, total: marchCaps.march_queue })}
             </span>
           </div>
         )}
         {Object.keys(grouped).length === 0 && (
-          <div className="text-center text-[12px] text-white/60 py-8">Keine Truppen verfügbar — bilde welche aus.</div>
+          <div className="text-center text-[12px] text-white/60 py-8">{t("noTroops")}</div>
         )}
         {Object.entries(grouped).map(([cls, list]) => {
           const open = openClass === cls;
@@ -769,29 +772,29 @@ function AttackPicker({
             <div key={cls} className="rounded-lg bg-black/20 border border-white/5 overflow-hidden">
               <button onClick={() => setOpenClass(open ? null : cls)}
                 className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white hover:bg-white/5">
-                <span>★ {CLASS_LABEL[cls] ?? cls}</span>
+                <span>{t("classClickHint", { name: CLASS_LABEL_KEY[cls] ? t(CLASS_LABEL_KEY[cls]) : cls })}</span>
                 <span className="text-white/60 text-[10px] flex items-center gap-2">
                   {classSel > 0 && <span className="text-[#FFD700] font-black">{classSel}</span>}
-                  <span className="text-white/40">verfügbar {classHave}</span>
+                  <span className="text-white/40">{t("classAvailable", { n: classHave })}</span>
                   <span>{open ? "▾" : "▸"}</span>
                 </span>
               </button>
               {open && (
                 <div className="p-2 space-y-1.5 border-t border-white/5">
-                  {list.map((t) => {
-                    const have = counts[t.id] ?? 0;
-                    const v = selected[t.id] ?? 0;
+                  {list.map((tr) => {
+                    const have = counts[tr.id] ?? 0;
+                    const v = selected[tr.id] ?? 0;
                     return (
-                      <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/30 border border-white/5">
-                        <span className="text-base shrink-0 w-6 text-center">{t.emoji}</span>
+                      <div key={tr.id} className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/30 border border-white/5">
+                        <span className="text-base shrink-0 w-6 text-center">{tr.emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-black text-white truncate">{t.name} <span className="text-white/40">T{t.tier}</span></div>
-                          <div className="text-[9px] text-white/50">Angriff {t.base_atk} · Verteidigung {t.base_def} · Leben {t.base_hp} · da {have}</div>
+                          <div className="text-[11px] font-black text-white truncate">{tr.name} <span className="text-white/40">{t("troopTier", { tier: tr.tier })}</span></div>
+                          <div className="text-[9px] text-white/50">{t("troopStats", { atk: tr.base_atk, def: tr.base_def, hp: tr.base_hp, have })}</div>
                         </div>
                         <input type="number" min={0} max={have} value={v}
-                          onChange={(e) => setQty(t.id, Number(e.target.value))}
+                          onChange={(e) => setQty(tr.id, Number(e.target.value))}
                           className="w-16 text-right text-[11px] font-black px-2 py-1 rounded bg-black/50 border border-white/10 text-white" />
-                        <button onClick={() => setQty(t.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">MAX</button>
+                        <button onClick={() => setQty(tr.id, have)} className="text-[9px] font-black text-[#22D1C3] px-2 py-1 rounded bg-[#22D1C3]/10 hover:bg-[#22D1C3]/20">{t("qtyMax")}</button>
                       </div>
                     );
                   })}
@@ -806,15 +809,15 @@ function AttackPicker({
         style={{ background: "linear-gradient(0deg, rgba(0,0,0,0.4), transparent)" }}>
         <div className="flex items-center justify-between text-[11px]">
           <div>
-            <span className="text-white/60">Truppen: </span>
+            <span className="text-white/60">{t("footerTroopsLabel")} </span>
             <span className="text-white font-black">{totalCount}</span>
             <span className="text-white/40 mx-2">·</span>
-            <span className="text-white/60">Angriff: </span>
-            <span className="text-[#FF6B4A] font-black">{totalAtk.toLocaleString("de-DE")}</span>
+            <span className="text-white/60">{t("footerAttackLabel")} </span>
+            <span className="text-[#FF6B4A] font-black">{totalAtk.toLocaleString()}</span>
           </div>
           <div className="flex gap-1">
-            <button onClick={clearAll} className="text-[10px] font-black text-white/60 px-2 py-1 rounded bg-white/5">Leer</button>
-            <button onClick={fillMax} className="text-[10px] font-black text-[#FFD700] px-2 py-1 rounded bg-[#FFD700]/10">Max-Cap</button>
+            <button onClick={clearAll} className="text-[10px] font-black text-white/60 px-2 py-1 rounded bg-white/5">{t("footerClear")}</button>
+            <button onClick={fillMax} className="text-[10px] font-black text-[#FFD700] px-2 py-1 rounded bg-[#FFD700]/10">{t("footerMaxCap")}</button>
           </div>
         </div>
         {msg && (
@@ -827,9 +830,9 @@ function AttackPicker({
           className="w-full text-[13px] font-black px-4 py-3 rounded-xl text-white disabled:opacity-40 transition"
           style={{ background: "linear-gradient(135deg, #FF2D78, #FF6B4A)", boxShadow: "0 4px 16px rgba(255,45,120,0.4)" }}>
           {busy ? "…"
-            : queueFull ? "⛔ Alle March-Slots belegt"
-            : overCap ? `⚠ Über March-Cap (${totalCount}/${cap})`
-            : `⚔️ ANGREIFEN${totalCount > 0 ? ` (${totalCount})` : ""}`}
+            : queueFull ? t("btnQueueFull")
+            : overCap ? t("btnOverCap", { n: totalCount, cap: cap ?? 0 })
+            : totalCount > 0 ? t("btnAttackStartCount", { n: totalCount }) : t("btnAttackStart")}
         </button>
       </div>
     </>
