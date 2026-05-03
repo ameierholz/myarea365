@@ -11,17 +11,21 @@ export type TroopDef = {
 };
 
 const CLASS_LABEL: Record<string, string> = {
-  infantry: "🛡 Türsteher", cavalry: "🏍 Kuriere",
-  marksman: "🎯 Schleuderer", siege:   "🔨 Brecher",
+  infantry:  "🛡 Türsteher",
+  cavalry:   "🏍 Kurier",
+  marksman:  "🎯 Schütze",
+  siege:     "🔨 Brecher",
+  collector: "📦 Sammler",
 };
 const CLASS_KIND: Record<string, string> = {
-  infantry: "Nahkampf", cavalry: "Reiter", marksman: "Fernkampf", siege: "Schwer",
+  infantry: "Nahkampf", cavalry: "Reiter", marksman: "Fernkampf", siege: "Schwer", collector: "Sammeln",
 };
 const CLASS_GRADIENT: Record<string, string> = {
-  infantry: "linear-gradient(180deg, #1e3a5f 0%, #0f1f33 100%)",
-  cavalry:  "linear-gradient(180deg, #5b3b1f 0%, #2a1c0e 100%)",
-  marksman: "linear-gradient(180deg, #1f5b3b 0%, #0e2a1c 100%)",
-  siege:    "linear-gradient(180deg, #5b1f3b 0%, #2a0e1c 100%)",
+  infantry:  "linear-gradient(180deg, #1e3a5f 0%, #0f1f33 100%)",
+  cavalry:   "linear-gradient(180deg, #5b3b1f 0%, #2a1c0e 100%)",
+  marksman:  "linear-gradient(180deg, #1f5b3b 0%, #0e2a1c 100%)",
+  siege:     "linear-gradient(180deg, #5b1f3b 0%, #2a0e1c 100%)",
+  collector: "linear-gradient(180deg, #1f4a2c 0%, #0e2517 100%)",
 };
 
 function fmtTime(seconds: number): string {
@@ -159,7 +163,7 @@ export function TroopDetailModal({
               </div>
               {maxAtOnce <= 10 && (
                 <div className="text-[9px] text-[#FF6B9A] mt-2 text-center">
-                  ⓘ Cap = Gebäude-Lv × 10. Baue {troop.troop_class === "infantry" ? "Bar" : troop.troop_class === "cavalry" ? "Garage" : troop.troop_class === "marksman" ? "Gym" : "Werkhof"} aus für mehr.
+                  ⓘ Cap = Gebäude-Lv × 10. Baue {troop.troop_class === "infantry" ? "Bar" : troop.troop_class === "cavalry" ? "Garage" : troop.troop_class === "marksman" ? "Gym" : troop.troop_class === "collector" ? "Depot" : "Werkhof"} aus für mehr.
                 </div>
               )}
 

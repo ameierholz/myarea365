@@ -1810,7 +1810,7 @@ export function buildBaseRingPrompt(input: {
   ].join(" ");
 }
 
-// ─── NAMEPLATE (Banner with center area for runner name) ────────────────
+// ─── NAMEPLATE (Banner-Rahmen mit transparenter Mitte für den Runner-Namen) ─
 export function buildNameplatePrompt(input: {
   id: string;
   name: string;
@@ -1818,47 +1818,49 @@ export function buildNameplatePrompt(input: {
   rarity: "common" | "advanced" | "epic" | "legendary";
   mode: "image" | "video";
 }): string {
+  // Reichtum / Wildheit der Top+Bottom-Auswüchse skaliert mit Rarity
   const rarityVibe = {
-    common: "simple clean frame, minimal ornaments",
-    advanced: "refined details, soft glow accents",
-    epic: "ornate filigree, glowing energy details",
-    legendary: "spectacular VFX, premium ornaments, godly aura",
+    common:    "minimal restrained ornament — a few small subtle bumps or notches above and below, otherwise plain",
+    advanced:  "moderate decorative growths — small spikes, tiny vines, or modest flourishes growing upward and downward at 3-5 places along the top+bottom",
+    epic:      "rich ornate growths — multiple spikes, horns, curling vines, jagged thorns, asymmetric protrusions extending ABOVE and BELOW the bar silhouette, glowing accents, theme-appropriate flourishes",
+    legendary: "spectacular elaborate outgrowths — large dramatic spikes, sweeping horns, twisting branches, jagged claws, glowing crystal shards, sharp sigils breaking out from the top and bottom edges in bold asymmetric arrangements with VFX glow, particle wisps, premium signature flourishes — make the silhouette WILD and unmistakable",
   }[input.rarity];
 
-  // CRITICAL: Wir vermeiden bewusst die Wörter "banner", "nameplate", "scroll", "plaque" —
-  // sie triggern im AI-Trainingsdatensatz HART Side-Cap-Designs mit Ornamenten links/rechts.
-  // Stattdessen mentales Modell: "ARCHITEKTONISCHER FRIES" / "BUCHRÜCKEN-BORDÜRE" /
-  // "HORIZONTAL CORNICE" — das sind Formen mit Deko ausschließlich oben+unten.
+  // Vermeiden: "banner", "scroll", "plaque", "nameplate" — triggern AI-Side-Cap-Bias.
+  // Mentales Modell: "horizontaler Rahmen mit Auswüchsen oben+unten,
+  // Mitte komplett LEER (chroma-green), Text wird im Runtime in die leere Mitte gerendert."
   const themeWord = `"${input.name}"`;
   if (input.mode === "video") {
     return [
-      `Shot: a 3-second seamlessly looping horizontal architectural frieze/cornice for the game "MyArea365", aspect ratio 4:1 wide (e.g. 1024x256), 30 fps.`,
+      `Shot: a 3-second seamlessly looping wide horizontal frame/border for the game "MyArea365", aspect ratio 6:1 (e.g. 1536x256), 30 fps.`,
       GREEN_BG_RULE,
-      `Subject: a horizontal rectangular UI panel themed ${themeWord} — ${input.description}. ${rarityVibe}.`,
-      `SHAPE: a single perfectly rectangular horizontal bar with completely flat vertical left and right edges. NO ornaments, NO flourishes, NO end-caps, NO carved frames, NO sigils, NO gems, NO metal trim, NO decoration of any kind on the LEFT vertical edge. SAME for the RIGHT vertical edge. The bar's left edge is a flat clean cut. The bar's right edge is a flat clean cut. Imagine a railroad track segment: the two short ends are nothing, just where the rail was sliced.`,
-      `Decoration zones (the ONLY places allowed to have detail): the TOP horizontal edge and the BOTTOM horizontal edge.`,
-      `TOP edge (top ~22% of bar height): a continuous horizontal decorative frieze running the FULL WIDTH from left to right — like a Greek architectural cornice, an Art-Nouveau border tile, or a repeating ornament strip. Examples: filigree, runes, vines, flames, energy circuit, glowing line, repeating motif. The decoration must continue right up to the left and right cut edges (no fade, no end-piece).`,
-      `BOTTOM edge (bottom ~22% of bar height): mirrored or complementary horizontal frieze, also running the full width edge-to-edge.`,
-      `MIDDLE band (~56% of bar height): a clean uniform horizontal stripe — solid dark plate, smooth parchment, frosted glass, or matte color. ABSOLUTELY NO decoration in this middle band. It runs full width. Text will be overlaid here at runtime so it must stay readable and uncluttered.`,
-      `Color: theme-matched palette. Avoid pure-green tones in the bar itself.`,
-      `Motion: only the TOP and BOTTOM frieze strips animate (shimmer, particles, flowing energy along the strip); the central middle band stays completely still and clean.`,
-      `Style reference: think "Greek frieze", "Art Deco horizontal border", "fantasy game scoreboard divider" — a flat strip with ornament ONLY on the long top/bottom edges. NOT a fantasy banner, NOT a scroll, NOT a placard, NOT a nameplate.`,
+      `Subject: a wide horizontal decorative frame themed ${themeWord} — ${input.description}. ${rarityVibe}.`,
+      `CRITICAL TRANSPARENT-CENTER RULE: the ENTIRE CENTER of the frame must be FILLED WITH PURE-GREEN BACKGROUND #00FF00. The frame is just a TOP horizontal strip + a BOTTOM horizontal strip + thin LEFT and RIGHT cut-edges. The big rectangular area in the middle of the frame is COMPLETELY EMPTY GREEN — no plate, no parchment, no glass, no dark fill, no shading. The runner's name will be rendered into this empty middle space at runtime, so it must end up as fully transparent alpha after chroma-key removal.`,
+      `LEFT vertical edge: FLAT CLEAN CUT — no end-cap, no ornament, no flourish, no gem, no metal trim. Just the raw cut where the strip ends.`,
+      `RIGHT vertical edge: FLAT CLEAN CUT — same rules. Imagine a strip of architectural cornice sliced cleanly with shears.`,
+      `TOP horizontal strip (top ~18% of canvas height): a continuous decorative band running the FULL WIDTH edge-to-edge. From this top band, decorative growths extend UPWARD into the area above the band — spikes, horns, vines, thorns, jagged crystals, twisting branches, claws, sigils, glowing shards. These growths can be ASYMMETRIC and VARIED along the width (different heights, different shapes, not a repeated tile pattern). Theme-appropriate to ${themeWord}.`,
+      `BOTTOM horizontal strip (bottom ~18% of canvas height): mirrors the design language of the top band, with growths extending DOWNWARD. Decorative drips, roots, hanging chains, downward spikes, dripping vines, claws — varied, asymmetric, theme-matched.`,
+      `MIDDLE empty zone (~64% of canvas height, full width between the top and bottom strips): completely empty pure GREEN #00FF00 — NO graphics, NO decoration, NO text, NO shading, NO frame border crossing through it. Just empty green that becomes transparent at render. This is where the runner-name goes.`,
+      `Color palette: theme-matched, vibrant. The TOP+BOTTOM strips and their growths are the only colored elements. Avoid pure-green in the strips themselves.`,
+      `Motion: only the top and bottom strips with their growths animate (shimmer, particles flow along outline, glowing pulse on tips of spikes, wisps drifting from claws/horns). The middle empty zone stays uniformly green and motionless.`,
+      `Style reference: think "fantasy game UI rune-frame with decorative top+bottom edges and a TRANSPARENT WINDOW in the middle for text" — like an open window with carved upper and lower lintels but NO glass and NO frame on the sides between them. NOT a fantasy banner, NOT a scroll, NOT a placard, NOT a solid nameplate.`,
       `Looping: final frame matches first frame for seamless loop.`,
-      `Negative prompt — strictly forbidden: end-caps, side ornaments, side flourishes, side gems, side carvings, scroll ends, banner tails, ribbon ends, pointed tips, decorative left edge, decorative right edge, ornaments on the short sides, vertical ornaments, text, letters, numbers, faces, scenery.`,
+      `Negative prompt — strictly forbidden: filled middle band, parchment center, dark plate in middle, glass/frosted center, ANY decoration in the middle zone, end-caps, side ornaments on left/right vertical edges, side gems, side carvings, scroll ends, banner tails, ribbon ends, text, letters, numbers, faces, scenery, full rectangle silhouette without asymmetric growths.`,
     ].join(" ");
   }
   return [
-    `A premium horizontal UI panel asset themed ${themeWord} for "MyArea365", aspect ratio 4:1 wide (e.g. 1024x256), PNG.`,
+    `A premium wide horizontal decorative frame themed ${themeWord} for "MyArea365", aspect ratio 6:1 (e.g. 1536x256), PNG.`,
     GREEN_BG_RULE,
     `Subject: ${input.description}. ${rarityVibe}.`,
-    `SHAPE: a single perfectly rectangular horizontal bar. The LEFT vertical edge is a FLAT CLEAN CUT — no ornament, no flourish, no end-cap, no carving, no gem, no metal trim. The RIGHT vertical edge is also a FLAT CLEAN CUT — same rules. Think of a strip cut from a much longer architectural frieze with scissors.`,
-    `Decoration zones (ONLY places allowed to have detail): the TOP horizontal edge and the BOTTOM horizontal edge — both running the FULL WIDTH from left edge to right edge, edge-to-edge, no fade.`,
-    `TOP edge (top ~22% of bar height): continuous horizontal decorative frieze (filigree, runes, vines, flames, glowing circuit, repeating motif — theme-appropriate). Goes right up to the cut edges.`,
-    `BOTTOM edge (bottom ~22% of bar height): mirrored or complementary frieze, full width.`,
-    `MIDDLE band (~56% of bar height): CLEAN uniform horizontal stripe (solid dark plate, parchment, frosted glass, matte color) running full width with ABSOLUTELY NO decoration. Text will be overlaid here later.`,
-    `Style reference: Greek architectural frieze, Art Deco horizontal divider, Art Nouveau border tile, fantasy game scoreboard separator. NOT a fantasy "banner" or "scroll" or "nameplate" or "placard" — those have side-caps which we explicitly forbid.`,
-    `Color palette: theme-matched. Avoid pure-green in the bar itself.`,
-    `Negative prompt — strictly forbidden: end-caps, side ornaments, side flourishes, side gems, side carvings, scroll ends, banner tails, ribbon ends, pointed tips, decorative left edge, decorative right edge, ornaments on the short sides, vertical ornaments, text, letters, numbers, faces, scenery.`,
+    `CRITICAL TRANSPARENT-CENTER RULE: the ENTIRE CENTER of the frame must be FILLED WITH PURE-GREEN BACKGROUND #00FF00 so it becomes fully TRANSPARENT after chroma-key removal at render-time. The frame consists of ONLY a TOP decorative strip + a BOTTOM decorative strip. The huge middle rectangular zone between them is COMPLETELY EMPTY GREEN — no plate, no parchment, no dark fill, no shading, no border crossing through. Text will be drawn into this empty middle by the app at runtime.`,
+    `LEFT vertical edge: FLAT CLEAN CUT — absolutely no end-cap, no ornament, no flourish, no gem, no metal trim, no carving. Just where the strip was sliced.`,
+    `RIGHT vertical edge: FLAT CLEAN CUT — same rules.`,
+    `TOP horizontal strip (top ~18% of canvas height): continuous decorative band edge-to-edge. From this band, decorative growths extend UPWARD into the area above — varied spikes, horns, twisting vines, jagged thorns, glowing crystal shards, claws, sigils, dripping flames — ASYMMETRIC and varied along the width (NOT a uniform repeated tile, but a designed silhouette with different heights and shapes at different positions). Theme-appropriate to ${themeWord}.`,
+    `BOTTOM horizontal strip (bottom ~18% of canvas height): complementary design language to the top, with growths extending DOWNWARD — drips, roots, hanging chains, downward spikes, dripping vines, claws. Varied and asymmetric.`,
+    `MIDDLE empty zone (~64% of canvas height, full width between the strips): completely empty pure GREEN #00FF00. NO content of any kind. This area becomes transparent.`,
+    `Color palette: theme-matched, rich and vibrant. Strips and growths are the only colored elements. Avoid pure-green tones inside the strips themselves.`,
+    `Style reference: "fantasy game rune-frame with decorative top+bottom and an open transparent window in the middle for runtime text" — the silhouette must look WILD and ORGANIC due to the asymmetric upward+downward growths, NOT like a flat sealed banner. NOT a banner, NOT a scroll, NOT a placard, NOT a nameplate.`,
+    `Negative prompt — strictly forbidden: filled middle, parchment center, dark plate in middle, glass center, ANY decoration in the middle zone, frame border crossing the middle, end-caps, side ornaments on left/right edges, side gems, scroll ends, banner tails, ribbon ends, text, letters, numbers, faces, scenery, perfectly straight rectangular silhouette without growths.`,
   ].join(" ");
 }
 
@@ -2204,7 +2206,7 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
 }
 
 // ─────────────────────────────────────────────────────────────────
-// TROOP-PROMPT — Set D Kiez-Crew (4 Klassen × 5 Tiers = 20)
+// TROOP-PROMPT — Set D Kiez-Crew (5 Klassen × 5 Tiers = 25)
 // ─────────────────────────────────────────────────────────────────
 type TroopSlotInput = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -2212,42 +2214,53 @@ export function buildTroopPrompt(input: { slot: TroopSlotInput; mode: "image" | 
   const s = input.slot;
 
   // Klassen-Beschreibung (alle urban, Set D Kiez-Crew)
-  const CLASS_VIBE: Record<string, { role: string; outfit: string; weapon: string }> = {
+  const CLASS_VIBE: Record<string, { role: string; outfit: string; weapon: string; signature: string }> = {
     infantry: {
-      role: "burly nightclub bouncer / doorman",
+      role: "burly nightclub bouncer / doorman (TÜRSTEHER)",
       outfit: "tight black bomber jacket or dark suit, earpiece, chunky boots",
       weapon: "no weapon needed — fists / brass knuckles / heavy belt",
+      signature: "broad shoulders, crossed-arms idle pose, cyan accent #5ddaf0",
     },
     cavalry: {
-      role: "fast urban courier / motorbike messenger",
+      role: "fast urban courier / motorbike messenger (KURIER)",
       outfit: "leather riding jacket, helmet with reflective visor, fingerless gloves",
-      weapon: "messenger bag, possibly small baton holstered",
+      weapon: "messenger bag, possibly small baton holstered, motorbike key on chain",
+      signature: "dynamic forward-leaning stance, scarf or strap blowing back, orange accent #FF6B4A",
     },
     marksman: {
-      role: "skilled urban thrower / slinger",
-      outfit: "hooded streetwear, cargo pants with side pockets, sneakers",
-      weapon: "modern slingshot, ball bearings or stones, thrown bottles",
+      role: "skilled urban marksman / sharpshooter (SCHÜTZE)",
+      outfit: "hooded streetwear, cargo pants with side pockets, sneakers, single eye-scope monocle",
+      weapon: "modern compact crossbow / paintball-style marker / slingshot with ball bearings",
+      signature: "one-knee crouched aiming pose, focused squint, golden accent #FFD700",
     },
     siege: {
-      role: "demolition worker / heavy hitter",
-      outfit: "heavy work boots, hi-vis vest over thick clothing, knee pads",
+      role: "demolition worker / heavy hitter (BRECHER)",
+      outfit: "heavy work boots, hi-vis vest over thick clothing, knee pads, dust mask around neck",
       weapon: "sledgehammer, crowbar, or oversized iron pipe",
+      signature: "two-handed weapon grip, wide power-stance, violet accent #a855f7",
+    },
+    collector: {
+      role: "urban scavenger / resource gatherer (SAMMLER)",
+      outfit: "utility vest with many pockets, bandana around neck, work gloves, sturdy trousers, headlamp on cap",
+      weapon: "no weapon — instead carries a heavy CARGO BACKPACK overflowing with scrap, copper wire, jerry-cans, a shovel or magnet-stick clipped to the back",
+      signature: "loaded backpack visible behind shoulders, one hand holding tool the other a sack, friendly working stance, green accent #4ade80",
     },
   };
 
-  // Tier-Progression: T1 = Anfänger, T5 = Boss/Meister
+  // Tier-Progression: einheitliches Schema, eindeutig unterscheidbar
+  // T1 Rookie · T2 Stamm · T3 Profi · T4 Elite · T5 Boss
   const TIER_LOOK: Record<number, string> = {
-    1: "young recruit, plain unbranded clothes, slightly nervous but determined posture",
-    2: "experienced soldier, gear with subtle wear, confident stance, faint scars",
-    3: "veteran, custom-modified equipment, battle-hardened expression, visible muscle",
-    4: "elite enforcer, premium tactical gear, intimidating poise, gold/silver accents",
-    5: "legendary boss, luxurious dark coat or armor, commanding aura, faint golden glow",
+    1: "TIER 1 / ROOKIE: young recruit, plain unbranded grey/black clothes, NO patches, NO chains, NO glow. Slightly nervous but determined. Minimal accessories. Fresh / clean look.",
+    2: "TIER 2 / STAMM: experienced regular, ONE silver chain or single crew-patch on jacket, basic cap or beanie, faint wear on gear. Confident neutral stance.",
+    3: "TIER 3 / PROFI: full professional kit, MULTIPLE accessories (chains, patches, tactical pouches), branded crew jacket, slight smoke or dust at feet. Battle-hardened expression, visible muscle/scars.",
+    4: "TIER 4 / ELITE: premium tactical gear with NEON-TRIM piping (cyan or magenta glow on jacket seams), thick gold chain, designer sneakers, subtle halo backlight glow around silhouette. Intimidating poised stance. Gold/silver accents on weapons.",
+    5: "TIER 5 / BOSS: legendary commanding presence — distinctive SIGNATURE HEADWEAR (e.g. crown of bullets, horned helmet, neon-lit visor or tactical ski-mask with glowing eyes), luxurious long dark coat or armored vest with intricate crew-emblem stitching, MULTIPLE thick gold chains, cigar or toothpick, intense BACKLIT NEON-AURA outlining the body, faint smoke curling from feet, commanding alpha pose. Unmistakable boss vibe.",
   };
 
   const cls = CLASS_VIBE[s.troop_class] ?? CLASS_VIBE.infantry;
   const tier = TIER_LOOK[s.tier] ?? TIER_LOOK[1];
 
-  const subject = `${cls.role}, "${s.name}". ${tier}. Wears ${cls.outfit}. Carries ${cls.weapon}.`;
+  const subject = `${cls.role}, internal name "${s.name}". ${tier} ${cls.signature}. Wears ${cls.outfit}. Carries ${cls.weapon}. CRITICAL: the tier visual markers above must be unmistakable so a player can instantly tell T1 from T5 at a glance — Rookie looks plain, Boss looks legendary.`;
 
   const base = [
     `A premium 3D character portrait for a mobile urban turf-war strategy game called "Stadt-Krieger".`,

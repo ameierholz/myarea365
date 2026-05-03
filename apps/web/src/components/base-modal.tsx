@@ -1487,10 +1487,11 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
   if (!data) return <div className="text-[11px] text-[#a8b4cf]">{t("troopsLoading")}</div>;
   const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
   const classes: Array<{ id: string; label: string; building: string }> = [
-    { id: "infantry",  label: t("troopClassInfantry"), building: t("troopBuildingBar") },
-    { id: "cavalry",   label: t("troopClassCavalry"),  building: t("troopBuildingGarage") },
-    { id: "marksman",  label: t("troopClassMarksman"), building: t("troopBuildingGym") },
-    { id: "siege",     label: t("troopClassSiege"),    building: t("troopBuildingWerkhof") },
+    { id: "infantry",  label: t("troopClassInfantry"),  building: t("troopBuildingBar") },
+    { id: "cavalry",   label: t("troopClassCavalry"),   building: t("troopBuildingGarage") },
+    { id: "marksman",  label: t("troopClassMarksman"),  building: t("troopBuildingGym") },
+    { id: "siege",     label: t("troopClassSiege"),     building: t("troopBuildingWerkhof") },
+    { id: "collector", label: t("troopClassCollector"), building: t("troopBuildingDepot") },
   ];
 
   return (
@@ -1570,7 +1571,7 @@ function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<v
           owned={ownedMap}
           initialTroopId={selectedTroopId}
           gemsAvailable={gemsAvailable}
-          caps={data.caps ?? { infantry: 0, cavalry: 0, marksman: 0, siege: 0 }}
+          caps={data.caps ?? { infantry: 0, cavalry: 0, marksman: 0, siege: 0, collector: 0 }}
           onClose={() => setSelectedTroopId(null)}
           onTrained={async () => { await Promise.all([load(), reload()]); }}
         />

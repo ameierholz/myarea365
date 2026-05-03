@@ -248,14 +248,14 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-stronghold-emoji { font-size: 50px; line-height: 1; }
     .ma365-stronghold-level {
-      min-width: 16px; height: 14px;
-      padding: 0 5px; border-radius: 999px;
+      min-width: 24px; height: 20px;
+      padding: 0 7px; border-radius: 999px;
       background: linear-gradient(135deg, #FF2D78, #FF6B4A); color: #FFF;
-      font-size: 9px; font-weight: 900; line-height: 14px;
+      font-size: 12px; font-weight: 900; line-height: 20px;
       text-align: center;
-      border: 1px solid rgba(255,255,255,0.85);
-      box-shadow: 0 1px 3px rgba(255,45,120,0.45);
-      margin-top: -22px;
+      border: 1.5px solid rgba(255,255,255,0.95);
+      box-shadow: 0 2px 5px rgba(255,45,120,0.55);
+      margin-top: -18px;
       pointer-events: none;
       z-index: 2;
     }
@@ -2720,7 +2720,7 @@ export function AppMap({
       const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       // Wegelager = Feind → ROT. Falls Artwork in anderer Farbe gespeichert ist,
       // mit hue-rotate auf Rot drücken (kombiniert mit chroma-key für transparenten BG).
-      const wegelagerStyle = "width:150px;height:150px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
+      const wegelagerStyle = "width:120px;height:120px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
       let visualHtml: string;
       if (art?.video_url) {
         visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}"></video>`;

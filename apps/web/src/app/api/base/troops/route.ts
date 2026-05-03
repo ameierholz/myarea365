@@ -19,15 +19,16 @@ export async function GET() {
   ]);
 
   // Trainings-Caps pro Klasse: Gebäude-Level × 10 (Solo)
-  const caps: Record<string, number> = { infantry: 0, cavalry: 0, marksman: 0, siege: 0 };
+  const caps: Record<string, number> = { infantry: 0, cavalry: 0, marksman: 0, siege: 0, collector: 0 };
   const baseRow = base.data as { id: string } | null;
   if (baseRow) {
     const { data: bb } = await sb.from("base_buildings").select("building_id, level").eq("base_id", baseRow.id);
     const byBuilding = new Map<string, number>(((bb ?? []) as Array<{ building_id: string; level: number }>).map((r) => [r.building_id, r.level]));
-    caps.infantry = (byBuilding.get("kaserne")            ?? 0) * 10;
-    caps.cavalry  = (byBuilding.get("stall")              ?? 0) * 10;
-    caps.marksman = (byBuilding.get("schiessstand")       ?? 0) * 10;
-    caps.siege    = (byBuilding.get("belagerungsschuppen")?? 0) * 10;
+    caps.infantry  = (byBuilding.get("kaserne")            ?? 0) * 10;
+    caps.cavalry   = (byBuilding.get("stall")              ?? 0) * 10;
+    caps.marksman  = (byBuilding.get("schiessstand")       ?? 0) * 10;
+    caps.siege     = (byBuilding.get("belagerungsschuppen")?? 0) * 10;
+    caps.collector = (byBuilding.get("kornkammer")         ?? 0) * 10;
   }
 
   return NextResponse.json({

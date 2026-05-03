@@ -1760,10 +1760,11 @@ function TroopArtTab({ artMap, slots, onChange }: {
   const filtered = filter === "ALL" ? slots : slots.filter((s) => s.troop_class === filter);
 
   const CLASS_META: Record<string, { label: string; color: string; emoji: string }> = {
-    infantry: { label: "TÜRSTEHER",   color: "#5ddaf0", emoji: "🛡️" },
-    cavalry:  { label: "KURIERE",     color: "#FF6B4A", emoji: "🏍️" },
-    marksman: { label: "SCHLEUDERER", color: "#FFD700", emoji: "🎯" },
-    siege:    { label: "BRECHER",     color: "#a855f7", emoji: "🔨" },
+    infantry:  { label: "TÜRSTEHER", color: "#5ddaf0", emoji: "🛡️" },
+    cavalry:   { label: "KURIER",    color: "#FF6B4A", emoji: "🏍️" },
+    marksman:  { label: "SCHÜTZE",   color: "#FFD700", emoji: "🎯" },
+    siege:     { label: "BRECHER",   color: "#a855f7", emoji: "🔨" },
+    collector: { label: "SAMMLER",   color: "#4ade80", emoji: "📦" },
   };
 
   return (
@@ -1783,7 +1784,7 @@ function TroopArtTab({ artMap, slots, onChange }: {
             </button>
           );
         })}
-        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: 1024×1024, Greenscreen #00FF00, Single-Subject Charakterbild — urbane Kiez-Crew (Türsteher/Bote/Schleuderer/Brecher).</div>
+        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: 1024×1024, Greenscreen #00FF00, Single-Subject Charakterbild — urbane Kiez-Crew (Türsteher/Kurier/Schütze/Brecher/Sammler). Tier-Rang via Outfit/Aura: T1 Rookie → T5 Boss.</div>
       </div>
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
@@ -1831,21 +1832,32 @@ function NameplateArtTab({ artMap, onChange }: { artMap: Record<string, { image_
   return (
     <div>
       <div className="text-[10px] text-[#a8b4cf] mb-3">
-        Banner liegen hinter dem Runner-Anzeigenamen — die zentralen ~60% Breite müssen frei für Text bleiben. Verzierungen nur auf left/right cap.
+        Banner sind 6:1 breit. Mitte = transparent (Chroma-Key), Runner-Name wird zur Laufzeit reingerendert. Verzierungen NUR oben+unten — mit asymmetrischen Spikes/Hörnern/Ranken/Klauen, die ÜBER und UNTER den Streifen rauswachsen. Linke+rechte Kante: glatter Schnitt, keine Side-Caps.
       </div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))" }}>
         {NAMEPLATES_ART.map((p) => {
           const art = artMap[p.id];
           const c = p.rarity === "legendary" ? "#FFD700" : p.rarity === "epic" ? "#a855f7" : p.rarity === "advanced" ? "#5ddaf0" : "#9aa3b8";
           return (
             <div key={p.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{ width: 100, height: 36, background: `${c}22`, border: `1px solid ${c}` }}>
-                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-contain" />
-                    : art?.image_url ? <img src={art.image_url} alt={p.name} className="w-full h-full object-contain" />
-                    : <span style={{ fontSize: 14, color: c, fontWeight: 800 }}>{p.name.slice(0,8)}</span>}
+              {/* 6:1 breite Vorschau-Tile, dahinter Runner-Name als Overlay zur Vorschau der Transparenz */}
+              <div className="relative mb-2 rounded-lg overflow-hidden" style={{ aspectRatio: "6 / 1", width: "100%", background: "rgba(15,17,21,0.6)", border: `1px solid ${c}55` }}>
+                {/* Transparenz-Schachbrett, damit man "leere Mitte" sieht */}
+                <div className="absolute inset-0 opacity-30" style={{
+                  backgroundImage: "linear-gradient(45deg, #888 25%, transparent 25%), linear-gradient(-45deg, #888 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #888 75%), linear-gradient(-45deg, transparent 75%, #888 75%)",
+                  backgroundSize: "12px 12px",
+                  backgroundPosition: "0 0, 0 6px, 6px -6px, -6px 0px",
+                }} />
+                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-contain" style={{ filter: "url(#ma365-chroma-green)" }} />
+                  : art?.image_url ? <img src={art.image_url} alt={p.name} className="absolute inset-0 w-full h-full object-contain" style={{ filter: "url(#ma365-chroma-green)" }} />
+                  : <div className="absolute inset-0 flex items-center justify-center"><span style={{ fontSize: 14, color: c, fontWeight: 800 }}>{p.name.slice(0,16)}</span></div>}
+                {/* Demo-Runner-Name in der Mitte, um Lesbarkeit zu zeigen */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-white font-black text-[14px] drop-shadow-[0_2px_2px_rgba(0,0,0,0.85)]">Runner-Name</span>
                 </div>
-                <div className="flex-1 min-w-0">
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="min-w-0">
                   <div className="text-[10px] font-bold tracking-wider" style={{ color: c }}>{p.rarity.toUpperCase()}</div>
                   <div className="text-sm font-black text-white truncate">{p.name}</div>
                   <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{p.description}</div>
