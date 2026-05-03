@@ -116,7 +116,7 @@ update public.buildings_catalog set name = case id
   when 'allianz_zentrum'      then 'Crew-Zentrum'
   when 'augurstein'           then 'Daten-Orakel'
   when 'basar'                then 'Trading-Post'
-  when 'burg'                 then 'Festung'
+  when 'burg'                 then 'Base'
   when 'crew_akademie'        then 'Crew-Lab'
   when 'goblin_markt'         then 'Schwarzmarkt'
   when 'halbling_haus'        then 'Bau-Büro'

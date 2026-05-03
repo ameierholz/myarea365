@@ -1093,7 +1093,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   );
 }
 
-// Festung-Roadmap: zeigt alle Burg-Level-Unlocks (March-Queue, Kapazität,
+// Base-Roadmap: zeigt alle Base-Level-Unlocks (March-Queue, Kapazität,
 // Bau-Slots, Truppen-Tiers + Pre-Reqs).
 const BURG_MILESTONES: Array<{ level: number; unlocks: string[] }> = [
   { level: 1,  unlocks: ["1 March-Queue", "30 March-Capacity", "1 Bau-Slot"] },
