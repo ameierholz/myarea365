@@ -150,7 +150,7 @@ export function RepeaterInfoPopup({
       const need = res?.need;
       setRepairErr(
         res?.error === "insufficient_resources" && need
-          ? `Brauchst ${need.gold} Gold / ${need.wood} Holz / ${need.stone} Stein`
+          ? `Brauchst ${need.gold} Krypto / ${need.wood} Tech-Schrott / ${need.stone} Komponenten`
           : res?.error || error?.message || "Reparatur fehlgeschlagen"
       );
       return;

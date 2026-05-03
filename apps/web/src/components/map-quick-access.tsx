@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { UiIcon, useUiIconArt, type ResourceArtMap } from "@/components/resource-icon";
+import { UiIcon, useUiIconArt, useArtworkReady, type ResourceArtMap } from "@/components/resource-icon";
 
 const PRIMARY = "#22D1C3";
 const ACCENT = "#FF2D78";
@@ -483,14 +483,7 @@ function QuickButton({
         lineHeight: 1,
         filter: `drop-shadow(0 1px 2px rgba(0,0,0,0.7)) drop-shadow(0 0 8px ${color}aa)`,
       }}>
-        {customIcon?.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={customIcon.image_url} alt="" style={{ width: 24, height: 24, objectFit: "contain", filter: "url(#ma365-chroma-black)", transform: "scale(1.9)", transformOrigin: "center center" }} />
-        ) : customIcon?.video_url ? (
-          <video src={customIcon.video_url} autoPlay loop muted playsInline style={{ width: 24, height: 24, objectFit: "contain", filter: "url(#ma365-chroma-black)", transform: "scale(1.9)", transformOrigin: "center center" }} />
-        ) : (
-          <UiIcon slot={slot} fallback={fallback} art={art} size={26} />
-        )}
+        <QuickButtonIcon customIcon={customIcon} slot={slot} fallback={fallback} art={art} />
       </span>
       <span style={{
         fontSize: 12, fontWeight: 400, letterSpacing: 0.8,
@@ -745,4 +738,24 @@ function RallyRow({
       )}
     </div>
   );
+}
+
+
+function QuickButtonIcon({ customIcon, slot, fallback, art }: {
+  customIcon?: { image_url: string | null; video_url: string | null } | null;
+  slot: string; fallback: string; art: ResourceArtMap;
+}) {
+  const ready = useArtworkReady();
+  const sharedStyle: React.CSSProperties = { width: 24, height: 24, objectFit: "contain", filter: "url(#ma365-chroma-black)", transform: "scale(1.9)", transformOrigin: "center center" };
+  if (customIcon?.image_url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={customIcon.image_url} alt="" style={sharedStyle} />;
+  }
+  if (customIcon?.video_url) {
+    return <video src={customIcon.video_url} autoPlay loop muted playsInline style={sharedStyle} />;
+  }
+  // Solange Cache (oder Caller-Profil-Marker) noch nicht da ist → Platzhalter,
+  // damit kein Emoji-Fallback aufblitzt bevor das hochgeladene Bild lädt.
+  if (!ready) return <span style={{ display: "inline-block", width: 26, height: 26 }} aria-hidden />;
+  return <UiIcon slot={slot} fallback={fallback} art={art} size={26} />;
 }

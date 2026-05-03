@@ -14,7 +14,7 @@ export async function GET() {
   return NextResponse.json(data);
 }
 
-/** POST /api/base/shield → aktiviert Schutzschild (500 Gold, 24h, 7d Cooldown) */
+/** POST /api/base/shield → aktiviert Schutzschild (500 Krypto, 24h, 7d Cooldown) */
 export async function POST() {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();

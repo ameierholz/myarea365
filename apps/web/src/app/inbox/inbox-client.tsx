@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useResourceArt, ResourceIcon, useUiIconArt, UiIcon } from "@/components/resource-icon";
+import { useResourceArt, ResourceIcon, useUiIconArt, UiIcon, useInventoryItemArt } from "@/components/resource-icon";
 
 type Counts = Record<string, { total: number; unread: number; subcategories?: Record<string, { total: number; unread: number }> }>;
 
@@ -20,7 +20,7 @@ type Msg = {
   from_label: string | null;
   from_name: string | null;
   from_avatar: string | null;
-  reward_payload: { wood?: number; stone?: number; gold?: number; mana?: number; speed_tokens?: number } | null;
+  reward_payload: { wood?: number; stone?: number; gold?: number; mana?: number; speed_tokens?: number; gems?: number; items?: Array<{ item_id: string; count: number }> } | null;
   claimed_at: string | null;
 };
 
@@ -435,36 +435,89 @@ function SpyReportView({ msg, resourceArt }: { msg: Msg; resourceArt: ReturnType
 // ─── Renderer: SystemReward ─────────────────────────────────────────
 function SystemRewardView({ msg, resourceArt, onClaim }: { msg: Msg; resourceArt: ReturnType<typeof useResourceArt>; onClaim: () => void }) {
   const r = msg.reward_payload ?? {};
-  const items = [
+  const inventoryArt = useInventoryItemArt();
+  const rss = [
     { k: "wood",  label: "Tech-Schrott", v: r.wood ?? 0,  fb: "⚙️" },
     { k: "stone", label: "Komponenten",  v: r.stone ?? 0, fb: "🔩" },
     { k: "gold",  label: "Krypto",       v: r.gold ?? 0,  fb: "💸" },
     { k: "mana",  label: "Bandbreite",   v: r.mana ?? 0,  fb: "📡" },
   ].filter((x) => x.v > 0);
   const tokens = r.speed_tokens ?? 0;
+  const gems = r.gems ?? 0;
+  const items = (r.items ?? []).filter((i) => i?.item_id);
   const claimed = !!msg.claimed_at;
+  // Render markdown-light: **bold**
+  const bodyParts = msg.body.split(/(\*\*[^*]+\*\*)/g);
+
+  // Hero-Header je Kind
+  const kindMeta = (() => {
+    const p = (msg.payload ?? {}) as { emoji?: string; label?: string };
+    const k = msg.kind ?? "";
+    if (k === "link_bonus") return { emoji: p.emoji ?? "🎁", color: "#22D1C3", label: p.label ?? "Verknüpfungs-Bonus" };
+    if (k === "maintenance") return { emoji: "🔧", color: "#FFD700", label: "Wartungs-Kompensation" };
+    if (k === "royal_chest") return { emoji: "👑", color: "#FFD700", label: "Königliche Truhe" };
+    if (k === "lore_set") return { emoji: "📜", color: "#a855f7", label: "Lore-Set vervollständigt" };
+    if (k === "crypto_drop") return { emoji: "💸", color: "#4ade80", label: "Krypto-Drop" };
+    if (k === "activity_reward") return { emoji: "📊", color: "#22D1C3", label: "Aktivitäts-Belohnung" };
+    return { emoji: "🎁", color: "#FFD700", label: "Belohnung" };
+  })();
+
   return (
     <div className="space-y-3">
-      <div className="text-[13px] text-white/85 whitespace-pre-wrap leading-relaxed">{msg.body}</div>
-      {(items.length > 0 || tokens > 0) && (
+      {/* Hero-Header */}
+      <div className="rounded-xl p-3 flex items-center gap-3"
+           style={{ background: `linear-gradient(135deg, ${kindMeta.color}22, transparent)`, border: `1px solid ${kindMeta.color}44` }}>
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+             style={{ background: `${kindMeta.color}33`, border: `1.5px solid ${kindMeta.color}` }}>
+          {kindMeta.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[9px] font-black tracking-[1.5px]" style={{ color: kindMeta.color }}>{kindMeta.label.toUpperCase()}</div>
+          <div className="text-[14px] font-black text-white">{msg.title}</div>
+        </div>
+      </div>
+      {/* Body mit **bold** Support */}
+      <div className="text-[13px] text-white/85 leading-relaxed whitespace-pre-wrap">
+        {bodyParts.map((part, i) => part.startsWith("**") && part.endsWith("**")
+          ? <strong key={i} className="text-white font-black">{part.slice(2, -2)}</strong>
+          : <span key={i}>{part}</span>)}
+      </div>
+      {(rss.length > 0 || tokens > 0 || gems > 0 || items.length > 0) && (
         <div className="rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 p-3 space-y-2">
           <div className="text-[10px] font-black tracking-[1.5px] text-[#FFD700]">🎁 BELOHNUNG</div>
           <div className="flex flex-wrap gap-2">
-            {items.map((it) => (
-              <div key={it.k} className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30">
+            {gems > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#FF2D78]/15 border border-[#FF2D78]/40">
+                <span className="text-lg">💎</span>
+                <span className="text-[12px] font-black text-white">+{gems.toLocaleString("de-DE")}</span>
+              </div>
+            )}
+            {rss.map((it) => (
+              <div key={it.k} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/10">
                 <ResourceIcon kind={it.k as "wood"|"stone"|"gold"|"mana"} size={20} fallback={it.fb} art={resourceArt} />
-                <span className="text-[11px] font-black text-white">+{it.v}</span>
+                <span className="text-[12px] font-black text-white">+{it.v.toLocaleString("de-DE")}</span>
               </div>
             ))}
             {tokens > 0 && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-black/30">
-                <span className="text-base">⚡</span>
-                <span className="text-[11px] font-black text-[#FFD700]">+{tokens}</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#FFD700]/15 border border-[#FFD700]/40">
+                <span className="text-lg">⚡</span>
+                <span className="text-[12px] font-black text-[#FFD700]">+{tokens}</span>
               </div>
             )}
+            {items.map((it) => {
+              const art = inventoryArt[it.item_id];
+              return (
+                <div key={it.item_id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#a855f7]/12 border border-[#a855f7]/40">
+                  {art?.image_url
+                    ? <img src={art.image_url} alt="" style={{ width: 22, height: 22, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+                    : <span className="text-lg">📦</span>}
+                  <span className="text-[12px] font-black text-white">×{it.count}</span>
+                </div>
+              );
+            })}
           </div>
           <button onClick={onClaim} disabled={claimed}
-            className="w-full text-[11px] font-black px-3 py-2 rounded bg-[#FFD700] text-[#0F1115] disabled:opacity-40">
+            className="w-full text-[11px] font-black px-3 py-2.5 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF9E2C] text-[#0F1115] disabled:opacity-40 disabled:from-[#444] disabled:to-[#444]">
             {claimed ? "✓ Eingesammelt" : "🎁 Einsammeln"}
           </button>
         </div>

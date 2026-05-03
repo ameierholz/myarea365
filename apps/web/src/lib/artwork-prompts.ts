@@ -1522,24 +1522,24 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
   { id: "boost_gather_24h",  category: "boost", name: "Sammel-Buff 24 Std", fallbackEmoji: "📦", accent: "#FFD700", rarity: "epic",
     subject: "an ornate gold loot-basket charm with 24h time glyph, brilliant gather aura" },
 
-  { id: "boost_gold_8h",     category: "boost", name: "Gold-Buff 8 Std",   fallbackEmoji: "💰", accent: "#FFD700", rarity: "rare",
+  { id: "boost_gold_8h",     category: "boost", name: "Krypto-Buff 8 Std",   fallbackEmoji: "💰", accent: "#FFD700", rarity: "rare",
     subject: "a glowing gold-coin stack charm with 8h time glyph, golden sparkle aura" },
-  { id: "boost_gold_24h",    category: "boost", name: "Gold-Buff 24 Std",  fallbackEmoji: "💰", accent: "#FFD700", rarity: "epic",
+  { id: "boost_gold_24h",    category: "boost", name: "Krypto-Buff 24 Std",  fallbackEmoji: "💰", accent: "#FFD700", rarity: "epic",
     subject: "an ornate gold-coin pile charm with 24h time glyph, brilliant gold aura" },
 
-  { id: "boost_wood_8h",     category: "boost", name: "Holz-Buff 8 Std",   fallbackEmoji: "🪵", accent: "#a07a3c", rarity: "rare",
+  { id: "boost_wood_8h",     category: "boost", name: "Tech-Schrott-Buff 8 Std",   fallbackEmoji: "🪵", accent: "#a07a3c", rarity: "rare",
     subject: "a stack of glowing wood logs charm with 8h time glyph, warm forest aura" },
-  { id: "boost_wood_24h",    category: "boost", name: "Holz-Buff 24 Std",  fallbackEmoji: "🪵", accent: "#a07a3c", rarity: "epic",
+  { id: "boost_wood_24h",    category: "boost", name: "Tech-Schrott-Buff 24 Std",  fallbackEmoji: "🪵", accent: "#a07a3c", rarity: "epic",
     subject: "an ornate wood-stack charm with 24h time glyph, intense warm forest aura" },
 
-  { id: "boost_stone_8h",    category: "boost", name: "Stein-Buff 8 Std",  fallbackEmoji: "🪨", accent: "#9ba8c7", rarity: "rare",
+  { id: "boost_stone_8h",    category: "boost", name: "Komponenten-Buff 8 Std",  fallbackEmoji: "🪨", accent: "#9ba8c7", rarity: "rare",
     subject: "a glowing stone-pile charm with 8h time glyph, cool grey aura" },
-  { id: "boost_stone_24h",   category: "boost", name: "Stein-Buff 24 Std", fallbackEmoji: "🪨", accent: "#9ba8c7", rarity: "epic",
+  { id: "boost_stone_24h",   category: "boost", name: "Komponenten-Buff 24 Std", fallbackEmoji: "🪨", accent: "#9ba8c7", rarity: "epic",
     subject: "an ornate stone-pile charm with 24h time glyph, deep grey aura" },
 
-  { id: "boost_mana_8h",     category: "boost", name: "Mana-Buff 8 Std",   fallbackEmoji: "💎", accent: "#a855f7", rarity: "rare",
+  { id: "boost_mana_8h",     category: "boost", name: "Bandbreite-Buff 8 Std",   fallbackEmoji: "💎", accent: "#a855f7", rarity: "rare",
     subject: "a glowing violet mana-crystal charm with 8h time glyph, swirling magic aura" },
-  { id: "boost_mana_24h",    category: "boost", name: "Mana-Buff 24 Std",  fallbackEmoji: "💎", accent: "#a855f7", rarity: "epic",
+  { id: "boost_mana_24h",    category: "boost", name: "Bandbreite-Buff 24 Std",  fallbackEmoji: "💎", accent: "#a855f7", rarity: "epic",
     subject: "an ornate violet mana-crystal charm with 24h time glyph, brilliant magic aura" },
 
   { id: "boost_xp_8h",       category: "boost", name: "XP-Buff 8 Std",    fallbackEmoji: "📚", accent: "#FF2D78", rarity: "rare",

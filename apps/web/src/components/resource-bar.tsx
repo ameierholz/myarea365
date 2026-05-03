@@ -96,10 +96,11 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
     window.localStorage.setItem("ma365_resbar_open", open ? "1" : "0");
   }, [open]);
 
+  // Reihenfolge wie in der Map-UI: Tech-Schrott, Komponenten, Krypto, Bandbreite
   const items = [
-    { kind: "gold"  as const, fallback: "💸", color: GOLD,    value: res?.gold  ?? 0, label: "Krypto" },
     { kind: "wood"  as const, fallback: "⚙️", color: "#a07a3c", value: res?.wood  ?? 0, label: "Tech-Schrott" },
     { kind: "stone" as const, fallback: "🔩", color: "#9ba8c7", value: res?.stone ?? 0, label: "Komponenten" },
+    { kind: "gold"  as const, fallback: "💸", color: GOLD,      value: res?.gold  ?? 0, label: "Krypto" },
     { kind: "mana"  as const, fallback: "📡", color: "#a855f7", value: res?.mana  ?? 0, label: "Bandbreite" },
   ];
 
@@ -114,36 +115,37 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
       maxHeight: "calc(100vh - 16px)",
     }}>
       {!open ? (
+        // Eingeklappt: vertikaler Mini-Stack — nur Icons, klein und elegant
         <button
           onClick={() => setOpen(true)}
           aria-label="Ressourcen anzeigen"
           style={{
-            display: "flex", alignItems: "center", gap: 4,
-            padding: "5px 10px", borderRadius: 999,
-            background: "rgba(15,17,21,0.92)",
-            border: `1px solid ${GOLD}66`,
-            color: GOLD, fontSize: 12, fontWeight: 900,
-            backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
-            cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.45)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+            padding: 4, border: "none", background: "transparent", cursor: "pointer",
+            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))",
           }}
         >
-          💎 {gems != null ? fmt(gems) : "…"} <span style={{ marginLeft: 2, opacity: 0.7 }}>‹</span>
+          {items.map((it) => (
+            <ResourceIcon key={it.kind} kind={it.kind} size={22} fallback={it.fallback} art={art} />
+          ))}
+          <span style={{ fontSize: 18, lineHeight: 1, filter: `drop-shadow(0 0 4px ${PINK}88)` }}>💎</span>
         </button>
       ) : (
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "stretch", gap: 5,
+          position: "relative",
         }}>
-          {/* Collapse-Toggle (frei schwebend) */}
+          {/* Einklappen: dezenter Chevron oben rechts neben den Pillen */}
           <button
             onClick={() => setOpen(false)}
             aria-label="Einklappen"
             style={{
-              alignSelf: "flex-end",
-              width: 18, height: 18, borderRadius: 9, border: "none",
-              background: "rgba(15,17,21,0.55)",
-              color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 900, cursor: "pointer",
+              position: "absolute", top: -8, right: -4,
+              width: 20, height: 20, borderRadius: 10, border: "none",
+              background: "transparent",
+              color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 900, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+              textShadow: "0 1px 3px rgba(0,0,0,0.85)",
             }}
           >›</button>
           {items.map((it) => (
@@ -152,25 +154,32 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
               <span style={{ color: "#FFF", fontWeight: 900, fontSize: 11 }}>{fmt(it.value)}</span>
             </Pill>
           ))}
-          <Pill color={PINK}>
+          {/* Diamant-Pill mit integriertem "+" */}
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+            padding: "4px 8px", whiteSpace: "nowrap", minWidth: 56,
+            textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
+            filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${PINK}33)`,
+            position: "relative",
+          }}>
             <span style={{ fontSize: 24, lineHeight: 1 }}>💎</span>
             <span style={{ color: "#FFF", fontWeight: 900, fontSize: 11 }}>{gems != null ? fmt(gems) : "…"}</span>
-          </Pill>
-          {onAddGems && (
-            <button
-              onClick={onAddGems}
-              aria-label="Diamanten kaufen"
-              style={{
-                alignSelf: "center",
-                width: 30, height: 30, borderRadius: 15, border: "none",
-                background: `linear-gradient(135deg, ${PRIMARY}, #4ade80)`,
-                color: "#0F1115", fontSize: 18, fontWeight: 900, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: `0 0 12px ${PRIMARY}66`,
-                marginTop: 2,
-              }}
-            >+</button>
-          )}
+            {onAddGems && (
+              <button
+                onClick={onAddGems}
+                aria-label="Diamanten kaufen"
+                style={{
+                  position: "absolute", top: -4, right: -6,
+                  width: 18, height: 18, borderRadius: 9, border: `1px solid ${PINK}aa`,
+                  background: `linear-gradient(135deg, ${PINK}, #FF6B4A)`,
+                  color: "#FFF", fontSize: 12, fontWeight: 900, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+                  boxShadow: `0 0 6px ${PINK}88`,
+                  paddingBottom: 1,
+                }}
+              >+</button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -5628,7 +5628,7 @@
           "Statistiken von consegna: consegnato, offen, cliccato, rimbalzato",
           "Registrazione des Einwilligung: timestamp, IP, Version des Text von Einwilligung",
           "Assegnazione von segmento für campagne mirate (Fraktion, paese, Level)",
-          "Posta in Eingang in-App: ID broadcast, Datum von lettura"
+          "Inbox in-App: broadcast ID, read date"
         ],
         "note": "Rechtsgrundlage: Art. 6(1)(zu) DSGVO. Kannst revocare der Einwilligung in qualsiasi momento über der link von disiscrizione, die Settings von Benachrichtigung oder der Dialog des System operativo."
       },

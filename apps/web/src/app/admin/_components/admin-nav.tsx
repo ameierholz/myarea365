@@ -61,10 +61,11 @@ const NAV: NavGroup[] = [
   {
     id: "system", emoji: "⚙️", title: "System",
     items: [
-      { href: "/admin/flags",    label: "🚩 Feature-Flags" },
-      { href: "/admin/security", label: "🔐 Security Center" },
-      { href: "/admin/audit",    label: "📋 Audit-Log" },
-      { href: "/admin/system",   label: "⚙️ System" },
+      { href: "/admin/flags",            label: "🚩 Feature-Flags" },
+      { href: "/admin/security",         label: "🔐 Security Center" },
+      { href: "/admin/audit",            label: "📋 Audit-Log" },
+      { href: "/admin/system",           label: "⚙️ System" },
+      { href: "/admin/system-messages",  label: "📬 System-Nachrichten" },
     ],
   },
 ];

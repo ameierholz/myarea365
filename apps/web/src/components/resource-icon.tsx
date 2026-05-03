@@ -8,25 +8,69 @@ export type ResourceArtMap = Record<string, { image_url: string | null; video_ur
 
 type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; resource_node: ResourceArtMap; loot_drop: ResourceArtMap; base_ring: ResourceArtMap; inventory_item: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
 
+// localStorage-Cache: erspart Fallback-Flash bei jedem Reload.
+// Format: { v: number, ts: number, art: AllArt }
+const LS_KEY = "ma365_cosmetic_art_v2";
+const LS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 Tage — Artwork ändert sich selten
+
+function loadFromLocalStorage(): AllArt | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw) as { ts: number; art: AllArt };
+    if (!j?.art || Date.now() - (j.ts ?? 0) > LS_TTL_MS) return null;
+    return j.art;
+  } catch { return null; }
+}
+
+function saveToLocalStorage(art: AllArt) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(LS_KEY, JSON.stringify({ ts: Date.now(), art })); }
+  catch { /* quota / SSR */ }
+}
+
+// _cache MUSS initial null sein (auch im Browser), sonst Hydration-Mismatch
+// zwischen SSR (=null) und Client-Hydrate (=cached). LocalStorage wird erst
+// nach Mount via primeFromLocalStorage() reingespielt (siehe useEffect-Hooks).
 let _cache: AllArt | null = null;
 let _ready = false;
 const _listeners = new Set<(m: AllArt) => void>();
 const _readyListeners = new Set<(r: boolean) => void>();
 let _fetching = false;
+let _hasRevalidated = false;
+let _primedFromLs = false;
+
+function primeFromLocalStorage() {
+  if (_primedFromLs || _cache) return;
+  _primedFromLs = true;
+  const cached = loadFromLocalStorage();
+  if (cached) {
+    _cache = cached;
+    _ready = true;
+    _listeners.forEach((l) => l(cached));
+    _readyListeners.forEach((l) => l(true));
+  }
+}
 
 function ensureFetch() {
-  if (_cache || _fetching) return;
+  // 1) zuerst Cache aus localStorage hydratisieren (post-mount, kein SSR-mismatch)
+  primeFromLocalStorage();
+  if (_cache && _hasRevalidated) return;
+  if (_fetching) return;
   _fetching = true;
   void (async () => {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (!r.ok) return;
       const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
-      _cache = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, marker: j.marker ?? {} };
-      _listeners.forEach((l) => l(_cache!));
+      const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, marker: j.marker ?? {} };
+      _cache = fresh;
+      _hasRevalidated = true;
+      saveToLocalStorage(fresh);
+      _listeners.forEach((l) => l(fresh));
     } catch { /* silent */ } finally {
       _fetching = false;
-      // Auch bei Fehler ready=true setzen, damit UI nicht ewig blockiert
       _ready = true;
       _readyListeners.forEach((l) => l(true));
     }
@@ -240,21 +284,31 @@ export function pickStrongholdArt(art: ResourceArtMap, level: number): { image_u
 // Chroma-Key-Filter (Greenscreen #00FF00 → transparent), gleiche Pipeline wie Wächter.
 const CHROMA = "url(#ma365-chroma-black)";
 
+/**
+ * Unsichtbarer Platzhalter mit gleicher Größe — verhindert Layout-Shift
+ * solange der Cosmetic-Artwork-Cache noch nicht hydratisiert ist (kein
+ * Fallback-Emoji-Flash bevor das hochgeladene Bild da ist).
+ */
+function ArtPlaceholder({ size }: { size: number }) {
+  return <span style={{ display: "inline-block", verticalAlign: "middle", width: size, height: size }} aria-hidden />;
+}
+
 export function ChestIcon({ kind, size = 32, fallback, art }: {
   kind: ChestKind; size?: number; fallback: string; art: ResourceArtMap;
 }) {
+  const ready = useArtworkReady();
   const a = art[kind];
   const baseStyle: React.CSSProperties = {
     width: size, height: size, objectFit: "contain",
     display: "inline-block", verticalAlign: "middle", filter: CHROMA,
   };
-  if (a?.video_url) {
-    return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
-  }
+  if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={a.image_url} alt={`${kind}-chest`} style={baseStyle} />;
   }
+  // Cache noch nicht geladen → Platzhalter statt Fallback (kein Flash)
+  if (!ready) return <ArtPlaceholder size={size} />;
   return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
 }
 
@@ -266,17 +320,17 @@ export function ResourceIcon({
   fallback: string;
   art: ResourceArtMap;
 }) {
+  const ready = useArtworkReady();
   const a = art[kind];
   const baseStyle: React.CSSProperties = {
     width: size, height: size, objectFit: "contain",
     display: "inline-block", verticalAlign: "middle", filter: CHROMA,
   };
-  if (a?.video_url) {
-    return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
-  }
+  if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={baseStyle} />;
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={a.image_url} alt={kind} style={baseStyle} />;
   }
+  if (!ready) return <ArtPlaceholder size={size} />;
   return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
 }
