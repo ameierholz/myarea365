@@ -1519,6 +1519,22 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
   { id: "speedup_uni_24h",  category: "speedup", name: "Universal-Speedup 24 Std", fallbackEmoji: "⚡", accent: "#FFD700", rarity: "legendary",
     subject: "legendary golden hourglass with infinity-loop crest, brilliant gold legendary-tier beams, with a LARGE BOLD READABLE white text label \"24h\" prominently displayed across the lower part of the hourglass" },
 
+  // ─ Heilung (Heart-Cross-Crest) ───────────────────────
+  { id: "speedup_heal_1m",   category: "speedup", name: "Heilungs-Speedup 1 Min",   fallbackEmoji: "❤", accent: "#4ade80", rarity: "common",
+    subject: "a small glowing hourglass with a red heart-cross medical crest in the foreground, soft green-white healing common-tier glow, with a LARGE BOLD READABLE white text label \"1m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_heal_5m",   category: "speedup", name: "Heilungs-Speedup 5 Min",   fallbackEmoji: "❤", accent: "#4ade80", rarity: "common",
+    subject: "a small glowing hourglass with a red heart-cross medical crest, soft green-white healing common-tier glow, with a LARGE BOLD READABLE white text label \"5m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_heal_15m",  category: "speedup", name: "Heilungs-Speedup 15 Min",  fallbackEmoji: "❤", accent: "#4ade80", rarity: "common",
+    subject: "a polished hourglass with a red heart-cross medical crest, vibrant green healing common-tier glow, with a LARGE BOLD READABLE white text label \"15m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_heal_60m",  category: "speedup", name: "Heilungs-Speedup 1 Std",   fallbackEmoji: "❤", accent: "#4ade80", rarity: "rare",
+    subject: "ornate hourglass with red heart-cross medical crest, vivid green rare-tier healing glow, with a LARGE BOLD READABLE white text label \"1h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_heal_8h",   category: "speedup", name: "Heilungs-Speedup 8 Std",   fallbackEmoji: "❤", accent: "#4ade80", rarity: "epic",
+    subject: "epic ornate hourglass with red heart-cross medical crest, intense violet-and-green epic-tier aura, with a LARGE BOLD READABLE white text label \"8h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_heal_12h",  category: "speedup", name: "Heilungs-Speedup 12 Std",  fallbackEmoji: "❤", accent: "#4ade80", rarity: "epic",
+    subject: "epic engraved hourglass with red heart-cross medical crest, swirling violet-and-green epic-tier particles, with a LARGE BOLD READABLE white text label \"12h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_heal_24h",  category: "speedup", name: "Heilungs-Speedup 24 Std",  fallbackEmoji: "❤", accent: "#FFD700", rarity: "legendary",
+    subject: "legendary golden hourglass with red heart-cross medical crest, brilliant gold legendary-tier beams with green healing aura, with a LARGE BOLD READABLE white text label \"24h\" prominently displayed across the lower part of the hourglass" },
+
   // ── BOOSTS / BUFFS (shield, gather, gold, wood, stone, mana, xp × 8h/24h) ──
   // Visual: a flask / charm / sigil with the boost-type emblem. Color = type.
   { id: "boost_shield_2k",   category: "boost", name: "Schild 2.000",  fallbackEmoji: "🛡", accent: "#5ddaf0", rarity: "rare",
