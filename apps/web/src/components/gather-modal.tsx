@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useResourceNodeArt, useResourceArt } from "@/components/resource-icon";
 
 type ResourceNode = {
   id: number;
@@ -82,6 +83,10 @@ export function GatherModal({
   const [err, setErr] = useState<string | null>(null);
 
   const meta = KIND_META[node.kind];
+  const rnodeArt = useResourceNodeArt();
+  const nodeArt = rnodeArt[node.kind];
+  const resourceArt = useResourceArt();
+  const rssArt = resourceArt[node.resource_type];
 
   // ESC schließt das Popup
   useEffect(() => {
@@ -200,12 +205,25 @@ export function GatherModal({
       >
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center gap-3">
-          <span className="text-3xl">{meta.emoji}</span>
+          {nodeArt?.video_url ? (
+            <video src={nodeArt.video_url} autoPlay loop muted playsInline className="w-20 h-20 object-contain shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
+          ) : nodeArt?.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={nodeArt.image_url} alt={meta.label} className="w-20 h-20 object-contain shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
+          ) : (
+            <span className="text-5xl">{meta.emoji}</span>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-black tracking-widest text-[#FFD700]">PLÜNDERZUG</div>
             <div className="text-base font-black text-white truncate">{node.name ?? meta.label} — Lv {node.level}</div>
-            <div className="text-[11px] text-[#a8b4cf]">
-              {meta.resourceEmoji} {node.current_yield.toLocaleString("de-DE")} {meta.resourceLabel} verfügbar
+            <div className="text-[11px] text-[#a8b4cf] flex items-center gap-1.5">
+              {rssArt?.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={rssArt.image_url} alt="" className="w-7 h-7 object-contain inline-block shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
+              ) : (
+                <span className="text-base">{meta.resourceEmoji}</span>
+              )}
+              <span>{node.current_yield.toLocaleString("de-DE")} {meta.resourceLabel} verfügbar</span>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-lg shrink-0">×</button>

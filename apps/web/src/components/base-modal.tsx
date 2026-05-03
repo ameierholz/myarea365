@@ -248,10 +248,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
   // Helper: building name from translations (falls back to catalog name if no key exists)
   const bldName = (id: string, fallback: string): string => {
-    try { return tBld(`${id}.name`); } catch { return fallback; }
+    return tBld.has(`${id}.name`) ? tBld(`${id}.name`) : fallback;
   };
   const effLabel = (key: string): string => {
-    try { return tEff(key); } catch { return key; }
+    return tEff.has(key) ? tEff(key) : key;
   };
 
   // Effekte aller gebauten Buildings als Zusammenfassung
@@ -708,7 +708,7 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
                               </div>
 
                               {/* Beschreibung 1 Zeile */}
-                              <div className="text-[10px] text-[#a8b4cf] leading-snug line-clamp-1">{(() => { try { return tBld(`${cat.id}.description`); } catch { return cat.description; } })()}</div>
+                              <div className="text-[10px] text-[#a8b4cf] leading-snug line-clamp-1">{tBld.has(`${cat.id}.description`) ? tBld(`${cat.id}.description`) : cat.description}</div>
 
                               {/* Zeile 1: Kosten-Pills */}
                               {!isMax && (
@@ -1135,7 +1135,7 @@ function ForeignRunnerBase({ baseId, onClose }: { baseId: string; onClose: () =>
               <div key={b.building_id} className="flex items-center gap-2 p-2 rounded-lg bg-[#1A1D23] border border-white/10">
                 <span className="text-2xl">{b.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-black truncate">{(() => { try { return tBld(`${b.building_id}.name`); } catch { return b.name; } })()}</div>
+                  <div className="text-xs font-black truncate">{tBld.has(`${b.building_id}.name`) ? tBld(`${b.building_id}.name`) : b.name}</div>
                   <div className="text-[9px] text-[#a8b4cf]">{t("buildLevel", { lvl: b.level, max: 10 })}</div>
                 </div>
               </div>

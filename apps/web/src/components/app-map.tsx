@@ -248,12 +248,16 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-stronghold-emoji { font-size: 50px; line-height: 1; }
     .ma365-stronghold-level {
-      font-size: 12px; font-weight: 900;
-      padding: 3px 9px; border-radius: 999px;
+      min-width: 16px; height: 14px;
+      padding: 0 5px; border-radius: 999px;
       background: linear-gradient(135deg, #FF2D78, #FF6B4A); color: #FFF;
-      border: 1.5px solid rgba(255,255,255,0.95);
-      box-shadow: 0 2px 6px rgba(255,45,120,0.4);
-      letter-spacing: 0.4px;
+      font-size: 9px; font-weight: 900; line-height: 14px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.85);
+      box-shadow: 0 1px 3px rgba(255,45,120,0.45);
+      margin-top: -22px;
+      pointer-events: none;
+      z-index: 2;
     }
     .ma365-stronghold-hp {
       width: 56px; height: 5px; background: rgba(15,17,21,0.7);
@@ -266,30 +270,42 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
 
     /* Resource-Nodes (Sammelpunkte: Schrottplatz/Fabrik/ATM/Datacenter) */
     .ma365-rnode-marker {
+      position: relative;
       display: flex; flex-direction: column; align-items: center; gap: 2px;
       transform-origin: center bottom;
       filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
       cursor: pointer;
     }
     .ma365-rnode-icon {
-      width: 32px; height: 32px;
-      border-radius: 9px;
+      width: 56px; height: 56px;
+      border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; line-height: 1;
+      font-size: 36px; line-height: 1;
       border: 2px solid rgba(255,255,255,0.85);
       box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
-    .ma365-rnode-icon.kind-scrapyard  { background: linear-gradient(135deg, #6b7280, #374151); }
-    .ma365-rnode-icon.kind-factory    { background: linear-gradient(135deg, #f59e0b, #b45309); }
-    .ma365-rnode-icon.kind-atm        { background: linear-gradient(135deg, #FFD700, #FF8C00); }
-    .ma365-rnode-icon.kind-datacenter { background: linear-gradient(135deg, #22D1C3, #0e7490); }
+    /* Wenn Artwork (img/video) als Icon rendert, Hintergrund + Border weg —
+       sonst scheint die Kind-Gradient durch transparente Pixel und der weiße
+       Rahmen wirkt wie ein Klotz um das chroma-gekeyte Bild. */
+    img.ma365-rnode-icon, video.ma365-rnode-icon {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    div.ma365-rnode-icon.kind-scrapyard  { background: linear-gradient(135deg, #6b7280, #374151); }
+    div.ma365-rnode-icon.kind-factory    { background: linear-gradient(135deg, #f59e0b, #b45309); }
+    div.ma365-rnode-icon.kind-atm        { background: linear-gradient(135deg, #FFD700, #FF8C00); }
+    div.ma365-rnode-icon.kind-datacenter { background: linear-gradient(135deg, #22D1C3, #0e7490); }
     .ma365-rnode-level {
-      font-size: 10px; font-weight: 900;
-      padding: 1px 6px; border-radius: 999px;
-      background: rgba(15,17,21,0.85); color: #FFD700;
+      min-width: 16px; height: 14px;
+      padding: 0 5px; border-radius: 999px;
+      background: rgba(15,17,21,0.9); color: #FFD700;
+      font-size: 9px; font-weight: 900; line-height: 14px;
+      text-align: center;
       border: 1px solid rgba(255,215,0,0.6);
-      letter-spacing: 0.3px;
-      margin-top: 2px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      margin-top: -4px;
+      pointer-events: none;
     }
 
     @keyframes ma365GatherPulse {
@@ -301,12 +317,12 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       50%     { transform: translateY(-5px) rotate(5deg); }
     }
     @keyframes ma365CrateGlow {
-      0%,100% { filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
-      50%     { filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 6px 10px rgba(0,0,0,0.6)); }
+      0%,100% { filter: url(#ma365-chroma-black) drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+      50%     { filter: url(#ma365-chroma-black) drop-shadow(0 0 14px var(--color)) drop-shadow(0 6px 10px rgba(0,0,0,0.6)); }
     }
     @keyframes ma365CrateReady {
-      0%,100% { transform: translateY(-2px) scale(1); filter: drop-shadow(0 0 14px var(--color)) drop-shadow(0 0 28px var(--color)); }
-      50%     { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 22px var(--color)) drop-shadow(0 0 44px var(--color)); }
+      0%,100% { transform: translateY(-2px) scale(1); filter: url(#ma365-chroma-black) drop-shadow(0 0 14px var(--color)) drop-shadow(0 0 28px var(--color)); }
+      50%     { transform: translateY(-6px) scale(1.08); filter: url(#ma365-chroma-black) drop-shadow(0 0 22px var(--color)) drop-shadow(0 0 44px var(--color)); }
     }
     @keyframes ma365CrateRing {
       0%   { transform: scale(0.4); opacity: 0.85; }
@@ -319,7 +335,7 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     .ma365-loot-wrap {
       position: relative;
-      width: 42px; height: 42px;
+      width: 64px; height: 64px;
       display: flex; align-items: center; justify-content: center;
       pointer-events: auto;
       cursor: pointer;
@@ -338,10 +354,11 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
     }
     /* Kiste: Emoji mit 3D-Schatten + Glow */
     .ma365-loot-crate {
-      font-size: 26px;
+      width: 100%; height: 100%;
+      font-size: 40px;
       line-height: 1;
       animation: ma365CrateBob 1.6s ease-in-out infinite, ma365CrateGlow 2s ease-in-out infinite;
-      filter: drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+      filter: url(#ma365-chroma-black) drop-shadow(0 0 6px var(--color)) drop-shadow(0 4px 6px rgba(0,0,0,0.5));
     }
     /* Proximity-Ring: wird sichtbar wenn User in Reichweite (20m) */
     .ma365-loot-proximity {
@@ -1699,18 +1716,8 @@ export function AppMap({
       // Stacking: wenn Shop auch Spotlight hat, sitzt das ARENA-Badge obendrauf
       spotlightAuraMarkersRef.current.push({ marker: badgeMarker, el: badgeInner, stacked: !!s.spotlight });
     });
-    // Spotlight-Shops: Light-Beam + Badge
+    // Spotlight-Shops: nur Badge (Bat-Signal-Beam entfernt)
     shops.filter((s) => s.spotlight).forEach((s) => {
-      // Bat-Signal-Beam: kommt von oben, Bottom endet an Badge-Bottom
-      const beamOuter = document.createElement("div");
-      beamOuter.style.pointerEvents = "none";
-      const beamInner = document.createElement("div");
-      beamInner.className = "ma365-spotlight-beam";
-      beamOuter.appendChild(beamInner);
-      const beamMarker = new mapboxgl.Marker({ element: beamOuter, anchor: "bottom", offset: [0, 0] })
-        .setLngLat([s.lng, s.lat]).addTo(map);
-      spotlightBeamMarkersRef.current.push({ marker: beamMarker, el: beamInner });
-
       const badgeOuter = document.createElement("div");
       badgeOuter.style.pointerEvents = "none";
       const badgeInner = document.createElement("div");
@@ -2713,14 +2720,14 @@ export function AppMap({
       const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       // Wegelager = Feind → ROT. Falls Artwork in anderer Farbe gespeichert ist,
       // mit hue-rotate auf Rot drücken (kombiniert mit chroma-key für transparenten BG).
-      const wegelagerStyle = "width:50px;height:50px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
+      const wegelagerStyle = "width:150px;height:150px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
       let visualHtml: string;
       if (art?.video_url) {
         visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}"></video>`;
       } else if (art?.image_url) {
         visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}" />`;
       } else {
-        visualHtml = `<div class="ma365-stronghold-emoji" data-vis="full" style="font-size:28px;color:#DC2626;text-shadow:0 1px 2px rgba(0,0,0,0.6);">🏰</div>`;
+        visualHtml = `<div class="ma365-stronghold-emoji" data-vis="full" style="opacity:0;width:100px;height:100px;"></div>`;
       }
 
       // Silhouette-SVG (mid-LOD): kleine rote Bandit-Festung mit Flagge
@@ -2742,7 +2749,7 @@ export function AppMap({
       inner.innerHTML = `
         ${silhouetteSvg}
         ${visualHtml}
-        <div class="ma365-stronghold-level">Lv${s.level}</div>
+        <div class="ma365-stronghold-level">${s.level}</div>
         <div class="ma365-stronghold-hp"><div class="ma365-stronghold-hp-fill" style="width:${Math.max(0, Math.min(100, s.hp_pct))}%"></div></div>`;
       outer.appendChild(inner);
       outer.addEventListener("click", (ev) => {
@@ -2934,14 +2941,14 @@ export function AppMap({
         ? `<video src="${rnArt.video_url}" autoplay loop muted playsinline class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;filter:url(#ma365-chroma-black);"></video>`
         : rnArt?.image_url
           ? `<img src="${rnArt.image_url}" class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="background:transparent;border:none;object-fit:contain;filter:url(#ma365-chroma-black);" alt="" />`
-          : `<div class="ma365-rnode-icon kind-${n.kind}" data-vis="full">${rnodeEmoji[n.kind] ?? "📦"}</div>`;
+          : `<div class="ma365-rnode-icon kind-${n.kind}" data-vis="full" style="opacity:0;"></div>`;
       inner.innerHTML = `
         ${rnodeSilhouette(n.kind)}
         ${iconHtml}
-        <div class="ma365-rnode-gather-ring" style="display:none;position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:54px;height:54px;border-radius:50%;border:3px solid #4ade80;background:rgba(15,17,21,0.7);align-items:center;justify-content:center;pointer-events:none;z-index:3;animation:ma365GatherPulse 1.6s ease-in-out infinite;">
+        <div class="ma365-rnode-gather-ring" style="display:none;position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:78px;height:78px;border-radius:50%;border:3px solid #4ade80;background:rgba(15,17,21,0.7);align-items:center;justify-content:center;pointer-events:none;z-index:3;animation:ma365GatherPulse 1.6s ease-in-out infinite;">
           <span class="ma365-rnode-cd" style="font-size:10px;font-weight:900;color:#4ade80;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,0.9);"></span>
         </div>
-        <div class="ma365-rnode-level">Lv${n.level}</div>`;
+        <div class="ma365-rnode-level">${n.level}</div>`;
       outer.appendChild(inner);
       outer.addEventListener("click", (ev) => { ev.stopPropagation(); const me = ev as MouseEvent; onResourceNodeClickRef.current?.(n.id, me.clientX, me.clientY); });
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
@@ -3094,7 +3101,7 @@ export function AppMap({
         ? `<video class="ma365-loot-crate" src="${ldArt.video_url}" autoplay loop muted playsinline style="object-fit:contain;background:transparent;filter:url(#ma365-chroma-black);"></video>`
         : ldArt?.image_url
           ? `<img class="ma365-loot-crate" src="${ldArt.image_url}" style="object-fit:contain;background:transparent;filter:url(#ma365-chroma-black);" alt="" />`
-          : `<div class="ma365-loot-crate">${crate}</div>`;
+          : `<div class="ma365-loot-crate" style="opacity:0;"></div>`;
       outer.innerHTML = `
         <div class="ma365-loot-wrap" style="--color:${color}; --loot-scale:${initialLootScale.toFixed(2)}">
           <div class="ma365-loot-proximity"></div>
@@ -3395,7 +3402,7 @@ export function AppMap({
       zoomWrap.appendChild(silWrap);
 
       // ── Stage 3: FULL — Artwork in konstanter Größe (passt ins Tile, nicht mehr 250px)
-      const ART_SIZE = 300;
+      const ART_SIZE = 275;
       const inner = document.createElement("div");
       inner.dataset.fullSize = String(ART_SIZE);
       inner.style.cssText = [
@@ -4186,7 +4193,7 @@ export function AppMap({
 
       // Stage 3: FULL — Artwork (oder stilisierte Tile als Fallback)
       const artEl = document.createElement("div");
-      const fullArtSize = isHQ ? 150 : isMega ? 120 : 120;
+      const fullArtSize = 150;
       artEl.dataset.fullSize = String(fullArtSize);
       artEl.style.cssText = `
         position:absolute; left:50%; top:50%;
@@ -4194,8 +4201,6 @@ export function AppMap({
         width:${fullArtSize}px; height:${fullArtSize}px;
         display:none;
         align-items:center; justify-content:center;
-        filter:drop-shadow(0 4px 14px ${r.is_own ? "rgba(34,209,195,0.65)" : "rgba(255,45,120,0.65)"})
-               drop-shadow(0 0 10px ${r.is_own ? "rgba(34,209,195,0.45)" : "rgba(255,45,120,0.45)"});
       `;
       if (hasArt) {
         if (art?.video_url) {

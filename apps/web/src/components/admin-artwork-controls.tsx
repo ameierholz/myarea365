@@ -35,7 +35,7 @@ export function AdminArtworkControls({
         setErr(msg); return;
       }
       const result = await uploadArtworkDirect(file, targetType, targetId, variant);
-      if (!result.ok) setErr(result.error); else onUploaded?.();
+      if (!result.ok) setErr(result.error); else { window.dispatchEvent(new Event("ma365:artwork-changed")); onUploaded?.(); }
     } finally { setBusy(false); }
   }
 
@@ -67,7 +67,7 @@ export function AdminArtworkControls({
               const params = new URLSearchParams({ target_type: targetType, target_id: targetId, clear: "video", variant: variant ?? "neutral" });
               const r = await fetch(`/api/admin/artwork?${params}`, { method: "DELETE" });
               if (!r.ok) { const j = await r.json().catch(() => ({})); setErr(j.error || `delete_failed_${r.status}`); }
-              else onUploaded?.();
+              else { window.dispatchEvent(new Event("ma365:artwork-changed")); onUploaded?.(); }
             } finally { setBusy(false); }
           }}
           disabled={busy}

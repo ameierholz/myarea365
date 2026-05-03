@@ -26,14 +26,19 @@ export function LightPickerModal({
   const [artMap, setArtMap] = useState<Record<string, Art>>({});
   async function loadArt() {
     try {
-      const res = await fetch("/api/cosmetic-artwork");
+      const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (res.ok) {
         const j = await res.json() as { light: Record<string, Art> };
         setArtMap(j.light ?? {});
       }
     } catch {}
   }
-  useEffect(() => { loadArt(); }, []);
+  useEffect(() => {
+    loadArt();
+    function onArtChanged() { void loadArt(); }
+    window.addEventListener("ma365:artwork-changed", onArtChanged);
+    return () => window.removeEventListener("ma365:artwork-changed", onArtChanged);
+  }, []);
 
   const unlockedCount = RUNNER_LIGHTS.filter(l => isAdmin || l.cost <= userXp).length;
 

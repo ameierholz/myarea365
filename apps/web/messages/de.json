@@ -2118,7 +2118,7 @@
     "lootNoBonus": "🎁 Loot! +{XP} 🪙{potion}",
     "streakSaved": "🔥 Serie gerettet! Setze die deine Serie über {days} Tage.",
     "milestoneReached": "🎉 Meilenstein erreicht ({km} km)! +{stones} Beschwörungsstein für einen neuen Wächter.",
-    "tooFarFromTarget": "🚶 Zu viel lontano! Bist zu {meters}m — avvicinati (max 25m).",
+    "tooFarFromTarget": "🚶 Zu weit weg! Du bist {meters}m entfernt — komm näher (max 25m).",
     "labelTimeOfDay": "Stunde des Tag",
     "labelBack": "Zurück",
     "labelOverview": "Übersicht",
@@ -2151,7 +2151,7 @@
     },
     "titleCoinsExplain": "🪙 Wegemünzen: deine Währung Runner. Lauf Straßen (50), tratti (+250) oder Territorien mit Crew (+500) und steig im Rang auf. Tippen für den Ränge.",
     "ariaShowAllRanks": "Den anzeigen die Ränge",
-    "titlePowerScore": "Reputazione {n} — punteggio von Macht für costruire, ricercare, addestrare Truppen, salire Wächter und Repeater der Crew",
+    "titlePowerScore": "Ansehen {n} — Machtwert für Bauen, Erforschen, Truppen ausbilden, Wächter aufleveln und Crew-Repeater",
     "titleSessionHonor": "⚔️ Verdienen onore von sessione: Kampf 1v1 von Wächter. 5 Kämpfe gratis/Tag. Sieg = sigilli, equipaggiamento, onore.",
     "titleTerritoryFame": "🏴 Verdienen Territoriumsruhm: tritt einer Crew bei für +500 🪙/Territorium, Crew-Kriege (5000 🏴) und Flaggen-Eroberung (3000 🏴).",
     "ariaOpenBase": "Öffnen Basis",
@@ -2193,8 +2193,8 @@
     "ariaCollapseHappyHour": "Comprimi Bonus happy-hour",
     "labelRunRunning": "LAUF AKTIVIEREN",
     "labelScreenLocked": "BILDSCHIRM GESPERRT",
-    "labelTapHoldUnlock": "🔒 Tippen und Halt premuto sotto für sbloccare",
-    "ariaHoldToUnlock": "Halt premuto für sbloccare",
+    "labelTapHoldUnlock": "🔒 Tippen und gedrückt halten zum Entsperren",
+    "ariaHoldToUnlock": "Gedrückt halten zum Entsperren",
     "errorWithMessage": "Fehler: {message}",
     "thanksForReview": "⭐ Danke für deine Bewertung!",
     "labelRating": "Bewertung",
@@ -2206,7 +2206,7 @@
     "labelOpeningHours": "Öffnungszeiten",
     "labelPhone": "Telefon",
     "ariaStarsCount": "{n} Sterne",
-    "placeholderReview": "Com'ist Status? (breve und onesto, max 280 caratteri)",
+    "placeholderReview": "Wie war's? (kurz und ehrlich, max 280 Zeichen)",
     "ariaRemoveFavorite": "Entfernen von den Favoriten",
     "ariaMarkFavorite": "Segna wie Favorit",
     "ariaReportShop": "Melden Shop",
@@ -2215,7 +2215,7 @@
     "labelRunningNow": "CORRENDO STUNDE",
     "labelReadyToStart": "PRONTO Zu BEGINNEN",
     "enterNameAndZip": "Inserisci Name und CAP",
-    "crewFoundedWithSolo": "✅ \"{name}\" gegründet! 🏆 {count} Territorien nur attivati · +{XP} 🪙 Wegemünzen",
+    "crewFoundedWithSolo": "✅ \"{name}\" gegründet! 🏆 {count} Territorien aktiviert · +{XP} 🪙 Wegemünzen",
     "crewFoundedWithType": "✅ \"{name}\" gegründet — {typeLabel}!",
     "labelBurned": "Verbrannt",
     "sharedOrCopied": "✓ Condiviso oder copiato in den appunti.",
@@ -2230,14 +2230,14 @@
     "placeholderCrewNeighborhood": "z.B.. Runner von Viertel 20121",
     "placeholderCrewOpen": "z.B.. Runner Serali Milano",
     "mottoCrewFriends": "Niemand resta zu Heim.",
-    "mottoCrewFamily": "Rennen insieme, crescere insieme.",
+    "mottoCrewFamily": "Gemeinsam laufen, gemeinsam wachsen.",
     "mottoCrewSchool": "Dominiamo der cortile Und der Viertel.",
     "mottoCrewWork": "Nach der Arbeit, Beginnen der echt Arbeit.",
     "mottoCrewSports": "Der club vive in Straße.",
     "mottoCrewNeighborhood": "Ein Viertel, eine Crew.",
     "mottoCrewOpen": "Komm vorbei — los geht's bald.",
     "labelAttacking": "Greift an…",
-    "labelTooFar": "🔒 Zu viel lontano",
+    "labelTooFar": "🔒 Zu weit weg",
     "labelAttack": "⚔️ Angreifen (500–2000 DMG)",
     "leaderboardLoadFailed": "Nicht möglich laden die Rangliste",
     "networkError": "Fehler von Netzwerk",
@@ -4136,15 +4136,15 @@
     "minTroops": "Minimum 10 Truppen Anfragen.",
     "rallyStarted": "✓ Ralliement iniziato — die Crew kann beitreten.",
     "rallyErrNoCrew": "Nicht bist in eine Crew.",
-    "rallyErrAlreadyActive": "Deine Crew hat bereits ein ralliement aktiv.",
+    "rallyErrAlreadyActive": "Deine Crew hat bereits ein Rally aktiv.",
     "rallyErrShielded": "🛡️ Der Gegner hat der Schild.",
     "rallyErrGeneric": "Ralliement fehlgeschlagen",
-    "marchStarted": "✓ Marcia iniziata — ETA {min}:{sec} ({distance} m). Der Report appare nach in Posta.",
+    "marchStarted": "✓ Marsch gestartet — ETA {min}:{sec} ({distance} m). Der Report appare nach im Posteingang.",
     "attackErrShielded": "🛡️ Der Gegner hat der Schild.",
     "attackErrAlreadyActive": "Hast bereits ein Angriff aktiv.",
     "attackErrNoBase": "Nicht hast Basis.",
     "attackErrGeneric": "Fehler",
-    "infoStatPlayerLevel": "Level giocatore",
+    "infoStatPlayerLevel": "Level Spieler",
     "infoLevelN": "Level {n}",
     "infoStatBaseLevel": "Level Basis",
     "infoStatBaseHp": "HP Basis",
@@ -4155,7 +4155,7 @@
     "actionScout": "SCOUT",
     "actionScoutSub": "Spiona · 500 🪙",
     "actionRally": "ANGRIFF VON CREW",
-    "actionRallySub": "Beginnen ralliement",
+    "actionRallySub": "Rally starten",
     "actionAttack": "ANGREIFEN",
     "actionAttackSub": "Colpo von nur",
     "rallyPrep3min": "3 min",
@@ -4196,7 +4196,7 @@
     "btnAttackStart": "⚔️ ANGREIFEN"
   },
   "BaseModal": {
-    "errBurgRequirements": "Mancano requisiti des burgo: {list}",
+    "errBurgRequirements": "Burg-Voraussetzungen fehlen: {list}",
     "errBurgLevelLow": "Level burgo zu viel niedrig: serve Level {needed}, hast Level {have}.",
     "errQueueFull": "Slot von Bau pieni — ein burgo mehr hoch oder Premium gibt mehr slot.",
     "errMaxLevel": "Level Maximum erreicht.",
@@ -4240,7 +4240,7 @@
     "statBurgSubMax": "Maximum erreicht",
     "statBuildingsLabel": "Gebäude",
     "statBuildingsSubMaxed": "{n} zu Level MAX",
-    "statBuildingsSubMore": "Sehr von costruire",
+    "statBuildingsSubMore": "Mehr bauen",
     "statVipLabel": "Level Premium",
     "statVipSubStreak": "🔥 Serie über {n} Tage",
     "statSpeedLabel": "Token von Tempo",
@@ -4258,7 +4258,7 @@
     "sectionTopEffects": "⚡ TOP EFFEKTE",
     "effectLevelTag": "Level {level}",
     "emptyTitle": "Zu laufen und Sammeln Ressourcen!",
-    "emptyHint": "100/km von jeder Ressource. Poi kannst costruire der dein erster Gebäude.",
+    "emptyHint": "100/km von jeder Ressource. Dann kannst du dein erstes Gebäude bauen.",
     "introResTitle": "🏰 WAS IST DEINE BASE?",
     "introResBody1": "Deine persönliche Festung. Jeder Schritt in der echten Welt füllt deine Schatzkammer:",
     "introResWoodBold": " km in Parks → Tech-Schrott",
@@ -4272,7 +4272,7 @@
     "resPerHour": "+{n}/h",
     "speedTokensHeader": "TOKEN VON TEMPO",
     "activeEffectsTitle": "⚡ EFFEKTE ATTIVI ({n})",
-    "activeEffectsHint": "Bonus von den deine Gebäude costruiti — passivi auf Drop von Ressourcen, Zeit von Bau und Wächter.",
+    "activeEffectsHint": "Boni von deinen gebauten Gebäuden — passiv auf Ressourcen-Drops, Bauzeit und Wächter.",
     "introBuildTitle": "🏗️ WIE FUNZIONA COSTRUIRE?",
     "introBuildBody1": "Jeder Gebäude gibt ein ",
     "introBuildPassive": "Bonus passivo",
@@ -4363,11 +4363,11 @@
     "introSettingsBody3": " und Wähle eine ",
     "introSettingsTheme": "skin von Theme",
     "introSettingsBody4": ". Die Themes sind puramente cosmetici — l'Symbol des pin, der Farbe des modal und die Symbole der Ressourcen cambiano, die stat restano.",
-    "visibilityHeader": "VISIBILITÀ",
+    "visibilityHeader": "SICHTBARKEIT",
     "visibilityPublic": "🌍 Alle",
     "visibilityCrew": "⚔️ Crew",
-    "visibilityShielded": "🛡️ Schild aktiv — visibilità gesperrt bis zum scadere des Schild.",
-    "visibilityHint": "Determina wer sieht der pin der deine Basis auf der Karte.",
+    "visibilityShielded": "🛡️ Schild aktiv — Sichtbarkeit gesperrt bis Schild abläuft.",
+    "visibilityHint": "Bestimmt, wer den Pin deiner Basis auf der Karte sieht.",
     "appearanceHeader": "ASPETTO BASIS",
     "appearanceTheme": "THEME",
     "appearanceThemeAvail": "{n} verfügbare",
@@ -4385,7 +4385,7 @@
     "foreignBuildings": "GEBÄUDE",
     "foreignBuildingsEmpty": "Kein Gebäude.",
     "crewStubTitle": "Basis der Crew",
-    "crewStubSubtitle": "Ansicht dettagliata in Eingang",
+    "crewStubSubtitle": "Ansicht detKopfgeldta kommt bald",
     "crewStubBody": "Modal von Basis der Crew im nächster patch.",
     "labelEditorErrShort": "3-10 lettere.",
     "labelEditorErrChars": "Nur lettere.",
@@ -4417,7 +4417,7 @@
     "introTroopsT1": "T1",
     "introTroopsBody3": " ist verfügbar all'istante. ",
     "introTroopsT2T5": "T2-T5",
-    "introTroopsBody4": " devono sein ricercate — Schau ",
+    "introTroopsBody4": " müssen erforscht werden — siehe ",
     "introTroopsResearchTab": "🔬 tab SUCHE → Militare",
     "introTroopsBody5": ". Die Suche T5 richiede diversi Tage.",
     "introTroopsBody6": "Cap von addestramento für ordine = Level dell'Gebäude × 10.",
@@ -4426,7 +4426,7 @@
     "troopTier": "T{tier}",
     "troopResearchSuffix": " · 🔬 Suche",
     "troopTapToOpen": "Tippen ›",
-    "researchStarted": "✓ Suche iniziata ({min} min)",
+    "researchStarted": "✓ Forschung gestartet ({min} min)",
     "researchErrPrereq": "Manca Suche predecessore.",
     "researchErrBurgLow": "Der burgo muss sein mehr hoch.",
     "researchErrQueueFull": "Slot von Suche pieni (mehr mit Premium 4 / 7).",
@@ -4454,13 +4454,13 @@
     "relocateBody2": " token von trasloco. Die token cadono von Truhen Gold/epiche.",
     "relocateTokens": "Token: {n}",
     "relocateBtn": "Wähle Position",
-    "shieldOk": "✓ Schild attivato!",
+    "shieldOk": "✓ Schild aktiviert!",
     "shieldErrGold": "Insufficienti 🪙 Krypto (servono 500).",
     "shieldErrCooldown": "Cooldown aktiv ({h}h).",
     "shieldErrAlreadyActive": "Schild bereits in azione.",
     "shieldEndConfirm": "Terminare Schild Stunde? Die Basis diventa sichtbar und attaccabile von neu.",
     "shieldHeader": "SCHILD",
-    "shieldActive": "Aktiv · scade in {time}",
+    "shieldActive": "Aktiv · läuft ab in {time}",
     "shieldActiveHint": "Die Basis ist unsichtbar und inattaccabile während dies Zeit.",
     "shieldEndBtn": "Beenden Schild Stunde",
     "shieldCooldown": "Cooldown · nächster uso in {time}",
@@ -4473,7 +4473,7 @@
     "reportLabelDuplicate": "Hast bereits segnalato diese Basis (max 1× jeder 24h).",
     "reportLabelBtn": "🚩 Melden Name",
     "reportLabelHeader": "🚩 MELDEN NAME",
-    "reportLabelHint": "Weil dies Name ist inappropriato? (opzionale)",
+    "reportLabelHint": "Warum ist dieser Name unangemessen? (optional)",
     "reportLabelPlaceholder": "z.B.. insulto, spam, simboli d'odio…",
     "reportLabelCancel": "Abbrechen",
     "reportLabelSubmit": "Melden",
@@ -4505,7 +4505,7 @@
     "vipTicketsRedeemBtn": "+{points} pti",
     "earnHeader": "🎁 VERDIENEN RESSOURCEN",
     "earnAdsTitle": "🎬 SCHAU VIDEO",
-    "earnAdsHint": "Schau ein Video breve → +200 von jeder Ressource + 1 token von Tempo. Bis zu 5× zum Tag.",
+    "earnAdsHint": "Schau ein kurzes Video → +200 von jeder Ressource + 1 Zeit-Token. Bis zu 5× pro Tag.",
     "earnQuestsTitle": "🎯 QUEST GIORNALIERE",
     "earnQuestsHint": "4 task casuali zum Tag — die maggior Teil ohne bisogno von laufen.",
     "earnCrewTitle": "🤝 DONAZIONE VON CREW",
@@ -4557,21 +4557,7 @@
     "vipTiersHeader": "ALLE Die 15 TIER — TIPPEN FÜR DETAILS",
     "vipTierLabel": "Level {level}"
   },
-  "Buildings": {
-    "${id}": {
-      "name": "Name"
-    },
-    "${cat": {
-      "id}": {
-        "description": "Ription"
-      }
-    },
-    "${b": {
-      "building_id}": {
-        "name": "Name"
-      }
-    }
-  },
+  "Buildings": {},
   "CrewModal": {
     "title": "CREW",
     "errorPrefix": "Fehler: {msg}",
@@ -4579,11 +4565,11 @@
     "leaderLabel": "Leader:",
     "noLeader": "—",
     "zipPrefix": "CAP {zip}",
-    "ansehenLabel": "Reputazione von Crew",
+    "ansehenLabel": "Ansehen von Crew",
     "statMembers": "Mitglieder",
     "statRepeaters": "Repeater",
     "statTerritories": "Straßen",
-    "statAnsehen": "Reputazione",
+    "statAnsehen": "Ansehen",
     "rssHeader": "MAGAZZINO VON CREW (RSS)",
     "rssWood": "Tech-Schrott",
     "rssStone": "Komponenten",
@@ -4592,65 +4578,65 @@
     "membersLoading": "Lädt Mitglieder…",
     "membersEmpty": "Kein Mitglied.",
     "techErrorPrefix": "Fehler: {msg}",
-    "techStarted": "Suche iniziata.",
+    "techStarted": "Forschung gestartet.",
     "techInProgress": "🧪 Suche: {name} Level {level} · restano {countdown}",
     "techLevelLabel": "Level {level}/{max}",
     "techResearchBtn": "Suche Level {level} · {cost} Krypto",
     "techMaxed": "✓ Level Maximum",
     "bountyNotFound": "Giocatore nicht gefunden.",
-    "bountyPosted": "Taglia pubblicata.",
-    "bountyTitle": "🎯 Öffentlich taglia",
-    "bountyTargetPh": "Name des giocatore",
-    "bountyReasonPh": "Grund (opzionale)",
+    "bountyPosted": "Kopfgeld veröffentlicht.",
+    "bountyTitle": "🎯 Öffentlich Kopfgeld",
+    "bountyTargetPh": "Name des Spieler",
+    "bountyReasonPh": "Grund (optional)",
     "bountyPostBtn": "Öffentlich",
     "bountyLoading": "Lädt taglie…",
-    "bountyEmpty": "Keine taglia offen.",
-    "bountyMeta": "von {by}{reason} · scade {countdown}",
-    "countdownDone": "fatto",
+    "bountyEmpty": "Keine Kopfgeld offen.",
+    "bountyMeta": "von {by}{reason} · läuft ab {countdown}",
+    "countdownDone": "fertig",
     "bountyRewardSuffix": "{gold} Krypto",
-    "shopBoughtMsg": "Acquistato.",
-    "shopGoldLabel": "💰 Magazzino der Crew: {gold} Krypto",
+    "shopBoughtMsg": "Gekauft.",
+    "shopGoldLabel": "💰 Lager der Crew: {gold} Krypto",
     "shopBuyBtn": "Kaufen · {price} Krypto",
     "settingsError": "Fehler",
     "settingsSaved": "✓ Crew aktualisiert",
     "settingsColorSaved": "✓ gespeichert — Karte aktualisiert",
     "settingsIdentityHeader": "NAME Und TAG VON CREW",
-    "settingsIdentityHint": "Name 2–12 caratteri, Tag genau 4 (Zu–Z, 0–9). Nur owner.",
+    "settingsIdentityHint": "Name 2–12 Zeichen, Tag genau 4 (Zu–Z, 0–9). Nur owner.",
     "settingsCrewNamePh": "Name der Crew",
     "settingsCrewTagPh": "TAG",
     "settingsSave": "Speichern",
     "settingsColorHeader": "FARBE VON CREW",
-    "settingsColorHint": "Determina der Farbe des dein turf der Crew auf der Karte (copertura Repeater, die deine poligoni, accenti des pin).",
-    "settingsColorLeaderOnly": " Nur der leader oder ein ufficiale kann cambiarlo.",
+    "settingsColorHint": "Bestimmt die Farbe deines Crew-Turfs auf der Karte (Repeater-Abdeckung, deine Polygone, Pin-Akzente).",
+    "settingsColorLeaderOnly": " Nur der Anführer oder ein Offizier kann das ändern.",
     "settingsDisplayHeader": "DISPLAY",
     "settingsHudTitle": "⚔ Symbol Angriffe der Crew auf der Karte",
-    "settingsHudHint": "Der Button flottante in niedrig zu destra Zeigen die ralliement aperti zu cui beitreten.",
+    "settingsHudHint": "Der Button flottante unten rechts Zeigen die offene Rallys, denen du beitreten kannst.",
     "buildingsLoading": "Lädt Gebäude…",
-    "buildingHq": "Quartier generale",
+    "buildingHq": "Hauptquartier",
     "buildingHqMeta": "{count}/1 · Noch der Crew, max 1",
-    "buildingMega": "Mega Faro",
+    "buildingMega": "Mega-Leuchtfeuer",
     "buildingMegaMeta": "{count} · Noch secondaria Premium",
     "buildingRepeater": "Repeater",
-    "buildingRepeaterMeta": "{count} · Marker standard · Die Crew riceve +25% Ressourcen + 15% Münzen correndo hier",
-    "buildingsAlphaHeader": "GEBÄUDE VON CREW (ALPHA) — posizionabili, meccanica von gioco in Eingang",
-    "buildingBlackmarket": "Markt Nero",
-    "buildingBlackmarketMeta": "{count}/1 · Generazione passiva von Ressourcen (meccanica in Eingang)",
+    "buildingRepeaterMeta": "{count} · Marker standard · Die Crew erhält +25% Ressourcen + 15% Münzen beim Laufen hier",
+    "buildingsAlphaHeader": "GEBÄUDE VON CREW (ALPHA) — platzierbar, Spielmechanik kommt bald",
+    "buildingBlackmarket": "Schwarzmarkt",
+    "buildingBlackmarketMeta": "{count}/1 · Passive Ressourcen-Generierung (Mechanik kommt bald)",
     "buildingBunker": "Bunker",
-    "buildingBunkerMeta": "{count}/6 · Gebäude difensivo, schieramento von Wächter",
-    "buildingHangout": "Punkt von Ritrovo",
-    "buildingHangoutMeta": "{count}/3 · Spawn von Buff casuale, refresh mit Münzen",
+    "buildingBunkerMeta": "{count}/6 · Defensives Gebäude, Wächter-Stationierung",
+    "buildingHangout": "Treffpunkt",
+    "buildingHangoutMeta": "{count}/3 · Zufälliger Buff-Spawn, Refresh mit Münzen",
     "buildingTunnel": "Tunnel",
-    "buildingTunnelMeta": "{count}/10 · Erstellen ein ponte zwischen Repeater",
-    "buildErectBtn": "🏗 ERIGI",
-    "buildEmpty": "Niemand costruito noch",
+    "buildingTunnelMeta": "{count}/10 · Erstellt eine Brücke zwischen Repeatern",
+    "buildErectBtn": "🏗 ERRICHTEN",
+    "buildEmpty": "Noch nichts gebaut",
     "buildHpLabel": "HP {hp}/{max}",
-    "buildPlanned": "PIANIFICATO",
+    "buildPlanned": "GEPLANT",
     "tabOverview": "Übersicht",
     "tabMembers": "Mitglieder",
     "tabResearch": "Suche",
     "tabBuildings": "Gebäude",
-    "tabBounties": "Taglie",
-    "tabShop": "Magazzino",
+    "tabBounties": "Kopfgelder",
+    "tabShop": "Lager",
     "tabSettings": "Einstellungen"
   },
   "ForgeOfLight": {
@@ -4756,19 +4742,19 @@
     "renameSuccess": "Name cambiato",
     "renameNetworkError": "Fehler von Netzwerk",
     "groupProfile": "👤 PROFIL",
-    "renameLabel": "Name sichtbar des Runner (2–15 caratteri)",
+    "renameLabel": "Name sichtbar des Runner (2–15 Zeichen)",
     "renameCost": "· Costo: {cost}💎",
     "renamePlaceholder": "Der dein Name",
     "renameAriaLabel": "Name sichtbar",
     "renameSave": "Speichern",
-    "renameInvalid": "Der Name muss haben 2–15 caratteri",
+    "renameInvalid": "Der Name muss haben 2–15 Zeichen",
     "renameChecking": "Überprüfung disponibilità…",
     "renameFree": "✓ Name verfügbar",
     "renameTaken": "✗ Name bereits preso",
     "renameSelf": "Jenes ist bereits der dein Name",
     "renameCrewHint": "Cambia Name und Tag der Crew: modal Crew → Einstellungen (nur owner)",
     "groupLanguage": "🌐 SPRACHE Und UNITÀ",
-    "languagesMore": "Andere Sprachen in Eingang: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …",
+    "languagesMore": "Andere Sprachen kommt bald: Español, Français, Italiano, Nederlands, Português, Polski, Türkçe, 日本語, 中文, العربية …",
     "labelUnits": "📏 Unità",
     "groupNotifPush": "🔔 BENACHRICHTIGUNGEN (PUSH)",
     "notifPushEnable": "Aktivieren push",
@@ -4797,8 +4783,8 @@
     "privacyCrewInvites": "👥 Permetti inviti der Crew",
     "privacyFriends": "🤝 Anfragen von amicizia",
     "groupTracking": "🏃 TRACKING Und LAUF",
-    "trackAutoPause": "⏸ Auto-pausa wann fermo",
-    "trackWakeLock": "🔆 Mantieni Bildschirm acceso (wake lock)",
+    "trackAutoPause": "⏸ Auto-Pause bei Stillstand",
+    "trackWakeLock": "🔆 Bildschirm an halten (Wake Lock)",
     "trackSnap": "🧲 Aggancia den Straßen",
     "trackAutoStart": "🎬 Auto-start zum Bewegung",
     "trackGps": "📡 Precisione GPS",
@@ -4862,13 +4848,13 @@
     "accountEmailError": "Fehler: {msg}",
     "accountEmailSent": "E-Mail von Bestätigen inviata zu entrambi die indirizzi.",
     "accountChangePw": "🔑 Cambia Passwort",
-    "accountPwPrompt": "Neue Passwort (min 8 caratteri):",
-    "accountPwTooShort": "Mindestens 8 caratteri.",
+    "accountPwPrompt": "Neue Passwort (min 8 Zeichen):",
+    "accountPwTooShort": "Mindestens 8 Zeichen.",
     "accountExport": "📥 Esporta Daten (DSGVO)",
     "accountConsent": "🛡️ Verwalten Einwilligung pubblicitario",
     "accountLogout": "🚪 Abmelden",
     "accountDelete": "⚠️ Löschen Konto",
-    "accountDeleteHint": "Richiedi l'eliminazione dell'Konto über E-Mail zu support@MyArea365.de. (Flusso automatizzato in Eingang.)",
+    "accountDeleteHint": "Konto-Löschung per E-Mail an support@MyArea365.de anfordern. (Automatisierter Flow kommt bald.)",
     "groupCache": "🧹 CACHE",
     "version": "MyArea365 · v0.9.0 (Beta)",
     "privacyLink": "Datenschutz",
@@ -4876,7 +4862,7 @@
     "supportLink": "Supporto"
   },
   "_meta": {
-    "locale": "it",
+    "locale": "de",
     "status": "complete",
     "note": "Hand-translated full coverage in session."
   },
@@ -4895,14 +4881,14 @@
     },
     "factions": {
       "syndicate": {
-        "name": "Syndikat der Fogna",
-        "short": "SF",
-        "motto": "Spingi die Limits. Conquista der turf altrui. Nie fermo."
+        "name": "Syndikat der Kanalisation",
+        "short": "SK",
+        "motto": "Sprenge die Grenzen. Erobere fremdes Turf. Niemals stillstehen."
       },
       "vanguard": {
-        "name": "Guardia der Corona",
-        "short": "GC",
-        "motto": "Setze radici. Mantieni der Territorium. Heilung der Viertel."
+        "name": "Wächter der Krone",
+        "short": "WK",
+        "motto": "Schlag Wurzeln. Halte das Territorium. Heile das Quartier."
       }
     },
     "markers": {
@@ -4912,29 +4898,29 @@
       "paw": "Pfoten",
       "hedgehog": "Igel",
       "rabbit": "Kaninchen",
-      "turtle": "Tartaruga",
+      "turtle": "Schildkröte",
       "dog": "Hund",
       "cat": "Katze",
       "fox": "Fuchs",
-      "deer": "Cervo",
+      "deer": "Hirsch",
       "wolf": "Wolf",
       "bear": "Bär",
-      "horse": "Cavallo",
-      "cheetah": "Ghepardo",
+      "horse": "Pferd",
+      "cheetah": "Gepard",
       "tiger": "Tiger",
       "lion": "Löwe",
-      "elephant": "Elefante",
+      "elephant": "Elefant",
       "gorilla": "Gorilla",
-      "bat": "Pipistrello",
+      "bat": "Fledermaus",
       "owl": "Eule",
-      "dove": "Colomba",
-      "butterfly": "Farfalla",
-      "swan": "Cigno",
+      "dove": "Taube",
+      "butterfly": "Schmetterling",
+      "swan": "Schwan",
       "eagle": "Adler",
-      "ghost": "Fantasma",
+      "ghost": "Geist",
       "phoenix": "Phönix",
       "dragon": "Drache",
-      "unicorn": "Unicorno",
+      "unicorn": "Einhorn",
       "hero": "Legende"
     },
     "markerVariant": {
@@ -4968,12 +4954,12 @@
       "friends": {
         "name": "Freunde",
         "tagline": "Compagni uniti",
-        "description": "Die deine migliori Freunde — raccogliete km insieme, incoraggiatevi, divertitevi."
+        "description": "Deine besten Freunde — sammelt gemeinsam km, motiviert euch, habt Spaß."
       },
       "family": {
         "name": "Familie",
         "tagline": "Alle die generazioni",
-        "description": "Genitori, figli, nonni — die Herausforderungen familiari mettono alle in moto insieme."
+        "description": "Eltern, Kinder, Großeltern — Familien-Challenges bringen alle gemeinsam in Bewegung."
       },
       "school": {
         "name": "Schule / Uni",
@@ -4982,13 +4968,13 @@
       },
       "work": {
         "name": "Colleghi",
-        "tagline": "Fitness in Team in pausa",
-        "description": "Nach der Arbeit oder in pausa pranzo — rennen insieme unisce mehr der riunioni."
+        "tagline": "Fitness im Team in der Pause",
+        "description": "Nach der Arbeit oder in der Mittagspause — gemeinsam laufen verbindet mehr als Meetings."
       },
       "sports": {
         "name": "Club Sportivo",
         "tagline": "Club und Gruppe Training",
-        "description": "Club von running, Gruppe von marcia, Team von triathlon — usa der spirito von Team oltre l'Training."
+        "description": "Lauf-Club, Spaziergangs-Gruppe, Triathlon-Team — nutzt den Team-Spirit über das Training hinaus."
       },
       "neighborhood": {
         "name": "Viertel",
@@ -4998,7 +4984,7 @@
       "open": {
         "name": "Community Offen",
         "tagline": "Alle benvenuti",
-        "description": "Offen zu alle — conosci gente neue, costruisci eine Community locale in Bewegung."
+        "description": "Offen für alle — lerne neue Leute kennen, baue eine lokale Community in Bewegung auf."
       }
     },
     "privacy": {
@@ -5150,7 +5136,7 @@
           "desc": "Skin/marker/scia casuale — puramente visivo, ohne stat von Kampf (ohne P2W)"
         },
         "ghost_mode": {
-          "name": "Modus Fantasma (1 Lauf)",
+          "name": "Geist-Modus (1 Lauf)",
           "desc": "Unsichtbar zur Fraktion rivale"
         },
         "double_claim": {
@@ -5169,7 +5155,7 @@
       "cosmetics": {
         "golden_trail": {
           "name": "Scia Dorata (30g)",
-          "desc": "Die Lauf Verlassen eine scia von brillio dorato"
+          "desc": "Deine Läufe hinterlassen eine goldene Glitzer-Spur"
         },
         "neon_trail": {
           "name": "Scia Neon (30g)",
@@ -5260,11 +5246,11 @@
         },
         "spotlight_3d": {
           "name": "Spotlight 3 Tage",
-          "desc": "Pin dorato auf der Karte + raggio von visibilità ampliato (5 km)"
+          "desc": "Goldener Pin auf der Karte + erweiterte Sichtbarkeits-Reichweite (5 km)"
         },
         "event_host": {
           "name": "Organizza Event",
-          "desc": "Event von Lauf im dein locale — die Runner sich iscrivono, pin + Liste partecipanti"
+          "desc": "Lauf-Event in deinem Lokal — Runner melden sich an, Pin + Teilnehmer-Liste"
         }
       },
       "guardianItems": {
@@ -5292,7 +5278,7 @@
         },
         "boost_24h": {
           "label": "Doppio 🪙 24h",
-          "description": "Video breve für 24h 2× Münzen"
+          "description": "Kurzes Video für 24h 2× Münzen"
         },
         "double_xp": {
           "label": "Doppio 🪙 15 Min",
@@ -5310,7 +5296,7 @@
         },
         "streakFreeze": {
           "title": "Congelamento Serie",
-          "desc": "3× / Monat setzt in pausa deine Serie"
+          "desc": "3× pro Monat pausiert deine Streak"
         },
         "gpxExport": {
           "title": "Export GPX/TCX",
@@ -5338,7 +5324,7 @@
         },
         "privateRuns": {
           "title": "Läufe Private",
-          "desc": "Halt die Läufe fuori von der Rangliste öffentlich"
+          "desc": "Halt deine Läufe aus der öffentlichen Rangliste raus"
         },
         "paceCoach": {
           "title": "Voce Coach von Ritmo",
@@ -5400,7 +5386,7 @@
         ],
         "ultra": [
           "✓ Alles von Pro",
-          "💎 Spotlight permanente (pin dorato permanente)",
+          "💎 Permanentes Spotlight (dauerhafter goldener Pin)",
           "📣 Push broadcast zu ganze die Stadt",
           "🥇 Funktion von Stadt (1× zum Monat Shop der Woche)",
           "🎯 Targeting demografico für Angebote",
@@ -5447,7 +5433,7 @@
     "chest_speed_pct": "Zeit von apertura Truhe",
     "crew_help_speedup_pct": "Accelerazione Hilfe Crew",
     "scout_strength_pct": "Stärke Scout",
-    "rally_capacity_pct": "Capacità ralliement",
+    "rally_capacity_pct": "Capacità Rally",
     "legendary_recruit_pct": "Probabilità reclutamento legendär",
     "crew_heal_speed_pct": "Tempo Heilung Crew",
     "crew_research_pct": "Suche Crew",
@@ -5455,970 +5441,970 @@
     "salvage_yield_pct": "Resa von recupero"
   },
   "Privacy": {
-    "metaTitle": "Informativa auf der Datenschutz",
+    "metaTitle": "Datenschutzerklärung",
     "metaDescription": "Datenschutzerklärung von MyArea365 – DSGVO, TDDDG, CCPA, UK-DSGVO, FADP, LGPD.",
-    "title": "Informativa auf der Datenschutz",
+    "title": "Datenschutzerklärung",
     "back": "← Zurück",
-    "lastUpdated": "Letzter Update: {Daten}",
-    "intro": "Diese Datenschutzerklärung dir informa, in conformità den articoli 13 und 14 des Regolamento Generale auf der Protezione der Daten (DSGVO) und den normative internazionali equivalenti (UK-DSGVO, FADP svizzera, CCPA/CPRA californiana, LGPD brasiliana, PIPEDA canadese), auf dem Verarbeitung der personenbezogene Daten wann utilizzi der unser sito web <b>MyArea365.de</b> nonché l'App web und l'App mobile associate (insieme der «Dienst»).",
-    "footer": "Diese Datenschutzerklärung ist stata preparata mit die massima Heilung und tenendo conto der normative internazionali (DSGVO, UK-DSGVO, FADP, CCPA/CPRA, LGPD, PIPEDA, Datenschutz Act australiano). Descrive der Status aktuell des unser Verarbeitung der Daten. Vor der messa in onda und all'introduzione von neue funzionalità importanti, raccomandiamo eine revisione endgültig von Teil von ein avvocato specializzato in Recht IT und Datenschutz.",
+    "lastUpdated": "Letzte Aktualisierung: {date}",
+    "intro": "Diese Datenschutzerklärung informiert dich gemäß Art. 13 und 14 der Datenschutz-Grundverordnung (DSGVO) und der gleichwertigen internationalen Vorschriften (UK-DSGVO, Schweizer DSG, kalifornischer CCPA/CPRA, brasilianischer LGPD, kanadischer PIPEDA) über die Verarbeitung deiner personenbezogenen Daten, wenn du unsere Website <b>MyArea365.de</b> sowie die zugehörige Web-App und Mobile-App (zusammen der «Dienst») nutzt.",
+    "footer": "Diese Datenschutzerklärung wurde mit größter Sorgfalt und unter Berücksichtigung der internationalen Vorschriften (DSGVO, UK-DSGVO, FADP, CCPA/CPRA, LGPD, PIPEDA, australischer Privacy Act) erstellt. Sie beschreibt den aktuellen Stand unserer Datenverarbeitung. Vor dem Live-Gang und der Einführung wesentlicher neuer Funktionen empfehlen wir eine abschließende Prüfung durch einen auf IT-Recht und Datenschutz spezialisierten Anwalt.",
     "s1": {
-      "title": "Titolare des Verarbeitung",
-      "p1": "Der titolare des Verarbeitung gemäß des DSGVO, controller gemäß des UK-DSGVO, responsabile gemäß des FADP, business gemäß des CCPA und controlador gemäß des LGPD ist:",
-      "country": "Germania",
+      "title": "Verantwortlicher",
+      "p1": "Verantwortlicher gemäß DSGVO, Controller gemäß UK-DSGVO, Verantwortlicher gemäß FADP, Business gemäß CCPA und Controlador gemäß LGPD ist:",
+      "country": "Deutschland",
       "emailLabel": "E-Mail:",
-      "imprintNote": "Für die note legali complete, Schau <impressumLink>/impressum</impressumLink>."
+      "imprintNote": "Vollständige rechtliche Angaben siehe <impressumLink>/impressum</impressumLink>."
     },
     "s2": {
-      "title": "Kontakt für Anfragen auf der Datenschutz",
-      "body": "Nicht wir haben nominato ein responsabile der Datenschutz gemäß des § 38 BDSG, weil die requisiti legali nicht sind soddisfatti. Für alle die questioni von Datenschutz – in besondere für esercitare die deine Rechte (Schau Bereich 14) – kannst contattarci über E-Mail zu <Support-Mail>support@MyArea365.de</Support-Mail>. Rispondiamo entro 30 Tage (DSGVO) oder 45 Tage (CCPA/LGPD)."
+      "title": "Kontakt für Datenschutzanfragen",
+      "body": "Wir haben keinen Datenschutzbeauftragten gemäß § 38 BDSG benannt, da die gesetzlichen Voraussetzungen nicht erfüllt sind. Für alle Datenschutzanfragen – insbesondere zur Wahrnehmung deiner Rechte (siehe Abschnitt 14) – kannst du uns per E-Mail unter <Support-Mail>support@MyArea365.de</Support-Mail> kontaktieren. Wir antworten innerhalb von 30 Tagen (DSGVO) bzw. 45 Tagen (CCPA/LGPD)."
     },
     "s3": {
-      "title": "Basen giuridiche des Verarbeitung",
-      "intro": "Trattiamo die personenbezogene Daten auf den seguenti Basen giuridiche:",
-      "li1": "<b>Art. 6(1)(zu) DSGVO</b> – Einwilligung (newsletter, Benachrichtigungen push, condivisione Position, cookie analitici opzionali, comunicazioni marketing)",
-      "li2": "<b>Art. 6(1)(b) DSGVO</b> – esecuzione von ein Vertrag oder misure precontrattuali (Konto Nutzer, gamification, riscatti von Angebote, elaborazione Zahlungen)",
-      "li3": "<b>Art. 6(1)(c) DSGVO</b> – obbligo legale (obblighi von conservazione commerciale und fiscale, obblighi von Meldung Sekunde § 146zu AO, liest antiriciclaggio)",
-      "li4": "<b>Art. 6(1)(F) DSGVO</b> – interesse legittimo (Sicherheit IT, prevenzione abusi, analisi Fehler, miglioramento qualità des Dienst)",
-      "li5": "<b>Art. 9(2)(zu) DSGVO</b> – Einwilligung esplicito sich trattiamo Kategorien particolari von personenbezogene Daten (z.B.. Daten sanitari dedotti von Profile von Bewegung in forma aggregata – nur mit der dein Einwilligung)",
-      "li6": "<b>§ 25 TDDDG</b> (vom 14 maggio 2024 successore des TTDSG) – memorizzazione und Zugriff zu Informationen auf Geräte terminali (cookie, LocalStorage)"
+      "title": "Rechtsgrundlagen der Verarbeitung",
+      "intro": "Wir verarbeiten personenbezogene Daten auf folgenden Rechtsgrundlagen:",
+      "li1": "<b>Art. 6 Abs. 1 lit. a DSGVO</b> – Einwilligung (Newsletter, Push-Benachrichtigungen, Standortfreigabe, optionale Analyse-Cookies, Marketing-Kommunikation)",
+      "li2": "<b>Art. 6 Abs. 1 lit. b DSGVO</b> – Vertragserfüllung oder vorvertragliche Maßnahmen (Nutzerkonto, Gamification, Einlösung von Angeboten, Zahlungsabwicklung)",
+      "li3": "<b>Art. 6 Abs. 1 lit. c DSGVO</b> – rechtliche Verpflichtung (handels- und steuerrechtliche Aufbewahrungspflichten, Meldepflichten gemäß § 146a AO, Geldwäschegesetze)",
+      "li4": "<b>Art. 6 Abs. 1 lit. f DSGVO</b> – berechtigtes Interesse (IT-Sicherheit, Missbrauchsprävention, Fehleranalyse, Qualitätsverbesserung des Dienstes)",
+      "li5": "<b>Art. 9 Abs. 2 lit. a DSGVO</b> – ausdrückliche Einwilligung, sofern wir besondere Kategorien personenbezogener Daten verarbeiten (z. B. aus Bewegungsprofilen abgeleitete Gesundheitsdaten in aggregierter Form – ausschließlich mit deiner Einwilligung)",
+      "li6": "<b>§ 25 TDDDG</b> (Nachfolger des TTDSG seit 14. Mai 2024) – Speicherung und Zugriff auf Informationen in Endgeräten (Cookies, LocalStorage)"
     },
     "s4": {
-      "title": "Concretamente: quali Daten memorizziamo und tracciamo",
-      "intro": "Von seguito trovi eine Liste Abschließen von alle die campi von personenbezogene Daten memorizzati oder trattati in den nostri Systeme. Rispettiamo der principio von minimizzazione der Daten (Art. 5(1)(c) DSGVO) und nicht raccogliamo Daten «für jeder evenienza».",
+      "title": "Konkret: welche Daten wir speichern und tracken",
+      "intro": "Nachfolgend findest du eine vollständige Liste aller personenbezogenen Datenfelder, die in unseren Systemen gespeichert oder verarbeitet werden. Wir folgen dem Grundsatz der Datenminimierung (Art. 5 Abs. 1 lit. c DSGVO) und erheben keine Daten «für den Fall der Fälle».",
       "s1": {
-        "title": "4.1 Daten von Konto und Profil",
+        "title": "4.1 Konto- und Profildaten",
         "items": [
-          "Adresse E-Mail (identificatore von Zugriff, comunicazione)",
-          "Name Nutzer (identificatore öffentlich)",
-          "Name visualizzato (Name zu Text frei)",
-          "Passwort wie hash salato (nie in Klar; Argon2/bcrypt)",
-          "Indicatore ruolo/Erlaubnis (Nutzer, supporto, marketing, Verkäufe, admin)",
-          "Status von ban und Grund eventuale",
-          "Affiliazione von Fraktion (Guardia der Corona oder Lega der Fogna)",
-          "Classe und ruolo des Wächter aktiv (Tank/Supporto/Distanz/Mischia + sotto-archetipo)",
-          "CAP von Heim (opzionale, 5 cifre, für Funktionen von Viertel)",
-          "Appartenenza Crew aktuell (chiave esterna zu Crew)",
-          "URL avatar (caricato personalmente, öffentlich nach Moderation)",
-          "URL banner (caricato personalmente, öffentlich nach Moderation)",
-          "Statistiken giocatore: Level, XP Gesamt, Distanz Gesamt, Zahl von Läufe",
-          "Sprache gewählt, Farbe von Team, Text lore von Profil",
-          "Timestamp: registrazione, letzte attività",
-          "Position approssimativa: paese, Stadt (sich fornita volontariamente im Profil)"
+          "E-Mail-Adresse (Login-Kennung, Kommunikation)",
+          "Benutzername (öffentliche Kennung)",
+          "Anzeigename (frei wählbarer Text)",
+          "Passwort als gesalzener Hash (nie im Klartext; Argon2/bcrypt)",
+          "Rollen-/Berechtigungskennzeichen (Nutzer, Support, Marketing, Sales, Admin)",
+          "Sperrstatus und ggf. Begründung",
+          "Fraktionszugehörigkeit (Wächter der Krone oder Liga der Kanalisation)",
+          "Klasse und Rolle des aktiven Wächters (Tank/Support/Distanz/Nahkampf + Sub-Archetyp)",
+          "PLZ deines Wohnorts (optional, 5-stellig, für Quartier-Funktionen)",
+          "Aktuelle Crew-Zugehörigkeit (Fremdschlüssel zur Crew)",
+          "Avatar-URL (selbst hochgeladen, öffentlich nach Moderation)",
+          "Banner-URL (selbst hochgeladen, öffentlich nach Moderation)",
+          "Spieler-Statistiken: Level, Gesamt-XP, Gesamt-Distanz, Anzahl Läufe",
+          "Gewählte Sprache, Team-Farbe, Profil-Lore-Text",
+          "Zeitstempel: Registrierung, letzte Aktivität",
+          "Ungefähre Position: Land, Stadt (sofern freiwillig im Profil angegeben)"
         ],
-        "basis": "Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+        "basis": "Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO."
       },
       "s2": {
-        "title": "4.2 Daten von Position und Bewegung",
+        "title": "4.2 Standort- und Bewegungsdaten",
         "items": [
-          "Coordinate GPS (latitudine, longitudine, altitudine, precisione) während eine sessione von Lauf Aktivieren",
-          "Timestamp von jeder Punkt GPS",
-          "Tempo und Distanz calcolate zwischen die Punkte",
-          "Mappatura der Punkte den segmenti von Straße (snap-to-road)",
-          "Percorso percorso wie oggetto geometrico (PostGIS)",
-          "Gebiete catturate wie geometria poligonale",
-          "Timestamp der cattura von Gebiet und XP assegnato"
+          "GPS-Koordinaten (Breite, Länge, Höhe, Genauigkeit) während einer aktiven Lauf-Session",
+          "Zeitstempel jedes GPS-Punkts",
+          "Berechnete Zeit und Distanz zwischen den Punkten",
+          "Mapping der Punkte auf Straßensegmente (Snap-to-Road)",
+          "Zurückgelegte Strecke als geometrisches Objekt (PostGIS)",
+          "Eroberte Gebiete als Polygon-Geometrie",
+          "Zeitstempel der Gebiets-Eroberung und vergebene XP"
         ],
-        "note": "Catturato esclusivamente während eine sessione von Lauf Aktivieren, nur nach autorizzazione esplicita des Browser oder des System operativo. Kein dato von Position wird raccolto in background. Rechtsgrundlage: Art. 6(1)(zu) und (b) DSGVO."
+        "note": "Wird ausschließlich während einer aktiven Lauf-Session erfasst, nur nach ausdrücklicher Erlaubnis durch Browser oder Betriebssystem. Es werden keine Standortdaten im Hintergrund erhoben. Rechtsgrundlage: Art. 6 Abs. 1 lit. a und b DSGVO."
       },
       "s3": {
-        "title": "4.3 Daten von gamification, Wächter und salvataggio",
+        "title": "4.3 Gamification-, Wächter- und Spielstanddaten",
         "items": [
-          "Liste der deine archetipi von Wächter, Level, Wegemünzen, Siege, Niederlagen, Status von ferita",
-          "Punkte Talent, Level von Fähigkeit, Punkte investiti für nodo",
-          "Inventario von equipaggiamento: oggetti, slot, rarità, Level von upgrade, materiali ricevuti (rottame, cristallo, essenza, frammenti von reliquia)",
-          "Partecipazione zu Saisons von Arena und Rangliste endgültig",
-          "Storico prestigio: Punkte, Titel, Rang für Saison abgeschlossen",
-          "Sigilli guadagnati (Tank, Supporto, Distanz, Mischia, Universale)",
-          "Contatori von serie (Tage consecutivi mit attività)",
-          "Azioni limitate giornalmente (contatore Kämpfe d'Arena, Angebote giornaliere)",
-          "Bewertung / Elo (Modus classificata), picco von Bewertung, storico Siege/Niederlagen"
+          "Liste deiner Wächter-Archetypen, Level, Wegemünzen, Siege, Niederlagen, Verletzungsstatus",
+          "Talentpunkte, Fähigkeitsstufen, in Knoten investierte Punkte",
+          "Ausrüstungs-Inventar: Items, Slots, Seltenheit, Upgrade-Stufe, erhaltene Materialien (Schrott, Kristall, Essenz, Reliquien-Fragmente)",
+          "Teilnahme an Arena-Saisons und finale Ranglisten",
+          "Prestige-Verlauf: Punkte, Titel, Rang pro abgeschlossener Saison",
+          "Erlangte Siegel (Tank, Support, Distanz, Nahkampf, Universal)",
+          "Streak-Zähler (aufeinanderfolgende Tage mit Aktivität)",
+          "Tageslimitierte Aktionen (Arena-Kampf-Zähler, Tagesangebote)",
+          "Wertung / Elo (Ranglisten-Modus), Wertungs-Höchststand, Sieg-/Niederlagen-Verlauf"
         ],
-        "basis": "Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+        "basis": "Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO."
       },
       "s4": {
-        "title": "4.4 Kämpfe d'Arena (Kämpfe PvP)",
+        "title": "4.4 Arena-Kämpfe (PvP)",
         "items": [
-          "Identificatori von attaccante, difensore, vincitore",
-          "Diamanten scommessi (Kämpfe zu Zahlung oltre die quota giornaliera)",
-          "Protocollo von round mit azioni, valori von Schaden, colpi critici",
-          "Seed für riproduzione deterministica des Kampf",
-          "Timestamp des Kampf und Saison assegnata",
-          "Variazione von Bewertung (delta) für attaccante und difensore"
+          "Kennungen von Angreifer, Verteidiger, Sieger",
+          "Eingesetzte Diamanten (kostenpflichtige Kämpfe über das Tageskontingent hinaus)",
+          "Runden-Protokoll mit Aktionen, Schadenswerten, kritischen Treffern",
+          "Seed für deterministische Wiedergabe des Kampfes",
+          "Zeitstempel des Kampfes und zugewiesene Saison",
+          "Wertungs-Änderung (Delta) für Angreifer und Verteidiger"
         ],
-        "basis": "Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+        "basis": "Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO."
       },
       "s5": {
-        "title": "4.5 Daten von Crew und comunicazione",
+        "title": "4.5 Crew- und Kommunikationsdaten",
         "items": [
-          "Name von Crew, Farbe, emblema, motto",
-          "Appartenenza: wer ist Mitglied, ruolo (Mitglied, admin)",
-          "Inviti aperti und accettati",
-          "Nachrichten von Chat in der Crew: Inhalt, mittente, timestamp",
-          "Events von Crew, Post von Feed, Herausforderungen"
+          "Crew-Name, Farbe, Emblem, Motto",
+          "Mitgliedschaft: wer ist Mitglied, Rolle (Mitglied, Admin)",
+          "Offene und angenommene Einladungen",
+          "Crew-Chatnachrichten: Inhalt, Absender, Zeitstempel",
+          "Crew-Events, Feed-Posts, Herausforderungen"
         ],
-        "note": "Die Nachrichten von Chat sind visibili nur den Mitglieder der Crew und sind memorizzati lato server für die Moderation. Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+        "note": "Chatnachrichten sind nur für Crew-Mitglieder sichtbar und werden serverseitig zur Moderation gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO."
       },
       "s6": {
-        "title": "4.6 Check-in in Shops Partner und riscatti von Angebote",
+        "title": "4.6 Check-ins bei Partner-Shops und Einlösen von Angeboten",
         "items": [
-          "Stunde des check-in",
-          "ID des Shop Partner und Angebot riscattata",
-          "ID des codice QR (sich scansionato)",
-          "Scontrino caricato (nur für promozioni mit Beute Bonus, breve termine)",
-          "Importo des scontrino riconosciuto über OCR",
-          "Indicatore «scontrino verifiziert» (nach Kontrolle automatisch)"
+          "Uhrzeit des Check-ins",
+          "ID des Partner-Shops und eingelöstes Angebot",
+          "ID des QR-Codes (sofern gescannt)",
+          "Hochgeladener Beleg (nur bei Promotions mit Beute-Bonus, kurzfristig)",
+          "Per OCR erkannter Belegbetrag",
+          "Kennzeichen «Beleg verifiziert» (nach automatischer Prüfung)"
         ],
-        "note": "Der gestore des Shop sieht nur der dein Name anonym von Runner und der fatto des riscatto – keine E-Mail, kein Name reale, kein dato von Profil. Die Bilder der scontrini werden eliminate entro 7 Tage nach der Kontrolle OCR. Rechtsgrundlage: Art. 6(1)(b) DSGVO."
+        "note": "Der Shop-Betreiber sieht nur deinen anonymen Runner-Namen und die Tatsache der Einlösung – keine E-Mail, keinen Klarnamen, keine Profildaten. Belegbilder werden 7 Tage nach OCR-Prüfung gelöscht. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO."
       },
       "s7": {
-        "title": "4.7 Daten von Zahlung",
+        "title": "4.7 Zahlungsdaten",
         "items": [
-          "Storico Käufe: timestamp, Zahl prodotto (SKU), importo, valuta",
-          "Saldi und transazioni von Wegemünzen und Diamanten (credito, consumo, Grund)",
-          "Riferimento provider von Zahlung (Stripe Payment Intent, ID sessione Checkout)",
-          "Status von Abo und Daten von rinnovo (MyArea+, Badge Supporter Bronze/Silber/Gold, Crew Pro, Pakete Shop, Pass Arena)",
-          "Level Supporter (Bronze / Silber / Gold) sich ist aktiv ein Abo corrispondente",
-          "Daten von fattura und ricevuta gemäß der §§ 14, 14zu UStG"
+          "Kaufhistorie: Zeitstempel, Produkt-SKU, Betrag, Währung",
+          "Salden und Transaktionen von Wegemünzen und Diamanten (Gutschrift, Verbrauch, Grund)",
+          "Referenz zum Zahlungsanbieter (Stripe Payment Intent, Checkout-Session-ID)",
+          "Abo-Status und Verlängerungsdaten (MyArea+, Supporter-Badge Bronze/Silber/Gold, Crew Pro, Shop-Pakete, Arena-Pass)",
+          "Supporter-Stufe (Bronze / Silber / Gold) bei aktivem entsprechendem Abo",
+          "Rechnungs- und Quittungsdaten gemäß §§ 14, 14a UStG"
         ],
-        "note": "Nicht riceviamo Zahlen von carta von credito, Daten bancari oder identificativi von metodo von Zahlung completi – restano bei der provider von Zahlung. Rechtsgrundlage: Art. 6(1)(b) und (c) DSGVO."
+        "note": "Wir erhalten keine Kreditkartennummern, Bankdaten oder vollständigen Zahlungsmittel-Identifier – diese verbleiben beim Zahlungsanbieter. Rechtsgrundlage: Art. 6 Abs. 1 lit. b und c DSGVO."
       },
       "s8": {
-        "title": "4.8 Anfragen von assistenza und ticket",
+        "title": "4.8 Support-Anfragen und Tickets",
         "items": [
-          "Adresse E-Mail und Name (sich forniti)",
-          "Text der Anfrage und qualsiasi comunicazione successiva",
-          "Note interne des team von assistenza",
-          "Status, priorità, Kategorie, assegnazione zum persönlich",
-          "Origine der Anfrage (modulo von Kontakt, E-Mail, in-App)",
-          "User agent des Browser, sich verfügbar"
+          "E-Mail-Adresse und Name (sofern angegeben)",
+          "Text der Anfrage und sämtliche Folgekommunikation",
+          "Interne Notizen des Support-Teams",
+          "Status, Priorität, Kategorie, Zuweisung an Mitarbeiter:in",
+          "Herkunft der Anfrage (Kontaktformular, E-Mail, In-App)",
+          "User-Agent des Browsers, sofern verfügbar"
         ],
-        "basis": "Rechtsgrundlage: Art. 6(1)(b) oder (F) DSGVO."
+        "basis": "Rechtsgrundlage: Art. 6 Abs. 1 lit. b oder f DSGVO."
       },
       "s9": {
-        "title": "4.9 Caricamenti Nutzer und Moderation IA",
+        "title": "4.9 Nutzer-Uploads und KI-Moderation",
         "items": [
-          "Bild caricata (avatar, banner, bozze von artwork)",
-          "Scontrino caricato (scontrino von Truhe für Beute Bonus)",
-          "Ergebnis der revisione (accettato, rifiutato, Grund)",
-          "Timestamp der revisione und modello utilizzato (Dienst IA)"
+          "Hochgeladenes Bild (Avatar, Banner, Artwork-Entwürfe)",
+          "Hochgeladener Beleg (Truhen-Beleg für Beute-Bonus)",
+          "Prüfungsergebnis (akzeptiert, abgelehnt, Grund)",
+          "Zeitstempel der Prüfung und genutztes Modell (KI-Dienst)"
         ],
-        "note": "Die caricamenti werden automaticamente verificati für Inhalte vietati vor der pubblicazione (Schau Bereich 5). Die caricamenti rifiutati sind conservati 30 Tage für revisione, poi eliminati. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+        "note": "Uploads werden vor der Veröffentlichung automatisch auf verbotene Inhalte geprüft (siehe Abschnitt 5). Abgelehnte Uploads werden 30 Tage zur Nachprüfung aufbewahrt und dann gelöscht. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO."
       },
       "s10": {
-        "title": "4.10 Daten tecnici und log des server",
+        "title": "4.10 Technische Daten und Server-Logs",
         "items": [
-          "Adresse IP (anonimizzato nach 7 Tage troncando die letzten 8 bit)",
-          "User agent (Typ und Version des Browser)",
-          "System operativo und Version",
-          "URL von riferimento (von wo proviene die visita)",
-          "URL richiesto und codice von Status HTTP",
-          "Stunde von Zugriff und Zeit von Antwort",
-          "Typ von Gerät (desktop, mobile, tablet)",
-          "Version dell'App (nur App mobile)",
-          "Sprache des Gerät"
+          "IP-Adresse (nach 7 Tagen anonymisiert durch Kürzung der letzten 8 Bit)",
+          "User-Agent (Browser-Typ und -Version)",
+          "Betriebssystem und Version",
+          "Referrer-URL (von wo der Besuch kam)",
+          "Angeforderte URL und HTTP-Statuscode",
+          "Zeitpunkt des Zugriffs und Antwortzeit",
+          "Gerätetyp (Desktop, Mobil, Tablet)",
+          "App-Version (nur Mobile-App)",
+          "Geräte-Sprache"
         ],
-        "note": "Die Daten tecnici sind necessari für fornire der Dienst und prevenire abusi. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+        "note": "Technische Daten sind erforderlich, um den Dienst bereitzustellen und Missbrauch zu verhindern. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO."
       },
       "s11": {
-        "title": "4.11 Marketing, push und Nachrichten in-App",
+        "title": "4.11 Marketing, Push und In-App-Nachrichten",
         "items": [
-          "Adresse E-Mail für newsletter (nur auf opt-in)",
-          "Token push des Gerät für Benachrichtigungen push mobili (nur auf opt-in)",
-          "Statistiken von consegna: consegnato, offen, cliccato, rimbalzato",
-          "Registrazione des Einwilligung: timestamp, IP, Version des Text von Einwilligung",
-          "Assegnazione von segmento für campagne mirate (Fraktion, paese, Level)",
-          "Posteingang in der App: Broadcast-ID, Lesedatum"
+          "E-Mail-Adresse für Newsletter (nur Opt-in)",
+          "Push-Token des Geräts für mobile Push-Benachrichtigungen (nur Opt-in)",
+          "Zustellungs-Statistiken: zugestellt, geöffnet, geklickt, abgesprungen",
+          "Einwilligungs-Aufzeichnung: Zeitstempel, IP, Version des Einwilligungs-Texts",
+          "Segment-Zuordnung für zielgerichtete Kampagnen (Fraktion, Land, Level)",
+          "App-Posteingang: Broadcast-ID, Lesedatum"
         ],
-        "note": "Rechtsgrundlage: Art. 6(1)(zu) DSGVO. Kannst revocare der Einwilligung in qualsiasi momento über der link von disiscrizione, die Einstellungen von Benachrichtigung oder der Dialog des System operativo."
+        "note": "Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO. Du kannst die Einwilligung jederzeit über den Abmeldelink, die Benachrichtigungs-Einstellungen oder den Betriebssystem-Dialog widerrufen."
       },
       "s12": {
-        "title": "4.12 Test Zu/B und esperimenti",
-        "body": "Die Test Zu/B <b>nicht sind attualmente attivi</b>. L'infrastruttura dell'App (Tabelle <Code>experiment_assignments</Code>) ist preparata für uso Zukunft. Nicht gerade erst werden attivati esperimenti, diese informativa wird aktualisiert. Die assegnazioni sarebbero Daher pseudonimizzate auf der Basis dell'ID Nutzer."
+        "title": "4.12 A/B-Tests und Experimente",
+        "body": "A/B-Tests sind <b>aktuell nicht aktiv</b>. Die App-Infrastruktur (Tabelle <Code>experiment_assignments</Code>) ist für zukünftige Nutzung vorbereitet. Sobald Experimente aktiviert werden, wird diese Erklärung aktualisiert. Die Zuordnungen wären dann auf Basis der Nutzer-ID pseudonymisiert."
       },
       "s13": {
-        "title": "4.13 System von Moderation und Meldung",
+        "title": "4.13 Moderations- und Meldesystem",
         "items": [
-          "Inhalt oder Nutzer segnalato, Grund der Meldung",
-          "ID des segnalante, timestamp",
-          "Status von revisione, decisione, nota interna"
+          "Gemeldeter Inhalt oder Nutzer, Meldegrund",
+          "ID des Meldenden, Zeitstempel",
+          "Prüfstatus, Entscheidung, interne Notiz"
         ],
-        "note": "Die segnalazioni sind conservate 24 Monate für rilevare Fälle ricorrenti. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+        "note": "Meldungen werden 24 Monate aufbewahrt, um wiederkehrende Fälle zu erkennen. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO."
       },
       "s14": {
-        "title": "4.14 Registro von audit dell'amministratore",
+        "title": "4.14 Admin-Audit-Log",
         "items": [
-          "Timestamp von jeder azione amministrativa",
-          "ID und ruolo des Mitglied des persönlich",
-          "Typ von azione (z.B.. sospensione Nutzer, Export Daten, impersonation)",
-          "Oggetto target und metadati rilevanti"
+          "Zeitstempel jeder administrativen Aktion",
+          "ID und Rolle des Mitarbeiters",
+          "Aktionstyp (z. B. Nutzer-Sperre, Daten-Export, Impersonation)",
+          "Zielobjekt und relevante Metadaten"
         ],
-        "note": "Der registro von audit serve für die tracciabilità und die Sicherheit. Die voci dass dir riguardano können sein ottenute nell'ambito des dein Recht von Zugriff. Rechtsgrundlage: Art. 6(1)(c) und (F) DSGVO."
+        "note": "Das Audit-Log dient der Nachvollziehbarkeit und Sicherheit. Auf dich bezogene Einträge können im Rahmen deines Auskunftsrechts angefordert werden. Rechtsgrundlage: Art. 6 Abs. 1 lit. c und f DSGVO."
       },
       "s15": {
-        "title": "4.15 Inhalte pubblicamente visibili",
+        "title": "4.15 Öffentlich sichtbare Inhalte",
         "items": [
-          "Name Nutzer, Name visualizzato, avatar, banner",
-          "Level, Fraktion, appartenenza Crew",
-          "Position in Rangliste (globale, regionale, für Kategorie)",
-          "Titel von prestigio von Saisons completate (Hall of Fame)",
-          "Sigilli und Erfolge guadagnati",
-          "Selezione von Wächter aktiv auf dem Profil öffentlich",
-          "Heatmap aggregata der deine attività von Lauf (nur zu Level von Straße, nicht attribuibile zu eine persona)"
+          "Benutzername, Anzeigename, Avatar, Banner",
+          "Level, Fraktion, Crew-Zugehörigkeit",
+          "Position in der Rangliste (global, regional, kategoriespezifisch)",
+          "Prestige-Titel aus abgeschlossenen Saisons (Hall of Fame)",
+          "Errungene Siegel und Erfolge",
+          "Auf dem öffentlichen Profil ausgewählter aktiver Wächter",
+          "Aggregierte Heatmap deiner Lauf-Aktivität (nur auf Straßenebene, nicht auf Personen rückführbar)"
         ],
-        "note": "In den Einstellungen des dein Profil kannst decidere quali von diese Daten sind pubblicamente visibili. Nachrichten von Chat, Adresse E-Mail, tracce GPS precise, Daten von Zahlung und ticket von assistenza nicht sind nie pubblici."
+        "note": "In den Einstellungen deines Profils kannst du entscheiden, welche dieser Daten öffentlich sichtbar sind. Chatnachrichten, E-Mail-Adresse, präzise GPS-Spuren, Zahlungsdaten und Support-Tickets sind niemals öffentlich."
       },
       "s16": {
-        "title": "4.16 Inviti und condivisioni",
+        "title": "4.16 Einladungen und Teilen",
         "items": [
-          "Codici von invito für Crew (contiene ID Crew, token in Ablauf)",
-          "Link von condivisione zum dein Profil (/u/[username]) mit Tab von condivisione generata",
-          "Parametri UTM der link condivisi für misurare der Erfolg der campagne",
-          "E-Mail destinatario für inviti zwischen Freunde (usata eine sola volta, nicht memorizzata)"
+          "Crew-Einladungs-Codes (enthält Crew-ID, Token mit Ablaufdatum)",
+          "Profil-Sharelink (/u/[username]) mit generiertem Sharing-Tab",
+          "UTM-Parameter geteilter Links zur Erfolgsmessung von Kampagnen",
+          "Empfänger-E-Mail bei Einladungen unter Freunden (einmalig verwendet, nicht gespeichert)"
         ],
-        "note": "Sich inviti ein Freund über E-Mail, nicht memorizziamo der sein Adresse in Weise permanente; wird utilizzato nur für senden l'invito und poi scartato. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+        "note": "Wenn du einen Freund per E-Mail einlädst, speichern wir dessen Adresse nicht dauerhaft; sie wird nur zum Versand der Einladung genutzt und danach verworfen. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO."
       },
       "s17": {
-        "title": "4.17 Programmi Beta und Feedback",
+        "title": "4.17 Beta-Programme und Feedback",
         "items": [
-          "Status von partecipazione zu Funktionen Beta",
-          "Voci des modulo von Feedback inclusi Text, Bewertung, contesto (URL, user agent)"
+          "Teilnahme-Status an Beta-Funktionen",
+          "Einträge des Feedback-Formulars inkl. Text, Bewertung, Kontext (URL, User-Agent)"
         ],
-        "note": "Die Feedback sind conservati 24 Monate. Rechtsgrundlage: Art. 6(1)(F) DSGVO. Der rapporto automatisch von crash <b>nicht ist attualmente aktiv</b>; eine volta introdotto, diese informativa wird aktualisiert."
+        "note": "Feedback wird 24 Monate aufbewahrt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO. Automatisches Crash-Reporting ist <b>aktuell nicht aktiv</b>; sobald es eingeführt wird, wird diese Erklärung aktualisiert."
       },
       "s18": {
-        "title": "4.18 Suggerimenti von Shops Partner von Teil der Nutzer",
-        "body": "Sich suggerisci ein neu Shop Partner, memorizziamo die Informationen des Shop (Name, Adresse, Kategorie) und der dein ID wie suggeritore für scopi von Folgen-up. Der dein Name nicht wird trasmesso zum gestore des Shop.",
-        "note": "Die suggerimenti sind memorizzati bis zur revisione und poi für 12 Monate wie riferimento. Rechtsgrundlage: Art. 6(1)(F) DSGVO."
+        "title": "4.18 Vorschläge für Partner-Shops durch Nutzer",
+        "body": "Wenn du einen neuen Partner-Shop vorschlägst, speichern wir die Shop-Informationen (Name, Adresse, Kategorie) und deine ID als Vorschlagender für Follow-up-Zwecke. Dein Name wird nicht an den Shop-Betreiber weitergegeben.",
+        "note": "Vorschläge werden bis zur Prüfung gespeichert und danach 12 Monate als Referenz aufbewahrt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO."
       },
       "s19": {
-        "title": "4.19 Telemetria und monitoraggio der prestazioni",
-        "body": "Attualmente <b>keine telemetria Aktivieren</b> (kein Sentry, kein Dienst von analytics) ist integrata. Vercel Speed Insights und Vercel Analytics sind tecnicamente preparati aber nicht attivati im dashboard. Vor dell'attivazione, diese informativa wird aktualisiert und — in der misura in cui werden trattati personenbezogene Daten — der Einwilligung wird ottenuto über banner von Einwilligung."
+        "title": "4.19 Telemetrie und Performance-Monitoring",
+        "body": "<b>Aktuell ist keine Telemetrie aktiv</b> (kein Sentry, kein Analytics-Dienst). Vercel Speed Insights und Vercel Analytics sind technisch vorbereitet, aber im Dashboard nicht aktiviert. Vor einer Aktivierung wird diese Erklärung aktualisiert und – soweit personenbezogene Daten verarbeitet werden – die Einwilligung über ein Einwilligungs-Banner eingeholt."
       },
       "s20": {
-        "title": "4.20 Anti-cheat und rilevamento von abusi",
+        "title": "4.20 Anti-Cheat und Missbrauchserkennung",
         "items": [
-          "Valori von Tempo sospetti (z.B.. teletrasporto, rilevamento von veicolo)",
-          "Schemi von registrazioni multiple vom selbe Gerät",
-          "Comportamento von Kampf sospetto (sospetto von bot)",
-          "Superamenti des rate-limit und throttling",
-          "Fälle sospetti mit timestamp, Grund und Antwort"
+          "Verdächtige Tempo-Werte (z. B. Teleport-Verdacht, Fahrzeug-Erkennung)",
+          "Mehrfach-Registrierungs-Muster vom selben Gerät",
+          "Verdächtiges Kampfverhalten (Bot-Verdacht)",
+          "Rate-Limit-Überschreitungen und Throttling",
+          "Verdachtsfälle mit Zeitstempel, Grund und Reaktion"
         ],
-        "note": "Die log anti-cheat sind conservati 24 Monate für rilevare schemi ricorrenti. Rechtsgrundlage: Art. 6(1)(F) DSGVO (protezione dell'integrità des Dienst)."
+        "note": "Anti-Cheat-Logs werden 24 Monate aufbewahrt, um wiederkehrende Muster zu erkennen. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Schutz der Integrität des Dienstes)."
       },
       "s21": {
-        "title": "4.21 Moderation von Chat und Inhalte",
+        "title": "4.21 Chat- und Inhalts-Moderation",
         "items": [
-          "Filtri von Wörter automatizzati für AGB vietati noti",
-          "Moderation assistita von IA für Bilder caricate (Anthropic Claude)",
-          "Segnalazioni Nutzer mit Grund und timestamp",
-          "Decisioni von Moderation (avvertimento, eliminazione, sospensione) mit motivazione"
+          "Automatisierte Wortfilter für bekannte AGB-verbotene Begriffe",
+          "KI-gestützte Moderation für hochgeladene Bilder (Anthropic Claude)",
+          "Nutzer-Meldungen mit Grund und Zeitstempel",
+          "Moderations-Entscheidungen (Verwarnung, Löschung, Sperre) mit Begründung"
         ],
-        "note": "Die log von Moderation sind conservati 24 Monate. Rechtsgrundlage: Art. 6(1)(F) DSGVO (protezione der Community und conformità den requisiti legali, in besondere Regolamento EU 2022/2065 «Digital Services Act»)."
+        "note": "Moderations-Logs werden 24 Monate aufbewahrt. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (Schutz der Community und Erfüllung gesetzlicher Anforderungen, insbesondere EU-Verordnung 2022/2065 «Digital Services Act»)."
       },
       "s22": {
         "title": "4.22 Werbung (Google AdSense / AdMob)",
-        "p1": "Finanziamo Teile des Dienst kostenlos über Werbung von <b>Google Ireland Ltd.</b> (AdSense auf dem web, AdMob nell'App mobile). Die Werbung personalizzata wird erogata <b>nur mit Einwilligung esplicito</b> über die unsere gestione des Einwilligung (Google User Messaging Platform, UMP). Ohne Einwilligung, werden erogate nur Werbung nicht personalizzate.",
-        "p2": "Google kann trattare Adresse IP, identificatore des Gerät, Position approssimativa und Daten von interazione. Von mehr: <googlePolicies>policies.Google.com/Datenschutz</googlePolicies>. Bearbeiten die Einstellungen pubblicitarie: <googleAdsSettings>adssettings.Google.com</googleAdsSettings>.",
-        "p3": "Die Nutzer mit ein Abo <b>MyArea+</b> oder <b>Badge Supporter</b> aktiv nicht vedono Werbung oder nur Werbung ridotta, wo tecnicamente fattibile.",
-        "basis": "Rechtsgrundlage: Art. 6(1)(zu) DSGVO, § 25(1) TDDDG (Einwilligung für cookie/ID von Gerät) und Art. 6(1)(F) DSGVO (rifinanziamento des Dienst über Werbung nicht personalizzata)."
+        "p1": "Wir finanzieren Teile des kostenlosen Dienstes über Werbung von <b>Google Ireland Ltd.</b> (AdSense im Web, AdMob in der Mobile-App). Personalisierte Werbung wird <b>nur mit ausdrücklicher Einwilligung</b> über unser Einwilligungs-Management (Google User Messaging Platform, UMP) ausgespielt. Ohne Einwilligung wird ausschließlich nicht-personalisierte Werbung ausgespielt.",
+        "p2": "Google kann IP-Adresse, Geräte-Kennung, ungefähren Standort und Interaktionsdaten verarbeiten. Mehr dazu: <googlePolicies>policies.google.com/privacy</googlePolicies>. Werbe-Einstellungen anpassen: <googleAdsSettings>adssettings.google.com</googleAdsSettings>.",
+        "p3": "Nutzer mit aktivem Abo <b>MyArea+</b> oder <b>Supporter-Badge</b> sehen keine Werbung oder nur reduzierte Werbung, soweit technisch möglich.",
+        "basis": "Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG (Einwilligung für Cookies/Geräte-IDs) und Art. 6 Abs. 1 lit. f DSGVO (Refinanzierung des Dienstes über nicht-personalisierte Werbung)."
       },
       "s23": {
-        "title": "4.23 Was NICHT tracciamo",
+        "title": "4.23 Was wir NICHT tracken",
         "items": [
-          "Kein cookie oder pixel pubblicitario cross-device ohne Einwilligung",
-          "Keine analisi von impronta (Canvas, WebGL, Audio)",
-          "Keine rivendita der deine Daten zu terzi",
-          "Kein Profil für Werbung Dritter ohne Einwilligung",
-          "Kein dato von Position zum von fuori der sessioni von Lauf attive",
-          "Kein Zugriff zu Kontakte, Kalender, Foto oder file auf dem dein Gerät",
-          "Kein dato biometrico (riconoscimento facciale, analisi vocale)",
-          "Keine osservazione von App Dritter oder cronologia des Browser",
-          "Keine raccolta in background wann l'App ist geschlossen",
-          "Keine Verkauf oder scambio von Listen E-Mail"
+          "Keine Cross-Device-Cookies oder Werbe-Pixel ohne Einwilligung",
+          "Keine Fingerprinting-Analysen (Canvas, WebGL, Audio)",
+          "Kein Weiterverkauf deiner Daten an Dritte",
+          "Kein Profiling für Werbung Dritter ohne Einwilligung",
+          "Keine Standortdaten außerhalb aktiver Lauf-Sessions",
+          "Kein Zugriff auf Kontakte, Kalender, Fotos oder Dateien deines Geräts",
+          "Keine biometrischen Daten (Gesichtserkennung, Stimmanalyse)",
+          "Keine Beobachtung anderer Apps oder Browserverlauf",
+          "Keine Hintergrund-Erfassung bei geschlossener App",
+          "Kein Verkauf oder Tausch von E-Mail-Listen"
         ]
       }
     },
     "s5": {
-      "title": "Decisioni automatizzate und profilazione",
-      "p1": "Von den deine attività (Läufe, Kämpfe, riscatti) der Dienst deriva metriche wie Level, prestigio, Ranglisten und matchmaking d'Arena. Ciò costituisce <die>profilazione</die> gemäß'Art. 4(4) DSGVO aber nicht produce Effekte giuridici in den deine confronti né impatti significativi comparabili.",
-      "p2": "Für die caricamenti von Bilder und die scansioni von scontrini, wird utilizzato ein System von revisione automatizzato (modello <die>Anthropic Claude</die>). Kannst escalare Inhalte rifiutati für revisione manuell über ticket von assistenza. Nicht c'ist alcuna decisione puramente automatizzata gemäß'Art. 22 DSGVO mit Effekt giuridico."
+      "title": "Automatisierte Entscheidungen und Profiling",
+      "p1": "Aus deinen Aktivitäten (Läufe, Kämpfe, Einlösungen) leitet der Dienst Metriken wie Level, Prestige, Ranglisten und Arena-Matchmaking ab. Dies stellt <die>Profiling</die> gemäß Art. 4 Abs. 4 DSGVO dar, hat aber keine rechtliche Wirkung dir gegenüber und keine vergleichbar erheblichen Auswirkungen.",
+      "p2": "Für Bild-Uploads und Beleg-Scans wird ein automatisiertes Prüfsystem (<die>Anthropic Claude</die>-Modell) eingesetzt. Abgelehnte Inhalte kannst du per Support-Ticket zur manuellen Nachprüfung eskalieren. Es gibt keine ausschließlich automatisierte Entscheidung im Sinne von Art. 22 DSGVO mit rechtlicher Wirkung."
     },
     "s6": {
-      "title": "Destinatari und responsabili des Verarbeitung",
-      "intro": "Utilizziamo die seguenti fornitori von Dienste auf der Basis von accordi gemäß'Art. 28 DSGVO. Für die trasferimenti von Daten Richtung paesi terzi, applichiamo die Clausole Contrattuali Standard dell'EU (CCS) und ulteriori garanzie tecniche.",
+      "title": "Empfänger und Auftragsverarbeiter",
+      "intro": "Wir nutzen folgende Dienstleister auf Basis von Verträgen gemäß Art. 28 DSGVO. Für Datenübermittlungen in Drittländer setzen wir EU-Standardvertragsklauseln (SCC) und zusätzliche technische Garantien ein.",
       "colService": "Dienst",
-      "colPurpose": "Finalità",
-      "colLocation": "Sede / garanzie",
+      "colPurpose": "Zweck",
+      "colLocation": "Sitz / Garantien",
       "rows": [
         {
           "d": "Supabase Inc.",
-          "z": "Autenticazione, database, archiviazione file",
+          "z": "Authentifizierung, Datenbank, Datei-Speicher",
           "l": "EU (Frankfurt, eu-central-1)"
         },
         {
           "d": "Vercel Inc.",
-          "z": "Hosting, CDN, edge functions",
-          "l": "EU (zwischen1, Frankfurt)"
+          "z": "Hosting, CDN, Edge-Functions",
+          "l": "EU (fra1, Frankfurt)"
         },
         {
           "d": "Mapbox Inc.",
-          "z": "Visualizzazione Karte, geocoding, snap-to-road",
-          "l": "USA &ndash; CCS + DPF"
+          "z": "Karten-Darstellung, Geocoding, Snap-to-Road",
+          "l": "USA &ndash; SCC + DPF"
         },
         {
           "d": "Resend Inc.",
-          "z": "E-Mail transazionali und newsletter",
-          "l": "USA &ndash; CCS + DPF"
+          "z": "Transaktions-E-Mails und Newsletter",
+          "l": "USA &ndash; SCC + DPF"
         },
         {
           "d": "Anthropic PBC",
-          "z": "Moderation IA und riconoscimento scontrini",
-          "l": "USA &ndash; CCS; zero-retention Sekunde politica des fornitore, DPA in Phase von finalizzazione"
+          "z": "KI-Moderation und Beleg-Erkennung",
+          "l": "USA &ndash; SCC; Zero-Retention gemäß Anbieter-Richtlinie, DPA in Finalisierung"
         },
         {
           "d": "Stripe Payments Europe Ltd.",
-          "z": "Elaborazione Zahlungen",
-          "l": "EU (Irlanda) &ndash; sub-processor US mit CCS"
+          "z": "Zahlungsabwicklung",
+          "l": "EU (Irland) &ndash; US-Sub-Processor mit SCC"
         },
         {
           "d": "Apple Push Notification Service",
-          "z": "Benachrichtigungen push (iOS)",
-          "l": "USA &ndash; CCS"
+          "z": "Push-Benachrichtigungen (iOS)",
+          "l": "USA &ndash; SCC"
         },
         {
           "d": "Google Firebase Cloud Messaging",
-          "z": "Benachrichtigungen push (Android, web)",
-          "l": "USA &ndash; CCS + DPF"
+          "z": "Push-Benachrichtigungen (Android, Web)",
+          "l": "USA &ndash; SCC + DPF"
         },
         {
           "d": "Google AdSense",
-          "z": "Werbung web (nur mit Einwilligung)",
-          "l": "USA &ndash; CCS + DPF"
+          "z": "Werbung Web (nur mit Einwilligung)",
+          "l": "USA &ndash; SCC + DPF"
         },
         {
           "d": "Google AdMob",
-          "z": "Werbung nell'App mobile (nur mit Einwilligung)",
-          "l": "USA &ndash; CCS + DPF"
+          "z": "Werbung in der Mobile-App (nur mit Einwilligung)",
+          "l": "USA &ndash; SCC + DPF"
         },
         {
           "d": "Nominatim / OpenStreetMap",
-          "z": "Geocoding inverso (Suche CAP)",
-          "l": "EU (Francia, Germania)"
+          "z": "Reverse-Geocoding (PLZ-Suche)",
+          "l": "EU (Frankreich, Deutschland)"
         }
       ],
-      "footnote": "CCS = Clausole Contrattuali Standard dell'EU gemäß'Art. 46(2) DSGVO. DPF = EU-US Datum Datenschutz Framework (decisione von adeguatezza des 10 luglio 2023)."
+      "footnote": "SCC = EU-Standardvertragsklauseln gemäß Art. 46 Abs. 2 DSGVO. DPF = EU-US Data Privacy Framework (Angemessenheitsbeschluss vom 10. Juli 2023)."
     },
     "s7": {
-      "title": "Trasferimenti internazionali von Daten",
-      "intro": "Wann die Daten werden trasferiti Richtung paesi terzi zum von fuori des Spazio Economico Europeo, garantiamo ein Level von protezione adeguato attraverso die seguenti meccanismi:",
+      "title": "Internationale Datenübermittlung",
+      "intro": "Wenn Daten in Drittländer außerhalb des Europäischen Wirtschaftsraums übermittelt werden, gewährleisten wir ein angemessenes Schutzniveau durch folgende Mechanismen:",
       "items": [
-        "Decisione von adeguatezza der Commissione europea (z.B.. EU-US DPF, Regno Unito, Svizzera)",
-        "Clausole Contrattuali Standard dell'EU (CCS) in der Version aktuell von giugno 2021",
-        "Bewertung d'impatto des trasferimento (TIA) für ciascun fornitore US",
-        "Garanzie tecniche aggiuntive (cifratura in transito und zu riposo, pseudonimizzazione)",
-        "Restrizioni contrattuali concordate mit der fornitore interessato (z.B.. zero-retention, nein-training-on-user-Datum mit Anthropic — DPA in Phase von finalizzazione)"
+        "Angemessenheitsbeschluss der Europäischen Kommission (z. B. EU-US DPF, Vereinigtes Königreich, Schweiz)",
+        "EU-Standardvertragsklauseln (SCC) in der aktuellen Fassung von Juni 2021",
+        "Übermittlungs-Folgenabschätzung (TIA) für jeden US-Anbieter",
+        "Zusätzliche technische Garantien (Verschlüsselung bei Transport und Speicherung, Pseudonymisierung)",
+        "Vertragliche Beschränkungen mit dem jeweiligen Anbieter (z. B. Zero-Retention, No-Training-on-User-Data mit Anthropic — DPA in Finalisierung)"
       ],
-      "footnote": "Copie der CCS und andere garanzie sind verfügbare auf Anfrage."
+      "footnote": "Kopien der SCC und weiterer Garantien sind auf Anfrage verfügbar."
     },
     "s8": {
-      "title": "Periodo von conservazione und concetto von Löschung",
-      "colCategory": "Kategorie von Daten",
-      "colDuration": "Periodo von conservazione",
+      "title": "Aufbewahrungsfristen und Löschkonzept",
+      "colCategory": "Datenkategorie",
+      "colDuration": "Aufbewahrungsfrist",
       "rows": [
         {
-          "d": "Daten von Konto und Profil",
-          "l": "bis zur Löschung dell'Konto + 30 Tage von backup"
+          "d": "Konto- und Profildaten",
+          "l": "bis zur Konto-Löschung + 30 Tage Backup"
         },
         {
-          "d": "Position und tracce GPS",
-          "l": "max 24 Monate, poi anonimizzati in heatmap"
+          "d": "Standort und GPS-Spuren",
+          "l": "max. 24 Monate, danach Anonymisierung in Heatmap"
         },
         {
-          "d": "Wächter, inventario, salvataggio",
-          "l": "bis zur Löschung dell'Konto"
+          "d": "Wächter, Inventar, Spielstand",
+          "l": "bis zur Konto-Löschung"
         },
         {
-          "d": "Kämpfe d'Arena (protocollo von round)",
-          "l": "6 Monate, poi Statistiken aggregate"
+          "d": "Arena-Kämpfe (Runden-Protokoll)",
+          "l": "6 Monate, danach aggregierte Statistiken"
         },
         {
-          "d": "Storico Saison und prestigio",
-          "l": "indefinito (Hall of Fame) oder bis zur Löschung dell'Konto"
+          "d": "Saison- und Prestige-Historie",
+          "l": "unbegrenzt (Hall of Fame) oder bis zur Konto-Löschung"
         },
         {
-          "d": "Nachrichten Chat von Crew",
-          "l": "12 Monate oder bis zum Auflösung der Crew"
+          "d": "Crew-Chatnachrichten",
+          "l": "12 Monate oder bis zur Auflösung der Crew"
         },
         {
-          "d": "Check-in Shops, riscatti Angebote",
-          "l": "24 Monate für prove von abuso"
+          "d": "Shop-Check-ins, eingelöste Angebote",
+          "l": "24 Monate als Missbrauchs-Nachweis"
         },
         {
-          "d": "Bilder von scontrini",
-          "l": "7 Tage (nur für Kontrolle OCR)"
+          "d": "Belegbilder",
+          "l": "7 Tage (nur für OCR-Prüfung)"
         },
         {
-          "d": "Fatture und Daten von Zahlung",
+          "d": "Rechnungen und Zahlungsdaten",
           "l": "10 Jahre (§ 147 AO, § 257 HGB)"
         },
         {
-          "d": "Registrazioni von Einwilligung",
-          "l": "bis zu 3 Jahre nach die revoca"
+          "d": "Einwilligungs-Aufzeichnungen",
+          "l": "bis zu 3 Jahre nach Widerruf"
         },
         {
-          "d": "Log server mit IP",
-          "l": "7 Tage, poi troncamento IP"
+          "d": "Server-Logs mit IP",
+          "l": "7 Tage, danach IP-Kürzung"
         },
         {
-          "d": "Registro von audit admin",
+          "d": "Admin-Audit-Log",
           "l": "36 Monate"
         },
         {
-          "d": "Caricamenti rifiutati",
-          "l": "30 Tage für revisione"
+          "d": "Abgelehnte Uploads",
+          "l": "30 Tage zur Nachprüfung"
         },
         {
-          "d": "Segnalazioni von Moderation",
+          "d": "Moderations-Meldungen",
           "l": "24 Monate"
         },
         {
-          "d": "Ticket von assistenza",
-          "l": "36 Monate nach die chiusura"
+          "d": "Support-Tickets",
+          "l": "36 Monate nach Schließung"
         },
         {
-          "d": "Assegnazioni Test Zu/B",
-          "l": "durata dell'esperimento + 90 Tage für Bewertung"
+          "d": "A/B-Test-Zuordnungen",
+          "l": "Experiment-Dauer + 90 Tage zur Auswertung"
         },
         {
-          "d": "Events newsletter",
+          "d": "Newsletter-Ereignisse",
           "l": "24 Monate"
         },
         {
-          "d": "Lead commerciali (B2B)",
-          "l": "36 Monate dall'letzter Kontakt"
+          "d": "B2B-Leads",
+          "l": "36 Monate ab letztem Kontakt"
         },
         {
-          "d": "Registri von Verarbeitung",
-          "l": "permanenti wie prova interna"
+          "d": "Verarbeitungsverzeichnisse",
+          "l": "dauerhaft als interner Nachweis"
         }
       ]
     },
     "s9": {
-      "title": "Cookie, LocalStorage und tecnologie simili",
-      "intro": "Der Dienst utilizza nur cookie strettamente necessari oder voci LocalStorage consentiti ohne Einwilligung gemäß des § 25(2) n. 2 TDDDG (precedentemente TTDSG):",
+      "title": "Cookies, LocalStorage und ähnliche Technologien",
+      "intro": "Der Dienst nutzt nur unbedingt erforderliche Cookies bzw. LocalStorage-Einträge, die ohne Einwilligung gemäß § 25 Abs. 2 Nr. 2 TDDDG (vormals TTDSG) zulässig sind:",
       "colName": "Name",
-      "colPurpose": "Finalità",
-      "colDuration": "Durata",
+      "colPurpose": "Zweck",
+      "colDuration": "Dauer",
       "rows": [
         {
           "d": "sb-access-token",
-          "z": "Autenticazione (Supabase)",
+          "z": "Authentifizierung (Supabase)",
           "l": "1 Stunde"
         },
         {
           "d": "sb-refresh-token",
-          "z": "Rinnovo sessione",
+          "z": "Session-Erneuerung",
           "l": "30 Tage"
         },
         {
-          "d": "aber365-locale",
-          "z": "Präferenz von Sprache",
+          "d": "ma365-locale",
+          "z": "Sprach-Präferenz",
           "l": "1 Jahr"
         },
         {
-          "d": "aber365-consent",
-          "z": "Status von Einwilligung für Funktionen opzionali",
+          "d": "ma365-consent",
+          "z": "Einwilligungs-Status für optionale Funktionen",
           "l": "6 Monate"
         },
         {
-          "d": "aber365-theme",
-          "z": "Präferenz Modus scura/chiara",
+          "d": "ma365-theme",
+          "z": "Präferenz für dunklen/hellen Modus",
           "l": "1 Jahr"
         }
       ],
-      "note": "<b>Nicht</b> utilizziamo pixel von tracking, cookie pubblicitari oder identificatori cross-device. Sich in Zukunft venissero aggiunti cookie analitici oder von marketing opzionali, ciò avverrà nur previo Einwilligung über banner von Einwilligung."
+      "note": "Wir nutzen <b>keine</b> Tracking-Pixel, Werbe-Cookies oder Cross-Device-Identifier. Sollten künftig optionale Analyse- oder Marketing-Cookies hinzukommen, geschieht dies ausschließlich nach Einwilligung über ein Einwilligungs-Banner."
     },
     "s10": {
-      "title": "Bambini und adolescenti",
-      "body": "Der Dienst ist destinato zu persone von età pari oder superiore zu 16 Jahre (EU), 13 Jahre (USA, Sekunde COPPA — 15 U.S.C. § 6501 und seguenti), oder l'età minima rispettiva Sekunde die regole nazionali. Die persone zum von sotto von dies Limit von età können utilizzare der Dienst nur mit der Einwilligung esplicito der ihr tutori legali (Art. 8 DSGVO, COPPA Rule 16 CFR Part 312). Sich veniamo zu conoscenza dass Daten von bambini werden trattati ohne der Einwilligung richiesto, li elimineremo prontamente."
+      "title": "Kinder und Jugendliche",
+      "body": "Der Dienst richtet sich an Personen ab 16 Jahren (EU), 13 Jahren (USA, gemäß COPPA — 15 U.S.C. § 6501 ff.) bzw. an das jeweilige Mindestalter nach nationalem Recht. Personen unterhalb dieser Altersgrenze dürfen den Dienst nur mit ausdrücklicher Einwilligung der Erziehungsberechtigten nutzen (Art. 8 DSGVO, COPPA Rule 16 CFR Part 312). Erlangen wir Kenntnis darüber, dass Daten von Kindern ohne die erforderliche Einwilligung verarbeitet werden, löschen wir diese unverzüglich."
     },
     "s11": {
-      "title": "Sicherheit der Daten und misure tecniche",
+      "title": "Datensicherheit und technische Maßnahmen",
       "items": [
-        "Cifratura von trasporto HTTPS mit TLS 1.2+ auf alle die endpoint",
-        "Cifratura zu riposo für alles der Inhalt von database und archiviazione (AES-256)",
-        "Hashing der Passwort mit tecniche all'Avantgarde (Argon2id / bcrypt mit sale)",
-        "Sicherheit zu Level von riga im database für die Tabellen relative den Nutzer",
-        "Zugriff des persönlich nur über ein System von ruoli dedicato mit registro von audit vollständig",
-        "Autenticazione zu due fattori für die Konto amministratore",
-        "Backup regolari mit conservazione limitata und archiviazione cifrata",
-        "Scansioni von Sicherheit automatizzate des codice Basis und der dipendenze",
-        "Gestione der incidenti mit obblighi von Meldung gemäß'Art. 33/34 DSGVO (Ablauf 72 Stunden)"
+        "Transport-Verschlüsselung HTTPS mit TLS 1.2+ an allen Endpunkten",
+        "Verschlüsselung im Ruhezustand für sämtliche Datenbank- und Speicher-Inhalte (AES-256)",
+        "Passwort-Hashing nach aktuellem Stand der Technik (Argon2id / bcrypt mit Salt)",
+        "Row-Level-Security in der Datenbank für nutzerbezogene Tabellen",
+        "Mitarbeiterzugriff nur über ein dediziertes Rollensystem mit vollständigem Audit-Log",
+        "Zwei-Faktor-Authentifizierung für Admin-Konten",
+        "Regelmäßige Backups mit begrenzter Aufbewahrung und verschlüsselter Speicherung",
+        "Automatisierte Security-Scans der Codebasis und Abhängigkeiten",
+        "Incident-Management mit Meldepflichten nach Art. 33/34 DSGVO (Frist 72 Stunden)"
       ]
     },
     "s12": {
-      "title": "Norme aggiuntive für giurisdizioni specifiche",
+      "title": "Zusätzliche Regelungen für bestimmte Rechtsräume",
       "s1": {
-        "title": "12.1 Regno Unito (UK-DSGVO)",
-        "body": "Für die Nutzer residenti im Regno Unito sich applica der UK-DSGVO oltre zum Datum Protection Act 2018. Die deine Rechte corrispondono in sostanza zu jene elencati in der Bereich 14. L'autorità von Kontrolle competente ist l'<icoLink>Information Commissioner's Office (ICO)</icoLink>."
+        "title": "12.1 Vereinigtes Königreich (UK-DSGVO)",
+        "body": "Für Nutzer mit Wohnsitz im Vereinigten Königreich gilt die UK-DSGVO zusätzlich zum Data Protection Act 2018. Deine Rechte entsprechen im Wesentlichen denen aus Abschnitt 14. Zuständige Aufsichtsbehörde ist das <icoLink>Information Commissioner's Office (ICO)</icoLink>."
       },
       "s2": {
-        "title": "12.2 Svizzera (FADP / revDSG)",
-        "body": "Für die Nutzer residenti in Svizzera sich applica die Liest federale rivista auf der Datenschutz (revDSG, in vigore vom 1° settembre 2023). Die deine Rechte corrispondono zu jene des DSGVO. L'autorità von Kontrolle competente ist l'<edoebLink>Incaricato federale der Datenschutz und der trasparenza (IFPDT/EDÖB)</edoebLink>."
+        "title": "12.2 Schweiz (FADP / revDSG)",
+        "body": "Für Nutzer mit Wohnsitz in der Schweiz gilt das revidierte Bundesgesetz über den Datenschutz (revDSG, in Kraft seit 1. September 2023). Deine Rechte entsprechen denen der DSGVO. Zuständige Aufsichtsbehörde ist der <edoebLink>Eidgenössische Datenschutz- und Öffentlichkeitsbeauftragte (EDÖB)</edoebLink>."
       },
       "s3": {
-        "title": "12.3 California (CCPA / CPRA)",
-        "intro": "Die Nutzer residenti in California haben Rechte aggiuntivi gemäß des California Consumer Datenschutz Act (CCPA) wie geändert vom California Datenschutz Rights Act (CPRA):",
+        "title": "12.3 Kalifornien (CCPA / CPRA)",
+        "intro": "Nutzer mit Wohnsitz in Kalifornien haben zusätzliche Rechte gemäß California Consumer Privacy Act (CCPA) in der Fassung des California Privacy Rights Act (CPRA):",
         "rights": [
-          "<b>Right to Know</b> – quali Kategorien von Informationen personenbezogene werden raccolte",
-          "<b>Right to Delete</b> – Löschung der Informationen personenbezogene",
-          "<b>Right to Correct</b> – correzione von Informationen inesatte",
-          "<b>Right to Opt-Out of Sale/Sharing</b> – opposizione zur Verkauf/condivisione",
+          "<b>Right to Know</b> – welche Kategorien personenbezogener Informationen erhoben werden",
+          "<b>Right to Delete</b> – Löschung personenbezogener Informationen",
+          "<b>Right to Correct</b> – Berichtigung unrichtiger Informationen",
+          "<b>Right to Opt-Out of Sale/Sharing</b> – Widerspruch gegen Verkauf/Weitergabe",
           "<b>Right to Limit Use of Sensitive Personal Information</b>",
-          "<b>Right to Nicht-Discrimination</b> nell'esercizio von diese Rechte",
-          "Rappresentanza über agente autorizzato ist possibile"
+          "<b>Right to Non-Discrimination</b> bei Wahrnehmung dieser Rechte",
+          "Vertretung durch autorisierten Bevollmächtigten ist möglich"
         ],
-        "note": "Dichiariamo espressamente: <b>Nicht vendiamo Informationen personenbezogene</b> und nicht die condividiamo für Werbung mirata Dritter («Do Not Sell or Teilen My Personal Information»). Kategorien dass raccogliamo gemäß des CCPA: identificatori (Zu), attività Internet (F), geolocalizzazione (G), Informationen commerciali (D), inferenze (K). Anfragen zu <Support-Mail>support@MyArea365.de</Support-Mail>."
+        "note": "Wir erklären ausdrücklich: <b>Wir verkaufen keine personenbezogenen Informationen</b> und teilen sie nicht für zielgerichtete Werbung Dritter («Do Not Sell or Share My Personal Information»). Erhobene Kategorien gemäß CCPA: Identifier (A), Internet-Aktivität (F), Geolokalisierung (G), kommerzielle Informationen (D), Schlussfolgerungen (K). Anfragen an <Support-Mail>support@MyArea365.de</Support-Mail>."
       },
       "s4": {
-        "title": "12.4 Brasile (LGPD)",
-        "body": "Für die Nutzer residenti in Brasile sich applica die Lei Geral de Proteção de Dados (LGPD). Die deine Rechte gemäß'Art. 18 LGPD includono Zugriff, correzione, Löschung, portabilità der Daten, ritiro des Einwilligung und reclamo all'<anpdLink>Autoridade Nacional de Proteção de Dados (ANPD)</anpdLink>."
+        "title": "12.4 Brasilien (LGPD)",
+        "body": "Für Nutzer mit Wohnsitz in Brasilien gilt die Lei Geral de Proteção de Dados (LGPD). Deine Rechte gemäß Art. 18 LGPD umfassen Auskunft, Berichtigung, Löschung, Datenübertragbarkeit, Widerruf der Einwilligung und Beschwerde bei der <anpdLink>Autoridade Nacional de Proteção de Dados (ANPD)</anpdLink>."
       },
       "s5": {
-        "title": "12.5 Canada (PIPEDA) und Australia (Datenschutz Act)",
-        "body": "Für die Nutzer residenti in Canada oder Australia sich applicano die Lesen locali auf der Datenschutz (PIPEDA und Australian Datenschutz Act 1988 rispettivamente). Die Rechte concessi in diese informativa rispettano oder superano die requisiti locali. Die reclami können sein presentati all'<privCanada>Office of the Datenschutz Commissioner of Canada</privCanada> oder all'<oaicLink>Office of the Australian Information Commissioner</oaicLink>."
+        "title": "12.5 Kanada (PIPEDA) und Australien (Privacy Act)",
+        "body": "Für Nutzer mit Wohnsitz in Kanada oder Australien gelten die jeweiligen lokalen Datenschutzgesetze (PIPEDA bzw. Australian Privacy Act 1988). Die in dieser Erklärung gewährten Rechte entsprechen den lokalen Anforderungen oder gehen darüber hinaus. Beschwerden können beim <privCanada>Office of the Privacy Commissioner of Canada</privCanada> oder beim <oaicLink>Office of the Australian Information Commissioner</oaicLink> eingereicht werden."
       }
     },
     "s13": {
-      "title": "Kategorien particolari von personenbezogene Daten (Art. 9 DSGVO)",
-      "intro": "Die Daten von Bewegung GPS im contesto dell'attività sportiva können permettere von trarre conclusioni auf Daten sanitari. Trattiamo Daher diese Daten mit besondere Heilung:",
+      "title": "Besondere Kategorien personenbezogener Daten (Art. 9 DSGVO)",
+      "intro": "GPS-Bewegungsdaten im Kontext sportlicher Aktivität können Rückschlüsse auf Gesundheitsdaten zulassen. Wir behandeln diese Daten daher mit besonderer Sorgfalt:",
       "items": [
-        "Kein trasferimento zu terzi zu fini von analisi sanitaria",
-        "Kein collegamento mit assicurazioni sanitarie, datori von Arbeit oder entità simili",
-        "Aggregazione in heatmap nur in forma anonimizzata zu Level von segmento von Straße",
-        "Verarbeitung nur auf der Basis des dein Einwilligung esplicito (Art. 9(2)(zu) DSGVO)"
+        "Keine Weitergabe an Dritte zu Gesundheits-Analysezwecken",
+        "Keine Verknüpfung mit Krankenversicherungen, Arbeitgebern oder ähnlichen Stellen",
+        "Aggregation in Heatmaps nur in anonymisierter Form auf Straßensegment-Ebene",
+        "Verarbeitung nur auf Basis deiner ausdrücklichen Einwilligung (Art. 9 Abs. 2 lit. a DSGVO)"
       ]
     },
     "s14": {
-      "title": "Die deine Rechte in sintesi",
-      "intro": "Hast die seguenti Rechte gemäß des DSGVO:",
+      "title": "Deine Rechte im Überblick",
+      "intro": "Du hast folgende Rechte gemäß DSGVO:",
       "rights": [
-        "<b>Zugriff</b> den Daten trattati dass dir riguardano (Art. 15 DSGVO)",
-        "<b>Rettifica</b> von Daten inesatti oder incompleti (Art. 16 DSGVO)",
-        "<b>Löschung</b> – der «Recht all'oblio» (Art. 17 DSGVO)",
-        "<b>Limitazione</b> des Verarbeitung (Art. 18 DSGVO)",
-        "<b>Portabilità der Daten</b> in ein formato strutturato und von uso gewöhnlich (Art. 20 DSGVO)",
-        "<b>Opposizione</b> zum Verarbeitung basato sull'interesse legittimo (Art. 21 DSGVO)",
-        "<b>Ritiro</b> des Einwilligung fornito, mit Effekt für der Zukunft (Art. 7(3) DSGVO)"
+        "<b>Auskunft</b> über die zu deiner Person verarbeiteten Daten (Art. 15 DSGVO)",
+        "<b>Berichtigung</b> unrichtiger oder unvollständiger Daten (Art. 16 DSGVO)",
+        "<b>Löschung</b> – das «Recht auf Vergessenwerden» (Art. 17 DSGVO)",
+        "<b>Einschränkung</b> der Verarbeitung (Art. 18 DSGVO)",
+        "<b>Datenübertragbarkeit</b> in einem strukturierten, gängigen Format (Art. 20 DSGVO)",
+        "<b>Widerspruch</b> gegen Verarbeitung auf Basis berechtigten Interesses (Art. 21 DSGVO)",
+        "<b>Widerruf</b> erteilter Einwilligungen mit Wirkung für die Zukunft (Art. 7 Abs. 3 DSGVO)"
       ],
-      "complaint": "<b>Reclamo</b> zu ein'autorità von Kontrolle der Datenschutz (Art. 77 DSGVO). Competente für Berlin ist der <berlinDpa>Commissario von Berlin für die Datenschutz und die libertà von Information</berlinDpa>.",
-      "note": "Eine E-Mail informale zu <Support-Mail>support@MyArea365.de</Support-Mail> ist sufficiente. Rispondiamo gratuitamente entro 30 Tage (oder 45 Tage Sekunde CCPA/LGPD). Ein'Export Abschließen der Daten gemäß'Art. 20 DSGVO ist inoltre verfügbar in den Einstellungen des dein Konto wie download JSON."
+      "complaint": "<b>Beschwerde</b> bei einer Datenschutz-Aufsichtsbehörde (Art. 77 DSGVO). Zuständig für Berlin ist die <berlinDpa>Berliner Beauftragte für Datenschutz und Informationsfreiheit</berlinDpa>.",
+      "note": "Eine formlose E-Mail an <Support-Mail>support@MyArea365.de</Support-Mail> genügt. Wir antworten kostenfrei innerhalb von 30 Tagen (bzw. 45 Tagen nach CCPA/LGPD). Ein vollständiger Datenexport gemäß Art. 20 DSGVO ist zudem in den Einstellungen deines Kontos als JSON-Download verfügbar."
     },
     "s15": {
-      "title": "Violazioni von Daten und Benachrichtigung",
-      "p1": "In Fall von violazione von personenbezogene Daten suscettibile von comportare ein rischio elevato für die deine Rechte und libertà, dir notificheremo ohne indebito ritardo gemäß'Art. 34 DSGVO. Informeremo l'autorità von Kontrolle competente entro 72 Stunden zum mehr tardi (Art. 33 DSGVO).",
-      "p2": "Manteniamo ein registro interno von alle die incidenti, inclusi jene zum von sotto der soglia von Meldung, für migliorare continuamente der unser Level von Sicherheit. Die Nutzer interessati werden informati direttamente über E-Mail und Benachrichtigung in-App, wann der ihr record von Daten ist Status specificamente coinvolto."
+      "title": "Datenpannen und Benachrichtigung",
+      "p1": "Im Falle einer Verletzung des Schutzes personenbezogener Daten, die voraussichtlich ein hohes Risiko für deine Rechte und Freiheiten zur Folge hat, benachrichtigen wir dich unverzüglich gemäß Art. 34 DSGVO. Die zuständige Aufsichtsbehörde informieren wir spätestens innerhalb von 72 Stunden (Art. 33 DSGVO).",
+      "p2": "Wir führen ein internes Register aller Vorfälle, einschließlich derer unterhalb der Meldeschwelle, um unser Sicherheitsniveau kontinuierlich zu verbessern. Betroffene Nutzer werden direkt per E-Mail und In-App-Benachrichtigung informiert, wenn ihre Daten konkret betroffen sind."
     },
     "s16": {
-      "title": "Löschung und disattivazione dell'Konto in Detail",
-      "intro": "Kannst cancellare der dein Konto in qualsiasi momento in den Einstellungen oder Sendet eine E-Mail informale zu <Support-Mail>support@MyArea365.de</Support-Mail>. Der processo ist der seguente:",
+      "title": "Konto-Löschung und Deaktivierung im Detail",
+      "intro": "Du kannst dein Konto jederzeit in den Einstellungen löschen oder eine formlose E-Mail an <Support-Mail>support@MyArea365.de</Support-Mail> senden. Der Prozess läuft wie folgt:",
       "items": [
-        "<b>Immediatamente:</b> disattivazione dell'Zugriff, Profil mostrato wie «cancellato»",
-        "<b>Nach 14 Tage:</b> Löschung von alle die personenbezogene Daten (periodo von revoca)",
-        "<b>Rimanente:</b> Statistiken aggregate, nicht personenbezogene (z.B.. «100 km corsi zu Kreuzberg»)",
-        "<b>Conservazione verpflichtend:</b> die Daten von fatturazione und Zahlung sind conservati 10 Jahre (§ 147 AO)",
-        "<b>Nachrichten von Chat:</b> restano visibili den andere Mitglieder von Crew sotto «[Nutzer cancellato]»",
-        "<b>Titel von Crew/Saison guadagnati:</b> sind anonimizzati in der Hall of Fame",
-        "<b>Consensi:</b> sind conservati wie prova von revoca bis zu 3 Jahre"
+        "<b>Sofort:</b> Zugriff deaktiviert, Profil als «gelöscht» angezeigt",
+        "<b>Nach 14 Tagen:</b> Löschung aller personenbezogenen Daten (Widerrufsfrist)",
+        "<b>Verbleibend:</b> aggregierte, nicht personenbezogene Statistiken (z. B. «100 km in Kreuzberg gelaufen»)",
+        "<b>Pflichtaufbewahrung:</b> Rechnungs- und Zahlungsdaten werden 10 Jahre aufbewahrt (§ 147 AO)",
+        "<b>Chatnachrichten:</b> bleiben für andere Crew-Mitglieder unter «[Nutzer gelöscht]» sichtbar",
+        "<b>Errungene Crew-/Saison-Titel:</b> werden in der Hall of Fame anonymisiert",
+        "<b>Einwilligungen:</b> bleiben als Widerrufs-Nachweis bis zu 3 Jahre erhalten"
       ],
-      "note": "Der recupero nach der periodo von 14 Tage nicht ist tecnicamente possibile."
+      "note": "Eine Wiederherstellung nach Ablauf der 14-Tages-Frist ist technisch nicht möglich."
     },
     "s17": {
-      "title": "Divulgazione den autorità und divulgazione legale",
-      "p1": "Divulghiamo die deine Daten zu organi governativi nur sich sind legalmente obbligati zu farlo, zu Beispiel auf der Basis von ein'ordinanza des tribunale, misure von indagine in procedura penale (z.B.. §§ 100zu, 100g StPO) oder ein'ordinanza gemäß des Regolamento EU 2022/2065 (Digital Services Act, Art. 9/10).",
-      "p2": "Jeder divulgazione wird documentata. Verifichiamo die legittimità von jeder Anfrage von Informationen und divulghiamo nur die Daten specificamente richiesti. Wann legalmente consentito, informiamo l'Nutzer interessato der Anfrage."
+      "title": "Auskunft an Behörden und gesetzliche Offenlegung",
+      "p1": "Wir geben deine Daten nur dann an staatliche Stellen weiter, wenn wir gesetzlich dazu verpflichtet sind, etwa auf Basis einer richterlichen Anordnung, von Ermittlungsmaßnahmen im Strafverfahren (z. B. §§ 100a, 100g StPO) oder einer Anordnung gemäß EU-Verordnung 2022/2065 (Digital Services Act, Art. 9/10).",
+      "p2": "Jede Offenlegung wird dokumentiert. Wir prüfen die Rechtmäßigkeit jeder Auskunftsanfrage und geben nur die ausdrücklich angeforderten Daten heraus. Soweit gesetzlich zulässig, informieren wir den betroffenen Nutzer über die Anfrage."
     },
     "s18": {
-      "title": "Successione und morte von ein Nutzer",
-      "intro": "Die eredi können, auf Anfrage, erhalten Zugriff all'Konto von eine persona deceduta (sentenza der Corte federale von giustizia tedesca des 12 luglio 2018, rif. III ZR 183/17). Sind Anfragen die seguenti prove:",
+      "title": "Erbfall und Tod eines Nutzers",
+      "intro": "Erben können auf Anfrage Zugriff auf das Konto einer verstorbenen Person erhalten (BGH-Urteil vom 12. Juli 2018, Az. III ZR 183/17). Erforderlich sind folgende Nachweise:",
       "items": [
-        "Certificato von morte (copia certificata)",
-        "Certificato von eredità oder testamento notarile",
-        "Copia des documento von identità des richiedente"
+        "Sterbeurkunde (beglaubigte Kopie)",
+        "Erbschein oder notarielles Testament",
+        "Kopie des Ausweisdokuments des Antragstellers"
       ],
-      "note": "In alternativa, kannst stipulare für Abonnent während die deine Leben dass der dein Konto debba sein cancellato in Fall von morte. Scrivici zu <Support-Mail>support@MyArea365.de</Support-Mail> zu tale scopo."
+      "note": "Alternativ kannst du als Abonnent zu Lebzeiten festlegen, dass dein Konto im Todesfall gelöscht werden soll. Schreibe uns dazu an <Support-Mail>support@MyArea365.de</Support-Mail>."
     },
     "s19": {
-      "title": "Dienste und Inhalte esterni collegati",
-      "intro": "Der unser Dienst contiene link zu siti web esterni von cui nicht controlliamo der Inhalt. Nicht assumiamo alcuna responsabilità für die pratiche von Datenschutz von diese terze Teile. Ciò vale in besondere für:",
+      "title": "Verlinkte externe Dienste und Inhalte",
+      "intro": "Unser Dienst enthält Links zu externen Websites, deren Inhalte wir nicht kontrollieren. Wir übernehmen keine Verantwortung für die Datenschutzpraktiken dieser Dritten. Dies gilt insbesondere für:",
       "items": [
-        "Siti web von Shops Partner collegati",
-        "Piattaforme von Social Durchschnitt während die condivisione von Profile",
-        "Link von App store zu Apple App Store und Google Play",
-        "Dienste cartografici (OpenStreetMap, Mapbox)"
+        "Verlinkte Websites von Partner-Shops",
+        "Social-Media-Plattformen beim Teilen von Profilen",
+        "App-Store-Links zu Apple App Store und Google Play",
+        "Karten-Dienste (OpenStreetMap, Mapbox)"
       ],
-      "note": "Für favore Lesen separatamente die rispettive informative auf der Datenschutz."
+      "note": "Bitte lies die jeweiligen Datenschutzerklärungen separat."
     },
     "s20": {
-      "title": "Bewertung d'impatto auf der Datenschutz (DPIA)",
-      "intro": "Weil der unser Dienst tratta auf larga scala Daten von Bewegung GPS und Erstellen Ranglisten pubbliche, wir haben effettuato eine Bewertung d'impatto auf der Datenschutz gemäß'Art. 35 DSGVO. Die DPIA documenta:",
+      "title": "Datenschutz-Folgenabschätzung (DSFA / DPIA)",
+      "intro": "Da unser Dienst in großem Umfang GPS-Bewegungsdaten verarbeitet und öffentliche Ranglisten erstellt, haben wir eine Datenschutz-Folgenabschätzung gemäß Art. 35 DSGVO durchgeführt. Die DSFA dokumentiert:",
       "items": [
-        "Die Beschreibung sistematica der operazioni von Verarbeitung",
-        "Die Bewertung der necessità und proporzionalità",
-        "Die rischi identificati für die interessati",
-        "Die misure correttive (pseudonimizzazione, cifratura, restrizioni von Zugriff)"
+        "Systematische Beschreibung der Verarbeitungsvorgänge",
+        "Bewertung der Erforderlichkeit und Verhältnismäßigkeit",
+        "Identifizierte Risiken für die Betroffenen",
+        "Abhilfemaßnahmen (Pseudonymisierung, Verschlüsselung, Zugriffsbeschränkungen)"
       ],
-      "note": "Ein riepilogo ist verfügbar auf Anfrage. Die DPIA Abschließen ist soggetta zu protezione des segreto commerciale."
+      "note": "Eine Zusammenfassung ist auf Anfrage verfügbar. Die vollständige DSFA unterliegt dem Geschäftsgeheimnisschutz."
     },
     "s21": {
-      "title": "Portabilità und Export der Daten",
-      "intro": "Gemäß dell'Art. 20 DSGVO hast der Recht von empfangen die deine Daten in ein formato strutturato, comunemente utilizzato und leggibile von macchina. Forniamo die seguenti opzioni:",
+      "title": "Datenübertragbarkeit und Export",
+      "intro": "Gemäß Art. 20 DSGVO hast du das Recht, deine Daten in einem strukturierten, gängigen und maschinenlesbaren Format zu erhalten. Wir bieten folgende Optionen:",
       "items": [
-        "Export self-service in den Einstellungen des dein Konto (JSON)",
-        "Auf Anfrage auch in CSV für Kategorie von Daten",
-        "Daten inclusi: Profil, Läufe, Gebiete, XP, Erfolge, riscatti, Wächter, oggetti, prestigio, Kämpfe"
+        "Self-Service-Export in den Einstellungen deines Kontos (JSON)",
+        "Auf Anfrage auch CSV pro Datenkategorie",
+        "Enthaltene Daten: Profil, Läufe, Gebiete, XP, Erfolge, Einlösungen, Wächter, Items, Prestige, Kämpfe"
       ],
-      "note": "L'Export ist verfügbar gratuitamente eine volta zum Monat. Für Anfragen manifestamente infondate oder eccessive (Art. 12(5) DSGVO) uns riserviamo der Recht von addebitare ein compenso ragionevole oder von ablehnen."
+      "note": "Der Export ist einmal pro Monat kostenfrei. Bei offensichtlich unbegründeten oder exzessiven Anfragen (Art. 12 Abs. 5 DSGVO) behalten wir uns vor, ein angemessenes Entgelt zu erheben oder die Bearbeitung abzulehnen."
     },
     "s22": {
-      "title": "Recht applicabile und foro competente",
-      "p1": "Der Recht tedesco sich applica zu diese Datenschutzerklärung und zum Verarbeitung der deine personenbezogene Daten, esclusa die Convenzione der Nazioni Unite auf den Verträge von Verkauf internazionale von merci. Die norme imperative von tutela des consumatore des dein paese von residenza restano impregiudicate.",
-      "p2": "Der foro competente für die controversie mit imprenditori und persone ohne foro generale in Germania ist Berlin. Die consumatori können auch promuovere azioni im ihr Ort von residenza."
+      "title": "Anwendbares Recht und Gerichtsstand",
+      "p1": "Auf diese Datenschutzerklärung und die Verarbeitung deiner personenbezogenen Daten findet deutsches Recht Anwendung, unter Ausschluss des UN-Kaufrechts. Zwingende Verbraucherschutzbestimmungen deines Wohnsitzlandes bleiben unberührt.",
+      "p2": "Gerichtsstand für Streitigkeiten mit Unternehmern und Personen ohne allgemeinen Gerichtsstand in Deutschland ist Berlin. Verbraucher können auch Klage an ihrem Wohnort erheben."
     },
     "s23": {
-      "title": "Uso von Teil von Partner contrattuali und clienti business (B2B)",
-      "body": "Sich utilizzi der unser Dienst wie Shop Partner, inserzionista oder Partner commerciale, die regole von diese informativa sich applicano analogicamente. Für die Daten dass uns trasmetti auf den deine clienti oder dipendenti, stipuliamo sich notwendig ein accordo separato von Verarbeitung der Daten gemäß'Art. 28 DSGVO."
+      "title": "Nutzung durch Vertragspartner und Business-Kunden (B2B)",
+      "body": "Wenn du unseren Dienst als Partner-Shop, Werbetreibender oder Geschäftspartner nutzt, gelten die Regeln dieser Erklärung sinngemäß. Für Daten, die du uns über deine Kunden oder Mitarbeiter übermittelst, schließen wir bei Bedarf einen separaten Auftragsverarbeitungsvertrag gemäß Art. 28 DSGVO ab."
     },
     "s24": {
-      "title": "Reclami und Auflösung alternativa der controversie",
-      "intro": "Sich ritieni dass nicht stiamo trattando correttamente die deine Daten, kannst:",
-      "li1": "Contattarci direttamente (<Support-Mail>support@MyArea365.de</Support-Mail>)",
-      "li2": "Presentare ein reclamo zur deine autorità von Kontrolle (Übersicht Schau Bereiche 12 und 14)",
-      "li3": "Utilizzare die piattaforma von Auflösung online der controversie dell'EU: <odrLink>ec.europa.eu/consumers/odr</odrLink>",
-      "li4": "Suchen protezione giudiziaria gemäß'Art. 79 DSGVO",
-      "note": "Die partecipazione zu eine procedura von Auflösung der controversie davanti zu ein organo von arbitrato der consumatori nicht ist verpflichtend."
+      "title": "Beschwerden und alternative Streitbeilegung",
+      "intro": "Wenn du der Meinung bist, dass wir deine Daten nicht korrekt verarbeiten, kannst du:",
+      "li1": "Uns direkt kontaktieren (<Support-Mail>support@MyArea365.de</Support-Mail>)",
+      "li2": "Eine Beschwerde bei deiner zuständigen Aufsichtsbehörde einreichen (Übersicht siehe Abschnitte 12 und 14)",
+      "li3": "Die EU-Online-Streitbeilegungs-Plattform nutzen: <odrLink>ec.europa.eu/consumers/odr</odrLink>",
+      "li4": "Gerichtlichen Rechtsschutz gemäß Art. 79 DSGVO suchen",
+      "note": "Die Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle ist nicht verpflichtend."
     },
     "s25": {
-      "title": "Modifiche zu diese Datenschutzerklärung",
-      "body": "Adatteremo diese informativa in Fall von cambiamenti tecnici oder legali. Die Version aktuell ist immer verfügbar zu <datenschutzLink>MyArea365.de/datenschutz</datenschutzLink>. Für modifiche sostanziali dass riguardano die deine Rechte, dir informeremo inoltre über E-Mail oder Benachrichtigung in-App. Die Versionen precedenti sind archiviate und rese verfügbare auf Anfrage."
+      "title": "Änderungen dieser Datenschutzerklärung",
+      "body": "Wir passen diese Erklärung bei technischen oder rechtlichen Änderungen an. Die aktuelle Version ist stets unter <datenschutzLink>MyArea365.de/datenschutz</datenschutzLink> verfügbar. Bei wesentlichen Änderungen, die deine Rechte betreffen, informieren wir dich zusätzlich per E-Mail oder In-App-Benachrichtigung. Frühere Versionen werden archiviert und sind auf Anfrage verfügbar."
     }
   },
   "Terms": {
-    "metaTitle": "AGB von Dienst",
-    "metaDescription": "Bedingungen generali / AGB von Dienst von MyArea365.",
-    "title": "Bedingungen Generali von Vertrag",
-    "subtitle": "AGB von Dienst für MyArea365",
+    "metaTitle": "Allgemeine Geschäftsbedingungen",
+    "metaDescription": "Allgemeine Geschäftsbedingungen / Nutzungsbedingungen von MyArea365.",
+    "title": "Allgemeine Geschäftsbedingungen",
+    "subtitle": "Nutzungsbedingungen für MyArea365",
     "back": "← Zurück",
-    "lastUpdated": "Letzter Update: {Daten}",
-    "intro": "Diese Bedingungen Generali von Vertrag (von seguito «Bedingungen») disciplinano l'uso des Dienst <b>MyArea365</b>, composto vom sito web MyArea365.de, applicazioni web associate und App mobili (insieme «Dienst» oder «Piattaforma»). Insieme all'<datenschutzLink>Informativa auf der Datenschutz</datenschutzLink> und all'<impressumLink>Impressum</impressumLink>, diese Bedingungen costituiscono die Basis contrattuale zwischen te und der gestore.",
-    "footer": "Diese AGB von Dienst sind Status preparati tenendo conto der norme rilevanti (BGB, UWG, TMG, TTDSG, DSGVO, PAngV, ZAG, DSA, JMStV, BFSG). Vor der messa in onda, raccomandiamo eine revisione legale endgültig, in besondere wann sich aggiungono neue Dienste oder neue modelli von Zahlung. Die Versionen precedenti sind verfügbare auf Anfrage.",
+    "lastUpdated": "Letzte Aktualisierung: {date}",
+    "intro": "Diese Allgemeinen Geschäftsbedingungen (nachfolgend «Bedingungen») regeln die Nutzung des Dienstes <b>MyArea365</b>, bestehend aus der Website MyArea365.de, den zugehörigen Web-Apps und den Mobile-Apps (zusammen «Dienst» oder «Plattform»). Zusammen mit der <datenschutzLink>Datenschutzerklärung</datenschutzLink> und dem <impressumLink>Impressum</impressumLink> bilden diese Bedingungen die vertragliche Grundlage zwischen dir und dem Anbieter.",
+    "footer": "Diese Nutzungsbedingungen wurden unter Berücksichtigung der einschlägigen Vorschriften (BGB, UWG, TMG, TTDSG, DSGVO, PAngV, ZAG, DSA, JMStV, BFSG) erstellt. Vor dem Live-Gang empfehlen wir eine abschließende rechtliche Prüfung, insbesondere wenn neue Dienste oder Zahlungsmodelle hinzukommen. Frühere Versionen sind auf Anfrage verfügbar.",
     "s1": {
-      "title": "Ambito von App und fornitore",
-      "body": "Der fornitore und Teil contraente ist Andre Meierholz (Adresse Schau <impressumLink>Impressum</impressumLink>), von seguito «Fornitore», «noi» oder «unser». Diese Bedingungen sich applicano den consumatori gemäß des § 13 BGB und den imprenditori gemäß des § 14 BGB. Bedingungen divergenti, contrastanti oder supplementari dell'Nutzer nicht diventeranno Teil des Vertrag zu weniger dass nicht accettiamo espressamente die ihr applicabilità für Abonnent."
+      "title": "Geltungsbereich und Anbieter",
+      "body": "Anbieter und Vertragspartner ist Andre Meierholz (Adresse siehe <impressumLink>Impressum</impressumLink>), nachfolgend «Anbieter», «wir» oder «uns». Diese Bedingungen gelten gegenüber Verbrauchern gemäß § 13 BGB und Unternehmern gemäß § 14 BGB. Abweichende, entgegenstehende oder ergänzende Bedingungen des Nutzers werden nicht Vertragsbestandteil, es sei denn, wir stimmen ihrer Geltung ausdrücklich zu."
     },
     "s2": {
-      "title": "Definizioni",
+      "title": "Definitionen",
       "items": [
-        "<b>Nutzer / Runner:</b> persona fisica dass utilizza der Dienst",
-        "<b>Consumatore:</b> persona fisica dass agisce für scopi privati (§ 13 BGB)",
-        "<b>Imprenditore:</b> persona dass agisce für scopi commerciali (§ 14 BGB)",
-        "<b>Shop Partner:</b> impresa dass offre Angebote auf der piattaforma",
-        "<b>Inhalt:</b> alle die Daten caricati oder creati dall'Nutzer (Texte, Bilder, Nachrichten von Chat)",
-        "<b>Beni virtuelle:</b> Wegemünzen, Diamanten, materiali, oggetti, Wächter, sigilli, oggetti boost, cosmetici — Schau § 8",
-        "<b>Saison / Lega:</b> Phase von gioco zu Zeit limitato mit Ranglisten und Belohnungen proprie",
-        "<b>Fraktion / Classe / Ruolo:</b> raggruppamenti in gioco mit Bonus meccanici propri",
-        "<b>Crew:</b> Gruppe von Runner dass conquistano Gebiete und partecipano zu competizioni insieme"
+        "<b>Nutzer / Runner:</b> natürliche Person, die den Dienst nutzt",
+        "<b>Verbraucher:</b> natürliche Person, die zu privaten Zwecken handelt (§ 13 BGB)",
+        "<b>Unternehmer:</b> Person, die zu gewerblichen Zwecken handelt (§ 14 BGB)",
+        "<b>Partner-Shop:</b> Unternehmen, das Angebote auf der Plattform anbietet",
+        "<b>Inhalt:</b> alle vom Nutzer hochgeladenen oder erstellten Daten (Texte, Bilder, Chatnachrichten)",
+        "<b>Virtuelle Güter:</b> Wegemünzen, Diamanten, Materialien, Items, Wächter, Siegel, Boost-Items, Kosmetika — siehe § 8",
+        "<b>Saison / Liga:</b> zeitlich begrenzte Spielphase mit eigenen Ranglisten und Belohnungen",
+        "<b>Fraktion / Klasse / Rolle:</b> spielinterne Gruppierungen mit eigenen mechanischen Boni",
+        "<b>Crew:</b> Gruppe von Runnern, die gemeinsam Gebiete erobern und an Wettbewerben teilnehmen"
       ]
     },
     "s3": {
-      "title": "Beschreibung des Dienst",
-      "intro": "MyArea365 ist eine Community von running und Spaziergang gamificata. Die Funktionen principali includono in besondere:",
+      "title": "Beschreibung des Dienstes",
+      "intro": "MyArea365 ist eine gamifizierte Lauf- und Spaziergang-Community. Die wesentlichen Funktionen umfassen insbesondere:",
       "items": [
-        "Registrazione von sessioni von Lauf über GPS",
-        "Cattura von Straßen und Gebiete virtuelle basata auf den percorsi corsi",
-        "Assegnazione von Wegemünzen, Level und Erfolge",
-        "Raccolta und miglioramento von «Wächter» und equipaggiamento virtuell, System von forgia für materiali",
-        "Partecipazione zu Kämpfe d'Arena (Runner contro Runner) und Ranglisten von Saison inclusa Modus classificata Elo/rating",
-        "System von Fraktion und classe mit Bonus meccanici",
-        "Fondazione oder adesione zu Crew incluse Chat von Crew und Territorien von Crew",
-        "Riscatto von Rabatte in den Shops Partner partecipanti über scansione QR",
-        "Profil öffentlich, Hall of Fame und Ranglisten (globale, Stadt, Viertel)",
-        "Finanziamento in Teil über Werbung (z.B.. Google AdSense, AdMob) und extra zu Zahlung opzionali"
+        "Aufzeichnung von Lauf-Sessions per GPS",
+        "Eroberung von Straßen und virtuellen Gebieten basierend auf gelaufenen Strecken",
+        "Vergabe von Wegemünzen, Levels und Erfolgen",
+        "Sammeln und Verbessern von «Wächtern» und virtueller Ausrüstung, Schmiedesystem für Materialien",
+        "Teilnahme an Arena-Kämpfen (Runner gegen Runner) und Saison-Ranglisten inkl. Ranked-Modus mit Elo/Rating",
+        "Fraktions- und Klassen-System mit mechanischen Boni",
+        "Gründung oder Beitritt zu Crews inkl. Crew-Chat und Crew-Territorien",
+        "Einlösen von Rabatten bei teilnehmenden Partner-Shops per QR-Scan",
+        "Öffentliches Profil, Hall of Fame und Ranglisten (global, Stadt, Quartier)",
+        "Teilfinanzierung über Werbung (z. B. Google AdSense, AdMob) und optionale kostenpflichtige Extras"
       ],
-      "note": "L'insieme spezifisch von Funktionen evolve costantemente. Uns riserviamo der Recht von hinzufügen, bearbeiten, sostituire oder interrompere singole Funktionen vorausgesetzt ciò sia ragionevole für l'Nutzer und die obblighi contrattuali essenziali nicht siano interessati. In besondere, adattiamo continuamente meccaniche von gioco, formule von Rangliste und equilibrio Fraktion/classe für equilibrio und equità."
+      "note": "Der konkrete Funktionsumfang entwickelt sich laufend weiter. Wir behalten uns vor, einzelne Funktionen hinzuzufügen, zu ändern, zu ersetzen oder einzustellen, sofern dies für den Nutzer zumutbar ist und wesentliche Vertragspflichten nicht berührt werden. Insbesondere passen wir Spielmechaniken, Ranglisten-Formeln sowie das Fraktions-/Klassen-Balancing kontinuierlich an, um Ausgewogenheit und Fairness zu gewährleisten."
     },
     "s4": {
-      "title": "Conclusione des Vertrag und registrazione",
-      "p1": "Die presentazione des Dienst auf dem unser sito web nicht costituisce ein'Angebot vincolante aber ein invito zu presentare ein'Angebot (invitatio zu offerendum). Mit die deine registrazione presenti ein'Angebot von concludere ein Vertrag von utilizzo. Der Vertrag ist concluso mit die unsere Bestätigen über E-Mail oder mit l'attivazione des dein Zugriff.",
-      "p2": "Garantisci von fornire Informationen veritiere, complete und attuali zur registrazione. Uns informerai der cambiamenti ohne indebito ritardo. <b>Ist consentito ein nur Konto für persona fisica.</b> L'Konto ist persönlich, nicht trasferibile und nicht kann sein condiviso mit terzi. L'uso condiviso (z.B.. condivisione Konto, multi-Konto) costituisce Grund gültig von Auflösung straordinaria.",
-      "p3": "Bist responsabile der Sicherheit des dein Zugriff. Ciò include in besondere mantenere riservata die deine Passwort, utilizzare metodi von autenticazione sicuri und notificarci immediatamente qualsiasi sospetto ragionevole von uso nicht autorizzato."
+      "title": "Vertragsschluss und Registrierung",
+      "p1": "Die Darstellung des Dienstes auf unserer Website stellt kein verbindliches Angebot dar, sondern eine Aufforderung zur Abgabe eines Angebots (invitatio ad offerendum). Mit deiner Registrierung gibst du ein Angebot zum Abschluss eines Nutzungsvertrags ab. Der Vertrag kommt durch unsere Bestätigung per E-Mail oder durch die Aktivierung deines Zugangs zustande.",
+      "p2": "Du sicherst zu, bei der Registrierung wahre, vollständige und aktuelle Angaben zu machen. Änderungen teilst du uns unverzüglich mit. <b>Pro natürlicher Person ist nur ein Konto zulässig.</b> Das Konto ist persönlich, nicht übertragbar und darf nicht mit Dritten geteilt werden. Geteilte Nutzung (z. B. Account-Sharing, Multi-Account) stellt einen wichtigen Grund zur außerordentlichen Kündigung dar.",
+      "p3": "Du bist für die Sicherheit deines Zugangs verantwortlich. Dazu gehört insbesondere, dein Passwort vertraulich zu halten, sichere Authentifizierungsmethoden zu nutzen und uns jeden begründeten Verdacht auf unbefugte Nutzung unverzüglich mitzuteilen."
     },
     "s5": {
-      "title": "Età minima und minorenni",
-      "p1": "L'uso ist offen zu persone von età pari oder superiore zu <b>16 Jahre</b>. Die persone von età inferiore zu 16 Jahre können utilizzare der Dienst nur mit der Einwilligung esplicito der ihr tutori legali (Art. 8 DSGVO, §§ 107, 108 BGB). In Fall von dubbi ragionevoli sull'età minima, uns riserviamo der Recht von richiedere eine prova oder sospendere l'Konto precauzionalmente.",
-      "p2": "Der Dienst contiene Funktionen von gamification und sociali adattate zum Trattato interstatale tedesco auf der protezione der minori in den Durchschnitt (JMStV). Die Funktionen von Chat für minorenni sind soggette zu Moderation speziell."
+      "title": "Mindestalter und Minderjährige",
+      "p1": "Die Nutzung ist Personen ab <b>16 Jahren</b> gestattet. Personen unter 16 Jahren dürfen den Dienst nur mit ausdrücklicher Einwilligung der Erziehungsberechtigten nutzen (Art. 8 DSGVO, §§ 107, 108 BGB). Bei begründeten Zweifeln am Mindestalter behalten wir uns vor, einen Nachweis zu verlangen oder das Konto vorsorglich zu sperren.",
+      "p2": "Der Dienst enthält Gamification- und Social-Funktionen, die an den Jugendmedienschutz-Staatsvertrag (JMStV) angepasst sind. Chat-Funktionen für Minderjährige unterliegen einer besonderen Moderation."
     },
     "s6": {
-      "title": "Angebot Basis kostenlos",
-      "body": "Die Funktionen Basis (tracking Lauf, Gebiete, XP, Crew, riscatto Rabatte bei Shops Partner) sind verfügbare in Weise permanente und kostenlos. Hast bisogno nur von ein Gerät verbunden zu Internet und, sich des Fall, von Daten mobili. Eventuali costi von connessione risultanti sind zu dein carico."
+      "title": "Kostenloses Basis-Angebot",
+      "body": "Die Basis-Funktionen (Lauf-Tracking, Gebiete, XP, Crew, Einlösen von Rabatten bei Partner-Shops) sind dauerhaft kostenlos verfügbar. Du benötigst lediglich ein internetfähiges Gerät und ggf. mobile Daten. Etwaige dadurch entstehende Verbindungskosten trägst du selbst."
     },
     "s7": {
-      "title": "Dienste aggiuntivi zu Zahlung und Abos",
+      "title": "Kostenpflichtige Zusatzdienste und Abos",
       "s1": {
-        "title": "7.1 Käufe eine tantum",
-        "body": "Offriamo Käufe eine tantum zu Zahlung, in besondere Pakete von Diamanten, Pakete von materiali, oggetti streak-freeze, Anzeigen von Viertel, cosmetici (skin, Themes von pin, marker) und oggetti boost zu Zeit limitato. Die Preise sind indicati lordi inclusa IVA legale (§ 1 PAngV). Cliccando «Kaufen» Mach ein'Angebot vincolante; der Vertrag ist concluso mit die unsere Bestätigen oder mit l'Anfang dell'esecuzione."
+        "title": "7.1 Einmal-Käufe",
+        "body": "Wir bieten kostenpflichtige Einmal-Käufe an, insbesondere Diamanten-Pakete, Material-Pakete, Streak-Freeze-Items, Quartier-Anzeigen, Kosmetika (Skins, Pin-Themes, Marker) und zeitlich begrenzte Boost-Items. Preise werden brutto inkl. gesetzlicher Mehrwertsteuer angegeben (§ 1 PAngV). Mit Klick auf «Kaufen» gibst du ein verbindliches Angebot ab; der Vertrag kommt durch unsere Bestätigung oder Beginn der Ausführung zustande."
       },
       "s2": {
-        "title": "7.2 Abos (MyArea+, Badge Supporter, Crew Pro, piani Shop)",
-        "intro": "Die Abos sich rinnovano automaticamente zur Ende von jeder periodo von fatturazione (Monat oder Jahr) für die selbe durata zu weniger dass tu nicht annulli <b>vor der Ende des periodo</b>. Die Abos includono attualmente in besondere:",
+        "title": "7.2 Abos (MyArea+, Supporter-Badge, Crew Pro, Shop-Pakete)",
+        "intro": "Abos verlängern sich automatisch am Ende jeder Abrechnungsperiode (Monat oder Jahr) um dieselbe Laufzeit, sofern du nicht <b>vor Ablauf der Periode</b> kündigst. Aktuell umfassen die Abos insbesondere:",
         "items": [
-          "<b>MyArea+ Plus</b> (Funktionen Premium, ohne Werbung)",
-          "<b>Badge Supporter</b> Bronze / Silber / Gold (Abos mensili, badge + Bonus)",
-          "<b>Crew Pro</b> (Funktionen Crew estese)",
-          "<b>Shop Basic / Shop Pro / Shop Ultra</b> (Pakete B2B für Shops Partner)",
-          "<b>Pass Arena</b> (z.B.. für die durata von eine Saison)",
-          "<b>Social Pro / Analytics Pro / Competitor Insights</b> (moduli aggiuntivi für Shops Partner)"
+          "<b>MyArea+ Plus</b> (Premium-Funktionen, werbefrei)",
+          "<b>Supporter-Badge</b> Bronze / Silber / Gold (monatliche Abos, Badge + Boni)",
+          "<b>Crew Pro</b> (erweiterte Crew-Funktionen)",
+          "<b>Shop Basic / Shop Pro / Shop Ultra</b> (B2B-Pakete für Partner-Shops)",
+          "<b>Arena-Pass</b> (z. B. für die Dauer einer Saison)",
+          "<b>Social Pro / Analytics Pro / Competitor Insights</b> (Zusatzmodule für Partner-Shops)"
         ],
-        "note": "Durata, Preis, Bedingungen von rinnovo und termine von preavviso dir werden mostrati in Weise trasparente vor dell'ordine. Der <b>termine von preavviso corrisponde zum periodo von fatturazione aktuell</b> (cioè die Löschung hat Effekt zur Ende des periodo bereits pagato)."
+        "note": "Laufzeit, Preis, Verlängerungsbedingungen und Kündigungsfrist werden dir vor dem Bestellabschluss transparent angezeigt. Die <b>Kündigungsfrist entspricht der laufenden Abrechnungsperiode</b> (d. h. die Kündigung wird zum Ende der bereits bezahlten Periode wirksam)."
       },
       "s3": {
-        "title": "7.3 Mezzi von Zahlung",
-        "body": "Die Zahlungen werden elaborati über der unser provider von Zahlung <b>Stripe Payments Europe Ltd.</b> (1 Grand Canal Street Lower, Dublino, Irlanda). Die metodi von Zahlung accettati (addebito SEPA, carta von credito, Apple Pay, Google Pay, Klarna ecc.) sind mostrati während der checkout. Die fatturazione avviene immediatamente zur conclusione des Vertrag. Selezionando ein metodo von Zahlung acconsenti zur trasmissione von Daten zu Stripe für l'esecuzione des Vertrag (Art. 6(1)(b) DSGVO)."
+        "title": "7.3 Zahlungsmittel",
+        "body": "Zahlungen werden über unseren Zahlungsdienstleister <b>Stripe Payments Europe Ltd.</b> (1 Grand Canal Street Lower, Dublin, Irland) abgewickelt. Die akzeptierten Zahlungsmethoden (SEPA-Lastschrift, Kreditkarte, Apple Pay, Google Pay, Klarna usw.) werden während des Checkouts angezeigt. Die Rechnungsstellung erfolgt sofort bei Vertragsschluss. Mit Auswahl eines Zahlungsmittels willigst du in die Übermittlung der Daten an Stripe zur Vertragsdurchführung ein (Art. 6 Abs. 1 lit. b DSGVO)."
       },
       "s4": {
-        "title": "7.4 Ablauf, fattura und rinnovo automatisch",
-        "body": "Der Preis von Kauf ist dovuto immediatamente. Für die Abos, der metodo von Zahlung memorizzato wird addebitato automaticamente zur nächste Datum von fatturazione. Sich l'addebito fallisce, können sospendere l'Zugriff den Dienste zu Zahlung bis zum Zahlung. Forniamo eine fattura elettronica über der dein Konto oder über E-Mail."
+        "title": "7.4 Fälligkeit, Rechnung und automatische Verlängerung",
+        "body": "Der Kaufpreis ist sofort fällig. Bei Abos wird das hinterlegte Zahlungsmittel automatisch zum nächsten Abrechnungsdatum belastet. Schlägt die Belastung fehl, können wir den Zugang zu kostenpflichtigen Diensten bis zur Zahlung aussetzen. Wir stellen eine elektronische Rechnung in deinem Konto oder per E-Mail bereit."
       },
       "s5": {
-        "title": "7.5 Riserva von proprietà und prestazione",
-        "body": "Die beni virtuelle restano von unsere proprietà oder soggetti zur unsere riserva d'uso bis zum Zahlung integrale. Nach der Zahlung riuscito Empfangen der Recht d'uso descritto zum § 8."
+        "title": "7.5 Eigentums- und Leistungsvorbehalt",
+        "body": "Virtuelle Güter bleiben bis zur vollständigen Zahlung in unserem Eigentum bzw. unserem Nutzungsvorbehalt unterstellt. Nach erfolgter Zahlung erhältst du das in § 8 beschriebene Nutzungsrecht."
       },
       "s6": {
-        "title": "7.6 Button von Löschung einfach (§ 312k BGB)",
-        "body": "In den Einstellungen des dein Konto, sotto <die>Verwalten Abos</die>, troverai ein Button von Löschung accessibile in qualsiasi momento, mit cui kannst terminare die Abos in corso ohne ostacolo von Zugriff. Die Löschung hat Effekt zur Ende des periodo von fatturazione aktuell."
+        "title": "7.6 Kündigungsbutton (§ 312k BGB)",
+        "body": "In den Einstellungen deines Kontos findest du unter <die>Abos verwalten</die> jederzeit einen leicht zugänglichen Kündigungsbutton, mit dem du laufende Abos ohne Hindernisse beenden kannst. Die Kündigung wird zum Ende der laufenden Abrechnungsperiode wirksam."
       }
     },
     "s8": {
-      "title": "Beni virtuelle und valute virtuelle",
-      "intro": "Münzen des cammino, Diamanten, materiali (rottame/cristallo/essenza/frammenti von reliquia), Wächter, oggetti, sigilli, rating, Erfolge, cosmetici und andere beni virtuelle sind destinati esclusivamente all'uso all'interno des Dienst.",
+      "title": "Virtuelle Güter und virtuelle Währungen",
+      "intro": "Wegemünzen, Diamanten, Materialien (Schrott/Kristall/Essenz/Reliquien-Fragmente), Wächter, Items, Siegel, Rating, Erfolge, Kosmetika und andere virtuelle Güter sind ausschließlich zur Nutzung innerhalb des Dienstes bestimmt.",
       "items": [
-        "Nicht costituiscono <b>Münze avente corso legale</b> né Münze elettronica gemäßzu ZAG",
-        "<b>Nicht können sein scambiati mit denaro reale</b> oder prelevati",
-        "Sind <b>nicht trasferibili zwischen Konto</b> (salvo sich espressamente previsto)",
-        "Scadono zur Löschung des dein Konto, ohne Recht zu compensazione",
-        "Empfangen ein <b>Recht d'uso einfach, nicht esclusivo, limitato im Zeit zur durata des Vertrag</b>",
-        "Der commercio, die Verkauf, der scambio oder der trasferimento von beni virtuelle zum von fuori der meccaniche ufficiali des gioco ist vietato"
+        "Sie stellen <b>weder gesetzliches Zahlungsmittel</b> noch E-Geld im Sinne des ZAG dar",
+        "<b>Sie können nicht in echtes Geld umgetauscht</b> oder ausgezahlt werden",
+        "Sie sind <b>nicht zwischen Konten übertragbar</b> (sofern nicht ausdrücklich vorgesehen)",
+        "Sie verfallen mit der Löschung deines Kontos, ohne Anspruch auf Entschädigung",
+        "Du erhältst ein <b>einfaches, nicht ausschließliches, auf die Vertragsdauer befristetes Nutzungsrecht</b>",
+        "Handel, Verkauf, Tausch oder Übertragung virtueller Güter außerhalb der offiziellen Spielmechaniken ist untersagt"
       ],
-      "balance": "<b>Aggiustamenti von equilibrio:</b> Für Gründe von bilanciamento, uns riserviamo der Recht von aggiustare, entfernen oder sostituire singoli beni virtuelle mit equivalenti, in der misura in cui ciò sia ragionevole Respekt den deine interessi. Ciò include in besondere modifiche zu valori von stat, tassi von Drop, Systeme von contatori, Buff von Fraktion und classe.",
-      "discontinue": "<b>Cessazione des Dienst:</b> Sich dovessimo cessare definitivamente der Dienst, dir informeremo mindestens 3 Monate in anticipo. Während dies periodo, die Abos pagati mantengono die ihr Funktion bis zur Ende der durata pagata. Für die Käufe eine tantum bereits effettuati (z.B.. Pakete von Diamanten) dass nicht sind Status interamente consumati, offriremo ein credito von gut volontà oder rimborso pro-rata basato auf der durata von conservazione anfänglich, in der misura in cui ciò sia economicamente ragionevole."
+      "balance": "<b>Balancing-Anpassungen:</b> Aus Balancing-Gründen behalten wir uns vor, einzelne virtuelle Güter anzupassen, zu entfernen oder durch gleichwertige zu ersetzen, soweit dies unter Berücksichtigung deiner Interessen zumutbar ist. Dies betrifft insbesondere Stat-Werte, Drop-Raten, Counter-Systeme sowie Fraktions- und Klassen-Buffs.",
+      "discontinue": "<b>Dienst-Einstellung:</b> Sollten wir den Dienst dauerhaft einstellen, informieren wir dich mindestens 3 Monate vorher. Während dieser Zeit behalten bezahlte Abos ihre Funktion bis zum Ende der bezahlten Laufzeit. Für bereits getätigte Einmal-Käufe (z. B. Diamanten-Pakete), die nicht vollständig verbraucht sind, bieten wir nach billigem Ermessen eine Kulanz-Gutschrift oder anteilige Rückerstattung an, soweit dies wirtschaftlich angemessen ist."
     },
     "s9": {
-      "title": "Widerrufsrecht für consumatori",
+      "title": "Widerrufsrecht für Verbraucher",
       "s1": {
-        "title": "9.1 Istruzioni von Widerruf",
-        "p1": "Hast der Recht von recedere von dies Vertrag entro <b>14 Tage</b> ohne fornire alcun Grund. Der termine von Widerruf ist von 14 Tage vom Tag der conclusione des Vertrag.",
-        "p2": "Für esercitare der dein Recht von Widerruf, musst informarci mit eine dichiarazione chiara (z.B.. über E-Mail) der deine decisione von recedere von dies Vertrag:",
-        "address": "Adresse postale Schau <impressumLink>Impressum</impressumLink>",
+        "title": "9.1 Widerrufsbelehrung",
+        "p1": "Du hast das Recht, binnen <b>14 Tagen</b> ohne Angabe von Gründen diesen Vertrag zu widerrufen. Die Widerrufsfrist beträgt 14 Tage ab dem Tag des Vertragsschlusses.",
+        "p2": "Um dein Widerrufsrecht auszuüben, musst du uns mittels einer eindeutigen Erklärung (z. B. per E-Mail) über deinen Entschluss informieren, diesen Vertrag zu widerrufen:",
+        "address": "Postanschrift siehe <impressumLink>Impressum</impressumLink>",
         "emailLabel": "E-Mail:",
-        "p3": "Für rispettare der termine von Widerruf, ist sufficiente dass tu invii die Benachrichtigung von esercizio des Recht von Widerruf vor der Ablauf des termine."
+        "p3": "Zur Wahrung der Widerrufsfrist genügt es, dass du die Mitteilung über die Ausübung des Widerrufsrechts vor Ablauf der Widerrufsfrist absendest."
       },
       "s2": {
-        "title": "9.2 Conseguenze des Widerruf",
-        "body": "Sich receddi von dies Vertrag, dir rimborseremo alle die Zahlungen ricevuti von te, ohne indebito ritardo und zum mehr tardi entro 14 Tage vom Tag in cui wir haben ricevuto die Benachrichtigung des dein Widerruf. Für der rimborso utilizzeremo der selbe mezzo von Zahlung utilizzato für die transazione originale, salvo diverso accordo espresso."
+        "title": "9.2 Folgen des Widerrufs",
+        "body": "Wenn du diesen Vertrag widerrufst, erstatten wir dir alle Zahlungen, die wir von dir erhalten haben, unverzüglich und spätestens binnen 14 Tagen ab dem Tag, an dem die Mitteilung über deinen Widerruf bei uns eingegangen ist. Für die Rückzahlung verwenden wir dasselbe Zahlungsmittel, das du bei der ursprünglichen Transaktion eingesetzt hast, es sei denn, mit dir wurde ausdrücklich etwas anderes vereinbart."
       },
       "s3": {
-        "title": "9.3 Ablauf anticipata des Recht von Widerruf für Inhalt digitale",
-        "intro": "Für die Verträge von fornitura von Inhalt digitale nicht fornito auf supporto fisico (in besondere <b>Diamanten, skin und andere beni virtuelle</b>), der Recht von Widerruf scade gemäß des § 356(5) BGB sich:",
+        "title": "9.3 Vorzeitiges Erlöschen des Widerrufsrechts bei digitalen Inhalten",
+        "intro": "Bei Verträgen über die Lieferung von nicht auf einem körperlichen Datenträger befindlichen digitalen Inhalten (insbesondere <b>Diamanten, Skins und andere virtuelle Güter</b>) erlischt das Widerrufsrecht gemäß § 356 Abs. 5 BGB, wenn du:",
         "items": [
-          "hast espressamente acconsentito dass iniziassimo l'esecuzione vor der Ende des termine von Widerruf",
-          "hast confermato die deine consapevolezza dass Verlieren der dein Recht von Widerruf fornendo der Einwilligung all'Anfang dell'esecuzione",
-          "dir wir haben fornito Bestätigen des Vertrag und von dies Einwilligung"
+          "ausdrücklich zugestimmt hast, dass wir mit der Ausführung vor Ablauf der Widerrufsfrist beginnen",
+          "deine Kenntnis bestätigt hast, dass du durch die Zustimmung zum Beginn der Ausführung dein Widerrufsrecht verlierst",
+          "und wir dir eine Bestätigung des Vertrags und dieser Zustimmung übermittelt haben"
         ],
-        "note": "All'Kauf von Diamanten und andere sblocchi istantanei, otteniamo dies Einwilligung während der checkout. Nach dass der credito ist Status concesso, der Widerruf nicht ist quinmehr possibile."
+        "note": "Beim Kauf von Diamanten und anderen sofortigen Freischaltungen holen wir diese Zustimmung im Checkout ein. Sobald die Gutschrift erfolgt ist, ist ein Widerruf nicht mehr möglich."
       },
       "s4": {
-        "title": "9.4 Modulo von Widerruf modello",
-        "intro": "Sich desideri recedere vom Vertrag, kannst utilizzare dies modulo (nicht richiesto, aber consentito):",
-        "form": "Zu: Andre Meierholz, Adresse Schau Impressum, support@MyArea365.de\n\nIo/noi (*) euch notifichiamo mit die Gegenwart die meine/unsere (*) recessione vom Vertrag concluso von me/noi (*) für l'Kauf der seguenti merci (*) / die fornitura des seguente Dienst (*):\n\nOrdinato der (*) / ricevuto der (*):\nName des/der consumatore/die:\nAdresse des/der consumatore/die:\nFirma des/der consumatore/die (nur in Fall von Benachrichtigung cartacea):\nDatum:\n\n(*) Cancellare der superfluo."
+        "title": "9.4 Muster-Widerrufsformular",
+        "intro": "Wenn du den Vertrag widerrufen willst, kannst du dieses Formular nutzen (nicht erforderlich, aber zulässig):",
+        "form": "An: Andre Meierholz, Adresse siehe Impressum, support@MyArea365.de\n\nHiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag über den Kauf der folgenden Waren (*) / die Erbringung der folgenden Dienstleistung (*):\n\nBestellt am (*) / erhalten am (*):\nName des/der Verbraucher(s):\nAnschrift des/der Verbraucher(s):\nUnterschrift des/der Verbraucher(s) (nur bei Mitteilung auf Papier):\nDatum:\n\n(*) Unzutreffendes streichen."
       }
     },
     "s10": {
-      "title": "Preise und Bedingungen von Zahlung",
-      "p1": "Alle die Preise sind Preise lordi inclusa l'IVA legale und andere componenti von Preis gemäß'Ordinanza tedesca sull'indicazione der Preise (PAngV). Annunciamo die cambi von Preis mindestens 4 Wochen in anticipo; die Abos esistenti continuano zum Preis originariamente concordato bis zur nächste Datum von rinnovo.",
-      "p2": "In Fall von mora des Zahlung uns riserviamo der Recht von sospendere die Dienste aggiuntivi und von far valere die interessi legali von mora gemäß der §§ 288, 286 BGB und ragionevoli costi von sollecito."
+      "title": "Preise und Zahlungsbedingungen",
+      "p1": "Alle Preise sind Bruttopreise inkl. der gesetzlichen Mehrwertsteuer und sonstiger Preisbestandteile gemäß Preisangabenverordnung (PAngV). Preisänderungen kündigen wir mindestens 4 Wochen im Voraus an; bestehende Abos laufen zum ursprünglich vereinbarten Preis bis zum nächsten Verlängerungsdatum weiter.",
+      "p2": "Bei Zahlungsverzug behalten wir uns vor, kostenpflichtige Zusatzdienste auszusetzen und Verzugszinsen gemäß §§ 288, 286 BGB sowie angemessene Mahnkosten geltend zu machen."
     },
     "s11": {
-      "title": "Rechte d'uso der piattaforma",
-      "body": "Dir concediamo, für die durata des Vertrag, ein Recht einfach, nicht trasferibile, nicht sublicenziabile von utilizzare der Dienst für der scopo contrattualmente previsto. Die query automatizzate oder sistematiche (scraping, crawling) und l'ingegneria inversa sind vietate salvo dass sich applichino eccezioni legali imperative (§§ 69zu und seguenti UrhG)."
+      "title": "Nutzungsrechte an der Plattform",
+      "body": "Wir gewähren dir für die Vertragsdauer ein einfaches, nicht übertragbares, nicht unterlizenzierbares Recht, den Dienst zum vertraglich vorgesehenen Zweck zu nutzen. Automatisierte oder systematische Abfragen (Scraping, Crawling) sowie Reverse Engineering sind untersagt, sofern keine zwingenden gesetzlichen Ausnahmen greifen (§§ 69a ff. UrhG)."
     },
     "s12": {
-      "title": "Rechte d'uso auf dem dein Inhalt",
-      "intro": "Mantieni alle die Rechte auf dem Inhalt dass carichi oder crei (avatar, banner, Beschreibung von Crew, Nachrichten von Chat, suggerimenti von Shop, Feedback). Jedoch, uns concedi ein Recht einfach, illimitato im Zeit und im Territorium, kostenlos von utilizzare der dein Inhalt",
+      "title": "Nutzungsrechte an deinen Inhalten",
+      "intro": "Du behältst alle Rechte an den Inhalten, die du hochlädst oder erstellst (Avatar, Banner, Crew-Beschreibung, Chatnachrichten, Shop-Vorschläge, Feedback). Du räumst uns jedoch ein einfaches, zeitlich und räumlich unbeschränktes, kostenloses Recht ein, deine Inhalte:",
       "items": [
-        "für memorizzarlo, mostrarlo, riprodurlo und trasmetterlo zu andere Nutzer all'interno des Dienst",
-        "für elaborarlo zu fini tecnici (backup, scaling, Moderation)",
-        "für utilizzarlo in forma anonimizzata oder aggregata für Statistiken und miglioramento des prodotto"
+        "zu speichern, anzuzeigen, zu vervielfältigen und an andere Nutzer innerhalb des Dienstes zu übermitteln",
+        "zu technischen Zwecken zu verarbeiten (Backup, Skalierung, Moderation)",
+        "in anonymisierter oder aggregierter Form für Statistiken und Produktverbesserung zu nutzen"
       ],
-      "note": "Garantisci von detenere die Rechte necessari auf dem Inhalt und von nicht violare Rechte Dritter. In Fall von violazioni, uns indennizzi von den pretese Dritter inclusi die ragionevoli costi von Verteidigung legale.",
-      "moderation": "<b>Moderation:</b> Der Inhalt caricato (in besondere Bilder von avatar und banner, Beschreibungen von Crew, nomi Nutzer, Nachrichten von Chat) kann sein moderato vor oder nach die pubblicazione. Uns riserviamo der Recht von rivedere, nascondere oder entfernen Inhalte dass violano diese Bedingungen, der Recht applicabile oder die nostre linee Anleitung der Community. Kannst machen appello den decisioni von Moderation gemäß des § 15.",
-      "aiContent": "<b>Inhalt generato von IA:</b> Teile dell'artwork dass forniamo (z.B.. Bilder von Wächter, Symbole der Karte, Themes von pin) können sein create mit der supporto von Systeme IA. Confermi dass mit die deine caricamenti, nicht carichi Inhalte dass violano Rechte Dritter — incluso Inhalt generato von IA (z.B.. imitando indebitamente stili protetti oder persone viventi)."
+      "note": "Du sicherst zu, die erforderlichen Rechte an den Inhalten zu besitzen und keine Rechte Dritter zu verletzen. Bei Verstößen stellst du uns von Ansprüchen Dritter frei, einschließlich angemessener Rechtsverteidigungskosten.",
+      "moderation": "<b>Moderation:</b> Hochgeladene Inhalte (insbesondere Avatar- und Banner-Bilder, Crew-Beschreibungen, Benutzernamen, Chatnachrichten) können vor oder nach Veröffentlichung moderiert werden. Wir behalten uns vor, Inhalte zu prüfen, auszublenden oder zu entfernen, die gegen diese Bedingungen, geltendes Recht oder unsere Community-Richtlinien verstoßen. Du kannst Moderationsentscheidungen gemäß § 15 anfechten.",
+      "aiContent": "<b>KI-generierte Inhalte:</b> Teile des von uns bereitgestellten Artworks (z. B. Wächter-Bilder, Karten-Symbole, Pin-Themes) können mit Unterstützung von KI-Systemen erstellt sein. Du bestätigst, mit deinen Uploads keine Inhalte hochzuladen, die Rechte Dritter verletzen — auch keine KI-generierten Inhalte (z. B. unzulässige Imitation geschützter Stile oder lebender Personen)."
     },
     "s13": {
-      "title": "Codice von condotta / Linee Anleitung der Community",
-      "intro": "Sind in besondere vietati:",
+      "title": "Verhaltenskodex / Community-Richtlinien",
+      "intro": "Insbesondere untersagt sind:",
       "items": [
-        "Daten GPS manipolati, percorsi falsi, Bewegung automatizzato (veicolo, bot, emulatore)",
-        "Konto multipli oder aggiramento von ein ban mit ein neu Konto",
-        "Comportamento offensivo, odioso, discriminatorio, molesto oder minaccioso Richtung andere Nutzer",
-        "Inhalte illegali, dass mettono in pericolo die giovani, pornografici oder dass violano der Recht d'autore",
-        "Spam, Werbung commerciale ohne Einwilligung, schemi piramidali, phishing",
-        "Tentativo von aggirare limitazioni tecniche (rate limit, anti-cheat)",
-        "Malware, exploit, Zugriff nicht autorizzato zu andere Konto oder zur unsere infrastruttura",
-        "Uso commerciale ohne Einwilligung espresso",
-        "Commercio von Konto, beni virtuelle oder vantaggi in gioco zum von fuori des Shop ufficiale",
-        "Divulgazione von personenbezogene Daten Dritter"
+        "Manipulierte GPS-Daten, gefälschte Strecken, automatisierte Bewegung (Fahrzeug, Bot, Emulator)",
+        "Mehrfach-Konten oder Umgehung einer Sperre durch ein neues Konto",
+        "Beleidigendes, hasserfülltes, diskriminierendes, belästigendes oder bedrohliches Verhalten gegenüber anderen Nutzern",
+        "Illegale, jugendgefährdende, pornografische oder urheberrechtsverletzende Inhalte",
+        "Spam, gewerbliche Werbung ohne Einwilligung, Schneeballsysteme, Phishing",
+        "Versuche, technische Beschränkungen (Rate-Limit, Anti-Cheat) zu umgehen",
+        "Malware, Exploits, unbefugter Zugriff auf andere Konten oder unsere Infrastruktur",
+        "Gewerbliche Nutzung ohne ausdrückliche Einwilligung",
+        "Handel mit Konten, virtuellen Gütern oder Spielvorteilen außerhalb des offiziellen Shops",
+        "Weitergabe personenbezogener Daten Dritter"
       ],
-      "safety": "<b>Die Sicherheit vor von alles:</b> Sii prudente im traffico, rispetta der codice der Straße und nicht lasciarti distrarre dall'App. Bist responsabile der deine Sicherheit (Schau § 16)."
+      "safety": "<b>Sicherheit geht vor:</b> Sei vorsichtig im Verkehr, halte dich an die Straßenverkehrsordnung und lass dich nicht von der App ablenken. Du bist für deine Sicherheit selbst verantwortlich (siehe § 16)."
     },
     "s14": {
-      "title": "Conseguenze der violazioni",
-      "intro": "Zu seconda der gravità und frequenza, uns riserviamo der Recht von adottare die seguenti misure:",
+      "title": "Folgen von Verstößen",
+      "intro": "Je nach Schwere und Häufigkeit behalten wir uns folgende Maßnahmen vor:",
       "items": [
-        "Avvertimento",
-        "Eliminazione oder nascondimento von Inhalte individuali",
-        "Reset von beni virtuelle ottenuti illecitamente",
-        "Sospensione temporanea dell'Konto oder von Funktionen individuali",
-        "Ban permanente für violazioni gravi",
-        "Auflösung des Vertrag von utilizzo für Grund gültig (§ 314 BGB)",
-        "Conservazione von valori ottenuti illecitamente ohne rimborso",
-        "Denuncia penale in Fall von Inhalte illeciti"
+        "Verwarnung",
+        "Löschung oder Ausblenden einzelner Inhalte",
+        "Reset unrechtmäßig erlangter virtueller Güter",
+        "Vorübergehende Sperre des Kontos oder einzelner Funktionen",
+        "Permanente Sperre bei schwerwiegenden Verstößen",
+        "Außerordentliche Kündigung des Nutzungsvertrags aus wichtigem Grund (§ 314 BGB)",
+        "Einbehaltung unrechtmäßig erlangter Werte ohne Erstattung",
+        "Strafanzeige bei rechtswidrigen Inhalten"
       ],
-      "note": "Vor der misure permanenti, generalmente dir verrà Datum die possibilità von commentare, salvo dass l'urgenza richieda diversamente."
+      "note": "Vor dauerhaften Maßnahmen erhältst du in der Regel Gelegenheit zur Stellungnahme, sofern die Dringlichkeit nichts anderes erfordert."
     },
     "s15": {
-      "title": "Procedure von reclamo, Benachrichtigung und rimedio (DSA)",
-      "intro": "In qualità von fornitore von ein Dienst intermediario und von hosting gemäß des Regolamento EU 2022/2065 (Digital Services Act), forniamo die seguenti procedure:",
-      "li1": "<b>Benachrichtigung von Inhalt illegale</b> (Art. 16 DSA): Benachrichtigung informale zu <Support-Mail>support@MyArea365.de</Support-Mail> oder über die Funktion von Meldung in-App. Informationen: Inhalt/URL, Typ von violazione, recapiti des notificante.",
-      "li2": "<b>Gestione interna der reclami</b> (Art. 20 DSA): die persone interessate können contestare gratuitamente die decisioni von Moderation entro 6 Monate. Decidiamo entro 14 Tage.",
-      "li3": "<b>Auflösung extragiudiziale der controversie</b> (Art. 21 DSA): kannst rivolgerti zu ein organo von Auflösung extragiudiziale der controversie certificato dall'autorità von Kontrolle nazionale.",
-      "li4": "<b>Trusted flagger</b> (Art. 22 DSA): die Benachrichtigungen von Trusted Flagger riconosciuti werden trattate mit priorità.",
-      "li5": "<b>Rapporti von trasparenza</b>: pubblichiamo annualmente Informationen auf den decisioni von Moderation und auf den segnalazioni der Nutzer."
+      "title": "Beschwerde-, Melde- und Abhilfeverfahren (DSA)",
+      "intro": "Als Anbieter eines Vermittlungs- und Hosting-Dienstes gemäß EU-Verordnung 2022/2065 (Digital Services Act) bieten wir folgende Verfahren an:",
+      "li1": "<b>Meldung rechtswidriger Inhalte</b> (Art. 16 DSA): formlose Meldung an <Support-Mail>support@MyArea365.de</Support-Mail> oder über die In-App-Meldefunktion. Erforderliche Angaben: Inhalt/URL, Art des Verstoßes, Kontaktdaten des Meldenden.",
+      "li2": "<b>Internes Beschwerdemanagement</b> (Art. 20 DSA): Betroffene können Moderationsentscheidungen kostenfrei innerhalb von 6 Monaten anfechten. Wir entscheiden binnen 14 Tagen.",
+      "li3": "<b>Außergerichtliche Streitbeilegung</b> (Art. 21 DSA): Du kannst dich an eine von der nationalen Aufsichtsbehörde zertifizierte Stelle zur außergerichtlichen Streitbeilegung wenden.",
+      "li4": "<b>Trusted Flagger</b> (Art. 22 DSA): Meldungen anerkannter Trusted Flagger werden vorrangig bearbeitet.",
+      "li5": "<b>Transparenzberichte</b>: Wir veröffentlichen jährlich Informationen zu Moderationsentscheidungen und Nutzer-Meldungen."
     },
     "s16": {
-      "title": "Responsabilità und limitazione von responsabilità",
+      "title": "Haftung und Haftungsbeschränkung",
       "s1": {
-        "title": "16.1 Generale",
-        "body": "Sind responsabili ohne limitazione für dolo und colpa grave, für Schaden causati colpevolmente zur Leben, zum corpo oder zur Gesundheit, für difetti dolosamente nascosti, in Fall von assunzione von garanzia und Sekunde die liest tedesca auf der responsabilità von prodotto."
+        "title": "16.1 Allgemein",
+        "body": "Wir haften unbeschränkt für Vorsatz und grobe Fahrlässigkeit, für schuldhaft verursachte Schäden an Leben, Körper oder Gesundheit, für arglistig verschwiegene Mängel, im Fall der Übernahme einer Garantie sowie nach dem deutschen Produkthaftungsgesetz."
       },
       "s2": {
-        "title": "16.2 Negligenza einfach",
-        "body": "In Fall von violazione lievemente negligente von ein obbligo contrattuale essenziale (Pflicht cardinale), die unsere responsabilità ist limitata zum Schaden prevedibile tipico des Vertrag zum momento der seine conclusione. Nicht sind responsabili für violazioni lievemente negligenti von Pflichten zum von fuori der obblighi contrattuali essenziali."
+        "title": "16.2 Einfache Fahrlässigkeit",
+        "body": "Bei leicht fahrlässiger Verletzung einer wesentlichen Vertragspflicht (Kardinalpflicht) ist unsere Haftung auf den vertragstypischen, vorhersehbaren Schaden zum Zeitpunkt des Vertragsschlusses begrenzt. Für leicht fahrlässige Verletzungen von Pflichten außerhalb wesentlicher Vertragspflichten haften wir nicht."
       },
       "s3": {
-        "title": "16.3 Esonero für attività von Lauf und Spaziergang",
-        "p1": "<b>Utilizzi l'App zu dein rischio</b>, in besondere im spazio öffentlich stradale. Nicht assumiamo alcuna responsabilità für cadute, lesioni, incidenti, perdita oder Schaden zum dein Gerät und andere Schaden causati von der deine attività von Lauf oder Spaziergang, salvo dass wir haben causato der Schaden colposamente.",
-        "p2": "Bist obbligato zu rispettare der codice der Straße, prestare Achtung zum traffico, zum meteo, den Bedingungen von illuminazione, zum dein Status von Gesundheit und zur deine condizione fisica und, in Fall von dubbio, fragen Tipp medico vor von beginnen l'attività sportiva. L'App nicht sostituisce der Tipp medico, nicht ist ein programma von Training und nicht ist ein System von Sicherheit oder von chiamata d'emergenza.",
-        "p3": "<b>Für die minorenni</b>, die tutori legali portano die voll responsabilità für l'uso sicuro in öffentlich. Die attività von Lauf devono sein scelte geograficamente und temporalmente in Weise von minimizzare die rischi von Sicherheit."
+        "title": "16.3 Haftungsausschluss für Lauf- und Spaziergangs-Aktivitäten",
+        "p1": "<b>Du nutzt die App auf eigenes Risiko</b>, insbesondere im öffentlichen Straßenraum. Wir übernehmen keine Haftung für Stürze, Verletzungen, Unfälle, Verlust oder Schäden an deinem Gerät sowie sonstige Schäden, die durch deine Lauf- oder Spaziergangs-Aktivität verursacht werden, es sei denn, wir haben den Schaden schuldhaft verursacht.",
+        "p2": "Du bist verpflichtet, die Straßenverkehrsordnung zu beachten, auf Verkehr, Wetter, Lichtverhältnisse, deinen Gesundheitszustand und deine körperliche Verfassung zu achten und im Zweifel vor Beginn der sportlichen Aktivität ärztlichen Rat einzuholen. Die App ersetzt keine ärztliche Beratung, ist kein Trainingsprogramm und kein Sicherheits- oder Notruf-System.",
+        "p3": "<b>Bei Minderjährigen</b> tragen die Erziehungsberechtigten die volle Verantwortung für die sichere Nutzung im öffentlichen Raum. Lauf-Aktivitäten sind zeitlich und räumlich so zu wählen, dass Sicherheitsrisiken minimiert werden."
       },
       "s4": {
-        "title": "16.4 Responsabilità für disponibilità von Netzwerk und accuratezza der Daten",
-        "body": "Uns sforziamo von raggiungere ein'alta disponibilità aber nicht garantiamo der 100 %. Manutenzione und disturbi tecnici können causare interruzioni. Die Daten cartografici und die calcoli von Distanz sind effettuati zum meglio der nostre conoscenze aber können sein inaccurati, in besondere mit scarsa ricezione GPS."
+        "title": "16.4 Haftung für Netzwerkverfügbarkeit und Datengenauigkeit",
+        "body": "Wir bemühen uns um eine hohe Verfügbarkeit, garantieren jedoch keine 100 %. Wartungsarbeiten und technische Störungen können zu Unterbrechungen führen. Karten- und Distanz-Berechnungen erfolgen nach bestem Wissen, können jedoch ungenau sein, insbesondere bei schlechtem GPS-Empfang."
       },
       "s5": {
-        "title": "16.5 Responsabilità für Angebote esterne collegate",
-        "body": "Für der Inhalt und die Dienste Dritter collegati (in besondere Shops Partner), sind responsabili nur sich wir haben conoscenza positiva von eine violazione und wir haben omesso von agire."
+        "title": "16.5 Haftung für verlinkte externe Angebote",
+        "body": "Für Inhalte und Dienste verlinkter Dritter (insbesondere Partner-Shops) haften wir nur, soweit wir positive Kenntnis von einer Rechtsverletzung haben und untätig geblieben sind."
       }
     },
     "s17": {
-      "title": "Werbung und integrazioni Dritter",
-      "p1": "Finanziamo Teile des Dienst kostenlos über Werbung. Lavoriamo in besondere mit <b>Google AdSense</b> (web) und <b>Google AdMob</b> (App mobile). Für ulteriori Informationen auf dem Verarbeitung der Daten von Teil Dritter pubblicitari und opzioni von opt-out, Schau l'<datenschutzLink>Informativa auf der Datenschutz</datenschutzLink>.",
-      "p2": "Die Nutzer mit ein Abo <b>MyArea+</b> oder <b>Badge Supporter</b> aktiv nicht vedono Werbung personalizzata oder nur ridotta nell'App, wo tecnicamente fattibile.",
-      "p3": "Die rispettivi inserzionisti sind responsabili des Inhalt und der correttezza der Anzeigen visualizzati. Nicht assumiamo alcuna responsabilità für Angebote, concorsi oder prodotti pubblicizzati über Anzeigen."
+      "title": "Werbung und Drittanbieter-Integrationen",
+      "p1": "Wir finanzieren Teile des kostenlosen Dienstes über Werbung. Wir arbeiten insbesondere mit <b>Google AdSense</b> (Web) und <b>Google AdMob</b> (Mobile-App). Weitere Informationen zur Datenverarbeitung durch Werbe-Drittanbieter und Opt-out-Optionen findest du in der <datenschutzLink>Datenschutzerklärung</datenschutzLink>.",
+      "p2": "Nutzer mit aktivem Abo <b>MyArea+</b> oder <b>Supporter-Badge</b> sehen keine personalisierte oder nur reduzierte Werbung in der App, soweit technisch möglich.",
+      "p3": "Die jeweiligen Werbenden sind für Inhalt und Richtigkeit der angezeigten Anzeigen verantwortlich. Wir übernehmen keine Haftung für Angebote, Gewinnspiele oder Produkte, die über Anzeigen beworben werden."
     },
     "s18": {
-      "title": "Shops Partner und riscatti von Rabatte",
-      "p1": "Die Rabatte werden concessi direttamente vom rispettivo Shop Partner. <b>Nicht sind Teil des Vertrag von Kauf zwischen te und der Shop</b>. Die controversie auf qualità des prodotto, consegna oder garanzia devono sein risolte direttamente mit der Shop.",
-      "p2": "Verifichiamo die Shops Partner vor dell'onboarding zum meglio der nostre conoscenze aber nicht assumiamo alcuna garanzia für die ihr affidabilità oder qualità. In Fall von Probleme, kannst segnalare ein Shop über die Funktion in-App."
+      "title": "Partner-Shops und Einlösen von Rabatten",
+      "p1": "Rabatte werden direkt vom jeweiligen Partner-Shop gewährt. <b>Sie sind nicht Bestandteil eines Kaufvertrags zwischen dir und dem Shop</b>. Streitigkeiten über Produktqualität, Lieferung oder Gewährleistung sind direkt mit dem Shop zu klären.",
+      "p2": "Wir prüfen Partner-Shops vor dem Onboarding nach bestem Wissen, übernehmen jedoch keine Garantie für deren Zuverlässigkeit oder Qualität. Bei Problemen kannst du einen Shop über die In-App-Funktion melden."
     },
     "s19": {
-      "title": "Kämpfe d'Arena, Modus classificata und System von Saison",
-      "p1": "Die Kämpfe d'Arena sind Kämpfe virtuelle 1 contro 1 zwischen Wächter von diversi Runner. Ein Zahl limitato von Kämpfe gratis zum Tag ist verfügbar; Kämpfe aggiuntivi können sein sbloccati mit Diamanten. Können aggiustare die parametri esatti (Zahl, costo) für Gründe von bilanciamento.",
-      "p2": "In <b>Modus classificata</b>, die giocatori werden classificati utilizzando ein System von rating basato auf Elo. Der rating wird aktualisiert automaticamente nach jeder Kampf classificato. Uns riserviamo der Recht von resettare der rating und applicare die conseguenze gemäß des § 14 in Fall von segni von manipolazione (match fixing, win trading, uso von bot, smurfing).",
-      "p3": "Die Saisons durano tipicamente 90 Tage. Zur Ende von eine Saison, werden assegnati Ranglisten von Saison und Belohnungen stagionali. Die Fortschritte permanenti (collezione von Wächter, Level, Erfolge, Punkte prestigio, Titel guadagnati) werden accreditati permanentemente zum dein Profil. Die oggetti und cosmetici stagionali restano verfügbare nell'inventario nach die Ende der Saison, salvo diversa indicazione. Details: Schau Informationen in-App."
+      "title": "Arena-Kämpfe, Ranked-Modus und Saison-System",
+      "p1": "Arena-Kämpfe sind virtuelle 1-gegen-1-Kämpfe zwischen Wächtern verschiedener Runner. Eine begrenzte Anzahl kostenloser Kämpfe pro Tag ist verfügbar; zusätzliche Kämpfe können mit Diamanten freigeschaltet werden. Wir können die genauen Parameter (Anzahl, Kosten) aus Balancing-Gründen anpassen.",
+      "p2": "Im <b>Ranked-Modus</b> werden Spieler über ein auf Elo basierendes Rating-System eingestuft. Das Rating wird nach jedem gewerteten Kampf automatisch aktualisiert. Wir behalten uns vor, das Rating zurückzusetzen und Konsequenzen gemäß § 14 zu verhängen, wenn Anzeichen für Manipulation vorliegen (Match Fixing, Win Trading, Bot-Nutzung, Smurfing).",
+      "p3": "Saisons dauern in der Regel 90 Tage. Am Ende einer Saison werden Saison-Ranglisten und saisonale Belohnungen vergeben. Permanente Fortschritte (Wächter-Sammlung, Level, Erfolge, Prestige-Punkte, errungene Titel) werden dauerhaft deinem Profil gutgeschrieben. Saisonale Items und Kosmetika bleiben nach Saison-Ende im Inventar verfügbar, sofern nicht anders angegeben. Details siehe In-App-Informationen."
     },
     "s20": {
-      "title": "Marchio und Recht d'autore",
-      "body": "Der Name «MyArea365», der logo, der design, die grafica, die design der Wächter und andere elementi protetti sind protetti vom Recht d'autore, vom Recht der marchi und vom Recht der concorrenza. Qualsiasi uso nicht espressamente consentito ist vietato. Brevi citazioni zu fini von Information oder reportage restano consentite."
+      "title": "Marken- und Urheberrecht",
+      "body": "Der Name «MyArea365», das Logo, das Design, die Grafiken, die Wächter-Designs und weitere geschützte Elemente sind urheberrechtlich, markenrechtlich und wettbewerbsrechtlich geschützt. Jede nicht ausdrücklich gestattete Nutzung ist untersagt. Kurze Zitate zu Informations- oder Berichtszwecken bleiben zulässig."
     },
     "s21": {
-      "title": "Durata des Vertrag und Auflösung",
+      "title": "Vertragsdauer und Kündigung",
       "s1": {
-        "title": "20.1 Konto kostenlos",
-        "body": "Der Vertrag für l'Konto kostenlos ist zu Zeit indeterminato. Kannst risolverlo in qualsiasi momento ohne fornire Gründe cancellando der dein Konto in den Einstellungen oder inviandoci ein Nachricht corrispondente. Können risolvere der Vertrag mit preavviso von 30 Tage zur Ende des Monat."
+        "title": "20.1 Kostenloses Konto",
+        "body": "Der Vertrag für das kostenlose Konto läuft auf unbestimmte Zeit. Du kannst ihn jederzeit ohne Angabe von Gründen kündigen, indem du dein Konto in den Einstellungen löschst oder uns eine entsprechende Nachricht sendest. Wir können den Vertrag mit einer Frist von 30 Tagen zum Monatsende kündigen."
       },
       "s2": {
         "title": "20.2 Abos",
-        "body": "Kannst abbrechen die Abos in corso in qualsiasi momento zur Ende des periodo von fatturazione aktuell. Gemäß des § 312k BGB forniamo ein Button von Löschung chiaramente sichtbar in den Einstellungen des dein Konto («Abbrechen Stunde»). Die Löschung hat Effekt zur Ende des periodo bereits pagato."
+        "body": "Du kannst laufende Abos jederzeit zum Ende der aktuellen Abrechnungsperiode kündigen. Gemäß § 312k BGB stellen wir in den Einstellungen deines Kontos einen klar sichtbaren Kündigungsbutton («Verträge hier kündigen») bereit. Die Kündigung wird zum Ende der bereits bezahlten Periode wirksam."
       },
       "s3": {
-        "title": "20.3 Auflösung straordinaria",
-        "body": "Der Recht von entrambe die Teile zur Auflösung straordinaria für Grund gültig (§ 314 BGB) resta impregiudicato. Für noi, ein Grund gültig esiste in besondere in Fall von violazioni gravi oder ripetute des § 13."
+        "title": "20.3 Außerordentliche Kündigung",
+        "body": "Das Recht beider Parteien zur außerordentlichen Kündigung aus wichtigem Grund (§ 314 BGB) bleibt unberührt. Für uns liegt ein wichtiger Grund insbesondere bei schweren oder wiederholten Verstößen gegen § 13 vor."
       },
       "s4": {
-        "title": "20.4 Conseguenze der Auflösung",
-        "body": "Nach die Auflösung, der dein Zugriff wird sospeso und l'Konto wird cancellato nach ein periodo von grazia von 14 Tage (Details Schau Informativa auf der Datenschutz, Bereich «Löschung Konto»). Die beni virtuelle scadono ohne compensazione, salvo dass sich applichi ein Recht von Widerruf oder dass uns sia eine violazione colposa von Pflicht von Teil unsere."
+        "title": "20.4 Folgen der Kündigung",
+        "body": "Nach Kündigung wird dein Zugang gesperrt und das Konto nach einer Karenzfrist von 14 Tagen gelöscht (Details siehe Datenschutzerklärung, Abschnitt «Konto-Löschung»). Virtuelle Güter verfallen ohne Entschädigung, es sei denn, ein Widerrufsrecht greift oder uns ist eine schuldhafte Pflichtverletzung anzulasten."
       }
     },
     "s22": {
-      "title": "Modifiche der Bedingungen",
-      "p1": "Sind autorizzati zu adeguare diese Bedingungen sich notwendig für sviluppi tecnici, cambiamenti der situazione legale, giurisprudenza oder für Gründe economici, und die deine Rechte nicht sind interessati in Weise irragionevole.",
-      "p2": "Annunciamo die modifiche über E-Mail oder Benachrichtigung in-App mindestens 6 Wochen vor der ihr entrata in vigore. Sich nicht dir opponi den modifiche entro 6 Wochen von der ricezione, sind considerate approvate. Richiamiamo esplicitamente l'Achtung auf dies Recht von opposizione in der Benachrichtigung. Sich dir opponi, die Bedingungen precedenti continuano zu applicarsi; jedoch, uns riserviamo der Recht von Auflösung ordinaria gemäß des § 21.1."
+      "title": "Änderungen der Bedingungen",
+      "p1": "Wir sind berechtigt, diese Bedingungen anzupassen, sofern dies aufgrund technischer Entwicklungen, Änderungen der Rechtslage, Rechtsprechung oder aus wirtschaftlichen Gründen erforderlich ist und deine Rechte nicht unangemessen beeinträchtigt werden.",
+      "p2": "Änderungen kündigen wir per E-Mail oder In-App-Benachrichtigung mindestens 6 Wochen vor Inkrafttreten an. Wenn du den Änderungen nicht innerhalb von 6 Wochen nach Erhalt widersprichst, gelten sie als angenommen. Auf dieses Widerspruchsrecht weisen wir in der Mitteilung ausdrücklich hin. Wenn du widersprichst, gelten die bisherigen Bedingungen weiter; wir behalten uns dann jedoch eine ordentliche Kündigung gemäß § 21.1 vor."
     },
     "s23": {
       "title": "Datenschutz",
-      "body": "Die Informationen auf dem Verarbeitung der personenbezogene Daten sind in der unsere <datenschutzLink>Informativa auf der Datenschutz</datenschutzLink>. Ne macht Teil der Basis contrattuale."
+      "body": "Informationen zur Verarbeitung personenbezogener Daten findest du in unserer <datenschutzLink>Datenschutzerklärung</datenschutzLink>. Diese ist Bestandteil der Vertragsgrundlage."
     },
     "s24": {
-      "title": "Disposizioni supplementari für Shops Partner (B2B)",
-      "p1": "Für die Shops Partner, die Bedingungen concordate individualmente (pay-für-visit, Bonus territoriale, quest von Shop) sich applicano in hinzugefügt zu diese Bedingungen. In den confronti der imprenditori, der foro competente und der Ort von esecuzione ist esclusivamente Berlin. § 312die BGB nicht sich applica gegenüber der imprenditori.",
-      "p2": "Die obblighi der Shops Partner includono in besondere:",
+      "title": "Zusatzbestimmungen für Partner-Shops (B2B)",
+      "p1": "Für Partner-Shops gelten individuell vereinbarte Bedingungen (Pay-per-Visit, Territorial-Bonus, Shop-Quests) ergänzend zu diesen Bedingungen. Gegenüber Unternehmern sind Gerichtsstand und Erfüllungsort ausschließlich Berlin. § 312i BGB findet gegenüber Unternehmern keine Anwendung.",
+      "p2": "Zu den Pflichten der Partner-Shops gehören insbesondere:",
       "items": [
-        "Divulgazione veritiera der Daten des Shop, Öffnungszeiten von apertura und Angebote",
-        "Respekt von alle die requisiti von tutela der consumatori Richtung die clienti finali",
-        "Accettazione der Angebote riscattate den Bedingungen indicate",
-        "Verarbeitung nicht discriminatorio der Runner"
+        "Wahrheitsgemäße Angabe der Shop-Daten, Öffnungszeiten und Angebote",
+        "Beachtung sämtlicher Verbraucherschutz-Anforderungen gegenüber Endkunden",
+        "Annahme eingelöster Angebote zu den angegebenen Bedingungen",
+        "Diskriminierungsfreie Behandlung der Runner"
       ]
     },
     "s25": {
-      "title": "Stärke maggiore",
-      "body": "Keine Teil ist responsabile für die nicht esecuzione der obblighi contrattuali sich ciò ist dovuto zu Stärke maggiore (Krieg, sciopero, catastrofi naturali, pandemie, ordini ufficiali, interruzioni Internet auf larga scala). Die Teil interessata informerà l'andere ohne indebito ritardo."
+      "title": "Höhere Gewalt",
+      "body": "Keine Partei haftet für die Nichterfüllung vertraglicher Pflichten, soweit dies auf höherer Gewalt beruht (Krieg, Streik, Naturkatastrophen, Pandemien, behördliche Anordnungen, großflächige Internet-Ausfälle). Die betroffene Partei informiert die andere unverzüglich."
     },
     "s26": {
-      "title": "Cessione und subentro contrattuale",
-      "body": "Kannst trasferire die deine Rechte und obblighi gemäß von dies Vertrag zu terzi nur mit der unser Einwilligung scritto. Sind autorizzati zu trasferire der Vertrag zu eine società affiliata; in dies Fall hast ein Recht speziell von Auflösung."
+      "title": "Übertragung und Vertragsübernahme",
+      "body": "Du kannst deine Rechte und Pflichten aus diesem Vertrag nur mit unserer schriftlichen Zustimmung auf Dritte übertragen. Wir sind berechtigt, den Vertrag auf ein verbundenes Unternehmen zu übertragen; in diesem Fall steht dir ein Sonderkündigungsrecht zu."
     },
     "s27": {
-      "title": "Accessibilità",
-      "body": "Uns sforziamo von progettare der unser Dienst im Weise mehr accessibile possibile gemäßzu Liest tedesca auf dem rafforzamento dell'accessibilità (BFSG) und der criteri WCAG 2.2. Accogliamo Feedback auf den ostacoli zu <Support-Mail>support@MyArea365.de</Support-Mail>."
+      "title": "Barrierefreiheit",
+      "body": "Wir bemühen uns, unseren Dienst möglichst barrierefrei nach dem Barrierefreiheitsstärkungsgesetz (BFSG) und den WCAG-2.2-Kriterien zu gestalten. Feedback zu Hindernissen ist willkommen unter <Support-Mail>support@MyArea365.de</Support-Mail>."
     },
     "s28": {
-      "title": "Auflösung online der controversie und arbitrato der consumatori",
-      "body": "Die Commissione europea fornisce eine piattaforma für die Auflösung online der controversie: <odrLink>ec.europa.eu/consumers/odr</odrLink>. Nicht sind né disposti né obbligati zu partecipare zu procedure von Auflösung der controversie davanti zu ein organo von arbitrato der consumatori."
+      "title": "Online-Streitbeilegung und Verbraucherschlichtung",
+      "body": "Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: <odrLink>ec.europa.eu/consumers/odr</odrLink>. Wir sind weder bereit noch verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen."
     },
     "s29": {
-      "title": "Recht applicabile und foro competente",
-      "p1": "Sich applica der Recht der Repubblica federale von Germania, esclusa die Convenzione der Nazioni Unite auf den Verträge von Verkauf internazionale von merci. Die gewählt des Recht sich applica den consumatori nur in der misura in cui nicht tritt ein in conflitto mit die norme imperative von tutela des consumatore des paese in cui der consumatore hat die seine residenza abituale (Art. 6(2) Regolamento Roma Die).",
-      "p2": "Der foro competente für die controversie mit imprenditori und persone ohne foro generale in Germania ist Berlin. Die consumatori können auch promuovere azioni im ihr Ort von residenza."
+      "title": "Anwendbares Recht und Gerichtsstand",
+      "p1": "Es gilt das Recht der Bundesrepublik Deutschland unter Ausschluss des UN-Kaufrechts. Die Rechtswahl gilt gegenüber Verbrauchern nur insoweit, als sie nicht zwingenden Verbraucherschutzbestimmungen des Landes widerspricht, in dem der Verbraucher seinen gewöhnlichen Aufenthalt hat (Art. 6 Abs. 2 Rom-I-Verordnung).",
+      "p2": "Gerichtsstand für Streitigkeiten mit Unternehmern und Personen ohne allgemeinen Gerichtsstand in Deutschland ist Berlin. Verbraucher können auch Klage an ihrem Wohnort erheben."
     },
     "s30": {
-      "title": "Sprache und Version facente fede",
-      "body": "Die Sprache contrattuale ist der tedesco. Sich forniamo traduzioni von diese Bedingungen, ist nur zu Titel informativo; in Fall von discrepanze, macht fede die Version tedesca."
+      "title": "Vertragssprache und maßgebliche Fassung",
+      "body": "Vertragssprache ist Deutsch. Sofern wir Übersetzungen dieser Bedingungen bereitstellen, dienen sie nur zur Information; bei Abweichungen ist die deutsche Fassung maßgeblich."
     },
     "s31": {
-      "title": "Disposizioni finali",
-      "p1": "Nicht uns sind accordi accessori orali. Modifiche und integrazioni zu diese Bedingungen devono sein in forma testuale; ciò vale auch für die rinuncia zum requisito von forma testuale.",
-      "p2": "<b>Clausola von salvaguardia:</b> Sich eine disposizione von diese Bedingungen dovesse sein oder diventare invalida oder inapplicabile, die validità der disposizioni rimanenti resterà impregiudicata. Die disposizione invalida wird sostituita von der regola legale oder von eine regola dass sich avvicina der mehr possibile zum scopo economico der disposizione invalida."
+      "title": "Schlussbestimmungen",
+      "p1": "Mündliche Nebenabreden bestehen nicht. Änderungen und Ergänzungen dieser Bedingungen bedürfen der Textform; dies gilt auch für den Verzicht auf das Textformerfordernis.",
+      "p2": "<b>Salvatorische Klausel:</b> Sollte eine Bestimmung dieser Bedingungen unwirksam oder undurchführbar sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. Die unwirksame Bestimmung wird durch die gesetzliche Regelung ersetzt oder durch eine Regelung, die dem wirtschaftlichen Zweck der unwirksamen Bestimmung am nächsten kommt."
     }
   }
 }

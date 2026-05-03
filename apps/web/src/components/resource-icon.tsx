@@ -41,6 +41,32 @@ let _fetching = false;
 let _hasRevalidated = false;
 let _primedFromLs = false;
 
+// Hört auf "ma365:artwork-changed" (vom Admin-Upload dispatched) →
+// invalidiert localStorage + erzwingt frischen Fetch.
+let _changeListenerInstalled = false;
+function installArtworkChangeListener() {
+  if (_changeListenerInstalled || typeof window === "undefined") return;
+  _changeListenerInstalled = true;
+  window.addEventListener("ma365:artwork-changed", () => {
+    try { window.localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+    _hasRevalidated = false;
+    _fetching = false;
+    // Neu fetchen — bypass-cache mit ts-Param damit auch CDN umgangen wird
+    void (async () => {
+      try {
+        const r = await fetch(`/api/cosmetic-artwork?ts=${Date.now()}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+        const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, marker: j.marker ?? {} };
+        _cache = fresh;
+        _hasRevalidated = true;
+        saveToLocalStorage(fresh);
+        _listeners.forEach((l) => l(fresh));
+      } catch { /* ignore */ }
+    })();
+  });
+}
+
 function primeFromLocalStorage() {
   if (_primedFromLs || _cache) return;
   _primedFromLs = true;
@@ -59,6 +85,7 @@ function ensureFetch() {
   if (_cache && _hasRevalidated) return;
   if (_fetching) return;
   _fetching = true;
+  installArtworkChangeListener();
   void (async () => {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
@@ -276,6 +303,8 @@ export function UiIcon({ slot, size = 24, fallback, art }: {
 export function pickStrongholdArt(art: ResourceArtMap, level: number): { image_url: string | null; video_url: string | null } | null {
   const exact = art[`level_${level}`];
   if (exact && (exact.image_url || exact.video_url)) return exact;
+  const wl = art.wegelager;
+  if (wl && (wl.image_url || wl.video_url)) return wl;
   const def = art.default;
   if (def && (def.image_url || def.video_url)) return def;
   return null;

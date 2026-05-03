@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSb, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
@@ -73,6 +74,8 @@ export async function POST(req: Request) {
         kind: body.target_type, slot_id: body.target_id, variant, [col]: publicUrl, updated_at: new Date().toISOString(),
       }, { onConflict: "kind,slot_id,variant" });
       if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
+      // unstable_cache in /api/cosmetic-artwork bursten
+      revalidateTag("cosmetic-artwork", { expire: 0 });
       return NextResponse.json({ ok: true, image_url: body.is_video ? null : publicUrl, video_url: body.is_video ? publicUrl : null, is_video: body.is_video, variant });
     }
 
@@ -180,6 +183,7 @@ export async function DELETE(req: Request) {
     if (clear === "all" || clear === "image") payload.image_url = null;
     if (clear === "all" || clear === "video") payload.video_url = null;
     await adminSb().from("cosmetic_artwork").update(payload).eq("kind", targetType).eq("slot_id", targetId).eq("variant", variant);
+    revalidateTag("cosmetic-artwork", { expire: 0 });
     return NextResponse.json({ ok: true });
   }
 

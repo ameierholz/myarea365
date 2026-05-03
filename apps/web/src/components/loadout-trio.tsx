@@ -19,7 +19,7 @@ import { PinThemePreview } from "@/components/pin-theme-preview";
 import { NameplatePickerModal } from "@/components/nameplate-picker-modal";
 import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
 import { BaseRingPickerModal } from "@/components/base-ring-picker-modal";
-import { useNameplateArt } from "@/components/resource-icon";
+import { useNameplateArt, useBaseThemeArt } from "@/components/resource-icon";
 
 const PRIMARY = "#5ddaf0";
 
@@ -70,6 +70,7 @@ export function LoadoutTrio({
   const [baseRingArt, setBaseRingArt] = useState<{ image_url: string | null; video_url: string | null } | null>(null);
   const [nameplate, setNameplate] = useState<{ id: string; name: string; emoji: string; rarity: string } | null>(null);
   const nameplateArtMap = useNameplateArt();
+  const baseThemeArtMap = useBaseThemeArt();
   const [pinThemeState, setPinThemeState] = useState<{ active: PinTheme; unlocked: PinTheme[] }>({ active: "default", unlocked: ["default"] });
   const [busy, setBusy] = useState(false);
   const [cosmeticArt, setCosmeticArt] = useState<{
@@ -83,7 +84,7 @@ export function LoadoutTrio({
     if (res.ok) setCol(await res.json() as CollectionResponse);
   }
   async function loadArt() {
-    const res = await fetch("/api/cosmetic-artwork");
+    const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
     if (res.ok) setCosmeticArt(await res.json());
   }
   async function loadTheme() {
@@ -137,6 +138,11 @@ export function LoadoutTrio({
     return () => { cancelled = true; };
   }, [baseRing]);
   useEffect(() => { load(); loadArt(); loadTheme(); loadBaseAndNameplate(); }, []);
+  useEffect(() => {
+    function onArtChanged() { void loadArt(); void loadBaseAndNameplate(); }
+    window.addEventListener("ma365:artwork-changed", onArtChanged);
+    return () => window.removeEventListener("ma365:artwork-changed", onArtChanged);
+  }, []);
 
   async function claimStarter(archetypeId: string) {
     setBusy(true);
@@ -286,21 +292,34 @@ export function LoadoutTrio({
         marginBottom: 14,
       }}>
         {/* ── BASE-THEME (Gebäude/Skin) ── */}
-        <div style={tileStyle()} onClick={() => setBaseThemeOpen(true)}>
-          <div style={labelStyle()}>{tL("labelBaseTheme")}</div>
-          <div style={{
-            width: 72, height: 72, borderRadius: 14, marginTop: 4,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            border: `2px solid ${baseTheme?.color ?? PRIMARY}`,
-            boxShadow: `0 0 14px ${baseTheme?.color ?? PRIMARY}66`,
-            background: "rgba(15,17,21,0.6)",
-            fontSize: 34,
-          }}>
-            {baseTheme?.emoji ?? "🏰"}
-          </div>
-          <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{baseTheme?.name ?? "—"}</div>
-          <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
-        </div>
+        {(() => {
+          const btArt = baseTheme
+            ? baseThemeArtMap[`${baseTheme.id}_runner_pin`] ?? baseThemeArtMap[`${baseTheme.id}_runner_banner`]
+            : null;
+          return (
+            <div style={tileStyle()} onClick={() => setBaseThemeOpen(true)}>
+              <div style={labelStyle()}>{tL("labelBaseTheme")}</div>
+              {btArt?.video_url ? (
+                <video src={btArt.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />
+              ) : btArt?.image_url ? (
+                <img src={btArt.image_url} alt={baseTheme?.name ?? ""} style={{ width: 72, height: 72, objectFit: "contain", marginTop: 4, filter: "url(#ma365-chroma-black)" }} />
+              ) : (
+                <div style={{
+                  width: 72, height: 72, borderRadius: 14, marginTop: 4,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: `2px solid ${baseTheme?.color ?? PRIMARY}`,
+                  boxShadow: `0 0 14px ${baseTheme?.color ?? PRIMARY}66`,
+                  background: "rgba(15,17,21,0.6)",
+                  fontSize: 34,
+                }}>
+                  {baseTheme?.emoji ?? "🏰"}
+                </div>
+              )}
+              <div style={{ color: "#FFF", fontSize: 11, fontWeight: 900, marginTop: 3 }}>{baseTheme?.name ?? "—"}</div>
+              <div style={{ fontSize: 9, color: PRIMARY, marginTop: 2, fontWeight: 800 }}>{tL("change")}</div>
+            </div>
+          );
+        })()}
 
         {/* ── BASE-RING (Aura/Donut um den Pin) ── */}
         <div style={tileStyle()} onClick={() => setBaseRingOpen(true)}>

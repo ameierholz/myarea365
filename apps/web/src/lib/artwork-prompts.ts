@@ -1466,45 +1466,58 @@ export type InventoryItemArt = {
 };
 
 export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
-  // ── SPEEDUPS (build / universal / training / healing × 1m–24h) ─────
-  // Visual: hourglass / clock with sparking energy. Color = duration tier.
-  { id: "speedup_build_1m",   category: "speedup", name: "Bau-Speedup 1 Min",   fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
-    subject: "a small glowing hourglass icon with a tiny hammer overlay, soft blue-grey glow, 1-minute time chip" },
-  { id: "speedup_build_5m",   category: "speedup", name: "Bau-Speedup 5 Min",   fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
-    subject: "a small glowing hourglass icon with a hammer overlay, blue-grey glow, 5-minute label glyph" },
-  { id: "speedup_build_15m",  category: "speedup", name: "Bau-Speedup 15 Min",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "common",
-    subject: "a polished hourglass with a hammer crest, cyan glow, 15-minute glyph" },
-  { id: "speedup_build_30m",  category: "speedup", name: "Bau-Speedup 30 Min",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
-    subject: "a polished hourglass with a hammer crest, bright cyan glow, 30-minute glyph" },
-  { id: "speedup_build_60m",  category: "speedup", name: "Bau-Speedup 1 Std",   fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
-    subject: "ornate hourglass + hammer emblem, vivid cyan core glow, 1-hour glyph" },
-  { id: "speedup_build_3h",   category: "speedup", name: "Bau-Speedup 3 Std",   fallbackEmoji: "⚡", accent: "#a855f7", rarity: "rare",
-    subject: "premium ornate hourglass + hammer crest, violet glow, 3-hour glyph" },
-  { id: "speedup_build_8h",   category: "speedup", name: "Bau-Speedup 8 Std",   fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
-    subject: "epic ornate hourglass with hammer crest, intense violet aura, 8-hour glyph" },
-  { id: "speedup_build_15h",  category: "speedup", name: "Bau-Speedup 15 Std",  fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
-    subject: "epic engraved hourglass with hammer crest, swirling violet particles, 15-hour glyph" },
-  { id: "speedup_build_24h",  category: "speedup", name: "Bau-Speedup 24 Std",  fallbackEmoji: "⚡", accent: "#FFD700", rarity: "legendary",
-    subject: "legendary golden hourglass with hammer crest, brilliant gold beams, 24-hour glyph" },
+  // ── SPEEDUPS (build / research / universal × 1m / 5m / 15m / 60m / 8h / 12h / 24h) ─────
+  // Visual: hourglass + category-emblem, color = duration tier (grey→cyan→violet→gold).
+  // CRITICAL: each artwork MUST show the duration as a large bold readable label
+  // (e.g. "1 MIN", "5 MIN", "15 MIN", "1 STD", "8 STD", "12 STD", "24 STD") so the
+  // user instantly recognizes the duration at inventory thumbnail size.
+  // ─ Bauen (Hammer-Crest) ──────────────────────────────
+  { id: "speedup_build_1m",   category: "speedup", name: "Bau-Speedup 1 Min",   fallbackEmoji: "⏱", accent: "#9ba8c7", rarity: "common",
+    subject: "a small glowing hourglass with a hammer crest in the foreground, blue-grey common-tier glow, with a LARGE BOLD READABLE white text label \"1m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_build_5m",   category: "speedup", name: "Bau-Speedup 5 Min",   fallbackEmoji: "⏱", accent: "#9ba8c7", rarity: "common",
+    subject: "a small glowing hourglass with a hammer crest, blue-grey common-tier glow, with a LARGE BOLD READABLE white text label \"5m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_build_15m",  category: "speedup", name: "Bau-Speedup 15 Min",  fallbackEmoji: "⏱", accent: "#5ddaf0", rarity: "common",
+    subject: "a polished hourglass with a hammer crest, cyan rare-tier glow, with a LARGE BOLD READABLE white text label \"15m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_build_60m",  category: "speedup", name: "Bau-Speedup 1 Std",   fallbackEmoji: "⏱", accent: "#5ddaf0", rarity: "rare",
+    subject: "ornate hourglass with hammer crest, vivid cyan rare-tier glow, with a LARGE BOLD READABLE white text label \"1h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_build_8h",   category: "speedup", name: "Bau-Speedup 8 Std",   fallbackEmoji: "⏱", accent: "#a855f7", rarity: "epic",
+    subject: "epic ornate hourglass with hammer crest, intense violet epic-tier aura, with a LARGE BOLD READABLE white text label \"8h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_build_12h",  category: "speedup", name: "Bau-Speedup 12 Std",  fallbackEmoji: "⏱", accent: "#a855f7", rarity: "epic",
+    subject: "epic engraved hourglass with hammer crest, swirling violet epic-tier particles, with a LARGE BOLD READABLE white text label \"12h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_build_24h",  category: "speedup", name: "Bau-Speedup 24 Std",  fallbackEmoji: "⏱", accent: "#FFD700", rarity: "legendary",
+    subject: "legendary golden hourglass with hammer crest, brilliant gold legendary-tier beams, with a LARGE BOLD READABLE white text label \"24h\" prominently displayed across the lower part of the hourglass" },
 
-  { id: "speedup_uni_1m",     category: "speedup", name: "Universal-Speedup 1 Min",  fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
-    subject: "small glowing hourglass with universal infinity-loop overlay, neutral blue-grey glow, 1-minute glyph" },
-  { id: "speedup_uni_5m",     category: "speedup", name: "Universal-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
-    subject: "small glowing hourglass with infinity-loop overlay, blue-grey glow, 5-minute glyph" },
-  { id: "speedup_uni_15m",    category: "speedup", name: "Universal-Speedup 15 Min", fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
-    subject: "polished hourglass with infinity-loop crest, cyan glow, 15-minute glyph" },
-  { id: "speedup_uni_60m",    category: "speedup", name: "Universal-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
-    subject: "ornate hourglass with infinity-loop crest, bright cyan glow, 1-hour glyph" },
+  // ─ Forschung (Atom/Beaker-Crest) ─────────────────────
+  { id: "speedup_research_1m",   category: "speedup", name: "Forschungs-Speedup 1 Min",   fallbackEmoji: "🔬", accent: "#9ba8c7", rarity: "common",
+    subject: "a small glowing hourglass with a beaker/atom science crest in the foreground, blue-grey common-tier glow, with a LARGE BOLD READABLE white text label \"1m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_research_5m",   category: "speedup", name: "Forschungs-Speedup 5 Min",   fallbackEmoji: "🔬", accent: "#9ba8c7", rarity: "common",
+    subject: "a small glowing hourglass with a beaker/atom science crest, blue-grey common-tier glow, with a LARGE BOLD READABLE white text label \"5m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_research_15m",  category: "speedup", name: "Forschungs-Speedup 15 Min",  fallbackEmoji: "🔬", accent: "#5ddaf0", rarity: "common",
+    subject: "a polished hourglass with a beaker/atom science crest, cyan rare-tier glow, with a LARGE BOLD READABLE white text label \"15m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_research_60m",  category: "speedup", name: "Forschungs-Speedup 1 Std",   fallbackEmoji: "🔬", accent: "#5ddaf0", rarity: "rare",
+    subject: "ornate hourglass with beaker/atom science crest, vivid cyan rare-tier glow, with a LARGE BOLD READABLE white text label \"1h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_research_8h",   category: "speedup", name: "Forschungs-Speedup 8 Std",   fallbackEmoji: "🔬", accent: "#a855f7", rarity: "epic",
+    subject: "epic ornate hourglass with beaker/atom crest, intense violet epic-tier aura, with a LARGE BOLD READABLE white text label \"8h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_research_12h",  category: "speedup", name: "Forschungs-Speedup 12 Std",  fallbackEmoji: "🔬", accent: "#a855f7", rarity: "epic",
+    subject: "epic engraved hourglass with beaker/atom crest, swirling violet epic-tier particles, with a LARGE BOLD READABLE white text label \"12h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_research_24h",  category: "speedup", name: "Forschungs-Speedup 24 Std",  fallbackEmoji: "🔬", accent: "#FFD700", rarity: "legendary",
+    subject: "legendary golden hourglass with beaker/atom crest, brilliant gold legendary-tier beams, with a LARGE BOLD READABLE white text label \"24h\" prominently displayed across the lower part of the hourglass" },
 
-  { id: "speedup_train_5m",   category: "speedup", name: "Training-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#9ba8c7", rarity: "common",
-    subject: "small hourglass with crossed swords overlay, blue-grey glow, 5-minute glyph" },
-  { id: "speedup_train_60m",  category: "speedup", name: "Training-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
-    subject: "ornate hourglass with crossed swords crest, bright cyan glow, 1-hour glyph" },
-
-  { id: "speedup_heal_5m",    category: "speedup", name: "Heilungs-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#4ade80", rarity: "common",
-    subject: "small hourglass with red heart-cross overlay, soft green-white healing glow, 5-minute glyph" },
-  { id: "speedup_heal_60m",   category: "speedup", name: "Heilungs-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#4ade80", rarity: "rare",
-    subject: "ornate hourglass with heart-cross crest, vibrant green healing glow, 1-hour glyph" },
+  // ─ Universal (Infinity-Loop-Crest) ───────────────────
+  { id: "speedup_uni_1m",   category: "speedup", name: "Universal-Speedup 1 Min",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "a small glowing hourglass with a universal infinity-loop crest in the foreground, cyan rare-tier glow, with a LARGE BOLD READABLE white text label \"1m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_uni_5m",   category: "speedup", name: "Universal-Speedup 5 Min",  fallbackEmoji: "⚡", accent: "#5ddaf0", rarity: "rare",
+    subject: "a small glowing hourglass with infinity-loop crest, cyan rare-tier glow, with a LARGE BOLD READABLE white text label \"5m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_uni_15m",  category: "speedup", name: "Universal-Speedup 15 Min", fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
+    subject: "polished hourglass with infinity-loop crest, violet epic-tier glow, with a LARGE BOLD READABLE white text label \"15m\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_uni_60m",  category: "speedup", name: "Universal-Speedup 1 Std",  fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
+    subject: "ornate hourglass with infinity-loop crest, intense violet epic-tier glow, with a LARGE BOLD READABLE white text label \"1h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_uni_8h",   category: "speedup", name: "Universal-Speedup 8 Std",  fallbackEmoji: "⚡", accent: "#a855f7", rarity: "epic",
+    subject: "epic ornate hourglass with infinity-loop crest, intense violet epic-tier aura, with a LARGE BOLD READABLE white text label \"8h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_uni_12h",  category: "speedup", name: "Universal-Speedup 12 Std", fallbackEmoji: "⚡", accent: "#FFD700", rarity: "legendary",
+    subject: "legendary engraved hourglass with infinity-loop crest, brilliant gold legendary-tier particles, with a LARGE BOLD READABLE white text label \"12h\" prominently displayed across the lower part of the hourglass" },
+  { id: "speedup_uni_24h",  category: "speedup", name: "Universal-Speedup 24 Std", fallbackEmoji: "⚡", accent: "#FFD700", rarity: "legendary",
+    subject: "legendary golden hourglass with infinity-loop crest, brilliant gold legendary-tier beams, with a LARGE BOLD READABLE white text label \"24h\" prominently displayed across the lower part of the hourglass" },
 
   // ── BOOSTS / BUFFS (shield, gather, gold, wood, stone, mana, xp × 8h/24h) ──
   // Visual: a flask / charm / sigil with the boost-type emblem. Color = type.
@@ -1580,7 +1593,12 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
 
 export function buildInventoryItemPrompt(input: { item: InventoryItemArt; mode: "image" | "video" }): string {
   const { item, mode } = input;
-  const greenscreenNegative = `CRITICAL: NO green tones on the subject. Use only the listed colors. The ONLY green is the pure #00FF00 background. No text, no labels (except symbolic glyphs/runes), no UI overlays, no watermark, no border frames, no environment.`;
+  // Speedups dürfen Text (Zeitangabe) tragen — bei anderen Items kein Text.
+  const allowsText = item.category === "speedup";
+  const textRule = allowsText
+    ? `Text rule: ONE bold readable white duration label is REQUIRED on the hourglass (exactly the language-neutral duration named in the subject, e.g. "5m" or "8h"). Use a clean condensed sans-serif. No other text, no watermarks, no UI overlays.`
+    : `No text, no labels (except symbolic glyphs/runes), no UI overlays, no watermark, no border frames, no environment.`;
+  const greenscreenNegative = `CRITICAL: NO green tones on the subject. Use only the listed colors. The ONLY green is the pure #00FF00 background. ${textRule}`;
   if (mode === "video") {
     return [
       `Shot: a 3-second seamlessly looping animated game-icon "${item.name}" (${item.rarity} ${item.category} item), square 1:1, 1024×1024, 30 fps.`,
