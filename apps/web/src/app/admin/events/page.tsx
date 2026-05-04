@@ -13,7 +13,7 @@ export default async function EventsPage() {
     .order("starts_at", { ascending: false }).limit(100);
   return (
     <>
-      <PageTitle title="🎉 Event-Trigger" subtitle="Manuelle Events: Double-XP, Hunt-Reset, Crown-Drop, Crew-War, Custom" />
+      <PageTitle title="🎉 Event-Trigger" subtitle="Manuelle Events: Double-XP, Hunt-Reset, Crown-Drop, Turf-Krieg, Custom" />
       <EventsClient initial={(rows ?? []) as EventRow[]} />
     </>
   );

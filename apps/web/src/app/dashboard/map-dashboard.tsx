@@ -148,7 +148,6 @@ import {
   XP_PER_WALK,
   XP_REWARDED_AD,
   XP_KIEZ_CHECKIN,
-  XP_CREW_WIN,
   ACHIEVEMENTS,
   ACHIEVEMENT_CATEGORIES,
   RUNNER_RANKS,
@@ -2626,8 +2625,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             <button
               onClick={() => setProfileModalOpen(false)}
               style={{
-                position: "sticky", top: 8, marginLeft: "auto", marginRight: 8,
-                display: "block",
+                position: "absolute", top: 8, right: 8,
                 width: 36, height: 36, borderRadius: 18,
                 background: "rgba(15,17,21,0.92)",
                 border: "1px solid rgba(255,255,255,0.18)",
@@ -2687,8 +2685,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             <button
               onClick={() => setMapCrewModalOpen(false)}
               style={{
-                position: "sticky", top: 8, marginLeft: "auto", marginRight: 8,
-                display: "block",
+                position: "absolute", top: 8, right: 8,
                 width: 36, height: 36, borderRadius: 18,
                 background: "rgba(15,17,21,0.92)",
                 border: "1px solid rgba(255,255,255,0.18)",
@@ -3266,6 +3263,7 @@ function ProfilTab({
   const baseThemeArt = useBaseThemeArt();
   const markerArt = useMarkerArt();
   const uiIconArt = useUiIconArt();
+  const baseRingArt = useBaseRingArt();
 
   // ═══ Premium-Hub Modals (Inventar, Wachstumsfond, Monatspakete, Berlin-Rad, Schmiede) ═══
   const [showInventory, setShowInventory] = useState(false);
@@ -3599,6 +3597,25 @@ function ProfilTab({
               colorFrom={currentRankLive.color}
               colorTo={nextRank?.color || currentRankLive.color}
             />
+            {/* Equippierter Base-Ring (Halo um das Avatar-Badge) — gleicher
+                Look wie auf der Map, mit chroma-black Filter (greenscreen
+                → transparent) und Scale-Up gegen das Padding im Artwork. */}
+            {(() => {
+              const ringId = (p as unknown as { equipped_base_ring_id?: string | null })?.equipped_base_ring_id;
+              if (!ringId || ringId === "default") return null;
+              const ringArt = baseRingArt[ringId];
+              if (!ringArt?.image_url && !ringArt?.video_url) return null;
+              const ringStyle: React.CSSProperties = {
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%, -50%) scale(1.5)",
+                width: 150, height: 150, objectFit: "contain",
+                filter: `url(#ma365-chroma-black) drop-shadow(0 0 10px ${teamColor}77)`,
+                pointerEvents: "none", zIndex: 1,
+              };
+              return ringArt.video_url
+                ? <video src={ringArt.video_url} autoPlay loop muted playsInline style={ringStyle} />
+                : <img src={ringArt.image_url!} alt="" style={ringStyle} />;
+            })()}
             {/* Avatar selbst */}
             <div style={{
               position: "absolute",
@@ -4345,10 +4362,22 @@ function ProfilTab({
               { icon: "📤", label: tMD("shareProfile"), onClick: async () => {
                 const shareText = `${p?.display_name || "Ich"} · ${currentRankLive.name} · ${userXp.toLocaleString()} 🪙\n${effectiveTerritoryCount} Gebiete · ${((p?.total_distance_m || 0) / 1000).toFixed(1)} km\n\nMyArea365.de`;
                 const shareData = { title: "Mein MyArea365 Profil", text: shareText, url: typeof window !== "undefined" ? window.location.origin : "https://myarea365.de" };
+                let shared = false;
                 try {
-                  if (navigator.share) await navigator.share(shareData);
-                  else { await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`); appAlert(tMD("profileTextCopied")); }
+                  if (navigator.share) { await navigator.share(shareData); shared = true; }
+                  else { await navigator.clipboard.writeText(`${shareText}\n${shareData.url}`); appAlert(tMD("profileTextCopied")); shared = true; }
                 } catch { /* cancel */ }
+                // One-Time +50 🪙 für den ersten erfolgreichen Share — der
+                // Endpunkt ist idempotent über users.profile_shared_at.
+                if (shared) {
+                  try {
+                    const r = await fetch("/api/profile/share", { method: "POST" });
+                    if (r.ok) {
+                      const j = await r.json() as { awarded?: number };
+                      if ((j.awarded ?? 0) > 0) appAlert(`+${j.awarded} 🪙 für deinen ersten Profil-Share!`);
+                    }
+                  } catch { /* fail-silent */ }
+                }
               } },
               { icon: "🪙", label: tMD("labelCurrencyGuide"), onClick: () => setOpenModal("xpguide") },
               { icon: "🎫", label: "Support",      onClick: () => setOpenModal("support") },
@@ -4826,9 +4855,11 @@ function ProfilTab({
 
           <XpGuideSection title={tXG("sectionCommunityTitle")}>
             <XpGuideRow icon="🏪" label={tXG("rowKiezDeal")} xp={`+${XP_KIEZ_CHECKIN}`} />
-            <XpGuideRow icon="👥" label={tXG("rowCrewWin")} xp={`+${XP_CREW_WIN}`} />
             <XpGuideRow icon="🤝" label={tXG("rowFriendInvite")} xp={tXG("rowFriendInviteXp")} />
             <XpGuideRow icon="📤" label={tXG("rowProfileShare")} xp={tXG("rowProfileShareXp")} last />
+            <div style={{ padding: "10px 8px 2px", fontSize: 10, color: "#8B8FA3", lineHeight: 1.45, fontStyle: "italic" }}>
+              {tXG("crewWinHint")}
+            </div>
           </XpGuideSection>
 
           <XpGuideSection title={tXG("sectionAchievementsTitle")} subtitle={tXG("sectionAchievementsSubtitle", { count: ACHIEVEMENTS.length })}>
@@ -5955,7 +5986,7 @@ function ShopDetailModal({ shop, userXp, onClose }: {
                   </>
                 ) : (
                   <>
-                    <b style={{ color: "#FF6B4A" }}>🔒 Arena gesperrt.</b> Löse zuerst einen Deal in diesem Shop ein — danach hast du 3 Tage Zugang zur Kampf-Arena.
+                    <b style={{ color: "#FF6B4A" }}>🔒 Shop-Liga gesperrt.</b> Löse zuerst einen Deal in diesem Shop ein — danach hast du 3 Tage Zugang zur Shop-Liga.
                   </>
                 )}
               </div>
@@ -12163,7 +12194,7 @@ function ShopsPartnerView() {
  * RANKING TAB (1:1 alte App)
  * ═══════════════════════════════════════════════════════ */
 
-type RankingMode = "runners" | "crews" | "factions" | "guardians" | "arena" | "mmr";
+type RankingMode = "runners" | "crews" | "factions" | "guardians" | "turfWar" | "shopLeague" | "arena" | "mmr";
 type RankingSortRunner = "weekly_xp" | "weekly_km" | "total_xp";
 type RankingSortCrew = "weekly_km" | "member_count";
 
@@ -12493,12 +12524,14 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
         scrollbarWidth: "none",
       }}>
         {([
-          { id: "runners",   label: tR("modeRunners") },
-          { id: "crews",     label: tR("modeCrews") },
-          { id: "factions",  label: tR("modeFactions") },
-          { id: "guardians", label: tR("modeGuardians") },
-          { id: "arena",     label: tR("modeArena") },
-          { id: "mmr",       label: tR("modeMmr") },
+          { id: "runners",    label: tR("modeRunners") },
+          { id: "crews",      label: tR("modeCrews") },
+          { id: "factions",   label: tR("modeFactions") },
+          { id: "guardians",  label: tR("modeGuardians") },
+          { id: "turfWar",    label: tR("modeTurfWar") },
+          { id: "shopLeague", label: tR("modeShopLeague") },
+          { id: "arena",      label: tR("modeArena") },
+          { id: "mmr",        label: tR("modeMmr") },
         ] as const).map((m) => {
           const active = mode === m.id;
           return (
@@ -12812,12 +12845,32 @@ function RankingTab({ profile: p, leaderboard, initialMode }: { profile: Profile
           {mode === "guardians" && (
             <GuardianLeaderboardView />
           )}
+          {mode === "turfWar" && (
+            <TurfWarLeaderboardView />
+          )}
+          {mode === "shopLeague" && (
+            <ShopLeagueLeaderboardView />
+          )}
           {mode === "arena" && (
             <ArenaLeaderboardView />
           )}
           {mode === "mmr" && (
             <MmrLeaderboardView />
           )}
+
+          {/* Public-Leaderboard-Link — gleiche Daten ohne Demo-Overlay,
+              shareable URL für Out-of-App-Sharing. */}
+          <div style={{ marginTop: 18, padding: "12px 14px", borderRadius: 10,
+                        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+                        textAlign: "center" }}>
+            <a href="/leaderboard" target="_blank" rel="noopener"
+               style={{ color: PRIMARY, fontSize: 12, fontWeight: 800, textDecoration: "none" }}>
+              🌐 Öffentliche Rangliste · myarea365.de/leaderboard ↗
+            </a>
+            <div style={{ color: MUTED, fontSize: 10, marginTop: 3 }}>
+              Teilbarer Link · zeigt nur freigegebene Profile
+            </div>
+          </div>
         </main>
       </div>
 
@@ -13504,6 +13557,260 @@ type MmrEntry = {
 
 type MmrSort = "mmr" | "peak" | "winrate" | "games";
 type MmrFactionFilter = "all" | "kronenwacht" | "gossenbund";
+
+// ═══════════════════════════════════════════════════════════════════
+// TURF-KRIEG-LIGA — monatliche Crew-Standings
+// (Schwester-Komponente zur öffentlichen /leaderboard TurfWarTab)
+// ═══════════════════════════════════════════════════════════════════
+type TurfStandingDash = {
+  crew_id: string; points: number; war_wins: number; duel_wins: number;
+  territories_claimed: number;
+  crews: { name: string | null; color: string | null; member_count: number | null } | null;
+};
+type TurfSeasonDash = { id: string; year: number; month: number; ends_at: string };
+
+function TurfWarLeaderboardView() {
+  const tR = useTranslations("Ranking");
+  const [data, setData] = useState<{ season: TurfSeasonDash | null; standings: TurfStandingDash[] } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/leaderboard/turf-war").then((r) => r.json()).then(setData);
+  }, []);
+
+  if (!data) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade…</div>;
+  if (!data.season || data.standings.length === 0) {
+    return (
+      <div style={{ padding: 20, textAlign: "center" }}>
+        <div style={{ fontSize: 38, marginBottom: 8 }}>🏴</div>
+        <div style={{ color: "#FFF", fontWeight: 900, fontSize: 14 }}>{tR("tlTurfWarHero")}</div>
+        <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 6 }}>{tR("tlTurfWarEmpty")}</div>
+      </div>
+    );
+  }
+
+  const seasonLabel = tR("tlTurfWarSeasonLabel", {
+    y: data.season.year, m: String(data.season.month).padStart(2, "0"),
+  });
+
+  return (
+    <div style={{ padding: 12 }}>
+      {/* Hero-Banner */}
+      <div style={{
+        padding: 14, borderRadius: 14, marginBottom: 14,
+        background: "radial-gradient(ellipse at top, rgba(255,45,120,0.18) 0%, transparent 60%), linear-gradient(180deg, rgba(255,45,120,0.06) 0%, rgba(15,17,21,0.9) 100%)",
+        border: "1px solid rgba(255,45,120,0.35)",
+      }}>
+        <div style={{ color: "#FF2D78", fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>🏴 TURF-KRIEG · {seasonLabel}</div>
+        <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2 }}>{tR("tlTurfWarHero")}</div>
+        <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{tR("tlTurfWarSub")}</div>
+      </div>
+
+      {/* Standings-Tabelle */}
+      <div style={{ borderRadius: 12, overflow: "hidden", background: "#1A1D23", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{
+          display: "grid", gridTemplateColumns: "44px 1fr 60px 60px 80px",
+          gap: 8, padding: "10px 12px",
+          background: "rgba(255,45,120,0.10)",
+          borderBottom: "1px solid rgba(255,45,120,0.3)",
+          fontSize: 9, fontWeight: 900, letterSpacing: 1.5, color: "#FF2D78",
+        }}>
+          <div>RANG</div>
+          <div>CREW</div>
+          <div style={{ textAlign: "right" }}>⚔️</div>
+          <div style={{ textAlign: "right" }}>📍</div>
+          <div style={{ textAlign: "right" }}>PUNKTE</div>
+        </div>
+        {data.standings.map((s, i) => {
+          const accent = s.crews?.color ?? "#22D1C3";
+          return (
+            <div key={s.crew_id} style={{
+              display: "grid", gridTemplateColumns: "44px 1fr 60px 60px 80px",
+              gap: 8, padding: "8px 12px",
+              background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+              borderBottom: "1px solid rgba(255,255,255,0.04)",
+              alignItems: "center", fontSize: 12,
+            }}>
+              <div style={{ fontWeight: 900, color: i < 3 ? "#FFD700" : "#8B8FA3" }}>#{i + 1}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: accent, color: "#0F1115", fontWeight: 900, fontSize: 13,
+                }}>{s.crews?.name?.charAt(0).toUpperCase() ?? "?"}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: "#FFF", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.crews?.name ?? "—"}
+                  </div>
+                  <div style={{ color: "#8B8FA3", fontSize: 10 }}>👥 {s.crews?.member_count ?? 0}</div>
+                </div>
+              </div>
+              <div style={{ textAlign: "right", color: "#FF6B4A", fontWeight: 700 }}>{s.war_wins}</div>
+              <div style={{ textAlign: "right", color: "#22D1C3", fontWeight: 700 }}>{s.territories_claimed}</div>
+              <div style={{ textAlign: "right", color: accent, fontWeight: 900 }}>
+                {Number(s.points ?? 0).toLocaleString("de-DE")}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SHOP-LIGA — wöchentliches Ranking pro Shop
+// ═══════════════════════════════════════════════════════════════════
+type ShopLeagueDashRow = {
+  id: string; business_id: string; total_battles: number; ends_at: string;
+  local_businesses: { name: string | null; address: string | null } | null;
+  leader: {
+    crew_id: string; wins: number; losses: number;
+    crews: { name: string | null; color: string | null } | null;
+  } | null;
+};
+type ShopLeagueDashDetail = {
+  shop: { name: string; address: string | null } | null;
+  season: { ends_at: string; total_battles: number } | null;
+  standings: Array<{
+    crew_id: string; wins: number; losses: number; score: number;
+    crews: { name: string | null; color: string | null; member_count: number | null } | null;
+  }>;
+};
+
+function ShopLeagueLeaderboardView() {
+  const tR = useTranslations("Ranking");
+  const [list, setList] = useState<ShopLeagueDashRow[] | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [detail, setDetail] = useState<ShopLeagueDashDetail | null>(null);
+
+  useEffect(() => {
+    fetch("/api/leaderboard/shop-leagues").then((r) => r.json()).then((d) => setList(d.leagues ?? []));
+  }, []);
+  useEffect(() => {
+    if (!selected) { setDetail(null); return; }
+    fetch(`/api/leaderboard/shop-leagues?business_id=${selected}`).then((r) => r.json()).then(setDetail);
+  }, [selected]);
+
+  if (list === null) return <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade…</div>;
+
+  return (
+    <div style={{ padding: 12 }}>
+      <div style={{
+        padding: 14, borderRadius: 14, marginBottom: 14,
+        background: "radial-gradient(ellipse at top, rgba(255,215,0,0.18) 0%, transparent 60%), linear-gradient(180deg, rgba(255,215,0,0.06) 0%, rgba(15,17,21,0.9) 100%)",
+        border: "1px solid rgba(255,215,0,0.35)",
+        display: "flex", alignItems: "center", gap: 8,
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>🏆 SHOP-LIGA</div>
+          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2 }}>{tR("tlShopLeagueHero")}</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{tR("tlShopLeagueSub")}</div>
+        </div>
+        {selected && (
+          <button onClick={() => setSelected(null)} style={{
+            padding: "6px 10px", borderRadius: 8, fontSize: 10, fontWeight: 900,
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)",
+            color: "#a8b4cf", cursor: "pointer",
+          }}>{tR("tlBack")}</button>
+        )}
+      </div>
+
+      {!selected && (
+        list.length === 0 ? (
+          <div style={{ padding: 24, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>{tR("tlShopLeagueEmpty")}</div>
+        ) : (
+          <div style={{ display: "grid", gap: 8 }}>
+            {list.map((s) => {
+              const leaderColor = s.leader?.crews?.color ?? "#FFD700";
+              return (
+                <button key={s.id} onClick={() => setSelected(s.business_id)} style={{
+                  textAlign: "left", padding: 12, borderRadius: 12, cursor: "pointer",
+                  background: "linear-gradient(135deg, rgba(255,215,0,0.08), transparent)",
+                  border: "1px solid rgba(255,215,0,0.25)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <div style={{ fontSize: 22 }}>🏪</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#FFF", fontWeight: 900, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.local_businesses?.name ?? "Shop"}
+                      </div>
+                      {s.local_businesses?.address && (
+                        <div style={{ color: "#8B8FA3", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          📍 {s.local_businesses.address}
+                        </div>
+                      )}
+                      <div style={{ color: "#8B8FA3", fontSize: 10, marginTop: 2 }}>
+                        {tR("tlShopLeagueBattles", { n: s.total_battles })}
+                      </div>
+                    </div>
+                  </div>
+                  {s.leader && (
+                    <div style={{
+                      marginTop: 8, padding: "6px 10px", borderRadius: 6,
+                      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+                      display: "flex", alignItems: "center", gap: 8, fontSize: 11,
+                    }}>
+                      <span style={{ color: "#FFD700", fontWeight: 900 }}>👑 #1</span>
+                      <span style={{ color: leaderColor, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.leader.crews?.name ?? "—"}
+                      </span>
+                      <span style={{ color: "#8B8FA3" }}>{s.leader.wins}W</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )
+      )}
+
+      {selected && detail && (
+        <div>
+          <div style={{
+            padding: 10, borderRadius: 10, marginBottom: 10,
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+            display: "flex", alignItems: "center", gap: 10,
+          }}>
+            <div style={{ fontSize: 22 }}>🏪</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: "#FFF", fontWeight: 900, fontSize: 13 }}>{detail.shop?.name ?? "Shop"}</div>
+              {detail.shop?.address && <div style={{ color: "#8B8FA3", fontSize: 10 }}>📍 {detail.shop.address}</div>}
+            </div>
+          </div>
+          {detail.standings.length === 0 ? (
+            <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Noch keine Battles diese Woche.</div>
+          ) : (
+            <div style={{ borderRadius: 12, overflow: "hidden", background: "#1A1D23", border: "1px solid rgba(255,255,255,0.08)" }}>
+              {detail.standings.map((s, i) => {
+                const c = s.crews?.color ?? "#FFD700";
+                return (
+                  <div key={s.crew_id} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+                    borderBottom: "1px solid rgba(255,255,255,0.04)",
+                  }}>
+                    <div style={{ width: 22, textAlign: "center", fontWeight: 900, fontSize: 11, color: i < 3 ? "#FFD700" : "#8B8FA3" }}>#{i + 1}</div>
+                    <div style={{
+                      width: 26, height: 26, borderRadius: 6, flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: c, color: "#0F1115", fontWeight: 900, fontSize: 13,
+                    }}>{s.crews?.name?.charAt(0).toUpperCase() ?? "?"}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#FFF", fontWeight: 700, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.crews?.name ?? "—"}
+                      </div>
+                      <div style={{ color: "#8B8FA3", fontSize: 10 }}>{s.wins}W · {s.losses}L · 👥 {s.crews?.member_count ?? 0}</div>
+                    </div>
+                    <div style={{ color: c, fontWeight: 900, fontSize: 13 }}>{s.score} P</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function MmrLeaderboardView() {
   const tMD = useTranslations("MapDashboard");

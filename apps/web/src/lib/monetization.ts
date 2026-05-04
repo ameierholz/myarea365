@@ -94,7 +94,7 @@ export const XP_PACKS = {
 
 export const GAMEPLAY_ITEMS = {
   reclaim_ticket:   { sku: "reclaim_ticket",   name: "Reclaim-Ticket",        price: 149, icon: "🔁", desc: "Ein verlorenes Gebiet zurückholen" },
-  mystery_box:      { sku: "mystery_box",      name: "Mystery Box (Cosmetic)", price: 299, icon: "🎁", desc: "Zufälliger Skin/Marker/Trail — rein optisch, keine Kampf-Stats (kein P2W)" },
+  mystery_box:      { sku: "mystery_box",      name: "Wahl-Box",               price: 299, icon: "🎁", desc: "Du wählst 1 aus 11 Premium-Belohnungen — kein Zufall, kein Glücksspiel (EU-konform)" },
   ghost_mode:       { sku: "ghost_mode",       name: "Ghost-Mode (1 Lauf)",   price: 249, icon: "👻", desc: "Unsichtbar für Gegner-Fraktion" },
   double_claim:     { sku: "double_claim",     name: "Doppel-Claim (1 Lauf)", price: 349, icon: "🎯", desc: "Doppelte Gebiete im nächsten Lauf" },
   faction_switch:   { sku: "faction_switch",   name: "Fraktions-Wechsel",     price: 599, icon: "⚔️", desc: "Zur anderen Fraktion wechseln (max 1×/Monat)" },

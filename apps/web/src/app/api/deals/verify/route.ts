@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { XP_KIEZ_CHECKIN } from "@/lib/game-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,20 @@ export async function POST(req: NextRequest) {
       });
       territoryBonus = bonus;
     }
-    return NextResponse.json({ ...verifyResult, loot, territory_bonus: territoryBonus });
+    // Wegemünzen-Reward für den Runner — wie im Währungs-Guide angekündigt.
+    // verify_redemption bricht beim zweiten Aufruf auf den gleichen Code ab,
+    // also reicht das hier als Idempotenz-Garantie.
+    let coinsAwarded = 0;
+    if (redemption?.user_id) {
+      const { data: u } = await sb.from("users")
+        .select("wegemuenzen").eq("id", redemption.user_id)
+        .maybeSingle<{ wegemuenzen: number | null }>();
+      const next = (u?.wegemuenzen ?? 0) + XP_KIEZ_CHECKIN;
+      const { error: updErr } = await sb.from("users")
+        .update({ wegemuenzen: next }).eq("id", redemption.user_id);
+      if (!updErr) coinsAwarded = XP_KIEZ_CHECKIN;
+    }
+    return NextResponse.json({ ...verifyResult, loot, territory_bonus: territoryBonus, coins_awarded: coinsAwarded });
   }
   return NextResponse.json(data);
 }

@@ -28,6 +28,27 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
   const [loading, setLoading] = useState<string | null>(null);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
+  // Wahl-Box (ehemals Mystery-Box) — User wählt VORHER, kein Zufall.
+  // Verhindert dass die Box als „Loot-Box" unter EU-Regulierung fällt
+  // (Belgien/Niederlande/Spanien). Kann auch BE/NL/ES sicher angezeigt werden.
+  type WahlBoxKind =
+    | "xp_500" | "xp_2000" | "xp_10000"
+    | "boost_24" | "boost_48"
+    | "streak_5" | "shouts_10"
+    | "trail_golden" | "trail_neon"
+    | "aura_30d" | "rainbow_30d";
+  const [wahlBoxOpen, setWahlBoxOpen] = useState(false);
+  const [wahlBoxChoice, setWahlBoxChoice] = useState<WahlBoxKind | null>(null);
+
+  function clickItem(sku: string, name: string, price: number) {
+    if (sku === "mystery_box") {
+      // Choice-Modal öffnen statt direkt Stripe-Checkout starten.
+      setWahlBoxOpen(true);
+      return;
+    }
+    void buy(sku, name, price);
+  }
+
   async function buy(sku: string, name: string, price: number) {
     // Hard-Block: Käufe in Capacitor-WebView (Play-Billing-Pflicht für digitale Goods).
     if (!(await import("@/lib/capacitor")).isInAppPurchaseAllowed()) {
@@ -137,6 +158,8 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
           faction_switch_at: new Date().toISOString(),
         }).eq("id", userId);
       } else if (sku === "mystery_box") {
+        // Wahl-Box: User-Wahl wurde im Choice-Modal getroffen, ist in
+        // wahlBoxChoice gespeichert. Kein Zufall mehr — DETERMINISTISCH.
         type Roll =
           | { kind: "xp"; xp: number }
           | { kind: "boost"; boost_hours: number; mult: number }
@@ -145,14 +168,26 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
           | { kind: "trail"; trail: string }
           | { kind: "aura"; aura_days: number }
           | { kind: "rainbow"; rainbow_days: number };
-        const rolls: Roll[] = [
-          { kind: "xp", xp: 500 }, { kind: "xp", xp: 2000 }, { kind: "xp", xp: 10000 },
-          { kind: "boost", boost_hours: 24, mult: 2 }, { kind: "boost", boost_hours: 48, mult: 2 },
-          { kind: "streak", streak: 5 }, { kind: "shouts", shouts: 10 },
-          { kind: "trail", trail: "golden_trail" }, { kind: "trail", trail: "neon_trail" },
-          { kind: "aura", aura_days: 30 }, { kind: "rainbow", rainbow_days: 30 },
-        ];
-        const r = rolls[Math.floor(Math.random() * rolls.length)];
+        const choiceMap: Record<WahlBoxKind, Roll> = {
+          xp_500:      { kind: "xp",      xp: 500 },
+          xp_2000:     { kind: "xp",      xp: 2000 },
+          xp_10000:    { kind: "xp",      xp: 10000 },
+          boost_24:    { kind: "boost",   boost_hours: 24, mult: 2 },
+          boost_48:    { kind: "boost",   boost_hours: 48, mult: 2 },
+          streak_5:    { kind: "streak",  streak: 5 },
+          shouts_10:   { kind: "shouts",  shouts: 10 },
+          trail_golden:{ kind: "trail",   trail: "golden_trail" },
+          trail_neon:  { kind: "trail",   trail: "neon_trail" },
+          aura_30d:    { kind: "aura",    aura_days: 30 },
+          rainbow_30d: { kind: "rainbow", rainbow_days: 30 },
+        };
+        if (!wahlBoxChoice) {
+          await appAlert("Bitte wähle vorher eine Belohnung in der Wahl-Box.");
+          return;
+        }
+        const r = choiceMap[wahlBoxChoice];
+        // Choice nach Anwendung leeren, damit nächster Kauf wieder Modal öffnet.
+        setWahlBoxChoice(null);
         if (r.kind === "xp") {
           const { data: u } = await sb.from("users").select("wegemuenzen").eq("id", userId).single();
           await sb.from("users").update({ wegemuenzen: (u?.wegemuenzen ?? 0) + r.xp }).eq("id", userId);
@@ -288,7 +323,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
                   )}
                 </div>
                 <button
-                  onClick={() => buy(p.sku, p.name, p.price)}
+                  onClick={() => clickItem(p.sku, p.name, p.price)}
                   disabled={loading === p.sku}
                   style={{
                     background: "#FFD700", color: "#0F1115",
@@ -297,7 +332,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
                     opacity: loading === p.sku ? 0.6 : 1,
                   }}
                 >
-                  {loading === p.sku ? "…" : formatPrice(p.price)}
+                  {loading === p.sku ? "…" : (p.sku === "mystery_box" ? "Auswählen →" : formatPrice(p.price))}
                 </button>
               </div>
             );
@@ -309,6 +344,16 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         </div>
       {checkoutSecret && (
         <StripeCheckoutModal clientSecret={checkoutSecret} onClose={() => setCheckoutSecret(null)} />
+      )}
+      {wahlBoxOpen && (
+        <WahlBoxChoiceModal
+          onCancel={() => setWahlBoxOpen(false)}
+          onPick={(kind) => {
+            setWahlBoxChoice(kind);
+            setWahlBoxOpen(false);
+            void buy("mystery_box", "Wahl-Box", 299);
+          }}
+        />
       )}
     </>
   );
@@ -352,5 +397,85 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
       color: active ? "#0F1115" : "#F0F0F0",
       fontSize: 11, fontWeight: 800, whiteSpace: "nowrap",
     }}>{children}</button>
+  );
+}
+
+// ─── Wahl-Box-Choice-Modal ────────────────────────────────────────
+// EU-konformer Ersatz für die alte Mystery-Box: User wählt eine
+// Belohnung aus 11 fixen Optionen, kein Zufall — also kein Glücks-
+// spiel-Mechanismus unter den BE/NL/ES-Loot-Box-Regulierungen.
+type WahlBoxKindUI =
+  | "xp_500" | "xp_2000" | "xp_10000"
+  | "boost_24" | "boost_48"
+  | "streak_5" | "shouts_10"
+  | "trail_golden" | "trail_neon"
+  | "aura_30d" | "rainbow_30d";
+
+const WAHL_BOX_OPTIONS_UI: Array<{ kind: WahlBoxKindUI; icon: string; title: string; desc: string }> = [
+  { kind: "xp_10000",    icon: "🪙", title: "10 000 Wegemünzen",    desc: "Direkt aufs Konto" },
+  { kind: "xp_2000",     icon: "🪙", title: "2 000 Wegemünzen",     desc: "Mittlerer Boost" },
+  { kind: "xp_500",      icon: "🪙", title: "500 Wegemünzen",       desc: "Snack-Pack" },
+  { kind: "boost_48",    icon: "⚡", title: "48 h × 2 Boost",       desc: "Doppelte Wegemünzen, 2 Tage" },
+  { kind: "boost_24",    icon: "⚡", title: "24 h × 2 Boost",       desc: "Doppelte Wegemünzen, 1 Tag" },
+  { kind: "streak_5",    icon: "❄️", title: "5 Streak-Freezes",     desc: "Tages-Streak schützen" },
+  { kind: "shouts_10",   icon: "📣", title: "10 Crew-Shouts",       desc: "Aufmerksamkeit ziehen" },
+  { kind: "trail_golden",icon: "✨", title: "Goldener Trail",       desc: "Permanent — Cosmetic" },
+  { kind: "trail_neon",  icon: "💚", title: "Neon Trail",           desc: "Permanent — Cosmetic" },
+  { kind: "aura_30d",    icon: "💫", title: "30 Tage Aura",         desc: "Sichtbar auf der Karte" },
+  { kind: "rainbow_30d", icon: "🌈", title: "30 Tage Rainbow-Name", desc: "Animierter Name" },
+];
+
+function WahlBoxChoiceModal({
+  onCancel,
+  onPick,
+}: {
+  onCancel: () => void;
+  onPick: (kind: WahlBoxKindUI) => void;
+}) {
+  return (
+    <div onClick={onCancel} style={{
+      position: "fixed", inset: 0, zIndex: 9300,
+      background: "rgba(0,0,0,0.78)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 540, maxHeight: "88vh",
+        background: "linear-gradient(180deg, #14181f 0%, #0F1115 100%)",
+        borderRadius: 18, border: "1px solid rgba(255,215,0,0.4)",
+        boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
+        overflow: "hidden", display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ padding: 18, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>🎁 WAHL-BOX · € 2,99</div>
+          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, marginTop: 4 }}>Wähle deine Belohnung</div>
+          <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+            Du bestimmst, was du bekommst — kein Zufall. Erst auswählen, dann zahlen. EU-konform.
+          </div>
+        </div>
+        <div style={{ overflowY: "auto", padding: 14, display: "grid", gap: 8 }}>
+          {WAHL_BOX_OPTIONS_UI.map((o) => (
+            <button key={o.kind} onClick={() => onPick(o.kind)} style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 14px", borderRadius: 12,
+              background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.25)",
+              color: "#FFF", textAlign: "left", cursor: "pointer",
+            }}>
+              <span style={{ fontSize: 24 }}>{o.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>{o.title}</div>
+                <div style={{ color: "#a8b4cf", fontSize: 11 }}>{o.desc}</div>
+              </div>
+              <span style={{ color: "#FFD700", fontSize: 14, fontWeight: 900 }}>›</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.08)", textAlign: "center" }}>
+          <button onClick={onCancel} style={{
+            background: "transparent", color: "#a8b4cf", border: "none",
+            fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px 14px",
+          }}>Abbrechen</button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -9,7 +9,7 @@ const EVENT_KINDS = [
   { id: "hunt_reset",      label: "🎯 Hunt-Reset",       hint: "Setzt alle Wegelager-Cooldowns zurück" },
   { id: "wegelager_storm", label: "⛈️ Wegelager-Storm",  hint: "Erhöhte Spawnrate von Wegelagern" },
   { id: "crown_drop",      label: "👑 Crown-Drop",       hint: "Bonus-Crowns für jede gelaufene km" },
-  { id: "crew_war",        label: "⚔️ Crew-War",         hint: "Aktiviert Crew-Krieg-Modus für die Dauer" },
+  { id: "crew_war",        label: "⚔️ Turf-Krieg",       hint: "Aktiviert Turf-Kriegs-Modus für die Dauer" },
   { id: "custom",          label: "🛠️ Custom",            hint: "Frei konfigurierbar (payload JSON)" },
 ] as const;
 

@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 import {
   RARITY_LABEL, RARITY_COLOR,
   REDEMPTION_LOOT_TABLE, EQUIPMENT_DROP_NOTE,
-  MAP_LOOT_CRATE_TABLE, MYSTERY_BOX_TABLE,
-  ARENA_WIN_REWARDS, LOOT_DISCLOSURE_META,
+  MAP_LOOT_CRATE_TABLE, WAHL_BOX_OPTIONS,
+  ARENA_WIN_REWARDS, SEASON_REWARDS_TABLE, LOOT_DISCLOSURE_META,
   type LootRarity,
 } from "@/lib/loot-drops-public";
 
@@ -153,12 +153,31 @@ export default async function LootDropsPage() {
           <LootTable rows={MAP_LOOT_CRATE_TABLE} />
         </Section>
 
-        <Section num="4" title={t("section4Title")}>
-          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            <strong style={{ color: "#FFD700" }}>{t("section4Hint")}</strong>
-            <span dangerouslySetInnerHTML={{ __html: t("section4Body") }} />
+        <Section num="4" title="Wahl-Box (€ 2,99) — KEIN Zufall">
+          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.55 }}>
+            <strong style={{ color: "#FFD700" }}>EU-konform per Wahl statt Zufall.</strong>{" "}
+            Die ehemals randomisierte „Mystery-Box" wurde im April 2026 zur <b>Wahl-Box</b>
+            umgebaut: Du klickst „Wahl-Box öffnen", siehst alle 11 möglichen Belohnungen,
+            wählst <b>EINE</b> aus — und zahlst erst dann die € 2,99. Kein Zufalls-Roll,
+            kein Lootbox-Mechanismus, damit fällt das Produkt explizit nicht unter die
+            Loot-Box-Regulierung von Belgien (KGBC 2018), Niederlande (KSA) und Spanien
+            (Ley 13/2011).
           </p>
-          <LootTable rows={MYSTERY_BOX_TABLE} />
+          <div style={{ display: "grid", gap: 6 }}>
+            {WAHL_BOX_OPTIONS.map((o, i) => (
+              <div key={i} style={{
+                padding: "10px 12px", borderRadius: 10,
+                background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.2)",
+                display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+              }}>
+                <span style={{ fontSize: 18 }}>{o.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#FFF", fontWeight: 800 }}>{o.title}</div>
+                  <div style={{ color: "#8B8FA3", fontSize: 11 }}>{o.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </Section>
 
         <Section num="5" title={t("section5Title")}>
@@ -178,6 +197,38 @@ export default async function LootDropsPage() {
                 <span style={{ color: "#FFD700", fontWeight: 800, textAlign: "right", whiteSpace: "nowrap" }}>{r.reward}</span>
               </div>
             ))}
+          </div>
+        </Section>
+
+        <Section num="6" title="Saison-Belohnungen (deterministisch)">
+          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.55 }}>
+            Die drei Saison-Systeme (Shop-Liga wöchentlich, Arena monatlich,
+            Turf-Krieg monatlich) verteilen am Ende jeder Saison <b>feste, rang-basierte
+            Belohnungen</b> — kein Zufall, daher keine Loot-Mechanik im rechtlichen Sinne.
+            Aktuelle Werte sind hier transparent gelistet (live editierbar in
+            <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 4 }}>/admin/seasons</code>):
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>SYSTEM</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>RHYTHMUS</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>RANG</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>BELOHNUNG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SEASON_REWARDS_TABLE.map((r, i) => (
+                  <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                    <td style={{ padding: "8px 10px", color: "#FFF", fontWeight: 700, whiteSpace: "nowrap" }}>{r.system}</td>
+                    <td style={{ padding: "8px 10px", color: "#8B8FA3", fontSize: 11 }}>{r.cadence}</td>
+                    <td style={{ padding: "8px 10px", color: "#a8b4cf" }}>{r.tier}</td>
+                    <td style={{ padding: "8px 10px", color: "#FFD700", fontWeight: 700 }}>{r.reward}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Section>
 

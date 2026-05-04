@@ -63,6 +63,13 @@ export default async function LandingPage() {
           </p>
 
           <InlineAuth />
+
+          <Link
+            href="/leaderboard"
+            className="inline-flex items-center gap-2 mt-4 text-sm text-text-muted hover:text-primary transition"
+          >
+            🏆 <span>{t("heroLeaderboardCta")}</span>
+          </Link>
         </div>
 
         <div className="relative z-10 mt-auto pb-10">
@@ -366,6 +373,21 @@ export default async function LandingPage() {
                 <li><Link href="/datenschutz" className="text-text-muted hover:text-text">{t("footerLinkPrivacy")}</Link></li>
                 <li><Link href="/impressum" className="text-text-muted hover:text-text">{t("footerLinkImprint")}</Link></li>
                 <li><Link href="/loot-drops" className="text-text-muted hover:text-text">{t("footerLinkDropRates")}</Link></li>
+                <li><Link href="/pricing" className="text-text-muted hover:text-text">{t("footerLinkPricing")}</Link></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => { try { window.dispatchEvent(new CustomEvent("ma365:open-consent")); } catch {} }}
+                    className="text-text-muted hover:text-text text-left"
+                  >
+                    {t("footerLinkCookieSettings")}
+                  </button>
+                </li>
+                <li>
+                  <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-text">
+                    {t("footerLinkOdr")}
+                  </a>
+                </li>
                 <li><a href="mailto:support@myarea365.de" className="text-text-muted hover:text-text">{t("footerLinkSupport")}</a></li>
               </ul>
             </div>

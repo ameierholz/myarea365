@@ -38,6 +38,11 @@ export function CookieConsent() {
   useEffect(() => {
     setState(getConsent());
     setReady(true);
+    // Erlaubt Re-Open via Event aus dem Footer ("Cookie-Einstellungen ändern").
+    // DSGVO/ePrivacy verlangen: User muss Consent jederzeit revidieren können.
+    const onOpen = () => setState(null);
+    window.addEventListener("ma365:open-consent", onOpen);
+    return () => window.removeEventListener("ma365:open-consent", onOpen);
   }, []);
 
   function save(next: ConsentState) {
