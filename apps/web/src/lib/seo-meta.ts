@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LOCALES, LOCALE_BCP47, type Locale } from "@/i18n/config";
+import { LOCALE_BCP47, type Locale } from "@/i18n/config";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://myarea365.de";
 
@@ -19,13 +19,14 @@ export interface SeoOptions {
 }
 
 /**
- * Baut Next.js Metadata mit:
- *  - canonical URL
- *  - hreflang für alle 10 Locales (+ x-default)
- *  - OG/Twitter Cards
- *  - Robots-Direktiven
+ * Baut Next.js Metadata mit canonical + OG/Twitter + Robots.
  *
- * Verwendung in einer Page:
+ * KEIN hreflang/alternates.languages: Solange Cookie-basiertes Locale-
+ * Switching benutzt wird (alle Locales unter derselben URL), wäre das
+ * für Google «duplicate content». Re-aktivieren sobald URL-Prefix-
+ * Routing eingeführt ist (/de/.., /en/..).
+ *
+ * Verwendung in einer Server-Page:
  *   export async function generateMetadata() {
  *     return buildSeoMetadata({
  *       path: "dashboard",
@@ -38,19 +39,13 @@ export interface SeoOptions {
 export function buildSeoMetadata(opts: SeoOptions): Metadata {
   const path = opts.path ?? "";
   const canonical = `${SITE_URL}/${path}`.replace(/\/$/, "") || SITE_URL;
-
-  const languages: Record<string, string> = { "x-default": canonical };
-  for (const loc of LOCALES) {
-    languages[LOCALE_BCP47[loc]] = canonical;
-  }
-
   const ogImage = opts.image || `${SITE_URL}/og-image.png`;
 
   return {
     title: opts.title,
     description: opts.description,
     metadataBase: new URL(SITE_URL),
-    alternates: { canonical, languages },
+    alternates: { canonical },
     openGraph: {
       title: opts.title,
       description: opts.description,

@@ -1,130 +1,20 @@
-"use client";
+import { getLocale, getTranslations } from "next-intl/server";
+import { buildSeoMetadata } from "@/lib/seo-meta";
+import type { Locale } from "@/i18n/config";
+import { LoginClient } from "./login-client";
 
-import { Suspense, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { createClient } from "@/lib/supabase/client";
-import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
-import { HeroMap } from "@/components/hero-map-client";
-import { openLegalModal } from "@/components/legal-modal";
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
-  );
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("LoginPage");
+  return buildSeoMetadata({
+    path: "login",
+    title: t("title") + " · MyArea365",
+    description: t("subtitle"),
+    locale,
+    index: true,
+  });
 }
 
-function LoginForm() {
-  const t = useTranslations("LoginPage");
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/dashboard";
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      setError(error.message === "Invalid login credentials" ? t("errorInvalidCreds") : error.message);
-      setLoading(false);
-      return;
-    }
-
-    router.push(next);
-    router.refresh();
-  }
-
-  return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <HeroMap />
-      </div>
-
-      <div className="relative min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <Link href="/" className="block text-center mb-8">
-            <span className="text-3xl font-bold tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
-              My<span className="text-primary">Area</span>365
-            </span>
-          </Link>
-
-          <div className="p-8 rounded-2xl bg-bg-card/90 border border-border backdrop-blur-md shadow-2xl">
-            <h1 className="text-2xl font-bold mb-2">{t("title")}</h1>
-            <p className="text-sm text-text-muted mb-8">
-              {t("subtitle")}
-            </p>
-
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm mb-6">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-1.5">{t("emailLabel")}</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <input
-                    id="email" type="email" required value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t("emailPh")}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-1.5">{t("passwordLabel")}</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <input
-                    id="password" type="password" required value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-bg-elevated border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit" disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-semibold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("submit")}
-              </button>
-            </form>
-          </div>
-
-          <p className="text-center text-sm text-text-muted mt-6 drop-shadow">
-            {t("noAccount")}{" "}
-            <Link href="/registrieren" className="text-primary hover:text-primary-dim font-medium transition-colors">{t("registerLink")}</Link>
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-3 mt-5 text-[11px] text-text-muted">
-            <button onClick={() => openLegalModal("impressum")} className="hover:text-text transition-colors">{t("legalImpressum")}</button>
-            <span className="opacity-40">·</span>
-            <button onClick={() => openLegalModal("datenschutz")} className="hover:text-text transition-colors">{t("legalPrivacy")}</button>
-            <span className="opacity-40">·</span>
-            <button onClick={() => openLegalModal("agb")} className="hover:text-text transition-colors">{t("legalTerms")}</button>
-            <span className="opacity-40">·</span>
-            <Link href="/support" className="hover:text-text transition-colors">{t("legalSupport")}</Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+export default function Page() {
+  return <LoginClient />;
 }

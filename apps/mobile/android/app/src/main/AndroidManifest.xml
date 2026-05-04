@@ -56,6 +56,17 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!--
+          AdMob Application-ID — pflicht wenn AdMob-SDK eingebunden wird.
+          Falls (noch) kein AdMob-Plugin installiert ist, schadet die ID nicht;
+          umgekehrt würde ein fehlender Eintrag bei vorhandenem SDK zum
+          Crash bei App-Start führen.
+          Quelle: https://developers.google.com/admob/android/quick-start
+        -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-9799640580685030~9235230561" />
     </application>
 
     <!-- ═══ Permissions ═══ -->

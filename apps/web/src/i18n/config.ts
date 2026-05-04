@@ -10,17 +10,18 @@
  *   Fertig — neue Sprache erscheint im LanguageSwitcher und in hreflang.
  */
 
+/**
+ * Aktuell unterstützte Locales — nur Sprachen mit vollständiger Übersetzung
+ * (Privacy + Terms + alle UI-Strings). DSGVO verlangt Verständlichkeit der
+ * Rechtstexte; daher nur Locales aktivieren, deren Privacy/Terms vollständig
+ * übersetzt sind. Stub-Locales (tr/pl/ru/ar/zh) reaktivieren sobald komplett.
+ */
 export const LOCALES = [
   "de",  // Deutsch (default)
   "en",  // English
   "es",  // Español
   "fr",  // Français
   "it",  // Italiano
-  "tr",  // Türkçe
-  "pl",  // Polski
-  "ru",  // Русский
-  "ar",  // العربية
-  "zh",  // 中文
 ] as const;
 export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "de";
@@ -31,11 +32,6 @@ export const LOCALE_LABELS: Record<Locale, { native: string; flag: string; iso: 
   es: { native: "Español",    flag: "🇪🇸", iso: "es" },
   fr: { native: "Français",   flag: "🇫🇷", iso: "fr" },
   it: { native: "Italiano",   flag: "🇮🇹", iso: "it" },
-  tr: { native: "Türkçe",     flag: "🇹🇷", iso: "tr" },
-  pl: { native: "Polski",     flag: "🇵🇱", iso: "pl" },
-  ru: { native: "Русский",    flag: "🇷🇺", iso: "ru" },
-  ar: { native: "العربية",    flag: "🇸🇦", iso: "sa" },
-  zh: { native: "中文",        flag: "🇨🇳", iso: "cn" },
 };
 
 /** BCP-47-Tags für Intl-APIs (Number/Date-Formatting). */
@@ -45,15 +41,10 @@ export const LOCALE_BCP47: Record<Locale, string> = {
   es: "es-ES",
   fr: "fr-FR",
   it: "it-IT",
-  tr: "tr-TR",
-  pl: "pl-PL",
-  ru: "ru-RU",
-  ar: "ar-SA",
-  zh: "zh-CN",
 };
 
 /** Rechts-nach-Links-Sprachen — `<html dir="rtl">` für diese setzen. */
-export const RTL_LOCALES: ReadonlySet<Locale> = new Set(["ar"]);
+export const RTL_LOCALES: ReadonlySet<Locale> = new Set();
 
 export const LOCALE_COOKIE = "myarea-locale";
 

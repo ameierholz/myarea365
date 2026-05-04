@@ -102,7 +102,13 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { deferIdle } from "@/lib/defer";
-import { AppMap } from "@/components/app-map";
+// AppMap (Mapbox) ist ein 1.7 MB-Chunk — dynamic-import + ssr:false vermeidet,
+// dass dieser Code im Initial-Bundle landet. Loading-Skeleton bleibt während
+// der Map-Code geladen wird sichtbar (passt zum dunklen Map-Hintergrund).
+const AppMap = dynamic(() => import("@/components/app-map").then(m => ({ default: m.AppMap })), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 bg-[#0F1115] flex items-center justify-center text-[#8B8FA3] text-xs">Karte lädt…</div>,
+});
 import { BaseModal as BaseModalDirect } from "@/components/base-modal";
 import { AttackBaseModal as AttackBaseModalDirect } from "@/components/attack-base-modal";
 import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
