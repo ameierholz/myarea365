@@ -69,6 +69,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     },
+    manifest: "/manifest.webmanifest",
     robots: { index: true, follow: true },
   };
 }
@@ -112,13 +113,26 @@ export default async function RootLayout({
                   name: "MyArea365",
                   description:
                     "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
-                  inLanguage: "de-DE",
+                  inLanguage: LOCALE_BCP47[locale as (typeof LOCALES)[number]] ?? "de-DE",
                   publisher: { "@id": "https://myarea365.de/#organization" },
                   potentialAction: {
                     "@type": "SearchAction",
                     target: "https://myarea365.de/leaderboard?q={search_term_string}",
                     "query-input": "required name=search_term_string",
                   },
+                },
+                {
+                  "@type": "MobileApplication",
+                  "@id": "https://myarea365.de/#mobileapp",
+                  name: "MyArea365",
+                  operatingSystem: "ANDROID",
+                  applicationCategory: "HealthApplication",
+                  applicationSubCategory: "Fitness",
+                  description:
+                    "Gamifizierte Geh- und Lauf-Community für Android. Erschließe Straßenzüge, sammle Wegemünzen, gründe Crews.",
+                  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+                  publisher: { "@id": "https://myarea365.de/#organization" },
+                  screenshot: "https://myarea365.de/og-default.png",
                 },
               ],
             }),

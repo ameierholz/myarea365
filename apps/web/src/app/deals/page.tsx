@@ -1,11 +1,23 @@
-"use client";
-
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
+import { buildSeoMetadata } from "@/lib/seo-meta";
+import type { Locale } from "@/i18n/config";
 import { ShopDealsContent } from "@/components/shop-deals-content";
 
-export default function DealsPage() {
-  const t = useTranslations("DealsPage");
+export async function generateMetadata() {
+  const locale = (await getLocale()) as Locale;
+  const t = await getTranslations("DealsPage");
+  return buildSeoMetadata({
+    path: "deals",
+    title: (t.has("heading") ? t("heading") : "Deals") + " · MyArea365",
+    description: t.has("kicker") ? t("kicker") : "Aktuelle lokale Deals und Shop-Angebote in deinem Quartier.",
+    locale,
+    index: true,
+  });
+}
+
+export default async function DealsPage() {
+  const t = await getTranslations("DealsPage");
   return (
     <main style={{ minHeight: "100vh", background: "#0F1115", color: "#F0F0F0", paddingBottom: 40 }}>
       <header style={{

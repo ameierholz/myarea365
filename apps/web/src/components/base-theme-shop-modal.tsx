@@ -65,7 +65,7 @@ export function BaseThemeShopModal({ onClose, onChanged }: {
   if (!data) return null;
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1300] bg-black/85 backdrop-blur-md flex items-stretch sm:items-center justify-center p-0 sm:p-3">
+    <div onClick={onClose} className="fixed inset-0 z-[9200] bg-black/85 backdrop-blur-md flex items-stretch sm:items-center justify-center p-0 sm:p-3">
       <div onClick={(e) => e.stopPropagation()}
         className="w-full max-w-2xl sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[100dvh] sm:max-h-[88vh]"
         style={{ background: "linear-gradient(180deg, #1A1D23 0%, #0F1115 100%)" }}>

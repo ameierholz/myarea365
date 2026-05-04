@@ -17,6 +17,8 @@
  */
 
 import Script from "next/script";
+import { useEffect, useState } from "react";
+import { onConsentChange } from "@/lib/consent";
 
 // Fallback auf Publisher-ID aus admob-config falls keine ENV gesetzt — AdSense Web
 // teilt sich denselben Account/Publisher mit AdMob Android.
@@ -29,9 +31,20 @@ function getPubId(): string | null {
   return raw.replace(/^ca-/, "");
 }
 
+/**
+ * Architektur-Entscheidung (siehe lib/consent.ts):
+ * - Erst-Banner = unsere CookieConsent (custom UI, simpel, Single-Layer).
+ * - UMP wird NUR geladen wenn der User «ads» bewusst akzeptiert hat —
+ *   für TCF-2.2-konforme detaillierte Vendor/Purpose-Auswahl. So gibt es
+ *   keinen Doppel-Banner und Consent-Layer 1 (custom) gatet Layer 2 (UMP/TCF).
+ */
 export function UmpConsent() {
   const pub = getPubId();
-  if (!pub) return null;
+  const [adsOk, setAdsOk] = useState(false);
+
+  useEffect(() => onConsentChange((s) => setAdsOk(s.ads)), []);
+
+  if (!pub || !adsOk) return null;
 
   return (
     <>

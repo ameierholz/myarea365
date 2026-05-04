@@ -48,7 +48,7 @@ export function NameplatePickerModal({ onClose, isAdmin = false }: { onClose: ()
   };
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3">
+    <div onClick={onClose} className="fixed inset-0 z-[9200] bg-black/85 backdrop-blur-md flex items-center justify-center p-3">
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg max-h-[92vh] flex flex-col rounded-2xl bg-[#1A1D23] border border-white/10 shadow-2xl overflow-hidden">
         <div className="p-4 border-b border-white/10 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#FF2D78] flex items-center justify-center text-xl">🎀</div>

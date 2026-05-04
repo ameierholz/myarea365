@@ -102,7 +102,7 @@ export function TroopDetailModal({
   }
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1300] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-2 sm:p-4">
+    <div onClick={onClose} className="fixed inset-0 z-[9300] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-2 sm:p-4">
       <div onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-3xl rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[96vh]"
         style={{ background: grad }}>

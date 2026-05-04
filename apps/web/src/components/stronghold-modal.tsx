@@ -90,7 +90,7 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
   if (top < PAD) top = PAD;
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1100]" style={{ background: "transparent", pointerEvents: "auto" }}>
+    <div onClick={onClose} className="fixed inset-0 z-[9100]" style={{ background: "transparent", pointerEvents: "auto" }}>
       <div
         onClick={(e) => e.stopPropagation()}
         className="absolute rounded-2xl bg-[#1A1D23] border border-[#FF2D78]/50 shadow-2xl overflow-hidden"
@@ -246,7 +246,7 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
   }
 
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[1200] bg-black/85 backdrop-blur-lg flex items-center justify-center p-3">
+    <div onClick={onClose} className="fixed inset-0 z-[9200] bg-black/85 backdrop-blur-lg flex items-center justify-center p-3">
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg max-h-[92vh] rounded-2xl bg-[#1A1D23] border border-[#FFD700]/40 shadow-2xl flex flex-col">
         <div className="p-4 border-b border-white/10">
           <button onClick={onClose} className="float-right w-8 h-8 rounded-full bg-black/40 text-white text-lg">×</button>

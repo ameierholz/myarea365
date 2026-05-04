@@ -1256,7 +1256,7 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-[1000] bg-black/75 backdrop-blur-md flex items-stretch justify-center p-3 sm:p-6"
+    <div className="fixed inset-0 z-[9100] bg-black/75 backdrop-blur-md flex items-stretch justify-center p-3 sm:p-6"
          onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl flex flex-col min-h-0">{children}</div>
     </div>

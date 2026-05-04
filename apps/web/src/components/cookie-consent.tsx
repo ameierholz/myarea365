@@ -75,15 +75,16 @@ export function CookieConsent() {
           })}
         </div>
         <div className="flex gap-2 shrink-0">
+          {/* min-h-11 = WCAG 2.5.5 Mindest-Touch-Target. */}
           <button
             onClick={rejectOptional}
-            className="px-4 py-2 rounded-lg border border-border text-text-muted hover:text-white text-xs font-bold"
+            className="min-h-11 px-5 py-2.5 rounded-lg border border-border text-text-muted hover:text-white text-sm font-bold"
           >
             {tC("rejectBtn")}
           </button>
           <button
             onClick={acceptAll}
-            className="px-4 py-2 rounded-lg bg-primary text-bg-deep text-xs font-bold hover:bg-primary-dim"
+            className="min-h-11 px-5 py-2.5 rounded-lg bg-primary text-bg-deep text-sm font-bold hover:bg-primary-dim"
           >
             {tC("acceptBtn")}
           </button>
