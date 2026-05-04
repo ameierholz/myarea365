@@ -71,6 +71,6 @@ export const config = {
     // Seiten-Auth (api ausgenommen — Auth läuft pro Route)
     // Static-Files (Bilder, ads.txt, robots.txt, sitemap.xml) muessen ohne Auth-
     // Redirect direkt ausgeliefert werden — sonst schlaegt AdSense-Verifikation fehl.
-    "/((?!_next/static|_next/image|favicon.ico|images|fonts|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|json|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|images|fonts|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|json|webmanifest|html)$).*)",
   ],
 };
