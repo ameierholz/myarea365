@@ -43,13 +43,13 @@ type Snapshot = {
 const SYSTEM_LABEL: Record<SystemKey, string> = {
   shop_league: "🏟️ Shop-Liga",
   arena:       "⚔️ Arena",
-  turf_war:    "🏴 Turf-Krieg",
+  turf_war:    "🏴 Revier-Cup",
 };
 
 const SYSTEM_DESC: Record<SystemKey, string> = {
   shop_league: "Wöchentliche Liga pro Shop. Cron Mo 00:05 UTC. Reward = Gebietsruf an Crew-Mitglieder.",
   arena:       "Globale Wächter-vs-Wächter-Liga. Cron 1. d. Monats 01:00 UTC. Reward = Diamanten + Siegel an Top-100.",
-  turf_war:    "Monatliche Crew-Liga (Turf-Kriege + Flag-Events + Territorien). Cron Mo 00:10 UTC. Reward = Gebietsruf.",
+  turf_war:    "Monatliche Crew-Liga (Revier-Cups + Flag-Events + Territorien). Cron Mo 00:10 UTC. Reward = Gebietsruf.",
 };
 
 export function SeasonsManagementClient() {
@@ -130,8 +130,8 @@ export function SeasonsManagementClient() {
 
   if (!snap) return <div className="text-[#8b8fa3] text-sm">Lade …</div>;
 
-  const sysData = snap[tab];
   const sysTiers = (editTiers ?? snap.tiers.filter((t) => t.system === tab));
+  const sysData = snap[tab] as { active: ShopSeason[] | ArenaSeason[] | CrewSeason[]; recent: ShopSeason[] | ArenaSeason[] | CrewSeason[] };
 
   return (
     <div className="space-y-4">

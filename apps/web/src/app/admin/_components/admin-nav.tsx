@@ -53,6 +53,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/gamification",   label: "🏆 Gamification" },
       { href: "/admin/missions",       label: "🎯 Missionen" },
       { href: "/admin/seasons",        label: "🗓️ Saisons" },
+      { href: "/admin/saga",           label: "🏙️ Metropol-Saga" },
       { href: "/admin/experiments",    label: "🧪 A/B-Tests" },
       { href: "/admin/artwork",        label: "🎨 Artwork" },
       { href: "/admin/lights-preview", label: "✨ Lights Preview" },

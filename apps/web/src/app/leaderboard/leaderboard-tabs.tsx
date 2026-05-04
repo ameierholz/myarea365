@@ -6,7 +6,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { getNumberLocale, getDateLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
 
-type TabId = "runners" | "guardians" | "factions" | "crews" | "shop-league" | "arena" | "arena-fights" | "turf-war" | "kiez";
+type TabId = "runners" | "guardians" | "factions" | "crews" | "shop-league" | "arena" | "arena-fights" | "turf-war" | "kiez" | "saga";
 type LBT = ReturnType<typeof useTranslations<"Leaderboard">>;
 
 export function LeaderboardTabs() {
@@ -17,6 +17,7 @@ export function LeaderboardTabs() {
     { id: "guardians",     label: t("tabGuardians") },
     { id: "factions",      label: t("tabFactions") },
     { id: "crews",         label: t("tabCrews") },
+    { id: "saga",          label: t("tabSaga") },
     { id: "turf-war",      label: t("tabTurfWar") },
     { id: "shop-league",   label: t("tabShopLeague") },
     { id: "arena-fights",  label: t("tabArenaFights") },
@@ -42,6 +43,7 @@ export function LeaderboardTabs() {
       {tab === "guardians"    && <GuardiansTab />}
       {tab === "factions"     && <FactionsTab />}
       {tab === "crews"        && <CrewsTab />}
+      {tab === "saga"         && <SagaTab />}
       {tab === "turf-war"     && <TurfWarTab />}
       {tab === "shop-league"  && <ShopLeagueTab />}
       {tab === "arena-fights" && <ArenaFightsTab />}
@@ -1193,6 +1195,73 @@ function KiezTab() {
             })}
           </div>
         )
+      )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SagaTab — Metropol-Saga Stadt-Standings
+// ════════════════════════════════════════════════════════════════
+type SagaTabSnap = {
+  active_round: { id: string; name: string; status: string } | null;
+  all_brackets: Array<{ id: string; city_slug: string; size_tier: string; crew_count: number; status: string; current_phase: number }>;
+};
+
+function SagaTab() {
+  const t = useTranslations("Leaderboard");
+  const [snap, setSnap] = useState<SagaTabSnap | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/saga", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setSnap(j))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-text-muted text-sm py-10 text-center">…</div>;
+
+  if (!snap?.active_round) {
+    return (
+      <div className="bg-white/3 border border-white/10 rounded-xl p-8 text-center">
+        <div className="text-3xl mb-2">🏙️</div>
+        <div className="text-white font-bold mb-1">{t("tlSagaHero")}</div>
+        <div className="text-text-muted text-sm">{t("tlSagaEmpty")}</div>
+      </div>
+    );
+  }
+
+  const r = snap.active_round;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-linear-to-br from-primary/10 to-accent/10 border border-primary/30 rounded-2xl p-5">
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-text-muted">{t("tlSagaHero")}</div>
+            <div className="text-2xl font-black text-white">{r.name}</div>
+            <div className="text-xs text-text-muted mt-1">{t("tlSagaSub")}</div>
+          </div>
+          <Link href="/saga" className="px-4 py-2 rounded-lg bg-primary text-bg-deep font-bold text-sm">
+            🏙️ Saga öffnen →
+          </Link>
+        </div>
+      </div>
+
+      {snap.all_brackets.length > 0 ? (
+        <div className="grid sm:grid-cols-2 gap-2">
+          {snap.all_brackets.map((b) => (
+            <div key={b.id} className="bg-white/3 border border-white/10 rounded-xl p-3">
+              <div className="text-white font-bold">🏙️ {b.city_slug}</div>
+              <div className="text-text-muted text-xs">
+                {b.crew_count} Crews · {b.size_tier} · Phase {b.current_phase}/4 · {b.status}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center text-text-muted text-sm py-6">Noch keine Brackets gematcht.</div>
       )}
     </div>
   );

@@ -86,7 +86,7 @@
     "pathCoinsForWhat": "Canjea descuentos en comercios locales (escanea QR), sube de rango, desbloquea iconos del mapa y Luces de Runner, boosts y skins en la tienda.",
     "pathCoinsFromWhere": "Cada carrera — calles (+50), calles completas (+250), territorios con crew (+500), km, bonos de racha, logros, vídeos publicitarios.",
     "territoryRepTitle": "🏴 Rep. de Territorio",
-    "territoryRepForWhat": "Sube la liga de tu crew (más 🪙 Monedas del Camino por territorio para todos), activa buffs de crew (km bonus, protección de racha), inicia guerras de crew contra crews vecinas.",
+    "territoryRepForWhat": "Sube la liga de tu crew (más 🪙 Monedas del Camino por territorio para todos), activa buffs de crew (km bonus, protección de racha), inicia copas de crew contra crews vecinas.",
     "territoryRepFromWhere": "Solo miembros de crew — por cada territorio que conquiste tu crew, por victorias en la liga semanal, y por territorios que mantengas más de 7 días.",
     "arenaHonorTitle": "⚔️ Honor de Arena",
     "arenaHonorForWhat": "Tu rango de arena (Madera → Leyenda), recompensas top-100 de temporada (sellos legendarios, skins exclusivas de Guardián, gemas).",
@@ -1406,14 +1406,14 @@
     "baseStep1": "Coloca tu base en el mapa (única vez). Toca \"Colocar\" en el banner bajo las acciones rápidas.",
     "baseStep2": "Recolecta recursos: 🪵 madera · 🪨 piedra · 🪙 oro · 💧 maná — andando (100/km), quests, anuncios, donaciones de crew, pasos o packs.",
     "baseStep3": "Construye y mejora estructuras — cada nivel da un bono % permanente o recurso pasivo por hora. Murallas y atalayas suben el HP de la base (valor base + bonos).",
-    "baseStep4": "Entrena tropas en cuartel/establo/campo de tiro — infantería, caballería, tiradores y asedio. Cuesta recursos + tiempo de entrenamiento.",
-    "baseStep5": "Crew vs crew: explora una base enemiga → manda un stack de tropas → temporizador de marcha → resolución. Victoria = loot, derrota = bajas. El HP del defensor + el bono de muralla dan protección.",
+    "baseStep4": "Entrena equipos en cuartel/establo/campo de tiro — infantería, caballería, tiradores y match. Cuesta recursos + tiempo de entrenamiento.",
+    "baseStep5": "Crew vs crew: explora una base rival → manda un stack de equipos → temporizador de marcha → resolución. Victoria = loot, derrota = bajas. El HP del defensor + el bono de muralla dan protección.",
     "baseStep6": "Abre cofres por objetos y sellos. Desbloquea Premium/temas para slots extra y bonos de tiempo de construcción.",
     "baseTip1": "Coloca edificios bonus en casillas de agua/parque/comercio km — ahí ganan efecto extra.",
-    "baseTip2": "Base de crew = bonos de equipo + pool de tropas compartido: cada construcción ayuda a todos.",
-    "baseTip3": "Mucho HP + muralla = defensa barata. Tropas de ataque = más caras pero permiten loot al ganar.",
+    "baseTip2": "Base de crew = bonos de equipo + pool de equipos compartido: cada construcción ayuda a todos.",
+    "baseTip3": "Mucho HP + muralla = defensa barata. Equipos de ataque = más caros pero permiten loot al ganar.",
     "baseTip4": "Tope diario de pasos: 50.000. Donaciones de crew: máx. 1.000/tx, 5.000 recibidos/día.",
-    "baseReward": "Recursos pasivos por hora · bonos % permanentes · drops de cofres · tokens de velocidad · loot de batallas de crew"
+    "baseReward": "Recursos pasivos por hora · bonos % permanentes · drops de cofres · tokens de velocidad · loot de copas de crew"
   },
   "Redeem": {
     "kicker": "CANJEAR",
@@ -2148,9 +2148,9 @@
     "ariaShowRoute": "Mostrar ruta",
     "ariaShowAllRanks": "Ver todos los rangos",
     "titleCoinsExplain": "🪙 Monedas del Camino: tu moneda runner. Anda calles (50), tramos (+250) o territorios con crew (+500) y sube de rango. Toca para todos los rangos.",
-    "titlePowerScore": "Reputación {n} — puntuación de poder por construir, investigar, entrenar tropas, subir guardianes y repetidores de crew",
+    "titlePowerScore": "Reputación {n} — puntuación de poder por construir, investigar, entrenar equipos, subir guardianes y repetidores de crew",
     "titleSessionHonor": "⚔️ Gana honor de sesión: combate 1v1 de guardianes. 5 combates gratis/día. Victoria = sellos, equipo, honor.",
-    "titleTerritoryFame": "🏴 Gana fama de territorio: únete a una crew para +500 🪙/territorio, guerras de crew (5000 🏴) y captura de banderas (3000 🏴).",
+    "titleTerritoryFame": "🏴 Gana fama de territorio: únete a una crew para +500 🪙/territorio, copas de crew (5000 🏴) y captura de banderas (3000 🏴).",
     "labelTimeOfDay": "Hora del día",
     "labelBack": "Atrás",
     "labelOverview": "Resumen",
@@ -2363,7 +2363,7 @@
     "prestigeFormulaHint": "Prestigio = Nivel × 10 + Victorias × 3",
     "prestigeAfterSeason": "💡 <b>Tras fin de temporada</b>: Tu Guardián de Temporada va al archivo. Los objetos se quedan contigo, el Guardián Eterno recibe un buff permanente de ellos. Empiezas la siguiente temporada en Nivel 1 — pero con más prestigio, títulos y una colección creciente.",
     "prestigeReset": "↺ Reiniciar demo",
-    "titleWarmaster": "Maestro de Guerra",
+    "titleWarmaster": "Maestro de Copa",
     "titleGladiator": "Gladiador",
     "titleVeteran": "Veterano",
     "slotHelm": "Casco",
@@ -2478,9 +2478,9 @@
         "q3": "¿Qué funciones son completamente gratis?",
         "a3": "Todo lo relevante para el juego: correr, rangos, Guardianes, crews, Arena (5 combates gratis/día), misiones, logros. La tienda es puramente opcional — comodidad, cosméticos, congelaciones de racha. <b>Sin pay-to-win.</b>",
         "q4": "¿Cuándo merece la pena una crew?",
-        "a4": "Solo: máx 250 🪙 por calle. Con crew: +500 🪙 adicionales por territorio cerrado + 🏴 reputación de territorio por guerras de crew (5.000 🏴 por victoria). Fundar crew es gratis.",
-        "q5": "¿Diferencia entre Arena y Guerra de Crew?",
-        "a5": "<b>Arena</b> = combate 1v1 de Guardianes, personal, da ⚔️ Honor de Arena + loot. <b>Guerra de Crew</b> = todo tu equipo vs. otra crew, da 🏴 reputación de territorio. Funcionan separadas y no se canibalizan.",
+        "a4": "Solo: máx 250 🪙 por calle. Con crew: +500 🪙 adicionales por territorio cerrado + 🏴 reputación de territorio por copas de crew (5.000 🏴 por victoria). Fundar crew es gratis.",
+        "q5": "¿Diferencia entre Arena y Copa de Crew?",
+        "a5": "<b>Arena</b> = combate 1v1 de Guardianes, personal, da ⚔️ Honor de Arena + loot. <b>Copa de Crew</b> = todo tu equipo vs. otra crew, da 🏴 reputación de territorio. Funcionan separadas y no se canibalizan.",
         "q6": "¿Tengo que pagar para ser bueno?",
         "a6": "No. Los puestos top de clasificación se alcanzan con movimiento real. El dinero solo compra <b>tiempo</b> (congelación de racha por enfermedad), <b>comodidad</b> (sin anuncios vía MyArea+) y <b>estilo</b> (Luces de Runner, temas). Los boost de Monedas son limitados y aceleran — pero nunca reemplazan — el movimiento real."
       },
@@ -2498,11 +2498,11 @@
       "waehrungen": {
         "title": "Monedas y Rangos",
         "q1": "¿Qué monedas existen?",
-        "a1": "Tres flujos de recompensa separados, para que una derrota en Arena no destruya tu progresión runner:<br/><br/>🪙 <b>Monedas del Camino</b> — corriendo, conquistas de territorio, misiones, packs de la tienda.<br/>🏴 <b>Reputación de Territorio</b> — victoria de guerra de crew, captura de bandera, duelo de crew, reto de crew.<br/>⚔️ <b>Honor de Arena</b> — victoria en Arena (+) / derrota (−, mín. 0).",
+        "a1": "Tres flujos de recompensa separados, para que una derrota en Arena no destruya tu progresión runner:<br/><br/>🪙 <b>Monedas del Camino</b> — corriendo, conquistas de territorio, misiones, packs de la tienda.<br/>🏴 <b>Reputación de Territorio</b> — victoria de copa de crew, captura de bandera, duelo de crew, reto de crew.<br/>⚔️ <b>Honor de Arena</b> — victoria en Arena (+) / derrota (−, mín. 0).",
         "q2": "¿Qué me da 🪙 Monedas?",
         "a2": "• <b>Tramo nuevo</b>: 50 🪙<br/>• <b>Calle completa</b>: +250 🪙 bonus<br/>• <b>Territorio cerrado</b> (crew): +500 🪙<br/>• <b>Misiones diarias/semanales</b>: 200–500 🪙<br/>• <b>Hitos</b> (primeros 10 km, racha de 30 días, etc.): bonus extra",
         "q3": "¿Qué me da 🏴 Reputación de Territorio?",
-        "a3": "• <b>Guerra de crew ganada</b>: 5.000 🏴 a todos los miembros activos<br/>• <b>Captura de bandera ganada</b>: 3.000 🏴<br/>• <b>Duelo semanal ganado</b>: 2.000 🏴<br/>• <b>Reto de crew completado</b>: recompensa variable<br/><br/>La Reputación es personal — te la llevas al cambiar de crew, pero solo se gana en contexto de crew.",
+        "a3": "• <b>Copa de crew ganada</b>: 5.000 🏴 a todos los miembros activos<br/>• <b>Captura de bandera ganada</b>: 3.000 🏴<br/>• <b>Duelo semanal ganado</b>: 2.000 🏴<br/>• <b>Reto de crew completado</b>: recompensa variable<br/><br/>La Reputación es personal — te la llevas al cambiar de crew, pero solo se gana en contexto de crew.",
         "q4": "¿Qué me da ⚔️ Honor de Arena?",
         "a4": "Los combates de Arena redistribuyen honor: el ganador gana ~+50 %, el perdedor pierde ~20 % de la Experiencia de batalla. No puede ser negativo (mín. 0). Se trackea por temporada — relevante para prestigio, pero <b>no</b> afecta a tus Monedas o rango.",
         "q5": "¿Recibo Monedas por calles viejas que vuelvo a correr?",
@@ -2578,7 +2578,7 @@
     "Slide4": {
       "title": "4. Tu primera semana",
       "xp": "Todo gratis para jugar",
-      "body": "🏃 Empieza una carrera: trackea GPS, conquista calles, reúne 🪙 Monedas. 👥 Funda/únete a crew: +500 🪙 por territorio y 🏴 reputación de territorio en guerras. ⚔️ Arena: 5 combates gratis al día, las victorias dan ⚔️ Honor + loot. 💎 Tienda: gasta Monedas o opcionalmente dinero real (cosméticos, comodidad, congelaciones — nunca pay-to-win)."
+      "body": "🏃 Empieza una carrera: trackea GPS, conquista calles, reúne 🪙 Monedas. 👥 Funda/únete a crew: +500 🪙 por territorio y 🏴 reputación de territorio en copas. ⚔️ Arena: 5 combates gratis al día, las victorias dan ⚔️ Honor + loot. 💎 Tienda: gasta Monedas o opcionalmente dinero real (cosméticos, comodidad, congelaciones — nunca pay-to-win)."
     }
   },
   "Popups": {
@@ -2620,7 +2620,7 @@
   },
   "CrewLiveHub": {
     "liveHeader": "🛰️ EN VIVO · CREW HUB",
-    "tabWar": "Guerra",
+    "tabWar": "Copa",
     "tabSeason": "Temporada",
     "tabFlags": "Banderas",
     "tabDuel": "Duelo",
@@ -2628,11 +2628,11 @@
     "tabPower": "Power",
     "loading": "Cargando…",
     "abort": "Cancelar",
-    "warDeclareButton": "🔥 Declarar guerra",
+    "warDeclareButton": "🔥 Iniciar copa",
     "warPendingHeading": "INVITACIONES PENDIENTES",
     "warPastHeading": "GUERRAS PASADAS",
-    "warEmpty": "Aún sin guerra. Los admins pueden retar enemigos.",
-    "warOtherWants": "Otra crew quiere ir a la guerra contigo.",
+    "warEmpty": "Aún sin copa. Los admins pueden retar rivales.",
+    "warOtherWants": "Otra crew quiere iniciar una copa contigo.",
     "warWaitResponse": "Esperando respuesta de la crew rival.",
     "warAccept": "✓ Aceptar",
     "warDecline": "✗ Rechazar",
@@ -2645,14 +2645,14 @@
     "warLeading": "Lideras por {n} pt",
     "warBehind": "Por detrás por {n} pt",
     "warTie": "Empate",
-    "warModalTitle": "🔥 Declarar guerra",
-    "warModalSub": "Elige una crew enemiga. Si su admin acepta, empieza una guerra de 7 días (km + territorios cuentan).",
+    "warModalTitle": "🔥 Iniciar copa",
+    "warModalSub": "Elige una crew rival. Si su admin acepta, empieza una copa de 7 días (km + territorios cuentan).",
     "warSearchPlaceholder": "Buscar nombre de crew…",
     "warNoCrewsFound": "Sin crews encontradas.",
     "warPlzMembers": "CP {plz} · {n} miembros",
-    "warBtnDeclare": "⚔️ Guerra",
+    "warBtnDeclare": "⚔️ Copa",
     "warErrorPrefix": "Error: {msg}",
-    "warSentAlert": "⚔️ ¡Declaración de guerra enviada! Una vez la crew enemiga acepte, empiezan los 7 días.",
+    "warSentAlert": "⚔️ ¡Invitación de copa enviada! Una vez la crew rival acepte, empiezan los 7 días.",
     "seasonInfo": "🏆 TEMPORADA {month}/{year} · quedan {days} días",
     "seasonInfoUnknown": "🏆 TEMPORADA ? · quedan {days} días",
     "seasonRank": "#{rank}",
@@ -2788,19 +2788,19 @@
     "info": {
       "overview": {
         "title": "Miembros",
-        "how": "Lista de todos los miembros activos de crew ordenada por 🏴 Reputación. El punto verde muestra quién está online (activo en los últimos 5 minutos). Admins y owners reciben badges. Cuanto más activos los miembros, más fuerte la crew en duelos, guerras y la liga de temporada.",
+        "how": "Lista de todos los miembros activos de crew ordenada por 🏴 Reputación. El punto verde muestra quién está online (activo en los últimos 5 minutos). Admins y owners reciben badges. Cuanto más activos los miembros, más fuerte la crew en duelos, copas y la liga de temporada.",
         "loot": "Sin recompensas directas — pero cuanto más miembros activos tengas, más km, territorios y victorias en arena fluyen a todos los demás modos de crew.",
         "tips": "Si los miembros llevan más de 14 días inactivos: pícales en el chat o motívalos vía pregones de crew."
       },
       "war": {
-        "title": "Guerra de Crew (riña de 7 días)",
-        "how": "Los admins pueden declarar guerra a otras crews. Si la crew objetivo acepta, empieza un match de 7 días. Durante la riña, cada km = 1 punto, cada territorio reclamado = 10 puntos. Tras agotarse el cronómetro, gana automáticamente la crew con más puntos. Las invitaciones declinadas o retiradas no tienen consecuencias.",
+        "title": "Copa de Crew (enfrentamiento de 7 días)",
+        "how": "Los admins pueden iniciar una copa contra otras crews. Si la crew objetivo acepta, empieza un match de 7 días. Durante el enfrentamiento, cada km = 1 punto, cada territorio reclamado = 10 puntos. Tras agotarse el cronómetro, gana automáticamente la crew con más puntos. Las invitaciones declinadas o retiradas no tienen consecuencias.",
         "loot": "Crew ganadora: todos los miembros activos reciben +5.000 🏴 Reputación. La victoria también va al ranking de temporada y al feed de crew (para presumir).",
-        "tips": "Buen momento para una guerra: justo antes de fin de mes para empujar la liga de temporada. Elige rivales de tu tier — los matches igualados son más emocionantes."
+        "tips": "Buen momento para una copa: justo antes de fin de mes para empujar la liga de temporada. Elige rivales de tu tier — los matches igualados son más emocionantes."
       },
       "season": {
         "title": "Liga de Temporada (mensual)",
-        "how": "Cada mes empieza una nueva temporada automáticamente. Las crews acumulan puntos por territorios (+5), victorias en duelo y guerra. La clasificación determina el tier (Bronce → Plata → Oro → Diamante → Leyenda). Al fin de mes la clasificación se congela.",
+        "how": "Cada mes empieza una nueva temporada automáticamente. Las crews acumulan puntos por territorios (+5), victorias en duelo y copa. La clasificación determina el tier (Bronce → Plata → Oro → Diamante → Leyenda). Al fin de mes la clasificación se congela.",
         "loot": "Las posiciones top a fin de mes reciben badges de rango en el perfil de crew (cosmético + para presumir). Los tiers Diamante y Leyenda dan además un multiplicador de reputación bonus en la siguiente temporada (planeado).",
         "tips": "Los territorios cuentan más. Hacia fin de mes, céntrate en anillos polígonos en lugar de calles individuales."
       },
@@ -2825,18 +2825,18 @@
       "events": {
         "title": "Carreras de Grupo",
         "how": "Cada miembro de crew puede planear una carrera de grupo (fecha, hora, punto de encuentro, distancia, ritmo objetivo). Otros miembros responden con 'Voy / Quizás / No'. El creador se marca automáticamente como 'Voy'.",
-        "loot": "Sin monedas directas por el evento — pero: corriendo juntos vais más lejos, reunís más km → la puntuación de crew en duelo, guerra, temporada y retos sube simultáneamente.",
+        "loot": "Sin monedas directas por el evento — pero: corriendo juntos vais más lejos, reunís más km → la puntuación de crew en duelo, copa, temporada y retos sube simultáneamente.",
         "tips": "Los puntos de encuentro abiertos funcionan mejor (p. ej. 'Entrada principal Atocha'). Para carreras regulares: elige slot semanal recurrente."
       },
       "chat": {
         "title": "Chat de Crew",
         "how": "Chat en tiempo real solo para tu crew. Los mensajes aparecen al instante para todos los miembros (Supabase Realtime). Máx 600 caracteres por mensaje. Puedes eliminar tus mensajes.",
         "loot": "El chat en sí no da Experiencia. Pero: buena comunicación = más carreras de grupo = más victorias de crew.",
-        "tips": "Úsalo para movilización de eventos, empujones de retos, alertas de banderas y motivación. Sin spam — los admins pueden revocar derechos por abuso."
+        "tips": "Úsalo para arranque de eventos, empujones de retos, alertas de banderas y motivación. Sin spam — los admins pueden revocar derechos por abuso."
       },
       "feed": {
         "title": "Feed de Crew",
-        "how": "Stream de actividad auto-generado: quién se unió, qué territorios se conquistaron, qué retos se completaron, qué duelos/guerras se ganaron, victorias en arena de los miembros. Sin posts manuales — todo lo impulsan acciones reales de crew.",
+        "how": "Stream de actividad auto-generado: quién se unió, qué territorios se conquistaron, qué retos se completaron, qué duelos/copas se ganaron, victorias en arena de los miembros. Sin posts manuales — todo lo impulsan acciones reales de crew.",
         "loot": "Sin Experiencia directa. El feed sirve para transparencia y motivación: ves qué hace tu crew ahora mismo.",
         "tips": "Si el feed se queda vacío: los miembros están inactivos. Es el mejor indicador de salud de la crew."
       },
@@ -2848,9 +2848,9 @@
       },
       "power": {
         "title": "Crew Power (Pay-to-Progress)",
-        "how": "Vault compartido de crew con gemas. Los miembros depositan 💎 de su cuenta al pool, los admins las usan para activar 7 items de poder (boosts de score, escudo, spawn de bandera, reroll, pick de duelo). Los boosts SOLO empujan rankings de crew (duelo/guerra/temporada), no Experiencia personal — así los rangos runner siguen valiendo.",
-        "loot": "Sin Experiencia directa. Pero: multiplicador de score de crew +50% en duelo/guerra/temporada/retos, protección contra robo de territorio, ventaja estratégica. Límite: máx 1 boost activo a la vez, máx 72 h de tiempo de boost por semana.",
-        "tips": "Los boosts de score merecen la pena justo antes del fin de un duelo/guerra. Escudo de territorio durante ataques enemigos en curso. Packs de slot de miembro (€) cuando la crew se llena (inicio: 10 slots, máx 100)."
+        "how": "Vault compartido de crew con gemas. Los miembros depositan 💎 de su cuenta al pool, los admins las usan para activar 7 items de poder (boosts de score, escudo, spawn de bandera, reroll, pick de duelo). Los boosts SOLO empujan rankings de crew (duelo/copa/temporada), no Experiencia personal — así los rangos runner siguen valiendo.",
+        "loot": "Sin Experiencia directa. Pero: multiplicador de score de crew +50% en duelo/copa/temporada/retos, protección contra robo de territorio, ventaja estratégica. Límite: máx 1 boost activo a la vez, máx 72 h de tiempo de boost por semana.",
+        "tips": "Los boosts de score merecen la pena justo antes del fin de un duelo/copa. Escudo de territorio durante ataques enemigos en curso. Packs de slot de miembro (€) cuando la crew se llena (inicio: 10 slots, máx 100)."
       }
     }
   },
@@ -4843,7 +4843,7 @@
     "buildEmpty": "Aún ninguno construido",
     "buildHpLabel": "HP {hp}/{max}",
     "buildPlanned": "PLANEADO",
-    "plannedSiegeName": "Repetidor de Asedio",
+    "plannedSiegeName": "Repetidor de Match",
     "plannedSiegeTagline": "Mejora del repetidor estándar",
     "plannedSiegeDesc": "Repetidor mejorado con alcance de ataque — asedia automáticamente bases enemigas cercanas y desgasta su HP.",
     "plannedBunkerName": "Búnker",
@@ -4873,7 +4873,7 @@
     "scoutErrAlreadyScouting": "Ya tienes un scout en camino a este enemigo.",
     "scoutErrBaseMissing": "Falta tu base o la del objetivo en el mapa.",
     "scoutErrGeneric": "Espionaje fallido",
-    "minTroops": "Mínimo 10 tropas requeridas.",
+    "minTroops": "Mínimo 10 equipos requeridos.",
     "rallyStarted": "✓ Rally iniciado — la crew puede unirse.",
     "rallyErrNoCrew": "No estás en una crew.",
     "rallyErrAlreadyActive": "Tu crew ya tiene un rally activo.",
@@ -4916,13 +4916,13 @@
     "marchCapShortGuardian": "+{pct}%",
     "marchesUsed": "{used}/{total} marchas",
     "marchesQueueFull": "⚠ Todos los slots de marcha usados — espera a que termine un ataque activo.",
-    "noTroops": "Sin tropas disponibles — entrena algunas.",
+    "noTroops": "Sin equipos disponibles — entrena algunos.",
     "classClickHint": "★ {name}",
     "classAvailable": "disponibles {n}",
     "troopTier": "T{tier}",
     "troopStats": "ATQ {atk} · DEF {def} · HP {hp} · tienes {have}",
     "qtyMax": "MAX",
-    "footerTroopsLabel": "Tropas:",
+    "footerTroopsLabel": "Equipos:",
     "footerAttackLabel": "Ataque:",
     "footerClear": "Vaciar",
     "footerAll": "Todas",
@@ -4952,14 +4952,14 @@
     "tabOverview": "Resumen",
     "tabRes": "Recursos",
     "tabBuild": "Construir",
-    "tabTroops": "Tropas",
+    "tabTroops": "Equipos",
     "tabResearch": "Investigación",
     "tabChest": "Cofres",
     "tabVip": "Premium",
     "tabBtnOverview": "📊 Info",
     "tabBtnRes": "💰 RSS",
     "tabBtnBuild": "🏗 Construir",
-    "tabBtnTroops": "⚔ Tropas",
+    "tabBtnTroops": "⚔ Equipos",
     "tabBtnResearch": "🔬 Tech",
     "tabBtnChest": "🗝 Loot",
     "tabBtnVip": "⭐ Premium",
@@ -5064,7 +5064,7 @@
     "introResearchTitle": "🔬 INVESTIGACIÓN",
     "introResearchBody1": "La investigación da ",
     "introResearchBoni": "% de bonos",
-    "introResearchBody2": " permanentes (recursos, tropas, tiempo de construcción). Los tiers más altos requieren investigación predecesora + nivel de burgo correspondiente.",
+    "introResearchBody2": " permanentes (recursos, equipos, tiempo de construcción). Los tiers más altos requieren investigación predecesora + nivel de burgo correspondiente.",
     "introResearchBody3": "Slots de investigación: 1 (Premium 4 → 2 · Premium 7 → 3).",
     "researchInProgress": "⏱ INVESTIGANDO",
     "researchToLevel": "{name} → nivel {target}",
@@ -5133,9 +5133,9 @@
     "benefitResearch": "📚 Investigación",
     "benefitGather": "🌾 Recolección",
     "benefitMarchSpeed": "🐎 Velocidad de marcha",
-    "benefitTroopAtk": "⚔ ATQ tropa",
-    "benefitTroopDef": "🛡 DEF tropa",
-    "benefitTroopHp": "❤ HP tropa",
+    "benefitTroopAtk": "⚔ ATQ equipo",
+    "benefitTroopDef": "🛡 DEF equipo",
+    "benefitTroopHp": "❤ HP equipo",
     "benefitPercent": "+{n}%",
     "benefitMinusPercent": "-{n}%",
     "benefitPlus": "+{n}",
@@ -5372,7 +5372,7 @@
     },
     "ballistenwerk": {
       "name": "Taller de Trabuquetes",
-      "description": "Desbloquea tropas de asedio para guerras de crew."
+      "description": "Desbloquea equipos de match para copas de crew."
     },
     "schwertkampflager": {
       "name": "Cuartel de Espadachines",
@@ -5439,7 +5439,7 @@
     "stone_storage_pct": "Cap almacén de piedra",
     "heal_speed_pct": "Velocidad de curación",
     "arena_xp_pct": "XP de arena",
-    "siege_strength_pct": "Fuerza de asedio",
+    "siege_strength_pct": "Fuerza de match",
     "melee_train_speed_pct": "Entrenamiento espadachines",
     "ranged_train_speed_pct": "Entrenamiento arqueros",
     "research_speed_pct": "Velocidad de investigación",

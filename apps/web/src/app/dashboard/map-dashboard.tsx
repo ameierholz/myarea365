@@ -122,6 +122,7 @@ const GatherModal = _IS_PROD ? dynamic(() => import("@/components/gather-modal")
 const AppSettingsContent = _IS_PROD ? dynamic(() => import("@/components/settings/app-settings-modal").then(m => m.AppSettingsContent)) : AppSettingsContentDirect;
 const HealthDashboard = _IS_PROD ? dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard)) : HealthDashboardDirect;
 import { ActiveMarchesBanner } from "@/components/active-marches-banner";
+import { HeimatOverlay, HeimatRelocateConfirm } from "@/components/heimat/heimat-overlay";
 import { ActiveCrewRallyBanner, type CrewRally } from "@/components/active-crew-rally-banner";
 import { useRealtimeAwareInterval } from "@/lib/use-realtime-aware-interval";
 import { ActiveScoutsBanner, type ActiveScout } from "@/components/active-scouts-banner";
@@ -1346,6 +1347,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // Placement-Mode: User wählt Repeater-Typ → Map zeigt Coverage-Preview & Ghost-Kreise
   // existierender Repeater. Tap auf Karte öffnet PlaceRepeaterModal an Cursor-Position.
   const [repeaterPlaceMode, setRepeaterPlaceMode] = useState<null | { kind: "hq" | "repeater" | "mega" }>(null);
+  // ── Heimat-Karte CoD-UX (Tap-Action-Menu, Verlegen, Multi-Aufgebot, Hide) ──
+  const [heimatTapPos, setHeimatTapPos] = useState<null | { lat: number; lng: number; screenX: number; screenY: number }>(null);
+  const [heimatTapDefender, setHeimatTapDefender] = useState<null | { id: string; name: string }>(null);
+  const [heimatRelocateMode, setHeimatRelocateMode] = useState(false);
+  const [heimatRelocateTarget, setHeimatRelocateTarget] = useState<null | { lat: number; lng: number }>(null);
   const [buildingPlaceMode, setBuildingPlaceMode] = useState<null | { kind: "blackmarket" | "bunker" | "hangout" | "tunnel" }>(null);
   const [repeaterPlaceCursor, setRepeaterPlaceCursor] = useState<{ lat: number; lng: number } | null>(null);
   // Alle Stadt-Blocks im Sichtbereich — nur im Placement-Mode geladen,
@@ -2059,7 +2065,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 if (r) setRepeaterInfoTarget({ r, x, y });
               }}
               onMapLongPress={(lng, lat) => {
-                // Long-Press funktioniert NUR im Placement-Mode (verhindert Versehen)
+                // Heimat-Karte CoD-UX: ausserhalb von Placement-Mode öffnet
+                // Long-Press das Tap-Action-Menü (Verlegen/Aufgebot/Verstecken).
+                if (!repeaterPlaceMode && !buildingPlaceMode && !heimatRelocateMode) {
+                  setHeimatTapPos({ lat, lng, screenX: window.innerWidth / 2, screenY: window.innerHeight / 2 });
+                  return;
+                }
+                // Verlegen-Mode: Long-Press = neue Position für Base-Verlegen
+                if (heimatRelocateMode) {
+                  setHeimatRelocateTarget({ lat, lng });
+                  return;
+                }
                 if (repeaterPlaceMode) {
                   setPlaceRepeaterAt({ lat, lng });
                   setRepeaterPlaceMode(null);
@@ -2761,6 +2777,41 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           anchorX={attackTarget.x}
           anchorY={attackTarget.y}
           onClose={() => setAttackTarget(null)}
+        />
+      )}
+
+      {/* Heimat-Karte CoD-UX Overlay (Tap-Action-Menü + Multi-Aufgebot + Verstecken + Eingehende Märsche) */}
+      <HeimatOverlay
+        tapPosition={heimatTapPos}
+        onCloseTap={() => { setHeimatTapPos(null); setHeimatTapDefender(null); }}
+        onEnterRelocateMode={() => { setHeimatRelocateMode(true); setHeimatTapPos(null); }}
+        defenderUserId={heimatTapDefender?.id ?? null}
+        defenderName={heimatTapDefender?.name ?? null}
+      />
+
+      {/* Verlegen-Modus: Banner oben + Bestätigung wenn Ziel gesetzt */}
+      {heimatRelocateMode && !heimatRelocateTarget && (
+        <div className="fixed inset-x-2 top-16 z-[9080] bg-[#22D1C3] text-[#0F1115] rounded-xl p-3 text-center font-bold shadow-2xl max-w-md mx-auto">
+          🏠 Long-Press auf neue Position halten zum Verlegen
+          <button
+            onClick={() => setHeimatRelocateMode(false)}
+            className="ml-3 text-xs underline"
+          >Abbrechen</button>
+        </div>
+      )}
+      {heimatRelocateMode && heimatRelocateTarget && profile && (
+        <HeimatRelocateConfirm
+          newLat={heimatRelocateTarget.lat}
+          newLng={heimatRelocateTarget.lng}
+          currentLat={(profile as { base_lat?: number }).base_lat ?? userCenter?.lat ?? 0}
+          currentLng={(profile as { base_lng?: number }).base_lng ?? userCenter?.lng ?? 0}
+          onCancel={() => { setHeimatRelocateMode(false); setHeimatRelocateTarget(null); }}
+          onSuccess={() => {
+            setHeimatRelocateMode(false);
+            setHeimatRelocateTarget(null);
+            // Reload page state
+            window.location.reload();
+          }}
         />
       )}
 

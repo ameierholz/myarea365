@@ -50,6 +50,7 @@ export async function GET() {
     shop_league: { active: shopActive.data ?? [], recent: shopRecent.data ?? [] },
     arena:       { active: arenaActive.data ?? [], recent: arenaRecent.data ?? [] },
     turf_war:    { active: turfActive.data ?? [],  recent: turfRecent.data ?? [] },
+    saga:        { active: [], recent: [], cities: [] },
   });
 }
 
@@ -68,9 +69,13 @@ export async function POST(req: NextRequest) {
   await requireStaff();
   const sb = await createClient();
   const body = await req.json() as {
-    system?: "shop_league" | "arena" | "turf_war";
-    action?: "finalize_now" | "force_close_active" | "update_tiers";
+    system?: "shop_league" | "arena" | "turf_war" | "saga";
+    action?: "finalize_now" | "force_close_active" | "update_tiers" | "saga_create" | "saga_finalize_buildup";
     tiers?: TierUpdate[];
+    name?: string;
+    buildup_starts?: string;
+    cities?: Array<{ name: string; slug: string; color_hex?: string }>;
+    season_id?: string;
   };
 
   if (!body.system || !body.action) {
@@ -94,6 +99,32 @@ export async function POST(req: NextRequest) {
       if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
       return NextResponse.json({ ok: true, result: data });
     }
+    if (body.system === "saga") {
+      const { data, error } = await sb.rpc("saga_finalize_season", { p_season_id: body.season_id ?? null });
+      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true, result: data });
+    }
+  }
+
+  // ─── saga_create — neue Saga-Saison anlegen ─────────────────────
+  if (body.action === "saga_create" && body.system === "saga") {
+    if (!body.name || !body.buildup_starts || !Array.isArray(body.cities) || body.cities.length < 2) {
+      return NextResponse.json({ ok: false, error: "name + buildup_starts + cities[≥2] required" }, { status: 400 });
+    }
+    const { data, error } = await sb.rpc("saga_create_season", {
+      p_name: body.name,
+      p_buildup_starts: body.buildup_starts,
+      p_cities: body.cities,
+    });
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, season_id: data });
+  }
+
+  // ─── saga_finalize_buildup — Auftakt-Sieger küren ───────────────
+  if (body.action === "saga_finalize_buildup" && body.system === "saga") {
+    const { data, error } = await sb.rpc("saga_finalize_buildup", { p_season_id: body.season_id ?? null });
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, result: data });
   }
 
   // ─── force_close_active (Shop-Liga + Turf-Krieg) ────────────────

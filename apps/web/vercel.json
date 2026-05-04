@@ -6,6 +6,7 @@
     { "path": "/api/cron/shop-leagues",        "schedule": "5 0 * * 1" },
     { "path": "/api/cron/turf-war-seasons",    "schedule": "10 0 * * 1" },
     { "path": "/api/cron/arena-season-end",    "schedule": "0 1 1 * *" },
+    { "path": "/api/cron/saga-lifecycle",      "schedule": "*/10 * * * *" },
     { "path": "/api/cron/resolve-plz",         "schedule": "*/15 * * * *" },
     { "path": "/api/cron/gdpr-purge",          "schedule": "0 3 * * *" }
   ]

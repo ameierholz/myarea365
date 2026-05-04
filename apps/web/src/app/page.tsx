@@ -64,12 +64,20 @@ export default async function LandingPage() {
 
           <InlineAuth />
 
-          <Link
-            href="/leaderboard"
-            className="inline-flex items-center gap-2 mt-4 text-sm text-text-muted hover:text-primary transition"
-          >
-            🏆 <span>{t("heroLeaderboardCta")}</span>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center mt-4">
+            <Link
+              href="/leaderboard"
+              className="inline-flex items-center justify-center gap-2 text-sm text-text-muted hover:text-primary transition"
+            >
+              🏆 <span>{t("heroLeaderboardCta")}</span>
+            </Link>
+            <Link
+              href="/saga"
+              className="inline-flex items-center justify-center gap-2 text-sm text-text-muted hover:text-primary transition"
+            >
+              🏙️ <span>{t("heroSagaCta")}</span>
+            </Link>
+          </div>
         </div>
 
         <div className="relative z-10 mt-auto pb-10">
