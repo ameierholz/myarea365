@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Star, Share2, Flag } from "lucide-react";
 import { PersonalMarkerModal, CrewMarkerModal, SharePinModal } from "./heimat-marker-modals";
 
 type HeimatPoi = {
@@ -151,23 +152,23 @@ export function HeimatOverlay({
               backgroundImage: "radial-gradient(circle at 20% 30%, #22D1C3 0%, transparent 50%), radial-gradient(circle at 80% 70%, #FF2D78 0%, transparent 50%)",
             }} />
             <div className="relative text-5xl filter drop-shadow-lg">📍</div>
-            {/* Side-Action-Icons (3 Funktionen) — Glass-Morphism, kleiner */}
+            {/* Side-Action-Icons (3 Funktionen) — Glass-Morphism, 26px */}
             <div className="absolute right-2 top-2 flex flex-col gap-1.5">
               <button
-                className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-[#FFD700]/50 text-[#FFD700] flex items-center justify-center text-[11px] font-bold shadow-[0_2px_8px_rgba(255,215,0,0.25)] hover:bg-[#FFD700]/20 hover:scale-110 transition-all"
+                className="w-[26px] h-[26px] rounded-full bg-white/10 backdrop-blur-md border border-[#FFD700]/50 text-[#FFD700] flex items-center justify-center shadow-[0_2px_8px_rgba(255,215,0,0.25)] hover:bg-[#FFD700]/20 hover:scale-110 transition-all"
                 title="Persönliche Markierung"
                 onClick={() => setOpenMarker("personal")}
-              >★</button>
+              ><Star size={15} strokeWidth={2.5} fill="currentColor" /></button>
               <button
-                className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-[#22D1C3]/50 text-[#22D1C3] flex items-center justify-center text-[11px] font-bold shadow-[0_2px_8px_rgba(34,209,195,0.25)] hover:bg-[#22D1C3]/20 hover:scale-110 transition-all"
+                className="w-[26px] h-[26px] rounded-full bg-white/10 backdrop-blur-md border border-[#22D1C3]/50 text-[#22D1C3] flex items-center justify-center shadow-[0_2px_8px_rgba(34,209,195,0.25)] hover:bg-[#22D1C3]/20 hover:scale-110 transition-all"
                 title="Im Chat teilen"
                 onClick={() => setOpenMarker("share")}
-              >↗</button>
+              ><Share2 size={14} strokeWidth={2.5} /></button>
               <button
-                className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-[#FF2D78]/50 text-[#FF2D78] flex items-center justify-center text-[11px] font-bold shadow-[0_2px_8px_rgba(255,45,120,0.25)] hover:bg-[#FF2D78]/20 hover:scale-110 transition-all"
+                className="w-[26px] h-[26px] rounded-full bg-white/10 backdrop-blur-md border border-[#FF2D78]/50 text-[#FF2D78] flex items-center justify-center shadow-[0_2px_8px_rgba(255,45,120,0.25)] hover:bg-[#FF2D78]/20 hover:scale-110 transition-all"
                 title="Crew-Markierung"
                 onClick={() => setOpenMarker("crew")}
-              >ℹ</button>
+              ><Flag size={14} strokeWidth={2.5} fill="currentColor" /></button>
             </div>
           </div>
 
