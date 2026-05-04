@@ -123,6 +123,7 @@ const AppSettingsContent = _IS_PROD ? dynamic(() => import("@/components/setting
 const HealthDashboard = _IS_PROD ? dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard)) : HealthDashboardDirect;
 import { ActiveMarchesBanner } from "@/components/active-marches-banner";
 import { HeimatOverlay, HeimatRelocateConfirm } from "@/components/heimat/heimat-overlay";
+import { CrewMemberModal } from "@/components/heimat/crew-member-modal";
 import { ActiveCrewRallyBanner, type CrewRally } from "@/components/active-crew-rally-banner";
 import { useRealtimeAwareInterval } from "@/lib/use-realtime-aware-interval";
 import { ActiveScoutsBanner, type ActiveScout } from "@/components/active-scouts-banner";
@@ -1352,6 +1353,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [heimatTapDefender, setHeimatTapDefender] = useState<null | { id: string; name: string }>(null);
   const [heimatRelocateMode, setHeimatRelocateMode] = useState(false);
   const [heimatRelocateTarget, setHeimatRelocateTarget] = useState<null | { lat: number; lng: number }>(null);
+  const [crewMemberTarget, setCrewMemberTarget] = useState<null | { userId: string; x: number; y: number }>(null);
   const [buildingPlaceMode, setBuildingPlaceMode] = useState<null | { kind: "blackmarket" | "bunker" | "hangout" | "tunnel" }>(null);
   const [repeaterPlaceCursor, setRepeaterPlaceCursor] = useState<{ lat: number; lng: number } | null>(null);
   // Alle Stadt-Blocks im Sichtbereich — nur im Placement-Mode geladen,
@@ -2047,11 +2049,18 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               baseThemeArt={dashboardBaseThemeArt}
               uiIconArt={dashboardUiIconArt}
               onBasePinTap={(pin, x, y) => {
-                // Fremde Runner-Base → Heimat-Tap-Menü (Aufgebot/Multi/Verstecken/Verlegen).
-                // Eigene oder Crew → BaseModal
+                // Crew-Mate-Base (gleicher Crew-Tag, nicht eigen) → CrewMemberModal
+                // Fremde Runner-Base → Heimat-Tap-Menü (Aufgebot/Multi/Verstecken/Verlegen)
+                // Eigene → BaseModal
                 if (!pin.is_own && pin.kind === "runner") {
                   const full = basePins.find((b) => b.id === pin.id);
                   if (full?.owner_user_id) {
+                    const myTag = (myCrew as unknown as { tag?: string } | null)?.tag;
+                    const isCrewMate = !!myTag && !!full.crew_tag && full.crew_tag === myTag;
+                    if (isCrewMate) {
+                      setCrewMemberTarget({ userId: full.owner_user_id, x, y });
+                      return;
+                    }
                     setHeimatTapDefender({
                       id: full.owner_user_id,
                       name: (full as { label?: string; pin_label?: string }).label
@@ -2796,6 +2805,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           anchorX={attackTarget.x}
           anchorY={attackTarget.y}
           onClose={() => setAttackTarget(null)}
+        />
+      )}
+
+      {/* Crew-Mate-Tap → CrewMemberModal (Avatar/Stats/Unterstützen/Verstärken) */}
+      {crewMemberTarget && (
+        <CrewMemberModal
+          userId={crewMemberTarget.userId}
+          anchorX={crewMemberTarget.x}
+          anchorY={crewMemberTarget.y}
+          onClose={() => setCrewMemberTarget(null)}
         />
       )}
 
