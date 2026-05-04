@@ -16,6 +16,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PersonalMarkerModal, CrewMarkerModal, SharePinModal } from "./heimat-marker-modals";
+
+type HeimatPoi = {
+  owner_crew_id: string | null;
+  owner_crew_name: string | null;
+  owner_crew_tag: string | null;
+  owner_crew_color: string | null;
+  nearby_base: { user_id: string; display_name: string; distance_m: number; lat: number; lng: number } | null;
+};
+type HeimatAddress = { street: string | null; city: string | null; postcode: string | null; suburb: string | null } | null;
 
 type HeimatSnap = {
   ok: boolean;
@@ -88,14 +98,44 @@ export function HeimatOverlay({
     return () => clearInterval(id);
   }, [refresh]);
 
+  // ── POI-Daten (Adresse + Crew-Owner) für aktuellen Tap-Punkt ────────
+  const [poi, setPoi] = useState<HeimatPoi | null>(null);
+  const [addr, setAddr] = useState<HeimatAddress>(null);
+  const [poiLoading, setPoiLoading] = useState(false);
+  const [openMarker, setOpenMarker] = useState<null | "personal" | "crew" | "share">(null);
+
+  useEffect(() => {
+    if (!tapPosition) { setPoi(null); setAddr(null); return; }
+    setPoiLoading(true);
+    fetch(`/api/heimat/poi?lat=${tapPosition.lat}&lng=${tapPosition.lng}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: { poi?: HeimatPoi; address?: HeimatAddress }) => {
+        setPoi(j.poi ?? null);
+        setAddr(j.address ?? null);
+      })
+      .catch(() => {})
+      .finally(() => setPoiLoading(false));
+  }, [tapPosition]);
+
   // ── Tap-Action-Menu (CoD-Card-Style) ───────────────────────────────
   const tapMenu = tapPosition && (() => {
-    const cardW = 280;
-    const cardH = 320;
+    const cardW = 300;
+    const cardH = 360;
     const left = Math.min(window.innerWidth - cardW - 8, Math.max(8, tapPosition.screenX - cardW / 2));
     const top = Math.min(window.innerHeight - cardH - 8, Math.max(60, tapPosition.screenY - cardH - 16));
-    const ownerLabel = defenderUserId ? (defenderName ?? "Runner") : "Unbesetzt";
-    const isOwn = !defenderUserId;
+    // Owner-Logik: defenderName (Pin-Tap) > poi.owner_crew_tag (Turf) > "Unbesetzt"
+    const crewTag = poi?.owner_crew_tag;
+    const crewName = poi?.owner_crew_name;
+    const crewColor = poi?.owner_crew_color || "#FF2D78";
+    const ownerLabel = defenderUserId
+      ? (defenderName ?? "Runner")
+      : crewTag
+        ? `[${crewTag}] ${crewName ?? ""}`.trim()
+        : "Unbesetzt";
+    const ownerColor = defenderUserId ? "#FF2D78" : crewTag ? crewColor : "#22D1C3";
+    const locationTitle = addr?.street || addr?.suburb || addr?.city || "Standort";
+    const locationSub = [addr?.suburb && addr?.suburb !== locationTitle ? addr.suburb : null,
+                        addr?.city, addr?.postcode].filter(Boolean).join(" · ");
     return (
       <>
         {/* Backdrop schließt Menü */}
@@ -105,26 +145,41 @@ export function HeimatOverlay({
           style={{ left, top, width: cardW }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Hero-Bereich: cyber-gradient mit Pin-Icon (statt CoD-Grasland-Tile) */}
-          <div className="relative h-[120px] bg-gradient-to-br from-[#22D1C3]/30 via-[#FF2D78]/20 to-[#0F1115] flex items-center justify-center">
+          {/* Hero-Bereich */}
+          <div className="relative h-[110px] bg-gradient-to-br from-[#22D1C3]/30 via-[#FF2D78]/20 to-[#0F1115] flex items-center justify-center">
             <div className="absolute inset-0 opacity-20" style={{
               backgroundImage: "radial-gradient(circle at 20% 30%, #22D1C3 0%, transparent 50%), radial-gradient(circle at 80% 70%, #FF2D78 0%, transparent 50%)",
             }} />
             <div className="relative text-5xl filter drop-shadow-lg">📍</div>
-            {/* Side-Action-Icons */}
+            {/* Side-Action-Icons (3 Funktionen) */}
             <div className="absolute right-2 top-2 flex flex-col gap-2">
-              <button className="w-8 h-8 rounded-full bg-[#FFD700]/90 text-[#0F1115] flex items-center justify-center text-sm font-bold shadow" title="Markieren">★</button>
-              <button className="w-8 h-8 rounded-full bg-[#22D1C3]/90 text-[#0F1115] flex items-center justify-center text-xs shadow" title="Teilen">↗</button>
-              <button className="w-8 h-8 rounded-full bg-[#FF2D78]/90 text-white flex items-center justify-center text-xs shadow" title="Info">ℹ</button>
+              <button
+                className="w-8 h-8 rounded-full bg-[#FFD700]/90 text-[#0F1115] flex items-center justify-center text-sm font-bold shadow hover:scale-110 transition"
+                title="Persönliche Markierung"
+                onClick={() => setOpenMarker("personal")}
+              >★</button>
+              <button
+                className="w-8 h-8 rounded-full bg-[#22D1C3]/90 text-[#0F1115] flex items-center justify-center text-xs shadow hover:scale-110 transition"
+                title="Im Chat teilen"
+                onClick={() => setOpenMarker("share")}
+              >↗</button>
+              <button
+                className="w-8 h-8 rounded-full bg-[#FF2D78]/90 text-white flex items-center justify-center text-xs shadow hover:scale-110 transition"
+                title="Crew-Markierung"
+                onClick={() => setOpenMarker("crew")}
+              >ℹ</button>
             </div>
           </div>
 
           {/* Body */}
           <div className="px-4 pt-3 pb-3">
-            <div className="text-lg font-bold text-[#F0F0F0] mb-2">Standort</div>
-            <div className="flex items-center justify-between text-xs mb-3">
+            <div className="text-base font-bold text-[#F0F0F0] leading-tight" title={locationTitle}>
+              {poiLoading && !addr ? "..." : locationTitle}
+            </div>
+            {locationSub && <div className="text-[11px] text-[#8B8FA3] mb-2 truncate" title={locationSub}>{locationSub}</div>}
+            <div className="flex items-center justify-between text-xs mb-3 mt-1">
               <span className="text-[#8B8FA3]">Crew</span>
-              <span className={`font-bold ${defenderUserId ? "text-[#FF2D78]" : "text-[#22D1C3]"}`}>
+              <span className="font-bold truncate ml-2" style={{ color: ownerColor }}>
                 {ownerLabel}
               </span>
             </div>
@@ -150,13 +205,36 @@ export function HeimatOverlay({
             </div>
 
             <div className="text-center text-[10px] text-[#8B8FA3] mt-3 font-mono">
-              {isOwn ? "Frei" : "Besetzt"} · {tapPosition.lat.toFixed(4)}, {tapPosition.lng.toFixed(4)}
+              {tapPosition.lat.toFixed(4)}, {tapPosition.lng.toFixed(4)}
             </div>
           </div>
         </div>
       </>
     );
   })();
+
+  // ── Marker-Modals (geöffnet aus Side-Icons) ────────────────────────
+  const personalMarkerModal = openMarker === "personal" && tapPosition && (
+    <PersonalMarkerModal
+      coords={{ lat: tapPosition.lat, lng: tapPosition.lng }}
+      onClose={() => setOpenMarker(null)}
+      onSuccess={() => { setOpenMarker(null); onCloseTap(); }}
+    />
+  );
+  const crewMarkerModal = openMarker === "crew" && tapPosition && (
+    <CrewMarkerModal
+      coords={{ lat: tapPosition.lat, lng: tapPosition.lng }}
+      onClose={() => setOpenMarker(null)}
+      onSuccess={() => { setOpenMarker(null); onCloseTap(); }}
+    />
+  );
+  const sharePinModal = openMarker === "share" && tapPosition && (
+    <SharePinModal
+      coords={{ lat: tapPosition.lat, lng: tapPosition.lng }}
+      onClose={() => setOpenMarker(null)}
+      onSuccess={() => { setOpenMarker(null); onCloseTap(); }}
+    />
+  );
 
   // ── Eingehende Angriffe HUD ────────────────────────────────────────
   const incoming = snap?.incoming ?? [];
@@ -224,6 +302,9 @@ export function HeimatOverlay({
   return (
     <>
       {tapMenu}
+      {personalMarkerModal}
+      {crewMarkerModal}
+      {sharePinModal}
       {incomingHud}
       {verlegenModal}
       {marchModal}

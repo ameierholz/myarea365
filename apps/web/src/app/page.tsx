@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { InlineAuth } from "@/components/inline-auth";
 import { HeroMap } from "@/components/hero-map-client";
+import { CookieSettingsButton } from "@/components/cookie-settings-button";
 
 export default async function LandingPage() {
   const t = await getTranslations("Landing");
@@ -383,13 +384,10 @@ export default async function LandingPage() {
                 <li><Link href="/loot-drops" className="text-text-muted hover:text-text">{t("footerLinkDropRates")}</Link></li>
                 <li><Link href="/pricing" className="text-text-muted hover:text-text">{t("footerLinkPricing")}</Link></li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => { try { window.dispatchEvent(new CustomEvent("ma365:open-consent")); } catch {} }}
+                  <CookieSettingsButton
+                    label={t("footerLinkCookieSettings")}
                     className="text-text-muted hover:text-text text-left"
-                  >
-                    {t("footerLinkCookieSettings")}
-                  </button>
+                  />
                 </li>
                 <li>
                   <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" className="text-text-muted hover:text-text">
