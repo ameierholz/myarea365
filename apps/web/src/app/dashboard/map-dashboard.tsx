@@ -1354,6 +1354,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [heimatRelocateMode, setHeimatRelocateMode] = useState(false);
   const [heimatRelocateTarget, setHeimatRelocateTarget] = useState<null | { lat: number; lng: number }>(null);
   const [crewMemberTarget, setCrewMemberTarget] = useState<null | { userId: string; x: number; y: number }>(null);
+  const [heimatCrewMarkers, setHeimatCrewMarkers] = useState<Array<{ id: string; lat: number; lng: number; action_kind: string; label: string | null; is_urgent: boolean }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchMarkers() {
+      try {
+        const r = await fetch("/api/heimat/crew-marker", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { markers?: Array<{ id: string; lat: number; lng: number; action_kind: string; label: string | null; is_urgent: boolean }> };
+        if (!cancelled) setHeimatCrewMarkers(j.markers ?? []);
+      } catch { /* noop */ }
+    }
+    void fetchMarkers();
+    const id = setInterval(fetchMarkers, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
   const [buildingPlaceMode, setBuildingPlaceMode] = useState<null | { kind: "blackmarket" | "bunker" | "hangout" | "tunnel" }>(null);
   const [repeaterPlaceCursor, setRepeaterPlaceCursor] = useState<{ lat: number; lng: number } | null>(null);
   // Alle Stadt-Blocks im Sichtbereich — nur im Placement-Mode geladen,
@@ -2083,6 +2098,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
               }}
+              crewMarkers={heimatCrewMarkers}
               onMapTap={(lng, lat, screenX, screenY) => {
                 // Heimat-Karte CoD-UX: kurzer Tap auf leere Map öffnet das
                 // Tap-Action-Menü (Verlegen/Aufgebot/Verstecken).

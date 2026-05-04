@@ -726,6 +726,15 @@ interface AppMapProps {
   /** Single-Tap auf leere Map (kein Pin, kein Layer-Click). Liefert Geo +
    *  Bildschirm-Pixel — wird vom Heimat-Overlay für das Tap-Action-Menü genutzt. */
   onMapTap?: (lng: number, lat: number, screenX: number, screenY: number) => void;
+  /** Crew-Map-Markierungen (Heimat-Karte). Jede action_kind bringt eigene
+   *  Farbe + Icon mit; is_urgent = Glow-Pulse-Animation. */
+  crewMarkers?: Array<{
+    id: string;
+    lat: number; lng: number;
+    action_kind: string;
+    label: string | null;
+    is_urgent: boolean;
+  }>;
   /** Wenn aktiv: zeichnet Coverage-Preview auf der Karte.
    *  - Wenn allBlocks gesetzt (Phase 3): zeichnet Block-Polygone als Layer,
    *    highlightet den Block am Cursor in Crew-Farbe (Straßen als Grenzen).
@@ -1046,6 +1055,7 @@ export function AppMap({
   onRepeaterClick,
   onMapLongPress,
   onMapTap,
+  crewMarkers = [],
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -3725,6 +3735,117 @@ export function AppMap({
       basePinMarkersRef.current = [];
     };
   }, [mapReady, basePins, baseThemeArt, uiIconArt, markerArt, myEmoji]);
+
+  // ── Crew-Map-Markierungen (Heimat-Karte) ──────────────────────
+  // Jede action_kind hat eigene Farbe + Icon. is_urgent → Pulse + Glow.
+  const crewMarkerMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  useEffect(() => {
+    // CSS-Keyframes einmalig injizieren
+    if (typeof document !== "undefined" && !document.getElementById("ma365-crew-marker-styles")) {
+      const style = document.createElement("style");
+      style.id = "ma365-crew-marker-styles";
+      style.textContent = `
+        @keyframes ma365CrewPulse {
+          0%   { transform: scale(0.95); box-shadow: 0 0 0 0 var(--cm-color, #fff), 0 4px 12px rgba(0,0,0,0.5); }
+          50%  { transform: scale(1.05); box-shadow: 0 0 16px 6px var(--cm-color, #fff), 0 4px 20px rgba(0,0,0,0.6); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--cm-color, #fff), 0 4px 12px rgba(0,0,0,0.5); }
+        }
+        @keyframes ma365CrewRing {
+          0%   { transform: scale(1);   opacity: 0.8; }
+          100% { transform: scale(2.4); opacity: 0; }
+        }
+        @keyframes ma365CrewBob {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-3px); }
+        }
+        .ma365-crew-marker {
+          position: relative; pointer-events: auto; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+          will-change: transform;
+        }
+        .ma365-crew-marker .cm-icon {
+          width: 32px; height: 32px; border-radius: 50%;
+          background: var(--cm-bg, #1A1D23);
+          border: 2px solid var(--cm-color, #FF2D78);
+          color: var(--cm-color, #FF2D78);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 16px; line-height: 1;
+          box-shadow: 0 0 12px var(--cm-glow, rgba(255,45,120,0.5)), 0 4px 12px rgba(0,0,0,0.5);
+          animation: ma365CrewBob 3s ease-in-out infinite;
+          backdrop-filter: blur(4px);
+        }
+        .ma365-crew-marker[data-urgent="1"] .cm-icon {
+          animation: ma365CrewPulse 1.2s ease-in-out infinite;
+          border-width: 3px;
+        }
+        .ma365-crew-marker[data-urgent="1"]::before {
+          content: "";
+          position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+          width: 32px; height: 32px; border-radius: 50%;
+          border: 2px solid var(--cm-color, #FF2D78);
+          animation: ma365CrewRing 1.6s ease-out infinite;
+          pointer-events: none;
+        }
+        .ma365-crew-marker .cm-label {
+          background: rgba(15,17,21,0.92);
+          border: 1px solid var(--cm-color, #FF2D78);
+          border-radius: 6px;
+          padding: 2px 6px;
+          font-size: 10px; font-weight: 600;
+          color: #F0F0F0;
+          white-space: nowrap;
+          max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        .ma365-crew-marker .cm-tail {
+          width: 2px; height: 12px;
+          background: linear-gradient(to bottom, var(--cm-color, #FF2D78), transparent);
+          margin-top: -2px;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    crewMarkerMarkersRef.current.forEach((m) => m.remove());
+    crewMarkerMarkersRef.current = [];
+
+    const ACTION_META: Record<string, { color: string; icon: string }> = {
+      angriff:     { color: "#FF2D78", icon: "⚔️" },
+      verteidigen: { color: "#22D1C3", icon: "🛡" },
+      warnung:     { color: "#FF6B4A", icon: "⚠️" },
+      sammeln:     { color: "#FFD700", icon: "⛏" },
+      aufbauen:    { color: "#A86B3C", icon: "🔨" },
+      heilen:      { color: "#4ADE80", icon: "💚" },
+      schild:      { color: "#3B82F6", icon: "🔵" },
+      ziel:        { color: "#FF2D78", icon: "🎯" },
+      wichtig:     { color: "#FFD700", icon: "⭐" },
+    };
+
+    crewMarkers.forEach((m) => {
+      const meta = ACTION_META[m.action_kind] || { color: "#FFFFFF", icon: "📍" };
+      const el = document.createElement("div");
+      el.className = "ma365-crew-marker";
+      el.setAttribute("data-urgent", m.is_urgent ? "1" : "0");
+      el.style.setProperty("--cm-color", meta.color);
+      el.style.setProperty("--cm-glow", meta.color + "80");
+      el.innerHTML = `
+        <div class="cm-icon">${meta.icon}</div>
+        <div class="cm-tail"></div>
+        ${m.label ? `<div class="cm-label">${m.label.replace(/[<>]/g, "")}</div>` : ""}
+      `;
+      const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat([m.lng, m.lat])
+        .addTo(map);
+      crewMarkerMarkersRef.current.push(marker);
+    });
+
+    return () => {
+      crewMarkerMarkersRef.current.forEach((m) => m.remove());
+      crewMarkerMarkersRef.current = [];
+    };
+  }, [mapReady, crewMarkers]);
 
   // ── Crew-Turf: Polygons (fill) ──────────────────────────────
   useEffect(() => {
