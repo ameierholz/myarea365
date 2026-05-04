@@ -88,55 +88,75 @@ export function HeimatOverlay({
     return () => clearInterval(id);
   }, [refresh]);
 
-  // ── Tap-Action-Menu ────────────────────────────────────────────────
-  const tapMenu = tapPosition && (
-    <div
-      className="fixed z-[9100] bg-[#0F1115]/95 border border-[#22D1C3]/40 rounded-xl p-2 shadow-2xl backdrop-blur-md min-w-[180px]"
-      style={{
-        left: Math.min(window.innerWidth - 200, Math.max(8, tapPosition.screenX + 8)),
-        top: Math.min(window.innerHeight - 280, Math.max(8, tapPosition.screenY + 8)),
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="text-[10px] uppercase tracking-wider text-[#8B8FA3] px-2 pt-1 pb-2 border-b border-white/10 mb-1">
-        Aktion wählen
-      </div>
-      {defenderUserId && (
-        <button
-          className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FF2D78]/15 text-sm text-[#F0F0F0] flex items-center gap-2"
-          onClick={() => { setOpenModal({ kind: "march", lat: tapPosition.lat, lng: tapPosition.lng }); onCloseTap(); }}
+  // ── Tap-Action-Menu (CoD-Card-Style) ───────────────────────────────
+  const tapMenu = tapPosition && (() => {
+    const cardW = 280;
+    const cardH = 320;
+    const left = Math.min(window.innerWidth - cardW - 8, Math.max(8, tapPosition.screenX - cardW / 2));
+    const top = Math.min(window.innerHeight - cardH - 8, Math.max(60, tapPosition.screenY - cardH - 16));
+    const ownerLabel = defenderUserId ? (defenderName ?? "Runner") : "Unbesetzt";
+    const isOwn = !defenderUserId;
+    return (
+      <>
+        {/* Backdrop schließt Menü */}
+        <div className="fixed inset-0 z-[9090]" onClick={onCloseTap} />
+        <div
+          className="fixed z-[9100] bg-gradient-to-b from-[#1A1D23] to-[#0F1115] border border-[#22D1C3]/30 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] overflow-hidden"
+          style={{ left, top, width: cardW }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <span>⚔️</span> <span>Aufgebot senden{defenderName ? ` → ${defenderName}` : ""}</span>
-        </button>
-      )}
-      {defenderUserId && (
-        <button
-          className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FF6B4A]/15 text-sm text-[#F0F0F0] flex items-center gap-2"
-          onClick={() => { setOpenModal({ kind: "multi", lat: tapPosition.lat, lng: tapPosition.lng }); onCloseTap(); }}
-        >
-          <span>⚔️⚔️</span> <span>Multi-Aufgebot</span>
-        </button>
-      )}
-      <button
-        className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#22D1C3]/15 text-sm text-[#F0F0F0] flex items-center gap-2"
-        onClick={() => { onEnterRelocateMode(); onCloseTap(); }}
-      >
-        <span>🏠</span> <span>Base verlegen</span>
-      </button>
-      <button
-        className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#FFD700]/15 text-sm text-[#F0F0F0] flex items-center gap-2"
-        onClick={() => { setOpenModal({ kind: "hide", lat: tapPosition.lat, lng: tapPosition.lng }); onCloseTap(); }}
-      >
-        <span>🫥</span> <span>Truppen verstecken</span>
-      </button>
-      <button
-        className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs text-[#8B8FA3] mt-1"
-        onClick={onCloseTap}
-      >
-        Abbrechen
-      </button>
-    </div>
-  );
+          {/* Hero-Bereich: cyber-gradient mit Pin-Icon (statt CoD-Grasland-Tile) */}
+          <div className="relative h-[120px] bg-gradient-to-br from-[#22D1C3]/30 via-[#FF2D78]/20 to-[#0F1115] flex items-center justify-center">
+            <div className="absolute inset-0 opacity-20" style={{
+              backgroundImage: "radial-gradient(circle at 20% 30%, #22D1C3 0%, transparent 50%), radial-gradient(circle at 80% 70%, #FF2D78 0%, transparent 50%)",
+            }} />
+            <div className="relative text-5xl filter drop-shadow-lg">📍</div>
+            {/* Side-Action-Icons */}
+            <div className="absolute right-2 top-2 flex flex-col gap-2">
+              <button className="w-8 h-8 rounded-full bg-[#FFD700]/90 text-[#0F1115] flex items-center justify-center text-sm font-bold shadow" title="Markieren">★</button>
+              <button className="w-8 h-8 rounded-full bg-[#22D1C3]/90 text-[#0F1115] flex items-center justify-center text-xs shadow" title="Teilen">↗</button>
+              <button className="w-8 h-8 rounded-full bg-[#FF2D78]/90 text-white flex items-center justify-center text-xs shadow" title="Info">ℹ</button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="px-4 pt-3 pb-3">
+            <div className="text-lg font-bold text-[#F0F0F0] mb-2">Standort</div>
+            <div className="flex items-center justify-between text-xs mb-3">
+              <span className="text-[#8B8FA3]">Crew</span>
+              <span className={`font-bold ${defenderUserId ? "text-[#FF2D78]" : "text-[#22D1C3]"}`}>
+                {ownerLabel}
+              </span>
+            </div>
+
+            {/* Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { onEnterRelocateMode(); onCloseTap(); }}
+                className="bg-gradient-to-b from-[#22D1C3] to-[#1AA89D] text-[#0F1115] font-bold py-2.5 rounded-lg text-sm shadow-md hover:from-[#26E5D6] active:scale-95 transition"
+              >
+                VERLEGEN
+              </button>
+              <button
+                onClick={() => {
+                  if (defenderUserId) setOpenModal({ kind: "multi", lat: tapPosition.lat, lng: tapPosition.lng });
+                  else setOpenModal({ kind: "hide", lat: tapPosition.lat, lng: tapPosition.lng });
+                  onCloseTap();
+                }}
+                className="bg-gradient-to-b from-[#FF2D78] to-[#C4135B] text-white font-bold py-2.5 rounded-lg text-sm shadow-md hover:from-[#FF4A8E] active:scale-95 transition"
+              >
+                EINSETZEN
+              </button>
+            </div>
+
+            <div className="text-center text-[10px] text-[#8B8FA3] mt-3 font-mono">
+              {isOwn ? "Frei" : "Besetzt"} · {tapPosition.lat.toFixed(4)}, {tapPosition.lng.toFixed(4)}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  })();
 
   // ── Eingehende Angriffe HUD ────────────────────────────────────────
   const incoming = snap?.incoming ?? [];
