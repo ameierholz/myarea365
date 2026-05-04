@@ -151,20 +151,20 @@ export function HeimatOverlay({
               backgroundImage: "radial-gradient(circle at 20% 30%, #22D1C3 0%, transparent 50%), radial-gradient(circle at 80% 70%, #FF2D78 0%, transparent 50%)",
             }} />
             <div className="relative text-5xl filter drop-shadow-lg">📍</div>
-            {/* Side-Action-Icons (3 Funktionen) */}
-            <div className="absolute right-2 top-2 flex flex-col gap-2">
+            {/* Side-Action-Icons (3 Funktionen) — Glass-Morphism, kleiner */}
+            <div className="absolute right-2 top-2 flex flex-col gap-1.5">
               <button
-                className="w-8 h-8 rounded-full bg-[#FFD700]/90 text-[#0F1115] flex items-center justify-center text-sm font-bold shadow hover:scale-110 transition"
+                className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-[#FFD700]/50 text-[#FFD700] flex items-center justify-center text-[11px] font-bold shadow-[0_2px_8px_rgba(255,215,0,0.25)] hover:bg-[#FFD700]/20 hover:scale-110 transition-all"
                 title="Persönliche Markierung"
                 onClick={() => setOpenMarker("personal")}
               >★</button>
               <button
-                className="w-8 h-8 rounded-full bg-[#22D1C3]/90 text-[#0F1115] flex items-center justify-center text-xs shadow hover:scale-110 transition"
+                className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-[#22D1C3]/50 text-[#22D1C3] flex items-center justify-center text-[11px] font-bold shadow-[0_2px_8px_rgba(34,209,195,0.25)] hover:bg-[#22D1C3]/20 hover:scale-110 transition-all"
                 title="Im Chat teilen"
                 onClick={() => setOpenMarker("share")}
               >↗</button>
               <button
-                className="w-8 h-8 rounded-full bg-[#FF2D78]/90 text-white flex items-center justify-center text-xs shadow hover:scale-110 transition"
+                className="w-7 h-7 rounded-full bg-white/10 backdrop-blur-md border border-[#FF2D78]/50 text-[#FF2D78] flex items-center justify-center text-[11px] font-bold shadow-[0_2px_8px_rgba(255,45,120,0.25)] hover:bg-[#FF2D78]/20 hover:scale-110 transition-all"
                 title="Crew-Markierung"
                 onClick={() => setOpenMarker("crew")}
               >ℹ</button>
