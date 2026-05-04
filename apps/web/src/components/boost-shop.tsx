@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice, stackBoostUntil } from "@/lib/monetization";
 import { appAlert } from "@/components/app-dialog";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
+import { IapNotAvailableNotice } from "@/components/iap-not-available-notice";
 
 type ShopTab = "boosts" | "xp" | "gameplay" | "cosmetics" | "extras";
 
@@ -28,6 +29,11 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
   async function buy(sku: string, name: string, price: number) {
+    // Hard-Block: Käufe in Capacitor-WebView (Play-Billing-Pflicht für digitale Goods).
+    if (!(await import("@/lib/capacitor")).isInAppPurchaseAllowed()) {
+      await appAlert("Käufe sind in der App nicht möglich. Bitte öffne myarea365.de im Browser, um den Kauf abzuschließen.");
+      return;
+    }
     setLoading(sku);
     try {
       // Stripe-Checkout wenn konfiguriert (NEXT_PUBLIC_STRIPE_ENABLED=1)
@@ -215,6 +221,9 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
 
   const content = (
     <>
+        <div style={{ marginBottom: 10 }}>
+          <IapNotAvailableNotice />
+        </div>
         <div style={{
           padding: "10px 12px", borderRadius: 10, marginBottom: 12,
           background: "rgba(255,215,0,0.07)", border: "1px dashed rgba(255,215,0,0.35)",

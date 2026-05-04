@@ -22,3 +22,21 @@ export function isCapacitorNative(): boolean {
  */
 export const APP_SCHEME = "com.myarea365.app";
 export const APP_AUTH_CALLBACK = `${APP_SCHEME}://auth/callback`;
+
+/**
+ * Sind In-App-Käufe in dieser Runtime-Umgebung erlaubt?
+ *
+ * Google Play verlangt für DIGITALE Goods in Android-Apps die Verwendung
+ * von Play-Billing (15-30% Cut). Stripe ist nur erlaubt für physische
+ * Goods/Services oder reines Web. Bis Play-Billing integriert ist,
+ * blenden wir alle Käufe in der Capacitor-Android-App aus.
+ *
+ * Browser (Web/Mobile-Web) → Käufe via Stripe sichtbar.
+ * Capacitor-Android-App   → Käufe ausgeblendet.
+ *
+ * Re-aktivieren sobald @capacitor-community/in-app-purchases o.ä.
+ * mit Play-Billing-Integration eingebaut ist.
+ */
+export function isInAppPurchaseAllowed(): boolean {
+  return !isCapacitorNative();
+}

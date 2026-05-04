@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { getNumberLocale } from "@/i18n/config";
+import { IapNotAvailableNotice } from "@/components/iap-not-available-notice";
 import { GEM_BUNDLES, totalGemsOfBundle, type GemBundle } from "@/lib/gem-bundles";
 import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
 
@@ -157,6 +158,12 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
   }
 
   async function buyBundle(b: GemBundle) {
+    // Hard-Block in Capacitor-Android-WebView (Play-Billing-Pflicht).
+    if (!(await import("@/lib/capacitor")).isInAppPurchaseAllowed()) {
+      setToast("Käufe sind in der App nicht möglich. Bitte myarea365.de im Browser öffnen.");
+      setTimeout(() => setToast(null), 4000);
+      return;
+    }
     setBusy(b.sku);
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -237,6 +244,10 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
 
   const body = (
     <>
+        {/* In Capacitor-Android-WebView ausgeblendete Käufe — Hinweis. */}
+        <div style={{ padding: "10px 12px 0" }}>
+          <IapNotAvailableNotice />
+        </div>
         {/* Sub-Tab-Bar */}
         <div style={{ display: "flex", gap: 2, padding: "8px 12px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", overflowX: "auto" }}>
           {GEM_TABS.map((t) => {
