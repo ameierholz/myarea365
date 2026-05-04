@@ -2047,10 +2047,20 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               baseThemeArt={dashboardBaseThemeArt}
               uiIconArt={dashboardUiIconArt}
               onBasePinTap={(pin, x, y) => {
-                // Fremde Runner-Base → Attack-Popup; eigene oder Crew → BaseModal
+                // Fremde Runner-Base → Heimat-Tap-Menü (Aufgebot/Multi/Verstecken/Verlegen).
+                // Eigene oder Crew → BaseModal
                 if (!pin.is_own && pin.kind === "runner") {
                   const full = basePins.find((b) => b.id === pin.id);
-                  if (full?.owner_user_id) { setAttackTarget({ defenderUserId: full.owner_user_id, x, y }); return; }
+                  if (full?.owner_user_id) {
+                    setHeimatTapDefender({
+                      id: full.owner_user_id,
+                      name: (full as { label?: string; pin_label?: string }).label
+                        ?? (full as { label?: string; pin_label?: string }).pin_label
+                        ?? "Runner",
+                    });
+                    setHeimatTapPos({ lat: full.lat, lng: full.lng, screenX: x, screenY: y });
+                    return;
+                  }
                 }
                 setBaseModalTarget(pin);
               }}
@@ -2064,10 +2074,19 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
               }}
+              onMapTap={(lng, lat, screenX, screenY) => {
+                // Heimat-Karte CoD-UX: kurzer Tap auf leere Map öffnet das
+                // Tap-Action-Menü (Verlegen/Aufgebot/Verstecken).
+                if (repeaterPlaceMode || buildingPlaceMode) return;
+                if (heimatRelocateMode) { setHeimatRelocateTarget({ lat, lng }); return; }
+                setHeimatTapDefender(null);
+                setHeimatTapPos({ lat, lng, screenX, screenY });
+              }}
               onMapLongPress={(lng, lat) => {
-                // Heimat-Karte CoD-UX: ausserhalb von Placement-Mode öffnet
-                // Long-Press das Tap-Action-Menü (Verlegen/Aufgebot/Verstecken).
+                // Long-Press: Placement-Mode-Trigger (Repeater/Buildings).
+                // Heimat-Tap-Menü läuft jetzt über onMapTap.
                 if (!repeaterPlaceMode && !buildingPlaceMode && !heimatRelocateMode) {
+                  setHeimatTapDefender(null);
                   setHeimatTapPos({ lat, lng, screenX: window.innerWidth / 2, screenY: window.innerHeight / 2 });
                   return;
                 }

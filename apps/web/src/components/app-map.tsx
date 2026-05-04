@@ -723,6 +723,9 @@ interface AppMapProps {
   }>;
   onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
+  /** Single-Tap auf leere Map (kein Pin, kein Layer-Click). Liefert Geo +
+   *  Bildschirm-Pixel — wird vom Heimat-Overlay für das Tap-Action-Menü genutzt. */
+  onMapTap?: (lng: number, lat: number, screenX: number, screenY: number) => void;
   /** Wenn aktiv: zeichnet Coverage-Preview auf der Karte.
    *  - Wenn allBlocks gesetzt (Phase 3): zeichnet Block-Polygone als Layer,
    *    highlightet den Block am Cursor in Crew-Farbe (Straßen als Grenzen).
@@ -1042,6 +1045,7 @@ export function AppMap({
   onPlacementConfirm,
   onRepeaterClick,
   onMapLongPress,
+  onMapTap,
 }: AppMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -4388,6 +4392,22 @@ export function AppMap({
       if (!seen.has(id)) { marker.remove(); buildingMarkersRef.current.delete(id); }
     }
   }, [mapReady, crewBuildings]);
+
+  // ── Single-Tap auf leere Map → onMapTap (Heimat-Karte CoD-Action-Menü) ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !onMapTap) return;
+    const map = mapRef.current;
+    const onClick = (e: mapboxgl.MapMouseEvent) => {
+      // DOM-Marker (mapboxgl.Marker) leiten Clicks NICHT an die Map weiter.
+      // Symbol-Layer-Klicks fangen ihre eigenen Handler ab. Daher feuern hier
+      // nur "leere" Map-Klicks. Falls e.defaultPrevented gesetzt ist (vom
+      // Placement-Click-Handler etc.), respektieren wir das.
+      if (e.originalEvent.defaultPrevented) return;
+      onMapTap(e.lngLat.lng, e.lngLat.lat, e.point.x, e.point.y);
+    };
+    map.on("click", onClick);
+    return () => { map.off("click", onClick); };
+  }, [mapReady, onMapTap]);
 
   // ── LongPress (~600 ms) auf Map → onMapLongPress (für Repeater-Setzen) ──
   useEffect(() => {
