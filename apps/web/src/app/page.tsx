@@ -354,7 +354,7 @@ export default async function LandingPage() {
             <div>
               <div className="text-xs font-bold tracking-widest text-text-muted mb-3">{t("footerBusiness")}</div>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/shop-dashboard/" className="text-text-muted hover:text-text">{t("footerLinkDemo")}</Link></li>
+                <li><Link href="/shop-dashboard" className="text-text-muted hover:text-text">{t("footerLinkDemo")}</Link></li>
                 <li><a href="mailto:partner@myarea365.de" className="text-text-muted hover:text-text">{t("footerLinkSignup")}</a></li>
                 <li><a href="mailto:partner@myarea365.de" className="text-text-muted hover:text-text">{t("footerLinkBookDemo")}</a></li>
               </ul>

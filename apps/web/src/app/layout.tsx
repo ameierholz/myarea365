@@ -85,7 +85,8 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dir} className={`dark h-full ${bebas.variable} ${inter.variable}`}>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+        {/* WCAG 1.4.4: Pinch-Zoom muss erlaubt sein → kein maximum-scale. */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

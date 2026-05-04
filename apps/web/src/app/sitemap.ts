@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
 
+// Sitemap höchstens stündlich neu bauen — frische Public-Profiles
+// erscheinen verzögert in Google's Index, mehr Frequenz lohnt nicht.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://myarea365.de";
   const now = new Date();
