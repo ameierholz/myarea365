@@ -3745,47 +3745,112 @@ export function AppMap({
       const style = document.createElement("style");
       style.id = "ma365-crew-marker-styles";
       style.textContent = `
+        @keyframes ma365CrewFloat {
+          0%, 100% { transform: translateY(-46px); }
+          50%      { transform: translateY(-54px); }
+        }
+        @keyframes ma365CrewSpin {
+          0%   { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         @keyframes ma365CrewPulse {
-          0%   { transform: scale(0.95); box-shadow: 0 0 0 0 var(--cm-color, #fff), 0 4px 12px rgba(0,0,0,0.5); }
-          50%  { transform: scale(1.05); box-shadow: 0 0 16px 6px var(--cm-color, #fff), 0 4px 20px rgba(0,0,0,0.6); }
-          100% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--cm-color, #fff), 0 4px 12px rgba(0,0,0,0.5); }
+          0%, 100% { box-shadow: 0 0 12px 2px var(--cm-color, #fff), 0 6px 18px rgba(0,0,0,0.5); }
+          50%      { box-shadow: 0 0 24px 8px var(--cm-color, #fff), 0 8px 24px rgba(0,0,0,0.6); }
         }
         @keyframes ma365CrewRing {
-          0%   { transform: scale(1);   opacity: 0.8; }
-          100% { transform: scale(2.4); opacity: 0; }
+          0%   { transform: translate(-50%, -50%) scale(0.8); opacity: 0.9; }
+          100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
         }
-        @keyframes ma365CrewBob {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-3px); }
+        @keyframes ma365CrewBeamPulse {
+          0%, 100% { opacity: 0.55; filter: blur(2px); }
+          50%      { opacity: 0.95; filter: blur(1px); }
+        }
+        @keyframes ma365CrewSparkle {
+          0%, 100% { transform: rotate(var(--cm-spark-angle)) translateY(-22px) scale(0.6); opacity: 0; }
+          50%      { transform: rotate(var(--cm-spark-angle)) translateY(-26px) scale(1.0); opacity: 1; }
         }
         .ma365-crew-marker {
           position: relative; pointer-events: auto; cursor: pointer;
-          display: flex; flex-direction: column; align-items: center; gap: 2px;
           will-change: transform;
         }
+        /* Bodenpunkt am echten lat/lng (Anker) */
+        .ma365-crew-marker .cm-anchor {
+          position: absolute; bottom: 0; left: 50%; transform: translate(-50%, 50%);
+          width: 14px; height: 14px; border-radius: 50%;
+          background: radial-gradient(circle, var(--cm-color) 0%, transparent 70%);
+          opacity: 0.85;
+        }
+        /* Vertikale Lichtsäule vom Boden zur Markierung */
+        .ma365-crew-marker .cm-beam {
+          position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+          width: 4px; height: 56px; pointer-events: none;
+          background: linear-gradient(to top,
+            var(--cm-color) 0%,
+            var(--cm-color) 25%,
+            color-mix(in srgb, var(--cm-color) 60%, transparent) 60%,
+            transparent 100%);
+          mask-image: linear-gradient(to top, black 0%, black 70%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to top, black 0%, black 70%, transparent 100%);
+          animation: ma365CrewBeamPulse 2.4s ease-in-out infinite;
+          filter: drop-shadow(0 0 6px var(--cm-color));
+        }
+        /* Rotating Halo-Ring um das Icon */
+        .ma365-crew-marker .cm-halo {
+          position: absolute; left: 50%; top: 0;
+          transform: translate(-50%, -50%);
+          width: 46px; height: 46px;
+          border-radius: 50%;
+          border: 1.5px dashed var(--cm-color);
+          opacity: 0.6;
+          animation: ma365CrewSpin 8s linear infinite;
+          pointer-events: none;
+        }
+        /* Schwebendes Icon */
+        .ma365-crew-marker .cm-floater {
+          position: absolute; left: 50%; bottom: 0;
+          transform: translate(-50%, -46px);
+          display: flex; flex-direction: column; align-items: center; gap: 3px;
+          animation: ma365CrewFloat 3.4s ease-in-out infinite;
+        }
         .ma365-crew-marker .cm-icon {
-          width: 32px; height: 32px; border-radius: 50%;
+          position: relative;
+          width: 34px; height: 34px; border-radius: 50%;
           background: var(--cm-bg, #1A1D23);
           border: 2px solid var(--cm-color, #FF2D78);
           color: var(--cm-color, #FF2D78);
           display: flex; align-items: center; justify-content: center;
-          font-size: 16px; line-height: 1;
-          box-shadow: 0 0 12px var(--cm-glow, rgba(255,45,120,0.5)), 0 4px 12px rgba(0,0,0,0.5);
-          animation: ma365CrewBob 3s ease-in-out infinite;
+          font-size: 17px; line-height: 1;
+          box-shadow: 0 0 14px var(--cm-glow, rgba(255,45,120,0.5)), 0 6px 18px rgba(0,0,0,0.5);
           backdrop-filter: blur(4px);
         }
         .ma365-crew-marker[data-urgent="1"] .cm-icon {
-          animation: ma365CrewPulse 1.2s ease-in-out infinite;
+          animation: ma365CrewPulse 1.1s ease-in-out infinite;
           border-width: 3px;
         }
-        .ma365-crew-marker[data-urgent="1"]::before {
+        .ma365-crew-marker[data-urgent="1"] .cm-floater::before {
           content: "";
-          position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-          width: 32px; height: 32px; border-radius: 50%;
+          position: absolute; top: 17px; left: 50%;
+          width: 34px; height: 34px; border-radius: 50%;
           border: 2px solid var(--cm-color, #FF2D78);
           animation: ma365CrewRing 1.6s ease-out infinite;
           pointer-events: none;
         }
+        /* 4 Sparkle-Punkte als rotierende Begleiter (urgent only) */
+        .ma365-crew-marker[data-urgent="1"] .cm-sparks {
+          position: absolute; top: 0; left: 50%;
+          width: 0; height: 0; pointer-events: none;
+        }
+        .ma365-crew-marker[data-urgent="1"] .cm-spark {
+          position: absolute; top: 0; left: 0;
+          width: 4px; height: 4px; border-radius: 50%;
+          background: var(--cm-color);
+          box-shadow: 0 0 6px var(--cm-color);
+          animation: ma365CrewSparkle 1.8s ease-in-out infinite;
+        }
+        .ma365-crew-marker[data-urgent="1"] .cm-spark:nth-child(1) { --cm-spark-angle: 0deg;   animation-delay: 0s; }
+        .ma365-crew-marker[data-urgent="1"] .cm-spark:nth-child(2) { --cm-spark-angle: 90deg;  animation-delay: 0.45s; }
+        .ma365-crew-marker[data-urgent="1"] .cm-spark:nth-child(3) { --cm-spark-angle: 180deg; animation-delay: 0.9s; }
+        .ma365-crew-marker[data-urgent="1"] .cm-spark:nth-child(4) { --cm-spark-angle: 270deg; animation-delay: 1.35s; }
         .ma365-crew-marker .cm-label {
           background: rgba(15,17,21,0.92);
           border: 1px solid var(--cm-color, #FF2D78);
@@ -3797,10 +3862,10 @@ export function AppMap({
           max-width: 140px; overflow: hidden; text-overflow: ellipsis;
           box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
-        .ma365-crew-marker .cm-tail {
-          width: 2px; height: 12px;
-          background: linear-gradient(to bottom, var(--cm-color, #FF2D78), transparent);
-          margin-top: -2px;
+        /* Hülle hat genug Höhe damit das Floater-Element nicht abgeschnitten wird */
+        .ma365-crew-marker .cm-stage {
+          position: relative;
+          width: 80px; height: 90px;
         }
       `;
       document.head.appendChild(style);
@@ -3830,10 +3895,18 @@ export function AppMap({
       el.setAttribute("data-urgent", m.is_urgent ? "1" : "0");
       el.style.setProperty("--cm-color", meta.color);
       el.style.setProperty("--cm-glow", meta.color + "80");
+      const safeLabel = m.label ? m.label.replace(/[<>]/g, "") : "";
       el.innerHTML = `
-        <div class="cm-icon">${meta.icon}</div>
-        <div class="cm-tail"></div>
-        ${m.label ? `<div class="cm-label">${m.label.replace(/[<>]/g, "")}</div>` : ""}
+        <div class="cm-stage">
+          <div class="cm-anchor"></div>
+          <div class="cm-beam"></div>
+          <div class="cm-floater">
+            <div class="cm-halo"></div>
+            <div class="cm-icon">${meta.icon}</div>
+            ${safeLabel ? `<div class="cm-label">${safeLabel}</div>` : ""}
+            ${m.is_urgent ? `<div class="cm-sparks"><span class="cm-spark"></span><span class="cm-spark"></span><span class="cm-spark"></span><span class="cm-spark"></span></div>` : ""}
+          </div>
+        </div>
       `;
       const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
         .setLngLat([m.lng, m.lat])
