@@ -5690,7 +5690,7 @@
       },
       "s19": {
         "title": "4.19 Telemetrie und Performance-Monitoring",
-        "body": "<b>Aktuell ist keine Telemetrie aktiv</b> (kein Sentry, kein Analytics-Dienst). Vercel Speed Insights und Vercel Analytics sind technisch vorbereitet, aber im Dashboard nicht aktiviert. Vor einer Aktivierung wird diese Erklärung aktualisiert und – soweit personenbezogene Daten verarbeitet werden – die Einwilligung über ein Einwilligungs-Banner eingeholt."
+        "body": "<b>Vercel Analytics</b> und <b>Vercel Speed Insights</b> sind aktiv, werden aber <b>ausschließlich nach deiner ausdrücklichen Einwilligung</b> über das Cookie-Banner geladen (Kategorie «Analyse»). Ohne Einwilligung erfolgt kein Skript-Load und keine Datenübertragung. Die Daten werden anonymisiert verarbeitet (keine Cookies, keine IDs); Anbieter ist Vercel Inc., USA. <b>Sentry</b> ist nicht aktiv."
       },
       "s20": {
         "title": "4.20 Anti-Cheat und Missbrauchserkennung",

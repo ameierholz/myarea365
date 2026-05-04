@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              Deep-Link-Intent-Filter: fängt alle https://myarea365.de/* URLs ab.
+              Heißt: Klick auf einen Link in einer anderen App (z.B. Crew-Invite
+              aus WhatsApp) öffnet die native App statt Browser.
+              autoVerify="true" aktiviert App-Links — nach Domain-Verifikation
+              via Digital Asset Links (JSON auf /.well-known/) keine Chooser-Dialog.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="myarea365.de" />
+                <data android:scheme="https" android:host="www.myarea365.de" />
+            </intent-filter>
+
+            <!--
+              OAuth-Callback via Custom Scheme: Google blockt Login in WebViews,
+              deshalb öffnen wir OAuth in Chrome Custom Tabs. Nach Erfolg ruft
+              Supabase com.myarea365.app://auth/callback?code=... auf — Android
+              routet das über dieses Intent-Filter zurück in die App. Der
+              WebView-JS tauscht den Code dann gegen eine Session.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.myarea365.app" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+    <!-- ═══ Permissions ═══ -->
+
+    <!-- Netzwerk -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Standort: Pflicht für Map-Tracking und Gebiete erobern.
+         FINE_LOCATION = GPS, COARSE = Netzwerk-basiert (Fallback).
+         WICHTIG: Wir tracken NUR im Foreground (App muss offen sein während
+         des Laufs). Daher KEIN ACCESS_BACKGROUND_LOCATION — das würde eine
+         Permissions-Declaration + Screencast bei Google Play Review erfordern.
+         Falls später Background-Tracking nötig wird, einen Background-
+         Geolocation-Plugin (@capacitor-community/background-geolocation o.ä.)
+         einbauen, der einen eigenen Foreground-Service mit
+         foregroundServiceType="location" deklariert. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Push-Notifications (Android 13+ verlangt Runtime-Permission) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Vibrate: für Haptic Feedback bei Achievements, Gebiets-Claims -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Wake-Lock: Screen während aktivem Lauf wach halten (optional Feature) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Device-Feature-Deklaration (für Play Store Listing) -->
+    <uses-feature android:name="android.hardware.location" android:required="true" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="true" />
+</manifest>

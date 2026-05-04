@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ConsentGatedTracking } from "@/components/consent-gated-tracking";
 
 // Display-Schrift für Headlines, Stats, Badges, Crew-Tags — urbaner Graffiti-Vibe.
 // Bebas Neue hat nur ein Weight (400), wirkt aber durch die kondensierte Form auch
@@ -24,7 +23,6 @@ import { UmpConsent } from "@/components/ump-consent";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { OfflineOutboxBoot } from "@/components/offline-outbox-boot";
 import { SkipLink } from "@/components/skip-link";
-import Script from "next/script";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
@@ -139,17 +137,9 @@ export default async function RootLayout({
           <CookieConsent />
         </NextIntlClientProvider>
         <UmpConsent />
-        {/* AdSense — nach Hydration laden, um SSR/Client-Mismatch zu vermeiden.
-            Manual Ad Units via <AdSenseSlot />; Auto-Ads in der Konsole ausgeschaltet. */}
-        <Script
-          id="adsense-script"
-          async
-          strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
-          crossOrigin="anonymous"
-        />
-        <Analytics />
-        <SpeedInsights />
+        {/* DSGVO/ePrivacy: Tracking + AdSense laden NUR nach explizitem Consent.
+            Via lib/consent.ts — re-rendered bei Consent-Change ohne Reload. */}
+        <ConsentGatedTracking />
       </body>
     </html>
   );

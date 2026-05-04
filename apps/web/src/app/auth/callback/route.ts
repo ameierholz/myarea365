@@ -1,10 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+/**
+ * Whitelist-Validator gegen Open-Redirect.
+ * Akzeptiert nur same-origin relative Pfade (führendes "/", aber nicht "//"
+ * oder "/\\" das von Browsern als Schemewechsel interpretiert wird).
+ * Verhindert ?next=//evil.com oder ?next=/\\evil.com Angriffe.
+ */
+function safeNext(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  // Nur Pfade die mit genau einem "/" anfangen, gefolgt von keinem Slash/Backslash.
+  if (!/^\/(?![/\\])/.test(raw)) return "/dashboard";
+  return raw;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = safeNext(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();
