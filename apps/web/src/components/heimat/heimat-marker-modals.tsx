@@ -3,17 +3,44 @@
 /**
  * HEIMAT-MARKER-MODALS
  *  - PersonalMarkerModal: Allgemein/Freunde/Gegner
- *  - CrewMarkerModal: 9 Aktions-Icons (Angriff/Schild/Sammeln/...) + Dringend (5000 Krypto)
- *  - SharePinModal: Crew-Inbox oder einzelner Empfänger
+ *  - CrewMarkerModal: 9 Aktions-Icons + Dringend (5000 Krypto)
+ *  - SharePinModal: Crew-Inbox oder Link-kopieren
  */
 
 import { useEffect, useState } from "react";
 
 type Coords = { lat: number; lng: number };
 
+/** Kontext-Label für den Modal-Header — was wurde angeklickt? */
+type Ctx = {
+  /** Z.B. "Senftenberger Ring 50" oder "Schwarzer Eber [ENM]" oder "Eigene Base" */
+  primary: string;
+  /** Z.B. "13435 Berlin · Märkisches Viertel" oder Crew-Tag */
+  secondary?: string | null;
+};
+
+function ContextHeader({ ctx, fallbackCoords }: { ctx?: Ctx | null; fallbackCoords?: Coords }) {
+  if (ctx) {
+    return (
+      <div className="mb-3">
+        <div className="text-sm font-bold text-[#F0F0F0] truncate" title={ctx.primary}>{ctx.primary}</div>
+        {ctx.secondary && <div className="text-[11px] text-[#8B8FA3] truncate">{ctx.secondary}</div>}
+      </div>
+    );
+  }
+  if (fallbackCoords) {
+    return (
+      <div className="text-[10px] font-mono text-[#8B8FA3] mb-3">
+        {fallbackCoords.lat.toFixed(5)}, {fallbackCoords.lng.toFixed(5)}
+      </div>
+    );
+  }
+  return null;
+}
+
 // ── 1) PersonalMarkerModal ─────────────────────────────────────────
-export function PersonalMarkerModal({ coords, onClose, onSuccess }: {
-  coords: Coords; onClose: () => void; onSuccess: () => void;
+export function PersonalMarkerModal({ coords, ctx, onClose, onSuccess }: {
+  coords: Coords; ctx?: Ctx | null; onClose: () => void; onSuccess: () => void;
 }) {
   const [category, setCategory] = useState<"allgemein" | "freunde" | "gegner">("allgemein");
   const [label, setLabel] = useState("");
@@ -37,13 +64,11 @@ export function PersonalMarkerModal({ coords, onClose, onSuccess }: {
   return (
     <div className="fixed inset-0 z-[9200] bg-black/70 flex items-end sm:items-center justify-center p-2" onClick={onClose}>
       <div className="bg-[#1A1D23] border border-[#FFD700]/40 rounded-2xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="text-base font-bold text-[#F0F0F0] uppercase tracking-wider">Persönliche Markierung</div>
           <button onClick={onClose} className="text-[#8B8FA3] hover:text-white px-2">✕</button>
         </div>
-        <div className="text-[10px] font-mono text-[#8B8FA3] mb-3">
-          {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-        </div>
+        <ContextHeader ctx={ctx} fallbackCoords={coords} />
         <input
           value={label} onChange={(e) => setLabel(e.target.value)}
           placeholder="Notiz (optional)"
@@ -92,8 +117,8 @@ const CREW_ACTIONS: Array<{ k: string; icon: string; color: string; label: strin
   { k: "wichtig",      icon: "⭐", color: "#FFD700", label: "Wichtig" },
 ];
 
-export function CrewMarkerModal({ coords, onClose, onSuccess }: {
-  coords: Coords; onClose: () => void; onSuccess: () => void;
+export function CrewMarkerModal({ coords, ctx, onClose, onSuccess }: {
+  coords: Coords; ctx?: Ctx | null; onClose: () => void; onSuccess: () => void;
 }) {
   const [actionKind, setActionKind] = useState("angriff");
   const [label, setLabel] = useState("");
@@ -128,38 +153,43 @@ export function CrewMarkerModal({ coords, onClose, onSuccess }: {
 
   return (
     <div className="fixed inset-0 z-[9200] bg-black/70 flex items-end sm:items-center justify-center p-2" onClick={onClose}>
-      <div className="bg-[#1A1D23] border border-[#FF2D78]/40 rounded-2xl p-5 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-[#1A1D23] border border-[#FF2D78]/40 rounded-2xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-2">
           <div className="text-base font-bold text-[#F0F0F0] uppercase tracking-wider">Crew-Markierung</div>
-          <div className="flex items-center gap-3">
-            {activeCount !== null && <span className="text-xs text-[#8B8FA3]">Aktiv: <b className={activeCount >= 20 ? "text-[#FF2D78]" : "text-[#F0F0F0]"}>{activeCount}/20</b></span>}
+          <div className="flex items-center gap-2">
+            {activeCount !== null && (
+              <span className="text-[11px] text-[#8B8FA3]">
+                <b className={activeCount >= 20 ? "text-[#FF2D78]" : "text-[#F0F0F0]"}>{activeCount}</b>/20
+              </span>
+            )}
             <button onClick={onClose} className="text-[#8B8FA3] hover:text-white px-2">✕</button>
           </div>
         </div>
-        <div className="text-[10px] font-mono text-[#8B8FA3] mb-3">
-          {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-        </div>
+        <ContextHeader ctx={ctx} fallbackCoords={coords} />
         <input
           value={label} onChange={(e) => setLabel(e.target.value)}
           placeholder="Hinweis (optional)"
           className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#F0F0F0] mb-3"
         />
-        <div className="grid grid-cols-5 gap-2 mb-3">
-          {CREW_ACTIONS.map((a) => (
-            <button
-              key={a.k}
-              onClick={() => setActionKind(a.k)}
-              className={`p-2 rounded-lg border-2 transition aspect-square flex flex-col items-center justify-center ${actionKind === a.k ? "bg-white/10" : "bg-white/[0.03] border-white/10"}`}
-              style={actionKind === a.k ? { borderColor: a.color, boxShadow: `0 0 12px ${a.color}55` } : undefined}
-            >
-              <div className="text-xl">{a.icon}</div>
-              <div className="text-[9px] font-bold text-[#F0F0F0] mt-0.5 leading-tight">{a.label}</div>
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-1.5 mb-3">
+          {CREW_ACTIONS.map((a) => {
+            const active = actionKind === a.k;
+            return (
+              <button
+                key={a.k}
+                onClick={() => setActionKind(a.k)}
+                className={`px-2 py-2.5 rounded-lg border-2 flex flex-col items-center justify-center gap-0.5 transition ${active ? "bg-white/10" : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06]"}`}
+                style={active ? { borderColor: a.color, boxShadow: `0 0 10px ${a.color}55` } : undefined}
+              >
+                <div className="text-lg leading-none">{a.icon}</div>
+                <div className="text-[10px] font-bold text-[#F0F0F0] leading-tight">{a.label}</div>
+              </button>
+            );
+          })}
         </div>
         <label className="flex items-center gap-2 text-xs text-[#F0F0F0] mb-3 cursor-pointer">
           <input type="checkbox" checked={isUrgent} onChange={(e) => setIsUrgent(e.target.checked)} className="accent-[#FF2D78]" />
-          <span>🔴 Dringend (Push an alle Crew · <b className="text-[#FFD700]">5.000 Krypto</b>)</span>
+          <span>🔴 Dringend (Push an Crew · <b className="text-[#FFD700]">5.000 Krypto</b>)</span>
         </label>
         {msg && <div className="text-xs mb-3 text-[#F0F0F0]">{msg}</div>}
         <button
@@ -175,8 +205,8 @@ export function CrewMarkerModal({ coords, onClose, onSuccess }: {
 }
 
 // ── 3) SharePinModal ───────────────────────────────────────────────
-export function SharePinModal({ coords, onClose, onSuccess }: {
-  coords: Coords; onClose: () => void; onSuccess: () => void;
+export function SharePinModal({ coords, ctx, onClose, onSuccess }: {
+  coords: Coords; ctx?: Ctx | null; onClose: () => void; onSuccess: () => void;
 }) {
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
@@ -215,13 +245,11 @@ export function SharePinModal({ coords, onClose, onSuccess }: {
   return (
     <div className="fixed inset-0 z-[9200] bg-black/70 flex items-end sm:items-center justify-center p-2" onClick={onClose}>
       <div className="bg-[#1A1D23] border border-[#22D1C3]/40 rounded-2xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="text-base font-bold text-[#F0F0F0] uppercase tracking-wider">Pin teilen</div>
           <button onClick={onClose} className="text-[#8B8FA3] hover:text-white px-2">✕</button>
         </div>
-        <div className="text-[10px] font-mono text-[#8B8FA3] mb-3">
-          {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
-        </div>
+        <ContextHeader ctx={ctx} fallbackCoords={coords} />
         <input
           value={label} onChange={(e) => setLabel(e.target.value)}
           placeholder="Nachricht (optional)"

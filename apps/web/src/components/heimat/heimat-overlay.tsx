@@ -215,9 +215,34 @@ export function HeimatOverlay({
   })();
 
   // ── Marker-Modals (geöffnet aus Side-Icons) ────────────────────────
+  // Kontext-Label: priorisiert Spieler-Base > Crew-Turf > Adresse > "Standort"
+  const markerCtx = useMemo(() => {
+    if (!tapPosition) return null;
+    if (defenderUserId) {
+      return {
+        primary: defenderName ?? "Gegner-Base",
+        secondary: poi?.owner_crew_tag ? `[${poi.owner_crew_tag}] ${poi.owner_crew_name ?? ""}`.trim() : addr?.city ?? null,
+      };
+    }
+    if (poi?.owner_crew_tag) {
+      return {
+        primary: addr?.street || addr?.suburb || "Crew-Gebiet",
+        secondary: `[${poi.owner_crew_tag}] ${poi.owner_crew_name ?? ""}`.trim(),
+      };
+    }
+    if (addr?.street || addr?.city) {
+      return {
+        primary: addr.street || addr.suburb || addr.city || "Standort",
+        secondary: [addr.suburb !== addr.street ? addr.suburb : null, addr.postcode, addr.city].filter(Boolean).join(" · ") || null,
+      };
+    }
+    return { primary: "Unbekannter Standort", secondary: null };
+  }, [tapPosition, defenderUserId, defenderName, poi, addr]);
+
   const personalMarkerModal = openMarker === "personal" && tapPosition && (
     <PersonalMarkerModal
       coords={{ lat: tapPosition.lat, lng: tapPosition.lng }}
+      ctx={markerCtx}
       onClose={() => setOpenMarker(null)}
       onSuccess={() => { setOpenMarker(null); onCloseTap(); }}
     />
@@ -225,6 +250,7 @@ export function HeimatOverlay({
   const crewMarkerModal = openMarker === "crew" && tapPosition && (
     <CrewMarkerModal
       coords={{ lat: tapPosition.lat, lng: tapPosition.lng }}
+      ctx={markerCtx}
       onClose={() => setOpenMarker(null)}
       onSuccess={() => { setOpenMarker(null); onCloseTap(); }}
     />
@@ -232,6 +258,7 @@ export function HeimatOverlay({
   const sharePinModal = openMarker === "share" && tapPosition && (
     <SharePinModal
       coords={{ lat: tapPosition.lat, lng: tapPosition.lng }}
+      ctx={markerCtx}
       onClose={() => setOpenMarker(null)}
       onSuccess={() => { setOpenMarker(null); onCloseTap(); }}
     />
