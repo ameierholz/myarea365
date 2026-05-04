@@ -3503,8 +3503,8 @@ export function AppMap({
       const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${fxLayer}${visualBase}</div>`;
 
       // ── PROPORTIONS (relativ zu ART_SIZE = 300px) ───────────────────────
-      // Banner 320×64 (5:1 Aspect, matcht den Prompt) — deutlich prominenter
-      // als vorher, Aspect-Match mit Banner-Art = kein Letterbox mehr.
+      // Banner 320×64 (5:1, matcht Prompt) — Top/Bottom-Strips je 42%, Mitte
+      // 16% (Text-Höhe). Strips kleben am Text, kein Gap mehr.
       // Runner-Badge 84px sitzt halb über Castle-Base.
       const BANNER_W = 320;
       const BANNER_H = Math.round(BANNER_W / 5); // = 64px
