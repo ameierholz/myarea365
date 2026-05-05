@@ -88,6 +88,9 @@ type TabKey = "heimat" | "crew" | "dm" | "cvc";
 
 export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   const [open, setOpen] = useState(true);
+  // mode: "preview" = kompakte Vorschau-Lasche auf Karte (Default, RoK-Stil),
+  //       "expanded" = großes Modal mit Tabs/Räumen/Input
+  const [mode, setMode] = useState<"preview" | "expanded">("preview");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [tab, setTab] = useState<TabKey>("heimat");
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
@@ -197,21 +200,99 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
     );
   }
 
+  // Preview-Mode (Default) — kompakte Lasche auf Karte, RoK-Stil
+  if (mode === "preview") {
+    // Primary-Room für Preview: bevorzugt Crew, sonst CvC, sonst Heimat-Stadt/Bezirk, sonst erste
+    const primaryRoom =
+      rooms.find((r) => r.kind === "crew") ??
+      rooms.find((r) => r.kind === "cvc") ??
+      rooms.find((r) => r.kind === "heimat_stadt") ??
+      rooms.find((r) => r.kind === "heimat_bezirk") ??
+      rooms[0] ??
+      null;
+    return (
+      <div
+        onClick={() => setMode("expanded")}
+        style={{
+          position: "fixed",
+          bottom: 12,
+          left: 12,
+          zIndex: 99998,
+          width: "min(360px, 60vw)",
+          maxHeight: 200,
+          background: "linear-gradient(180deg, rgba(15,17,21,0.55) 0%, rgba(15,17,21,0.35) 100%)",
+          backdropFilter: "blur(10px) saturate(1.2)",
+          WebkitBackdropFilter: "blur(10px) saturate(1.2)",
+          borderRadius: 14,
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
+          cursor: "pointer",
+          overflow: "hidden",
+        }}
+        className="flex flex-col"
+        title="Klick zum Öffnen"
+      >
+        {/* Mini-Header mit Room-Name + Unread + Close */}
+        <div
+          className="flex items-center px-2.5 py-1.5"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(34,209,195,0.06)" }}
+        >
+          <MessageSquare size={11} className="text-[#22D1C3] mr-1.5 flex-shrink-0" />
+          <div className="text-[10px] font-bold text-white truncate flex-1" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}>
+            {primaryRoom?.name ?? "Chat"}
+          </div>
+          {unreadTotal > 0 && (
+            <span className="min-w-[16px] h-[14px] rounded-full bg-[#FF2D78] text-white text-[9px] font-bold flex items-center justify-center px-1 mr-1.5">
+              {unreadTotal > 99 ? "99+" : unreadTotal}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            className="text-[#8B8FA3] hover:text-white p-0.5 flex-shrink-0"
+            aria-label="Chat ausblenden"
+          >
+            <X size={11} />
+          </button>
+        </div>
+        {/* Letzte Nachrichten (Stream) */}
+        {primaryRoom ? (
+          <ChatPreviewStream roomId={primaryRoom.room_id} />
+        ) : (
+          <div className="text-[10px] text-[#C8CDD9] text-center py-4 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+            Keine Räume verfügbar.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Expanded-Mode — großes Modal mit Tabs + Räumen + Input
   return (
     <>
+      {/* Backdrop — Klick außerhalb schließt zurück zur Preview */}
+      <div
+        onClick={() => setMode("preview")}
+        style={{
+          position: "fixed", inset: 0, zIndex: 99997,
+          background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)",
+        }}
+      />
       <div
         style={{
           position: "fixed",
-          bottom: 0,
-          left: 0,
+          bottom: 12,
+          left: 12,
           zIndex: 99998,
-          width: "min(420px, 50vw)",
-          height: "min(180px, calc(100vh - 40px))",
-          background: "linear-gradient(180deg, rgba(26,29,35,0.32) 0%, rgba(15,17,21,0.22) 100%)",
+          width: "min(560px, 90vw)",
+          height: "min(560px, calc(100vh - 24px))",
+          background: "linear-gradient(180deg, rgba(26,29,35,0.92) 0%, rgba(15,17,21,0.88) 100%)",
           backdropFilter: "blur(14px) saturate(1.3)",
           WebkitBackdropFilter: "blur(14px) saturate(1.3)",
-          borderTopRightRadius: 20,
-          boxShadow: "0 -8px 32px rgba(34,209,195,0.15), 0 -2px 8px rgba(0,0,0,0.5)",
+          borderRadius: 18,
+          border: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 12px 48px rgba(0,0,0,0.6), 0 0 32px rgba(34,209,195,0.18)",
         }}
         className="flex flex-col overflow-hidden"
       >
@@ -227,15 +308,15 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
             <div
               className="flex items-center px-1 py-1"
               style={{
-                background: "rgba(26,29,35,0.4)",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(26,29,35,0.55)",
+                borderBottom: "1px solid rgba(255,255,255,0.08)",
               }}
             >
               <TabBtn active={tab === "heimat"} onClick={() => setTab("heimat")} icon={<MapPin size={14} />} label="Heimat" />
               <TabBtn active={tab === "crew"} onClick={() => setTab("crew")} icon={<Users size={14} />} label="Crew" />
               <TabBtn active={tab === "dm"} onClick={() => setTab("dm")} icon={<Hash size={14} />} label="DM" />
               <TabBtn active={tab === "cvc"} onClick={() => setTab("cvc")} icon={<Sword size={14} />} label="CvC" />
-              <button onClick={() => setOpen(false)} className="ml-auto text-[#8B8FA3] hover:text-white p-1.5"><X size={14} /></button>
+              <button onClick={() => setMode("preview")} className="ml-auto text-[#8B8FA3] hover:text-white p-1.5" aria-label="Schließen"><X size={14} /></button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {tab === "heimat" && (
@@ -272,6 +353,55 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
         )}
       </div>
     </>
+  );
+}
+
+// Kompakte Vorschau-Liste der letzten Nachrichten eines Rooms — Polling alle 8s, kein Realtime
+// (Realtime-Channel bleibt dem Expanded-Mode vorbehalten, sonst hätten wir 2 Subscriptions parallel).
+function ChatPreviewStream({ roomId }: { roomId: string }) {
+  const [msgs, setMsgs] = useState<Array<{ id: string; body: string | null; created_at: string; author: { display_name: string | null; username: string | null; crew_tag?: string | null } | null }>>([]);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await fetch(`/api/chat/rooms/${roomId}/messages?limit=8`, { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const j = await r.json() as { messages?: Array<{ id: string; body: string | null; created_at: string; author: { display_name: string | null; username: string | null; crew_tag?: string | null } | null }> };
+        if (alive) setMsgs((j.messages ?? []).slice(-8));
+      } catch { /* noop */ }
+    };
+    void load();
+    const id = setInterval(load, 8000);
+    return () => { alive = false; clearInterval(id); };
+  }, [roomId]);
+
+  if (msgs.length === 0) {
+    return (
+      <div className="text-[10px] text-[#8B8FA3] text-center py-4 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+        Noch keine Nachrichten.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-y-auto" style={{ maxHeight: 168, padding: "4px 8px" }}>
+      {msgs.map((m) => {
+        const name = m.author?.display_name || m.author?.username || "—";
+        const tag = m.author?.crew_tag;
+        return (
+          <div
+            key={m.id}
+            className="text-[10.5px] leading-snug py-0.5"
+            style={{ color: "#F0F0F0", textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
+          >
+            {tag && <span className="text-[#22D1C3] font-bold">[{tag}]</span>}
+            <span className="font-bold text-white"> {name}:</span>
+            <span className="text-[#E8E8EE] ml-1">{m.body ?? ""}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
