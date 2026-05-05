@@ -166,7 +166,7 @@ export async function DELETE(req: Request) {
   if (!targetId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
   // ─── cosmetic_artwork-Kinds ───
-  const cosmeticKinds = ["marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon", "troop", "stronghold", "nameplate", "base_ring", "loot_drop", "resource_node", "inventory_item"];
+  const cosmeticKinds = ["marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon", "troop", "stronghold", "nameplate", "base_ring", "loot_drop", "resource_node", "inventory_item", "modal_background"];
   if (cosmeticKinds.includes(targetType)) {
     const { data: row } = await adminSb().from("cosmetic_artwork")
       .select("image_url, video_url")

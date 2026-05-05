@@ -94,6 +94,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [tab, setTab] = useState<TabKey>("heimat");
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [previewRoomId, setPreviewRoomId] = useState<string | null>(null);
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [cosmeticArt, setCosmeticArt] = useState<CosmeticArt>({});
 
@@ -202,24 +203,29 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
 
   // Preview-Mode (Default) — kompakte Lasche auf Karte, RoK-Stil
   if (mode === "preview") {
-    // Primary-Room für Preview: bevorzugt Crew, sonst CvC, sonst Heimat-Stadt/Bezirk, sonst erste
-    const primaryRoom =
+    // Primary-Room: gewählter Preview-Room, sonst Crew → CvC → Heimat-Stadt/Bezirk → erste
+    const defaultRoom =
       rooms.find((r) => r.kind === "crew") ??
       rooms.find((r) => r.kind === "cvc") ??
       rooms.find((r) => r.kind === "heimat_stadt") ??
       rooms.find((r) => r.kind === "heimat_bezirk") ??
       rooms[0] ??
       null;
+    const activePreview = (previewRoomId && rooms.find((r) => r.room_id === previewRoomId)) || defaultRoom;
+    // Channel-Liste — alle Räume in Preview-Pills
     return (
       <div
-        onClick={() => setMode("expanded")}
+        onClick={() => {
+          if (activePreview) setActiveRoomId(activePreview.room_id);
+          setMode("expanded");
+        }}
         style={{
           position: "fixed",
           bottom: 12,
           left: 12,
           zIndex: 99998,
-          width: "min(360px, 60vw)",
-          maxHeight: 200,
+          width: "min(340px, 60vw)",
+          maxHeight: 150,
           background: "linear-gradient(180deg, rgba(15,17,21,0.55) 0%, rgba(15,17,21,0.35) 100%)",
           backdropFilter: "blur(10px) saturate(1.2)",
           WebkitBackdropFilter: "blur(10px) saturate(1.2)",
@@ -232,34 +238,65 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
         className="flex flex-col"
         title="Klick zum Öffnen"
       >
-        {/* Mini-Header mit Room-Name + Unread + Close */}
+        {/* Channel-Tabs (horizontal scroll) — Klick wechselt Channel im Preview, ohne Modal zu öffnen */}
         <div
-          className="flex items-center px-2.5 py-1.5"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(34,209,195,0.06)" }}
+          className="flex items-center px-1 py-1"
+          style={{
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(34,209,195,0.06)",
+            gap: 2,
+            overflowX: "auto",
+            scrollbarWidth: "none",
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <MessageSquare size={11} className="text-[#22D1C3] mr-1.5 flex-shrink-0" />
-          <div className="text-[10px] font-bold text-white truncate flex-1" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}>
-            {primaryRoom?.name ?? "Chat"}
-          </div>
-          {unreadTotal > 0 && (
-            <span className="min-w-[16px] h-[14px] rounded-full bg-[#FF2D78] text-white text-[9px] font-bold flex items-center justify-center px-1 mr-1.5">
-              {unreadTotal > 99 ? "99+" : unreadTotal}
-            </span>
-          )}
+          {rooms.length === 0 ? (
+            <span className="text-[9px] text-[#8B8FA3] px-2 py-0.5">Keine Räume</span>
+          ) : rooms.map((r) => {
+            const isActive = activePreview?.room_id === r.room_id;
+            const labelKind = r.kind === "saved" ? "📝" : r.kind === "pm" ? "💬" : r.kind === "group" ? "👥" : r.kind === "crew" ? "🛡" : r.kind === "cvc" ? "⚔" : r.kind === "heimat_plz" ? "📍" : r.kind === "heimat_bezirk" ? "🏘" : "🏙";
+            return (
+              <button
+                key={r.room_id}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setPreviewRoomId(r.room_id); }}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[8px] font-bold flex-shrink-0 transition"
+                style={{
+                  background: isActive ? "rgba(34,209,195,0.25)" : "transparent",
+                  color: isActive ? "#22D1C3" : "#C8CDD9",
+                  border: isActive ? "1px solid rgba(34,209,195,0.6)" : "1px solid transparent",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.7)",
+                  maxWidth: 110,
+                }}
+                title={r.name ?? ""}
+              >
+                <span>{labelKind}</span>
+                <span className="truncate">{r.name ?? "Chat"}</span>
+                {r.unread_count > 0 && !r.muted && (
+                  <span
+                    className="min-w-[12px] h-[12px] rounded-full text-[8px] font-bold flex items-center justify-center px-0.5"
+                    style={{ background: r.has_mention ? "#FFD700" : "#FF2D78", color: r.has_mention ? "#0F1115" : "#FFF" }}
+                  >
+                    {r.unread_count > 99 ? "99+" : r.unread_count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-            className="text-[#8B8FA3] hover:text-white p-0.5 flex-shrink-0"
+            className="ml-auto text-[#8B8FA3] hover:text-white p-0.5 flex-shrink-0"
             aria-label="Chat ausblenden"
           >
-            <X size={11} />
+            <X size={10} />
           </button>
         </div>
         {/* Letzte Nachrichten (Stream) */}
-        {primaryRoom ? (
-          <ChatPreviewStream roomId={primaryRoom.room_id} />
+        {activePreview ? (
+          <ChatPreviewStream roomId={activePreview.room_id} cosmeticArt={cosmeticArt} />
         ) : (
-          <div className="text-[10px] text-[#C8CDD9] text-center py-4 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+          <div className="text-[9px] text-[#C8CDD9] text-center py-3 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
             Keine Räume verfügbar.
           </div>
         )}
@@ -358,8 +395,22 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
 
 // Kompakte Vorschau-Liste der letzten Nachrichten eines Rooms — Polling alle 8s, kein Realtime
 // (Realtime-Channel bleibt dem Expanded-Mode vorbehalten, sonst hätten wir 2 Subscriptions parallel).
-function ChatPreviewStream({ roomId }: { roomId: string }) {
-  const [msgs, setMsgs] = useState<Array<{ id: string; body: string | null; created_at: string; author: { display_name: string | null; username: string | null; crew_tag?: string | null } | null }>>([]);
+type PreviewMsg = {
+  id: string;
+  body: string | null;
+  created_at: string;
+  author: {
+    display_name: string | null;
+    username: string | null;
+    avatar_url?: string | null;
+    crew_tag?: string | null;
+    equipped_marker_id?: string | null;
+    equipped_marker_variant?: string | null;
+    equipped_base_ring_id?: string | null;
+  } | null;
+};
+function ChatPreviewStream({ roomId, cosmeticArt }: { roomId: string; cosmeticArt: CosmeticArt }) {
+  const [msgs, setMsgs] = useState<PreviewMsg[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -367,7 +418,7 @@ function ChatPreviewStream({ roomId }: { roomId: string }) {
       try {
         const r = await fetch(`/api/chat/rooms/${roomId}/messages?limit=8`, { cache: "no-store" });
         if (!r.ok || !alive) return;
-        const j = await r.json() as { messages?: Array<{ id: string; body: string | null; created_at: string; author: { display_name: string | null; username: string | null; crew_tag?: string | null } | null }> };
+        const j = await r.json() as { messages?: PreviewMsg[] };
         if (alive) setMsgs((j.messages ?? []).slice(-8));
       } catch { /* noop */ }
     };
@@ -378,26 +429,73 @@ function ChatPreviewStream({ roomId }: { roomId: string }) {
 
   if (msgs.length === 0) {
     return (
-      <div className="text-[10px] text-[#8B8FA3] text-center py-4 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
+      <div className="text-[9px] text-[#8B8FA3] text-center py-3 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
         Noch keine Nachrichten.
       </div>
     );
   }
 
   return (
-    <div className="overflow-y-auto" style={{ maxHeight: 168, padding: "4px 8px" }}>
+    <div className="overflow-y-auto" style={{ maxHeight: 112, padding: "2px 6px" }}>
       {msgs.map((m) => {
         const name = m.author?.display_name || m.author?.username || "—";
         const tag = m.author?.crew_tag;
+        const markerId = m.author?.equipped_marker_id || "foot";
+        const variant = (m.author?.equipped_marker_variant || "neutral") as "neutral" | "male" | "female";
+        const markerAsset = cosmeticArt.marker?.[markerId]?.[variant] ?? cosmeticArt.marker?.[markerId]?.neutral;
+        const ringId = m.author?.equipped_base_ring_id;
+        const ringAsset = ringId && ringId !== "default" ? cosmeticArt.base_ring?.[ringId] : null;
         return (
           <div
             key={m.id}
-            className="text-[10.5px] leading-snug py-0.5"
+            className="flex items-start gap-1.5 py-0.5"
             style={{ color: "#F0F0F0", textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
           >
-            {tag && <span className="text-[#22D1C3] font-bold">[{tag}]</span>}
-            <span className="font-bold text-white"> {name}:</span>
-            <span className="text-[#E8E8EE] ml-1">{m.body ?? ""}</span>
+            {/* Avatar mit Base-Ring */}
+            <div style={{ position: "relative", width: 16, height: 16, flexShrink: 0, marginTop: 1 }}>
+              {ringAsset?.video_url ? (
+                <video
+                  src={ringAsset.video_url}
+                  autoPlay loop muted playsInline
+                  style={{ position: "absolute", inset: -2, width: 20, height: 20, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
+                />
+              ) : ringAsset?.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={ringAsset.image_url}
+                  alt=""
+                  style={{ position: "absolute", inset: -2, width: 20, height: 20, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
+                />
+              ) : null}
+              <div
+                style={{
+                  position: "absolute", inset: 0,
+                  borderRadius: "50%",
+                  background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), rgba(70,82,122,0.4))",
+                  border: ringAsset ? "none" : "1px solid rgba(255,255,255,0.25)",
+                  overflow: "hidden",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                {markerAsset?.video_url ? (
+                  <video src={markerAsset.video_url} autoPlay loop muted playsInline style={{ width: 14, height: 14, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+                ) : markerAsset?.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={markerAsset.image_url} alt="" style={{ width: 14, height: 14, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+                ) : m.author?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.author.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontSize: 9, color: "#FFE4B8", fontWeight: 900 }}>{(name[0] ?? "?").toUpperCase()}</span>
+                )}
+              </div>
+            </div>
+            {/* Nachricht-Inhalt */}
+            <div className="flex-1 min-w-0 text-[7.5px] leading-tight">
+              {tag && <span className="text-[#22D1C3] font-bold">[{tag}]</span>}
+              <span className="font-bold text-white">{tag ? " " : ""}{name}:</span>
+              <span className="text-[#E8E8EE] ml-1">{m.body ?? ""}</span>
+            </div>
           </div>
         );
       })}
