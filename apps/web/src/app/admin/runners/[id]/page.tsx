@@ -12,9 +12,9 @@ export default async function RunnerDetailPage({ params }: { params: Promise<{ i
   const { data: user } = await sb.from("users").select("*").eq("id", id).maybeSingle();
   if (!user) return <div className="text-red-400">Runner nicht gefunden.</div>;
 
-  const { data: walks } = await sb.from("walks").select("distance_m, duration_s, created_at").eq("user_id", id).order("created_at", { ascending: false }).limit(20);
+  // walks + groups archived (pivot 2026-05-05)
   const { data: achievementsList } = await sb.from("user_achievements").select("achievement_id, unlocked_at").eq("user_id", id);
-  const { data: groupsList } = await sb.from("group_members").select("group_id, role, joined_at, groups(name)").eq("user_id", id);
+  const { data: crewsList } = await sb.from("crew_members").select("crew_id, role, joined_at, crews(name)").eq("user_id", id);
 
   // Cross-Entity-Counts für die Related-Activity-Karte
   const [
@@ -23,17 +23,14 @@ export default async function RunnerDetailPage({ params }: { params: Promise<{ i
     { count: refundsCount },
     { count: awardsCount },
     warningLevelRes,
-    ownedShopsRes,
   ] = await Promise.all([
     sb.from("support_tickets").select("id", { count: "exact", head: true }).eq("user_id", id),
     sb.from("moderation_reports").select("id", { count: "exact", head: true }).eq("target_type", "user").eq("target_id", id),
     sb.from("refund_requests").select("id", { count: "exact", head: true }).eq("user_id", id),
     sb.from("xp_awards").select("id", { count: "exact", head: true }).eq("user_id", id),
     sb.rpc("get_active_warning_level", { p_user_id: id }),
-    sb.from("local_businesses").select("id, name, status").eq("owner_id", id).limit(5),
   ]);
   const warningLevel = (warningLevelRes?.data ?? null) as string | null;
-  const ownedShops = (ownedShopsRes?.data ?? []) as Array<{ id: string; name: string; status: string }>;
 
   return (
     <>
@@ -77,28 +74,16 @@ export default async function RunnerDetailPage({ params }: { params: Promise<{ i
           />
         </Card>
 
-        <Card className="md:col-span-2">
-          <h2 className="font-bold mb-3">Letzte 20 Läufe</h2>
-          {(walks ?? []).length === 0 && <p className="text-sm text-[#8b8fa3]">Noch keine Läufe.</p>}
-          <div className="space-y-1">
-            {(walks ?? []).map((w, i) => (
-              <div key={i} className="flex justify-between text-xs border-b border-white/5 py-1.5 last:border-0">
-                <span>{new Date(w.created_at).toLocaleString("de-DE")}</span>
-                <span>{((w.distance_m ?? 0) / 1000).toFixed(2)} km · {Math.floor((w.duration_s ?? 0) / 60)} min</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
         <Card>
-          <h2 className="font-bold mb-3">Crews ({groupsList?.length ?? 0})</h2>
-          {(groupsList ?? []).length === 0 && <p className="text-sm text-[#8b8fa3]">Kein Crew-Mitglied.</p>}
+          <h2 className="font-bold mb-3">Crews ({crewsList?.length ?? 0})</h2>
+          {(crewsList ?? []).length === 0 && <p className="text-sm text-[#8b8fa3]">Kein Crew-Mitglied.</p>}
           <div className="space-y-1 text-sm">
-            {(groupsList ?? []).map((g, i) => {
-              const gr = g.groups as { name?: string } | null;
+            {(crewsList ?? []).map((g, i) => {
+              const gr = g.crews as { name?: string } | { name?: string }[] | null;
+              const crewName = Array.isArray(gr) ? gr[0]?.name : gr?.name;
               return (
-                <Link key={i} href={`/admin/crews/${g.group_id}`} className="flex justify-between border-b border-white/5 py-1 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded">
-                  <span>{gr?.name ?? "?"}</span>
+                <Link key={i} href={`/admin/crews/${g.crew_id}`} className="flex justify-between border-b border-white/5 py-1 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded">
+                  <span>{crewName ?? "?"}</span>
                   <Badge tone="neutral">{g.role}</Badge>
                 </Link>
               );
@@ -115,18 +100,6 @@ export default async function RunnerDetailPage({ params }: { params: Promise<{ i
             <CrossLink href={`/admin/runners/${id}/award`} icon="👑" label="XP/Crown-Awards" count={awardsCount ?? 0} action />
             <CrossLink href={`/admin/runners/${id}/warnings`} icon={warningLevel ? "🚨" : "✅"} label={warningLevel ? `Warning: ${warningLevel}` : "Keine Warnings"} count={null} action highlight={!!warningLevel} />
           </div>
-          {ownedShops.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-white/5">
-              <div className="text-[11px] uppercase tracking-wider text-[#8b8fa3] mb-2">Besitzt {ownedShops.length} Shop{ownedShops.length > 1 ? "s" : ""}</div>
-              <div className="flex flex-wrap gap-2">
-                {ownedShops.map((s) => (
-                  <Link key={s.id} href={`/admin/shops/${s.id}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs">
-                    <span>🏪</span><span>{s.name}</span><Badge tone={s.status === "approved" ? "success" : s.status === "pending" ? "warning" : "danger"}>{s.status}</Badge>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </Card>
 
         <Card>

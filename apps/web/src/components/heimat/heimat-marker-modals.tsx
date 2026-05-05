@@ -235,7 +235,7 @@ export function SharePinModal({ coords, ctx, onClose, onSuccess }: {
   }
 
   function copyLink() {
-    const url = `${window.location.origin}/dashboard?lat=${coords.lat.toFixed(5)}&lng=${coords.lng.toFixed(5)}`;
+    const url = `${window.location.origin}/karte?lat=${coords.lat.toFixed(5)}&lng=${coords.lng.toFixed(5)}`;
     navigator.clipboard?.writeText(url).then(
       () => { setMsg("✅ Link kopiert"); },
       () => { setMsg("❌ Clipboard nicht verfügbar"); }

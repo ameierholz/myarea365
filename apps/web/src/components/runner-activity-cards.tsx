@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { RunnerFightsClient } from "@/app/runner-fights/runner-fights-client";
+// runner-fights archived (pivot 2026-05-05) — March-System ersetzt PvP-Encounters
 
 type ActivityId = "walk" | "shop" | "runner_fight" | "arena" | "area_boss" | "base";
 
@@ -106,7 +106,7 @@ export function RunnerActivityCards() {
             border: "1px solid rgba(255, 45, 120, 0.4)",
             boxShadow: "0 20px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}>
-            <RunnerFightsClient inModal onClose={() => setShowArena(false)} />
+            <div className="text-center text-[#8b8fa3] py-12">⚔️ Marsch-System in Arbeit</div>
           </div>
         </div>
       )}

@@ -27,12 +27,11 @@ export async function GET() {
   const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const since7d  = new Date(Date.now() -  7 * 24 * 3600 * 1000).toISOString();
 
-  const [fightsRes, fights24hRes, fights7dRes, pickersRes] = await Promise.all([
-    sb.from("runner_fights").select("id", { count: "exact", head: true }).eq("season_id", (season as { id: string }).id),
-    sb.from("runner_fights").select("id", { count: "exact", head: true }).eq("season_id", (season as { id: string }).id).gte("created_at", since24h),
-    sb.from("runner_fights").select("id", { count: "exact", head: true }).eq("season_id", (season as { id: string }).id).gte("created_at", since7d),
-    sb.from("user_guardians").select("id", { count: "exact", head: true }).eq("kind", "seasonal").eq("season_id", (season as { id: string }).id),
-  ]);
+  // runner_fights archived (pivot 2026-05-05) — Stats werden im neuen Marsch-System ersetzt
+  const fightsRes = { count: 0 };
+  const fights24hRes = { count: 0 };
+  const fights7dRes = { count: 0 };
+  const pickersRes = await sb.from("user_guardians").select("id", { count: "exact", head: true }).eq("kind", "seasonal").eq("season_id", (season as { id: string }).id);
 
   // Klassen-Balance: Pick + Win pro class_id (tank/support/ranged/melee)
   const { data: seasonalGuardians } = await sb.from("user_guardians")
@@ -67,18 +66,8 @@ export async function GET() {
     .order("wins", { ascending: false })
     .limit(10);
 
-  // Fights pro Tag (letzte 14 Tage)
-  const { data: recentFights } = await sb.from("runner_fights")
-    .select("created_at")
-    .eq("season_id", (season as { id: string }).id)
-    .gte("created_at", new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString())
-    .limit(5000);
-  const byDay = new Map<string, number>();
-  for (const f of recentFights ?? []) {
-    const d = new Date((f as { created_at: string }).created_at).toISOString().slice(0, 10);
-    byDay.set(d, (byDay.get(d) ?? 0) + 1);
-  }
-  const daily = Array.from(byDay.entries()).sort().map(([day, count]) => ({ day, count }));
+  // runner_fights archived — Daily-Curve leer
+  const daily: Array<{ day: string; count: number }> = [];
 
   return NextResponse.json({
     ok: true,

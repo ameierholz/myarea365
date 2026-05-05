@@ -9,8 +9,7 @@ const iso = (ms: number) => new Date(ms).toISOString();
 
 export default async function SalesPage() {
   const sb = await createClient();
-  const [{ data: subs }, { data: leads }, gemTxRes] = await Promise.all([
-    sb.from("shop_subscriptions").select("*"),
+  const [{ data: leads }, gemTxRes] = await Promise.all([
     sb.from("sales_leads").select("*"),
     sb.from("gem_transactions")
       .select("user_id, delta, amount, reason, created_at")
@@ -18,8 +17,9 @@ export default async function SalesPage() {
       .gte("created_at", iso(Date.now() - 30 * DAY))
       .then((r) => r, () => ({ data: [] as Array<{ user_id: string; delta: number; amount: number; reason: string; created_at: string }> })),
   ]);
-
-  const activeSubs = (subs ?? []).filter((s) => s.status === "active");
+  // Shop-Subscriptions archived (pivot 2026-05-05)
+  const subs: Array<{ status: string; monthly_price_eur: number }> = [];
+  const activeSubs = subs.filter((s) => s.status === "active");
   let mrr = activeSubs.reduce((sum, s) => sum + (Number(s.monthly_price_eur) || 0), 0);
   const leadsByStatus = (leads ?? []).reduce<Record<string, number>>((acc, l) => {
     acc[l.status] = (acc[l.status] ?? 0) + 1; return acc;
@@ -111,14 +111,7 @@ export default async function SalesPage() {
         <Stat label="Verloren" value={demoLeads?.lost ?? (leadsByStatus.lost ?? 0)} color="#FF2D78" />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Link href="/admin/sales/subscriptions" className="block">
-          <Card className="hover:border-[#22D1C3]/50 transition-colors">
-            <div className="text-3xl mb-2">💳</div>
-            <div className="text-lg font-bold">Abos</div>
-            <div className="text-sm text-[#8b8fa3]">{subs?.length ?? 0} gesamt · {activeSubs.length} aktiv</div>
-          </Card>
-        </Link>
+      <div className="grid md:grid-cols-1 gap-6">
         <Link href="/admin/sales/leads" className="block">
           <Card className="hover:border-[#22D1C3]/50 transition-colors">
             <div className="text-3xl mb-2">🎯</div>

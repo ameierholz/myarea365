@@ -33,7 +33,7 @@ const SHOTS = [
   { name: "01-landing", url: "/", needsAuth: false, wait: 2000 },
   { name: "02-pricing", url: "/pricing", needsAuth: false, wait: 1500 },
   { name: "03-leaderboard", url: "/leaderboard", needsAuth: false, wait: 1500 },
-  { name: "04-dashboard-map", url: "/dashboard", needsAuth: true, wait: 4000 },
+  { name: "04-dashboard-map", url: "/karte", needsAuth: true, wait: 4000 },
   { name: "05-deals", url: "/deals", needsAuth: false, wait: 1500 },
   { name: "06-impressum", url: "/impressum", needsAuth: false, wait: 1000 },
 ];
@@ -56,7 +56,7 @@ if (EMAIL && PASSWORD) {
     await page.fill('input[type="email"]', EMAIL);
     await page.fill('input[type="password"]', PASSWORD);
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/dashboard/, { timeout: 20000 });
+    await page.waitForURL(/\/karte/, { timeout: 20000 });
     console.log("✓ angemeldet");
   } catch (e) {
     console.warn("⚠ Auth fehlgeschlagen — authenticated Shots werden übersprungen");

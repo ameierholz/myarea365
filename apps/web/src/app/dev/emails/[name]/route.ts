@@ -65,7 +65,7 @@ const SAMPLES: Record<string, string> = {
   "{{event_title}}": "Mai-Kiez-Lauf Prenzlauer Berg",
   "{{event_when}}": "Samstag, 3. Mai · 10:00 Uhr",
   "{{event_location}}": "Mauerpark Haupteingang",
-  "{{event_link}}": "https://myarea365.de/dashboard",
+  "{{event_link}}": "https://myarea365.de/karte",
   "{{feature_title}}": "Flash-Deals für alle",
   "{{feature_body}}": "Shops können jetzt 30-Minuten-Pushes an nahe Runner schicken.",
   "{{feature_link}}": "https://myarea365.de",

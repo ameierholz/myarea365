@@ -47,10 +47,8 @@ export async function POST(req: NextRequest) {
     // Bei verzögerten Zahlarten (SEPA, Banküberweisung, ACH) ist payment_status
     // hier "unpaid" oder "no_payment_required". Erst async_payment_succeeded aktiviert.
     if (session.payment_status !== "paid") {
-      if (session.metadata?.type === "stand_order") {
-        await admin().from("shop_stand_orders").update({ status: "pending_payment" })
-          .eq("stripe_session_id", session.id);
-      } else {
+      // shop_stand_orders archived (pivot 2026-05-05)
+      if (session.metadata?.type !== "stand_order") {
         await admin().from("purchases").update({ status: "pending_payment" })
           .eq("stripe_session_id", session.id);
       }
@@ -68,11 +66,8 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.async_payment_failed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.metadata?.type === "stand_order") {
-      await admin().from("shop_stand_orders").update({
-        status: "payment_failed",
-      }).eq("stripe_session_id", session.id);
-    } else {
+    // shop_stand_orders archived (pivot 2026-05-05) — nur normale Purchases werden gemarkt
+    if (session.metadata?.type !== "stand_order") {
       await admin().from("purchases").update({
         status: "failed",
         failed_at: new Date().toISOString(),
@@ -107,13 +102,9 @@ export async function POST(req: NextRequest) {
 }
 
 async function activateFromSession(session: Stripe.Checkout.Session): Promise<NextResponse | null> {
-  // Acryl-Aufsteller-Bestellung (eigener Flow)
+  // shop_stand_orders archived (pivot 2026-05-05) — Stand-Orders sind kein Flow mehr
   if (session.metadata?.type === "stand_order") {
-    await admin().from("shop_stand_orders").update({
-      status: "paid",
-      paid_at: new Date().toISOString(),
-    }).eq("stripe_session_id", session.id);
-    return NextResponse.json({ received: true, stand_order: true });
+    return NextResponse.json({ received: true, stand_order_archived: true });
   }
 
   const sku = session.metadata?.sku;
@@ -290,62 +281,16 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     return;
   }
 
-  // ═══ SHOP-OWNER PURCHASES ═══
-  if (!businessId) return;
-  const days = (d: number) => new Date(Date.now() + d * 86400000).toISOString();
-
-  if (sku === "shop_basis" || sku === "shop_pro" || sku === "shop_ultra") {
-    await sb.from("local_businesses").update({
-      plan: sku.replace("shop_", ""),
-      plan_expires_at: days(30),
-    }).eq("id", businessId);
-    return;
-  }
-  if (sku === "spotlight_3d") {
-    await sb.from("local_businesses").update({ spotlight_until: days(3) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "radius_boost_7d") {
-    await sb.from("local_businesses").update({ radius_boost_until: days(7) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "top_listing_7d") {
-    await sb.from("local_businesses").update({ top_listing_until: days(7) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "homepage_banner") {
-    await sb.from("local_businesses").update({ banner_until: days(7) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "flash_push" || sku === "event_host" || sku === "challenge_sponsor" || sku === "email_campaign") {
-    const col = sku === "flash_push" ? "flash_push_credits"
-      : sku === "event_host" ? "event_host_credits"
-      : sku === "challenge_sponsor" ? "challenge_sponsor_credits"
-      : "email_campaign_credits";
-    const { data: b } = await sb.from("local_businesses").select(col).eq("id", businessId).single();
-    const current = ((b as unknown as Record<string, number>) ?? {})[col] ?? 0;
-    await sb.from("local_businesses").update({ [col]: current + 1 }).eq("id", businessId);
-    return;
-  }
-  if (sku === "social_pro_monthly") {
-    await sb.from("local_businesses").update({ social_pro_until: days(30) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "analytics_pro_monthly") {
-    await sb.from("local_businesses").update({ analytics_pro_until: days(30) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "competitor_monthly") {
-    await sb.from("local_businesses").update({ competitor_analysis_until: days(30) }).eq("id", businessId);
-    return;
-  }
-  if (sku === "kiez_report") {
-    await sb.from("local_businesses").update({ kiez_report_last: new Date().toISOString() }).eq("id", businessId);
-    return;
-  }
-  if (sku === "qr_print_service") {
-    await sb.from("local_businesses").update({ qr_print_ordered_at: new Date().toISOString() }).eq("id", businessId);
-    return;
+  // ═══ SHOP-OWNER PURCHASES — alle archiviert (pivot 2026-05-05)
+  // local_businesses + shop_arenas sind in runner_legacy. Stripe-Sessions mit
+  // businessId-Metadata werden nicht mehr aktiv verarbeitet.
+  if (businessId) {
+    if (sku.startsWith("shop_") || ["spotlight_3d","radius_boost_7d","top_listing_7d","homepage_banner",
+        "flash_push","event_host","challenge_sponsor","email_campaign","social_pro_monthly",
+        "analytics_pro_monthly","competitor_monthly","kiez_report","qr_print_service",
+        "arena_daily","arena_monthly","custom_pin"].includes(sku)) {
+      return;
+    }
   }
   // Waechter-Shop (Runner-Level via userId)
   if (sku === "revival_token" && userId) {
@@ -356,31 +301,6 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
   if (sku === "guardian_xp" && userId) {
     const { data: g } = await sb.from("user_guardians").select("id, xp, level").eq("user_id", userId).eq("is_active", true).maybeSingle<{ id: string; xp: number; level: number }>();
     if (g) await sb.from("user_guardians").update({ xp: g.xp + 2500 }).eq("id", g.id);
-    return;
-  }
-  if (sku === "arena_daily" || sku === "arena_monthly") {
-    const arenaDays = sku === "arena_daily" ? 1 : 30;
-    const plan = sku === "arena_daily" ? "daily" : "monthly";
-    const { data: existing } = await sb.from("shop_arenas")
-      .select("id, expires_at")
-      .eq("business_id", businessId)
-      .maybeSingle<{ id: string; expires_at: string }>();
-    const from = existing && new Date(existing.expires_at).getTime() > Date.now()
-      ? new Date(existing.expires_at).getTime()
-      : Date.now();
-    const newExpires = new Date(from + arenaDays * 86400000).toISOString();
-    if (existing) {
-      await sb.from("shop_arenas")
-        .update({ status: "active", plan, expires_at: newExpires })
-        .eq("id", existing.id);
-    } else {
-      await sb.from("shop_arenas")
-        .insert({ business_id: businessId, status: "active", plan, expires_at: newExpires });
-    }
-    return;
-  }
-  if (sku === "custom_pin") {
-    await sb.from("local_businesses").update({ custom_pin_url: "pending" }).eq("id", businessId);
     return;
   }
 }

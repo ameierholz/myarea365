@@ -48,10 +48,10 @@ export async function POST(req: NextRequest) {
     line_items: [lineItem],
     ui_mode: isEmbedded ? "embedded_page" : "hosted_page",
     ...(isEmbedded
-      ? { return_url: `${origin}/dashboard?checkout=success&sku=${sku}&session_id={CHECKOUT_SESSION_ID}` }
+      ? { return_url: `${origin}/karte?checkout=success&sku=${sku}&session_id={CHECKOUT_SESSION_ID}` }
       : {
-          success_url: `${origin}/dashboard?checkout=success&sku=${sku}`,
-          cancel_url: `${origin}/dashboard?checkout=cancel`,
+          success_url: `${origin}/karte?checkout=success&sku=${sku}`,
+          cancel_url: `${origin}/karte?checkout=cancel`,
         }),
     client_reference_id: user.id,
     customer_email: user.email ?? undefined,

@@ -12,7 +12,7 @@ export async function requireStaff(): Promise<{ userId: string; role: Role; emai
   if (!user) redirect("/login?next=/admin");
   const { data: profile } = await sb.from("users").select("role").eq("id", user.id).maybeSingle();
   const role = (profile?.role as Role) || "user";
-  if (!STAFF_ROLES.includes(role)) redirect("/dashboard");
+  if (!STAFF_ROLES.includes(role)) redirect("/karte");
   return { userId: user.id, role, email: user.email || null };
 }
 

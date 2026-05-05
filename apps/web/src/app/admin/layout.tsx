@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <AdminNav />
         </nav>
         <div className="p-3 border-t border-white/10 space-y-1">
-          <Link href="/dashboard" className="block text-xs text-[#8b8fa3] hover:text-white px-3 py-1.5">
+          <Link href="/karte" className="block text-xs text-[#8b8fa3] hover:text-white px-3 py-1.5">
             ← Zurück zur App
           </Link>
           <LogoutButton />

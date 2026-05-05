@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function reverseGeocodeFull(lat: number, lng: number): Promise<{
-  street: string | null; city: string | null; postcode: string | null; suburb: string | null;
+  street: string | null; city: string | null; postcode: string | null; suburb: string | null; district: string | null;
 } | null> {
   const url = new URL("https://nominatim.openstreetmap.org/reverse");
   url.searchParams.set("format", "json");
@@ -26,6 +26,7 @@ async function reverseGeocodeFull(lat: number, lng: number): Promise<{
         road?: string; house_number?: string; pedestrian?: string; footway?: string;
         city?: string; town?: string; village?: string; municipality?: string;
         postcode?: string; suburb?: string; city_district?: string; neighbourhood?: string;
+        borough?: string; quarter?: string;
       };
     };
     const addr = data.address;
@@ -33,8 +34,14 @@ async function reverseGeocodeFull(lat: number, lng: number): Promise<{
     const street = addr.road ?? addr.pedestrian ?? addr.footway ?? null;
     const fullStreet = street && addr.house_number ? `${street} ${addr.house_number}` : street;
     const city = addr.city ?? addr.town ?? addr.village ?? addr.municipality ?? null;
-    const suburb = addr.suburb ?? addr.city_district ?? addr.neighbourhood ?? null;
-    return { street: fullStreet, city, postcode: addr.postcode ?? null, suburb };
+    // suburb = kleiner Ortsteil (z.B. "Märkisches Viertel") für Tap-Card-Context
+    const suburb = addr.neighbourhood ?? addr.suburb ?? addr.quarter ?? null;
+    // Bezirk: Berlin nutzt je nach Tagging mal `borough`, mal `city_district`, mal `suburb`.
+    // Nimm den ersten Treffer der NICHT bereits als suburb verwendet wurde.
+    const candidates = [addr.borough, addr.city_district, addr.suburb].filter((x): x is string => !!x && x !== suburb);
+    const rawDistrict = candidates[0] ?? null;
+    const district = rawDistrict ? rawDistrict.replace(/^Bezirk\s+/i, "").trim() : null;
+    return { street: fullStreet, city, postcode: addr.postcode ?? null, suburb, district };
   } catch {
     return null;
   }

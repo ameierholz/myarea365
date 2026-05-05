@@ -15,16 +15,18 @@ export async function GET(req: Request) {
   const { data: auth } = await sb.auth.getUser();
   const userId = auth?.user?.id ?? null;
 
-  const [zones, raids, sanctuaries, reviews, pushes, cells, visits, trail] = await Promise.all([
+  // Loyalty-Shops archived (pivot 2026-05-05) — keine shop_reviews_agg / shop_push_messages / local_businesses mehr
+  const [zones, raids, sanctuaries, cells, visits] = await Promise.all([
     sb.from("power_zones").select("*"),
     sb.from("boss_raids").select("*").eq("status", "active"),
     sb.from("sanctuaries").select("*"),
-    sb.from("shop_reviews_agg").select("*"),
-    sb.from("shop_push_messages").select("id, business_id, message, radius_m, expires_at, local_businesses(id, name, lat, lng)").gt("expires_at", new Date().toISOString()),
     userId ? sb.from("explored_cells").select("cell_x, cell_y").eq("user_id", userId) : Promise.resolve({ data: [] }),
     userId ? sb.from("sanctuary_visits").select("sanctuary_id, visited_at").eq("user_id", userId).gte("visited_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString()) : Promise.resolve({ data: [] }),
-    userId ? sb.from("deal_redemptions").select("business_id, local_businesses(id, name, lat, lng)").eq("user_id", userId).eq("status", "verified") : Promise.resolve({ data: [] }),
   ]);
+  // Loyalty-Stubs (alle archiviert)
+  const reviews = { data: [] as Array<{ business_id: string; avg_rating: number; review_count: number }> };
+  const pushes = { data: [] as Array<{ id: string; business_id: string; message: string | null; radius_m: number; expires_at: string; local_businesses: { id: string; name: string; lat: number; lng: number } | null }> };
+  const trail = { data: [] as Array<{ business_id: string; local_businesses: { id: string; name: string; lat: number; lng: number } | null }> };
 
   // Trained-today flag je Sanctuary
   const trainedIds = new Set<string>((visits.data ?? []).map((v: { sanctuary_id: string }) => v.sanctuary_id));
@@ -175,14 +177,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, count: data });
   }
   if (action === "review_shop") {
-    const { data, error } = await sb.from("shop_reviews").upsert({
-      business_id: body.business_id as string,
-      user_id: auth.user.id,
-      rating: body.rating as number,
-      comment: (body.comment as string | undefined) ?? null,
-    }, { onConflict: "business_id,user_id" }).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, review: data });
+    // Loyalty-Shop-Reviews archived (pivot 2026-05-05)
+    return NextResponse.json({ error: "shop_reviews_archived" }, { status: 410 });
   }
 
   return NextResponse.json({ error: "bad_request" }, { status: 400 });

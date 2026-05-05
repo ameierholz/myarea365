@@ -56,7 +56,7 @@ export function OnboardingClient() {
       if (profile?.username && profile?.faction) {
         const { data: guardian } = await supabase
           .from("user_guardians").select("id, race_id").eq("user_id", user.id).eq("is_active", true).maybeSingle();
-        if (guardian?.race_id) { router.push("/dashboard"); return; }
+        if (guardian?.race_id) { router.push("/karte"); return; }
         setUsername(profile.username);
         setFaction(profile.faction as "gossenbund" | "kronenwacht");
         setStep(2);
@@ -110,7 +110,7 @@ export function OnboardingClient() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    router.push("/karte");
     router.refresh();
   }
 

@@ -28,7 +28,7 @@ test.describe("Critical Journey: Auth → Map", () => {
     await page.getByLabel(/passwort/i).fill(PASSWORD);
     await page.getByRole("button", { name: /einloggen|login|anmelden/i }).click();
 
-    await page.waitForURL(/\/dashboard/, { timeout: 10_000 });
+    await page.waitForURL(/\/karte/, { timeout: 10_000 });
     // Map muss innerhalb von 5s mounten (Performance-Budget)
     await expect(page.locator("canvas").first()).toBeVisible({ timeout: 5_000 });
   });
@@ -44,7 +44,7 @@ test.describe("Critical Journey: Auth → Map", () => {
     await page.getByLabel(/e.?mail/i).fill(EMAIL);
     await page.getByLabel(/passwort/i).fill(PASSWORD);
     await page.getByRole("button", { name: /einloggen|login|anmelden/i }).click();
-    await page.waitForURL(/\/dashboard/);
+    await page.waitForURL(/\/karte/);
     await page.waitForLoadState("networkidle");
 
     // Bekannte Drittanbieter-Noise rausfiltern (AdSense, Mapbox warnings)

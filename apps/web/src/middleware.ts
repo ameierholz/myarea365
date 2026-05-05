@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { assertSameOrigin } from "@/lib/csrf";
 
-const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/privacy", "/impressum", "/agb", "/terms", "/shop-dashboard", "/unsubscribe", "/leaderboard", "/pricing"];
+const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/privacy", "/impressum", "/agb", "/terms", "/unsubscribe", "/leaderboard", "/pricing"];
 const PUBLIC_PREFIXES = ["/u/", "/crew/", "/api/share-card/"];
 
 // API-Pfade die CSRF-frei sind: Stripe-Webhook (eigene Signatur), Cron (CRON_SECRET).
@@ -16,6 +16,13 @@ export async function middleware(request: NextRequest) {
       if (bad) return bad;
     }
     return NextResponse.next({ request });
+  }
+
+  // Legacy /dashboard → /karte (308 keeps method + caches)
+  if (pathname0 === "/dashboard" || pathname0.startsWith("/dashboard/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname0.replace(/^\/dashboard/, "/karte");
+    return NextResponse.redirect(url, 308);
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -50,7 +57,7 @@ export async function middleware(request: NextRequest) {
   // Redirect logged-in users away from login/register
   if (user && (pathname === "/login" || pathname === "/registrieren")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/karte";
     return NextResponse.redirect(url);
   }
 

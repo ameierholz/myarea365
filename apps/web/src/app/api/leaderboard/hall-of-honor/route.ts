@@ -32,25 +32,10 @@ type Row = {
 export async function GET() {
   const sb = await createClient();
 
-  // Runner-Fights: zählen wie oft jemand gewonnen hat
-  const { data: rfRows } = await sb.from("runner_fights")
-    .select("attacker_id, defender_id, winner_user_id")
-    .limit(5000);
-
+  // runner_fights archived (pivot 2026-05-05) — Hall-of-Honor wird im neuen
+  // Marsch-System aus arena_battles + saga_battles + crew_repeater_attacks neu zusammengezogen.
   const winsByUser = new Map<string, number>();
   const lossesByUser = new Map<string, number>();
-  for (const r of rfRows ?? []) {
-    const att = (r as { attacker_id: string }).attacker_id;
-    const def = (r as { defender_id: string }).defender_id;
-    const w = (r as { winner_user_id: string | null }).winner_user_id;
-    if (w === att) {
-      winsByUser.set(att, (winsByUser.get(att) ?? 0) + 1);
-      lossesByUser.set(def, (lossesByUser.get(def) ?? 0) + 1);
-    } else if (w === def) {
-      winsByUser.set(def, (winsByUser.get(def) ?? 0) + 1);
-      lossesByUser.set(att, (lossesByUser.get(att) ?? 0) + 1);
-    }
-  }
 
   const userIds = new Set<string>([...winsByUser.keys(), ...lossesByUser.keys()]);
   if (userIds.size === 0) return NextResponse.json({ rows: [] });

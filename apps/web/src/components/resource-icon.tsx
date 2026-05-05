@@ -6,7 +6,7 @@ export type ResourceKind = "wood" | "stone" | "gold" | "mana" | "speed_token";
 export type ChestKind = "silver" | "gold" | "event";
 export type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
 
-type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; resource_node: ResourceArtMap; loot_drop: ResourceArtMap; base_ring: ResourceArtMap; inventory_item: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; resource_node: ResourceArtMap; loot_drop: ResourceArtMap; base_ring: ResourceArtMap; inventory_item: ResourceArtMap; modal_background: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
 
 // localStorage-Cache: erspart Fallback-Flash bei jedem Reload.
 // Format: { v: number, ts: number, art: AllArt }
@@ -56,8 +56,8 @@ function installArtworkChangeListener() {
       try {
         const r = await fetch(`/api/cosmetic-artwork?ts=${Date.now()}`, { cache: "no-store" });
         if (!r.ok) return;
-        const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
-        const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, marker: j.marker ?? {} };
+        const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; modal_background?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+        const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, modal_background: j.modal_background ?? {}, marker: j.marker ?? {} };
         _cache = fresh;
         _hasRevalidated = true;
         saveToLocalStorage(fresh);
@@ -90,8 +90,8 @@ function ensureFetch() {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (!r.ok) return;
-      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
-      const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, marker: j.marker ?? {} };
+      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; modal_background?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+      const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, modal_background: j.modal_background ?? {}, marker: j.marker ?? {} };
       _cache = fresh;
       _hasRevalidated = true;
       saveToLocalStorage(fresh);
@@ -257,6 +257,18 @@ export function useMarkerArt(): Record<string, Record<string, { image_url: strin
   useEffect(() => {
     if (_cache) { setArt(_cache.marker); return; }
     const sub = (m: AllArt) => setArt(m.marker);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
+export function useModalBackgroundArt(): ResourceArtMap {
+  const [art, setArt] = useState<ResourceArtMap>(_cache?.modal_background ?? {});
+  useEffect(() => {
+    if (_cache) { setArt(_cache.modal_background); return; }
+    const sub = (m: AllArt) => setArt(m.modal_background);
     _listeners.add(sub);
     ensureFetch();
     return () => { _listeners.delete(sub); };

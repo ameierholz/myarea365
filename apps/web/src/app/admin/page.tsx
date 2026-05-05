@@ -31,28 +31,20 @@ export default async function AdminDashboard() {
 
   const [
     // Queue-Counts + älteste 3 pro Queue
-    pendingShops,        oldestPendingShop,
     openModReports,      oldestModReport,
-    openShopReports,     oldestShopReport,
     openTickets,         oldestTicket,        urgentTickets,
     pendingMedia,
     staleLeads,
     pendingRefunds,
     // KPIs
     { count: totalUsers },
-    { count: activeToday },
     { count: signupsWeek },
     { count: crewsCount },
-    { count: shopsCount },
     { data: recent },
     { data: emailStats },
   ] = await Promise.all([
-    sb.from("local_businesses").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    sb.from("local_businesses").select("id, name, created_at").eq("status", "pending").order("created_at", { ascending: true }).limit(3),
     sb.from("moderation_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
     sb.from("moderation_reports").select("id, target_type, reason, created_at").eq("status", "open").order("created_at", { ascending: true }).limit(3),
-    sb.from("shop_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
-    sb.from("shop_reports").select("id, business_id, reason, created_at").eq("status", "open").order("created_at", { ascending: true }).limit(3),
     sb.from("support_tickets").select("id", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
     sb.from("support_tickets").select("id, subject, category, created_at").in("status", ["open", "in_progress"]).order("created_at", { ascending: true }).limit(3),
     sb.from("support_tickets").select("id", { count: "exact", head: true }).in("status", ["open", "in_progress"]).eq("category", "billing"),
@@ -60,10 +52,8 @@ export default async function AdminDashboard() {
     sb.from("sales_leads").select("id", { count: "exact", head: true }).in("status", ["new", "contacted"]).lt("updated_at", new Date(Date.now() - 5 * 24 * HOUR).toISOString()),
     sb.from("refund_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
     sb.from("users").select("id", { count: "exact", head: true }),
-    sb.from("walks").select("user_id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 24 * HOUR).toISOString()),
     sb.from("users").select("id", { count: "exact", head: true }).gte("created_at", since7d),
-    sb.from("groups").select("id", { count: "exact", head: true }),
-    sb.from("local_businesses").select("id", { count: "exact", head: true }),
+    sb.from("crews").select("id", { count: "exact", head: true }),
     sb.from("admin_audit_log").select("action, target_type, target_id, created_at, actor_role").order("created_at", { ascending: false }).limit(8),
     sb.from("email_events").select("status").gte("sent_at", since7d),
   ]);
@@ -78,9 +68,6 @@ export default async function AdminDashboard() {
   }
   if ((oldestTicket.data?.[0]?.created_at) && (ageHours(oldestTicket.data[0].created_at) ?? 0) > 48) {
     criticalAlerts.push({ icon: "🎫", label: `Ältestes Ticket: ${ageHours(oldestTicket.data[0].created_at)}h alt`, detail: oldestTicket.data[0].subject ?? "—", href: "/admin/support", tone: "warning" });
-  }
-  if ((oldestPendingShop.data?.[0]?.created_at) && (ageHours(oldestPendingShop.data[0].created_at) ?? 0) > 96) {
-    criticalAlerts.push({ icon: "🏪", label: `Shop ${ageHours(oldestPendingShop.data[0].created_at)}h pending`, detail: oldestPendingShop.data[0].name ?? "—", href: "/admin/shops?status=pending", tone: "warning" });
   }
   if ((pendingRefunds.count ?? 0) > 0) {
     criticalAlerts.push({ icon: "💰", label: `${pendingRefunds.count} Refund-Anfragen`, detail: "Erstattungen warten auf Entscheidung", href: "/admin/refunds", tone: "danger" });
@@ -112,11 +99,6 @@ export default async function AdminDashboard() {
       {/* Action-Queues */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <QueueWidget
-          icon="🏪" title="Shop-Verifications" tone="warning" href="/admin/shops?status=pending"
-          count={pendingShops.count ?? 0}
-          items={(oldestPendingShop.data ?? []).map((s) => ({ label: s.name ?? "Unbenannt", age: ageHours(s.created_at), href: `/admin/shops/${s.id}` }))}
-        />
-        <QueueWidget
           icon="🎫" title="Support-Tickets" tone="info" href="/admin/support"
           count={openTickets.count ?? 0}
           items={(oldestTicket.data ?? []).map((t) => ({ label: t.subject ?? "—", sub: t.category, age: ageHours(t.created_at), href: `/admin/support` }))}
@@ -126,11 +108,6 @@ export default async function AdminDashboard() {
           icon="⚖️" title="Mod-Meldungen" tone="danger" href="/admin/moderation"
           count={openModReports.count ?? 0}
           items={(oldestModReport.data ?? []).map((m) => ({ label: m.reason ?? "—", sub: m.target_type, age: ageHours(m.created_at), href: `/admin/moderation` }))}
-        />
-        <QueueWidget
-          icon="⚠️" title="Shop-Beschwerden" tone="warning" href="/admin/shop-reports"
-          count={openShopReports.count ?? 0}
-          items={(oldestShopReport.data ?? []).map((r) => ({ label: r.reason ?? "—", age: ageHours(r.created_at), href: `/admin/shop-reports` }))}
         />
         <QueueWidget
           icon="📸" title="User-Media-Review" tone="info" href="/admin/user-media"
@@ -161,11 +138,9 @@ export default async function AdminDashboard() {
 
       {/* KPI-Zeile */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="Runner gesamt" value={(totalUsers ?? 0) || 3_214} />
-        <Stat label="Aktiv (24h)" value={(activeToday ?? 0) || 487} color="#4ade80" />
+        <Stat label="Spieler gesamt" value={(totalUsers ?? 0) || 3_214} />
         <Stat label="Neuanmeldungen (7d)" value={(signupsWeek ?? 0) || 142} color="#FFD700" />
         <Stat label="Crews" value={(crewsCount ?? 0) || 87} color="#a855f7" />
-        <Stat label="Shops" value={(shopsCount ?? 0) || 34} color="#FF6B4A" />
         <Stat label="E-Mails (7d)" value={emailsSent || 1_843} delta={`${emailsBounced || 12} unzustellbar`} color="#4ade80" />
       </div>
 

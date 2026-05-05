@@ -13,10 +13,11 @@ function DemoPill() {
 export async function EngagementCard() {
   const sb = await createClient();
   const now = Date.now();
+  // walks archived (pivot 2026-05-05) — DAU/WAU/MAU via users.last_login_at
   const [dau, wau, mau] = await Promise.all([
-    sb.from("walks").select("user_id", { count: "exact", head: true }).gte("created_at", iso(now - DAY)),
-    sb.from("walks").select("user_id", { count: "exact", head: true }).gte("created_at", iso(now - 7 * DAY)),
-    sb.from("walks").select("user_id", { count: "exact", head: true }).gte("created_at", iso(now - 30 * DAY)),
+    sb.from("users").select("id", { count: "exact", head: true }).gte("last_login_at", iso(now - DAY)),
+    sb.from("users").select("id", { count: "exact", head: true }).gte("last_login_at", iso(now - 7 * DAY)),
+    sb.from("users").select("id", { count: "exact", head: true }).gte("last_login_at", iso(now - 30 * DAY)),
   ]);
   let d = dau.count ?? 0, w = wau.count ?? 0, m = mau.count ?? 0;
   const isDemo = m === 0;
@@ -106,11 +107,12 @@ export async function RetentionCard() {
     const signedIds = (signed ?? []).map((u) => (u as { id: string }).id);
     if (signedIds.length === 0) { cohorts.push({ label: `Vor ${w} Woche${w === 1 ? "" : "n"}`, signed: 0, active: 0 }); continue; }
 
-    const { data: walks } = await sb.from("walks")
-      .select("user_id")
-      .gte("created_at", iso(weekEnd))
-      .in("user_id", signedIds);
-    const activeIds = new Set((walks ?? []).map((w) => (w as { user_id: string }).user_id));
+    // walks archived (pivot 2026-05-05) — Aktivitätsmessung via last_login_at
+    const { data: active } = await sb.from("users")
+      .select("id")
+      .gte("last_login_at", iso(weekEnd))
+      .in("id", signedIds);
+    const activeIds = new Set((active ?? []).map((w) => (w as { id: string }).id));
 
     cohorts.push({ label: `Vor ${w} Woche${w === 1 ? "" : "n"}`, signed: signedIds.length, active: activeIds.size });
   }
@@ -151,9 +153,10 @@ export async function RetentionCard() {
 
 export async function FunnelCard() {
   const sb = await createClient();
-  const [usersRes, walkedRes, crewedRes, dealRes] = await Promise.all([
+  // walks archived (pivot 2026-05-05) — Funnel mit Login-Aktivität statt Lauf
+  const [usersRes, activeRes, crewedRes, dealRes] = await Promise.all([
     sb.from("users").select("id", { count: "exact", head: true }),
-    sb.from("walks").select("user_id", { count: "exact", head: true }),
+    sb.from("users").select("id", { count: "exact", head: true }).not("last_login_at", "is", null),
     sb.from("users").select("id", { count: "exact", head: true }).not("current_crew_id", "is", null),
     sb.from("deal_redemptions").select("user_id", { count: "exact", head: true }).then(
       (r) => r,
@@ -161,12 +164,8 @@ export async function FunnelCard() {
     ),
   ]);
 
-  // Distinct users with at least one walk
-  const { data: walkUsers } = await sb.from("walks").select("user_id").limit(50_000);
-  const distinctWalked = new Set((walkUsers ?? []).map((w) => (w as { user_id: string }).user_id)).size;
-
   let total = usersRes.count ?? 0;
-  let walked = distinctWalked;
+  let walked = activeRes.count ?? 0;
   let crewed = crewedRes.count ?? 0;
   let dealed = dealRes.count ?? 0;
   const isDemo = total === 0;
@@ -174,7 +173,7 @@ export async function FunnelCard() {
 
   const steps = [
     { label: "Registrierung abgeschlossen",  value: total,  color: "#22D1C3" },
-    { label: "Mindestens ein Lauf",          value: walked, color: "#FFD700" },
+    { label: "Mindestens ein Login",         value: walked, color: "#FFD700" },
     { label: "Mitglied in einer Crew",       value: crewed, color: "#a855f7" },
     { label: "Mindestens eine Einlösung",    value: dealed, color: "#FF6B4A" },
   ];

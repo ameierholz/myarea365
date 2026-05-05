@@ -69,7 +69,7 @@ export function CapacitorAuthBridge() {
               return;
             }
           }
-          router.replace("/dashboard");
+          router.replace("/karte");
           router.refresh();
         } catch {
           // URL-Parsing fehlgeschlagen — nichts tun, User bleibt auf aktueller Seite

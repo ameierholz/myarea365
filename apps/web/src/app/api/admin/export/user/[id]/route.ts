@@ -15,11 +15,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const sb = await createClient();
 
   const [
-    user, walks, territories, xp, achievements, redemptions,
-    guardians, items, prestige, fights,
+    user, territories, xp, achievements, redemptions,
+    guardians, items, prestige,
   ] = await Promise.all([
     sb.from("users").select("*").eq("id", id).maybeSingle(),
-    sb.from("walks").select("*").eq("user_id", id).order("created_at", { ascending: false }).limit(5000).then((r) => r, () => ({ data: [] })),
     sb.from("territory_polygons").select("*").eq("owner_user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("xp_transactions").select("*").eq("user_id", id).order("created_at", { ascending: false }).limit(5000).then((r) => r, () => ({ data: [] })),
     sb.from("user_achievements").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
@@ -27,7 +26,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     sb.from("user_guardians").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("user_items").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("user_prestige").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
-    sb.from("runner_fights").select("*").or(`attacker_id.eq.${id},defender_id.eq.${id}`).then((r) => r, () => ({ data: [] })),
   ]);
 
   if (!user.data) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
@@ -39,10 +37,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     details: { exported_at: new Date().toISOString() },
   });
 
+  // Walks + Runner-Fights archived (pivot 2026-05-05) — Daten in runner_legacy schema
   const payload = {
     export_generated_at: new Date().toISOString(),
     user: user.data,
-    walks: walks.data ?? [],
     territories: territories.data ?? [],
     xp_transactions: xp.data ?? [],
     achievements: achievements.data ?? [],
@@ -50,7 +48,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     guardians: guardians.data ?? [],
     items: items.data ?? [],
     prestige: prestige.data ?? [],
-    fights: fights.data ?? [],
   };
 
   const uname = (user.data as { username: string | null }).username ?? id;

@@ -212,7 +212,7 @@ export function InboxClient() {
               ✉️ Neue Nachricht
             </button>
           )}
-          <a href="/dashboard" className="block text-center text-[10px] text-white/50 hover:text-white">← Dashboard</a>
+          <a href="/karte" className="block text-center text-[10px] text-white/50 hover:text-white">← Karte</a>
         </div>
       </aside>
 

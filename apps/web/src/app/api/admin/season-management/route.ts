@@ -20,16 +20,11 @@ export async function GET() {
   await requireStaff();
   const sb = await createClient();
 
-  const [tiers, shopActive, shopRecent, arenaActive, arenaRecent, turfActive, turfRecent] = await Promise.all([
+  // shop_league_seasons archived (pivot 2026-05-05)
+  const [tiers, arenaActive, arenaRecent, turfActive, turfRecent] = await Promise.all([
     sb.from("season_reward_tiers")
       .select("id, system, rank_min, rank_max, gebietsruf, gems, siegel_universal, participation_only, label")
       .order("system").order("rank_min"),
-    sb.from("shop_league_seasons")
-      .select("id, business_id, starts_at, ends_at, total_battles, status")
-      .eq("status", "active").order("ends_at", { ascending: true }).limit(50),
-    sb.from("shop_league_seasons")
-      .select("id, business_id, starts_at, ends_at, total_battles, finalized_at")
-      .eq("status", "finalized").order("finalized_at", { ascending: false }).limit(10),
     sb.from("arena_seasons")
       .select("id, name, starts_at, ends_at, status")
       .eq("status", "active").limit(5),
@@ -47,7 +42,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     tiers: tiers.data ?? [],
-    shop_league: { active: shopActive.data ?? [], recent: shopRecent.data ?? [] },
+    shop_league: { active: [], recent: [] },
     arena:       { active: arenaActive.data ?? [], recent: arenaRecent.data ?? [] },
     turf_war:    { active: turfActive.data ?? [],  recent: turfRecent.data ?? [] },
     saga:        { active: [], recent: [], cities: [] },
@@ -85,9 +80,8 @@ export async function POST(req: NextRequest) {
   // ─── finalize_now ───────────────────────────────────────────────
   if (body.action === "finalize_now") {
     if (body.system === "shop_league") {
-      const { data, error } = await sb.rpc("finalize_shop_league_seasons");
-      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-      return NextResponse.json({ ok: true, finalized: data ?? [] });
+      // shop_league archived (pivot 2026-05-05)
+      return NextResponse.json({ ok: false, error: "shop_league_archived" }, { status: 410 });
     }
     if (body.system === "turf_war") {
       const { data, error } = await sb.rpc("finalize_crew_seasons");
@@ -130,11 +124,7 @@ export async function POST(req: NextRequest) {
   // ─── force_close_active (Shop-Liga + Turf-Krieg) ────────────────
   if (body.action === "force_close_active") {
     if (body.system === "shop_league") {
-      // ends_at = now() − 1s setzen, dann finalize aufrufen
-      await sb.from("shop_league_seasons").update({ ends_at: new Date(Date.now() - 1000).toISOString() })
-        .eq("status", "active");
-      const { data } = await sb.rpc("finalize_shop_league_seasons");
-      return NextResponse.json({ ok: true, finalized: data ?? [] });
+      return NextResponse.json({ ok: false, error: "shop_league_archived" }, { status: 410 });
     }
     if (body.system === "turf_war") {
       await sb.from("crew_seasons").update({ ends_at: new Date(Date.now() - 1000).toISOString() })

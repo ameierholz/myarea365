@@ -113,7 +113,7 @@ export default async function LootDropsPage() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif',
     }}>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 80px" }}>
-        <Link href="/dashboard" style={{ color: "#22D1C3", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
+        <Link href="/karte" style={{ color: "#22D1C3", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
           {t("back")}
         </Link>
 

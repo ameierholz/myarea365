@@ -2335,3 +2335,90 @@ export function buildStrongholdPrompt(input: { stronghold: StrongholdArt; mode: 
     `NO ground beyond the tile, NO sky, NO trees, NO scenery, NO atmospheric haze. No text, no labels, no UI overlays, no watermark, no people.`,
   ].join(" ");
 }
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Modal-Background — Vollbild-Hintergründe für Tab-Routen   */
+/*  Slots: karte_base_bg / karte_waechter_bg / karte_crew_bg  */
+/*         karte_inventar_bg / karte_shop_bg                  */
+/*  Image (PNG/JPG) + Video (MP4) für animierte Szenen        */
+/* ═════════════════════════════════════════════════════════ */
+
+export type ModalBackgroundArt = {
+  id: string;
+  name: string;
+  description: string;
+  scene: string;
+  mood: string;
+  motion?: string;
+};
+
+export const MODAL_BACKGROUNDS_ART: ModalBackgroundArt[] = [
+  {
+    id: "karte_base_bg",
+    name: "Base — Heimat-Skyline",
+    description: "Hintergrund für /karte/base — die Heimat-Stadt im warmen Tageslicht",
+    scene: "wide cinematic painted skyline of a friendly cyber-urban hometown at golden hour: a row of stylized 5–10-story rowhouses, art-deco shop facades, neon-lit awnings, rooftop gardens with antennas and string-lights, a single tall central building with glowing windows that reads as the player's HOME BASE (subtle distinction — slightly larger, golden-warm glow, small flag on roof), distant low hills in soft haze on the horizon, a few birds and one small drone silhouette flying lazily, lens-flare from a low warm sun in the upper-right corner, light scattered cumulus clouds tinted peach and apricot",
+    mood: "warm welcoming day-mood — palette dominated by sky-blue (#5A8FB5 → #8FBFE0) gradient sky, peach (#FFD27A) and cream (#FFF4D6) sun glow, soft teal (#22D1C3) accent lights in shop signs, NO night, NO darkness, NO menacing silhouettes — this is the player's safe home district. RoK / Clash of Clans / Township vibe — inviting, hopeful, alive.",
+    motion: "very subtle ambient — clouds drift slowly left-to-right at constant speed, distant birds flap with minimal arc, neon shop signs and windows flicker softly (random per window), light dust motes float, sun rays shimmer gently. Camera fully static. Seamlessly looping 6-second clip.",
+  },
+  {
+    id: "karte_waechter_bg",
+    name: "Wächter — Trainingsarena",
+    description: "Hintergrund für /karte/waechter — Arena/Trainingsplatz der Wächter",
+    scene: "cinematic painted training arena interior: weathered stone-and-iron amphitheater rim with banners hanging from rafters, sand-and-grit floor in the foreground with crossed sword-and-spear racks along the walls, training dummies and pell-posts, a forge glowing in the back-left with sparks rising, a window in the back-right opening to a sunset sky, hanging chains, ornate guardian-class crests carved into pillars, ambient torchlight casting warm pools",
+    mood: "rosé-sunset arena mood — palette warm rose (#FF6B4A) and apricot (#FFB088) sunset bleeding through windows, deep dusk-purple (#3A1F35) shadows, golden torch-glow accents, dramatic but inviting — feels like a heroic preparation space, not a menacing dungeon. Reference: RoK Heroes Hall / CoD Hero Sanctum.",
+    motion: "torch flames flicker gently, forge sparks drift up-left in slow arcs, dust motes float in the sunset rays through the back window, banners sway minimally as if from a soft breeze, very subtle scene — no character motion. 6-second seamless loop.",
+  },
+  {
+    id: "karte_crew_bg",
+    name: "Crew — Banner-Halle",
+    description: "Hintergrund für /karte/crew — Versammlungshalle der Crew",
+    scene: "cinematic painted grand crew assembly hall: long timber-and-brass banquet table in the foreground with empty chairs around it, polished marble floor reflecting golden torches, tall stone walls hung with massive crew banners (heraldic emblems with crests, silken folds catching candle-light), a soaring vaulted ceiling with chandeliers, columns wrapped in ivy and gold leaf, throne-like high-backed chair at the head of the table on a low dais, war-map spread on the table surface with miniature carved tokens",
+    mood: "regal gold-and-banner mood — palette deep royal-gold (#FFD700) and warm amber, deep red banner accents, candle-light pools of warm yellow, dark mahogany shadows in the corners but never oppressive, feels like a place of camaraderie and decision. Reference: RoK Alliance Hall / CoD Guild Hall.",
+    motion: "candle flames flicker per-light independently, chandelier crystals catch slow rotating reflections, banners ripple gently, dust motes float in the candle-light beams, war-map tokens still — no character motion. 6-second seamless loop.",
+  },
+  {
+    id: "karte_inventar_bg",
+    name: "Inventar — Lagerraum",
+    description: "Hintergrund für /karte/inventar — Lagerhalle/Tresor mit Beuteschätzen",
+    scene: "cinematic painted treasure-and-supply storage hall: warm wood-and-iron storage room with shelving from floor to ceiling stacked with chests, sacks of grain, stacks of weapons, rolled scrolls, bottled potions glowing softly, barrels of provisions, hanging cured meats and dried herbs, a heavy iron-bound door in the back, oil-lanterns hanging on chains casting warm pools, golden coins spilling from one tipped-over chest in the foreground catching light",
+    mood: "warm-brown vault mood — palette saturated warm-brown (#5C4E32) and amber-gold (#D4A574), oil-lantern orange highlights, deep umber shadows, occasional cool blue glow from magic potions, feels rich and abundant — the player's hard-earned hoard. Reference: RoK Storehouse / CoD Vault.",
+    motion: "lantern flames flicker softly, potion bottles glow with slow pulse cycles, dust motes drift through lantern beams, gold coins occasionally catch sparkle reflections, no character motion. 6-second seamless loop.",
+  },
+  {
+    id: "karte_shop_bg",
+    name: "Shop — Mystischer Marktstand",
+    description: "Hintergrund für /karte/shop — magischer Händler-Stand",
+    scene: "cinematic painted mystical merchant stall interior: rich purple velvet curtains draped from above as a backdrop, polished wooden counter in the foreground covered with arranged wares (crystal vials, jeweled rings on silk cushions, stacks of gem-encrusted scrolls, ornate lockboxes, exotic bird in a brass cage in the back-corner), shelves behind with countless glittering trinkets and tiny floating runes orbiting them, hanging string-lights and tiny lanterns, a brass weighing scale center-counter, a half-open spellbook with glowing pages",
+    mood: "soft-purple mystical mood — palette dominated by amethyst-purple (#583A6F) and pink-magenta (#FFB3D9) accents, candy-pink (#FFD6EC) curtain highlights, golden lantern warmth, NO menace — feels like a wonder-stall full of treasures begging to be bought. Reference: RoK Mysterious Merchant / CoD Boutique.",
+    motion: "floating runes orbit slowly around shelf items, lantern flames flicker, spellbook pages glow with breathing pulse, exotic bird shifts head occasionally, gem reflections sparkle randomly, no human character motion. 6-second seamless loop.",
+  },
+];
+
+export function buildModalBackgroundPrompt(input: { bg: ModalBackgroundArt; mode: "image" | "video" }): string {
+  const { bg, mode } = input;
+  if (mode === "video") {
+    return [
+      `Shot: a 6-second seamlessly looping cinematic background animation for a mobile game UI panel — "${bg.name}". Aspect ratio 16:9 (1920x1080), 30 fps.`,
+      `Scene: ${bg.scene}.`,
+      `Mood / palette: ${bg.mood}`,
+      `Composition: full-bleed background painting — fills the entire 1920x1080 frame. NO transparency, NO chroma-key. The image will sit BEHIND UI elements (cards, tiles, text) so keep the LEFT and CENTER regions visually calm with most detail toward the EDGES; avoid hard high-contrast subjects right in the dead-center where UI tiles overlay. Overall composition reads as a stage/backdrop, not a busy mid-shot.`,
+      `Camera: locked static — no pans, no zooms, no parallax. Only ambient elements move.`,
+      `Motion: ${bg.motion ?? "very subtle ambient — minor flicker / drift only, no character motion. Camera fully static. First and last frame pixel-identical for seamless loop."}`,
+      `Lighting: cinematic, painterly, soft directional key-light with rim accents in palette colors above. Mid-tones favored, no crushed blacks, no blown-out whites — UI text in white must remain legible over any region.`,
+      `Style: AAA mobile-game key-art / 2.5D painted background — Rise of Kingdoms / Call of Dragons / Township / Royal Match background quality. Hand-painted textures, soft cel-shading, vibrant but not garish, family-friendly inviting tone.`,
+      `No audio. Silent video only. No text, no UI mockups, no watermark, no logo, no people in frame.`,
+    ].join(" ");
+  }
+  return [
+    `Cinematic painted background image for a mobile game UI panel — "${bg.name}". Aspect ratio 16:9, 1920x1080.`,
+    `Scene: ${bg.scene}.`,
+    `Mood / palette: ${bg.mood}`,
+    `Composition: full-bleed background painting — fills the entire 1920x1080 frame. NO transparency, NO chroma-key. The image will sit BEHIND UI elements (cards, tiles, text) so keep the LEFT and CENTER regions visually calm with most detail toward the EDGES; avoid hard high-contrast subjects right in the dead-center where UI tiles overlay. Overall composition reads as a stage/backdrop, not a busy mid-shot.`,
+    `Lighting: cinematic, painterly, soft directional key-light with rim accents in palette colors above. Mid-tones favored, no crushed blacks, no blown-out whites — UI text in white must remain legible over any region.`,
+    `Style: AAA mobile-game key-art / 2.5D painted background — Rise of Kingdoms / Call of Dragons / Township / Royal Match background quality. Hand-painted textures, soft cel-shading, vibrant but not garish, family-friendly inviting tone.`,
+    `Output format: high-quality JPG or PNG (no alpha needed). No text, no UI mockups, no watermark, no logo, no people in frame.`,
+  ].join(" ");
+}
+
+

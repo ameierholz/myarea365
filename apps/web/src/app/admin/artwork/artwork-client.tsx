@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, BASE_RINGS_ART, buildBaseRingPrompt, NAMEPLATES_ART, buildNameplatePrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt, INVENTORY_ITEMS_ART, buildInventoryItemPrompt, type InventoryItemArt } from "@/lib/artwork-prompts";
+import { buildArchetypePrompt, buildPrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, BASE_RINGS_ART, buildBaseRingPrompt, NAMEPLATES_ART, buildNameplatePrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt, INVENTORY_ITEMS_ART, buildInventoryItemPrompt, type InventoryItemArt, MODAL_BACKGROUNDS_ART, buildModalBackgroundPrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -91,9 +91,10 @@ type CosmeticArt = {
   resource_node:Record<string, Art>;  // slot_id = scrapyard|factory|atm|datacenter
   loot_drop:    Record<string, Art>;  // slot_id = common|rare|epic|legendary
   inventory_item: Record<string, Art>;  // slot_id = item_id (speedup_*, boost_*, key_*, elixir_*, token_*)
+  modal_background: Record<string, Art>;  // slot_id = karte_base_bg / karte_waechter_bg / karte_crew_bg / karte_inventar_bg / karte_shop_bg
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "resource_node" | "loot_drop" | "inventory_item";
+type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "resource_node" | "loot_drop" | "inventory_item" | "modal_background";
 
 type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -114,7 +115,7 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {}, inventory_item: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {}, inventory_item: {}, modal_background: {} });
   const [uiIconSlots, setUiIconSlots] = useState<UiIconSlot[]>([]);
   const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,6 +173,7 @@ export function ArtworkAdminClient() {
         resource_node:bustMap(raw.resource_node?? {}),
         loot_drop:    bustMap(raw.loot_drop    ?? {}),
         inventory_item: bustMap(raw.inventory_item ?? {}),
+        modal_background: bustMap(raw.modal_background ?? {}),
       });
     }
     setLoading(false);
@@ -211,6 +213,7 @@ export function ArtworkAdminClient() {
   const doneRNode     = Object.values(cosmetic.resource_node ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneLootDrop  = Object.values(cosmetic.loot_drop ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneInventoryItem = Object.values(cosmetic.inventory_item ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneModalBg = Object.values(cosmetic.modal_background ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
@@ -234,6 +237,7 @@ export function ArtworkAdminClient() {
     { id: "resource_node", label: "⛏️ Plünderpunkte", done: doneRNode,    total: 4 },
     { id: "loot_drop", label: "🎁 Loot-Drops",       done: doneLootDrop,  total: 4 },
     { id: "inventory_item", label: "📦 Inventar-Items", done: doneInventoryItem, total: INVENTORY_ITEMS_ART.length },
+    { id: "modal_background", label: "🖼️ Modal-Backgrounds", done: doneModalBg, total: MODAL_BACKGROUNDS_ART.length },
   ];
 
   return (
@@ -284,6 +288,7 @@ export function ArtworkAdminClient() {
         : tab === "resource_node" ? <ResourceNodeArtTab artMap={cosmetic.resource_node} onChange={reload} />
         : tab === "loot_drop" ? <LootDropArtTab artMap={cosmetic.loot_drop} onChange={reload} />
         : tab === "inventory_item" ? <InventoryItemArtTab artMap={cosmetic.inventory_item} onChange={reload} />
+        : tab === "modal_background" ? <ModalBackgroundArtTab artMap={cosmetic.modal_background} onChange={reload} />
         : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
       )}
     </div>
@@ -2059,6 +2064,48 @@ function InventoryItemArtTab({ artMap, onChange }: { artMap: Record<string, { im
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Tab: Modal-Backgrounds — Vollbild-Hintergründe für Tabs  */
+/* ═════════════════════════════════════════════════════════ */
+function ModalBackgroundArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Vollbild-Hintergründe für die Tab-Routen (/karte/base, /karte/waechter, /karte/crew, /karte/inventar, /karte/shop).
+        Bild (PNG/JPG) für statische Backgrounds oder MP4-Video für animierte Szenen — Video überschreibt Bild.
+        Querformat 16:9 (1920×1080), KEIN Chroma-Key — die Bilder sitzen hinter UI-Elementen.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))" }}>
+        {MODAL_BACKGROUNDS_ART.map((bg) => {
+          const art = artMap[bg.id];
+          return (
+            <div key={bg.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="relative mb-2 rounded-lg overflow-hidden" style={{ aspectRatio: "16 / 9", width: "100%", background: "rgba(15,17,21,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
+                  : art?.image_url ? <img src={art.image_url} alt={bg.name} className="absolute inset-0 w-full h-full object-cover" />
+                  : <div className="absolute inset-0 flex items-center justify-center text-[#a8b4cf] text-xs">Kein Background hochgeladen</div>}
+              </div>
+              <div className="mb-2">
+                <div className="text-sm font-black text-white">{bg.name}</div>
+                <div className="text-[10px] text-[#a8b4cf]">{bg.description}</div>
+                <div className="text-[10px] text-[#5ddaf0] mt-1">slot_id: <code>{bg.id}</code></div>
+              </div>
+              <AdminArtworkControls
+                targetType="modal_background"
+                targetId={bg.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildModalBackgroundPrompt({ bg, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

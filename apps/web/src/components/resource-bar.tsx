@@ -13,9 +13,9 @@ type Resources = { wood: number; stone: number; gold: number; mana: number };
 function Pill({ color, children }: { color: string; children: React.ReactNode }) {
   return (
     <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-      padding: "4px 8px",
-      whiteSpace: "nowrap", minWidth: 56,
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+      padding: "2px 6px",
+      whiteSpace: "nowrap", minWidth: 44,
       textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
       filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${color}33)`,
     }}>{children}</div>
@@ -126,13 +126,13 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
           }}
         >
           {items.map((it) => (
-            <ResourceIcon key={it.kind} kind={it.kind} size={22} fallback={it.fallback} art={art} />
+            <ResourceIcon key={it.kind} kind={it.kind} size={18} fallback={it.fallback} art={art} />
           ))}
-          <span style={{ fontSize: 18, lineHeight: 1, filter: `drop-shadow(0 0 4px ${PINK}88)` }}>💎</span>
+          <span style={{ fontSize: 14, lineHeight: 1, filter: `drop-shadow(0 0 4px ${PINK}88)` }}>💎</span>
         </button>
       ) : (
         <div style={{
-          display: "flex", flexDirection: "column", alignItems: "stretch", gap: 5,
+          display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2,
           position: "relative",
         }}>
           {/* Einklappen: dezenter Chevron oben rechts neben den Pillen */}
@@ -150,20 +150,20 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
           >›</button>
           {items.map((it) => (
             <Pill key={it.kind} color={it.color}>
-              <ResourceIcon kind={it.kind} size={38} fallback={it.fallback} art={art} />
-              <span style={{ color: "#FFF", fontWeight: 900, fontSize: 11 }}>{fmt(it.value)}</span>
+              <ResourceIcon kind={it.kind} size={26} fallback={it.fallback} art={art} />
+              <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{fmt(it.value)}</span>
             </Pill>
           ))}
           {/* Diamant-Pill mit integriertem "+" */}
           <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-            padding: "4px 8px", whiteSpace: "nowrap", minWidth: 56,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+            padding: "2px 6px", whiteSpace: "nowrap", minWidth: 44,
             textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
             filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${PINK}33)`,
             position: "relative",
           }}>
-            <span style={{ fontSize: 24, lineHeight: 1 }}>💎</span>
-            <span style={{ color: "#FFF", fontWeight: 900, fontSize: 11 }}>{gems != null ? fmt(gems) : "…"}</span>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>💎</span>
+            <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{gems != null ? fmt(gems) : "…"}</span>
             {onAddGems && (
               <button
                 onClick={onAddGems}

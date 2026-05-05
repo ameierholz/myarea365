@@ -27,7 +27,7 @@ export function CrewJoinButton({ crewId, code, accent }: { crewId: string; code:
       await sb.from("users").update({ current_crew_id: crewId }).eq("id", user.id);
       try { await sb.rpc("promote_pending_territories", { p_user_id: user.id }); } catch { /* stumm */ }
       setJoined(true);
-      setTimeout(() => router.push("/dashboard"), 1200);
+      setTimeout(() => router.push("/karte"), 1200);
     });
   }
 

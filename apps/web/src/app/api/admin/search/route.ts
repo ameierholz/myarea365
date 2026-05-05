@@ -18,33 +18,24 @@ export async function GET(req: NextRequest) {
 
   const like = `%${q}%`;
 
-  const [users, shops, crews, tickets] = await Promise.all([
+  // Shops + Groups archived (pivot 2026-05-05) — Suche nur über Users, Crews, Tickets
+  const [users, crews, tickets] = await Promise.all([
     sb.from("users").select("id, username, display_name, email")
       .or(`username.ilike.${like},display_name.ilike.${like},email.ilike.${like}`)
       .limit(8),
-    sb.from("local_businesses").select("id, name, city, address")
-      .or(`name.ilike.${like},city.ilike.${like},address.ilike.${like}`)
-      .limit(8),
-    sb.from("crews").select("id, name, city, color").ilike("name", like).limit(5).then(
-      (r) => r,
-      () => sb.from("groups").select("id, name, city:description, color").ilike("name", like).limit(5),
-    ),
+    sb.from("crews").select("id, name, city, color").ilike("name", like).limit(5),
     sb.from("support_tickets").select("id, subject, email, status")
       .or(`subject.ilike.${like},email.ilike.${like},body.ilike.${like}`)
       .limit(5).then((r) => r, () => ({ data: [] })),
   ]);
 
   type UserRow = { id: string; username: string | null; display_name: string | null; email: string | null };
-  type ShopRow = { id: string; name: string | null; city: string | null; address: string | null };
   type CrewRow = { id: string; name: string | null; city?: string | null };
   type TicketRow = { id: string; subject: string; email: string; status: string };
 
   const results: Array<{ kind: string; id: string; title: string; subtitle: string; href: string }> = [];
   for (const u of (users.data ?? []) as UserRow[]) {
     results.push({ kind: "runner", id: u.id, title: u.display_name ?? u.username ?? "—", subtitle: `@${u.username} · ${u.email ?? ""}`, href: `/admin/runners/${u.id}` });
-  }
-  for (const s of (shops.data ?? []) as ShopRow[]) {
-    results.push({ kind: "shop", id: s.id, title: s.name ?? "—", subtitle: [s.city, s.address].filter(Boolean).join(" · "), href: `/admin/shops/${s.id}` });
   }
   for (const c of (crews.data ?? []) as CrewRow[]) {
     results.push({ kind: "crew", id: c.id, title: c.name ?? "—", subtitle: c.city ?? "", href: `/admin/crews/${c.id}` });

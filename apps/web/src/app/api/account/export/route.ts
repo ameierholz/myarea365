@@ -17,11 +17,10 @@ export async function GET() {
   const id = user.id;
 
   const [
-    profile, walks, territories, xp, achievements, redemptions,
-    guardians, items, prestige, fights, missions, crewMembership,
+    profile, territories, xp, achievements, redemptions,
+    guardians, items, prestige, missions, crewMembership,
   ] = await Promise.all([
     sb.from("users").select("*").eq("id", id).maybeSingle(),
-    sb.from("walks").select("*").eq("user_id", id).order("created_at", { ascending: false }).limit(5000).then((r) => r, () => ({ data: [] })),
     sb.from("territory_polygons").select("*").eq("claimed_by_user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("xp_transactions").select("*").eq("user_id", id).order("created_at", { ascending: false }).limit(5000).then((r) => r, () => ({ data: [] })),
     sb.from("user_achievements").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
@@ -29,18 +28,17 @@ export async function GET() {
     sb.from("user_guardians").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("user_items").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("user_prestige").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
-    sb.from("runner_fights").select("*").or(`attacker_id.eq.${id},defender_id.eq.${id}`).then((r) => r, () => ({ data: [] })),
     sb.from("user_missions").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
     sb.from("crew_members").select("*").eq("user_id", id).then((r) => r, () => ({ data: [] })),
   ]);
 
   if (!profile.data) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
 
+  // Walks + Runner-Fights archived (pivot 2026-05-05) — siehe runner_legacy schema
   const payload = {
     export_generated_at: new Date().toISOString(),
     export_kind: "self_service_gdpr_art20",
     profile: profile.data,
-    walks: walks.data ?? [],
     territories: territories.data ?? [],
     xp_transactions: xp.data ?? [],
     achievements: achievements.data ?? [],
@@ -48,7 +46,6 @@ export async function GET() {
     guardians: guardians.data ?? [],
     items: items.data ?? [],
     prestige: prestige.data ?? [],
-    fights: fights.data ?? [],
     missions: missions.data ?? [],
     crew_memberships: crewMembership.data ?? [],
   };

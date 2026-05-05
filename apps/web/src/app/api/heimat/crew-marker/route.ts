@@ -33,6 +33,19 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data);
 }
 
+/** DELETE /api/heimat/crew-marker?id=... — eigenen Marker löschen */
+export async function DELETE(req: NextRequest) {
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
+  const { error } = await sb.from("crew_map_markers").delete().eq("id", id).eq("created_by", user.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
 /** GET /api/heimat/crew-marker — aktive Crew-Marker (eigene Crew) */
 export async function GET() {
   const sb = await createClient();

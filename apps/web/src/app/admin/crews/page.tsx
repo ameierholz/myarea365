@@ -8,7 +8,7 @@ export default async function CrewsPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const sb = await createClient();
 
-  let q = sb.from("groups").select("id, name, privacy, created_at, member_count:group_members(count)").order("created_at", { ascending: false }).limit(200);
+  let q = sb.from("crews").select("id, name, privacy, created_at, member_count:crew_members(count)").order("created_at", { ascending: false }).limit(200);
   if (sp.q) q = q.ilike("name", `%${sp.q}%`);
   const { data: crews } = await q;
 

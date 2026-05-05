@@ -8,9 +8,9 @@ import { NextResponse } from "next/server";
  * Verhindert ?next=//evil.com oder ?next=/\\evil.com Angriffe.
  */
 function safeNext(raw: string | null): string {
-  if (!raw) return "/dashboard";
+  if (!raw) return "/karte";
   // Nur Pfade die mit genau einem "/" anfangen, gefolgt von keinem Slash/Backslash.
-  if (!/^\/(?![/\\])/.test(raw)) return "/dashboard";
+  if (!/^\/(?![/\\])/.test(raw)) return "/karte";
   return raw;
 }
 

@@ -11,8 +11,7 @@ export function LegalFooter() {
   if (
     pathname === "/" ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/shop-dashboard")
+    pathname.startsWith("/karte")
   ) return null;
 
   return (

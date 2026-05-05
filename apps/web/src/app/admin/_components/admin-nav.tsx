@@ -17,11 +17,10 @@ const NAV: NavGroup[] = [
   {
     id: "community", emoji: "👥", title: "Community",
     items: [
-      { href: "/admin/runners",      label: "🏃 Runner" },
+      { href: "/admin/runners",      label: "🏃 Spieler" },
       { href: "/admin/crews",        label: "👥 Crews" },
       { href: "/admin/territories",  label: "🗺️ Territorien" },
       { href: "/admin/moderation",   label: "⚖️ Moderation" },
-      { href: "/admin/shop-reports", label: "⚠️ Shop-Reports" },
       { href: "/admin/support",      label: "🎫 Support-Tickets" },
       { href: "/admin/user-media",   label: "📸 User-Media" },
     ],
@@ -29,9 +28,6 @@ const NAV: NavGroup[] = [
   {
     id: "business", emoji: "💼", title: "Business",
     items: [
-      { href: "/admin/shops",    label: "🏪 Shops" },
-      { href: "/admin/deals",    label: "⚡ Deals" },
-      { href: "/admin/qr-codes", label: "📱 QR-Codes" },
       { href: "/admin/sales",    label: "💰 Vertrieb & Umsatz" },
       { href: "/admin/refunds",  label: "💸 Refunds" },
     ],

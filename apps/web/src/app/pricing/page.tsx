@@ -60,7 +60,7 @@ export default async function PricingPage() {
               ))}
               <li className="text-xs text-text-muted pl-6">{t("moreFeats", { n: PLUS_FEATURES.length - 7 })}</li>
             </ul>
-            <Link href="/dashboard/?upgrade=plus" className="mt-6 text-center py-2.5 rounded-lg bg-primary text-bg-deep hover:bg-primary-dim text-sm font-bold">
+            <Link href="/karte/?upgrade=plus" className="mt-6 text-center py-2.5 rounded-lg bg-primary text-bg-deep hover:bg-primary-dim text-sm font-bold">
               {t("tierPlusCta")}
             </Link>
           </div>
@@ -74,7 +74,7 @@ export default async function PricingPage() {
                 <Feat key={f.title}><b>{f.title}</b> — <span className="text-text-muted">{f.desc}</span></Feat>
               ))}
             </ul>
-            <Link href="/dashboard/?upgrade=crew" className="mt-6 text-center py-2.5 rounded-lg bg-accent text-white hover:bg-accent-dim text-sm font-bold">
+            <Link href="/karte/?upgrade=crew" className="mt-6 text-center py-2.5 rounded-lg bg-accent text-white hover:bg-accent-dim text-sm font-bold">
               {t("tierCrewCta")}
             </Link>
           </div>
@@ -89,7 +89,7 @@ export default async function PricingPage() {
               <div className="text-xs text-text-muted mb-1">{t("boostMeta", { mult: p.multiplier, h: p.hours })}</div>
               <div className="text-base font-bold text-white mb-2">{p.name}</div>
               <div className="text-2xl font-black text-xp mb-3">{formatPrice(p.price)}</div>
-              <Link href={`/dashboard/?buy=${p.sku}`} className="block py-2 rounded-lg bg-xp/20 text-xp hover:bg-xp/30 text-xs font-bold">
+              <Link href={`/karte/?buy=${p.sku}`} className="block py-2 rounded-lg bg-xp/20 text-xp hover:bg-xp/30 text-xs font-bold">
                 {t("buy")}
               </Link>
             </div>
@@ -102,7 +102,7 @@ export default async function PricingPage() {
             <div key={e.sku} className="bg-bg-card border border-border rounded-xl p-4 text-center">
               <div className="text-base font-bold text-white mb-2">{e.name}</div>
               <div className="text-lg font-black text-primary mb-3">{formatPrice(e.price)}</div>
-              <Link href={`/dashboard/?buy=${e.sku}`} className="block py-1.5 rounded-lg bg-white/5 text-white hover:bg-white/10 text-xs font-bold">
+              <Link href={`/karte/?buy=${e.sku}`} className="block py-1.5 rounded-lg bg-white/5 text-white hover:bg-white/10 text-xs font-bold">
                 {t("buy")}
               </Link>
             </div>

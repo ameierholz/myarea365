@@ -9,9 +9,9 @@ export default async function CrewDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const sb = await createClient();
 
-  const { data: crew } = await sb.from("groups").select("*").eq("id", id).maybeSingle();
+  const { data: crew } = await sb.from("crews").select("*").eq("id", id).maybeSingle();
   if (!crew) return <div className="text-red-400">Crew nicht gefunden.</div>;
-  const { data: members } = await sb.from("group_members").select("user_id, role, joined_at, users(username, display_name, total_distance_m)").eq("group_id", id);
+  const { data: members } = await sb.from("crew_members").select("user_id, role, joined_at, users(username, display_name)").eq("crew_id", id);
 
   return (
     <>
@@ -37,15 +37,14 @@ export default async function CrewDetailPage({ params }: { params: Promise<{ id:
 
         <Card className="md:col-span-2">
           <h2 className="font-bold mb-3">Mitglieder</h2>
-          <Table headers={["Runner", "Rolle", "Beigetreten", "km gesamt"]}>
-            {((members ?? []) as unknown as Array<{ user_id: string; role: string; joined_at: string; users: { username?: string; display_name?: string; total_distance_m?: number } | { username?: string; display_name?: string; total_distance_m?: number }[] | null }>).map((m) => {
+          <Table headers={["Spieler", "Rolle", "Beigetreten"]}>
+            {((members ?? []) as unknown as Array<{ user_id: string; role: string; joined_at: string; users: { username?: string; display_name?: string } | { username?: string; display_name?: string }[] | null }>).map((m) => {
               const u = Array.isArray(m.users) ? m.users[0] : m.users;
               return (
                 <Tr key={m.user_id}>
                   <Td><Link href={`/admin/runners/${m.user_id}`} className="text-white hover:text-[#22D1C3]">{u?.display_name ?? u?.username}</Link></Td>
                   <Td><Badge tone={m.role === "owner" ? "warning" : "neutral"}>{m.role}</Badge></Td>
                   <Td>{new Date(m.joined_at).toLocaleDateString("de-DE")}</Td>
-                  <Td>{((u?.total_distance_m ?? 0) / 1000).toFixed(1)} km</Td>
                 </Tr>
               );
             })}

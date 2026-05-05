@@ -20,9 +20,9 @@ export default async function SystemPage() {
     { key: "CRON_SECRET", label: "Cron Secret", ok: !!process.env.CRON_SECRET },
   ];
 
-  const [{ count: totalUsers }, { count: totalWalks }, { count: totalTerritories }] = await Promise.all([
+  const [{ count: totalUsers }, { count: totalCrews }, { count: totalTerritories }] = await Promise.all([
     sb.from("users").select("id", { count: "exact", head: true }),
-    sb.from("walks").select("id", { count: "exact", head: true }),
+    sb.from("crews").select("id", { count: "exact", head: true }),
     sb.from("territories").select("id", { count: "exact", head: true }),
   ]);
 
@@ -31,7 +31,7 @@ export default async function SystemPage() {
       <PageTitle title="⚙️ System" subtitle="Environment, Health, Wartung" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Stat label="Users" value={totalUsers ?? 0} />
-        <Stat label="Walks" value={totalWalks ?? 0} color="#22D1C3" />
+        <Stat label="Crews" value={totalCrews ?? 0} color="#22D1C3" />
         <Stat label="Territories" value={totalTerritories ?? 0} color="#FFD700" />
         <Stat label="Wartungsmodus" value={maintenance ? "AN" : "AUS"} color={maintenance ? "#FF2D78" : "#4ade80"} />
       </div>

@@ -246,21 +246,21 @@ if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-ani
       transform-origin: center bottom;
       filter: drop-shadow(0 3px 6px rgba(0,0,0,0.55));
     }
-    .ma365-stronghold-emoji { font-size: 50px; line-height: 1; }
+    .ma365-stronghold-emoji { font-size: 15px; line-height: 1; }
     .ma365-stronghold-level {
-      min-width: 24px; height: 20px;
-      padding: 0 7px; border-radius: 999px;
+      min-width: 15px; height: 15px;
+      padding: 0 4px; border-radius: 999px;
       background: linear-gradient(135deg, #FF2D78, #FF6B4A); color: #FFF;
-      font-size: 12px; font-weight: 900; line-height: 20px;
+      font-size: 9px; font-weight: 900; line-height: 15px;
       text-align: center;
-      border: 1.5px solid rgba(255,255,255,0.95);
-      box-shadow: 0 2px 5px rgba(255,45,120,0.55);
-      margin-top: -18px;
+      border: 1px solid rgba(255,255,255,0.95);
+      box-shadow: 0 1px 2px rgba(255,45,120,0.55);
+      margin-top: -8px;
       pointer-events: none;
       z-index: 2;
     }
     .ma365-stronghold-hp {
-      width: 56px; height: 5px; background: rgba(15,17,21,0.7);
+      width: 30px; height: 3px; background: rgba(15,17,21,0.7);
       border-radius: 999px; overflow: hidden; margin-top: 2px;
       border: 1px solid rgba(255,255,255,0.4);
     }
@@ -1167,24 +1167,48 @@ export function AppMap({
       return;
     }
 
+    // Connection-Speed erkennen — auf 3G/Slow-4G initial ohne 3D-Buildings + ohne
+    // Pitch starten, sonst kommt die Map nie. User kann später auf Wunsch reinzoomen
+    // und 3D-Buildings nachladen (per Toggle / Zoom-Threshold).
+    const conn = (navigator as unknown as { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
+    const slow = !!(conn && (conn.effectiveType === "slow-2g" || conn.effectiveType === "2g" || conn.effectiveType === "3g" || conn.saveData));
+
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: MAPBOX_STYLE,
       center: [FALLBACK.lng, FALLBACK.lat],
-      zoom: 16,          // höheres Default-Zoom → Fassaden-Details sichtbar
-      pitch: 52,         // moderate 3D-Perspektive (dynamisch erhöht bei nahem Zoom)
+      zoom: slow ? 15 : 16, // niedrigerer Initial-Zoom = weniger Tiles auf Slow
+      pitch: slow ? 0 : 52,
       bearing: -20,
       attributionControl: false,
+      // Reduziert Pre-Fetch von angrenzenden Zoom-Stufen (Default 4) → spart Tiles.
+      maxTileCacheSize: slow ? 30 : 100,
+      // Mapbox v3: cooperativeGestures nicht hier — wir steuern Gestures selbst.
     });
+    // Bandbreite + GPU sparen: auf High-DPI-Screens (z.B. Pixel 7 = DPR 2.625)
+    // rendert Mapbox sonst 7× mehr Pixel als nötig. 1.5 ist sweet-spot zwischen
+    // Schärfe und Ladezeit auf 4G.
+    if (typeof window !== "undefined" && window.devicePixelRatio > 1.5) {
+      // setMaxPixelRatio v3+, fallback safe
+      const m = map as unknown as { setMaxPixelRatio?: (n: number) => void };
+      m.setMaxPixelRatio?.(1.5);
+    }
 
     // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons
     map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+    // Wheel-Zoom snappier — Default 1/450 reagiert träge (gefühlte 2-3 Klicks
+    // bevor die Karte zoomt), 1/200 macht jeden Wheel-Schritt sofort sichtbar.
+    map.scrollZoom.setWheelZoomRate(1 / 200);
+    map.scrollZoom.setZoomRate(1 / 80);
 
     map.on("style.load", () => {
       const preset = lightPreset === "auto" ? getCurrentLightPreset() : lightPreset;
       try {
         map.setConfigProperty("basemap", "lightPreset", preset);
-        map.setConfigProperty("basemap", "show3dObjects", true);
+        // 3D-Buildings auf Slow-Connection initial AUS — spart 30-50% Tile-Traffic
+        // im First-Paint. User kann später aktivieren via Settings-Toggle.
+        map.setConfigProperty("basemap", "show3dObjects", !slow);
         map.setConfigProperty("basemap", "showPointOfInterestLabels", false);
         map.setConfigProperty("basemap", "showTransitLabels", false);
         map.setConfigProperty("basemap", "showRoadLabels", true);
@@ -1213,7 +1237,8 @@ export function AppMap({
         const h = container.clientHeight;
         if (w !== lastWidth || h !== lastHeight) {
           lastWidth = w; lastHeight = h;
-          map.resize();
+          // Map kann während Teardown bereits removed sein → Canvas null → resize crasht.
+          try { if (map.getCanvas()) map.resize(); } catch { /* map removed */ }
         }
       });
     });
@@ -1398,9 +1423,9 @@ export function AppMap({
     };
   }, [mapReady]);
 
-  // Pitch dynamisch an Zoom koppeln: weit raus = flach (weniger dramatische
-  // Gebäude-Türme bei Pan), nah ran = volle 3D-Perspektive.
-  // Greift nicht wenn User gerade selbst pitcht (sonst bekämpft sich's).
+  // Pitch dynamisch an Zoom koppeln — feuert NUR auf zoomend (nicht auf "zoom"),
+  // sonst läuft setPitch während Scroll-Wheel-Aktionen 50× pro Sekunde und
+  // ruckelt das Raszoomen kaputt (Wheel-Event-Akkumulation reagiert träge).
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current;
@@ -1408,21 +1433,20 @@ export function AppMap({
     let userPitching = false;
     const onPitchStart = () => { userPitching = true; };
     const onPitchEnd = () => { userPitching = false; };
-    const onZoom = () => {
+    const onZoomEnd = () => {
       if (userPitching) return;
       const z = map.getZoom();
-      // 14 → 30°, 16 → 50°, 18 → 60° (linear interpoliert, geclampt)
       const target = Math.max(0, Math.min(60, (z - 13) * 10));
       const cur = map.getPitch();
-      if (Math.abs(cur - target) > 1.5) map.setPitch(target);
+      if (Math.abs(cur - target) > 1.5) map.easeTo({ pitch: target, duration: 200 });
     };
     map.on("pitchstart", onPitchStart);
     map.on("pitchend", onPitchEnd);
-    map.on("zoom", onZoom);
+    map.on("zoomend", onZoomEnd);
     return () => {
       map.off("pitchstart", onPitchStart);
       map.off("pitchend", onPitchEnd);
-      map.off("zoom", onZoom);
+      map.off("zoomend", onZoomEnd);
     };
   }, [mapReady]);
 
@@ -2445,6 +2469,19 @@ export function AppMap({
     }));
     const data = { type: "FeatureCollection" as const, features };
 
+    // Wenn keine Flash-Pushes aktiv sind: Layer + Pulse-RAF entfernen.
+    // Sonst läuft setPaintProperty 60Hz auf einem leeren Layer und triggert
+    // Mapbox-Label-Recompute pro Frame → Hausnummern flackern.
+    if (features.length === 0) {
+      const cancel = (map as unknown as { __flashPulseCancel?: () => void }).__flashPulseCancel;
+      if (cancel) { cancel(); (map as unknown as { __flashPulseCancel?: () => void }).__flashPulseCancel = undefined; }
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(srcId)) map.removeSource(srcId);
+      } catch { /* noop */ }
+      return;
+    }
+
     const existing = map.getSource(srcId) as mapboxgl.GeoJSONSource | undefined;
     if (existing) existing.setData(data);
     else {
@@ -2734,14 +2771,14 @@ export function AppMap({
       const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       // Wegelager = Feind → ROT. Falls Artwork in anderer Farbe gespeichert ist,
       // mit hue-rotate auf Rot drücken (kombiniert mit chroma-key für transparenten BG).
-      const wegelagerStyle = "width:120px;height:120px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
+      const wegelagerStyle = "width:60px;height:60px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
       let visualHtml: string;
       if (art?.video_url) {
         visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}"></video>`;
       } else if (art?.image_url) {
         visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}" />`;
       } else {
-        visualHtml = `<div class="ma365-stronghold-emoji" data-vis="full" style="opacity:0;width:100px;height:100px;"></div>`;
+        visualHtml = `<div class="ma365-stronghold-emoji" data-vis="full" style="opacity:0;width:50px;height:50px;"></div>`;
       }
 
       // Silhouette-SVG (mid-LOD): kleine rote Bandit-Festung mit Flagge
@@ -2763,8 +2800,7 @@ export function AppMap({
       inner.innerHTML = `
         ${silhouetteSvg}
         ${visualHtml}
-        <div class="ma365-stronghold-level">${s.level}</div>
-        <div class="ma365-stronghold-hp"><div class="ma365-stronghold-hp-fill" style="width:${Math.max(0, Math.min(100, s.hp_pct))}%"></div></div>`;
+        <div class="ma365-stronghold-level">${s.level}</div>`;
       outer.appendChild(inner);
       outer.addEventListener("click", (ev) => {
         const me = ev as MouseEvent;
@@ -3416,9 +3452,9 @@ export function AppMap({
       zoomWrap.appendChild(silWrap);
 
       // ── Stage 3: FULL — Artwork in konstanter Größe (passt ins Tile, nicht mehr 250px)
-      const ART_SIZE = 275;
+      const BASE_SIZE = 180;
       const inner = document.createElement("div");
-      inner.dataset.fullSize = String(ART_SIZE);
+      inner.dataset.fullSize = String(BASE_SIZE);
       inner.style.cssText = [
         "position:absolute","left:50%","top:50%","transform:translate(-50%,-50%)",
         "display:none","flex-direction:column","align-items:center","gap:0px",
@@ -3427,10 +3463,10 @@ export function AppMap({
       ].join(";");
 
       const visualBase = art?.image_url
-        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
+        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
         : art?.video_url
-        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
-        : `<div style="position:relative;z-index:1;width:${ART_SIZE}px;height:${ART_SIZE}px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(ART_SIZE * 0.83)}px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
+        : `<div style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(BASE_SIZE * 0.83)}px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
       // ── RARITY-FX-SYSTEM ────────────────────────────────────────────────
       // 3-Tier-Animation per Theme-Rarity, alles GPU-beschleunigt (transform+opacity).
@@ -3447,8 +3483,8 @@ export function AppMap({
 
       const torch = (xPct: number) => {
         // Fackel = SVG-Flame mit CSS-Flicker (drop-shadow als Fire-Glow).
-        const torchW = Math.round(ART_SIZE * 0.07);
-        const torchH = Math.round(ART_SIZE * 0.11);
+        const torchW = Math.round(BASE_SIZE * 0.07);
+        const torchH = Math.round(BASE_SIZE * 0.11);
         return `<svg viewBox="0 0 24 36" style="position:absolute;left:${xPct}%;top:62%;width:${torchW}px;height:${torchH}px;transform:translate(-50%,0);transform-origin:50% 100%;animation:basePinTorch 0.45s ease-in-out infinite;pointer-events:none;z-index:2;overflow:visible;">
           <defs>
             <radialGradient id="flameG-${pin.id}-${xPct}" cx="50%" cy="65%" r="55%">
@@ -3464,24 +3500,24 @@ export function AppMap({
       };
 
       const auraRing = (color: string, secondary: string, sizePct: number, duration: string, reverse = false, opacity = 0.5) => {
-        const size = Math.round(ART_SIZE * sizePct);
+        const size = Math.round(BASE_SIZE * sizePct);
         return `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-45%);width:${size}px;height:${size}px;border-radius:50%;background:conic-gradient(from 0deg, ${color}55, transparent 22%, ${secondary}66 48%, transparent 72%, ${color}55);animation:basePinAuraSpin${reverse ? "Reverse" : ""} ${duration} linear infinite;pointer-events:none;z-index:0;opacity:${opacity};mix-blend-mode:screen;filter:blur(2px);"></div>`;
       };
 
       const glowPulse = (color: string, sizePct: number, speed: string) => {
-        const size = Math.round(ART_SIZE * sizePct);
+        const size = Math.round(BASE_SIZE * sizePct);
         return `<div style="position:absolute;top:50%;left:50%;width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle, ${color}66 0%, transparent 60%);animation:basePinShimmer ${speed} ease-in-out infinite;pointer-events:none;z-index:0;mix-blend-mode:screen;"></div>`;
       };
 
       const orbitParticle = (color: string, idx: number, total: number, radiusPct: number) => {
-        const orbitR = Math.round(ART_SIZE * radiusPct);
+        const orbitR = Math.round(BASE_SIZE * radiusPct);
         const delay = (idx / total) * 4; // 4s = full cycle, evenly distributed
         return `<div style="position:absolute;top:50%;left:50%;width:7px;height:7px;border-radius:50%;background:${color};box-shadow:0 0 14px ${color},0 0 24px ${color}99;--orbit-r:${orbitR}px;animation:basePinParticleOrbit 4s linear infinite ${delay}s;pointer-events:none;z-index:1;margin-left:-3.5px;margin-top:-3.5px;"></div>`;
       };
 
       const sigilStar = (color: string) => {
         // Schwebendes Stern-Sigil über der Burg, langsam rotierend + Pulse-Glow.
-        const sigilSize = Math.round(ART_SIZE * 0.14);
+        const sigilSize = Math.round(BASE_SIZE * 0.14);
         return `<div style="position:absolute;left:50%;top:-${Math.round(sigilSize * 0.3)}px;transform:translate(-50%,0);width:${sigilSize}px;height:${sigilSize}px;pointer-events:none;z-index:3;--sigil-glow:${color};animation:basePinSigilPulse 2.5s ease-in-out infinite;">
           <div style="width:100%;height:100%;animation:basePinSigilSpin 14s linear infinite;transform-origin:50% 50%;">
             <svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block;">
@@ -3514,23 +3550,23 @@ export function AppMap({
                     sigilStar(rar.sigil);
         }
       }
-      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${ART_SIZE}px;height:${ART_SIZE}px">${fxLayer}${visualBase}</div>`;
+      const visualHtml = `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:${BASE_SIZE}px;height:${BASE_SIZE}px">${fxLayer}${visualBase}</div>`;
 
-      // ── PROPORTIONS (relativ zu ART_SIZE = 300px) ───────────────────────
+      // ── PROPORTIONS (relativ zu BASE_SIZE = 300px) ───────────────────────
       // Banner 320×64 (5:1, matcht Prompt) — Top/Bottom-Strips je 42%, Mitte
       // 16% (Text-Höhe). Strips kleben am Text, kein Gap mehr.
       // Runner-Badge 84px sitzt halb über Castle-Base.
-      const BANNER_W = 320;
-      const BANNER_H = Math.round(BANNER_W / 5); // = 64px
-      const TEXT_ZONE_W = Math.round(BANNER_W * 0.78); // = 250px (Name+Tag mit Luft)
+      const NAMEDECK_W = 220;
+      const NAMEDECK_H = Math.round(NAMEDECK_W / 5); // = 44px
+      const NAMEDECK_TEXT_W = Math.round(NAMEDECK_W * 0.78); // = 172px (Name+Tag mit Luft)
       const MIN_SCALE = 0.78;
-      const RUNNER_BADGE_SIZE = 84;
-      const BADGE_LIFT = Math.round(RUNNER_BADGE_SIZE / 2 + 32); // = 74
+      const AVATAR_SIZE = 50;
+      const AVATAR_LIFT = Math.round(AVATAR_SIZE / 2 + 16); // = 41
 
       const npArt = pin.nameplate_art;
       // Banner-Artwork ist 4:1 wide. NUR IMAGE auf der Map — MP4 würde bei vielen
       // sichtbaren Spielern Performance killen (jeder Pin = 1 Video-Decode-Thread).
-      const npWrapStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${BANNER_W}px;height:${BANNER_H}px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:1;`;
+      const npWrapStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:${NAMEDECK_W}px;height:${NAMEDECK_H}px;pointer-events:none;filter:url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5));z-index:1;`;
       const npInnerStyle = `width:100%;height:100%;object-fit:contain;object-position:center;display:block;`;
       const npLayer = npArt?.image_url
         ? `<div style="${npWrapStyle}"><img src="${npArt.image_url}" alt="" style="${npInnerStyle}" /></div>`
@@ -3544,11 +3580,11 @@ export function AppMap({
       // Base-Ring (Halo/Aura um das Badge) — sitzt hinter dem Badge, etwas größer.
       // Ring-Artwork wird mit chroma-Filter eingefärbt (greenscreen → transparent).
       const ringArt = pin.base_ring_art;
-      const RING_SIZE = Math.round(RUNNER_BADGE_SIZE * 1.6); // = 134px
+      const AVATAR_FRAME_SIZE = Math.round(AVATAR_SIZE * 1.5); // = 63px
       // Artwork hat oft viel Greenscreen-Padding — Scale-Up vergrößert das sichtbare Ring-Motiv.
-      const RING_SCALE = 1.5;
+      const AVATAR_FRAME_SCALE = 1.5;
       // Layer-Order (z-index): Name(4) > Basering(3) > Map-Icon(2) > Banner(1)
-      const ringStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(${RING_SCALE});width:${RING_SIZE}px;height:${RING_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) drop-shadow(0 0 8px ${pin.pin_color}77);pointer-events:none;z-index:3;`;
+      const ringStyle = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(${AVATAR_FRAME_SCALE});width:${AVATAR_FRAME_SIZE}px;height:${AVATAR_FRAME_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) drop-shadow(0 0 8px ${pin.pin_color}77);pointer-events:none;z-index:3;`;
       const ringHtml = (showRunnerOnBase && (ringArt?.image_url || ringArt?.video_url))
         ? (ringArt.video_url
             ? `<video src="${ringArt.video_url}" autoplay loop muted playsinline style="${ringStyle}"></video>`
@@ -3556,18 +3592,18 @@ export function AppMap({
         : "";
       const runnerBadge = showRunnerOnBase
         ? `<div style="
-              position:relative;z-index:3;margin-top:-${BADGE_LIFT}px;
-              width:${RUNNER_BADGE_SIZE}px;height:${RUNNER_BADGE_SIZE}px;border-radius:50%;
+              position:relative;z-index:3;margin-top:-${AVATAR_LIFT}px;
+              width:${AVATAR_SIZE}px;height:${AVATAR_SIZE}px;border-radius:50%;
               display:flex;align-items:center;justify-content:center;
               background:radial-gradient(circle at 35% 30%, ${pin.pin_color}, rgba(15,17,21,0.92));
               border:4px solid rgba(255,255,255,0.95);
               box-shadow:0 0 22px ${pin.pin_color}cc, 0 4px 12px rgba(0,0,0,0.65);
             ">${ringHtml}${
               markerArt?.video_url
-                ? `<video src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;z-index:2;width:${RUNNER_BADGE_SIZE - 18}px;height:${RUNNER_BADGE_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);"></video>`
+                ? `<video src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;z-index:2;width:${AVATAR_SIZE - 18}px;height:${AVATAR_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);"></video>`
                 : markerArt?.image_url
-                  ? `<img src="${markerArt.image_url}" alt="" style="position:relative;z-index:2;width:${RUNNER_BADGE_SIZE - 18}px;height:${RUNNER_BADGE_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);" />`
-                  : `<span style="position:relative;z-index:2;font-size:${RUNNER_BADGE_SIZE - 38}px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));">${myEmoji}</span>`
+                  ? `<img src="${markerArt.image_url}" alt="" style="position:relative;z-index:2;width:${AVATAR_SIZE - 18}px;height:${AVATAR_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);" />`
+                  : `<span style="position:relative;z-index:2;font-size:${AVATAR_SIZE - 38}px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));">${myEmoji}</span>`
             }</div>`
         : "";
       // Display-Name auf Runner-Pin: owner_username (echter Name) bevorzugt vor pin_label (z.B. "Homebase").
@@ -3589,7 +3625,7 @@ export function AppMap({
         })();
       const exactTextWidth = measureCtx ? Math.ceil(measureCtx.measureText(fullText).width) : fullText.length * 7;
       // Kein Floor mehr — Text muss in die Zone passen, fertig.
-      const fitScale = exactTextWidth > TEXT_ZONE_W ? TEXT_ZONE_W / exactTextWidth : 1;
+      const fitScale = exactTextWidth > NAMEDECK_TEXT_W ? NAMEDECK_TEXT_W / exactTextWidth : 1;
       void MIN_SCALE; // nicht mehr verwendet — keep für eventual debug
       const crewTagHtml = pin.crew_tag
         ? ` <span style="color:${pin.pin_color};font-weight:900;">[${escapeHtml(pin.crew_tag)}]</span>`
@@ -3597,7 +3633,7 @@ export function AppMap({
       inner.innerHTML = `
         ${visualHtml}
         ${runnerBadge}
-        <div data-nameplate-wrap style="position:relative;display:flex;align-items:center;justify-content:center;height:${BANNER_H}px;width:${BANNER_W}px;margin-top:${showRunnerOnBase ? "-12px" : "-8px"};transform-origin:center top;">
+        <div data-nameplate-wrap style="position:relative;display:flex;align-items:center;justify-content:center;height:${NAMEDECK_H}px;width:${NAMEDECK_W}px;margin-top:${showRunnerOnBase ? "-12px" : "-8px"};transform-origin:center top;">
           ${npLayer}
           <div data-nameplate style="
             position:relative;z-index:4;transform-origin:center center;
@@ -3609,7 +3645,7 @@ export function AppMap({
             text-align:center;
             text-shadow:0 1px 0 #000, 0 0 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7);
             font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-            width:${TEXT_ZONE_W}px;
+            width:${NAMEDECK_TEXT_W}px;
             transform:${fitScale < 1 ? `scaleX(${fitScale.toFixed(3)})` : "none"};
           ">${namePrefix}${escapeHtml(displayLabel)}${crewTagHtml}</div>
         </div>
@@ -4374,7 +4410,7 @@ export function AppMap({
 
       // Stage 2: SILHOUETTE — flache farbige Tower-Silhouette (KEIN Artwork)
       const silEl = document.createElement("div");
-      const silSize = isHQ ? 42 : isMega ? 38 : 34;
+      const silSize = isHQ ? 32 : isMega ? 28 : 24;
       silEl.dataset.size = String(silSize);
       silEl.style.cssText = `
         position:absolute; left:50%; top:50%;
@@ -4393,7 +4429,7 @@ export function AppMap({
 
       // Stage 3: FULL — Artwork (oder stilisierte Tile als Fallback)
       const artEl = document.createElement("div");
-      const fullArtSize = 150;
+      const fullArtSize = isHQ ? 90 : isMega ? 90 : 80;
       artEl.dataset.fullSize = String(fullArtSize);
       artEl.style.cssText = `
         position:absolute; left:50%; top:50%;

@@ -29,18 +29,10 @@ export default async function ChurnPage() {
     .order("total_xp", { ascending: false })
     .limit(200);
 
-  // Walks-Counts in beiden Fenstern für Decline-Score
-  const ids = (candidates ?? []).map((u) => u.id);
-  let recentWalks = new Map<string, number>();
-  let priorWalks = new Map<string, number>();
-  if (ids.length > 0) {
-    const [r1, r2] = await Promise.all([
-      sb.from("walks").select("user_id").gte("created_at", ago7).in("user_id", ids),
-      sb.from("walks").select("user_id").gte("created_at", ago14).lt("created_at", ago7).in("user_id", ids),
-    ]);
-    for (const w of r1.data ?? []) recentWalks.set(w.user_id, (recentWalks.get(w.user_id) ?? 0) + 1);
-    for (const w of r2.data ?? []) priorWalks.set(w.user_id, (priorWalks.get(w.user_id) ?? 0) + 1);
-  }
+  // Walks archived (pivot 2026-05-05) — Decline-Score basiert künftig auf Marschen statt Walks.
+  // Bis March-System steht: leere Maps liefern → kein Decline aus Activity-Differenz.
+  const recentWalks = new Map<string, number>();
+  const priorWalks = new Map<string, number>();
 
   type Candidate = NonNullable<typeof candidates>[number];
   type Scored = Candidate & { score: number; reasons: string[]; recent: number; prior: number };

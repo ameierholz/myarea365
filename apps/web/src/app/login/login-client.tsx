@@ -21,7 +21,7 @@ function LoginForm() {
   const t = useTranslations("LoginPage");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/dashboard";
+  const next = searchParams.get("next") || "/karte";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

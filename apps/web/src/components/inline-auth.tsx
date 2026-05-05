@@ -106,7 +106,7 @@ export function InlineAuth() {
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
+      router.push("/karte");
       router.refresh();
       return;
     }
