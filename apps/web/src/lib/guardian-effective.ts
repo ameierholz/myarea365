@@ -1,4 +1,4 @@
-// Pure compute: effektive Wächter-Stats aus Basis + Level + Talenten + Skills + Equipment
+// Pure compute: effektive Begleiter-Stats aus Basis + Level + Talenten + Skills + Equipment
 // Mirrors battle-engine buildCombatant (ohne archetype-spezifische Passivboni-Anwendung in Runde 0).
 
 import { statsAtLevel, type GuardianArchetype, type GuardianType } from "@/lib/guardian";

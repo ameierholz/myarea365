@@ -1,0 +1,11 @@
+{
+  "char_id": "lorekeeper",
+  "action": "idle",
+  "cell_w": 128,
+  "cell_h": 128,
+  "directions": 8,
+  "frames": 1,
+  "atlas": "/sprites/lorekeeper/idle.png",
+  "atlas_w": 128,
+  "atlas_h": 1024
+}

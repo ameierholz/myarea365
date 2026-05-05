@@ -782,7 +782,7 @@ export type RankingRunner = {
   city: string;
   zip: string;
   supporter_tier?: "bronze" | "silver" | "gold" | null;
-  /** Aktiver Wächter-Archetype des Runners — wird im Ranking als Avatar gerendert. */
+  /** Aktiver Begleiter-Archetype des Runners — wird im Ranking als Avatar gerendert. */
   guardian_id?: string;
   guardian_rarity?: "common" | "rare" | "epic" | "legendary";
 };
@@ -814,7 +814,7 @@ export const DEMO_RANKING_RUNNERS: RankingRunner[] = [
   { id: "r24", username: "PhuketPace",  display_name: "Niran K.",  avatar_emoji: "🌊", crew_name: "Phuket Morning Run",crew_color: "#22D1C3", rank_name: "Kiez-Wanderer",     weekly_km: 16.4, weekly_xp: 1010, total_xp: 34_200,  continent: "Asien", country: "Thailand",       state: "Phuket",  region: "Phuket",    city: "Patong",          zip: "83150" },
 ];
 
-// Demo: Wächter-Zuordnung pro Runner-ID. Production-DB liefert das via JOIN.
+// Demo: Begleiter-Zuordnung pro Runner-ID. Production-DB liefert das via JOIN.
 const _DEMO_RUNNER_GUARDIANS: Record<string, { id: string; rarity: "common" | "rare" | "epic" | "legendary" }> = {
   r1:  { id: "stadtfuchs",  rarity: "legendary" },
   r2:  { id: "falke",       rarity: "epic" },

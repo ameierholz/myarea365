@@ -269,9 +269,9 @@ export function hasSpotlightActive(business: { spotlight_until?: string | null }
 // ═══════════════════════════════════════════════════════
 
 export const GUARDIAN_ITEMS = {
-  revival_token: { sku: "revival_token", name: "Revival-Token",     price: 199,  icon: "💊", desc: "Verwundung deines Wächters sofort heilen" },
-  guardian_xp:   { sku: "guardian_xp",   name: "Wächter-XP-Boost",  price: 299,  icon: "⚡", desc: "+2.500 XP für euren Wächter" },
-  guardian_skin: { sku: "guardian_skin", name: "Wächter-Glow-Skin", price: 499,  icon: "✨", desc: "Leuchtender Rahmen für euren Wächter (dauerhaft)" },
+  revival_token: { sku: "revival_token", name: "Revival-Token",     price: 199,  icon: "💊", desc: "Verwundung deines Begleiters sofort heilen" },
+  guardian_xp:   { sku: "guardian_xp",   name: "Begleiter-XP-Boost",  price: 299,  icon: "⚡", desc: "+2.500 XP für euren Begleiter" },
+  guardian_skin: { sku: "guardian_skin", name: "Begleiter-Glow-Skin", price: 499,  icon: "✨", desc: "Leuchtender Rahmen für euren Begleiter (dauerhaft)" },
 };
 
 // ── Ad-Rewards ────────────────────────────────────────

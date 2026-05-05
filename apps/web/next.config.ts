@@ -4,7 +4,8 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  trailingSlash: true,
+  // trailingSlash: true entfernt — verursachte 308-Redirect auf JEDER /api/*-Route ohne
+  // Slash → 200+ doppelte Round-Trips beim Map-Boot, verlangsamte Load auf 30s.
   transpilePackages: ["@myarea365/shared"],
 
   allowedDevOrigins: ["127.0.0.1", "localhost"],

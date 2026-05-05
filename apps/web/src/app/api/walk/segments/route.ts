@@ -370,7 +370,7 @@ export async function POST(req: Request) {
   ]);
 
   // (Saga ist seit dem KvK-Refactoring komplett von der Bewegung entkoppelt.
-  //  Spielmechanik läuft rein über Aufgebot + Wächter auf der Saga-Map.)
+  //  Spielmechanik läuft rein über Aufgebot + Begleiter auf der Saga-Map.)
 
   // Crew-Fortschritt: Duel-km + War-Score + Season-Points + Challenges + Feed-Events
   if (crewId) {

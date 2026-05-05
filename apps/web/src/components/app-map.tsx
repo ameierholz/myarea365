@@ -3463,9 +3463,9 @@ export function AppMap({
       ].join(";");
 
       const visualBase = art?.image_url
-        ? `<img src="${art.image_url}" alt="" style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
+        ? `<img src="${art.image_url}" alt="" decoding="sync" loading="eager" fetchpriority="high" style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};" />`
         : art?.video_url
-        ? `<video src="${art.video_url}" autoplay loop muted playsinline style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
+        ? `<video src="${art.video_url}" autoplay loop muted playsinline preload="auto" style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;object-fit:contain;filter:url(#ma365-chroma-black) ${dropShadow};"></video>`
         : `<div style="position:relative;z-index:1;width:${BASE_SIZE}px;height:${BASE_SIZE}px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(BASE_SIZE * 0.83)}px;line-height:1;filter:${dropShadow};">${pin.pin_emoji}</div>`;
 
       // ── RARITY-FX-SYSTEM ────────────────────────────────────────────────

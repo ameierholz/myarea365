@@ -4,7 +4,7 @@
  * CREW-MEMBER-MODAL — wenn ein Crew-Mate-Base-Pin getippt wird.
  * Layout: Avatar + [TAG]Name + Stats (Ansehen/Verdienste/Crew) + 2 Buttons.
  *  - UNTERSTÜTZEN  → DonateResourcesSubModal (4 Slider, daily-cap 5000/Resource)
- *  - VERSTÄRKEN    → ReinforceSubModal (Truppen+Wächter, send_base_reinforcement)
+ *  - VERSTÄRKEN    → ReinforceSubModal (Truppen+Begleiter, send_base_reinforcement)
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -341,10 +341,10 @@ function ReinforceSubModal({ recipient, onClose, onSuccess }: {
 
         {guardians.length > 0 && (
           <div className="mb-3">
-            <div className="text-[11px] text-[#8B8FA3] mb-1">Wächter</div>
+            <div className="text-[11px] text-[#8B8FA3] mb-1">Begleiter</div>
             <select value={guardianId ?? ""} onChange={(e) => setGuardianId(e.target.value || null)}
               className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#F0F0F0]">
-              <option value="">Kein Wächter</option>
+              <option value="">Kein Begleiter</option>
               {guardians.map((g) => <option key={g.id} value={g.id}>{g.name} (Lv {g.level})</option>)}
             </select>
           </div>

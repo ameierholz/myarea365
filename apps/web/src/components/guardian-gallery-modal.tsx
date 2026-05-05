@@ -208,7 +208,7 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
         }}>{isActive ? tG("active") : tG("level", { n: ownedLevel ?? 1 })}</div>
       )}
 
-      {/* Wächter-Portrait — groß, transparenter Hintergrund, nur Boden-Glow */}
+      {/* Begleiter-Portrait — groß, transparenter Hintergrund, nur Boden-Glow */}
       <div style={{
         position: "relative",
         width: "100%", minHeight: 220,

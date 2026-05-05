@@ -1,0 +1,11 @@
+{
+  "char_id": "lorekeeper",
+  "action": "walk",
+  "cell_w": 128,
+  "cell_h": 128,
+  "directions": 8,
+  "frames": 16,
+  "atlas": "/sprites/lorekeeper/walk.png",
+  "atlas_w": 2048,
+  "atlas_h": 1024
+}

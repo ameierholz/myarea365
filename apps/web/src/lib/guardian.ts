@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Wächter-System (CoD/RoK-Rework)
+// Begleiter-System (CoD/RoK-Rework)
 // Rarity:   elite / epic / legendary  (common/rare/legend legacy-mapped)
 // Typ:      infantry / cavalry / marksman / mage
 // Level-Cap 60, 1 Talentpunkt pro Level-Up

@@ -101,7 +101,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   useEffect(() => {
     void (async () => {
       try {
-        const r = await fetch("/api/cosmetic-artwork", { cache: "force-cache" });
+        const r = await fetch(`/api/cosmetic-artwork?v=2`, { cache: "no-cache" });
         if (r.ok) setCosmeticArt(await r.json() as CosmeticArt);
       } catch { /* noop */ }
     })();
@@ -448,23 +448,23 @@ function ChatPreviewStream({ roomId, cosmeticArt }: { roomId: string; cosmeticAr
         return (
           <div
             key={m.id}
-            className="flex items-start gap-1.5 py-0.5"
+            className="flex items-center gap-1 py-0.5"
             style={{ color: "#F0F0F0", textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
           >
-            {/* Avatar mit Base-Ring */}
-            <div style={{ position: "relative", width: 16, height: 16, flexShrink: 0, marginTop: 1 }}>
+            {/* Avatar mit Base-Ring — gleiche Höhe wie der Text-Linie */}
+            <div style={{ position: "relative", width: 12, height: 12, flexShrink: 0 }}>
               {ringAsset?.video_url ? (
                 <video
                   src={ringAsset.video_url}
                   autoPlay loop muted playsInline
-                  style={{ position: "absolute", inset: -2, width: 20, height: 20, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
+                  style={{ position: "absolute", inset: -2, width: 16, height: 16, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
                 />
               ) : ringAsset?.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={ringAsset.image_url}
                   alt=""
-                  style={{ position: "absolute", inset: -2, width: 20, height: 20, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
+                  style={{ position: "absolute", inset: -2, width: 16, height: 16, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
                 />
               ) : null}
               <div
@@ -478,10 +478,10 @@ function ChatPreviewStream({ roomId, cosmeticArt }: { roomId: string; cosmeticAr
                 }}
               >
                 {markerAsset?.video_url ? (
-                  <video src={markerAsset.video_url} autoPlay loop muted playsInline style={{ width: 14, height: 14, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+                  <video src={markerAsset.video_url} autoPlay loop muted playsInline style={{ width: 11, height: 11, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                 ) : markerAsset?.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={markerAsset.image_url} alt="" style={{ width: 14, height: 14, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
+                  <img src={markerAsset.image_url} alt="" style={{ width: 11, height: 11, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
                 ) : m.author?.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={m.author.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -491,7 +491,7 @@ function ChatPreviewStream({ roomId, cosmeticArt }: { roomId: string; cosmeticAr
               </div>
             </div>
             {/* Nachricht-Inhalt */}
-            <div className="flex-1 min-w-0 text-[7.5px] leading-tight">
+            <div className="flex-1 min-w-0" style={{ fontSize: 10, lineHeight: 1.2 }}>
               {tag && <span className="text-[#22D1C3] font-bold">[{tag}]</span>}
               <span className="font-bold text-white">{tag ? " " : ""}{name}:</span>
               <span className="text-[#E8E8EE] ml-1">{m.body ?? ""}</span>

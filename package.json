@@ -12,10 +12,12 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "vercel-build": "turbo build --filter=web",
-    "i18n:translate": "tsx scripts/translate-i18n.ts"
+    "i18n:translate": "tsx scripts/translate-i18n.ts",
+    "sprites:build": "node scripts/sprites/build_atlas.mjs"
   },
   "devDependencies": {
     "next": "16.1.6",
+    "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "turbo": "^2",
     "typescript": "^5"

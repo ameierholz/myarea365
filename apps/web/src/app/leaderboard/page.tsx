@@ -6,7 +6,7 @@ export const revalidate = 60;
 
 export const metadata = {
   title: "Rankings · MyArea365",
-  description: "Die aktivsten Runner, stärksten Wächter, mächtigsten Crews und Fraktionen Deutschlands.",
+  description: "Die aktivsten Runner, stärksten Begleiter, mächtigsten Crews und Fraktionen Deutschlands.",
   alternates: { canonical: "https://myarea365.de/leaderboard" },
 };
 

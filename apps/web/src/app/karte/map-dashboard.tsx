@@ -1022,31 +1022,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
   const [userCenter, setUserCenter] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Lore-Pieces laden — API stellt Spawn-Coords pro User sicher (in dessen Stadt um Base/letzte Walk-Position).
+  // Lore-Pieces — Runner-Konzept-Relikt, nach Pivot tot. Fetch deaktiviert
+  // damit Network-Errors nicht den Map-Boot crashen. Komplette Entfernung
+  // (lorePieces-State, Map-Layer, Pickup-Handler) folgt in eigenem Cleanup-Pass.
   useEffect(() => {
-    let cancelled = false;
-    const cancelIdle = deferIdle(() => void (async () => {
-      const r = await fetch("/api/runner/lore");
-      if (!r.ok) return;
-      const j = await r.json() as {
-        spawns?: Array<{ piece_id: string; lat: number; lng: number }>;
-        pieces?: Array<{ id: string; name: string; set_id: string }>;
-        sets?: Array<{ id: string; name: string }>;
-        found?: Array<{ piece_id: string }>;
-      };
-      if (cancelled) return;
-      const foundIds = new Set((j.found ?? []).map((f) => f.piece_id));
-      const pieceMeta = new Map((j.pieces ?? []).map((p) => [p.id, p]));
-      const setNames = new Map((j.sets ?? []).map((s) => [s.id, s.name]));
-      setLorePieces((j.spawns ?? [])
-        .filter((s) => !foundIds.has(s.piece_id))
-        .map((s) => {
-          const p = pieceMeta.get(s.piece_id);
-          return { piece_id: s.piece_id, lat: s.lat, lng: s.lng, name: p?.name ?? s.piece_id, set_name: p ? setNames.get(p.set_id) : undefined };
-        }));
-    })());
-    return () => { cancelled = true; cancelIdle(); };
-  }, [userCenter?.lat]);
+    setLorePieces([]);
+  }, []);
 
   const onLocationUpdate = useCallback(
     (lng: number, lat: number) => {
@@ -1247,7 +1228,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const artworkReady = useArtworkReady();
   const fetchStrongholds = useCallback(async (lat: number, lng: number) => {
     try {
-      const r = await fetch(`/api/strongholds/nearby?lat=${lat}&lng=${lng}&radius_km=30`, { cache: "no-store" });
+      // Radius 5km statt 30km — reduziert Payload ~10x (war Hauptursache des langsamen Map-Boots).
+      // Bei Bedarf größeren Radius über pan/zoom-bedingten Re-Fetch lösen, nicht statisch.
+      const r = await fetch(`/api/strongholds/nearby?lat=${lat}&lng=${lng}&radius_km=5`, { cache: "no-store" });
       if (r.ok) {
         const j = await r.json() as { strongholds: Stronghold[] };
         const next = j.strongholds ?? [];
@@ -1323,12 +1306,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const userCenterRef = useRef<{ lat: number; lng: number } | null>(null);
   useEffect(() => { userCenterRef.current = userCenter ?? null; }, [userCenter]);
   useEffect(() => {
-    const center = userCenter ?? { lat: 52.520, lng: 13.405 };
-    const cancelIdle = deferIdle(() => { void fetchStrongholds(center.lat, center.lng); });
-    const id = setInterval(() => void fetchStrongholds(center.lat, center.lng), 60000);
+    // Erst fetchen wenn User-Center steht — sonst Doppel-Fetch (Default-Berlin + echtes Center).
+    if (!userCenter) return;
+    const cancelIdle = deferIdle(() => { void fetchStrongholds(userCenter.lat, userCenter.lng); });
+    const id = setInterval(() => void fetchStrongholds(userCenter.lat, userCenter.lng), 60000);
     return () => { cancelIdle(); clearInterval(id); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userCenter?.lat, userCenter?.lng]);
+  }, [userCenter, fetchStrongholds]);
 
   // ── Resource-Nodes (Schrottplatz/Fabrik/ATM/Datacenter) ──
   type ResourceNode = { id: number; kind: "scrapyard" | "factory" | "atm" | "datacenter"; resource_type: "wood" | "stone" | "gold" | "mana"; name: string | null; lat: number; lng: number; level: number; total_yield: number; current_yield: number; gather_count?: number; gather_active?: boolean; gather_someone_gathering?: boolean; gather_finish_at?: string | null; gather_mine?: boolean; gather_username?: string | null; gather_crew_tag?: string | null };
@@ -1526,6 +1509,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // Recenter-Trigger (Counter)
   const [recenterAt, setRecenterAt] = useState(0);
 
+  // Splash-Done-Event → re-zentriere Map auf eigene Base. Das initiale Auto-Center
+  // in app-map.tsx greift nur wenn ownBasePos VOR mapReady da ist; bei Race-Conditions
+  // hilft ein expliziter Re-Trigger nach Splash-Ende.
+  useEffect(() => {
+    const onSplashDone = () => setRecenterAt(Date.now());
+    window.addEventListener("ma365:splash-done", onSplashDone);
+    return () => window.removeEventListener("ma365:splash-done", onSplashDone);
+  }, []);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push("/");
@@ -1644,6 +1636,38 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     [crewRallies, pbRally, rallyData],
   );
   const equippedNameplateId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id ?? null;
+
+  // Pre-decode der eigenen Base-Bilder (Theme-Pin + Banner + Ring + Nameplate)
+  // damit der Marker beim Render nichts mehr zu downloaden/dekodieren hat → kein
+  // sichtbares "von oben nach unten aufbauen" mehr.
+  // Slot-Pattern (siehe app-map.tsx:3389-3391):
+  //   {theme}_{scope}_pin     → Hauptbild des Base-Pins
+  //   {theme}_{scope}_banner  → Fallback
+  useEffect(() => {
+    const ownPin = basePins.find((b) => b.is_own);
+    if (!ownPin) return;
+    const scope = ownPin.kind === "crew" ? "crew" : "runner";
+    const themePinKey = ownPin.theme_id ? `${ownPin.theme_id}_${scope}_pin` : null;
+    const themeBannerKey = ownPin.theme_id ? `${ownPin.theme_id}_${scope}_banner` : null;
+    const themePinArt = themePinKey ? dashboardBaseThemeArt[themePinKey] : null;
+    const themeBannerArt = themeBannerKey ? dashboardBaseThemeArt[themeBannerKey] : null;
+    const ringArt = ownPin.base_ring_id ? baseRingArt[ownPin.base_ring_id] : null;
+    const npArt = equippedNameplateId ? nameplateArt[equippedNameplateId] : null;
+    const urls = [
+      themePinArt?.image_url,
+      themeBannerArt?.image_url,
+      ringArt?.image_url,
+      npArt?.image_url,
+    ].filter((u): u is string => !!u);
+    for (const url of urls) {
+      const img = new Image();
+      img.src = url;
+      // .decode() returnt eine Promise die erst resolved wenn das Bild komplett
+      // dekodiert ist — Browser cached's, nächster <img src=...> ist instant
+      img.decode().catch(() => {});
+    }
+  }, [basePins, dashboardBaseThemeArt, baseRingArt, nameplateArt, equippedNameplateId]);
+
   const basePinsForMap = useMemo(
     () => {
       if (!artworkReady) return EMPTY_SHOPS;
@@ -1906,7 +1930,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
             {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Profil, Crew, Inbox etc.) */}
             <MapQuickAccess
-              onOpenProfile={() => { window.location.href = "/karte/base"; }}
+              onOpenProfile={() => { router.push("/karte/base"); }}
               profileIcon={(() => {
                 // Eigenes Base-Theme als FAB-Icon (Pin-Variante des aktuellen Themes).
                 // Fallback auf Banner-Variante, dann Marker, dann null.
@@ -2037,8 +2061,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             {/* Happy Hour Banner (oben zentriert) */}
             <HappyHourBanner />
 
-            {/* Live-Info-Panel (oben links) */}
-            <MapLivePanel teamColor={teamColor} onViewRunner={setViewingRunner} />
+            {/* Live-Info-Panel entfernt — Runner-Konzept-Relikt (Runner-Counts in Zip/City) */}
 
             {/* Fraktions-Ranking entfernt (User-Wunsch) */}
 
@@ -2241,7 +2264,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
       )}
 
-      {/* Profil-Modal: Dashboard-Karten (Base/Wächter/Crew) als Overlay über der Map */}
+      {/* Profil-Modal: Dashboard-Karten (Base/Begleiter/Crew) als Overlay über der Map */}
       {profileModalOpen && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 9100,
@@ -2300,7 +2323,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       )}
 
       {/* Crew-Modal: vollwertige CrewTab-Inhalte als Overlay über der Karte
-          (alle 12 Subtabs: Übersicht/Feed/Mitglieder/Wächter/Challenges/Events/Chat/
+          (alle 12 Subtabs: Übersicht/Feed/Mitglieder/Begleiter/Challenges/Events/Chat/
           Forschung/Bauwerke/Kopfgelder/Lagerhaus/Einstellungen) */}
       {mapCrewModalOpen && (
         <div style={{
@@ -2661,7 +2684,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               if (data.error === "too_far") { await appAlert(tMD("tooFarTemple", { meters: data.distance_m })); return; }
               if (data.error === "location_required") { await appAlert(tMD("gpsRequired")); return; }
               if (data.ok) {
-                await appAlert(`🙏 +${data.xp_gained} Wächter-Erfahrung`);
+                await appAlert(`🙏 +${data.xp_gained} Begleiter-Erfahrung`);
                 const r = await fetch("/api/map-features", { cache: "no-store" });
                 if (r.ok) setMapFeatures(await r.json());
               }
@@ -3017,7 +3040,7 @@ function ProfilTab({
     return () => { cancelled = true; clearInterval(iv); };
   }, [p?.id, supabase]);
 
-  // Aktiver Wächter für den Profil-Teaser-Block
+  // Aktiver Begleiter für den Profil-Teaser-Block
   type ActiveGuardian = {
     id: string; level: number; wins: number; losses: number;
     current_hp_pct: number;
@@ -3598,7 +3621,7 @@ function ProfilTab({
           </button>
         )}
 
-        {/* ═══ AKTIVER WÄCHTER — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
+        {/* ═══ AKTIVER Begleiter — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
         {activeGuardian && activeGuardian.archetype && (
           <SectionHeader title={tMD("labelGuardian")} action={<GuardianHelpButton />} />
         )}
@@ -3615,7 +3638,7 @@ function ProfilTab({
             }}
             aria-label={tMD("ariaOpenGuardianDetails")}
           >
-            {/* Portrait — bunter Gradient damit chroma-keyed Wächter pop'pt */}
+            {/* Portrait — bunter Gradient damit chroma-keyed Begleiter pop'pt */}
             {(() => {
               const typeColor = ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78";
               return (
@@ -3642,7 +3665,7 @@ function ProfilTab({
 
             {/* Text */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: "#FF6B4A" }}>⚔️ AKTIVER WÄCHTER</div>
+              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: "#FF6B4A" }}>⚔️ AKTIVER Begleiter</div>
               <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {activeGuardian.archetype.name}
               </div>
@@ -3676,7 +3699,7 @@ function ProfilTab({
           </button>
         )}
 
-        {/* ═══ DEINE CREW — Kompakt-Banner (parallel zu Base/Wächter) ═══ */}
+        {/* ═══ DEINE CREW — Kompakt-Banner (parallel zu Base/Begleiter) ═══ */}
         {(() => {
           const isAdmin = !!(myCrew && p && myCrew.owner_id === p.id);
           const repCount = crewSummary?.count_alive ?? 0;
@@ -9717,7 +9740,7 @@ function PowerZoneModal({ zone, onClose }: {
         </div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>{zone.name}</div>
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.55 }}>
-          Wenn du innerhalb dieser Zone (Radius <strong>{zone.radius_m} m</strong>) läufst, bekommt dein <strong style={{ color: "#22D1C3" }}>Wächter</strong> folgende passive Buffs:
+          Wenn du innerhalb dieser Zone (Radius <strong>{zone.radius_m} m</strong>) läufst, bekommt dein <strong style={{ color: "#22D1C3" }}>Begleiter</strong> folgende passive Buffs:
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }}>
           {buffs.map(([label, val, color]) => (
@@ -9734,7 +9757,7 @@ function PowerZoneModal({ zone, onClose }: {
           ))}
         </div>
         <div style={{ fontSize: 10, color: "#8B8FA3", marginBottom: 14, lineHeight: 1.5, fontStyle: "italic" }}>
-          Power-Zones sind strategische Orte. Nutze sie für Trainings-Runden, um deinen Wächter schneller zu leveln — vor allem vor großen Arena-Kämpfen oder Area-Boss-Raids.
+          Power-Zones sind strategische Orte. Nutze sie für Trainings-Runden, um deinen Begleiter schneller zu leveln — vor allem vor großen Arena-Kämpfen oder Area-Boss-Raids.
         </div>
         <button onClick={onClose} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: `${zone.color}22`, border: `1px solid ${zone.color}`, color: zone.color, fontSize: 12, fontWeight: 900, cursor: "pointer" }}>Verstanden</button>
       </div>
@@ -9775,7 +9798,7 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
           <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,215,0,0.3)" }}>
             <div style={{ fontSize: 18, marginBottom: 3 }}>🥇</div>
             <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, marginBottom: 2 }}>NUR DIE STÄRKSTE CREW GEWINNT</div>
-            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>Crew mit dem meisten Gesamt-Damage holt den Loot. Wächter-Level + Ausrüstung entscheiden.</div>
+            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>Crew mit dem meisten Gesamt-Damage holt den Loot. Begleiter-Level + Ausrüstung entscheiden.</div>
           </div>
           <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(168,85,247,0.3)" }}>
             <div style={{ fontSize: 18, marginBottom: 3 }}>👥</div>
@@ -9863,9 +9886,9 @@ function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
       <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
         <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
-        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>WÄCHTER-SANCTUARY</div>
+        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>Begleiter-SANCTUARY</div>
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.5 }}>
-          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen.
+          Tägliches Training stärkt deinen Begleiter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Begleiter-Erfahrung</strong> zu holen.
         </div>
         {distM !== null && (
           <div style={{

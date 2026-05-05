@@ -18,7 +18,7 @@ export type FrameTheme = "urban" | "arena" | "banner" | "warehouse" | "store";
 // Hellere, einladende Theme-Paletten — RoK/CoD-inspiriert (heller Himmel + warme Akzente)
 const THEME_BG: Record<FrameTheme, { from: string; via: string; accent: string; soft: string }> = {
   urban:     { from: "#5A8FB5", via: "#8FBFE0", accent: "#FFD27A", soft: "#FFF4D6" },  // Base — heller Tageshimmel + warmes Gold
-  arena:     { from: "#3A1F35", via: "#7A3A4F", accent: "#FFB088", soft: "#FFD9C2" },  // Wächter — Sunset-rosa
+  arena:     { from: "#3A1F35", via: "#7A3A4F", accent: "#FFB088", soft: "#FFD9C2" },  // Begleiter — Sunset-rosa
   banner:    { from: "#2A2A18", via: "#5C5230", accent: "#FFD700", soft: "#FFE9A8" },  // Crew — Royal-gold
   warehouse: { from: "#2A2418", via: "#5C4E32", accent: "#D4A574", soft: "#F0D4A8" },  // Inventar — Warm-braun
   store:     { from: "#2A1838", via: "#583A6F", accent: "#FFB3D9", soft: "#FFD6EC" },  // Shop — Soft-purple

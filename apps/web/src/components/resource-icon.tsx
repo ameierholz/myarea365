@@ -322,7 +322,7 @@ export function pickStrongholdArt(art: ResourceArtMap, level: number): { image_u
   return null;
 }
 
-// Chroma-Key-Filter (Greenscreen #00FF00 → transparent), gleiche Pipeline wie Wächter.
+// Chroma-Key-Filter (Greenscreen #00FF00 → transparent), gleiche Pipeline wie Begleiter.
 const CHROMA = "url(#ma365-chroma-black)";
 
 /**

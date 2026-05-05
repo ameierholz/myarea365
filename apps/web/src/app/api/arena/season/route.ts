@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/arena/season
- * Liefert die aktuelle Saison + ob der eingeloggte User schon einen Saison-Wächter hat.
+ * Liefert die aktuelle Saison + ob der eingeloggte User schon einen Saison-Begleiter hat.
  */
 export async function GET() {
   const sb = await createClient();

@@ -31,7 +31,7 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message, marches: [] }, { status: 500 });
   const marches = data ?? [];
 
-  // Wächter-Namen pro Marsch nachladen
+  // Begleiter-Namen pro Marsch nachladen
   const guardianIds = Array.from(new Set(marches.map((m) => m.guardian_id).filter((x): x is string => !!x)));
   let guardianMap = new Map<string, string>();
   if (guardianIds.length > 0) {
@@ -40,7 +40,7 @@ export async function GET() {
       .select("id, archetype:guardian_archetypes(name)")
       .in("id", guardianIds);
     type GRow = { id: string; archetype: { name: string } | null };
-    guardianMap = new Map(((gRows ?? []) as unknown as GRow[]).map((g) => [g.id, g.archetype?.name ?? "Wächter"]));
+    guardianMap = new Map(((gRows ?? []) as unknown as GRow[]).map((g) => [g.id, g.archetype?.name ?? "Begleiter"]));
   }
 
   // Eigenes Username + Crew-Tag (für Cart-Label auf Map)
@@ -56,7 +56,7 @@ export async function GET() {
 
   const enriched = marches.map((m) => ({
     ...m,
-    guardian_name: m.guardian_id ? (guardianMap.get(m.guardian_id) ?? "Wächter") : null,
+    guardian_name: m.guardian_id ? (guardianMap.get(m.guardian_id) ?? "Begleiter") : null,
     owner_name: ownerName,
     owner_crew_tag: ownerCrewTag,
   }));

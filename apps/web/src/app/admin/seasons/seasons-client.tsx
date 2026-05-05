@@ -51,7 +51,7 @@ export function SeasonsClient() {
     await action({ action: "start", name, duration_days: days }, `Saison „${name}" (${days} Tage) starten?`);
   }
   async function endSeason() {
-    await action({ action: "end" }, "Aktive Saison JETZT beenden? Prestige wird vergeben, Saison-Wächter werden archiviert.");
+    await action({ action: "end" }, "Aktive Saison JETZT beenden? Prestige wird vergeben, Saison-Begleiter werden archiviert.");
   }
   async function rollover() {
     const name = prompt("Name der Folge-Saison?", "Saison 2");

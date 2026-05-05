@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * GET /api/base/heimat-troops
  *   Vereinfachter Endpoint für die Heimat-Karte-Modals (Legion/Multi/Hide):
  *   verheiratet user_troops mit troops_catalog und liefert flachen
- *   Truppen-Bestand + aktive Wächter + March-Caps in einem Call.
+ *   Truppen-Bestand + aktive Begleiter + March-Caps in einem Call.
  */
 export async function GET() {
   const sb = await createClient();
@@ -40,7 +40,7 @@ export async function GET() {
   type GRow = { id: string; level: number; archetype: { name: string } | { name: string }[] | null };
   const guardians = ((guardiansRes.data ?? []) as unknown as GRow[]).map((g) => {
     const arch = Array.isArray(g.archetype) ? g.archetype[0] : g.archetype;
-    return { id: g.id, level: g.level, name: arch?.name ?? "Wächter" };
+    return { id: g.id, level: g.level, name: arch?.name ?? "Begleiter" };
   });
 
   const caps = (Array.isArray(capsRes.data) ? capsRes.data[0] : null) as

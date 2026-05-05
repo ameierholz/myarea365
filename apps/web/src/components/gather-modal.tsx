@@ -105,7 +105,7 @@ export function GatherModal({
     const list = ((data ?? []) as unknown as Row[]).map((r) => ({
       id: r.id,
       level: r.level,
-      name: r.archetype?.name ?? "Wächter",
+      name: r.archetype?.name ?? "Begleiter",
       image_url: r.archetype?.image_url ?? null,
       video_url: r.archetype?.video_url ?? null,
     }));
@@ -124,7 +124,7 @@ export function GatherModal({
   const totalS = walkS + gatherS + returnS;
 
   async function start() {
-    if (!selectedGuardian) { setErr("Wähle einen Wächter"); return; }
+    if (!selectedGuardian) { setErr("Wähle einen Begleiter"); return; }
     if (!origin) { setErr("Setze zuerst deine Base"); return; }
     setBusy(true); setErr(null);
     try {
@@ -247,12 +247,12 @@ export function GatherModal({
             </div>
           </div>
 
-          {/* Wächter */}
+          {/* Begleiter */}
           <div>
             <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">PLÜNDER-WÄCHTER</div>
             {guardians.length === 0 ? (
               <div className="text-[11px] text-[#a8b4cf] py-3 text-center bg-white/5 rounded-lg border border-white/10">
-                Kein aktiver Wächter — aktiviere zuerst einen Wächter.
+                Kein aktiver Begleiter — aktiviere zuerst einen Begleiter.
               </div>
             ) : (
               <div className="flex gap-2 overflow-x-auto pb-1">

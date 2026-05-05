@@ -18,7 +18,7 @@ function adminSb(): SupabaseClient {
 /**
  * POST /api/admin/artwork/wipe-archetypes
  * Löscht ALLE Files unter `artwork/archetypes/` im Storage und setzt
- * image_url + video_url auf NULL für alle Wächter-Archetypen.
+ * image_url + video_url auf NULL für alle Begleiter-Archetypen.
  * Wird nach dem 5x4-Rework benötigt — die alten Bilder passen nicht mehr.
  */
 export async function POST() {

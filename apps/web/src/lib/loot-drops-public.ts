@@ -110,8 +110,8 @@ export const WAHL_BOX_OPTIONS: Array<{ icon: string; title: string; value: strin
  * 100% deterministisch.
  */
 export const ARENA_WIN_REWARDS: Array<{ condition: string; reward: string }> = [
-  { condition: "1. Sieg in Shop-Liga",  reward: "+500 Wächter-XP (garantiert)" },
-  { condition: "3-Sieg-Streak gleicher Shop", reward: "Legendary Trophy + Wächter-Fusion" },
+  { condition: "1. Sieg in Shop-Liga",  reward: "+500 Begleiter-XP (garantiert)" },
+  { condition: "3-Sieg-Streak gleicher Shop", reward: "Legendary Trophy + Begleiter-Fusion" },
   { condition: "Boss-Raid Beteiligung",     reward: "Anteilig 100-5000 XP je nach Schaden + Legendary Loot bei Sieg" },
 ];
 

@@ -164,7 +164,7 @@ export function LoadoutTrio({
     ? `linear-gradient(90deg, ${currentLight.gradient.join(", ")})`
     : currentLight.color;
 
-  // Starter-Wahl wenn noch kein Wächter vorhanden
+  // Starter-Wahl wenn noch kein Begleiter vorhanden
   if (col && col.owned.length === 0) {
     return (
       <div style={{

@@ -13,6 +13,10 @@ export function HeroMap() {
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    // Mapbox-SDK verlangt Token auch für CARTO-Tiles. Setzen falls vorhanden.
+    if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    }
 
     const map = new mapboxgl.Map({
       container: containerRef.current,

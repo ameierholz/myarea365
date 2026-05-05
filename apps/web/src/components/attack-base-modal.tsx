@@ -76,7 +76,7 @@ export function AttackBaseModal({
   const [mode, setMode] = useState<"info" | "attack" | "rally">("info");
   const [prepSeconds, setPrepSeconds] = useState<number>(180);
 
-  // Wächter (für Crew-Aufgebot)
+  // Begleiter (für Crew-Aufgebot)
   type RGuardian = { id: string; level: number; name: string; image_url: string | null; video_url: string | null };
   const [guardians, setGuardians] = useState<RGuardian[]>([]);
   const [selectedGuardianId, setSelectedGuardianId] = useState<string | null>(null);
@@ -566,7 +566,7 @@ function RallyPicker({
           <div className="text-[9px] text-white/40 mt-1 px-1">{t("rallyPrepHint")}</div>
         </div>
 
-        {/* Wächter-Kommandant */}
+        {/* Begleiter-Kommandant */}
         <div>
           <div className="text-[10px] font-black tracking-[1.5px] text-white/50 mb-1.5 px-1">
             {t("rallyGuardianLabel")}

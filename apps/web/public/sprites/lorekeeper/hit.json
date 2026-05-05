@@ -1,0 +1,11 @@
+{
+  "char_id": "lorekeeper",
+  "action": "hit",
+  "cell_w": 128,
+  "cell_h": 128,
+  "directions": 8,
+  "frames": 8,
+  "atlas": "/sprites/lorekeeper/hit.png",
+  "atlas_w": 1024,
+  "atlas_h": 1024
+}

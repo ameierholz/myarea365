@@ -1,18 +1,12 @@
-export default function WaechterPage() {
+import { BegleiterClient } from "./begleiter-client";
+import { FullscreenFrame } from "../_components/fullscreen-frame";
+
+export const dynamic = "force-dynamic";
+
+export default function BegleiterPage() {
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9000,
-        background: "#0F1115",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#F0F0F0",
-      }}
-    >
-      <div>Wächter — coming soon</div>
-    </div>
+    <FullscreenFrame title="Begleiter" theme="arena" bgSlot="karte_waechter_bg">
+      <BegleiterClient />
+    </FullscreenFrame>
   );
 }

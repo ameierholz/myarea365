@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/guardian/collection
- * - owned: Wächter die der User besitzt (mit Rassen-Info)
+ * - owned: Begleiter die der User besitzt (mit Rassen-Info)
  * - all_races: 20 Rassen (damit UI "noch nicht gesammelt" anzeigen kann)
  * - summoning_stones: verfügbare Beschwörungssteine
  * - km_milestone_unlocks: bereits freigeschaltete km-Meilensteine

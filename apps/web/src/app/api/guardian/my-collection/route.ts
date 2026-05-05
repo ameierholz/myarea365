@@ -19,9 +19,9 @@ export const dynamic = "force-dynamic";
  * GET /api/guardian/my-collection
  * Neue einheitliche Collection-API (CoD-Rework).
  * Liefert:
- * - owned:       Wächter des Users (user_guardians) mit archetype-Details
+ * - owned:       Begleiter des Users (user_guardians) mit archetype-Details
  * - archetypes:  alle 60 Archetypen (für "noch nicht erbeutet")
- * - active_id:   ID des aktiven Wächters
+ * - active_id:   ID des aktiven Begleiters
  */
 export async function GET() {
   const sb = await createClient();
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       .select("id");
     if (deactErr) return NextResponse.json({ error: `deactivate: ${deactErr.message}` }, { status: 500 });
 
-    // 2) Gewählten aktivieren (user_id-Scope wichtig damit niemand fremde Wächter aktiviert)
+    // 2) Gewählten aktivieren (user_id-Scope wichtig damit niemand fremde Begleiter aktiviert)
     const { data: actRows, error } = await db.from("user_guardians")
       .update({ is_active: true })
       .eq("id", body.guardian_id)
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!actRows || actRows.length === 0) {
       return NextResponse.json({
-        error: `Wächter nicht gefunden oder keine Update-Berechtigung (deaktiviert: ${deactRows?.length ?? 0})`,
+        error: `Begleiter nicht gefunden oder keine Update-Berechtigung (deaktiviert: ${deactRows?.length ?? 0})`,
       }, { status: 404 });
     }
     return NextResponse.json({ ok: true, deactivated: deactRows?.length ?? 0 });
