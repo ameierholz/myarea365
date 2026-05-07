@@ -30,6 +30,24 @@ mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const FALLBACK = { lat: 52.6000, lng: 13.3565 };
 
+// ════════════════════════════════════════════════════════════════════
+// REGION-LOCK — Heimat-Stadt-Bounds.
+//
+// Default-Fallback ist Berlin (Soft-Launch-Stadt). Sobald die Map gemountet
+// ist, lädt sie via /api/me/city die echten Bounds des User-Heimat-Servers
+// (basierend auf PLZ → cities-Tabelle) und überschreibt die Default-Werte.
+//
+// Wichtig: minZoom muss so hoch sein dass der VIEWPORT IN die Bounds passt.
+// maxBounds restringiert nur das Map-Zentrum — der sichtbare Bereich kann
+// sonst durch das Viewport-Window weit über die Bounds hinausgehen.
+// Zoom 11 ≈ ~14 km Viewport-Breite (912px Landscape) → fits in Berlin (~45 km).
+// ════════════════════════════════════════════════════════════════════
+const DEFAULT_CITY_BOUNDS: [[number, number], [number, number]] = [
+  [13.088, 52.338], // SW: Spandau / Tempelhof
+  [13.761, 52.675], // NE: Hohenschönhausen / Marzahn
+];
+const DEFAULT_CITY_MIN_ZOOM = 11;
+
 // rAF-Throttle: koalesziert viele Aufrufe (z.B. Mapbox "zoom" mit ~60Hz während Pinch/Wheel)
 // auf einen einzigen Aufruf pro Frame. Drastische Perf-Verbesserung bei vielen DOM-Markern.
 function rafThrottle<F extends (...args: unknown[]) => void>(fn: F): F & { cancel(): void } {
@@ -50,16 +68,26 @@ function rafThrottle<F extends (...args: unknown[]) => void>(fn: F): F & { cance
   return wrapped;
 }
 
-// Marker-Animationen EINMAL global im <head> injecten (verhindert Flickering bei Zoom)
-if (typeof window !== "undefined" && !document.getElementById("mapbox-marker-animations")) {
+// Marker-Animationen EINMAL global im <head> injecten (verhindert Flickering bei Zoom).
+// Bei jedem Modul-Reload aktualisiert (existing element wird ersetzt damit CSS-Updates greifen).
+if (typeof window !== "undefined") {
+  const existing = document.getElementById("mapbox-marker-animations");
+  if (existing) existing.remove();
   const style = document.createElement("style");
   style.id = "mapbox-marker-animations";
   style.textContent = `
     /* Mapbox-Logo dimmen — ToS-konform (bleibt sichtbar), aber weniger aufdringlich im dunklen Theme */
-    .mapboxgl-ctrl-logo { opacity: 0.45; transform: scale(0.8); transform-origin: bottom left; transition: opacity 0.2s; }
+    .mapboxgl-ctrl-logo { opacity: 0.45; transform: scale(0.8); transform-origin: top left; transition: opacity 0.2s; }
     .mapboxgl-ctrl-logo:hover { opacity: 1; }
     .mapboxgl-ctrl-attrib.mapboxgl-compact { opacity: 0.55; }
     .mapboxgl-ctrl-attrib.mapboxgl-compact:hover { opacity: 1; }
+    /* Force bottom-Container nach oben — falls Mapbox v3 trotz logoPosition+addControl
+       die Controls unten rendert, fängt diese Regel sie ab und schiebt sie hoch.
+       ToS-konform: Logo+Attribution bleiben voll sichtbar, nur woanders im Layout. */
+    .mapboxgl-ctrl-bottom-left { bottom: auto !important; top: 0 !important; }
+    .mapboxgl-ctrl-bottom-right { bottom: auto !important; top: 0 !important; }
+    .mapboxgl-ctrl-top-left, .mapboxgl-ctrl-top-right,
+    .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 5; }
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
     @keyframes basePinShimmer { 0%,100% { transform: translate(-50%,-45%) scale(1); opacity: 0.7; } 50% { transform: translate(-50%,-45%) scale(1.15); opacity: 1; } }
     @keyframes basePinAuraSpin { to { transform: translate(-50%,-45%) rotate(360deg); } }
@@ -1181,6 +1209,11 @@ export function AppMap({
       pitch: slow ? 0 : 52,
       bearing: -20,
       attributionControl: false,
+      logoPosition: "top-left", // raus aus dem Chat-Bereich unten links
+      // Heimat-Stadt-Bounds: erstmal Default (Berlin), wird gleich durch
+      // /api/me/city überschrieben sobald die User-Stadt geladen ist.
+      maxBounds: DEFAULT_CITY_BOUNDS,
+      minZoom: DEFAULT_CITY_MIN_ZOOM,
       // Reduziert Pre-Fetch von angrenzenden Zoom-Stufen (Default 4) → spart Tiles.
       maxTileCacheSize: slow ? 30 : 100,
       // Mapbox v3: cooperativeGestures nicht hier — wir steuern Gestures selbst.
@@ -1195,7 +1228,8 @@ export function AppMap({
     }
 
     // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+    // Attribution + Logo nach oben links — unten ist Chat-Widget + QuickAccess-Bar.
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "top-left");
 
     // Wheel-Zoom snappier — Default 1/450 reagiert träge (gefühlte 2-3 Klicks
     // bevor die Karte zoomt), 1/200 macht jeden Wheel-Schritt sofort sichtbar.
@@ -1223,6 +1257,41 @@ export function AppMap({
       // direkten Zugriff haben ohne ref-prop-drilling. Wird beim Unmount geräumt.
       (window as unknown as { __ma365Map?: mapboxgl.Map }).__ma365Map = map;
       window.dispatchEvent(new CustomEvent("ma365:map-ready"));
+
+      // Heimat-Stadt-Bounds dynamisch nachladen (PLZ → cities.bounds).
+      // Defaults sind Berlin — sobald /api/me/city antwortet, überschreiben
+      // wir Bounds, MinZoom und re-zentrieren falls die alte Position out-of-bounds ist.
+      (async () => {
+        try {
+          const r = await fetch("/api/me/city", { cache: "no-store" });
+          if (!r.ok) return;
+          type CityResp = {
+            city: null | {
+              slug: string; name: string;
+              bounds: [[number, number], [number, number]];
+              center: [number, number];
+              default_zoom: number; min_zoom: number; max_zoom: number;
+            };
+          };
+          const j = (await r.json()) as CityResp;
+          if (!j.city) return;
+          const m = mapRef.current;
+          if (!m) return;
+          // Default-Werte zurücksetzen damit setMaxBounds nicht durch enge Defaults clamped
+          m.setMinZoom(0);
+          m.setMaxBounds(j.city.bounds);
+          m.setMinZoom(j.city.min_zoom);
+          m.setMaxZoom(j.city.max_zoom);
+          // Wenn aktuelle Position außerhalb der neuen Bounds, recenter
+          const cur = m.getCenter();
+          const sw = j.city.bounds[0];
+          const ne = j.city.bounds[1];
+          const inside = cur.lng >= sw[0] && cur.lng <= ne[0] && cur.lat >= sw[1] && cur.lat <= ne[1];
+          if (!inside) {
+            m.flyTo({ center: j.city.center, zoom: j.city.default_zoom, duration: 600 });
+          }
+        } catch { /* silent — Default-Berlin-Bounds bleiben aktiv */ }
+      })();
     });
 
     // ResizeObserver auf Container — Mapbox auto-detect nur window.resize, aber

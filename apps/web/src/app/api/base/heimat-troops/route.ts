@@ -19,7 +19,7 @@ export async function GET() {
     sb.from("user_troops").select("troop_id, count").eq("user_id", user.id).gt("count", 0),
     sb.from("troops_catalog").select("id, name, tier, troop_class, emoji"),
     sb.from("user_guardians")
-      .select("id, level, archetype:guardian_archetypes(id, name, guardian_type, role, rarity, image_url, ability_name)")
+      .select("id, level, archetype:guardian_archetypes(id, name, emoji, guardian_type, role, rarity, image_url, ability_name, ability_desc)")
       .eq("user_id", user.id)
       .limit(50),
     sb.rpc("get_march_caps", { p_user_id: user.id }),
@@ -44,9 +44,10 @@ export async function GET() {
     .sort((a, b) => a.tier - b.tier);
 
   type ArchRow = {
-    id: string; name: string;
+    id: string; name: string; emoji: string | null;
     guardian_type: string | null; role: string | null;
-    rarity: string | null; image_url: string | null; ability_name: string | null;
+    rarity: string | null; image_url: string | null;
+    ability_name: string | null; ability_desc: string | null;
   };
   type GRow = { id: string; level: number; archetype: ArchRow | ArchRow[] | null };
   const guardians = ((guardiansRes.data ?? []) as unknown as GRow[]).map((g) => {
@@ -56,11 +57,13 @@ export async function GET() {
       level: g.level,
       archetype_id: arch?.id ?? null,
       name: arch?.name ?? "Begleiter",
+      emoji: arch?.emoji ?? null,
       guardian_type: arch?.guardian_type ?? null,
       role: arch?.role ?? null,
       rarity: arch?.rarity ?? null,
       image_url: arch?.image_url ?? null,
       ability_name: arch?.ability_name ?? null,
+      ability_desc: arch?.ability_desc ?? null,
     };
   });
 

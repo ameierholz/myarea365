@@ -1,8 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { FullscreenFrame } from "../_components/fullscreen-frame";
 import { UiIcon, useUiIconArt, useMarkerArt, useBaseRingArt } from "@/components/resource-icon";
+
+const ServerOverviewModal = dynamic(
+  () => import("@/components/server-overview-modal").then((m) => m.ServerOverviewModal),
+  { ssr: false },
+);
+const AchievementsModal = dynamic(
+  () => import("@/components/achievements-modal").then((m) => m.AchievementsModal),
+  { ssr: false },
+);
+const StatsModal = dynamic(
+  () => import("@/components/stats-modal").then((m) => m.StatsModal),
+  { ssr: false },
+);
 
 type Profile = Record<string, unknown>;
 function s(p: Profile, k: string): string | null {
@@ -25,27 +40,31 @@ const FACTION_INFO: Record<string, { label: string; emoji: string; color: string
   vanguard:    { label: "Kronenwacht", emoji: "👑", color: "#FFD700" },
 };
 
-const ROLE_LABEL: Record<string, string> = {
-  leader: "Anführer",
-  officer: "Offizier",
-  member: "Mitglied",
-};
-
 export function BaseClient({
   profile,
   crew,
   achievementsCount,
+  achievementsTotal,
+  achievementTiers,
   base,
   queueCount,
   researchCount,
+  homeCity,
 }: {
   profile: Profile | null;
   crew: { id: string; name: string; tag: string | null; color: string | null; role: string } | null;
   achievementsCount: number;
+  achievementsTotal: number;
+  achievementTiers: { bronze: number; silver: number; gold: number };
   base: { level?: number; plz?: string } | null;
   queueCount: number;
   researchCount: number;
+  homeCity: { slug: string; name: string; era_number: number | null; era_started_at: string | null } | null;
 }) {
+  const [showServerOverview, setShowServerOverview] = useState(false);
+  const [achievementTier, setAchievementTier] = useState<"bronze" | "silver" | "gold" | null>(null);
+  const [showStats, setShowStats] = useState(false);
+
   if (!profile) {
     return (
       <FullscreenFrame title="Base" theme="urban">
@@ -66,20 +85,19 @@ export function BaseClient({
   const baseRingArt = useBaseRingArt();
   const markerAsset = markerArt[equippedMarker]?.[equippedMarkerVariant] ?? markerArt[equippedMarker]?.neutral;
   const ringAsset = equippedBaseRing && equippedBaseRing !== "default" ? baseRingArt[equippedBaseRing] : null;
+  const uiIconArtMap = useUiIconArt();
   const ringColor = faction?.color ?? GOLD;
   const city = s(profile, "city");
   const district = s(profile, "district");
-  const baseLevel = base?.level ?? 1;
   const ansehen = n(profile, "ansehen");
   const vertrauen = n(profile, "vertrauen");
 
-  // Achievement-Trio: Bronze/Silber/Gold split (Approximation — 3 Tiers à 1/3, 1/3, 1/3 vom Total)
-  const achGold   = Math.max(0, Math.round(achievementsCount * 0.15));
-  const achSilver = Math.max(0, Math.round(achievementsCount * 0.30));
-  const achBronze = Math.max(0, achievementsCount - achGold - achSilver);
+  const achGold   = achievementTiers.gold;
+  const achSilver = achievementTiers.silver;
+  const achBronze = achievementTiers.bronze;
 
   return (
-    <FullscreenFrame title={name} subtitle={username ? `@${username}` : undefined} theme="urban" bgSlot="karte_base_bg">
+    <FullscreenFrame title="Meine Base" subtitle={username ? `@${username}` : undefined} theme="urban" bgSlot="karte_base_bg">
       <style>{`
         @keyframes ma365Sparkle { 0%,100% { opacity: 0; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
         @keyframes ma365TileBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
@@ -156,12 +174,14 @@ export function BaseClient({
         ))}
       </div>
 
-      {/* 2-Spalten — Hero-Banner links, Action-Tiles rechts. KEIN SCROLL — alles passt in 412px Höhe */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 32%) 1fr", gap: 12, height: "100%", position: "relative", zIndex: 1, overflow: "hidden" }}>
-        {/* LINKS — Hero-Banner mit Glas-Scrim für Lesbarkeit auf hellem BG */}
+      {/* Vertikales Layout: Banner oben (volle Breite), Action-Tiles darunter.
+          KEIN SCROLL — alles passt in 412px Landscape-Höhe. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", position: "relative", zIndex: 1, overflow: "hidden" }}>
+        {/* BANNER — Avatar links, Stats-Grid rechts */}
         <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-          overflow: "visible", padding: "18px 10px 12px",
+          flexShrink: 0,
+          display: "grid", gridTemplateColumns: "128px 1fr", gap: 12,
+          padding: 12,
           background: "linear-gradient(180deg, rgba(15,17,21,0.55) 0%, rgba(15,17,21,0.4) 100%)",
           backdropFilter: "blur(8px) saturate(1.1)",
           WebkitBackdropFilter: "blur(8px) saturate(1.1)",
@@ -169,9 +189,8 @@ export function BaseClient({
           border: "1px solid rgba(255,255,255,0.08)",
           boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
         }}>
-          {/* Avatar (Marker-Artwork) + Avatar-Rahmen (Base-Ring-Artwork) */}
-          <div style={{ position: "relative", width: 96, height: 96, flexShrink: 0, marginBottom: 16 }}>
-            {/* Avatar-Rahmen — equippierter Base-Ring (Halo) */}
+          {/* Avatar — Ring + Marker beide zentriert via translate, gleicher Abstand zum Rand */}
+          <div style={{ position: "relative", width: 128, height: 128, flexShrink: 0 }}>
             {ringAsset?.image_url || ringAsset?.video_url ? (
               ringAsset.video_url ? (
                 <video
@@ -179,8 +198,8 @@ export function BaseClient({
                   autoPlay loop muted playsInline
                   style={{
                     position: "absolute", top: "50%", left: "50%",
-                    transform: "translate(-50%, -50%) scale(1.5)",
-                    width: 90, height: 90, objectFit: "contain",
+                    transform: "translate(-50%, -50%)",
+                    width: 128, height: 128, objectFit: "contain",
                     filter: `url(#ma365-chroma-black) drop-shadow(0 0 10px ${ringColor}77)`,
                     pointerEvents: "none", zIndex: 1,
                   }}
@@ -192,17 +211,18 @@ export function BaseClient({
                   alt=""
                   style={{
                     position: "absolute", top: "50%", left: "50%",
-                    transform: "translate(-50%, -50%) scale(1.5)",
-                    width: 90, height: 90, objectFit: "contain",
+                    transform: "translate(-50%, -50%)",
+                    width: 128, height: 128, objectFit: "contain",
                     filter: `url(#ma365-chroma-black) drop-shadow(0 0 10px ${ringColor}77)`,
                     pointerEvents: "none", zIndex: 1,
                   }}
                 />
               )
             ) : (
-              // Fallback Goldring wenn kein Base-Ring equipped
               <div style={{
-                position: "absolute", top: 4, left: 4, width: 88, height: 88,
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 116, height: 116,
                 borderRadius: "50%",
                 border: `3px solid ${ringColor}`,
                 boxShadow: `0 0 18px ${ringColor}88`,
@@ -210,10 +230,10 @@ export function BaseClient({
                 pointerEvents: "none",
               }} />
             )}
-
-            {/* Avatar — equippierter Marker */}
             <div style={{
-              position: "absolute", top: 8, left: 8, width: 80, height: 80,
+              position: "absolute", top: "50%", left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: 88, height: 88,
               borderRadius: "50%",
               background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), rgba(70,82,122,0.5))",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -222,116 +242,160 @@ export function BaseClient({
               zIndex: 2,
             }}>
               {markerAsset?.video_url ? (
-                <video
-                  src={markerAsset.video_url}
-                  autoPlay loop muted playsInline
-                  style={{ width: 70, height: 70, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }}
-                />
+                <video src={markerAsset.video_url} autoPlay loop muted playsInline
+                  style={{ width: 78, height: 78, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }} />
               ) : markerAsset?.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={markerAsset.image_url}
-                  alt=""
-                  style={{ width: 70, height: 70, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }}
-                />
+                <img src={markerAsset.image_url} alt=""
+                  style={{ width: 78, height: 78, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }} />
               ) : (
-                <span style={{ fontSize: 50, color: "#FFE4B8", fontWeight: 900, textShadow: "0 2px 4px rgba(0,0,0,0.7)", lineHeight: 1 }}>
+                <span style={{ fontSize: 56, color: "#FFE4B8", fontWeight: 900, textShadow: "0 2px 4px rgba(0,0,0,0.7)", lineHeight: 1 }}>
                   {(name[0] ?? "?").toUpperCase()}
                 </span>
               )}
             </div>
-
-            {/* Level-Badge */}
-            <div style={{
-              position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
-              padding: "3px 12px", borderRadius: 999,
-              background: "linear-gradient(135deg, #FFD700, #FF6B4A)",
-              color: "#0F1115", fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
-              border: "2px solid #FFE4B8",
-              boxShadow: "0 3px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.4)",
-              whiteSpace: "nowrap",
-              zIndex: 3,
-            }}>Lv {baseLevel}</div>
           </div>
 
-          {/* Name */}
-          <div style={{ textAlign: "center", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, flexWrap: "wrap" }}>
-            {crew?.tag && (
-              <span style={{
-                padding: "1px 6px", borderRadius: 4,
-                background: "linear-gradient(135deg, #FFD700, #FFA040)",
-                color: "#0F1115",
-                fontWeight: 900, fontSize: 9, letterSpacing: 0.5,
-                border: "1px solid rgba(255,228,184,0.6)",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.4)",
-              }}>{crew.tag}</span>
-            )}
-            <span style={{ fontSize: 13, fontWeight: 900, color: "#FFF", textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 8px rgba(0,0,0,0.5)" }}>{name}</span>
-          </div>
-
-          {/* Compact stats */}
-          <div style={{ width: "100%", display: "grid", gap: 1, fontSize: 9, flexShrink: 0 }}>
-            <StatRow label="Heimatstadt" value={city || district || "—"} />
-            <StatRow label="Crew" value={crew?.name ?? "—"} />
-            <StatRow label="Fraktion" value={faction ? `${faction.emoji} ${faction.label}` : "—"} />
-          </div>
-
-          {/* Trophäen-Trio */}
-          <div style={{ width: "100%", flexShrink: 0 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 3 }}>
-              <Medal tier="gold"   count={achGold} />
-              <Medal tier="silver" count={achSilver} />
-              <Medal tier="bronze" count={achBronze} />
+          {/* Stats-Bereich rechts — 3 Spalten Grid */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+            {/* Headline-Zeile: Crew-Tag + Name + Faction-Pill + Server-Pill */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {crew?.tag && (
+                <span style={{
+                  padding: "2px 7px", borderRadius: 4,
+                  background: "rgba(255,255,255,0.1)",
+                  color: "#FFF", fontWeight: 900, fontSize: 10, letterSpacing: 0.5,
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+                }}>{crew.tag}</span>
+              )}
+              <span style={{ fontSize: 16, fontWeight: 900, color: "#FFF", textShadow: "0 1px 3px rgba(0,0,0,0.85)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {name}
+              </span>
+              {faction && (
+                <Pill label={`${faction.emoji} ${faction.label}`} color={faction.color} />
+              )}
+              {homeCity && (
+                <Pill
+                  label={homeCity.era_number != null ? `🏙️ ${homeCity.name} · Ära ${homeCity.era_number}` : `🏙️ ${homeCity.name}`}
+                  color={ACCENT}
+                />
+              )}
             </div>
-          </div>
 
-          {/* Ansehen + Vertrauen — Label oben, Wert darunter */}
-          <div style={{ width: "100%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, flexShrink: 0 }}>
-            <ScoreCard label="Ansehen"   icon="🌟" value={ansehen}   color={GOLD}   hint="Bauen · Forschen · Banditen ausbilden" />
-            <ScoreCard label="Vertrauen" icon="🤝" value={vertrauen} color={ACCENT} hint="Banditen-Kills im aktiven + letzten CvC" />
+            {/* Info-Grid (3 Spalten) */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, flex: 1, minHeight: 0 }}>
+              {/* Spalte A — Stats-Liste */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, fontSize: 10 }}>
+                <StatRow label="Heimat" value={homeCity?.name ?? city ?? district ?? "—"} />
+                <StatRow label="Server-ID" value={homeCity?.slug ?? "—"} />
+                <StatRow label="Crew" value={crew?.name ?? "—"} />
+                <StatRow label="Eingereist" value={accountAgeLabel(profile)} />
+                <StatRow label="Erfolge" value={achievementsTotal > 0 ? `${achievementsCount} / ${achievementsTotal}` : achievementsCount.toString()} />
+              </div>
+
+              {/* Spalte B — Medaillen + Ära-Box */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+                  <Medal tier="gold"   count={achGold}   art={uiIconArtMap} onClick={() => setAchievementTier("gold")} />
+                  <Medal tier="silver" count={achSilver} art={uiIconArtMap} onClick={() => setAchievementTier("silver")} />
+                  <Medal tier="bronze" count={achBronze} art={uiIconArtMap} onClick={() => setAchievementTier("bronze")} />
+                </div>
+                {homeCity && (
+                  <div style={{
+                    fontSize: 9, color: "rgba(255,255,255,0.7)",
+                    padding: "5px 7px", borderRadius: 6,
+                    background: `${ACCENT}1a`, border: `1px solid ${ACCENT}44`,
+                    display: "flex", flexDirection: "column", gap: 2, lineHeight: 1.2,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.55)", textTransform: "uppercase" }}>Aktuelle Ära</span>
+                      <span style={{ color: ACCENT, fontWeight: 900, fontSize: 12, textShadow: `0 0 6px ${ACCENT}66` }}>
+                        {homeCity.era_number ?? "—"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.55)", textTransform: "uppercase" }}>läuft seit</span>
+                      <span style={{ color: "#FFF", fontWeight: 800, fontSize: 11, fontVariantNumeric: "tabular-nums" }}>
+                        {homeCity.era_started_at
+                          ? `${daysSince(homeCity.era_started_at)} ${daysSince(homeCity.era_started_at) === 1 ? "Tag" : "Tagen"}`
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Spalte C — Ansehen + Vertrauen + schmaler CvC-Balken */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                  <ScoreCard label="Ansehen"   icon="🌟" value={ansehen}   color={GOLD}   hint="Bauen · Forschen · Banditen" />
+                  <ScoreCard label="Vertrauen" icon="🤝" value={vertrauen} color={ACCENT} hint="Banditen-Kills (CvC)" />
+                </div>
+                <CvcBar
+                  joined={n(profile, "cvc_participated")}
+                  won={n(profile, "cvc_won")}
+                  peak={n(profile, "vertrauen_peak") || vertrauen}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* RECHTS — Action-Tile-Bereich (Scrim NUR hinter Tile-Grid) */}
+        {/* TILES — top-aligned damit Chat (bottom-left) sie nicht verdeckt */}
         <div style={{
-          position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+          flex: 1, minHeight: 0,
+          display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
+          padding: "4px 4px 0",
         }}>
-          {/* Tile-Grid 4×2 — jeder Tile bringt seinen eigenen Glas-Scrim mit */}
           <div style={{
-            position: "relative",
-            zIndex: 2,
-            display: "grid",
-            gridTemplateColumns: "repeat(4, max-content)",
-            gridAutoRows: "max-content",
-            rowGap: 6,
-            columnGap: 6,
-            padding: 4,
+            display: "flex", flexWrap: "wrap", justifyContent: "flex-end",
+            gap: 8,
+            maxWidth: 488,
           }}>
             <ArtTile slot="karte_base_bauen"      icon="🔨" label="Bauen"       href="/karte/base"   badge={queueCount} />
             <ArtTile slot="karte_base_forschung"  icon="⚗️" label="Forschung"   href="/karte/base"   badge={researchCount} />
             <ArtTile slot="karte_base_banditen"   icon="🥷" label="Banditen"    href="/karte/base" />
-            <ArtTile slot="karte_base_trophaeen"  icon="🏆" label="Trophäen"    href="/karte/base" />
+            <ArtTile slot="karte_base_trophaeen"  icon="🏆" label="Trophäen"    onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
             <ArtTile slot="karte_base_ranglisten" icon="📊" label="Ranglisten"  href="/karte/base" />
-            <ArtTile slot="karte_base_statistiken" icon="📈" label="Statistiken" href="/karte/base" />
+            <ArtTile slot="karte_base_statistiken" icon="📈" label="Statistiken" onClick={() => setShowStats(true)} />
+            <ArtTile
+              slot="karte_base_server"
+              icon="🏙️"
+              label="Server"
+              onClick={() => setShowServerOverview(true)}
+            />
             <ArtTile slot="karte_base_einstellungen" icon="⚙️" label="Einstellungen" href="/karte/base" />
             <ArtTile slot="karte_base_logout"     icon="🚪" label="Ausloggen"   href="/logout" />
           </div>
         </div>
       </div>
+
+      <ServerOverviewModal
+        open={showServerOverview}
+        onClose={() => setShowServerOverview(false)}
+      />
+      <AchievementsModal
+        open={achievementTier !== null}
+        onClose={() => setAchievementTier(null)}
+        initialTier={achievementTier ?? "bronze"}
+      />
+      <StatsModal open={showStats} onClose={() => setShowStats(false)} />
     </FullscreenFrame>
   );
 }
 
-function ArtTile({ slot, icon, label, href, badge }: {
+function ArtTile({ slot, icon, label, href, onClick, badge }: {
   slot: string;
   icon: string;
   label: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   badge?: number;
 }) {
   const art = useUiIconArt();
-  return (
-    <Link href={href} className="ma365-tile-wrap">
+  const inner = (
+    <>
       <div className="ma365-tile-art">
         {/* Wenn Artwork hochgeladen, rendert UiIcon es; sonst fallback Emoji */}
         {art[slot]?.image_url || art[slot]?.video_url ? (
@@ -356,6 +420,18 @@ function ArtTile({ slot, icon, label, href, badge }: {
         )}
       </div>
       <div className="ma365-tile-label">{label}</div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="ma365-tile-wrap" style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <Link href={href ?? "#"} className="ma365-tile-wrap">
+      {inner}
     </Link>
   );
 }
@@ -369,28 +445,118 @@ function StatRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function Pill({ label, color }: { label: string; color: string }) {
+  return (
+    <span style={{
+      padding: "2px 8px", borderRadius: 999,
+      background: `${color}22`,
+      border: `1px solid ${color}55`,
+      color, fontSize: 10, fontWeight: 800, letterSpacing: 0.3,
+      whiteSpace: "nowrap",
+      textShadow: `0 0 6px ${color}66`,
+    }}>{label}</span>
+  );
+}
+
+function daysSince(iso: string): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function accountAgeLabel(p: Profile): string {
+  const created = s(p, "created_at");
+  if (!created) return "—";
+  const days = daysSince(created);
+  if (days < 1) return "heute";
+  if (days < 30) return `${days} ${days === 1 ? "Tag" : "Tage"}`;
+  if (days < 365) return `${Math.floor(days / 30)} Mon.`;
+  return `${(days / 365).toFixed(1)} J.`;
+}
+
 const MEDAL_META = {
   gold:   { color: "#FFD700", glow: "rgba(255,215,0,0.6)",  label: "Gold",   ring: "#B8860B" },
   silver: { color: "#C0C8D0", glow: "rgba(192,200,208,0.5)", label: "Silber", ring: "#7A8290" },
   bronze: { color: "#CD7F32", glow: "rgba(205,127,50,0.55)", label: "Bronze", ring: "#7A4A1F" },
 } as const;
 
-function Medal({ tier, count }: { tier: "gold" | "silver" | "bronze"; count: number }) {
+function Medal({ tier, count, art, onClick }: {
+  tier: "gold" | "silver" | "bronze";
+  count: number;
+  art: ReturnType<typeof useUiIconArt>;
+  onClick?: () => void;
+}) {
   const m = MEDAL_META[tier];
+  const slot = `trophy_${tier}`;
   return (
-    <div style={{
-      position: "relative",
-      padding: "3px 2px",
-      borderRadius: 8,
-      background: `linear-gradient(160deg, ${m.color}33, transparent)`,
-      border: `1px solid ${m.color}55`,
-      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-    }}>
+    <button
+      type="button"
+      onClick={onClick}
+      title={`${m.label}-Trophäen anzeigen`}
+      style={{
+        position: "relative",
+        padding: "6px 3px",
+        borderRadius: 8,
+        background: `linear-gradient(160deg, ${m.color}33, transparent)`,
+        border: `1px solid ${m.color}55`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+        cursor: "pointer",
+        transition: "transform 0.15s, box-shadow 0.15s",
+        boxShadow: "none",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = `0 0 12px ${m.glow}`; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+    >
       <span style={{
-        fontSize: 14, lineHeight: 1,
+        width: 22, height: 22, lineHeight: 1,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
         filter: `drop-shadow(0 0 4px ${m.glow})`,
-      }}>🏆</span>
-      <span style={{ fontSize: 11, fontWeight: 900, color: m.color, lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>{count}</span>
+      }}>
+        <UiIcon slot={slot} fallback="🏆" art={art} size={22} />
+      </span>
+      <span style={{ fontSize: 13, fontWeight: 900, color: m.color, lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+    </button>
+  );
+}
+
+function CvcBar({ joined, won, peak }: { joined: number; won: number; peak: number }) {
+  // Bewusst gleich strukturiert wie die ScoreCard-Reihe darüber: 2-col 1fr/1fr.
+  // Links: CvC + Siege im Doppelpack, rechts: Höchstes Vertrauen (Spaltenbreite = Vertrauen-ScoreCard).
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+      <div style={{
+        padding: "4px 7px", borderRadius: 6,
+        background: `linear-gradient(135deg, ${PINK}1a 0%, rgba(255,255,255,0.04) 100%)`,
+        border: `1px solid ${PINK}44`,
+        display: "flex", alignItems: "center", justifyContent: "space-around", gap: 4,
+      }}>
+        <CvcBarItem label="CvC" value={joined} color="#FFF" />
+        <CvcBarItem label="Siege" value={won} color={GOLD} />
+      </div>
+      <div style={{
+        padding: "4px 7px", borderRadius: 6,
+        background: `linear-gradient(135deg, ${ACCENT}1a 0%, rgba(255,255,255,0.04) 100%)`,
+        border: `1px solid ${ACCENT}44`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1.1,
+      }}>
+        <span style={{ fontSize: 7, color: "rgba(255,255,255,0.65)", letterSpacing: 0.3, fontWeight: 700, textAlign: "center", whiteSpace: "nowrap" }}>
+          Höchstes Vertrauen
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 900, color: ACCENT, textShadow: `0 0 6px ${ACCENT}66`, fontVariantNumeric: "tabular-nums", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", letterSpacing: -0.2 }}>
+          {peak.toLocaleString("de-DE")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CvcBarItem({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1.1, minWidth: 0 }}>
+      <span style={{ fontSize: 7, color: "rgba(255,255,255,0.65)", letterSpacing: 0.3, fontWeight: 700, textAlign: "center" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 900, color, textShadow: `0 0 6px ${color}66`, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>
+        {value.toLocaleString("de-DE")}
+      </span>
     </div>
   );
 }
@@ -410,7 +576,7 @@ function ScoreCard({ label, icon, value, color, hint }: {
         <span style={{ fontSize: 11 }}>{icon}</span>
         <span>{label}</span>
       </div>
-      <div style={{ fontSize: 14, fontWeight: 900, color, textShadow: `0 0 8px ${color}88`, lineHeight: 1.1, marginTop: 1 }}>
+      <div style={{ fontSize: 12, fontWeight: 900, color, textShadow: `0 0 8px ${color}88`, lineHeight: 1.1, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontVariantNumeric: "tabular-nums", letterSpacing: -0.2 }}>
         {value.toLocaleString("de-DE")}
       </div>
       <div style={{ fontSize: 7, color: "rgba(255,255,255,0.55)", fontStyle: "italic", lineHeight: 1.2, marginTop: 2 }}>{hint}</div>

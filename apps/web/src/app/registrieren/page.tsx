@@ -46,18 +46,50 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Soft-Block: Wenn PLZ keinem aktiven Server zugeordnet ist, zeigen wir ein
+  // Modal mit Vorschlag der nächsten Stadt + Warteliste-Eintrag.
+  type Suggestion = { slug: string; name: string; distance_km: number | null };
+  const [waitlistSuggestion, setWaitlistSuggestion] = useState<Suggestion | null>(null);
+
+  async function validateForm(): Promise<boolean> {
+    setError("");
+    if (username.length < 3) { setError(t("runnerNameMin")); return false; }
+    if (password.length < 8) { setError(t("passwordMin")); return false; }
+    if (!faction) { setError(t("factionRequired")); return false; }
+    if (!acceptTerms) { setError(t("termsRequired")); return false; }
+    if (!heimatPlz) { setError(t("plzRequired")); return false; }
+    if (!/^[0-9]{5}$/.test(heimatPlz)) { setError(t("plzInvalid")); return false; }
+    return true;
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    if (!(await validateForm())) return;
 
-    if (username.length < 3) return setError(t("runnerNameMin"));
-    if (password.length < 8) return setError(t("passwordMin"));
-    if (!faction) return setError(t("factionRequired"));
-    if (!acceptTerms) return setError(t("termsRequired"));
-    if (heimatPlz && !/^[0-9]{5}$/.test(heimatPlz)) {
-      return setError(t("plzInvalid"));
+    setLoading(true);
+
+    // 1) Vorab PLZ-Check — gibt es einen aktiven Server für diese PLZ?
+    try {
+      const r = await fetch(`/api/plz/check?plz=${encodeURIComponent(heimatPlz)}`, { cache: "no-store" });
+      const j = await r.json() as {
+        has_city: boolean;
+        city: { slug: string; name: string } | null;
+        suggestion: { slug: string; name: string; distance_km: number | null } | null;
+      };
+      if (!j.has_city) {
+        // Kein direkter Match → Modal mit Vorschlag öffnen, Submission pausieren
+        setWaitlistSuggestion(j.suggestion ?? { slug: "", name: "—", distance_km: null });
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // Bei API-Fehler trotzdem weitermachen (Best-Effort) — Trigger erledigt ggf. den Rest
     }
 
+    await doRegister(null);
+  }
+
+  async function doRegister(fallbackCity: string | null) {
     setLoading(true);
     const supabase = createClient();
 
@@ -99,6 +131,23 @@ export default function RegisterPage() {
         heimat_plz: heimatPlz || null,
         newsletter_opt_in: newsletter,
       });
+      // Wenn User auf Fallback-Stadt akzeptiert hat: home_city_slug explizit
+      // überschreiben (Trigger setzt sonst NULL weil PLZ keinen Match hat).
+      if (fallbackCity) {
+        await supabase.from("users").update({ home_city_slug: fallbackCity }).eq("id", data.user.id);
+        // Warteliste-Eintrag (auf Server-Side mit user_id)
+        try {
+          await fetch("/api/plz/waitlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              plz: heimatPlz,
+              fallback_city_slug: fallbackCity,
+              source: "register",
+            }),
+          });
+        } catch { /* silent — Warteliste ist nice-to-have */ }
+      }
     }
 
     router.push(`/registrierung-bestaetigen?email=${encodeURIComponent(email)}`);
@@ -176,12 +225,12 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="plz" className="block text-sm font-medium mb-1.5">
-                  {t("plzLabel")} <span className="text-text-muted font-normal">{t("plzOptional")}</span>
+                  {t("plzLabel")} <span className="text-primary font-normal">{t("plzOptional")}</span>
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                   <input
-                    id="plz" type="text" inputMode="numeric" pattern="[0-9]{5}" maxLength={5}
+                    id="plz" type="text" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} required
                     value={heimatPlz}
                     onChange={(e) => setHeimatPlz(e.target.value.replace(/\D/g, "").slice(0, 5))}
                     placeholder={t("plzPlaceholder")}
@@ -293,6 +342,111 @@ export default function RegisterPage() {
             <span className="opacity-40">·</span>
             <Link href="/support" className="hover:text-text transition-colors">{t("footerSupport")}</Link>
           </div>
+        </div>
+      </div>
+
+      {waitlistSuggestion && (
+        <WaitlistModal
+          plz={heimatPlz}
+          suggestion={waitlistSuggestion}
+          onAccept={async () => {
+            const slug = waitlistSuggestion.slug;
+            setWaitlistSuggestion(null);
+            await doRegister(slug || null);
+          }}
+          onDismiss={() => setWaitlistSuggestion(null)}
+          loading={loading}
+          t={t}
+        />
+      )}
+    </div>
+  );
+}
+
+function WaitlistModal({
+  plz, suggestion, onAccept, onDismiss, loading, t,
+}: {
+  plz: string;
+  suggestion: { slug: string; name: string; distance_km: number | null };
+  onAccept: () => void;
+  onDismiss: () => void;
+  loading: boolean;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  const km = suggestion.distance_km != null ? Math.round(suggestion.distance_km).toString() : "—";
+  const hasCity = suggestion.slug !== "";
+  return (
+    <div
+      onClick={onDismiss}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9500,
+        background: "rgba(0,0,0,0.72)",
+        backdropFilter: "blur(6px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(440px, 100%)",
+          background: "linear-gradient(160deg, #1A1D23 0%, #0F1115 100%)",
+          border: "1px solid rgba(34,209,195,0.35)",
+          borderRadius: 18,
+          boxShadow: "0 0 40px rgba(34,209,195,0.18), 0 24px 64px rgba(0,0,0,0.7)",
+          padding: 22,
+          display: "flex", flexDirection: "column", gap: 14,
+        }}
+      >
+        <div style={{ fontSize: 20, fontWeight: 900, color: "#22D1C3", letterSpacing: 0.4 }}>
+          🛰  {t("waitlistTitle")}
+        </div>
+        <div style={{ fontSize: 13, color: "#C8CDD9", lineHeight: 1.5 }}>
+          {t("waitlistBodyTop", { plz })}
+        </div>
+        <div style={{
+          padding: "10px 12px", borderRadius: 10,
+          background: "rgba(34,209,195,0.08)",
+          border: "1px solid rgba(34,209,195,0.25)",
+          fontSize: 12, color: "#A8E5DD", lineHeight: 1.45,
+        }}>
+          {t("waitlistAutoFeedback")}
+        </div>
+        {hasCity && (
+          <div style={{ fontSize: 13, color: "#C8CDD9", lineHeight: 1.5 }}>
+            {t("waitlistSuggestion", { city: suggestion.name, km })}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={onDismiss}
+            disabled={loading}
+            style={{
+              flex: 1, padding: "10px 12px", borderRadius: 10,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#C8CDD9", fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            {t("waitlistDismiss")}
+          </button>
+          {hasCity && (
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={loading}
+              style={{
+                flex: 1.4, padding: "10px 12px", borderRadius: 10,
+                background: "linear-gradient(135deg, #22D1C3, #1AA89D)",
+                border: "none",
+                color: "#0F1115", fontSize: 13, fontWeight: 900, cursor: "pointer",
+                boxShadow: "0 6px 18px rgba(34,209,195,0.35)",
+              }}
+            >
+              {t("waitlistAccept", { city: suggestion.name })}
+            </button>
+          )}
         </div>
       </div>
     </div>

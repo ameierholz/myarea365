@@ -10,6 +10,28 @@ const BG = "#0F1115";
 const TEXT = "#F0F0F0";
 const MUTED = "#8B8FA3";
 
+// ════════════════════════════════════════════════════════════════════
+// Icon-Größen + horizontaler Offset pro Quick-Button — individuell tunen.
+// SIZE  = Pixelgröße des Buttons UND des Artwork-Bildes (kein Padding).
+// OFFSET_X = Verschiebung in X (negativ = nach links, positiv = nach rechts).
+// ════════════════════════════════════════════════════════════════════
+const ICON_SIZE: Record<string, number> = {
+  base:    55,
+  crew:    55,
+  rally:   55,
+  ranking: 52,
+  shop:    57,
+  inbox:   55,
+};
+const ICON_OFFSET_X: Record<string, number> = {
+  base:    -4,
+  crew:     0,
+  rally:    0,
+  ranking:  0,
+  shop:     0,
+  inbox:    0,
+};
+
 type RallyStatus = "preparing" | "marching" | "fighting";
 type RepeaterRally = {
   rally_id: string; repeater_id: string; kind: "repeater";
@@ -94,25 +116,6 @@ export function MapQuickAccess({
   const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [], stronghold: [] });
   const [openRallyList, setOpenRallyList] = useState(false);
   const uiArt = useUiIconArt();
-  // SSR-sicher: starte immer mit false, hydratisiere dann clientseitig.
-  // Verhindert hydration-mismatch (Server kennt weder localStorage noch innerWidth).
-  const [collapsed, setCollapsed] = useState<boolean>(false);
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem("ma365_qa_collapsed");
-      if (stored === "1") { setCollapsed(true); return; }
-      if (stored === "0") { setCollapsed(false); return; }
-      if (window.innerWidth < 640) setCollapsed(true);
-    } catch { /* ignore */ }
-  }, []);
-  function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try { window.localStorage.setItem("ma365_qa_collapsed", next ? "1" : "0"); } catch { /* ignore */ }
-      if (next) setOpenRallyList(false);
-      return next;
-    });
-  }
   const [, setTick] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
   const [barRect, setBarRect] = useState<{ left: number; width: number } | null>(null);
@@ -163,103 +166,59 @@ export function MapQuickAccess({
 
   // Artwork-basierte Icons (cosmetic_artwork kind=ui_icon, slot=quick_*).
   // Fallback-Emoji nur wenn noch kein Artwork hochgeladen ist.
-  type Item = { key: string; slot: string; fallback: string; label: string; badge?: number; onClick: () => void };
+  type Item = { key: string; slot: string; fallback: string; label: string; size: number; offsetX: number; badge?: number; onClick: () => void };
   const items: Item[] = [
-    { key: "base",    slot: "quick_base",    fallback: "🏰", label: "Base",     badge: baseQueueReady, onClick: onOpenProfile },
-    { key: "crew",    slot: "quick_crew",    fallback: "👥", label: "Crew",                            onClick: onOpenCrewModal },
-    { key: "rally",   slot: "quick_rally",   fallback: "⚔",  label: "Angriffe", badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
-    { key: "ranking", slot: "quick_ranking", fallback: "🏆", label: "Ranking",                         onClick: onOpenRanking },
-    { key: "shop",    slot: "quick_shop",    fallback: "🎁", label: "Shop",                            onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
-    { key: "inbox",   slot: "quick_inbox",   fallback: "📬", label: "Inbox",    badge: inboxUnread,    onClick: onOpenInbox },
+    { key: "base",    slot: "quick_base",    fallback: "🏰", label: "Base",     size: ICON_SIZE.base,    offsetX: ICON_OFFSET_X.base,    badge: baseQueueReady, onClick: onOpenProfile },
+    { key: "crew",    slot: "quick_crew",    fallback: "👥", label: "Crew",     size: ICON_SIZE.crew,    offsetX: ICON_OFFSET_X.crew,                           onClick: onOpenCrewModal },
+    { key: "rally",   slot: "quick_rally",   fallback: "⚔",  label: "Angriffe", size: ICON_SIZE.rally,   offsetX: ICON_OFFSET_X.rally,   badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
+    { key: "ranking", slot: "quick_ranking", fallback: "🏆", label: "Ranking",  size: ICON_SIZE.ranking, offsetX: ICON_OFFSET_X.ranking,                        onClick: onOpenRanking },
+    { key: "shop",    slot: "quick_shop",    fallback: "🎁", label: "Shop",     size: ICON_SIZE.shop,    offsetX: ICON_OFFSET_X.shop,                           onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
+    { key: "inbox",   slot: "quick_inbox",   fallback: "📬", label: "Inbox",    size: ICON_SIZE.inbox,   offsetX: ICON_OFFSET_X.inbox,   badge: inboxUnread,    onClick: onOpenInbox },
   ];
-
-  // Gesamt-Badge-Summe für eingeklappten Toggle-Knopf
-  const totalBadges = items.reduce((sum, it) => sum + (it.badge ?? 0), 0);
 
   return (
     <>
-      {/* Stadt/Straßen-Style Quickaccess: rechts auf gleicher Höhe wie "Losgehen" */}
-      <div style={{
-        position: "absolute",
-        right: 8,
-        bottom: 30,
-        zIndex: 9001,
-        display: "flex", flexDirection: "row", alignItems: "center", gap: 6,
-        pointerEvents: "auto",
-        maxWidth: "calc(100vw - 16px)",
-      }}>
-        {!collapsed && (
-          <div
-            ref={barRef}
-            className="ma365-qa-bar"
-            style={{
-              display: "flex", flexDirection: "row",
-              gap: 4, padding: "4px 4px",
-              maxWidth: "calc(100vw - 80px)", overflowX: "auto",
-              background: "transparent",
-              border: "none",
-              boxShadow: "none",
-              // Mobile-Hint: rechter Rand fadet aus, signalisiert Scrollbarkeit
-              WebkitMaskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
-              maskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
-            }}
-          >
-            {items.map((it) => (
-              <QuickButton
-                key={it.key}
-                slot={it.slot}
-                fallback={it.fallback}
-                art={uiArt}
-                label={it.label}
-                badge={it.badge}
-                onClick={it.onClick}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Toggle-Knopf — Spray-Tag-Style, immer sichtbar */}
-        <button
-          onClick={toggleCollapsed}
-          title={collapsed ? "Aufklappen" : "Einklappen"}
-          style={{
-            position: "relative",
-            width: 32, height: 52, borderRadius: 10,
-            background: `
-              radial-gradient(circle at 30% 25%, rgba(34,209,195,0.28) 0%, rgba(34,209,195,0.06) 35%, transparent 60%),
-              radial-gradient(circle at 70% 75%, rgba(255,45,120,0.22) 0%, rgba(255,45,120,0.05) 30%, transparent 55%),
-              rgba(15,17,21,0.18)
-            `,
-            border: "1px solid rgba(255,255,255,0.08)",
-            backdropFilter: "blur(6px) saturate(120%)",
-            color: "#FFF", fontSize: 18, fontWeight: 900, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
-            flexShrink: 0,
-            fontFamily: "var(--font-display-stack)",
-          }}
-        >
-          {collapsed ? "‹" : "›"}
-          {collapsed && totalBadges > 0 && (
-            <span style={{
-              position: "absolute", top: -5, right: -5,
-              minWidth: 20, height: 20, borderRadius: 10, padding: "0 5px",
-              background: `radial-gradient(circle at 35% 30%, #ff5b8d, ${ACCENT})`,
-              border: "1.5px solid rgba(0,0,0,0.6)",
-              color: "#FFF", fontSize: 10, fontWeight: 700,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: `0 0 8px ${ACCENT}aa`,
-              fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif",
-            }}>{totalBadges > 99 ? "99+" : totalBadges}</span>
-          )}
-        </button>
+      {/* Quickaccess-Bar: rechts unten, dicht am Bildschirmrand. Mapbox-Controls
+          sind links unten unter dem Chat-Widget — rechts ist hier komplett frei. */}
+      <div
+        ref={barRef}
+        className="ma365-qa-bar"
+        style={{
+          position: "absolute",
+          right: 8,
+          bottom: 0,
+          zIndex: 9001,
+          display: "flex", flexDirection: "row",
+          gap: 0, padding: 0,
+          maxWidth: "calc(100vw - 16px)", overflowX: "auto",
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          pointerEvents: "auto",
+          WebkitMaskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
+          maskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
+        }}
+      >
+        {items.map((it) => (
+          <QuickButton
+            key={it.key}
+            slot={it.slot}
+            fallback={it.fallback}
+            art={uiArt}
+            label={it.label}
+            badge={it.badge}
+            size={it.size}
+            offsetX={it.offsetX}
+            onClick={it.onClick}
+          />
+        ))}
         <style>{`
           .ma365-qa-bar::-webkit-scrollbar { display: none; }
           .ma365-qa-bar { scrollbar-width: none; }
         `}</style>
       </div>
 
-      {openRallyList && !collapsed && (
+      {openRallyList && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
@@ -413,12 +372,14 @@ export function MapQuickAccess({
 }
 
 function QuickButton({
-  slot, fallback, art, label, badge, onClick,
+  slot, fallback, art, label, badge, onClick, size, offsetX = 0,
 }: {
   slot: string; fallback: string; art: ResourceArtMap;
-  label: string; badge?: number; onClick: () => void;
+  label: string; badge?: number; onClick: () => void; size: number; offsetX?: number;
 }) {
   const hasBadge = (badge ?? 0) > 0;
+  // Bild = Button-Größe (kein Padding — Artwork füllt den ganzen Button)
+  const iconSize = size;
   return (
     <button
       onClick={onClick}
@@ -426,7 +387,7 @@ function QuickButton({
       aria-label={label}
       style={{
         position: "relative",
-        width: 52, height: 52,
+        width: size, height: size,
         background: "transparent",
         border: "none",
         padding: 0,
@@ -434,19 +395,10 @@ function QuickButton({
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer",
         flexShrink: 0,
+        transform: offsetX ? `translateX(${offsetX}px)` : undefined,
       }}
     >
-      {/* Dezente dunkle Vignette für Lesbarkeit auf hellen Karten. */}
-      <span
-        aria-hidden
-        style={{
-          position: "absolute", inset: 2,
-          borderRadius: "50%",
-          background: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.15) 50%, transparent 75%)",
-          pointerEvents: "none",
-        }}
-      />
-      <QuickButtonIcon slot={slot} fallback={fallback} art={art} />
+      <QuickButtonIcon slot={slot} fallback={fallback} art={art} size={iconSize} />
       {hasBadge && (
         <span style={{
           position: "absolute", top: 0, right: 0,
@@ -466,27 +418,24 @@ function QuickButton({
   );
 }
 
-function QuickButtonIcon({ slot, fallback, art }: {
-  slot: string; fallback: string; art: ResourceArtMap;
+function QuickButtonIcon({ slot, fallback, art, size }: {
+  slot: string; fallback: string; art: ResourceArtMap; size: number;
 }) {
   const ready = useArtworkReady();
-  // Fixe 44x44 Box, object-fit: contain — alle Artworks landen in identischer
-  // Bounding-Box. KEIN Chroma-Filter (Quick-Icons sind saubere Alpha-PNGs).
-  // Drop-Shadow nur dezent für Tiefe ohne Neon.
   const sharedStyle: React.CSSProperties = {
     position: "relative", zIndex: 1,
-    width: 44, height: 44,
+    width: size, height: size,
     objectFit: "contain", display: "block",
     filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))",
   };
-  if (!ready) return <span style={{ position: "relative", zIndex: 1, display: "block", width: 44, height: 44 }} aria-hidden />;
+  if (!ready) return <span style={{ position: "relative", zIndex: 1, display: "block", width: size, height: size }} aria-hidden />;
   const a = art[slot];
   if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={sharedStyle} />;
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={a.image_url} alt={slot} style={sharedStyle} />;
   }
-  return <span style={{ position: "relative", zIndex: 1, fontSize: 30, lineHeight: 1, display: "block" }}>{fallback}</span>;
+  return <span style={{ position: "relative", zIndex: 1, fontSize: Math.round(size * 0.66), lineHeight: 1, display: "block" }}>{fallback}</span>;
 }
 
 type Participant = {

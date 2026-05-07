@@ -187,7 +187,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(true); }}
-        style={{ position: "fixed", bottom: 12, left: 12, zIndex: 99999 }}
+        style={{ position: "fixed", bottom: 0, left: 0, zIndex: 99999 }}
         className="w-12 h-12 rounded-full bg-gradient-to-br from-[#22D1C3] to-[#FF2D78] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition"
         aria-label="Chat öffnen"
       >
@@ -221,15 +221,15 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
         }}
         style={{
           position: "fixed",
-          bottom: 12,
-          left: 12,
+          bottom: 0,
+          left: 0,
           zIndex: 99998,
           width: "min(340px, 60vw)",
           maxHeight: 150,
           background: "linear-gradient(180deg, rgba(15,17,21,0.55) 0%, rgba(15,17,21,0.35) 100%)",
           backdropFilter: "blur(10px) saturate(1.2)",
           WebkitBackdropFilter: "blur(10px) saturate(1.2)",
-          borderRadius: 14,
+          borderRadius: "0 14px 0 0",
           border: "1px solid rgba(255,255,255,0.1)",
           boxShadow: "0 4px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
           cursor: "pointer",
@@ -315,15 +315,15 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
       <div
         style={{
           position: "fixed",
-          bottom: 12,
-          left: 12,
+          bottom: 0,
+          left: 0,
           zIndex: 99998,
           width: "min(340px, 60vw)",
           height: "min(560px, calc(100vh - 24px))",
           background: "linear-gradient(180deg, rgba(26,29,35,0.30) 0%, rgba(15,17,21,0.22) 100%)",
           backdropFilter: "blur(32px) saturate(1.6)",
           WebkitBackdropFilter: "blur(32px) saturate(1.6)",
-          borderRadius: 18,
+          borderRadius: "0 18px 0 0",
           border: "1px solid rgba(255,255,255,0.14)",
           boxShadow: "0 12px 48px rgba(0,0,0,0.5), 0 0 28px rgba(34,209,195,0.14), inset 0 1px 0 rgba(255,255,255,0.07)",
         }}

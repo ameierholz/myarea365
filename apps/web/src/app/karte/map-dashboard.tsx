@@ -58,6 +58,7 @@ import { GemShopModal as GemShopModalDirect } from "@/components/gem-shop-modal"
 import { ShopHubModal as ShopHubModalDirect } from "@/components/shop-hub-modal";
 const GemShopModal = _IS_PROD ? dynamic(() => import("@/components/gem-shop-modal").then(m => m.GemShopModal)) : GemShopModalDirect;
 const ShopHubModal = _IS_PROD ? dynamic(() => import("@/components/shop-hub-modal").then(m => m.ShopHubModal)) : ShopHubModalDirect;
+const ServerOverviewModal = dynamic(() => import("@/components/server-overview-modal").then(m => m.ServerOverviewModal), { ssr: false });
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
 import { useResourceArt, ResourceIcon, useStrongholdArt, useBaseThemeArt, useNameplateArt, useBaseRingArt, useMarkerArt, useUiIconArt, UiIcon, useArtworkReady } from "@/components/resource-icon";
 import { RouteBanner, type ActiveRoute } from "@/components/route-banner";
@@ -171,7 +172,6 @@ import {
   DEMO_RUNNERS,
   generateDemoMapData,
   generateDemoRecentRuns,
-  getCurrentHappyHour,
   CREW_TYPES,
   CREW_PRIVACY_OPTIONS,
   DEMO_CREW_MEMBERS,
@@ -280,6 +280,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     };
     window.addEventListener("ma365:open-deals-shop", onOpen as EventListener);
     return () => window.removeEventListener("ma365:open-deals-shop", onOpen as EventListener);
+  }, []);
+
+  // Server-Übersicht: triggerbar via window.dispatchEvent("ma365:open-server-overview")
+  const [showServerOverview, setShowServerOverview] = useState(false);
+  useEffect(() => {
+    const onOpen = () => setShowServerOverview(true);
+    window.addEventListener("ma365:open-server-overview", onOpen);
+    return () => window.removeEventListener("ma365:open-server-overview", onOpen);
   }, []);
   const [preWalkModal, setPreWalkModal] = useState<null | "asking" | "playing">(null);
   const [preWalkAdProgress, setPreWalkAdProgress] = useState(0);
@@ -2048,9 +2056,6 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               </div>
             )}
 
-            {/* Happy Hour Banner (oben zentriert) */}
-            <HappyHourBanner />
-
             {/* Live-Info-Panel entfernt — Runner-Konzept-Relikt (Runner-Counts in Zip/City) */}
 
             {/* Fraktions-Ranking entfernt (User-Wunsch) */}
@@ -2833,6 +2838,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           onClose={() => setShowShopHubGlobal(false)}
         />
       )}
+
+      {/* Server-Übersicht — triggerbar via window.dispatchEvent("ma365:open-server-overview") */}
+      <ServerOverviewModal
+        open={showServerOverview}
+        onClose={() => setShowServerOverview(false)}
+      />
 
       {/* Top-Level Overlays: Pop-Ups, Desktop-Bonus, ResourceBar */}
       <PopupOfferGate />
@@ -5092,92 +5103,8 @@ function RunnerStat({ emoji, value, label, unit, color }: {
 }
 
 /* ═══════════════════════════════════════════════════════
- * HAPPY HOUR Banner + Map-Buttons + Area/Boost/Mission-Modals
+ * Map-Buttons + Area/Boost/Mission-Modals
  * ═══════════════════════════════════════════════════════ */
-
-function HappyHourBanner() {
-  const tMD = useTranslations("MapDashboard");
-  const hh = getCurrentHappyHour();
-  const [remaining, setRemaining] = useState("");
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (!hh.active) return;
-    const tick = () => {
-      const diff = new Date(hh.ends_at).getTime() - Date.now();
-      if (diff <= 0) { setRemaining("0:00"); return; }
-      const m = Math.floor(diff / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setRemaining(`${m}:${s.toString().padStart(2, "0")}`);
-    };
-    tick();
-    const int = setInterval(tick, 1000);
-    return () => clearInterval(int);
-  }, [hh.active, hh.ends_at]);
-
-  if (!hh.active) return null;
-
-  const baseStyle = {
-    position: "absolute" as const, top: 60, left: 20, zIndex: 55,
-    background: "linear-gradient(90deg, rgba(255, 215, 0, 0.22), rgba(255, 107, 74, 0.22))",
-    backdropFilter: "blur(16px) saturate(180%)",
-    WebkitBackdropFilter: "blur(16px) saturate(180%)",
-    border: "1px solid rgba(255, 215, 0, 0.6)",
-    boxShadow: "0 0 14px rgba(255, 215, 0, 0.35)",
-    animation: "happyHourPulse 2s ease-in-out infinite",
-    whiteSpace: "nowrap" as const,
-    cursor: "pointer" as const,
-  };
-  const keyframes = `@keyframes happyHourPulse { 0%,100%{box-shadow:0 0 14px rgba(255,215,0,0.35)} 50%{box-shadow:0 0 22px rgba(255,215,0,0.6)} }`;
-
-  if (!expanded) {
-    return (
-      <button
-        onClick={() => setExpanded(true)}
-        aria-label={tMD("ariaExpandHappyHour")}
-        style={{
-          ...baseStyle,
-          borderRadius: 999,
-          padding: "5px 8px",
-          display: "flex", alignItems: "center", gap: 4,
-        }}
-      >
-        <span style={{ fontSize: 12 }}>⚡</span>
-        <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 0.5 }}>
-          {hh.multiplier}×
-        </span>
-        <style>{keyframes}</style>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      onClick={() => setExpanded(false)}
-      aria-label={tMD("ariaCollapseHappyHour")}
-      style={{
-        ...baseStyle,
-        borderRadius: 999,
-        padding: "4px 10px",
-        display: "flex", alignItems: "center", gap: 6,
-      }}
-    >
-      <span style={{ fontSize: 12 }}>⚡</span>
-      <span style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, letterSpacing: 0.5 }}>
-        {hh.multiplier}× 🪙
-      </span>
-      <span style={{ color: "#FFF", fontSize: 10, fontWeight: 700, opacity: 0.85 }}>
-        {remaining}
-      </span>
-      <span style={{
-        color: MUTED, fontSize: 10, marginLeft: 2, opacity: 0.9,
-        borderLeft: "1px solid rgba(255,255,255,0.18)", paddingLeft: 6,
-        fontWeight: 700,
-      }}>▸</span>
-      <style>{keyframes}</style>
-    </button>
-  );
-}
 
 function MapIconButton({ icon, label, onClick, active, accent, badge, size = 48 }: {
   icon: string; label: string; onClick: () => void; active?: boolean; accent?: string; badge?: number; size?: number;

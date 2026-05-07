@@ -13,9 +13,9 @@ type Resources = { wood: number; stone: number; gold: number; mana: number };
 function Pill({ color, children }: { color: string; children: React.ReactNode }) {
   return (
     <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
-      padding: "2px 6px",
-      whiteSpace: "nowrap", minWidth: 44,
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+      padding: "0 2px 0 4px", marginBottom: 0,
+      whiteSpace: "nowrap", minWidth: 40,
       textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
       filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${color}33)`,
     }}>{children}</div>
@@ -114,11 +114,12 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
   return (
     <div style={{
       position: "fixed",
-      top: 12,
-      right: 8,
+      top: "50%",
+      right: 0,
+      transform: "translateY(-50%)",
       zIndex: 8500,
-      display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6,
-      maxHeight: "calc(100vh - 16px)",
+      display: "flex", flexDirection: "row", alignItems: "center", gap: 0,
+      maxHeight: "calc(100vh - 24px)",
     }}>
       {!open ? (
         // Eingeklappt: vertikaler Mini-Stack — nur Icons, klein und elegant
@@ -126,59 +127,46 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
           onClick={() => setOpen(true)}
           aria-label="Ressourcen anzeigen"
           style={{
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
             padding: 4, border: "none", background: "transparent", cursor: "pointer",
             filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))",
           }}
         >
           {items.map((it) => (
-            <ResourceIcon key={it.kind} kind={it.kind} size={18} fallback={it.fallback} art={art} />
+            <ResourceIcon key={it.kind} kind={it.kind} size={22} fallback={it.fallback} art={art} />
           ))}
-          <span style={{ fontSize: 14, lineHeight: 1, filter: `drop-shadow(0 0 4px ${PINK}88)` }}>💎</span>
+          <span style={{ fontSize: 18, lineHeight: 1, filter: `drop-shadow(0 0 4px ${PINK}88)` }}>💎</span>
         </button>
       ) : (
         <div style={{
-          display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2,
+          display: "flex", flexDirection: "column", alignItems: "stretch", gap: 0,
           position: "relative",
         }}>
-          {/* Einklappen: dezenter Chevron oben rechts neben den Pillen */}
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Einklappen"
-            style={{
-              position: "absolute", top: -8, right: -4,
-              width: 20, height: 20, borderRadius: 10, border: "none",
-              background: "transparent",
-              color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 900, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              textShadow: "0 1px 3px rgba(0,0,0,0.85)",
-            }}
-          >›</button>
           {items.map((it) => (
             <Pill key={it.kind} color={it.color}>
-              <ResourceIcon kind={it.kind} size={26} fallback={it.fallback} art={art} />
+              <ResourceIcon kind={it.kind} size={32} fallback={it.fallback} art={art} />
               <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{fmt(it.value)}</span>
             </Pill>
           ))}
           {/* Diamant-Pill mit integriertem "+" */}
           <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
-            padding: "2px 6px", whiteSpace: "nowrap", minWidth: 44,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+            padding: "0 2px 0 4px", marginBottom: 0, whiteSpace: "nowrap", minWidth: 40,
             textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
             filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${PINK}33)`,
             position: "relative",
           }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }}>💎</span>
+            <span style={{ fontSize: 24, lineHeight: 1 }}>💎</span>
             <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{gems != null ? fmt(gems) : "…"}</span>
             {onAddGems && (
               <button
                 onClick={onAddGems}
                 aria-label="Diamanten kaufen"
                 style={{
-                  position: "absolute", top: -4, right: -6,
-                  width: 18, height: 18, borderRadius: 9, border: `1px solid ${PINK}aa`,
+                  position: "absolute", top: -2, right: -4,
+                  width: 14, height: 14, borderRadius: 7, border: `1px solid ${PINK}aa`,
                   background: `linear-gradient(135deg, ${PINK}, #FF6B4A)`,
-                  color: "#FFF", fontSize: 12, fontWeight: 900, cursor: "pointer",
+                  color: "#FFF", fontSize: 10, fontWeight: 900, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
                   boxShadow: `0 0 6px ${PINK}88`,
                   paddingBottom: 1,
@@ -188,6 +176,27 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
           </div>
         </div>
       )}
+
+      {/* Slimmer Vertikal-Griff RECHTS neben den Pillen (Richtung Bildschirmrand).
+          › = einklappen (Pfeil zeigt nach rechts / raus zum Rand)
+          ‹ = aufklappen (Pfeil zeigt nach links / rein in den Screen) */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        aria-label={open ? "Einklappen" : "Aufklappen"}
+        title={open ? "Einklappen" : "Aufklappen"}
+        style={{
+          width: 12, height: 44, borderRadius: "6px 0 0 6px",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRight: "none",
+          background: "rgba(15,17,21,0.55)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: 900, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 0, lineHeight: 1,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+        }}
+      >{open ? "›" : "‹"}</button>
     </div>
   );
 }

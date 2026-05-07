@@ -63,7 +63,7 @@ export type TapAction =
   | { kind: "march"; lat: number; lng: number }
   | { kind: "multi"; lat: number; lng: number }
   | { kind: "hide"; lat: number; lng: number }
-  | { kind: "einsatz_choice"; lat: number; lng: number }
+  | { kind: "einsatz_choice"; lat: number; lng: number; screenX?: number; screenY?: number }
   | { kind: "einsatz_single"; lat: number; lng: number }
   | { kind: "einsatz_multi"; lat: number; lng: number }
   | null;
@@ -199,7 +199,11 @@ export function HeimatOverlay({
               </button>
               <button
                 onClick={() => {
-                  setOpenModal({ kind: "einsatz_choice", lat: tapPosition.lat, lng: tapPosition.lng });
+                  setOpenModal({
+                    kind: "einsatz_choice",
+                    lat: tapPosition.lat, lng: tapPosition.lng,
+                    screenX: tapPosition.screenX, screenY: tapPosition.screenY,
+                  });
                   onCloseTap();
                 }}
                 className="bg-gradient-to-b from-[#FF2D78] to-[#C4135B] text-white font-bold py-1.5 rounded-lg text-xs shadow-md hover:from-[#FF4A8E] active:scale-95 transition"
@@ -332,6 +336,9 @@ export function HeimatOverlay({
 
   const einsatzChoiceModal = openModal?.kind === "einsatz_choice" && (
     <EinsatzChoiceModal
+      anchor={openModal.screenX != null && openModal.screenY != null
+        ? { screenX: openModal.screenX, screenY: openModal.screenY }
+        : null}
       onClose={() => setOpenModal(null)}
       onChoose={(mode) => setOpenModal({
         kind: mode === "single" ? "einsatz_single" : "einsatz_multi",
