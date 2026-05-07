@@ -17,30 +17,51 @@ export async function GET() {
 
   const [troopsRes, catalogRes, guardiansRes, capsRes] = await Promise.all([
     sb.from("user_troops").select("troop_id, count").eq("user_id", user.id).gt("count", 0),
-    sb.from("troops_catalog").select("id, name, tier"),
+    sb.from("troops_catalog").select("id, name, tier, troop_class, emoji"),
     sb.from("user_guardians")
-      .select("id, level, archetype:guardian_archetypes(name)")
+      .select("id, level, archetype:guardian_archetypes(id, name, guardian_type, role, rarity, image_url, ability_name)")
       .eq("user_id", user.id)
-      .eq("is_active", true)
-      .limit(20),
+      .limit(50),
     sb.rpc("get_march_caps", { p_user_id: user.id }),
   ]);
 
-  type CatRow = { id: string; name: string; tier: number };
+  type CatRow = { id: string; name: string; tier: number; troop_class: string | null; emoji: string | null };
   const catMap = new Map<string, CatRow>(((catalogRes.data ?? []) as CatRow[]).map((c) => [c.id, c]));
 
   type TroopRow = { troop_id: string; count: number };
   const troops = ((troopsRes.data ?? []) as TroopRow[])
     .map((t) => {
       const cat = catMap.get(t.troop_id);
-      return { id: t.troop_id, name: cat?.name ?? t.troop_id, tier: cat?.tier ?? 1, have: t.count };
+      return {
+        id: t.troop_id,
+        name: cat?.name ?? t.troop_id,
+        tier: cat?.tier ?? 1,
+        troop_class: cat?.troop_class ?? null,
+        emoji: cat?.emoji ?? null,
+        have: t.count,
+      };
     })
     .sort((a, b) => a.tier - b.tier);
 
-  type GRow = { id: string; level: number; archetype: { name: string } | { name: string }[] | null };
+  type ArchRow = {
+    id: string; name: string;
+    guardian_type: string | null; role: string | null;
+    rarity: string | null; image_url: string | null; ability_name: string | null;
+  };
+  type GRow = { id: string; level: number; archetype: ArchRow | ArchRow[] | null };
   const guardians = ((guardiansRes.data ?? []) as unknown as GRow[]).map((g) => {
     const arch = Array.isArray(g.archetype) ? g.archetype[0] : g.archetype;
-    return { id: g.id, level: g.level, name: arch?.name ?? "Begleiter" };
+    return {
+      id: g.id,
+      level: g.level,
+      archetype_id: arch?.id ?? null,
+      name: arch?.name ?? "Begleiter",
+      guardian_type: arch?.guardian_type ?? null,
+      role: arch?.role ?? null,
+      rarity: arch?.rarity ?? null,
+      image_url: arch?.image_url ?? null,
+      ability_name: arch?.ability_name ?? null,
+    };
   });
 
   const caps = (Array.isArray(capsRes.data) ? capsRes.data[0] : null) as

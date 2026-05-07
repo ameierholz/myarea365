@@ -21,7 +21,7 @@ import { SplashRadarBg } from "./splash-radar-bg";
 // 2) "loader" → Logos schrumpfen nach oben + Wortmarke + Tagline + Progress-Bar
 // Dann Fade-out auf die Map.
 const LOGO_PHASE_MS = 3000;     // Phase 1: Logos allein 3s
-const CROSSFADE_MS = 1500;      // Übergang Logo→Loader (sehr sanft)
+const CROSSFADE_MS = 0;         // Harter Cut Logo→Loader (kein Fade)
 const LOADER_MIN_MS = 8000;     // Phase 2: Loader mind. 8s mit Ruckler-Effekt
 const FADE_OUT_MS = 700;        // Out-Fade zur Map
 

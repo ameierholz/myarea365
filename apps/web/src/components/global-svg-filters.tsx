@@ -17,6 +17,39 @@ export function GlobalSvgFilters() {
 
             Jetzt: 1R − 1G + 1B + 0.1 mit slope=12 → keyt nur Pixel wo G > R+B
             (echte Chroma-Greens), behält warme Töne mit Grünanteil. */}
+        {/* SOFT-Variante: konservativer als ma365-chroma-black.
+            Höherer Intercept (+0.4 statt +0.1) → nur reine Greens werden gekeyt,
+            dunkle Schatten/Sockel/Olive-Töne bleiben sichtbar.
+            Verwendet für UI-Icons (Quick-Access etc.) wo Detail-Verlust wehtut. */}
+        <filter id="ma365-chroma-soft" colorInterpolationFilters="sRGB">
+          <feColorMatrix
+            in="SourceGraphic"
+            result="keyAlphaRaw"
+            type="matrix"
+            values="
+              0  0  0 0 0
+              0  0  0 0 0
+              0  0  0 0 0
+              1 -1  1 0 0.4
+            "
+          />
+          <feComponentTransfer in="keyAlphaRaw" result="keyAlpha">
+            <feFuncA type="linear" slope={12} intercept={0} />
+          </feComponentTransfer>
+          <feColorMatrix
+            in="SourceGraphic"
+            result="despilled"
+            type="matrix"
+            values="
+              1    0    0    0 0
+              0.15 0.7  0.15 0 0
+              0    0    1    0 0
+              0    0    0    1 0
+            "
+          />
+          <feComposite in="despilled" in2="keyAlpha" operator="in" />
+        </filter>
+
         <filter id="ma365-chroma-black" colorInterpolationFilters="sRGB">
           {/* Pfad A: Alpha-Key — Chroma-Differenz (R+B vs G).
               Pure Green (0,1,0)         → -0.9   → -10.8 → α=0  (transparent)

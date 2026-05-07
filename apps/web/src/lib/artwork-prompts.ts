@@ -2160,6 +2160,17 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
     repeater_silhouette_normal: "pictogram silhouette of a tiny signal-mast — a SHORT thick pole with a single small triangular flag-shape OR a simple dot+arc (signal wave) on top. Total height roughly equal to width. Minimal — like the simplest possible map-pin glyph. NO antennas with multiple spikes, NO dishes, NO scaffolding. Solid uniform shape, instantly readable as a small marker even at 12px.",
     base_silhouette_runner:     "pictogram silhouette of a simple house — a SQUARE base with a triangular peaked roof on top, NO chimney, NO door, NO windows, NO flag, NO tower. Just the absolute simplest house-glyph (like a Material-Design or Apple-emoji home icon). Solid uniform shape with hard clean edges.",
     base_silhouette_crew:       "pictogram silhouette of a single fortified keep — ONE wide rectangular building with 4-5 chunky crenellations on top (battlement teeth), and a SINGLE triangular pennant flag on a short pole emerging from the center of the top. NO side towers, NO gatehouse, NO multiple flags, NO inner detail. Just the bold blocky castle-keep + ONE flag. Solid uniform shape, like a chess-rook-with-flag pictogram.",
+    // Map-Quick-Access (Bottom-Bar) — alle als zentrierte runde Glas-Buttons mit
+    // einheitlichem Subject-Footprint (fills ~85%) damit sie auf der Map gleich
+    // groß wirken. Gritty-urban Cyberpunk-Vibe passend zum Spiel.
+    quick_base:      "stylized fortified urban home-base icon: a chunky shipping-container fortress with antenna and pulsing teal #22D1C3 signal, single bold silhouette, gritty street-base vibe",
+    quick_crew:      "two crossed urban-crew arm silhouettes with rolled-up sleeves and tattoo lines making an X, gold #FFD700 forearm bands, brotherhood emblem, bold pictogram",
+    quick_rally:     "two crossed neon swords with magenta #FF2D78 and teal #22D1C3 energy blades crossing in an X, sharp clean blades, bold attack-rally emblem",
+    quick_ranking:   "tall ornate trophy cup with handles, gold #FFD700 metal with red gem in front, sitting on a small podium base, crown-tipped top, ranking icon",
+    quick_shop:      "wrapped gift box with magenta #FF2D78 ribbon and bold gold #FFD700 bow, slight 3D tilt, vibrant shopping/deals icon",
+    quick_inbox:     "stylized envelope with wax seal in teal #22D1C3, slight perspective, soft inner glow, modern messaging icon",
+    quick_achieve:   "five-pointed star medal with red ribbon, golden #FFD700 polished metal, shining center, achievement badge",
+    quick_wegelager: "weathered urban barricade-pile silhouette with crossed crowbars on top, single skull stencil graffitied across, ambush/highway-robbery icon",
   };
 
   const subject = SUBJECT[s.id] ?? `iconic single-subject illustration representing "${s.name}" — ${s.description}`;
@@ -2187,14 +2198,34 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
     return silhouetteBase.join(" ");
   }
 
+  // Quick-Access-Slots brauchen einheitlichen Footprint (~85%, tight crop) +
+  // TRANSPARENTEN Hintergrund (kein Greenscreen mehr) — kein Chroma-Filter
+  // im Frontend nötig, dunkle Schatten am Sockel überleben sauber.
+  const isQuick = s.category === "quick";
+  const fillPct = isQuick ? "~85%" : "~75%";
+  const tightCropClause = isQuick
+    ? `Subject is tightly cropped: bounding-box of the icon-content reaches the inner ${fillPct} of the canvas equally on all sides. NO extra empty padding inside the icon, NO floor/ground beneath, NO scenery. Pure isolated pictogram.`
+    : "";
+
+  // Quick-Icons: transparenter PNG-Alpha (kein Chroma-Key)
+  // Andere UI-Icons: weiterhin Greenscreen für die alte Pipeline
+  const backgroundLine = isQuick
+    ? `Background: FULLY TRANSPARENT PNG with alpha channel — no fill, no color, no greenscreen, no white, no black. Pixels outside the icon silhouette must have alpha = 0. Hard clean silhouette edge — no halo, no fringing, no semi-transparent fill bleed.`
+    : `Background: solid pure GREENSCREEN #00FF00, no other green hue, completely flat — for chroma-key removal.`;
+
+  const negativesLine = isQuick
+    ? `Strict negatives: no text, no letters, no logo, no watermark, no human faces, no extra background scenery, no green background, no white background, no checkerboard, no shadows cast onto the (transparent) background, no halo around subject.`
+    : `Strict negatives: no text, no letters, no logo, no watermark, no human faces, no extra background scenery, no green spill on subject, no shadows on the green background, no anti-aliased green halo around subject (use clean alpha-friendly silhouette).`;
+
   const base = [
     `A premium UI icon for a mobile city-walking strategy game called "${s.name}".`,
-    `Background: solid pure GREENSCREEN #00FF00, no other green hue, completely flat — for chroma-key removal.`,
-    `Subject (centered, fills ~75% of frame): ${subject}.`,
+    backgroundLine,
+    `Subject (centered, fills ${fillPct} of frame): ${subject}.`,
+    tightCropClause,
     `Style: stylized 3D game-icon, slight isometric tilt, vibrant saturated colors, soft inner glow, thick clean silhouette readable at 24×24 px, painterly soft shading with strong rim-light.`,
-    `Composition: 1024×1024 square, single icon centered, subtle radial vignette behind subject only (NOT touching frame edges — keep #00FF00 fully clean at edges).`,
-    `Strict negatives: no text, no letters, no logo, no watermark, no human faces, no extra background scenery, no green spill on subject, no shadows on the green background, no anti-aliased green halo around subject (use clean alpha-friendly silhouette).`,
-  ].join(" ");
+    `Composition: 1024×1024 square, single icon centered.`,
+    negativesLine,
+  ].filter(Boolean).join(" ");
 
   if (input.mode === "video") {
     return [

@@ -75,7 +75,6 @@ export function MapQuickAccess({
   baseQueueReady = 0,
   achievementsReady = 0,
   strongholdsNearby = 0,
-  profileIcon,
 }: {
   /** Öffnet das Profil-Dashboard-Modal (zeigt Base/Begleiter/Crew als Karten). */
   onOpenProfile: () => void;
@@ -90,8 +89,6 @@ export function MapQuickAccess({
   baseQueueReady?: number;
   achievementsReady?: number;
   strongholdsNearby?: number;
-  /** Pin-Theme-Artwork des Runners (eigenes Base-Theme), wird als Profil-Icon verwendet. */
-  profileIcon?: { image_url: string | null; video_url: string | null } | null;
 }) {
   const [enabled, setEnabled] = useState(true);
   const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [], stronghold: [] });
@@ -164,17 +161,16 @@ export function MapQuickAccess({
 
   const rallyTotal = rallies.repeater.length + rallies.base.length + rallies.stronghold.length;
 
-  // Kurz halten — passt in 60er-Tiles und bleibt lesbar.
-  // Icons kommen aus dem Artwork-System (cosmetic_artwork kind=ui_icon),
-  // Emojis sind nur Fallback solange noch kein Artwork hochgeladen ist.
-  type Item = { key: string; slot: string; fallback: string; label: string; badge?: number; color: string; onClick: () => void; customIcon?: { image_url: string | null; video_url: string | null } | null };
+  // Artwork-basierte Icons (cosmetic_artwork kind=ui_icon, slot=quick_*).
+  // Fallback-Emoji nur wenn noch kein Artwork hochgeladen ist.
+  type Item = { key: string; slot: string; fallback: string; label: string; badge?: number; onClick: () => void };
   const items: Item[] = [
-    { key: "base",    slot: "quick_base",      fallback: "👤", label: "Base",    badge: baseQueueReady,    color: "#FFD700", onClick: onOpenProfile, customIcon: profileIcon },
-    { key: "crew",    slot: "quick_crew",      fallback: "👥", label: "Crew",    color: PRIMARY,           onClick: onOpenCrewModal },
-    { key: "rally",   slot: "quick_rally",     fallback: "⚔",  label: "Angriffe", badge: rallyTotal,        color: ACCENT,    onClick: () => setOpenRallyList(!openRallyList) },
-    { key: "ranking", slot: "quick_ranking",   fallback: "🏆", label: "Ranking", color: "#FF6B4A",         onClick: onOpenRanking },
-    { key: "shop",    slot: "quick_shop",      fallback: "🎁", label: "Shop",    color: "#a855f7",         onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
-    { key: "inbox",   slot: "quick_inbox",     fallback: "📬", label: "Inbox",   badge: inboxUnread,       color: "#22D1C3", onClick: onOpenInbox },
+    { key: "base",    slot: "quick_base",    fallback: "🏰", label: "Base",     badge: baseQueueReady, onClick: onOpenProfile },
+    { key: "crew",    slot: "quick_crew",    fallback: "👥", label: "Crew",                            onClick: onOpenCrewModal },
+    { key: "rally",   slot: "quick_rally",   fallback: "⚔",  label: "Angriffe", badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
+    { key: "ranking", slot: "quick_ranking", fallback: "🏆", label: "Ranking",                         onClick: onOpenRanking },
+    { key: "shop",    slot: "quick_shop",    fallback: "🎁", label: "Shop",                            onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
+    { key: "inbox",   slot: "quick_inbox",   fallback: "📬", label: "Inbox",    badge: inboxUnread,    onClick: onOpenInbox },
   ];
 
   // Gesamt-Badge-Summe für eingeklappten Toggle-Knopf
@@ -198,14 +194,11 @@ export function MapQuickAccess({
             className="ma365-qa-bar"
             style={{
               display: "flex", flexDirection: "row",
-              gap: 6, padding: "6px 8px",
+              gap: 4, padding: "4px 4px",
               maxWidth: "calc(100vw - 80px)", overflowX: "auto",
               background: "transparent",
-              border: "1px solid rgba(255,255,255,0.04)",
-              borderRadius: 14,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
-              backdropFilter: "blur(4px)",
-              WebkitBackdropFilter: "blur(4px)",
+              border: "none",
+              boxShadow: "none",
               // Mobile-Hint: rechter Rand fadet aus, signalisiert Scrollbarkeit
               WebkitMaskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
               maskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
@@ -219,9 +212,7 @@ export function MapQuickAccess({
                 art={uiArt}
                 label={it.label}
                 badge={it.badge}
-                color={it.color}
                 onClick={it.onClick}
-                customIcon={it.customIcon ?? null}
               />
             ))}
           </div>
@@ -422,93 +413,80 @@ export function MapQuickAccess({
 }
 
 function QuickButton({
-  slot, fallback, art, label, badge, color, onClick, customIcon,
+  slot, fallback, art, label, badge, onClick,
 }: {
   slot: string; fallback: string; art: ResourceArtMap;
-  label: string; badge?: number; color: string; onClick: () => void;
-  customIcon?: { image_url: string | null; video_url: string | null } | null;
+  label: string; badge?: number; onClick: () => void;
 }) {
   const hasBadge = (badge ?? 0) > 0;
   return (
     <button
       onClick={onClick}
       title={label}
+      aria-label={label}
       style={{
         position: "relative",
         width: 52, height: 52,
-        borderRadius: 10,
-        // Spray-Bombe: 2 versetzte radiale Sprayspots in Akzentfarbe
-        // + diagonal Glas-Highlight + dunkles Glas drunter
-        background: `
-          radial-gradient(circle at 25% 35%, ${color}77 0%, ${color}33 18%, transparent 38%),
-          radial-gradient(circle at 75% 65%, ${color}55 0%, ${color}22 14%, transparent 32%),
-          radial-gradient(circle at 50% 50%, ${color}18 0%, transparent 65%),
-          linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 50%, rgba(0,0,0,0.20) 100%),
-          rgba(15,17,21,0.65)
-        `,
-        backdropFilter: "blur(14px) saturate(150%)",
-        WebkitBackdropFilter: "blur(14px) saturate(150%)",
-        border: "1px solid rgba(255,255,255,0.18)",
-        borderBottom: `3px solid ${color}`,
-        color: TEXT,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        gap: 2, padding: "3px 0",
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        color: "#FFF",
+        display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer",
-        boxShadow: hasBadge
-          ? `0 0 16px ${color}55, 0 4px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)`
-          : `0 4px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)`,
         flexShrink: 0,
-        overflow: "visible",
       }}
     >
-      {/* Spray-Splatter-Tröpfchen-Cluster oben-rechts (CSS box-shadows = mehrere Punkte) */}
-      <span style={{
-        position: "absolute", top: 6, right: 6,
-        width: 2, height: 2, borderRadius: "50%",
-        background: color,
-        boxShadow: `
-          ${color} 4px 2px 0 -0.3px,
-          ${color}aa -3px 4px 0 0,
-          ${color}88 6px 6px 0 -0.5px,
-          ${color}55 -5px -2px 0 0,
-          ${color}66 1px 8px 0 -0.5px
-        `,
-        opacity: 0.85,
-        pointerEvents: "none",
-      }} />
-      <span style={{
-        lineHeight: 1,
-        filter: `drop-shadow(0 1px 2px rgba(0,0,0,0.7)) drop-shadow(0 0 8px ${color}aa)`,
-      }}>
-        <QuickButtonIcon customIcon={customIcon} slot={slot} fallback={fallback} art={art} />
-      </span>
-      <span style={{
-        fontSize: 9, fontWeight: 400, letterSpacing: 0.6,
-        color: "#FFF",
-        textTransform: "uppercase",
-        textShadow: `0 0 4px ${color}, 0 1px 2px rgba(0,0,0,0.9)`,
-        fontFamily: "var(--font-display-stack)",
-        lineHeight: 1,
-      }}>{label}</span>
+      {/* Dezente dunkle Vignette für Lesbarkeit auf hellen Karten. */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute", inset: 2,
+          borderRadius: "50%",
+          background: "radial-gradient(circle at 50% 50%, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.15) 50%, transparent 75%)",
+          pointerEvents: "none",
+        }}
+      />
+      <QuickButtonIcon slot={slot} fallback={fallback} art={art} />
       {hasBadge && (
         <span style={{
-          position: "absolute", top: -5, right: -5,
-          minWidth: 20, height: 20, borderRadius: 10,
-          padding: "0 5px",
-          // Spray-Paint-Tropfen-Optik
-          background: `radial-gradient(circle at 35% 30%, #ff5b8d, ${ACCENT})`,
-          border: "1.5px solid rgba(0,0,0,0.6)",
+          position: "absolute", top: 0, right: 0,
+          minWidth: 16, height: 16, borderRadius: 8,
+          padding: "0 4px",
+          background: ACCENT,
           color: "#FFF",
-          fontSize: 10, fontWeight: 700,
+          fontSize: 9, fontWeight: 800,
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: `0 0 8px ${ACCENT}aa, 0 1px 3px rgba(0,0,0,0.5)`,
           fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif",
+          zIndex: 2,
         }}>
           {badge! > 99 ? "99+" : badge}
         </span>
       )}
     </button>
   );
+}
+
+function QuickButtonIcon({ slot, fallback, art }: {
+  slot: string; fallback: string; art: ResourceArtMap;
+}) {
+  const ready = useArtworkReady();
+  // Fixe 44x44 Box, object-fit: contain — alle Artworks landen in identischer
+  // Bounding-Box. KEIN Chroma-Filter (Quick-Icons sind saubere Alpha-PNGs).
+  // Drop-Shadow nur dezent für Tiefe ohne Neon.
+  const sharedStyle: React.CSSProperties = {
+    position: "relative", zIndex: 1,
+    width: 44, height: 44,
+    objectFit: "contain", display: "block",
+    filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))",
+  };
+  if (!ready) return <span style={{ position: "relative", zIndex: 1, display: "block", width: 44, height: 44 }} aria-hidden />;
+  const a = art[slot];
+  if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={sharedStyle} />;
+  if (a?.image_url) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={a.image_url} alt={slot} style={sharedStyle} />;
+  }
+  return <span style={{ position: "relative", zIndex: 1, fontSize: 30, lineHeight: 1, display: "block" }}>{fallback}</span>;
 }
 
 type Participant = {
@@ -738,23 +716,3 @@ function RallyRow({
 }
 
 
-function QuickButtonIcon({ customIcon, slot, fallback, art }: {
-  customIcon?: { image_url: string | null; video_url: string | null } | null;
-  slot: string; fallback: string; art: ResourceArtMap;
-}) {
-  const ready = useArtworkReady();
-  // Identische Maße wie UiIcon (size=22) — sonst stehen Icons auf
-  // unterschiedlichen Höhen und Labels misaligen.
-  const sharedStyle: React.CSSProperties = { width: 22, height: 22, objectFit: "contain", display: "inline-block", verticalAlign: "middle", filter: "url(#ma365-chroma-black)" };
-  if (customIcon?.image_url) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={customIcon.image_url} alt="" style={sharedStyle} />;
-  }
-  if (customIcon?.video_url) {
-    return <video src={customIcon.video_url} autoPlay loop muted playsInline style={sharedStyle} />;
-  }
-  // Solange Cache (oder Caller-Profil-Marker) noch nicht da ist → Platzhalter,
-  // damit kein Emoji-Fallback aufblitzt bevor das hochgeladene Bild lädt.
-  if (!ready) return <span style={{ display: "inline-block", width: 22, height: 22 }} aria-hidden />;
-  return <UiIcon slot={slot} fallback={fallback} art={art} size={22} />;
-}

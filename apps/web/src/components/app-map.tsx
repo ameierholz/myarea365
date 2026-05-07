@@ -1219,6 +1219,10 @@ export function AppMap({
 
       mapRef.current = map;
       setMapReady(true);
+      // Expose Map global, damit Overlay-Komponenten (z.B. HeimatMarchMarkers)
+      // direkten Zugriff haben ohne ref-prop-drilling. Wird beim Unmount geräumt.
+      (window as unknown as { __ma365Map?: mapboxgl.Map }).__ma365Map = map;
+      window.dispatchEvent(new CustomEvent("ma365:map-ready"));
     });
 
     // ResizeObserver auf Container — Mapbox auto-detect nur window.resize, aber
@@ -1248,6 +1252,7 @@ export function AppMap({
       ro.disconnect();
       map.remove();
       mapRef.current = null;
+      delete (window as unknown as { __ma365Map?: mapboxgl.Map }).__ma365Map;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Map wird nur einmal erzeugt — LightPreset-Änderungen über setConfigProperty
@@ -3452,7 +3457,7 @@ export function AppMap({
       zoomWrap.appendChild(silWrap);
 
       // ── Stage 3: FULL — Artwork in konstanter Größe (passt ins Tile, nicht mehr 250px)
-      const BASE_SIZE = 180;
+      const BASE_SIZE = 150;
       const inner = document.createElement("div");
       inner.dataset.fullSize = String(BASE_SIZE);
       inner.style.cssText = [
@@ -3556,9 +3561,9 @@ export function AppMap({
       // Banner 320×64 (5:1, matcht Prompt) — Top/Bottom-Strips je 42%, Mitte
       // 16% (Text-Höhe). Strips kleben am Text, kein Gap mehr.
       // Runner-Badge 84px sitzt halb über Castle-Base.
-      const NAMEDECK_W = 220;
-      const NAMEDECK_H = Math.round(NAMEDECK_W / 5); // = 44px
-      const NAMEDECK_TEXT_W = Math.round(NAMEDECK_W * 0.78); // = 172px (Name+Tag mit Luft)
+      const NAMEDECK_W = 240;
+      const NAMEDECK_H = Math.round(NAMEDECK_W / 5); // = 48px
+      const NAMEDECK_TEXT_W = Math.round(NAMEDECK_W * 0.78); // = 187px (Name+Tag mit Luft)
       const MIN_SCALE = 0.78;
       const AVATAR_SIZE = 50;
       const AVATAR_LIFT = Math.round(AVATAR_SIZE / 2 + 16); // = 41
@@ -3618,7 +3623,7 @@ export function AppMap({
         ?? (() => {
           const c = document.createElement("canvas").getContext("2d");
           if (c) {
-            c.font = "900 11px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            c.font = "900 10px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
             (window as unknown as { __ma365NameMeasure?: CanvasRenderingContext2D }).__ma365NameMeasure = c;
           }
           return c;
@@ -3639,7 +3644,7 @@ export function AppMap({
             position:relative;z-index:4;transform-origin:center center;
             padding:1px 4px;
             color:#fff;
-            font-size:11px;font-weight:900;letter-spacing:0.3px;
+            font-size:10px;font-weight:900;letter-spacing:0.3px;
             white-space:nowrap;
             line-height:1.2;
             text-align:center;

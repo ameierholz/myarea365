@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Star, Share2, Flag } from "lucide-react";
 import { PersonalMarkerModal, CrewMarkerModal, SharePinModal } from "./heimat-marker-modals";
+import { EinsatzChoiceModal, SingleEinsatzModal, MultiEinsatzModal } from "./einsatz-modals";
 
 type HeimatPoi = {
   owner_crew_id: string | null;
@@ -62,6 +63,9 @@ export type TapAction =
   | { kind: "march"; lat: number; lng: number }
   | { kind: "multi"; lat: number; lng: number }
   | { kind: "hide"; lat: number; lng: number }
+  | { kind: "einsatz_choice"; lat: number; lng: number }
+  | { kind: "einsatz_single"; lat: number; lng: number }
+  | { kind: "einsatz_multi"; lat: number; lng: number }
   | null;
 
 type Props = {
@@ -120,8 +124,8 @@ export function HeimatOverlay({
 
   // ── Tap-Action-Menu (CoD-Card-Style) ───────────────────────────────
   const tapMenu = tapPosition && (() => {
-    const cardW = 300;
-    const cardH = 360;
+    const cardW = 240;
+    const cardH = 280;
     const left = Math.min(window.innerWidth - cardW - 8, Math.max(8, tapPosition.screenX - cardW / 2));
     const top = Math.min(window.innerHeight - cardH - 8, Math.max(60, tapPosition.screenY - cardH - 16));
     // Owner-Logik: defenderName (Pin-Tap) > poi.owner_crew_tag (Turf) > "Unbesetzt"
@@ -147,38 +151,38 @@ export function HeimatOverlay({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Hero-Bereich */}
-          <div className="relative h-[110px] bg-gradient-to-br from-[#22D1C3]/30 via-[#FF2D78]/20 to-[#0F1115] flex items-center justify-center">
+          <div className="relative h-[70px] bg-gradient-to-br from-[#22D1C3]/30 via-[#FF2D78]/20 to-[#0F1115] flex items-center justify-center">
             <div className="absolute inset-0 opacity-20" style={{
               backgroundImage: "radial-gradient(circle at 20% 30%, #22D1C3 0%, transparent 50%), radial-gradient(circle at 80% 70%, #FF2D78 0%, transparent 50%)",
             }} />
-            <div className="relative text-5xl filter drop-shadow-lg">📍</div>
-            {/* Side-Action-Icons (3 Funktionen) — Glass-Morphism, 26px */}
-            <div className="absolute right-2 top-2 flex flex-col gap-1.5">
+            <div className="relative text-3xl filter drop-shadow-lg">📍</div>
+            {/* Side-Action-Icons (3 Funktionen) — Glass-Morphism, 22px */}
+            <div className="absolute right-1.5 top-1.5 flex flex-col gap-1">
               <button
-                className="w-[26px] h-[26px] rounded-full bg-white/10 backdrop-blur-md border border-[#FFD700]/50 text-[#FFD700] flex items-center justify-center shadow-[0_2px_8px_rgba(255,215,0,0.25)] hover:bg-[#FFD700]/20 hover:scale-110 transition-all"
+                className="w-[22px] h-[22px] rounded-full bg-white/10 backdrop-blur-md border border-[#FFD700]/50 text-[#FFD700] flex items-center justify-center shadow-[0_2px_8px_rgba(255,215,0,0.25)] hover:bg-[#FFD700]/20 hover:scale-110 transition-all"
                 title="Persönliche Markierung"
                 onClick={() => setOpenMarker("personal")}
-              ><Star size={15} strokeWidth={2.5} fill="currentColor" /></button>
+              ><Star size={12} strokeWidth={2.5} fill="currentColor" /></button>
               <button
-                className="w-[26px] h-[26px] rounded-full bg-white/10 backdrop-blur-md border border-[#22D1C3]/50 text-[#22D1C3] flex items-center justify-center shadow-[0_2px_8px_rgba(34,209,195,0.25)] hover:bg-[#22D1C3]/20 hover:scale-110 transition-all"
+                className="w-[22px] h-[22px] rounded-full bg-white/10 backdrop-blur-md border border-[#22D1C3]/50 text-[#22D1C3] flex items-center justify-center shadow-[0_2px_8px_rgba(34,209,195,0.25)] hover:bg-[#22D1C3]/20 hover:scale-110 transition-all"
                 title="Im Chat teilen"
                 onClick={() => setOpenMarker("share")}
-              ><Share2 size={14} strokeWidth={2.5} /></button>
+              ><Share2 size={11} strokeWidth={2.5} /></button>
               <button
-                className="w-[26px] h-[26px] rounded-full bg-white/10 backdrop-blur-md border border-[#FF2D78]/50 text-[#FF2D78] flex items-center justify-center shadow-[0_2px_8px_rgba(255,45,120,0.25)] hover:bg-[#FF2D78]/20 hover:scale-110 transition-all"
+                className="w-[22px] h-[22px] rounded-full bg-white/10 backdrop-blur-md border border-[#FF2D78]/50 text-[#FF2D78] flex items-center justify-center shadow-[0_2px_8px_rgba(255,45,120,0.25)] hover:bg-[#FF2D78]/20 hover:scale-110 transition-all"
                 title="Crew-Markierung"
                 onClick={() => setOpenMarker("crew")}
-              ><Flag size={14} strokeWidth={2.5} fill="currentColor" /></button>
+              ><Flag size={11} strokeWidth={2.5} fill="currentColor" /></button>
             </div>
           </div>
 
           {/* Body */}
-          <div className="px-4 pt-3 pb-3">
-            <div className="text-base font-bold text-[#F0F0F0] leading-tight" title={locationTitle}>
+          <div className="px-3 pt-2 pb-2">
+            <div className="text-sm font-bold text-[#F0F0F0] leading-tight truncate" title={locationTitle}>
               {poiLoading && !addr ? "..." : locationTitle}
             </div>
-            {locationSub && <div className="text-[11px] text-[#8B8FA3] mb-2 truncate" title={locationSub}>{locationSub}</div>}
-            <div className="flex items-center justify-between text-xs mb-3 mt-1">
+            {locationSub && <div className="text-[10px] text-[#8B8FA3] mb-1.5 truncate" title={locationSub}>{locationSub}</div>}
+            <div className="flex items-center justify-between text-[11px] mb-2 mt-0.5">
               <span className="text-[#8B8FA3]">Crew</span>
               <span className="font-bold truncate ml-2" style={{ color: ownerColor }}>
                 {ownerLabel}
@@ -186,26 +190,25 @@ export function HeimatOverlay({
             </div>
 
             {/* Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => { onEnterRelocateMode(); onCloseTap(); }}
-                className="bg-gradient-to-b from-[#22D1C3] to-[#1AA89D] text-[#0F1115] font-bold py-2.5 rounded-lg text-sm shadow-md hover:from-[#26E5D6] active:scale-95 transition"
+                className="bg-gradient-to-b from-[#22D1C3] to-[#1AA89D] text-[#0F1115] font-bold py-1.5 rounded-lg text-xs shadow-md hover:from-[#26E5D6] active:scale-95 transition"
               >
                 VERLEGEN
               </button>
               <button
                 onClick={() => {
-                  if (defenderUserId) setOpenModal({ kind: "multi", lat: tapPosition.lat, lng: tapPosition.lng });
-                  else setOpenModal({ kind: "hide", lat: tapPosition.lat, lng: tapPosition.lng });
+                  setOpenModal({ kind: "einsatz_choice", lat: tapPosition.lat, lng: tapPosition.lng });
                   onCloseTap();
                 }}
-                className="bg-gradient-to-b from-[#FF2D78] to-[#C4135B] text-white font-bold py-2.5 rounded-lg text-sm shadow-md hover:from-[#FF4A8E] active:scale-95 transition"
+                className="bg-gradient-to-b from-[#FF2D78] to-[#C4135B] text-white font-bold py-1.5 rounded-lg text-xs shadow-md hover:from-[#FF4A8E] active:scale-95 transition"
               >
                 EINSETZEN
               </button>
             </div>
 
-            <div className="text-center text-[10px] text-[#8B8FA3] mt-3 font-mono">
+            <div className="text-center text-[9px] text-[#8B8FA3] mt-2 font-mono">
               {tapPosition.lat.toFixed(4)}, {tapPosition.lng.toFixed(4)}
             </div>
           </div>
@@ -327,6 +330,32 @@ export function HeimatOverlay({
     />
   );
 
+  const einsatzChoiceModal = openModal?.kind === "einsatz_choice" && (
+    <EinsatzChoiceModal
+      onClose={() => setOpenModal(null)}
+      onChoose={(mode) => setOpenModal({
+        kind: mode === "single" ? "einsatz_single" : "einsatz_multi",
+        lat: openModal.lat, lng: openModal.lng,
+      })}
+    />
+  );
+
+  const einsatzSingleModal = openModal?.kind === "einsatz_single" && (
+    <SingleEinsatzModal
+      targetLat={openModal.lat} targetLng={openModal.lng}
+      onClose={() => setOpenModal(null)}
+      onSent={() => { void refresh(); window.dispatchEvent(new CustomEvent("ma365:march-started")); }}
+    />
+  );
+
+  const einsatzMultiModal = openModal?.kind === "einsatz_multi" && (
+    <MultiEinsatzModal
+      targetLat={openModal.lat} targetLng={openModal.lng}
+      onClose={() => setOpenModal(null)}
+      onSent={() => { void refresh(); window.dispatchEvent(new CustomEvent("ma365:march-started")); }}
+    />
+  );
+
   return (
     <>
       {tapMenu}
@@ -338,6 +367,9 @@ export function HeimatOverlay({
       {marchModal}
       {multiModal}
       {hideModal}
+      {einsatzChoiceModal}
+      {einsatzSingleModal}
+      {einsatzMultiModal}
       {ownMarches.length > 0 && (
         <div className="fixed bottom-24 right-2 z-[9040] bg-[#0F1115]/95 border border-[#22D1C3]/40 rounded-xl p-2 shadow-2xl backdrop-blur-md max-w-[280px]">
           <div className="text-[10px] uppercase tracking-wider text-[#22D1C3] font-bold pb-1 border-b border-white/10 mb-1">

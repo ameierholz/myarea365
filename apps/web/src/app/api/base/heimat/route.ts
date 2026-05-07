@@ -17,6 +17,9 @@ export async function GET() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
 
+  // Coord-Märsche opportunistisch resolven (Truppen zurück bei Ankunft).
+  try { await sb.rpc("tick_coord_marches"); } catch { /* tolerate */ }
+
   const [marches, incoming, garrisons, baseRow, gold] = await Promise.all([
     sb.rpc("get_heimat_active_marches"),
     sb.rpc("get_heimat_incoming"),

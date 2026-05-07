@@ -128,6 +128,7 @@ const AppSettingsContent = _IS_PROD ? dynamic(() => import("@/components/setting
 const HealthDashboard = _IS_PROD ? dynamic(() => import("@/components/health/health-dashboard").then(m => m.HealthDashboard)) : HealthDashboardDirect;
 import { ActiveMarchesBanner } from "@/components/active-marches-banner";
 import { HeimatOverlay, HeimatRelocateConfirm } from "@/components/heimat/heimat-overlay";
+import { HeimatMarchMarkers } from "@/components/heimat/heimat-march-markers";
 import { CrewMemberModal } from "@/components/heimat/crew-member-modal";
 import { ActiveCrewRallyBanner, type CrewRally } from "@/components/active-crew-rally-banner";
 import { useRealtimeAwareInterval } from "@/lib/use-realtime-aware-interval";
@@ -1340,9 +1341,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       setActiveMarches(j.marches ?? []);
     } catch { /* silent */ }
   }, []);
+  // Subscribe + Fallback-Poll genau einmal — KEINE Abhängigkeit auf activeMarches,
+  // sonst re-subscribed sich der Realtime-Channel bei jedem Refresh und triggert
+  // sich selbst (führte zu 100+ /api/gather/active-Calls in 30 s und Map-Ruckeln).
   useEffect(() => {
     const cancelIdle = deferIdle(() => { void refreshActiveMarches(); });
-    // Realtime: lauscht auf gather_marches-Änderungen — RLS filtert auf eigene Märsche.
     const sb = createClient();
     const channel = sb
       .channel("ma365-gather-marches-rt")
@@ -1350,29 +1353,27 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         void refreshActiveMarches();
       })
       .subscribe();
-    // Fallback-Poll: 2 Minuten falls WebSocket abreißt.
     const id = setInterval(refreshActiveMarches, 120000);
+    return () => {
+      cancelIdle();
+      clearInterval(id);
+      void sb.removeChannel(channel);
+    };
+  }, [refreshActiveMarches]);
 
-    // Targeted Refresh: wenn ein Marsch returns_at überschreitet, fired kein
-    // Realtime-Event (nur tick_gather_marches transitioniert returning→completed).
-    // Daher exakt zu dem Zeitpunkt einen zusätzlichen Refresh schedulen → Tick
-    // läuft, Status springt auf completed, Banner verschwinden ohne Verzögerung.
+  // Targeted Refresh: wenn ein Marsch returns_at überschreitet, fired kein
+  // Realtime-Event (nur tick_gather_marches transitioniert returning→completed).
+  // Eigener Effect mit activeMarches-Dep, damit Subscribe oben nicht neu aufgesetzt wird.
+  useEffect(() => {
     const nextTransition = activeMarches
       .map((m) => new Date(m.status === "returning" ? m.returns_at : m.status === "gathering" ? m.finishes_at : m.arrives_at).getTime())
       .filter((t) => t > Date.now())
       .sort((a, b) => a - b)[0];
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    if (nextTransition) {
-      const delay = Math.max(500, nextTransition - Date.now() + 250); // +250ms Sicherheits-Puffer
-      timeoutId = setTimeout(() => { void refreshActiveMarches(); }, delay);
-    }
-    return () => {
-      cancelIdle();
-      clearInterval(id);
-      if (timeoutId) clearTimeout(timeoutId);
-      void sb.removeChannel(channel);
-    };
-  }, [refreshActiveMarches, activeMarches]);
+    if (!nextTransition) return;
+    const delay = Math.max(500, nextTransition - Date.now() + 250);
+    const timeoutId = setTimeout(() => { void refreshActiveMarches(); }, delay);
+    return () => clearTimeout(timeoutId);
+  }, [activeMarches, refreshActiveMarches]);
 
   const onMapViewportChange = useCallback((vp: { minLng: number; minLat: number; maxLng: number; maxLat: number; zoom: number }) => {
     if (vp.zoom < 13) { setResourceNodes([]); return; }
@@ -1928,22 +1929,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               }}
             />
 
-            {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Profil, Crew, Inbox etc.) */}
+            {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Profil, Crew, Inbox etc.).
+                Base-Icon kommt aus dem festen quick_base UI-Slot — gleiche Größe wie alle
+                anderen Quick-Icons, kein dynamisches Base-Theme-Lookup mehr. */}
             <MapQuickAccess
               onOpenProfile={() => { router.push("/karte/base"); }}
-              profileIcon={(() => {
-                // Eigenes Base-Theme als FAB-Icon (Pin-Variante des aktuellen Themes).
-                // Fallback auf Banner-Variante, dann Marker, dann null.
-                if (ownBaseThemeId) {
-                  const pin = dashboardBaseThemeArt[`${ownBaseThemeId}_runner_pin`];
-                  if (pin?.image_url || pin?.video_url) return pin;
-                  const banner = dashboardBaseThemeArt[`${ownBaseThemeId}_runner_banner`];
-                  if (banner?.image_url || banner?.video_url) return banner;
-                }
-                const m = dashboardMarkerArt[equippedMarker]?.[equippedMarkerVariant]
-                       ?? dashboardMarkerArt[equippedMarker]?.neutral;
-                return m?.image_url || m?.video_url ? m : null;
-              })()}
               onOpenCrewModal={() => setMapCrewModalOpen(true)}
               onOpenInbox={() => setInboxModalOpen(true)}
               onOpenAchievements={() => setActiveTab("profil")}
@@ -2065,10 +2055,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
             {/* Fraktions-Ranking entfernt (User-Wunsch) */}
 
-            {/* Map-Controls (rechts, gleiche Hoehe wie Live-Panel links) - collapsible */}
+            {/* Map-Controls (links oben) - collapsible */}
             <div style={{
-              position: "absolute", top: 20, right: 10, zIndex: 50,
-              display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8,
+              position: "absolute", top: 20, left: 10, zIndex: 50,
+              display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8,
             }}>
               <MapIconButton
                 icon={controlsExpanded ? "✕" : "⋯"}
@@ -2440,6 +2430,9 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         defenderUserId={heimatTapDefender?.id ?? null}
         defenderName={heimatTapDefender?.name ?? null}
       />
+
+      {/* Live-Marker für aktive Begleiter-Märsche (eigene + Crew) */}
+      <HeimatMarchMarkers />
 
       {/* Verlegen-Modus: Banner oben + Bestätigung wenn Ziel gesetzt */}
       {heimatRelocateMode && !heimatRelocateTarget && (

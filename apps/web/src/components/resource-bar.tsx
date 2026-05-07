@@ -84,17 +84,24 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
   const art = useResourceArt();
   const res = useResources();
   const gems = useGems();
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const saved = window.localStorage.getItem("ma365_resbar_open");
-    if (saved !== null) return saved === "1";
-    return window.innerWidth >= 768;
-  });
+  // SSR-sicher: starte immer mit true (offen) — kein localStorage/window im Initializer.
+  // Hydratisierung passiert dann clientseitig im useEffect.
+  const [open, setOpen] = useState<boolean>(true);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("ma365_resbar_open", open ? "1" : "0");
-  }, [open]);
+    try {
+      const saved = window.localStorage.getItem("ma365_resbar_open");
+      if (saved !== null) setOpen(saved === "1");
+      else if (window.innerWidth < 768) setOpen(false);
+    } catch { /* ignore */ }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try { window.localStorage.setItem("ma365_resbar_open", open ? "1" : "0"); } catch { /* ignore */ }
+  }, [open, hydrated]);
 
   // Reihenfolge wie in der Map-UI: Tech-Schrott, Komponenten, Krypto, Bandbreite
   const items = [
@@ -107,9 +114,8 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
   return (
     <div style={{
       position: "fixed",
-      top: "50%",
+      top: 12,
       right: 8,
-      transform: "translateY(-50%)",
       zIndex: 8500,
       display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6,
       maxHeight: "calc(100vh - 16px)",

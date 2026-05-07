@@ -307,14 +307,10 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   // Expanded-Mode — großes Modal mit Tabs + Räumen + Input
   return (
     <>
-      {/* Backdrop — Klick außerhalb schließt zurück zur Preview */}
+      {/* Backdrop — transparent, fängt nur Klicks außerhalb (Karte bleibt voll sichtbar) */}
       <div
         onClick={() => setMode("preview")}
-        style={{
-          position: "fixed", inset: 0, zIndex: 99997,
-          background: "rgba(0,0,0,0.45)",
-          backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)",
-        }}
+        style={{ position: "fixed", inset: 0, zIndex: 99997, background: "transparent" }}
       />
       <div
         style={{
@@ -322,14 +318,14 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
           bottom: 12,
           left: 12,
           zIndex: 99998,
-          width: "min(560px, 90vw)",
+          width: "min(340px, 60vw)",
           height: "min(560px, calc(100vh - 24px))",
-          background: "linear-gradient(180deg, rgba(26,29,35,0.92) 0%, rgba(15,17,21,0.88) 100%)",
-          backdropFilter: "blur(14px) saturate(1.3)",
-          WebkitBackdropFilter: "blur(14px) saturate(1.3)",
+          background: "linear-gradient(180deg, rgba(26,29,35,0.30) 0%, rgba(15,17,21,0.22) 100%)",
+          backdropFilter: "blur(32px) saturate(1.6)",
+          WebkitBackdropFilter: "blur(32px) saturate(1.6)",
           borderRadius: 18,
-          border: "1px solid rgba(255,255,255,0.1)",
-          boxShadow: "0 12px 48px rgba(0,0,0,0.6), 0 0 32px rgba(34,209,195,0.18)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          boxShadow: "0 12px 48px rgba(0,0,0,0.5), 0 0 28px rgba(34,209,195,0.14), inset 0 1px 0 rgba(255,255,255,0.07)",
         }}
         className="flex flex-col overflow-hidden"
       >
@@ -409,7 +405,7 @@ type PreviewMsg = {
     equipped_base_ring_id?: string | null;
   } | null;
 };
-function ChatPreviewStream({ roomId, cosmeticArt }: { roomId: string; cosmeticArt: CosmeticArt }) {
+function ChatPreviewStream({ roomId }: { roomId: string; cosmeticArt?: CosmeticArt }) {
   const [msgs, setMsgs] = useState<PreviewMsg[]>([]);
 
   useEffect(() => {
@@ -440,62 +436,15 @@ function ChatPreviewStream({ roomId, cosmeticArt }: { roomId: string; cosmeticAr
       {msgs.map((m) => {
         const name = m.author?.display_name || m.author?.username || "—";
         const tag = m.author?.crew_tag;
-        const markerId = m.author?.equipped_marker_id || "foot";
-        const variant = (m.author?.equipped_marker_variant || "neutral") as "neutral" | "male" | "female";
-        const markerAsset = cosmeticArt.marker?.[markerId]?.[variant] ?? cosmeticArt.marker?.[markerId]?.neutral;
-        const ringId = m.author?.equipped_base_ring_id;
-        const ringAsset = ringId && ringId !== "default" ? cosmeticArt.base_ring?.[ringId] : null;
         return (
           <div
             key={m.id}
-            className="flex items-center gap-1 py-0.5"
-            style={{ color: "#F0F0F0", textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
+            className="py-0.5"
+            style={{ color: "#F0F0F0", textShadow: "0 1px 2px rgba(0,0,0,0.85)", fontSize: 10, lineHeight: 1.2 }}
           >
-            {/* Avatar mit Base-Ring — gleiche Höhe wie der Text-Linie */}
-            <div style={{ position: "relative", width: 12, height: 12, flexShrink: 0 }}>
-              {ringAsset?.video_url ? (
-                <video
-                  src={ringAsset.video_url}
-                  autoPlay loop muted playsInline
-                  style={{ position: "absolute", inset: -2, width: 16, height: 16, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
-                />
-              ) : ringAsset?.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={ringAsset.image_url}
-                  alt=""
-                  style={{ position: "absolute", inset: -2, width: 16, height: 16, objectFit: "contain", filter: "url(#ma365-chroma-black)", pointerEvents: "none" }}
-                />
-              ) : null}
-              <div
-                style={{
-                  position: "absolute", inset: 0,
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), rgba(70,82,122,0.4))",
-                  border: ringAsset ? "none" : "1px solid rgba(255,255,255,0.25)",
-                  overflow: "hidden",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                {markerAsset?.video_url ? (
-                  <video src={markerAsset.video_url} autoPlay loop muted playsInline style={{ width: 11, height: 11, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
-                ) : markerAsset?.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={markerAsset.image_url} alt="" style={{ width: 11, height: 11, objectFit: "contain", filter: "url(#ma365-chroma-black)" }} />
-                ) : m.author?.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.author.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <span style={{ fontSize: 9, color: "#FFE4B8", fontWeight: 900 }}>{(name[0] ?? "?").toUpperCase()}</span>
-                )}
-              </div>
-            </div>
-            {/* Nachricht-Inhalt */}
-            <div className="flex-1 min-w-0" style={{ fontSize: 10, lineHeight: 1.2 }}>
-              {tag && <span className="text-[#22D1C3] font-bold">[{tag}]</span>}
-              <span className="font-bold text-white">{tag ? " " : ""}{name}:</span>
-              <span className="text-[#E8E8EE] ml-1">{m.body ?? ""}</span>
-            </div>
+            {tag && <span className="text-[#22D1C3] font-bold">[{tag}]</span>}
+            <span className="font-bold text-white">{tag ? " " : ""}{name}:</span>
+            <span className="text-[#E8E8EE] ml-1">{m.body ?? ""}</span>
           </div>
         );
       })}
@@ -862,9 +811,6 @@ function RoomView({ roomId, room, currentUserId, cosmeticArt, onBack, onAfterAct
       >
         <button onClick={() => setShowPollComposer(true)} className="text-[#8B8FA3] hover:text-[#22D1C3] p-1.5" title="Umfrage"><BarChart3 size={16} /></button>
         <button onClick={() => setShowSchedule(true)} className="text-[#8B8FA3] hover:text-[#22D1C3] p-1.5" title="Geplant senden"><Clock size={16} /></button>
-        {(room?.kind === "crew" || room?.kind === "cvc") && (
-          <button onClick={() => setShowRally(true)} className="text-[#8B8FA3] hover:text-[#FF2D78] p-1.5" title="Rally setzen"><MapPin size={16} /></button>
-        )}
         <input
           value={composeText}
           onChange={(e) => onComposeChange(e.target.value)}
@@ -963,7 +909,7 @@ function MessageRow({ m, sameAuthor, currentUserId, messages, cosmeticArt, onRep
       </div>
       <div className={`flex-1 min-w-0 flex flex-col ${isOwn ? "items-end" : "items-start"}`}>
         <div
-          className={`group relative inline-block max-w-[260px] rounded-lg px-2 py-1 text-[11px] leading-snug ${m.kind === "rally" ? "text-[#F0F0F0] cursor-pointer hover:scale-[1.02]" : isOwn ? "bg-[#22D1C3]/15 border border-[#22D1C3]/30 text-[#F0F0F0]" : "bg-[#1A1D23] border border-white/10 text-[#F0F0F0]"} ${m.pinned_at ? "ring-1 ring-[#FFD700]/40" : ""}`}
+          className={`group relative inline-block max-w-full rounded-lg px-2 py-1 text-[11px] leading-snug ${m.kind === "rally" ? "text-[#F0F0F0] cursor-pointer hover:scale-[1.02]" : isOwn ? "bg-[#22D1C3]/15 border border-[#22D1C3]/30 text-[#F0F0F0]" : "bg-white/5 border border-white/10 text-[#F0F0F0]"} ${m.pinned_at ? "ring-1 ring-[#FFD700]/40" : ""}`}
           style={m.kind === "rally" ? {
             background: "linear-gradient(135deg, rgba(255,45,120,0.22), rgba(255,107,74,0.18) 60%, rgba(255,215,0,0.18))",
             border: "1px dashed rgba(255,107,74,0.6)",
