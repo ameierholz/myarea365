@@ -2210,19 +2210,24 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
   // Quick-Icons: transparenter PNG-Alpha (kein Chroma-Key)
   // Andere UI-Icons: weiterhin Greenscreen für die alte Pipeline
   const backgroundLine = isQuick
-    ? `Background: FULLY TRANSPARENT PNG with alpha channel — no fill, no color, no greenscreen, no white, no black. Pixels outside the icon silhouette must have alpha = 0. Hard clean silhouette edge — no halo, no fringing, no semi-transparent fill bleed.`
+    ? `BACKGROUND IS FULLY TRANSPARENT (alpha=0). Output a 32-bit PNG with proper alpha channel. The area outside the subject's silhouette must be 100% transparent — no painted background, no atmospheric haze, no radial glow extending beyond the subject, no gradient backdrop, no aura, no decorative frame, no card-base, no platform under the subject, no environmental elements. Imagine the subject floating against a checkerboard-pattern editor view — that area must be empty/transparent in the final file. Hard clean alpha-edge between subject and transparency.`
     : `Background: solid pure GREENSCREEN #00FF00, no other green hue, completely flat — for chroma-key removal.`;
 
   const negativesLine = isQuick
-    ? `Strict negatives: no text, no letters, no logo, no watermark, no human faces, no extra background scenery, no green background, no white background, no checkerboard, no shadows cast onto the (transparent) background, no halo around subject.`
+    ? `CRITICAL NEGATIVES (transparent PNG): NO background of ANY kind, NO atmospheric background, NO gradient backdrop, NO radial glow filling the canvas, NO sky, NO clouds, NO environment, NO dark teal backdrop, NO blue backdrop, NO scene, NO platform, NO base under subject, NO decorative aura around subject, NO golden frame, NO ornate border, NO card-style background panel. Also: no text, no letters, no logo, no watermark, no human faces. Subject MUST sit on completely transparent pixels — alpha=0 everywhere outside the subject silhouette.`
     : `Strict negatives: no text, no letters, no logo, no watermark, no human faces, no extra background scenery, no green spill on subject, no shadows on the green background, no anti-aliased green halo around subject (use clean alpha-friendly silhouette).`;
+
+  // Quick-Icons: KEINE Glow/Aura im Subject selbst (sonst füllt KI sie als BG aus)
+  const styleLine = isQuick
+    ? `Style: stylized 3D game-icon (Rise of Kingdoms / Clash of Clans aesthetic), slight isometric tilt, vibrant saturated colors, soft INTERNAL shading only ON the subject itself. Thick clean silhouette readable at 24×24 px. Strong rim-light on subject edges. NO glow effects radiating outward into transparent area. NO aura. NO halo. The colored pixels are confined STRICTLY to the subject's solid form.`
+    : `Style: stylized 3D game-icon, slight isometric tilt, vibrant saturated colors, soft inner glow, thick clean silhouette readable at 24×24 px, painterly soft shading with strong rim-light.`;
 
   const base = [
     `A premium UI icon for a mobile city-walking strategy game called "${s.name}".`,
     backgroundLine,
     `Subject (centered, fills ${fillPct} of frame): ${subject}.`,
     tightCropClause,
-    `Style: stylized 3D game-icon, slight isometric tilt, vibrant saturated colors, soft inner glow, thick clean silhouette readable at 24×24 px, painterly soft shading with strong rim-light.`,
+    styleLine,
     `Composition: 1024×1024 square, single icon centered.`,
     negativesLine,
   ].filter(Boolean).join(" ");
