@@ -52,15 +52,9 @@ export async function GET() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
 
-  const { data: cm } = await sb.from("crew_members").select("crew_id").eq("user_id", user.id).maybeSingle();
-  const crewId = (cm as { crew_id: string } | null)?.crew_id;
-  if (!crewId) return NextResponse.json({ ok: true, markers: [] });
-
-  const { data } = await sb.from("crew_map_markers")
-    .select("*")
-    .eq("crew_id", crewId)
-    .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(50);
+  // Über die RPC liefern wir creator_locale + creator_name gleich mit —
+  // brauchen wir für Auto-Übersetzung der Marker-Labels (🌐-Button).
+  const { data, error } = await sb.rpc("list_crew_markers_with_locale", { p_user: user.id });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, markers: data ?? [] });
 }

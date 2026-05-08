@@ -92,6 +92,13 @@ export function RepeaterInfoPopup({
     ansehen_total: number;
     same_turf_repeaters: SameTurfRepeater[];
     adjacent_crews: AdjacentCrew[];
+    attacks_today: number;
+    defenses_today: number;
+    repairs_today: number;
+    repairs_today_hp: number;
+    has_blackmarket: boolean;
+    blackmarket_id: string | null;
+    bunker_count: number;
   };
   const [turfInfo, setTurfInfo] = useState<TurfInfo | null>(null);
   useEffect(() => {
@@ -113,6 +120,13 @@ export function RepeaterInfoPopup({
           ansehen_total: res.ansehen_total ?? 0,
           same_turf_repeaters: res.same_turf_repeaters ?? [],
           adjacent_crews: res.adjacent_crews ?? [],
+          attacks_today: res.attacks_today ?? 0,
+          defenses_today: res.defenses_today ?? 0,
+          repairs_today: res.repairs_today ?? 0,
+          repairs_today_hp: res.repairs_today_hp ?? 0,
+          has_blackmarket: !!res.has_blackmarket,
+          blackmarket_id: res.blackmarket_id ?? null,
+          bunker_count: res.bunker_count ?? 0,
         });
       }
     })();
@@ -401,6 +415,50 @@ export function RepeaterInfoPopup({
               </div>
             )}
 
+            {/* Heutige Aktivität (24h) */}
+            {(turfInfo.attacks_today > 0 || turfInfo.repairs_today > 0) && (
+              <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                  Heutige Aktivität (24h)
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {turfInfo.attacks_today > 0 && (
+                    <ActivityChip
+                      icon="⚔"
+                      label={`${turfInfo.attacks_today}× Angriffe`}
+                      color={ACCENT}
+                      detail={turfInfo.defenses_today > 0 ? `${turfInfo.defenses_today} abgewehrt` : undefined}
+                    />
+                  )}
+                  {turfInfo.repairs_today > 0 && (
+                    <ActivityChip
+                      icon="🔧"
+                      label={`${turfInfo.repairs_today}× repariert`}
+                      color={PRIMARY}
+                      detail={`+${turfInfo.repairs_today_hp.toLocaleString("de-DE")} HP`}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Phase-4 Indikator: Schwarzmarkt + Bunker im Umkreis */}
+            {repeater.is_own && (turfInfo.has_blackmarket || turfInfo.bunker_count > 0) && (
+              <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+                  Stützpunkte
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {turfInfo.has_blackmarket && (
+                    <ActivityChip icon="💰" label="Schwarzmarkt" color="#FFD700" detail="aktiv" />
+                  )}
+                  {turfInfo.bunker_count > 0 && (
+                    <ActivityChip icon="🛡" label={`${turfInfo.bunker_count}× Bunker`} color={PRIMARY} detail="schützt 600m" />
+                  )}
+                </div>
+              </div>
+            )}
+
             {turfInfo.adjacent_crews.length > 0 && (
               <div style={{ padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
@@ -573,6 +631,21 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700 }}>{label}</span>
       <span style={{ color: "#FFF", fontSize: 12, textAlign: "right" }}>{value}</span>
     </div>
+  );
+}
+
+function ActivityChip({ icon, label, color, detail }: { icon: string; label: string; color: string; detail?: string }) {
+  return (
+    <span style={{
+      padding: "3px 8px", borderRadius: 6,
+      background: `${color}1a`, border: `1px solid ${color}55`,
+      fontSize: 10, fontWeight: 800, color: "#FFF",
+      display: "inline-flex", alignItems: "center", gap: 4,
+    }}>
+      <span>{icon}</span>
+      <span>{label}</span>
+      {detail && <span style={{ color, fontWeight: 900, fontSize: 9, marginLeft: 2 }}>· {detail}</span>}
+    </span>
   );
 }
 

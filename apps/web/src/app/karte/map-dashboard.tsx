@@ -19,6 +19,8 @@ import { SeasonPassPill } from "@/components/season-pass-pill";
 import { CrewModal, TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
+import { CrewBuildingModal } from "@/components/crew-building-modals";
+import { WarModal } from "@/components/war-modal";
 import { SupportContent } from "./support-content";
 // runner-fights archived (pivot 2026-05-05) — Modal-Slot bleibt, Inhalt wird im
 // neuen March-System ersetzt
@@ -1159,6 +1161,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [crewTurfPolygons, setCrewTurfPolygons] = useState<TurfPoly[]>([]);
   const [crewBlocks, setCrewBlocks] = useState<CrewBlock[]>([]);
   const [crewBuildings, setCrewBuildings] = useState<CrewBuilding[]>([]);
+  const [openBuildingId, setOpenBuildingId] = useState<string | null>(null);
+  const [warModalOpen, setWarModalOpen] = useState(false);
+
+  // Cross-Component-Event: jede Stelle (z.B. CrewTab-Button) kann das Kriegs-Modal öffnen
+  useEffect(() => {
+    const open = () => setWarModalOpen(true);
+    window.addEventListener("ma365:open-war-modal", open);
+    return () => window.removeEventListener("ma365:open-war-modal", open);
+  }, []);
   const [placeRepeaterAt, setPlaceRepeaterAt] = useState<{ lat: number; lng: number } | null>(null);
   // Placement-Mode: User wählt Repeater-Typ → Map zeigt Coverage-Preview & Ghost-Kreise
   // existierender Repeater. Tap auf Karte öffnet PlaceRepeaterModal an Cursor-Position.
@@ -1831,6 +1842,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 const r = crewRepeaters.find((p) => p.id === id);
                 if (r) setRepeaterInfoTarget({ r, x, y });
               }}
+              onBuildingClick={(id) => setOpenBuildingId(id)}
               crewMarkers={heimatCrewMarkers}
               onMapTap={(lng, lat, screenX, screenY) => {
                 // Heimat-Karte CoD-UX: kurzer Tap auf leere Map öffnet das
@@ -2492,6 +2504,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           onAttacked={() => { void refreshCrewRallies(); /* Cron-Tick resolved den Angriff, Inbox-Report kommt automatisch */ }}
         />
       )}
+
+      {/* Phase-4 Crew-Bauwerk Click → Detail-Modal */}
+      {openBuildingId && (() => {
+        const b = crewBuildings.find((x) => x.id === openBuildingId);
+        if (!b) { setOpenBuildingId(null); return null; }
+        return (
+          <CrewBuildingModal
+            building={b}
+            onClose={() => setOpenBuildingId(null)}
+            onChanged={() => {
+              if (userCenter) {
+                const dLat = 0.090, dLng = 0.140;
+                const bbox = [userCenter.lat - dLat, userCenter.lng - dLng, userCenter.lat + dLat, userCenter.lng + dLng].join(",");
+                fetch(`/api/crews/turf?bbox=${bbox}`, { cache: "no-store" })
+                  .then((r) => r.json())
+                  .then((j) => { setCrewRepeaters(j.repeaters ?? []); setCrewTurfPolygons(j.turf ?? []); setCrewBlocks(j.blocks ?? []); setCrewBuildings(j.buildings ?? []); });
+              }
+            }}
+          />
+        );
+      })()}
+
+      {/* Crew-Krieg Modal */}
+      {warModalOpen && <WarModal onClose={() => setWarModalOpen(false)} />}
 
       {/* Beitritts-Modal für Crew-Aufgebot gegen Spieler-Base */}
       {showJoinPbRally && pbRally && (
@@ -4243,7 +4279,13 @@ function ProfilTab({
       )}
 
       {crewModalOpen && (
-        <CrewModal onClose={() => setCrewModalOpen(false)} />
+        <CrewModal
+          onClose={() => setCrewModalOpen(false)}
+          onOpenWar={() => {
+            setCrewModalOpen(false);
+            window.dispatchEvent(new CustomEvent("ma365:open-war-modal"));
+          }}
+        />
       )}
 
       {openModal === "ranks" && (
@@ -8394,6 +8436,24 @@ function MyCrewView({
           />
         )}
 
+        {subTab === "overview" && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("ma365:open-war-modal"))}
+            style={{
+              marginBottom: 12, width: "100%", padding: "12px 14px", borderRadius: 12,
+              background: "linear-gradient(135deg, rgba(255,45,120,0.18), rgba(255,107,74,0.18))",
+              border: "1px solid rgba(255,45,120,0.35)",
+              color: "#FF2D78",
+              fontSize: 13, fontWeight: 900, letterSpacing: 0.6, textTransform: "uppercase",
+              fontFamily: "var(--font-display-stack)",
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>⚔️</span>
+            Crew-Kriege verwalten
+          </button>
+        )}
         {subTab === "overview"   && <CrewOverview crew={crew} isAdmin={isAdmin} onLeave={onLeave} />}
         {subTab === "feed"       && <CrewFeed color={crew.color} />}
         {subTab === "members"    && <CrewMembers color={crew.color} isAdmin={isAdmin} />}

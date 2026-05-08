@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useResourceArt, ResourceIcon, useUiIconArt, UiIcon, useInventoryItemArt } from "@/components/resource-icon";
+import { TranslateButton } from "@/components/translate-button";
 
 type Counts = Record<string, { total: number; unread: number; subcategories?: Record<string, { total: number; unread: number }> }>;
 
@@ -20,6 +21,7 @@ type Msg = {
   from_label: string | null;
   from_name: string | null;
   from_avatar: string | null;
+  from_locale: string | null;
   reward_payload: { wood?: number; stone?: number; gold?: number; mana?: number; speed_tokens?: number; gems?: number; items?: Array<{ item_id: string; count: number }> } | null;
   claimed_at: string | null;
 };
@@ -378,6 +380,9 @@ function MessageDetail({ msg, resourceArt, uiArt, onClose, onDelete, onStar, onC
               <span className="text-white/30">·</span>
               <span>{fmtDate(msg.created_at)}</span>
               {msg.is_starred && <span className="text-[#FFD700]">⭐</span>}
+              {msg.from_locale && (
+                <TranslateButton text={msg.title} sourceLang={msg.from_locale} variant="inline" />
+              )}
             </div>
           </div>
         </div>
@@ -392,6 +397,12 @@ function MessageDetail({ msg, resourceArt, uiArt, onClose, onDelete, onStar, onC
           : msg.reward_payload
           ? <SystemRewardView msg={msg} resourceArt={resourceArt} onClaim={onClaim} />
           : <div className="text-[13px] text-white/85 whitespace-pre-wrap leading-relaxed">{msg.body}</div>}
+
+        {msg.from_locale && msg.body && (
+          <div className="pt-2 border-t border-white/5">
+            <TranslateButton text={msg.body} sourceLang={msg.from_locale} variant="block" />
+          </div>
+        )}
       </div>
 
       <div className="p-3 border-t border-white/10 shrink-0 flex gap-2">

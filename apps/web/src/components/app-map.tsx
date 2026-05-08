@@ -750,6 +750,8 @@ interface AppMapProps {
     territory_color: string;
   }>;
   onRepeaterClick?: (repeaterId: string, screenX: number, screenY: number) => void;
+  /** Click auf Phase-4 Crew-Bauwerk (Schwarzmarkt/Bunker/Hangout/Tunnel). */
+  onBuildingClick?: (buildingId: string) => void;
   onMapLongPress?: (lng: number, lat: number) => void;
   /** Single-Tap auf leere Map (kein Pin, kein Layer-Click). Liefert Geo +
    *  Bildschirm-Pixel — wird vom Heimat-Overlay für das Tap-Action-Menü genutzt. */
@@ -762,6 +764,9 @@ interface AppMapProps {
     action_kind: string;
     label: string | null;
     is_urgent: boolean;
+    /** ISO 639-1 der Sprache des Erstellers (für 🌐-Button auf Labels). */
+    creator_locale?: string | null;
+    creator_name?: string | null;
   }>;
   /** Wenn aktiv: zeichnet Coverage-Preview auf der Karte.
    *  - Wenn allBlocks gesetzt (Phase 3): zeichnet Block-Polygone als Layer,
@@ -1081,6 +1086,7 @@ export function AppMap({
   onPlacementHover,
   onPlacementConfirm,
   onRepeaterClick,
+  onBuildingClick,
   onMapLongPress,
   onMapTap,
   crewMarkers = [],
@@ -3972,6 +3978,31 @@ export function AppMap({
           max-width: 140px; overflow: hidden; text-overflow: ellipsis;
           box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
+        .ma365-crew-marker .cm-label-wrap {
+          display: flex; align-items: center; gap: 3px;
+        }
+        .ma365-crew-marker .cm-translate {
+          appearance: none;
+          background: rgba(34,209,195,0.18);
+          border: 1px solid rgba(34,209,195,0.55);
+          color: #22D1C3;
+          border-radius: 999px;
+          padding: 0 4px;
+          font-size: 9px; font-weight: 700;
+          line-height: 14px;
+          height: 16px;
+          cursor: pointer;
+          pointer-events: auto;
+          flex-shrink: 0;
+        }
+        .ma365-crew-marker .cm-translate:hover {
+          background: rgba(34,209,195,0.32);
+        }
+        .ma365-crew-marker .cm-translate[data-state="loading"] { opacity: 0.6; cursor: wait; }
+        .ma365-crew-marker .cm-translate[data-state="shown"] {
+          background: rgba(34,209,195,0.4);
+          color: #FFFFFF;
+        }
         /* Hülle hat genug Höhe damit das Floater-Element nicht abgeschnitten wird */
         .ma365-crew-marker .cm-stage {
           position: relative;
@@ -3998,6 +4029,9 @@ export function AppMap({
       wichtig:     { color: "#FFD700", icon: "⭐" },
     };
 
+    const browserLang = (typeof navigator !== "undefined" ? (navigator.language || "de") : "de")
+      .toLowerCase().split("-")[0];
+
     crewMarkers.forEach((m) => {
       const meta = ACTION_META[m.action_kind] || { color: "#FFFFFF", icon: "📍" };
       const el = document.createElement("div");
@@ -4006,6 +4040,9 @@ export function AppMap({
       el.style.setProperty("--cm-color", meta.color);
       el.style.setProperty("--cm-glow", meta.color + "80");
       const safeLabel = m.label ? m.label.replace(/[<>]/g, "") : "";
+      const escAttr = (s: string) => s.replace(/"/g, "&quot;").replace(/&/g, "&amp;");
+      const creatorLang = (m.creator_locale || "de").toLowerCase().split("-")[0];
+      const showTranslate = !!safeLabel && creatorLang && creatorLang !== browserLang;
       el.innerHTML = `
         <div class="cm-stage">
           <div class="cm-anchor"></div>
@@ -4013,11 +4050,57 @@ export function AppMap({
           <div class="cm-floater">
             <div class="cm-halo"></div>
             <div class="cm-icon">${meta.icon}</div>
-            ${safeLabel ? `<div class="cm-label">${safeLabel}</div>` : ""}
+            ${safeLabel ? `<div class="cm-label-wrap">
+              <span class="cm-label ma365-translate-label" data-original="${escAttr(safeLabel)}">${safeLabel}</span>
+              ${showTranslate ? `<button type="button" class="cm-translate ma365-translate-btn" data-translate-text="${escAttr(safeLabel)}" data-translate-src="${creatorLang}" data-state="idle" title="In ${browserLang.toUpperCase()} übersetzen">🌐</button>` : ""}
+            </div>` : ""}
             ${m.is_urgent ? `<div class="cm-sparks"><span class="cm-spark"></span><span class="cm-spark"></span><span class="cm-spark"></span><span class="cm-spark"></span></div>` : ""}
           </div>
         </div>
       `;
+      // Translate-Button-Handler direkt auf das Marker-Element binden.
+      // Pattern: Click → POST /api/translate → ersetzt Label, Toggle zurück bei zweitem Klick.
+      el.addEventListener("click", async (ev) => {
+        const btn = (ev.target as HTMLElement)?.closest(".ma365-translate-btn") as HTMLElement | null;
+        if (!btn) return;
+        ev.stopPropagation();
+        ev.preventDefault();
+
+        const labelEl = el.querySelector(".ma365-translate-label") as HTMLElement | null;
+        if (!labelEl) return;
+
+        if (btn.getAttribute("data-state") === "shown") {
+          labelEl.textContent = labelEl.getAttribute("data-original") || labelEl.textContent;
+          btn.setAttribute("data-state", "idle");
+          btn.textContent = "🌐";
+          return;
+        }
+
+        btn.setAttribute("data-state", "loading");
+        btn.textContent = "…";
+
+        try {
+          const r = await fetch("/api/translate", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              text: btn.getAttribute("data-translate-text") || "",
+              source_lang: btn.getAttribute("data-translate-src") || "de",
+              target_lang: browserLang,
+            }),
+          });
+          const j = await r.json() as { translated?: string; error?: string };
+          if (!r.ok || !j.translated) throw new Error(j.error ?? "fail");
+          labelEl.textContent = j.translated;
+          btn.setAttribute("data-state", "shown");
+          btn.textContent = "↺";
+          btn.title = "Original anzeigen";
+        } catch {
+          btn.setAttribute("data-state", "error");
+          btn.textContent = "⚠️";
+        }
+      }, { capture: true });
+
       const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
         .setLngLat([m.lng, m.lat])
         .addTo(map);
@@ -4686,8 +4769,11 @@ export function AppMap({
       `;
       inner.textContent = info.emoji;
       el.appendChild(inner);
-      // Tooltip-on-Hover (kein eigener Popup für Phase 4 Stub)
       el.title = `${b.label ?? b.kind} · ${b.hp}/${b.max_hp} HP`;
+      el.addEventListener("click", (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        onBuildingClick?.(b.id);
+      });
       const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
         .setLngLat([b.lng, b.lat]).addTo(map);
       buildingMarkersRef.current.set(b.id, marker);
@@ -4695,7 +4781,7 @@ export function AppMap({
     for (const [id, marker] of buildingMarkersRef.current.entries()) {
       if (!seen.has(id)) { marker.remove(); buildingMarkersRef.current.delete(id); }
     }
-  }, [mapReady, crewBuildings]);
+  }, [mapReady, crewBuildings, onBuildingClick]);
 
   // ── Single-Tap auf leere Map → onMapTap (Heimat-Karte CoD-Action-Menü) ──
   useEffect(() => {

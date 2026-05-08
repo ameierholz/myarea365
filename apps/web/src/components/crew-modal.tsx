@@ -24,7 +24,7 @@ type TechQueue = { id: string; tech_id: string; target_level: number; ends_at: s
 type Bounty = { id: string; target_user_id: string; target_name: string; reward_gold: number; reason: string | null; posted_by_name: string; expires_at: string; created_at: string };
 type ShopItem = { id: string; name: string; description: string; category: string; price_coins: number };
 
-export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; onPlaceBuilding?: (kind: "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel") => void }) {
+export function CrewModal({ onClose, onPlaceBuilding, onOpenWar }: { onClose: () => void; onPlaceBuilding?: (kind: "hq" | "mega" | "repeater" | "blackmarket" | "bunker" | "hangout" | "tunnel") => void; onOpenWar?: () => void }) {
   const t = useTranslations("CrewModal");
   const [tab, setTab] = useState<Tab>("uebersicht");
   const [overview, setOverview] = useState<Overview | null>(null);
@@ -61,7 +61,23 @@ export function CrewModal({ onClose, onPlaceBuilding }: { onClose: () => void; o
             <UiIcon slot="quick_crew" fallback="⚔" art={uiArt} size={22} />
             {t("title")}
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 22, cursor: "pointer" }}>✕</button>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {onOpenWar && (
+              <button
+                onClick={onOpenWar}
+                style={{
+                  padding: "6px 12px", borderRadius: 8,
+                  background: "rgba(255,45,120,0.18)",
+                  border: "1px solid rgba(255,45,120,0.45)",
+                  color: "#FF2D78", fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+                  cursor: "pointer", textTransform: "uppercase",
+                }}
+              >
+                ⚔ Kriege
+              </button>
+            )}
+            <button onClick={onClose} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 22, cursor: "pointer" }}>✕</button>
+          </div>
         </div>
 
         {error && (

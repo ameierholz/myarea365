@@ -249,7 +249,7 @@ export function GatherModal({
 
           {/* Begleiter */}
           <div>
-            <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">PLÜNDER-WÄCHTER</div>
+            <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">PLÜNDER-BEGLEITER</div>
             {guardians.length === 0 ? (
               <div className="text-[11px] text-[#a8b4cf] py-3 text-center bg-white/5 rounded-lg border border-white/10">
                 Kein aktiver Begleiter — aktiviere zuerst einen Begleiter.
