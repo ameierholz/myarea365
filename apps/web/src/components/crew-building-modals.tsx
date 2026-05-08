@@ -63,10 +63,10 @@ export function CrewBuildingModal({ building, onClose, onChanged }: {
         <BunkerBody buildingId={building.id} onChanged={onChanged} />
       )}
       {building.is_own && building.kind === "hangout" && (
-        <SimplePlaceholder title="Kiez-Treffpunkt" body="Random-Crew-Buffs (XP/Speed/Drop) folgen in einer späteren Mechanik-Migration. Das Bauwerk steht bereits, Buff-Tick noch nicht aktiv." />
+        <HangoutBody buildingId={building.id} onChanged={onChanged} />
       )}
       {building.is_own && building.kind === "tunnel" && (
-        <SimplePlaceholder title="Tunnel" body="Tunnel-Endpunkte bzw. Chain-Distanz-Brücke folgen in einer späteren Mechanik-Migration." />
+        <TunnelBody buildingId={building.id} onChanged={onChanged} />
       )}
     </ModalShell>
   );
@@ -498,6 +498,308 @@ function BunkerBody({ buildingId, onChanged }: { buildingId: string; onChanged?:
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   HANGOUT (Kiez-Treffpunkt)
+   ───────────────────────────────────────────────────────────────────── */
+type HangoutStatus = {
+  ok: true;
+  level: number; hp: number; max_hp: number;
+  last_roll_at: string | null;
+  cooldown_ends_at: string | null;
+  can_roll: boolean;
+  active_buff: { kind: string; magnitude: number; ends_at: string; rolled_by_user_id?: string } | null;
+  buff_pool: string[];
+  magnitude_at_level: number;
+};
+
+const BUFF_LABELS: Record<string, { label: string; icon: string; color: string }> = {
+  gather_yield: { label: "Plünder-Bonus",   icon: "💰", color: GOLD },
+  march_speed:  { label: "Marsch-Speed",    icon: "🏃", color: PRIMARY },
+  xp_gain:      { label: "XP-Bonus",        icon: "⭐", color: "#A855F7" },
+  loot_chance:  { label: "Loot-Chance",     icon: "🎁", color: ORANGE },
+};
+
+function HangoutBody({ buildingId, onChanged }: { buildingId: string; onChanged?: () => void }) {
+  const [status, setStatus] = useState<HangoutStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setErr(null);
+    const sb = createClient();
+    const { data } = await sb.rpc("get_hangout_status", { p_building_id: buildingId });
+    const s = data as { ok?: boolean } & HangoutStatus;
+    if (!s?.ok) setErr("Status nicht ladbar"); else setStatus(s);
+    setLoading(false);
+  }, [buildingId]);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  async function roll() {
+    setBusy(true); setErr(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc("roll_hangout_buff", { p_building_id: buildingId });
+    setBusy(false);
+    const r = data as { ok?: boolean; error?: string; remaining_seconds?: number } | null;
+    if (error || !r?.ok) {
+      setErr(r?.error === "on_cooldown" && r.remaining_seconds
+        ? `Cooldown läuft noch ${Math.ceil(r.remaining_seconds / 60)} Min`
+        : r?.error || error?.message || "Würfeln fehlgeschlagen");
+      return;
+    }
+    onChanged?.();
+    await refresh();
+  }
+
+  if (loading) return <div style={{ padding: 24, textAlign: "center", color: "#8B8FA3" }}>Lade Hangout-Status…</div>;
+  if (err && !status) return <div style={{ padding: 24, color: ACCENT, textAlign: "center" }}>{err}</div>;
+  if (!status) return null;
+
+  const cdMs = status.cooldown_ends_at ? new Date(status.cooldown_ends_at).getTime() - now : 0;
+  const cdMin = Math.max(0, Math.ceil(cdMs / 60000));
+  const buffActive = status.active_buff;
+  const buffMs = buffActive ? new Date(buffActive.ends_at).getTime() - now : 0;
+  const buffMin = Math.max(0, Math.ceil(buffMs / 60000));
+  const buffMeta = buffActive ? BUFF_LABELS[buffActive.kind] : null;
+
+  return (
+    <div style={{ padding: "12px 16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Active Buff Box */}
+      {buffActive && buffMeta ? (
+        <div style={{
+          padding: 14, borderRadius: 12,
+          background: `radial-gradient(ellipse at top, ${buffMeta.color}33 0%, transparent 70%), rgba(20,22,28,0.85)`,
+          border: `1px solid ${buffMeta.color}55`,
+          textAlign: "center",
+        }}>
+          <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>{buffMeta.icon}</div>
+          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 800, fontFamily: "var(--font-display-stack)" }}>
+            {buffMeta.label} aktiv
+          </div>
+          <div style={{ color: buffMeta.color, fontSize: 22, fontWeight: 900 }}>
+            +{Math.round(buffActive.magnitude * 100)}%
+          </div>
+          <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700, marginTop: 4 }}>
+            für die ganze Crew · noch {buffMin} Min
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: 14, borderRadius: 12, background: "rgba(255,255,255,0.04)", textAlign: "center", color: "#8B8FA3" }}>
+          Kein aktiver Buff. Würfle einen neuen.
+        </div>
+      )}
+
+      {/* Buff-Pool Vorschau */}
+      <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,255,255,0.03)" }}>
+        <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 6 }}>
+          Möglicher Roll (gleichverteilt)
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+          {status.buff_pool.map((b) => {
+            const meta = BUFF_LABELS[b];
+            return (
+              <div key={b} style={{
+                padding: "6px 10px", borderRadius: 8,
+                background: `${meta.color}1a`, border: `1px solid ${meta.color}33`,
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 11, color: "#FFF",
+              }}>
+                <span style={{ fontSize: 14 }}>{meta.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 11 }}>{meta.label}</div>
+                  <div style={{ color: meta.color, fontWeight: 900, fontSize: 10 }}>+{Math.round(status.magnitude_at_level * 100)}%</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 8, color: "#8B8FA3", fontSize: 10 }}>
+          Lv {status.level} · Buff dauert 1h · Cooldown 6h pro Roll
+        </div>
+      </div>
+
+      {/* Roll-Button oder Cooldown */}
+      {status.can_roll ? (
+        <button
+          onClick={() => void roll()}
+          disabled={busy}
+          style={{
+            width: "100%", padding: "12px 16px", borderRadius: 12,
+            background: `linear-gradient(135deg, ${ORANGE}, #D14E2E)`,
+            border: "none", color: "#FFF",
+            fontSize: 13, fontWeight: 900, letterSpacing: 0.6, textTransform: "uppercase",
+            fontFamily: "var(--font-display-stack)",
+            cursor: busy ? "wait" : "pointer", opacity: busy ? 0.7 : 1,
+            boxShadow: `0 4px 12px ${ORANGE}55`,
+          }}
+        >
+          {busy ? "..." : "🎲 Buff würfeln"}
+        </button>
+      ) : (
+        <div style={{
+          padding: "12px 16px", borderRadius: 12,
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+          textAlign: "center",
+        }}>
+          <div style={{ color: "#8B8FA3", fontSize: 11, fontWeight: 700 }}>Cooldown</div>
+          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{cdMin} Min</div>
+        </div>
+      )}
+      {err && <div style={{ color: ACCENT, fontSize: 11, textAlign: "center" }}>{err}</div>}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   TUNNEL
+   ───────────────────────────────────────────────────────────────────── */
+type TunnelStatus = {
+  ok: true;
+  level: number; hp: number; max_hp: number;
+  is_paired: boolean;
+  partner: { id: string; label: string | null; lat: number; lng: number; distance_m: number } | null;
+  pairable_tunnels: Array<{ id: string; label: string | null; lat: number; lng: number; distance_m: number }>;
+};
+
+function TunnelBody({ buildingId, onChanged }: { buildingId: string; onChanged?: () => void }) {
+  const [status, setStatus] = useState<TunnelStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true); setErr(null);
+    const sb = createClient();
+    const { data } = await sb.rpc("get_tunnel_status", { p_building_id: buildingId });
+    const s = data as { ok?: boolean } & TunnelStatus;
+    if (!s?.ok) setErr("Status nicht ladbar"); else setStatus(s);
+    setLoading(false);
+  }, [buildingId]);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  async function pairWith(partnerId: string) {
+    setBusy(true); setErr(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc("pair_tunnels", { p_tunnel_a: buildingId, p_tunnel_b: partnerId });
+    setBusy(false);
+    const r = data as { ok?: boolean; error?: string; hint?: string } | null;
+    if (error || !r?.ok) {
+      setErr(r?.hint || r?.error || error?.message || "Pairing fehlgeschlagen");
+      return;
+    }
+    onChanged?.();
+    await refresh();
+  }
+
+  async function unpair() {
+    setBusy(true); setErr(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc("unpair_tunnel", { p_tunnel_id: buildingId });
+    setBusy(false);
+    const r = data as { ok?: boolean; error?: string } | null;
+    if (error || !r?.ok) {
+      setErr(r?.error || error?.message || "Trennen fehlgeschlagen");
+      return;
+    }
+    onChanged?.();
+    await refresh();
+  }
+
+  if (loading) return <div style={{ padding: 24, textAlign: "center", color: "#8B8FA3" }}>Lade Tunnel-Status…</div>;
+  if (err && !status) return <div style={{ padding: 24, color: ACCENT, textAlign: "center" }}>{err}</div>;
+  if (!status) return null;
+
+  const TUNNEL_COLOR = "#A855F7";
+
+  return (
+    <div style={{ padding: "12px 16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+      {status.is_paired && status.partner ? (
+        <div style={{
+          padding: 14, borderRadius: 12,
+          background: `radial-gradient(ellipse at top, ${TUNNEL_COLOR}33 0%, transparent 70%), rgba(20,22,28,0.85)`,
+          border: `1px solid ${TUNNEL_COLOR}55`,
+          textAlign: "center",
+        }}>
+          <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>🚇</div>
+          <div style={{ color: "#FFF", fontSize: 18, fontWeight: 800 }}>Tunnel aktiv</div>
+          <div style={{ color: TUNNEL_COLOR, fontSize: 12, fontWeight: 700, marginTop: 4 }}>
+            verbunden mit <b>{status.partner.label || "Tunnel"}</b>
+          </div>
+          <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 2 }}>
+            Distanz: {(status.partner.distance_m / 1000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km
+          </div>
+          <div style={{ color: "#FFF", fontSize: 10, marginTop: 8, padding: 8, background: "rgba(0,0,0,0.3)", borderRadius: 6 }}>
+            Repeater können in 200m dieser Tunnel platziert werden, als wären sie beim gepaarten Endpunkt — Chain-Hop überbrückt die Distanz.
+          </div>
+          <button
+            onClick={() => void unpair()}
+            disabled={busy}
+            style={{
+              marginTop: 10, padding: "8px 14px", borderRadius: 8,
+              background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)",
+              color: ACCENT, fontSize: 11, fontWeight: 800, cursor: "pointer",
+            }}
+          >
+            Verbindung trennen
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding: 14, borderRadius: 12, background: "rgba(255,255,255,0.04)", textAlign: "center" }}>
+          <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4, opacity: 0.6 }}>🚇</div>
+          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 800 }}>Nicht gekoppelt</div>
+          <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 4 }}>
+            Wähle einen anderen Tunnel der Crew als Endpunkt aus.
+          </div>
+        </div>
+      )}
+
+      {!status.is_paired && status.pairable_tunnels.length > 0 && (
+        <div style={{ padding: 12, borderRadius: 10, background: `${TUNNEL_COLOR}10`, border: `1px solid ${TUNNEL_COLOR}33` }}>
+          <div style={{ color: TUNNEL_COLOR, fontSize: 11, fontWeight: 900, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 8 }}>
+            Verfügbare Endpunkte
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {status.pairable_tunnels.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => void pairWith(t.id)}
+                disabled={busy}
+                style={{
+                  padding: "10px 12px", borderRadius: 8, textAlign: "left",
+                  background: "rgba(20,22,28,0.7)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "#FFF", cursor: busy ? "wait" : "pointer",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 12 }}>{t.label || "Tunnel"}</div>
+                  <div style={{ color: "#8B8FA3", fontSize: 10 }}>
+                    {(t.distance_m / 1000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km entfernt
+                  </div>
+                </div>
+                <span style={{ color: TUNNEL_COLOR, fontSize: 11, fontWeight: 900 }}>→ Pair</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!status.is_paired && status.pairable_tunnels.length === 0 && (
+        <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,255,255,0.03)", color: "#8B8FA3", fontSize: 11, textAlign: "center" }}>
+          Keine ungepaarten Tunnel verfügbar. Erbaue einen weiteren Tunnel um diesen zu koppeln.
+        </div>
+      )}
+      {err && <div style={{ color: ACCENT, fontSize: 11, textAlign: "center" }}>{err}</div>}
     </div>
   );
 }

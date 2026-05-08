@@ -21,6 +21,7 @@ import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal, AttackRepeaterModal } from "@/components/repeater-modals";
 import { CrewBuildingModal } from "@/components/crew-building-modals";
 import { WarModal } from "@/components/war-modal";
+import { DonPill } from "@/components/don-pill";
 import { SupportContent } from "./support-content";
 // runner-fights archived (pivot 2026-05-05) — Modal-Slot bleibt, Inhalt wird im
 // neuen March-System ersetzt
@@ -1236,7 +1237,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [placeBaseMode, setPlaceBaseMode] = useState<null | "runner" | "crew">(null);
 
   // ── Wegelager (Strongholds) + Rally-State ──
-  type Stronghold = { id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number };
+  type Stronghold = {
+    id: string; lat: number; lng: number; level: number;
+    total_hp: number; current_hp: number; hp_pct: number;
+    is_throne?: boolean; npc_id?: string | null; city_slug?: string | null;
+    don?: { crew_tag?: string | null; crew_name?: string | null; don_name?: string | null } | null;
+  };
   const [strongholds, setStrongholds] = useState<Stronghold[]>([]);
   const [strongholdModalTarget, setStrongholdModalTarget] = useState<{ s: Stronghold; x: number; y: number } | null>(null);
   const strongholdArt = useStrongholdArt();
@@ -1948,6 +1954,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 }
               }}
             />
+
+            {/* Don-Pill — oben mittig, zeigt aktuellen Don der Stadt */}
+            <div style={{
+              position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
+              zIndex: 50, pointerEvents: "auto",
+            }}>
+              <DonPill />
+            </div>
 
             {/* Map-Quickaccess: vertikaler Icon-Stack rechts unten (Profil, Crew, Inbox etc.).
                 Base-Icon kommt aus dem festen quick_base UI-Slot — gleiche Größe wie alle

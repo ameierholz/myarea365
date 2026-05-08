@@ -1,0 +1,26 @@
+-- ════════════════════════════════════════════════════════════════════════
+-- PHASE-4 FINISH: Hangout/Tunnel/Belagerung + Don pro Stadt + Talents in SQL
+-- ════════════════════════════════════════════════════════════════════════
+-- Konsolidiert alle Migrations vom 2026-05-08 (Tag 2) — siehe MCP-Apply-Log:
+--   • Hangout-Mechanik (RPCs roll_hangout_buff/get_hangout_status/get_crew_active_buffs)
+--   • Belagerungs-Repeater Auto-Attack (tick_siege_repeater_attacks)
+--   • Tunnel-Mechanik (pair_tunnels/unpair_tunnel/get_tunnel_status, _tunnel_chain_extended)
+--   • place_crew_repeater erweitert um Tunnel-Chain-Hop
+--   • Wegelager-Damage-Shares (stronghold_damage_log, refactored resolve_due_rallies)
+--   • Don pro Stadt (city_dons/city_don_history/spawn_city_thrones/claim_city_throne)
+--   • Throne-Stronghold-Trigger (_on_stronghold_defeated)
+--   • Don-Buff-Aura (get_user_active_buffs, get_my_city_don, get_city_don)
+--   • get_nearby_strongholds um is_throne/don erweitert
+--   • RPC-Template-Migrations (resolve_player_base_attack/_rally, spy_player_base,
+--     tick_player_base_scouts, cancel_player_base_rally, cancel_rally)
+--   • Battle-Templates (battle_report_attacker_won/defender_won/defender_lost,
+--     scout_report_full, spy_warning_defender, player_base_rally_*, rally_cancel_pb_*)
+--   • Talent-Helpers (_guardian_talent_atk_mult/_def_mult/_active_type) + Integration in resolve_player_base_attack
+--
+-- Diese Datei ist ein "marker" damit die Migrations-Liste lückenlos ist.
+-- Die tatsächlichen DDL/DML wurden via MCP apply_migration angewandt — siehe
+-- pg_proc/pg_class state für die kanonische Source-of-truth.
+-- Bei Bedarf später: einzelne RPCs hier dokumentieren oder per pg_dump exportieren.
+-- ════════════════════════════════════════════════════════════════════════
+
+select 'phase4_finish_dons_talents marker' as note;

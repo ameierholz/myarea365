@@ -631,7 +631,7 @@ interface AppMapProps {
   onBossClick?: (raidId: string) => void;
   onSanctuaryClick?: (sanctuaryId: string) => void;
   onPowerZoneClick?: (zoneId: string) => void;
-  strongholds?: Array<{ id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number }>;
+  strongholds?: Array<{ id: string; lat: number; lng: number; level: number; total_hp: number; current_hp: number; hp_pct: number; is_throne?: boolean; npc_id?: string | null; city_slug?: string | null; don?: { crew_tag?: string | null; crew_name?: string | null; don_name?: string | null } | null }>;
   onStrongholdClick?: (strongholdId: string, screenX: number, screenY: number) => void;
   strongholdArt?: Record<string, { image_url: string | null; video_url: string | null }>;
   resourceNodes?: Array<{ id: number; kind: "scrapyard" | "factory" | "atm" | "datacenter"; resource_type: "wood" | "stone" | "gold" | "mana"; name: string | null; lat: number; lng: number; level: number; total_yield: number; current_yield: number; gather_count?: number; gather_active?: boolean; gather_someone_gathering?: boolean; gather_finish_at?: string | null; gather_mine?: boolean; gather_username?: string | null; gather_crew_tag?: string | null }>;
@@ -2846,14 +2846,39 @@ export function AppMap({
       const inner = document.createElement("div");
       inner.className = "ma365-stronghold-marker";
 
-      // Ein einziges Artwork für alle Wegelager — Slot "wegelager", Fallback auf
-      // alte Slots (default/level_<N>) für Rückwärtskompatibilität, dann Emoji.
-      const art = strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
-      // Wegelager = Feind → ROT. Falls Artwork in anderer Farbe gespeichert ist,
-      // mit hue-rotate auf Rot drücken (kombiniert mit chroma-key für transparenten BG).
+      const isThrone = !!s.is_throne;
+      // Throne hat goldene Optik + Krone + Don-Badge. Wegelager bleibt rot.
+      const art = isThrone
+        ? null  // Throne nutzt fixes Crown-SVG, kein Artwork-Lookup
+        : strongholdArt.wegelager ?? strongholdArt.default ?? strongholdArt[`level_${s.level}`] ?? null;
       const wegelagerStyle = "width:60px;height:60px;object-fit:contain;filter:url(#ma365-chroma-black) hue-rotate(-25deg) saturate(1.6) drop-shadow(0 2px 4px rgba(220,38,38,0.55));";
       let visualHtml: string;
-      if (art?.video_url) {
+      if (isThrone) {
+        // Throne: goldene Crown + Säule, animierter Glow
+        const tag = s.don?.crew_tag ?? "FREI";
+        const tagColor = s.don ? "#FFD700" : "#8B8FA3";
+        visualHtml = `
+          <div class="ma365-throne" data-vis="full" style="position:relative;width:72px;height:72px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;filter:drop-shadow(0 0 14px #FFD70088) drop-shadow(0 4px 6px rgba(0,0,0,0.7));">
+            <svg viewBox="0 0 64 56" width="60" height="52" style="overflow:visible;">
+              <defs>
+                <linearGradient id="ma365-throne-grad-${s.id}" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#FFEB6F"/>
+                  <stop offset="50%" stop-color="#FFD700"/>
+                  <stop offset="100%" stop-color="#B8860B"/>
+                </linearGradient>
+              </defs>
+              <!-- Krone -->
+              <path d="M8 26 L14 8 L22 22 L32 4 L42 22 L50 8 L56 26 L52 32 L12 32 Z" fill="url(#ma365-throne-grad-${s.id})" stroke="#7C5500" stroke-width="1.2" stroke-linejoin="round"/>
+              <circle cx="14" cy="8" r="3" fill="#FF2D78" stroke="#7C5500" stroke-width="0.8"/>
+              <circle cx="32" cy="4" r="3.5" fill="#22D1C3" stroke="#7C5500" stroke-width="0.8"/>
+              <circle cx="50" cy="8" r="3" fill="#FF2D78" stroke="#7C5500" stroke-width="0.8"/>
+              <!-- Sockel -->
+              <rect x="10" y="34" width="44" height="6" fill="url(#ma365-throne-grad-${s.id})" stroke="#7C5500" stroke-width="0.9"/>
+              <rect x="14" y="42" width="36" height="10" fill="#2A1A05" stroke="#7C5500" stroke-width="0.9"/>
+              <text x="32" y="50" text-anchor="middle" font-family="Inter,sans-serif" font-weight="900" font-size="7" fill="${tagColor}" letter-spacing="1.5">${tag}</text>
+            </svg>
+          </div>`;
+      } else if (art?.video_url) {
         visualHtml = `<video src="${art.video_url}" autoplay loop muted playsinline class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}"></video>`;
       } else if (art?.image_url) {
         visualHtml = `<img src="${art.image_url}" alt="stronghold" class="ma365-stronghold-emoji" data-vis="full" style="${wegelagerStyle}" />`;
