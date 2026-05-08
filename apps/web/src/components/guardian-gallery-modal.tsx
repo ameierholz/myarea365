@@ -9,6 +9,7 @@ import {
 } from "@/lib/guardian";
 import { buildArchetypePrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 // referenced below but linter misdetects — keep explicit
 void uploadArtworkDirect;
 
@@ -45,34 +46,14 @@ export function GuardianGalleryModal({
   }, [archetypes]);
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
-      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 780, maxHeight: "92vh",
-        display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 20,
-        border: "1px solid rgba(34,209,195,0.45)",
-        boxShadow: "0 0 40px rgba(34,209,195,0.25)",
-        color: "#F0F0F0", overflow: "hidden",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "14px 18px", display: "flex", alignItems: "center", gap: 10,
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tG("kicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tG("title", { owned: ownedIds.size })}</div>
-          </div>
-          <button onClick={onClose} aria-label={tG("closeAria")} style={{
-            background: "none", border: "none", color: "#8B8FA3",
-            fontSize: 22, cursor: "pointer", width: 32, height: 32,
-          }}>×</button>
-        </div>
-
+    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={tG("kicker")}
+        title={tG("title", { owned: ownedIds.size })}
+        onClose={onClose}
+        accent="primary"
+      />
+      <ModalBody padding="flush">
         {/* Tabs */}
         <div style={{ padding: "8px 12px", display: "flex", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
           {(["all", "infantry", "cavalry", "marksman", "mage"] as Tab[]).map((t) => {
@@ -128,8 +109,8 @@ export function GuardianGalleryModal({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }
 

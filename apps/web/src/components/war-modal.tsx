@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Modal, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
 const ACCENT  = "#FF2D78";
@@ -90,28 +91,8 @@ export function WarModal({ onClose }: { onClose: () => void }) {
   const isLeader = role === "leader";
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9300,
-        background: "rgba(8,10,14,0.78)", backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 12,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 540,
-          background: "rgba(15,17,21,0.96)",
-          borderRadius: 16,
-          border: `1px solid ${ACCENT}55`,
-          boxShadow: `0 16px 48px rgba(0,0,0,0.7), 0 0 32px ${ACCENT}33`,
-          overflow: "hidden",
-          maxHeight: "90vh",
-          display: "flex", flexDirection: "column",
-        }}
-      >
+    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modalDeep}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
         <div style={{
           padding: "16px 16px 12px", textAlign: "center",
           background: `radial-gradient(ellipse at 50% 0%, ${ACCENT}55 0%, transparent 70%), linear-gradient(180deg, rgba(20,22,28,0.85), rgba(15,17,21,0.95))`,
@@ -186,7 +167,7 @@ export function WarModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
