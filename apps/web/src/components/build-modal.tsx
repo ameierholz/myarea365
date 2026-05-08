@@ -1039,29 +1039,14 @@ function BuildingDetail({
   }, [cat]);
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9101,
-        background: "transparent",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "8px",
-      }}
-    >
+    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modalNested}>
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
           position: "relative",
-          width: "100%", maxWidth: 560,
-          maxHeight: "calc(100dvh - 16px)",
+          width: "100%",
           display: "flex", flexDirection: "column",
-          background: MODAL_BG,
-          border: `1px solid ${accent}66`,
-          borderRadius: 18,
-          boxShadow: `0 20px 60px rgba(0,0,0,0.55), 0 0 80px ${accent}33, inset 0 1px 0 rgba(255,255,255,0.08)`,
           overflow: "hidden", minHeight: 0,
+          flex: 1,
         }}
       >
         {/* Ambient warm-Glow + Sparkles */}
@@ -1483,7 +1468,7 @@ function BuildingDetail({
           onClose={() => setShowLevelTable(false)}
         />
       )}
-    </div>
+    </Modal>
   );
 }
 
