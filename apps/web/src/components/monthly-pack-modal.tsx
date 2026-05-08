@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -72,31 +73,15 @@ export function MonthlyPackModal({ onClose }: { onClose: () => void }) {
   const canClaimAny = (data?.owned ?? []).some((o) => o.can_claim_today);
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 9100,
-      background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 520, maxHeight: "92vh",
-        display: "flex", flexDirection: "column",
-        background: `linear-gradient(180deg, ${PRIMARY}1a 0%, #141a2d 60%)`,
-        borderRadius: 18, border: `1px solid ${PRIMARY}66`,
-        color: "#F0F0F0", overflow: "hidden",
-      }}>
-        <div style={{ padding: "16px 18px 8px", display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{t("kicker")}</div>
-            <div style={{ fontSize: 18, fontWeight: 900 }}>{t("title")}</div>
-            <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 2 }}>{t("subtitle")}</div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 16,
-            background: "rgba(0,0,0,0.55)", border: "none",
-            color: "#FFF", fontSize: 18, fontWeight: 900, cursor: "pointer",
-          }}>×</button>
-        </div>
-
+    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={t("kicker")}
+        title={t("title")}
+        subtitle={t("subtitle")}
+        onClose={onClose}
+        accent="primary"
+      />
+      <ModalBody padding="flush">
         {/* Aktive Packs + Claim */}
         {data && data.owned.length > 0 && (
           <div style={{ padding: "0 14px 12px" }}>
@@ -170,7 +155,7 @@ export function MonthlyPackModal({ onClose }: { onClose: () => void }) {
             background: "rgba(0,0,0,0.9)", color: "#FFF", fontSize: 12, fontWeight: 700,
           }}>{toast}</div>
         )}
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }

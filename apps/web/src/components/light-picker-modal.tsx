@@ -7,6 +7,7 @@ import { useLightName } from "@/lib/i18n-game";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 import { buildLightPrompt } from "@/lib/artwork-prompts";
 import { LightTrailPreview } from "@/components/light-trail-preview";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#5ddaf0";
 
@@ -43,31 +44,15 @@ export function LightPickerModal({
   const unlockedCount = RUNNER_LIGHTS.filter(l => isAdmin || l.cost <= userXp).length;
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
-      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 760, maxHeight: "92vh",
-        display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 20,
-        border: `1px solid ${PRIMARY}66`,
-        boxShadow: `0 0 40px ${PRIMARY}33`,
-        color: "#F0F0F0", overflow: "hidden",
-      }}>
-        <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tP("lightKicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {tP("lightUnlockCount", { unlocked: unlockedCount, total: RUNNER_LIGHTS.length })}
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isAdmin ? 140 : 110}px, 1fr))`, gap: 8 }}>
+    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={tP("lightKicker")}
+        title={tP("lightUnlockCount", { unlocked: unlockedCount, total: RUNNER_LIGHTS.length })}
+        onClose={onClose}
+        accent="primary"
+      />
+      <ModalBody padding="padded">
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isAdmin ? 140 : 110}px, 1fr))`, gap: 8 }}>
             {RUNNER_LIGHTS.map((l) => {
               const unlocked = isAdmin || userXp >= l.cost;
               const active = l.id === currentId;
@@ -135,9 +120,8 @@ export function LightPickerModal({
                 </div>
               );
             })}
-          </div>
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }

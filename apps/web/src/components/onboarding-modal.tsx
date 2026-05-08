@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { Modal, ModalBody, Z } from "@/components/ui";
 
 const LS_KEY = "ma365:onboardingSeenV1";
 
@@ -139,22 +140,8 @@ export function OnboardingModal({ onClose }: { onClose: () => void }) {
   const isLast = idx === slides.length - 1;
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(8, 10, 14, 0.88)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 16,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 440, maxHeight: "90vh", overflow: "auto",
-        background: `#1A1D23 ${slide.gradient.includes("radial") ? "" : ""}`,
-        backgroundImage: `${slide.gradient}, linear-gradient(180deg, #1A1D23 0%, #0F1115 100%)`,
-        borderRadius: 20,
-        border: `1px solid ${slide.color}44`,
-        boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 30px ${slide.color}22`,
-        padding: 24,
-        color: "#FFF",
-      }}>
+    <Modal open={true} onClose={onClose} size="sm" zIndex={Z.modal}>
+      <ModalBody padding="loose" style={{ backgroundImage: slide.gradient }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>
             {t("header")}
@@ -222,7 +209,7 @@ export function OnboardingModal({ onClose }: { onClose: () => void }) {
             {isLast ? t("finish") : t("next")}
           </button>
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }

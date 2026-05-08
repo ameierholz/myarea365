@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { UiIcon, useUiIconArt } from "@/components/resource-icon";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -99,44 +100,18 @@ export function AchievementsModal({
   const meta = TIER_META[tier];
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9300,
-        background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 16, overflowY: "auto",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(580px, 100%)", maxHeight: "92vh",
-          background: "linear-gradient(160deg, #1A1D23 0%, #0F1115 100%)",
-          borderRadius: 18,
-          boxShadow: `0 0 0 1px ${meta.color}33, 0 0 28px ${meta.color}33, 0 24px 64px rgba(0,0,0,0.7)`,
-          display: "flex", flexDirection: "column", overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          padding: "12px 16px",
-          background: `linear-gradient(135deg, ${meta.color}33, ${PRIMARY}1f)`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        }}>
-          <div style={{ fontSize: 12, letterSpacing: 1.4, color: meta.color, fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 4px ${meta.ring})` }}>
-              <UiIcon slot={`trophy_${tier}`} fallback="🏆" art={uiIconArt} size={22} />
-            </span>
-            <span>TROPHÄEN</span>
-          </div>
-          <button
-            onClick={onClose}
-            style={{ background: "transparent", border: "none", color: "#8B8FA3", fontSize: 20, cursor: "pointer", lineHeight: 1 }}
-          >✕</button>
-        </div>
-
+    <Modal open={open} onClose={onClose} size="md" zIndex={Z.modalDeep}>
+      <ModalHeader
+        title={
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <UiIcon slot={`trophy_${tier}`} fallback="🏆" art={uiIconArt} size={22} />
+            TROPHÄEN
+          </span>
+        }
+        onClose={onClose}
+        accent="gold"
+      />
+      <ModalBody padding="flush">
         {/* Tabs */}
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0,
@@ -203,8 +178,8 @@ export function AchievementsModal({
             <AchievementRow key={a.id} achievement={a} />
           ))}
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }
 

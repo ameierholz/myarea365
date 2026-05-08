@@ -7,6 +7,7 @@ import { BoostShopBody } from "@/components/boost-shop";
 import { GemShopBody } from "@/components/gem-shop-modal";
 import { DealsShopBody } from "@/components/deals-shop-modal";
 import { CosmeticsHubBody } from "@/components/cosmetics-hub-body";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 export type ShopHubTabId = "deals" | "plus" | "power" | "gems" | "cosmetics";
 
@@ -40,29 +41,14 @@ export function ShopHubModal({
   ], [tM]);
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3600,
-      background: "rgba(15,17,21,0.88)", backdropFilter: "blur(10px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 8,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 720, maxHeight: "94vh",
-        display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 16,
-        border: "1px solid rgba(34,209,195,0.35)",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
-        color: "#F0F0F0", overflow: "hidden",
-      }}>
-        {/* Header */}
-        <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
-          <span style={{ fontSize: 22 }}>🛒</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#22D1C3", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>SHOP</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>Alles auf einen Blick</div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-        </div>
-
+    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
+      <ModalHeader
+        kicker="SHOP"
+        title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>🛒 Alles auf einen Blick</span>}
+        onClose={onClose}
+        accent="primary"
+      />
+      <ModalBody padding="flush">
         {/* Tabs — Mobile: horizontal scrollbar, Desktop: full row */}
         <div style={{
           display: "flex", gap: 4, padding: "8px 8px 0", overflowX: "auto",
@@ -89,14 +75,14 @@ export function ShopHubModal({
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+        <div style={{ padding: 14 }}>
           {tab === "deals"     && <DealsShopBody />}
           {tab === "plus"      && <UpgradeBody mode="plus" userId={userId} onDone={onClose} />}
           {tab === "power"     && <BoostShopBody userId={userId} onDone={onClose} />}
           {tab === "gems"      && <GemShopBody />}
           {tab === "cosmetics" && <CosmeticsHubBody userId={userId} isAdmin={isAdmin} />}
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }

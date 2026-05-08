@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 type FaqSection = {
   id: string;
@@ -46,42 +47,14 @@ export function FaqModal({ onClose }: { onClose: () => void }) {
   }, [t]);
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(8, 10, 14, 0.88)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 16,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "auto",
-        background: "linear-gradient(180deg, #1A1D23 0%, #0F1115 100%)",
-        borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-        color: "#FFF",
-      }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "18px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-          position: "sticky", top: 0, background: "rgba(26,29,35,0.95)", backdropFilter: "blur(8px)", zIndex: 1,
-        }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: 12,
-            background: "linear-gradient(135deg, #22D1C3, #a855f7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 22,
-          }}>❓</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, letterSpacing: 2, color: "#8B8FA3", fontWeight: 900 }}>{t("header")}</div>
-            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 1 }}>{t("subtitle")}</div>
-          </div>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-            color: "#8B8FA3", fontSize: 16, fontWeight: 900, cursor: "pointer",
-          }}>✕</button>
-        </div>
-
-        <div style={{ padding: 16 }}>
+    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={t("header")}
+        title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>❓ {t("subtitle")}</span>}
+        onClose={onClose}
+        accent="primary"
+      />
+      <ModalBody padding="padded">
           {sections.map((sec) => {
             const open = openSection === sec.id;
             return (
@@ -127,8 +100,7 @@ export function FaqModal({ onClose }: { onClose: () => void }) {
               </div>
             );
           })}
-        </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }

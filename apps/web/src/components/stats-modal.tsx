@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -199,43 +200,10 @@ export function StatsModal({ open, onClose }: { open: boolean; onClose: () => vo
   if (!open) return null;
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9300,
-        background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 16, overflowY: "auto",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(620px, 100%)", maxHeight: "92vh",
-          background: "linear-gradient(160deg, #1A1D23 0%, #0F1115 100%)",
-          borderRadius: 18,
-          boxShadow: `0 0 0 1px ${PRIMARY}33, 0 0 28px ${PRIMARY}33, 0 24px 64px rgba(0,0,0,0.7)`,
-          display: "flex", flexDirection: "column", overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          padding: "12px 16px",
-          background: `linear-gradient(135deg, ${PRIMARY}33, ${PINK}1f)`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        }}>
-          <div style={{ fontSize: 12, letterSpacing: 1.4, color: PRIMARY, fontWeight: 800 }}>
-            📊 STATISTIK
-          </div>
-          <button
-            onClick={onClose}
-            style={{ background: "transparent", border: "none", color: "#8B8FA3", fontSize: 20, cursor: "pointer", lineHeight: 1 }}
-          >✕</button>
-        </div>
-
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+    <Modal open={open} onClose={onClose} size="lg" zIndex={Z.modalDeep}>
+      <ModalHeader title="📊 STATISTIK" onClose={onClose} accent="primary" />
+      <ModalBody padding="tight">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {error && (
             <div style={{ padding: 12, borderRadius: 10, background: "rgba(255,107,74,0.1)", border: "1px solid rgba(255,107,74,0.3)", color: "#FF6B4A", fontSize: 12 }}>
               ❌ {error}
@@ -301,7 +269,7 @@ export function StatsModal({ open, onClose }: { open: boolean; onClose: () => vo
             );
           })}
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }
