@@ -10,15 +10,82 @@ const BORDER = "rgba(255,255,255,0.10)";
 
 type Resources = { wood: number; stone: number; gold: number; mana: number };
 
-function Pill({ color, children }: { color: string; children: React.ReactNode }) {
+function usePillPulse(kind: string): boolean {
+  const [pulsing, setPulsing] = useState(false);
+  useEffect(() => {
+    const onPulse = (e: Event) => {
+      const ce = e as CustomEvent<{ kind: string; color?: string }>;
+      if (ce.detail?.kind !== kind) return;
+      setPulsing(false);
+      requestAnimationFrame(() => setPulsing(true));
+      window.setTimeout(() => setPulsing(false), 700);
+    };
+    window.addEventListener("ma365:pill-pulse", onPulse as EventListener);
+    return () => window.removeEventListener("ma365:pill-pulse", onPulse as EventListener);
+  }, [kind]);
+  return pulsing;
+}
+
+function GemsPill({ gems, onAddGems }: { gems: number | null; onAddGems?: () => void }) {
+  const pulsing = usePillPulse("gems");
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
-      padding: "0 2px 0 4px", marginBottom: 0,
-      whiteSpace: "nowrap", minWidth: 40,
-      textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
-      filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${color}33)`,
-    }}>{children}</div>
+    <div
+      data-rss-pill="gems"
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+        padding: "0 2px 0 4px", marginBottom: 0, whiteSpace: "nowrap", minWidth: 40,
+        textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
+        filter: pulsing
+          ? `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 14px ${PINK}) brightness(1.4)`
+          : `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${PINK}33)`,
+        transform: pulsing ? "scale(1.18)" : "scale(1)",
+        transition: "transform 220ms cubic-bezier(.34,1.56,.64,1), filter 220ms ease",
+        willChange: "transform, filter",
+        position: "relative",
+      }}
+    >
+      <span style={{ fontSize: 24, lineHeight: 1 }}>💎</span>
+      <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{gems != null ? fmt(gems) : "…"}</span>
+      {onAddGems && (
+        <button
+          onClick={onAddGems}
+          aria-label="Diamanten kaufen"
+          style={{
+            position: "absolute", top: -2, right: -4,
+            width: 14, height: 14, borderRadius: 7, border: `1px solid ${PINK}aa`,
+            background: `linear-gradient(135deg, ${PINK}, #FF6B4A)`,
+            color: "#FFF", fontSize: 10, fontWeight: 900, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+            boxShadow: `0 0 6px ${PINK}88`,
+            paddingBottom: 1,
+          }}
+        >+</button>
+      )}
+    </div>
+  );
+}
+
+function Pill({
+  color, kind, children,
+}: { color: string; kind: string; children: React.ReactNode }) {
+  const pulsing = usePillPulse(kind);
+
+  return (
+    <div
+      data-rss-pill={kind}
+      style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
+        padding: "0 2px 0 4px", marginBottom: 0,
+        whiteSpace: "nowrap", minWidth: 40,
+        textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
+        filter: pulsing
+          ? `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 14px ${color}) brightness(1.4)`
+          : `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${color}33)`,
+        transform: pulsing ? "scale(1.18)" : "scale(1)",
+        transition: "transform 220ms cubic-bezier(.34,1.56,.64,1), filter 220ms ease",
+        willChange: "transform, filter",
+      }}
+    >{children}</div>
   );
 }
 
@@ -143,37 +210,13 @@ export function ResourceBar({ onAddGems }: { onAddGems?: () => void }) {
           position: "relative",
         }}>
           {items.map((it) => (
-            <Pill key={it.kind} color={it.color}>
+            <Pill key={it.kind} color={it.color} kind={it.kind}>
               <ResourceIcon kind={it.kind} size={32} fallback={it.fallback} art={art} />
               <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{fmt(it.value)}</span>
             </Pill>
           ))}
           {/* Diamant-Pill mit integriertem "+" */}
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
-            padding: "0 2px 0 4px", marginBottom: 0, whiteSpace: "nowrap", minWidth: 40,
-            textShadow: "0 1px 3px rgba(0,0,0,0.85), 0 0 6px rgba(0,0,0,0.6)",
-            filter: `drop-shadow(0 1px 3px rgba(0,0,0,0.6)) drop-shadow(0 0 4px ${PINK}33)`,
-            position: "relative",
-          }}>
-            <span style={{ fontSize: 24, lineHeight: 1 }}>💎</span>
-            <span style={{ color: "#FFF", fontWeight: 900, fontSize: 9 }}>{gems != null ? fmt(gems) : "…"}</span>
-            {onAddGems && (
-              <button
-                onClick={onAddGems}
-                aria-label="Diamanten kaufen"
-                style={{
-                  position: "absolute", top: -2, right: -4,
-                  width: 14, height: 14, borderRadius: 7, border: `1px solid ${PINK}aa`,
-                  background: `linear-gradient(135deg, ${PINK}, #FF6B4A)`,
-                  color: "#FFF", fontSize: 10, fontWeight: 900, cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
-                  boxShadow: `0 0 6px ${PINK}88`,
-                  paddingBottom: 1,
-                }}
-              >+</button>
-            )}
-          </div>
+          <GemsPill gems={gems} onAddGems={onAddGems} />
         </div>
       )}
 

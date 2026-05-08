@@ -108,7 +108,7 @@ export function FullscreenFrame({
         .ma365-frame-header {
           position: relative; z-index: 2;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 10px 14px;
+          padding: 0;
           background: linear-gradient(180deg, rgba(15,17,21,0.45) 0%, transparent 100%);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
@@ -116,23 +116,26 @@ export function FullscreenFrame({
           flex-shrink: 0;
         }
         .ma365-frame-title {
-          font-size: 16px; font-weight: 900; letter-spacing: 0.5px;
+          font-size: 14px; font-weight: 900; letter-spacing: 0.4px;
           color: #FFF;
           text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+          line-height: 1.1;
         }
         .ma365-frame-subtitle {
-          font-size: 10px; color: #8B8FA3; margin-top: 2px;
+          font-size: 9px; color: #8B8FA3; margin-top: 1px;
           letter-spacing: 0.3px;
+          line-height: 1.1;
         }
         .ma365-frame-close {
-          width: 32px; height: 32px; border-radius: 999px;
+          width: 26px; height: 26px; border-radius: 999px;
           background: rgba(255,255,255,0.06);
           border: 1px solid rgba(255,255,255,0.12);
           color: #F0F0F0;
-          font-size: 16px; font-weight: 700;
+          font-size: 13px; font-weight: 700;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
           transition: background 0.15s, transform 0.1s;
+          flex-shrink: 0;
         }
         .ma365-frame-close:hover {
           background: ${palette.accent}33;

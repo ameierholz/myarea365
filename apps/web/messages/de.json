@@ -5470,11 +5470,7 @@
   },
   "Effects": {
     "storage_cap_pct": "Lager-Kapazität",
-    "wood_per_km_pct": "Tech-Schrott pro Park-km",
-    "stone_per_km_pct": "Komponenten pro Wohngebiet-km",
-    "gold_per_km_pct": "Krypto pro Stadtkern-km",
-    "mana_per_km_pct": "Bandbreite pro Wasser-km",
-    "guardian_xp_pct": "Wächter-XP nach Lauf",
+    "guardian_xp_pct": "Begleiter-Erfahrung",
     "map_range_km": "Karten-Reichweite (km)",
     "rare_storage_pct": "Lager für seltene Items",
     "craft_speed_pct": "Crafting-Tempo",

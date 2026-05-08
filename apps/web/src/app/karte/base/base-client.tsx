@@ -18,6 +18,10 @@ const StatsModal = dynamic(
   () => import("@/components/stats-modal").then((m) => m.StatsModal),
   { ssr: false },
 );
+const BuildModal = dynamic(
+  () => import("@/components/build-modal").then((m) => m.BuildModal),
+  { ssr: false },
+);
 
 type Profile = Record<string, unknown>;
 function s(p: Profile, k: string): string | null {
@@ -64,6 +68,7 @@ export function BaseClient({
   const [showServerOverview, setShowServerOverview] = useState(false);
   const [achievementTier, setAchievementTier] = useState<"bronze" | "silver" | "gold" | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [showBuild, setShowBuild] = useState(false);
 
   if (!profile) {
     return (
@@ -112,49 +117,82 @@ export function BaseClient({
           animation: ma365Sparkle 2.4s ease-in-out infinite;
         }
 
-        /* Tile = Artwork-Container + Label gemeinsam in einer Glas-Karte */
+        /* Tile ohne Glas-Karte — nur Icon + Label, transparent */
         .ma365-tile-wrap {
+          all: unset;
           position: relative;
-          width: 72px;
-          padding: 6px 4px 5px;
-          border-radius: 14px;
-          background: linear-gradient(160deg, rgba(15,17,21,0.6) 0%, rgba(15,17,21,0.45) 100%);
-          backdrop-filter: blur(8px) saturate(1.1);
-          -webkit-backdrop-filter: blur(8px) saturate(1.1);
-          border: 1.5px solid rgba(255,255,255,0.18);
-          box-shadow: 0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18);
-          display: flex; flex-direction: column; align-items: center; gap: 3px;
-          text-decoration: none;
+          box-sizing: border-box;
+          width: 86px;
+          height: 90px;
+          padding-top: 2px;
+          padding-bottom: 2px;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0;
           cursor: pointer;
-          transition: transform 0.2s, border-color 0.25s, box-shadow 0.25s;
-          overflow: hidden;
-        }
-        .ma365-tile-wrap::before {
-          content: ""; position: absolute; top: 0; left: 0; right: 0; height: 40%;
-          background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent);
-          pointer-events: none;
+          transition: transform 0.2s, filter 0.2s;
         }
         .ma365-tile-wrap:hover {
           transform: translateY(-2px) scale(1.04);
-          border-color: rgba(255,228,184,0.6);
-          box-shadow: 0 10px 22px rgba(0,0,0,0.4), 0 0 18px rgba(255,210,122,0.55), inset 0 1px 0 rgba(255,255,255,0.3);
+          filter: drop-shadow(0 0 10px rgba(255,210,122,0.5));
         }
         .ma365-tile-art {
           position: relative;
-          width: 56px;
-          height: 56px;
+          width: 82px;
+          height: 72px;
           display: flex; align-items: center; justify-content: center;
         }
+        /* Schimmer hinter dem Icon: kräftiger dunkler Halo (radial), damit
+           das Icon vor jedem Hintergrund klar herausgehoben wird. */
+        .ma365-tile-art::before {
+          content: "";
+          position: absolute;
+          inset: -8px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.3) 60%, transparent 80%);
+          filter: blur(10px);
+          z-index: 0;
+          pointer-events: none;
+        }
         .ma365-tile-icon {
-          font-size: 30px; line-height: 1; position: relative; z-index: 2;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+          font-size: 52px; line-height: 1; position: relative; z-index: 2;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
           animation: ma365TileBob 4s ease-in-out infinite;
         }
+        /* UiIcon (img/video) auch über den Halo legen */
+        .ma365-tile-art > img,
+        .ma365-tile-art > video,
+        .ma365-tile-art > span:not(.ma365-tile-icon) {
+          position: relative;
+          z-index: 2;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+        }
         .ma365-tile-label {
-          font-size: 10px; font-weight: 800; letter-spacing: 0.3px;
+          font-size: 10px; font-weight: 800; letter-spacing: 0.2px;
           color: #FFF;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.7);
-          line-height: 1;
+          /* Mehrlagiger Text-Halo: enge harte Schatten + weicher dunkler Glow */
+          text-shadow:
+            0 0 4px rgba(0,0,0,0.95),
+            0 0 8px rgba(0,0,0,0.7),
+            0 1px 2px rgba(0,0,0,0.9),
+            0 -1px 1px rgba(0,0,0,0.8);
+          line-height: 1.2;
+          margin-top: 2px;
+          max-width: 100%;
+          padding: 0 2px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          position: relative;
+          z-index: 2;
+        }
+        /* Sanfter dunkler Glow hinter dem Label-Text (extra Lesbarkeits-Boost) */
+        .ma365-tile-label::before {
+          content: "";
+          position: absolute;
+          inset: -2px -6px;
+          background: radial-gradient(ellipse, rgba(0,0,0,0.45) 0%, transparent 75%);
+          filter: blur(4px);
+          z-index: -1;
+          pointer-events: none;
         }
       `}</style>
 
@@ -350,10 +388,10 @@ export function BaseClient({
         }}>
           <div style={{
             display: "flex", flexWrap: "wrap", justifyContent: "flex-end",
-            gap: 8,
-            maxWidth: 488,
+            gap: 2,
+            maxWidth: 564,
           }}>
-            <ArtTile slot="karte_base_bauen"      icon="🔨" label="Bauen"       href="/karte/base"   badge={queueCount} />
+            <ArtTile slot="karte_base_bauen"      icon="🔨" label="Bauen"       onClick={() => setShowBuild(true)} badge={queueCount} iconSize={80} />
             <ArtTile slot="karte_base_forschung"  icon="⚗️" label="Forschung"   href="/karte/base"   badge={researchCount} />
             <ArtTile slot="karte_base_banditen"   icon="🥷" label="Banditen"    href="/karte/base" />
             <ArtTile slot="karte_base_trophaeen"  icon="🏆" label="Trophäen"    onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
@@ -381,17 +419,20 @@ export function BaseClient({
         initialTier={achievementTier ?? "bronze"}
       />
       <StatsModal open={showStats} onClose={() => setShowStats(false)} />
+      {showBuild && <BuildModal onClose={() => setShowBuild(false)} />}
     </FullscreenFrame>
   );
 }
 
-function ArtTile({ slot, icon, label, href, onClick, badge }: {
+function ArtTile({ slot, icon, label, href, onClick, badge, iconSize = 72 }: {
   slot: string;
   icon: string;
   label: string;
   href?: string;
   onClick?: () => void;
   badge?: number;
+  /** Override Icon-Größe (Default 72). Emoji-Fallback skaliert proportional. */
+  iconSize?: number;
 }) {
   const art = useUiIconArt();
   const inner = (
@@ -399,9 +440,9 @@ function ArtTile({ slot, icon, label, href, onClick, badge }: {
       <div className="ma365-tile-art">
         {/* Wenn Artwork hochgeladen, rendert UiIcon es; sonst fallback Emoji */}
         {art[slot]?.image_url || art[slot]?.video_url ? (
-          <UiIcon slot={slot} fallback={icon} art={art} size={48} />
+          <UiIcon slot={slot} fallback={icon} art={art} size={iconSize} />
         ) : (
-          <span className="ma365-tile-icon">{icon}</span>
+          <span className="ma365-tile-icon" style={iconSize !== 72 ? { fontSize: Math.round(iconSize * 0.72) } : undefined}>{icon}</span>
         )}
 
         {badge !== undefined && badge > 0 && (
@@ -424,7 +465,7 @@ function ArtTile({ slot, icon, label, href, onClick, badge }: {
   );
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className="ma365-tile-wrap" style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}>
+      <button type="button" onClick={onClick} className="ma365-tile-wrap">
         {inner}
       </button>
     );
