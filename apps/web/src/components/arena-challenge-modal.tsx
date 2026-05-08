@@ -8,6 +8,7 @@ import type { GuardianWithArchetype, GuardianArchetype } from "@/lib/guardian";
 import { GuardianCard } from "@/components/guardian-card";
 import { CinematicBattleArena } from "@/components/battle-arena";
 import { RARITY_META, statsAtLevel } from "@/lib/guardian";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 type EligibleRunner = {
   user_id: string;
@@ -158,17 +159,14 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
   const bMaxHp = picked?.guardian ? statsAtLevel(picked.guardian.archetype, picked.guardian.level).hp : 100;
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3500, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", background: "#1A1D23", borderRadius: 20, padding: 20, border: "1px solid rgba(168,85,247,0.5)", boxShadow: "0 0 40px rgba(168,85,247,0.3)", color: "#F0F0F0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 26 }}>⚔️</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{tM("acTitle", { name: businessName })}</div>
-            <div style={{ color: "#a855f7", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>{tM("acKicker")}</div>
-          </div>
-          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
-        </div>
-
+    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={tM("acKicker")}
+        title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>⚔️ {tM("acTitle", { name: businessName })}</span>}
+        onClose={onClose}
+        accent="accent"
+      />
+      <ModalBody padding="padded">
         {error && (
           <div style={{ padding: 10, borderRadius: 10, background: "rgba(255,45,120,0.15)", border: "1px solid #FF2D78", color: "#FF2D78", fontSize: 12, marginBottom: 12 }}>
             {error}
@@ -271,7 +269,7 @@ export function ArenaChallengeModal({ businessId, businessName, onClose }: {
             </button>
           </div>
         ) : null}
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }

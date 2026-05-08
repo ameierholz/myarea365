@@ -8,6 +8,7 @@ import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice, 
 import { appAlert } from "@/components/app-dialog";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 import { IapNotAvailableNotice } from "@/components/iap-not-available-notice";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 type ShopTab = "boosts" | "xp" | "gameplay" | "cosmetics" | "extras";
 
@@ -361,31 +362,16 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
   if (embedded) return <div style={{ color: "#F0F0F0" }}>{content}</div>;
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center",
-      background: "rgba(15,17,21,0.75)", backdropFilter: "blur(6px)",
-    }} onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 520, maxHeight: "85vh", overflowY: "auto",
-          background: "#1A1D23", border: "1px solid rgba(255,215,0,0.4)", borderRadius: "20px 20px 0 0",
-          padding: 24, color: "#F0F0F0",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>⚡</span>
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 900 }}>{tBS("title")}</div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>{tBS("subtitle")}</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
-        </div>
-        {content}
-      </div>
-    </div>
+    <Modal open={true} onClose={onClose} size="md" variant="drawer" zIndex={Z.modal}>
+      <ModalHeader
+        kicker="⚡ BOOSTER"
+        title={tBS("title")}
+        subtitle={tBS("subtitle")}
+        onClose={onClose}
+        accent="gold"
+      />
+      <ModalBody padding="padded">{content}</ModalBody>
+    </Modal>
   );
 }
 

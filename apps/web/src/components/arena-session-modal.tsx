@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 type Session = {
   id: string;
@@ -78,41 +79,15 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
   const myTitles = data?.titles ?? [];
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 4500,
-      background: "rgba(15,17,21,0.88)", backdropFilter: "blur(10px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "92vh",
-        display: "flex", flexDirection: "column",
-        background: "#141a2d", borderRadius: 20,
-        border: "1px solid rgba(255,107,74,0.4)",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
-        color: "#F0F0F0", overflow: "hidden",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "14px 18px",
-          background: "linear-gradient(135deg, rgba(255,107,74,0.2), rgba(255,215,0,0.15))",
-          borderBottom: "1px solid rgba(255,107,74,0.3)",
-          display: "flex", alignItems: "center", gap: 10,
-        }}>
-          <span style={{ fontSize: 26 }}>🏆</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#FF6B4A", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tA("kicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
-              {data?.session?.name ?? tA("noActiveSession")}
-            </div>
-            {data?.session && (
-              <div style={{ color: "#a8b4cf", fontSize: 10, marginTop: 2 }}>
-                {tA("endsIn", { countdown })}
-              </div>
-            )}
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
-        </div>
-
+    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={tA("kicker")}
+        title={<span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>🏆 {data?.session?.name ?? tA("noActiveSession")}</span>}
+        subtitle={data?.session ? tA("endsIn", { countdown }) : undefined}
+        onClose={onClose}
+        accent="gold"
+      />
+      <ModalBody padding="flush">
         {/* Meine Titel */}
         {currentUserId && myTitles.length > 0 && (
           <div style={{ padding: "12px 18px 0", display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -204,8 +179,8 @@ export function ArenaSessionModal({ currentUserId, onClose }: { currentUserId: s
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }
 

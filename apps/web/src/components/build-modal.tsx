@@ -15,6 +15,7 @@ import {
 } from "@/components/resource-icon";
 import { LevelTableModal, type LevelRow } from "@/components/level-table-modal";
 import { useRewardFx, getClickPoint } from "@/components/reward-fx";
+import { Modal, Z } from "@/components/ui";
 
 type Building = {
   id: string;
@@ -449,17 +450,7 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div
-        onClick={onClose}
-        style={{
-          position: "fixed", inset: 0, zIndex: 9100,
-          background: "transparent",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "8px",
-        }}
-      >
+      <Modal open={true} onClose={onClose} size="md" zIndex={Z.modal}>
         <style>{`
           @keyframes ma365BuildPulse { 0%,100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
           @keyframes ma365BuildShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
@@ -475,19 +466,14 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
         `}</style>
 
         <div
-          onClick={(e) => e.stopPropagation()}
           className="ma365-build-shell"
           style={{
             position: "relative",
-            width: "100%", maxWidth: 560,
-            maxHeight: "calc(100dvh - 16px)",
+            width: "100%",
             display: "flex", flexDirection: "column",
-            background: MODAL_BG,
-            border: "1px solid rgba(255,255,255,0.14)",
-            borderRadius: 18,
-            boxShadow: `0 20px 60px rgba(0,0,0,0.55), 0 0 80px ${ORANGE}22, inset 0 1px 0 rgba(255,255,255,0.08)`,
             overflow: "hidden",
             minHeight: 0,
+            flex: 1,
           }}
         >
           {/* Ambient warm-Glow + Sparkles für freundlichere Atmosphäre */}
@@ -932,7 +918,7 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
             })}
           </div>
         </div>
-      </div>
+      </Modal>
 
       {/* DETAIL-MODAL */}
       {detail && data && (

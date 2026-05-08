@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
 const ACCENT = "#FF2D78";
@@ -132,27 +133,12 @@ export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId 
 /** Standalone-Modal-Wrapper (Backwards-Compat) */
 export function DealsShopModal({ initialTab = "seasonal", onClose }: { initialTab?: TabId; onClose: () => void }) {
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 9500,
-      background: "rgba(0,0,0,0.85)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 1100, maxHeight: "92vh",
-        display: "flex", flexDirection: "column",
-        background: BG_DEEP, borderRadius: 16, overflow: "hidden",
-        border: `2px solid ${PRIMARY}33`,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${PRIMARY}22` }}>
-          <div style={{ flex: 1, color: GOLD, fontWeight: 900, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>Deals</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
-        </div>
-        <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
-          <DealsShopBody initialTab={initialTab} />
-        </div>
-      </div>
-    </div>
+    <Modal open={true} onClose={onClose} size="xl" zIndex={Z.modal}>
+      <ModalHeader kicker="DEALS" title="Tagesangebote" onClose={onClose} accent="gold" />
+      <ModalBody padding="padded">
+        <DealsShopBody initialTab={initialTab} />
+      </ModalBody>
+    </Modal>
   );
 }
 

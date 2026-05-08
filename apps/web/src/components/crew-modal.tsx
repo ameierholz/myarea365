@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt } from "@/components/resource-icon";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
 const BG = "#0F1115";
@@ -42,44 +43,35 @@ export function CrewModal({ onClose, onPlaceBuilding, onOpenWar }: { onClose: ()
     })();
   }, []);
 
+  const headerRight = onOpenWar ? (
+    <button
+      onClick={onOpenWar}
+      style={{
+        padding: "6px 12px", borderRadius: 8,
+        background: "rgba(255,45,120,0.18)",
+        border: "1px solid rgba(255,45,120,0.45)",
+        color: "#FF2D78", fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
+        cursor: "pointer", textTransform: "uppercase",
+      }}
+    >
+      ⚔ Kriege
+    </button>
+  ) : undefined;
+
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 9000,
-      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(12px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "min(960px, 100%)", maxHeight: "92vh", overflowY: "auto",
-        background: BG, border: `1px solid ${PRIMARY}33`, borderRadius: 18,
-        boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${PRIMARY}22`,
-      }}>
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)",
-        }}>
-          <div style={{ color: TEXT, fontSize: 20, fontWeight: 400, fontFamily: "var(--font-display-stack)", letterSpacing: 1.2, display: "flex", alignItems: "center", gap: 8 }}>
+    <Modal open={true} onClose={onClose} size="xl" zIndex={Z.modal}>
+      <ModalHeader
+        title={
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <UiIcon slot="quick_crew" fallback="⚔" art={uiArt} size={22} />
             {t("title")}
-          </div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            {onOpenWar && (
-              <button
-                onClick={onOpenWar}
-                style={{
-                  padding: "6px 12px", borderRadius: 8,
-                  background: "rgba(255,45,120,0.18)",
-                  border: "1px solid rgba(255,45,120,0.45)",
-                  color: "#FF2D78", fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
-                  cursor: "pointer", textTransform: "uppercase",
-                }}
-              >
-                ⚔ Kriege
-              </button>
-            )}
-            <button onClick={onClose} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 22, cursor: "pointer" }}>✕</button>
-          </div>
-        </div>
-
+          </span>
+        }
+        onClose={onClose}
+        accent="primary"
+        right={headerRight}
+      />
+      <ModalBody padding="flush">
         {error && (
           <div style={{ padding: 18, color: "#FF6B4A" }}>{t("errorPrefix", { msg: error })}</div>
         )}
@@ -103,8 +95,8 @@ export function CrewModal({ onClose, onPlaceBuilding, onOpenWar }: { onClose: ()
             </div>
           </>
         )}
-      </div>
-    </div>
+      </ModalBody>
+    </Modal>
   );
 }
 

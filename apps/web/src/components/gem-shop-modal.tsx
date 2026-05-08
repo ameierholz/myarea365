@@ -6,6 +6,7 @@ import { getNumberLocale } from "@/i18n/config";
 import { IapNotAvailableNotice } from "@/components/iap-not-available-notice";
 import { GEM_BUNDLES, totalGemsOfBundle, type GemBundle } from "@/lib/gem-bundles";
 import { PIN_THEME_META, ALL_PIN_THEMES, type PinTheme } from "@/lib/pin-themes";
+import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 type ShopItem = {
   id: string;
@@ -639,29 +640,14 @@ function GemShopInner({ onClose, embedded }: { onClose: () => void; embedded: bo
   }
 
   return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
-      background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "92vh", display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 20, border: "1px solid rgba(255,215,0,0.5)",
-        boxShadow: "0 0 40px rgba(255,215,0,0.25)", color: "#F0F0F0", overflow: "hidden",
-      }}>
-        <div style={{
-          padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
-          background: "linear-gradient(180deg, rgba(255,215,0,0.15), transparent)",
-          borderBottom: "1px solid rgba(255,215,0,0.25)",
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFD700", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tGS("headerKicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 15, fontWeight: 900 }}>{tGS("headerSubtitle")}</div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
-        </div>
-        {body}
-      </div>
-    </div>
+    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
+      <ModalHeader
+        kicker={tGS("headerKicker")}
+        title={tGS("headerSubtitle")}
+        onClose={onClose}
+        accent="gold"
+      />
+      <ModalBody padding="flush">{body}</ModalBody>
+    </Modal>
   );
 }
