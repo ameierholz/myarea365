@@ -4961,9 +4961,9 @@
       }
     },
     "markers": {
-      "foot": "Basis",
-      "walker": "Spaziergänger",
-      "runner": "Athlet",
+      "foot": "Späher",
+      "walker": "Standarte",
+      "runner": "Helm",
       "paw": "Pfoten",
       "hedgehog": "Igel",
       "rabbit": "Kaninchen",
@@ -4990,7 +4990,7 @@
       "phoenix": "Phönix",
       "dragon": "Drache",
       "unicorn": "Einhorn",
-      "hero": "Legende"
+      "hero": "Anführer"
     },
     "markerVariant": {
       "neutral": "Standard",

@@ -39,12 +39,12 @@ export const FACTIONS = [
 
 export type FactionId = "syndicate" | "vanguard";
 
-// 30 Map-Icons — alle Motive bewegen sich aus eigener Kraft (Tiere/Menschen/Mythen),
-// KEINE Fahrzeuge, damit XP-Farming per Auto/Fahrrad thematisch nicht legitimiert wird.
+// 30 Map-Icons — Strategie-Marker (Anführer-Symbole) + Tiere + Mythen.
+// Country/Stadt/Dorf/Crews/Banden — universell lesbar, ohne Walking-App-Bezug.
 export const UNLOCKABLE_MARKERS = [
-  { id: "foot",        icon: "👣",  cost: 0,         name: "Basic"         },
-  { id: "walker",      icon: "🚶",  cost: 100,       name: "Wanderer"      },
-  { id: "runner",      icon: "🏃",  cost: 250,       name: "Athlet"        },
+  { id: "foot",        icon: "🧭",  cost: 0,         name: "Späher"        },
+  { id: "walker",      icon: "🚩",  cost: 100,       name: "Standarte"     },
+  { id: "runner",      icon: "🪖",  cost: 250,       name: "Helm"          },
   { id: "paw",         icon: "🐾",  cost: 500,       name: "Pfoten"        },
   { id: "hedgehog",    icon: "🦔",  cost: 1000,      name: "Igel"          },
   { id: "rabbit",      icon: "🐇",  cost: 2000,      name: "Hase"          },
@@ -71,11 +71,11 @@ export const UNLOCKABLE_MARKERS = [
   { id: "phoenix",     icon: "🔥",  cost: 1700000,   name: "Phoenix"       },
   { id: "dragon",      icon: "🐉",  cost: 2200000,   name: "Drache"        },
   { id: "unicorn",     icon: "🦄",  cost: 2800000,   name: "Einhorn"       },
-  { id: "hero",        icon: "🦸",  cost: 3500000,   name: "Legende"       },
+  { id: "hero",        icon: "👑",  cost: 3500000,   name: "Anführer"      },
 ] as const;
 
-// Icons mit Gender-Varianten (nur männlich/weiblich, kein Gender-Neutral)
-export const GENDERED_MARKER_IDS = ["walker", "runner", "hero"] as const;
+// Icons mit Gender-Varianten — nach Re-Theme alle Marker geschlechtsneutral (Symbole + Tiere + Mythen).
+export const GENDERED_MARKER_IDS = [] as const;
 export type GenderedMarkerId = typeof GENDERED_MARKER_IDS[number];
 export const MARKER_VARIANT_LABEL: Record<"neutral" | "male" | "female", string> = {
   neutral: "Standard",

@@ -1430,7 +1430,7 @@ function BuildingArtTab({ artMap, onChange }: { artMap: Record<string, { image_u
             </button>
           );
         })}
-        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: isometrisches RoK/CoD-Asset auf schwebender Gras-Stein-Plinte, transparenter PNG-Hintergrund.</div>
+        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: isometrisches Asset auf schwebender Plinte, inklusiv für Country / Stadt / Dorf / Crews / Banden — transparenter PNG-Hintergrund.</div>
       </div>
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
@@ -1789,7 +1789,7 @@ function TroopArtTab({ artMap, slots, onChange }: {
             </button>
           );
         })}
-        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: 1024×1024, Greenscreen #00FF00, Single-Subject Charakterbild — urbane Kiez-Crew (Türsteher/Kurier/Schütze/Brecher/Sammler). Tier-Rang via Outfit/Aura: T1 Rookie → T5 Boss.</div>
+        <div className="text-[10px] text-[#a8b4cf] ml-2">Stil: 1024×1024, Greenscreen #00FF00, Single-Subject Charakterbild — Crew/Bande aus Stadt oder Dorf (Türsteher/Kurier/Schütze/Brecher/Sammler). Tier-Rang via Outfit/Aura: T1 Rookie → T5 Boss.</div>
       </div>
 
       <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
