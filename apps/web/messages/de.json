@@ -6,7 +6,8 @@
     "ok": "OK",
     "close": "Schließen",
     "save": "Speichern",
-    "back": "Zurück"
+    "back": "Zurück",
+    "backToHome": "Zurück zur Startseite"
   },
   "Nav": {
     "profile": "Profil",

@@ -1,12 +1,12 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import { LandingBack } from "@/components/landing-back";
 
 export const metadata: Metadata = { title: "Impressum" };
 
 export default function ImpressumPage() {
   return (
     <div className="min-h-screen px-4 py-10 max-w-3xl mx-auto">
-      <Link href="/" className="text-sm text-primary hover:underline">← Zurück</Link>
+      <LandingBack />
       <h1 className="text-3xl font-bold mt-6 mb-6">Impressum</h1>
       <div className="space-y-6 text-text-muted leading-relaxed">
         <section>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { LandingBack } from "@/components/landing-back";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Terms");
@@ -35,7 +36,7 @@ export default async function AgbPage() {
 
   return (
     <div className="min-h-screen px-4 py-10 max-w-3xl mx-auto">
-      <Link href="/" className="text-sm text-primary hover:underline">{t("back")}</Link>
+      <LandingBack label={t("back")} />
       <h1 className="text-3xl font-bold mt-6 mb-2">{t("title")}</h1>
       <p className="text-sm text-text-muted mb-1">{t("subtitle")}</p>
       <p className="text-xs text-text-muted mb-8">

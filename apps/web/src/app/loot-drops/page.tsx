@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { useTranslations } from "next-intl";
+import { LandingBack } from "@/components/landing-back";
 import {
   RARITY_LABEL, RARITY_COLOR,
   REDEMPTION_LOOT_TABLE, EQUIPMENT_DROP_NOTE,
@@ -113,9 +113,9 @@ export default async function LootDropsPage() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif',
     }}>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 80px" }}>
-        <Link href="/" style={{ color: "#22D1C3", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
-          ← Zurück zur Startseite
-        </Link>
+        <div style={{ marginBottom: 24 }}>
+          <LandingBack />
+        </div>
 
         <h1 style={{ margin: 0, marginBottom: 10, fontSize: 30, fontWeight: 900, letterSpacing: -0.5 }}>
           {t("title")}

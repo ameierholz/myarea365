@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SagaClient } from "./saga-client";
+import { LandingBack } from "@/components/landing-back";
 
 export const revalidate = 30;
 
@@ -14,9 +15,11 @@ export default function SagaPage() {
   return (
     <main className="min-h-screen px-4 py-10">
       <div className="max-w-5xl mx-auto">
+        <div className="mb-4">
+          <LandingBack />
+        </div>
         <div className="text-center mb-8">
           <Image src="/logo.png" alt="MyArea365" width={44} height={44} className="mx-auto mb-2 rounded-full" />
-          <Link href="/" className="text-xs text-text-muted hover:text-white">← MyArea365.de</Link>
           <h1 className="text-3xl sm:text-4xl font-black text-white mt-2">🏙️ Metropol-Saga</h1>
           <p className="text-text-muted mt-1 text-sm max-w-xl mx-auto">
             Stadt gegen Stadt. 23 Tage. Jeder Schritt zählt für deine Heimat — die Sieger-Stadt holt Diamanten,

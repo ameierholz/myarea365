@@ -9,6 +9,7 @@ import { Mail, Lock, User, Loader2, AlertCircle, Users as UsersIcon, MapPin } fr
 import { HeroMap } from "@/components/hero-map-client";
 import { openLegalModal } from "@/components/legal-modal";
 import { ALL_PLAYSTYLES, type PlaystyleId } from "@/lib/playstyles";
+import { LandingBack } from "@/components/landing-back";
 
 export default function RegisterPage() {
   const t = useTranslations("Register");
@@ -153,6 +154,9 @@ export default function RegisterPage() {
 
       <div className="relative min-h-screen flex items-start justify-center px-4 py-10">
         <div className="w-full max-w-md">
+          <div className="mb-4">
+            <LandingBack />
+          </div>
           <Link href="/" className="block text-center mb-6">
             <span className="text-3xl font-bold tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
               My<span className="text-primary">Area</span>365

@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { GEM_BUNDLES, totalGemsOfBundle } from "@/lib/gem-bundles";
+import { LandingBack } from "@/components/landing-back";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("PricingPage");
@@ -31,12 +32,9 @@ export default async function PricingPage() {
 
         {/* Back-Button + Logo */}
         <div className="mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-primary transition-colors mb-6"
-          >
-            <span>←</span> {t("backToHome")}
-          </Link>
+          <div className="mb-6">
+            <LandingBack label={t("backToHome")} />
+          </div>
           <div className="text-center">
             <Image src="/logo.png" alt="MyArea365" width={56} height={56} className="mx-auto mb-3 rounded-full" />
             <h1 className="text-3xl sm:text-4xl font-black text-white">{t("heading")}</h1>

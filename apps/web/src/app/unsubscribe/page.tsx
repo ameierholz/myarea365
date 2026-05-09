@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { verifyAction } from "@/lib/signed-token";
+import { LandingBack } from "@/components/landing-back";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Unsubscribe");
@@ -62,8 +63,11 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen flex items-start justify-center px-4 py-10">
       <div className="w-full max-w-md">
+        <div className="mb-4">
+          <LandingBack />
+        </div>
         <Link href="/" className="block text-center mb-8">
           <span className="text-2xl font-bold tracking-tight">
             My<span className="text-primary">Area</span>365

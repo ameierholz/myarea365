@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { SupportForm } from "./support-form";
+import { LandingBack } from "@/components/landing-back";
 
 export const dynamic = "force-dynamic";
 
@@ -36,12 +37,9 @@ export default async function SupportPage() {
   return (
     <main className="min-h-screen bg-[#0F1115] text-[#F0F0F0]">
       <div className="max-w-xl mx-auto px-4 py-8">
-        <a
-          href="/"
-          className="inline-block text-xs text-[#22D1C3] hover:underline mb-4"
-        >
-          {t("back")}
-        </a>
+        <div className="mb-4">
+          <LandingBack label={t("back")} />
+        </div>
         <h1 className="text-3xl font-black mb-2">{t("heading")}</h1>
         <p className="text-sm text-[#a8b4cf] mb-8">
           {t("intro")}

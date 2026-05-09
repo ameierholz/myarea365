@@ -6,7 +6,8 @@
     "ok": "OK",
     "close": "Close",
     "save": "Save",
-    "back": "Back"
+    "back": "Back",
+    "backToHome": "Back to home"
   },
   "Nav": {
     "profile": "Profile",

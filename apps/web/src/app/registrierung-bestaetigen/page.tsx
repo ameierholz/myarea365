@@ -1,12 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
+import { LandingBack } from "@/components/landing-back";
 
 export const metadata = { title: "E-Mail bestätigen · MyArea365" };
 
 export default function ConfirmPendingPage({ searchParams }: { searchParams: { email?: string } }) {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="max-w-md w-full text-center">
+    <main className="min-h-screen flex items-start justify-center px-4 py-10">
+      <div className="max-w-md w-full">
+        <div className="mb-4">
+          <LandingBack />
+        </div>
+        <div className="text-center">
         <Image src="/logo.png" alt="MyArea365" width={72} height={72} className="mx-auto mb-4 rounded-full" />
         <div className="text-5xl mb-4">📬</div>
         <h1 className="text-2xl font-black text-white mb-3">Fast geschafft!</h1>
@@ -30,6 +35,7 @@ export default function ConfirmPendingPage({ searchParams }: { searchParams: { e
         </p>
         <div className="mt-6 pt-6 border-t border-border text-xs text-text-muted">
           <Link href="/" className="hover:text-primary">← Zur Startseite</Link>
+        </div>
         </div>
       </div>
     </main>
