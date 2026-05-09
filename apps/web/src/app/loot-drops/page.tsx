@@ -113,8 +113,8 @@ export default async function LootDropsPage() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif',
     }}>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 20px 80px" }}>
-        <Link href="/karte" style={{ color: "#22D1C3", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
-          {t("back")}
+        <Link href="/" style={{ color: "#22D1C3", fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 24 }}>
+          ← Zurück zur Startseite
         </Link>
 
         <h1 style={{ margin: 0, marginBottom: 10, fontSize: 30, fontWeight: 900, letterSpacing: -0.5 }}>
@@ -202,10 +202,11 @@ export default async function LootDropsPage() {
 
         <Section num="6" title="Saison-Belohnungen (deterministisch)">
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.55 }}>
-            Die drei Saison-Systeme (Shop-Liga wöchentlich, Arena monatlich,
-            Turf-Krieg monatlich) verteilen am Ende jeder Saison <b>feste, rang-basierte
-            Belohnungen</b> — kein Zufall, daher keine Loot-Mechanik im rechtlichen Sinne.
-            Aktuelle Werte sind hier transparent gelistet (live editierbar in
+            Die drei Saison-Systeme (Stadt-Server-Saison pro Ära, CvC wöchentlich
+            pro Map, Wächter-Arena monatlich) verteilen am Ende jeder Saison <b>feste,
+            rang-basierte Belohnungen</b> — kein Zufall, daher keine Loot-Mechanik im
+            rechtlichen Sinne. Aktuelle Werte sind hier transparent gelistet (live
+            editierbar in
             <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 4 }}>/admin/seasons</code>):
           </p>
           <div style={{ overflowX: "auto" }}>
