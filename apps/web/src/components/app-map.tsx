@@ -3976,7 +3976,7 @@ export function AppMap({
           animation: ma365CrewRing 1.6s ease-out infinite;
           pointer-events: none;
         }
-        /* 4 Sparkle-Punkte als rotierende Begleiter (urgent only) */
+        /* 4 Sparkle-Punkte als rotierende Wächter (urgent only) */
         .ma365-crew-marker[data-urgent="1"] .cm-sparks {
           position: absolute; top: 0; left: 50%;
           width: 0; height: 0; pointer-events: none;

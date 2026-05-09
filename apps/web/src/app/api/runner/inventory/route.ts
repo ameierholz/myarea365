@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * GET /api/runner/inventory
  *
  * Aggregiert das gesamte Runner-Inventar über alle Quellen:
- *   - equipment   (user_items + item_catalog) — Begleiter-Equipment 8-Slot
+ *   - equipment   (user_items + item_catalog) — Wächter-Equipment 8-Slot
  *   - potions     (user_potions + potion_catalog) — Combat-Tränke
  *   - guardianXp  (user_guardian_xp_items + guardian_xp_items) — XP-Bücher
  *   - materials   (user_materials) — Forge-Materialien

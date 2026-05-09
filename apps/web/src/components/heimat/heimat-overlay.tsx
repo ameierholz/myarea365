@@ -468,10 +468,10 @@ function SimpleAttackModal({ defenderUserId, defenderName, onClose }: {
         />
         {guardians.length > 0 && (
           <div className="mb-3">
-            <div className="text-[11px] text-[#8B8FA3] mb-1">Begleiter</div>
+            <div className="text-[11px] text-[#8B8FA3] mb-1">Wächter</div>
             <select value={guardianId ?? ""} onChange={(e) => setGuardianId(e.target.value || null)}
               className="w-full bg-[#0F1115] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#F0F0F0]">
-              <option value="">Kein Begleiter</option>
+              <option value="">Kein Wächter</option>
               {guardians.map((g) => <option key={g.id} value={g.id}>{g.name} (Lv {g.level})</option>)}
             </select>
           </div>
@@ -588,7 +588,7 @@ function MultiLegionModal({ defenderUserId, defenderName, onClose }: {
                 onChange={(e) => updateLegion(idx, { guardian_id: e.target.value || null })}
                 className="w-full bg-[#0F1115] border border-white/10 rounded px-2 py-1 text-xs text-[#F0F0F0] mb-2"
               >
-                <option value="">Kein Begleiter</option>
+                <option value="">Kein Wächter</option>
                 {guardians.map((g) => <option key={g.id} value={g.id}>{g.name} (Lv {g.level})</option>)}
               </select>
               <div className="space-y-1">

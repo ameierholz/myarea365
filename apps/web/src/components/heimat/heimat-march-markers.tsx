@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * HEIMAT-MARCH-MARKERS — Live-Begleiter-Marker auf der Heimat-Karte.
+ * HEIMAT-MARCH-MARKERS — Live-Wächter-Marker auf der Heimat-Karte.
  *
  * Rendert für jeden aktiven Marsch (eigener + Crew) einen Mapbox-Marker mit
- * dem Begleiter-Portrait, der zwischen Origin (Base) und Target interpoliert
+ * dem Wächter-Portrait, der zwischen Origin (Base) und Target interpoliert
  * läuft. Update-Tick: rAF (smooth). Polling der Marsch-Liste: 5 s.
  *
  * Map-Zugriff über window.__ma365Map (vom AppMap beim ready gesetzt).
@@ -96,7 +96,7 @@ export function HeimatMarchMarkers() {
     return () => { cancelled = true; clearInterval(iv); window.removeEventListener("ma365:march-started", onChanged); };
   }, []);
 
-  // Begleiter-Meta laden (für Portraits) — einmal beim Mount, refresh bei Marsch-Changes
+  // Wächter-Meta laden (für Portraits) — einmal beim Mount, refresh bei Marsch-Changes
   useEffect(() => {
     if (marches.length === 0) return;
     const ids = Array.from(new Set(marches.map((m) => m.guardian_id).filter((g): g is string => !!g)));
@@ -144,11 +144,11 @@ export function HeimatMarchMarkers() {
         const el = document.createElement("div");
         el.style.cssText = "position:relative;width:36px;height:36px;pointer-events:none;will-change:transform;";
 
-        // Drehung-Container für Begleiter (zeigt in Marschrichtung)
+        // Drehung-Container für Wächter (zeigt in Marschrichtung)
         const rotateEl = document.createElement("div");
         rotateEl.style.cssText = "position:absolute;inset:0;transform:rotate(0deg);transition:transform 0.5s linear;will-change:transform;";
 
-        // Portrait (Begleiter-Bild)
+        // Portrait (Wächter-Bild)
         const meta = m.guardian_id ? guardianMeta.get(m.guardian_id) : null;
         const portraitEl = (meta?.image_url
           ? Object.assign(document.createElement("img"), { src: meta.image_url, alt: "" })

@@ -22,12 +22,12 @@ export const CREW_FACTIONS: Record<CrewFactionId, CrewFactionMeta> = {
   },
   waechterorden: {
     id: "waechterorden",
-    name: "Begleiter-Orden",
+    name: "Wächter-Orden",
     icon: "⚔️",
     color: "#FF6B4A",
     tagline: "Der Orden kämpft vereint.",
     buff: "+5 % Leben & Angriff",
-    buffDetail: "Alle Begleiter der Crew-Mitglieder haben 5 % mehr Leben und 5 % mehr Angriff.",
+    buffDetail: "Alle Wächter der Crew-Mitglieder haben 5 % mehr Leben und 5 % mehr Angriff.",
   },
   stadtlaeufer: {
     id: "stadtlaeufer",
@@ -44,8 +44,8 @@ export const CREW_FACTIONS: Record<CrewFactionId, CrewFactionMeta> = {
     icon: "🔮",
     color: "#a855f7",
     tagline: "Wissen ist Macht.",
-    buff: "+10 % Begleiter-XP",
-    buffDetail: "Begleiter der Mitglieder leveln 10 % schneller.",
+    buff: "+10 % Wächter-XP",
+    buffDetail: "Wächter der Mitglieder leveln 10 % schneller.",
   },
 };
 

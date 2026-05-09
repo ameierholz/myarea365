@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * Begleiter3D — rendert ein animiertes 3D-Modell eines Begleiters via Three.js.
+ * Waechter3D — rendert ein animiertes 3D-Modell eines Wächters via Three.js.
  *
  * Nutzt React-Three-Fiber + drei für glTF-Loading + Animation-Mixing.
  * Asset-Slot pro Archetype: /3d/{archetypeId}/character.glb + animation-glbs.
  * Fallback auf Lorekeeper-Standardmodell falls archetype-spezifisches fehlt.
  *
  * Performance:
- * - Eine Canvas pro Mount (kein Mehrfach-Instancing — für 1 Begleiter im Modal)
+ * - Eine Canvas pro Mount (kein Mehrfach-Instancing — für 1 Wächter im Modal)
  * - frameloop="demand" → rendert nur wenn animiert (kein konstantes Re-Render)
  * - Lazy-loaded via dynamic-import im Wrapper, three-Bundle nur wenn nötig
  */
@@ -20,11 +20,11 @@ import * as THREE from "three";
 
 export type Animation = "idle" | "walk" | "run" | "jump" | "throw" | "interact" | "pickup" | "hit" | "spawn" | "death";
 
-// Mapping archetype_id (z.B. "bgl_brute") → GLB-Datei in /3d/begleiter/
+// Mapping archetype_id (z.B. "bgl_brute") → GLB-Datei in /3d/waechter/
 function characterGlbPath(archetypeId?: string | null): string {
-  if (!archetypeId) return "/3d/begleiter/lorekeeper.glb";
+  if (!archetypeId) return "/3d/waechter/lorekeeper.glb";
   const name = archetypeId.startsWith("bgl_") ? archetypeId.slice(4) : archetypeId;
-  return `/3d/begleiter/${name}.glb`;
+  return `/3d/waechter/${name}.glb`;
 }
 
 const LOREKEEPER_ANIMS = {
@@ -72,7 +72,7 @@ function CharacterModel({ animation, archetypeId }: { animation: Animation; arch
 
   // Bündele alle Clips aus beiden Animation-Packs zusammen.
   // Lorekeeper-Anim-Pack funktioniert nur auf der Lorekeeper-Skelett-Topologie —
-  // andere Begleiter zeigen ihre eingebetteten Clips (falls vorhanden) oder static.
+  // andere Wächter zeigen ihre eingebetteten Clips (falls vorhanden) oder static.
   const allClips = useMemo(() => {
     const clips: THREE.AnimationClip[] = [];
     if (charGltf.animations?.length) clips.push(...charGltf.animations);
@@ -94,7 +94,7 @@ function CharacterModel({ animation, archetypeId }: { animation: Animation; arch
     for (const name of candidates) {
       if (actions[name]) { activeName = name; break; }
     }
-    // Fallback (für Begleiter ohne Lorekeeper-Pack): suche IRGENDEIN idle-artiges
+    // Fallback (für Wächter ohne Lorekeeper-Pack): suche IRGENDEIN idle-artiges
     // Clip per Name-Match. Vermeide Rotate/Spin/Turn-Clips die den Char drehen.
     if (!activeName && animation === "idle") {
       const all = Object.keys(actions);
@@ -110,7 +110,7 @@ function CharacterModel({ animation, archetypeId }: { animation: Animation; arch
   }, [animation, actions]);
 
   // Idle-Mode: gelegentlich Greet einstreuen — NUR für Lorekeeper, weil dessen
-  // Anim-Pack bekannt ist. Andere Begleiter haben evtl. Clips mit Y-Translation
+  // Anim-Pack bekannt ist. Andere Wächter haben evtl. Clips mit Y-Translation
   // (Jump etc.), die den Charakter aus dem Frame heben würden.
   useEffect(() => {
     if (animation !== "idle") return;
@@ -179,7 +179,7 @@ function CharacterModel({ animation, archetypeId }: { animation: Animation; arch
   // Mixer pro Frame updaten
   useFrame((_, dt) => mixer?.update(dt));
 
-  // Keine Auto-Rotation mehr — Begleiter steht still im Banner.
+  // Keine Auto-Rotation mehr — Wächter steht still im Banner.
 
   if (!sceneClone) return null;
   return (
@@ -190,11 +190,11 @@ function CharacterModel({ animation, archetypeId }: { animation: Animation; arch
 }
 
 // Pre-loading damit der erste Open-Klick nicht laggt
-useGLTF.preload("/3d/begleiter/lorekeeper.glb");
+useGLTF.preload("/3d/waechter/lorekeeper.glb");
 useGLTF.preload(LOREKEEPER_ANIMS.general);
 useGLTF.preload(LOREKEEPER_ANIMS.movement);
 
-export function Begleiter3D({
+export function Waechter3D({
   archetypeId,
   animation = "idle",
   height = 280,

@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * EINSATZ-MODALE — Begleiter+Truppen auf einen Karten-Punkt schicken.
+ * EINSATZ-MODALE — Wächter+Truppen auf einen Karten-Punkt schicken.
  *
  * Flow:
- *   1) ChoiceModal           → "1 Begleiter" oder "Mehrere Begleiter"
- *   2) SingleEinsatzModal    → 1 Begleiter, Truppen seiner Klasse, MARSCH
- *   3) MultiEinsatzModal     → bis march_queue Slots, jeweils 1 Begleiter
+ *   1) ChoiceModal           → "1 Wächter" oder "Mehrere Wächter"
+ *   2) SingleEinsatzModal    → 1 Wächter, Truppen seiner Klasse, MARSCH
+ *   3) MultiEinsatzModal     → bis march_queue Slots, jeweils 1 Wächter
  *
  * Backend: /api/base/coord-march (single oder marches:[…])
  * Klassen-Mapping: guardian_type → troop_class
@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 
 // 3D-Modell lazy: spart Bundle-Kosten wenn das Modal nicht offen ist.
-const Begleiter3D = dynamic(() => import("@/components/begleiter-3d").then((m) => m.Begleiter3D), {
+const Waechter3D = dynamic(() => import("@/components/waechter-3d").then((m) => m.Waechter3D), {
   ssr: false,
   loading: () => <div style={{ width: "100%", height: "100%" }} />,
 });
@@ -26,7 +26,7 @@ const PRIMARY = "#22D1C3";
 const ACCENT = "#FF2D78";
 const GOLD = "#FFD700";
 
-type Begleiter = {
+type Waechter = {
   id: string;                       // user_guardians.id (Instance-ID)
   archetype_id: string | null;
   level: number;
@@ -49,7 +49,7 @@ type Troop = {
 };
 type HeimatTroopsRes = {
   troops?: Troop[];
-  guardians?: Begleiter[];
+  guardians?: Waechter[];
   march_capacity?: number;
   march_queue?: number;
 };
@@ -89,7 +89,7 @@ function matchingTroopClass(gtype: string | null | undefined): string {
 
 // ════════════════════════════════════════════════════════════════════
 // 1) CHOICE-MODAL — Banner oben am Screen-Rand, Buttons horizontal,
-// Hinweis darunter. Wording "Begleiter" statt "Legion".
+// Hinweis darunter. Wording "Wächter" statt "Legion".
 // ════════════════════════════════════════════════════════════════════
 export function EinsatzChoiceModal({
   onChoose, onClose,
@@ -126,7 +126,7 @@ export function EinsatzChoiceModal({
           fontSize: 11, fontWeight: 600, color: "#3A4A60", textAlign: "center",
           marginTop: 8, lineHeight: 1.35,
         }}>
-          Schick einen Begleiter mit Banditen los — oder mehrere parallel.
+          Schick einen Wächter mit Banditen los — oder mehrere parallel.
         </div>
       </div>
     </>
@@ -166,7 +166,7 @@ export function SingleEinsatzModal({
   onSent?: () => void;
 }) {
   const [data, setData] = useState<HeimatTroopsRes | null>(null);
-  const [picked, setPicked] = useState<Begleiter | null>(null);
+  const [picked, setPicked] = useState<Waechter | null>(null);
   const [troopCounts, setTroopCounts] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -251,7 +251,7 @@ export function SingleEinsatzModal({
           {!data && <div style={{ color: "#8B8FA3", fontSize: 12, textAlign: "center", padding: 20 }}>Lade…</div>}
           {data && (data.guardians ?? []).length === 0 && (
             <div style={{ color: "#FF6B4A", fontSize: 12, padding: 14, textAlign: "center" }}>
-              Du hast noch keinen Begleiter. Hol dir einen über das Begleiter-Modal.
+              Du hast noch keinen Wächter. Hol dir einen über das Wächter-Modal.
             </div>
           )}
 
@@ -263,9 +263,9 @@ export function SingleEinsatzModal({
               gap: 10,
               alignItems: "stretch",
             }}>
-              {/* Linke Spalte: Begleiter-Showcase, streckt sich auf volle Spalten-Höhe */}
+              {/* Linke Spalte: Wächter-Showcase, streckt sich auf volle Spalten-Höhe */}
               <div style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-                <BegleiterShowcase begleiter={picked} fillHeight />
+                <WaechterShowcase waechter={picked} fillHeight />
               </div>
 
               {/* Rechte Spalte: Banditen-Auswahl */}
@@ -318,9 +318,9 @@ export function SingleEinsatzModal({
       </div>
       </div>
 
-      {/* Begleiter-Sidebar am rechten Bildschirmrand — fix positioniert, außerhalb des Modals */}
+      {/* Wächter-Sidebar am rechten Bildschirmrand — fix positioniert, außerhalb des Modals */}
       {data && (data.guardians ?? []).length > 1 && picked && (
-        <BegleiterSidebar
+        <WaechterSidebar
           list={data.guardians!}
           picked={picked}
           onPick={(b) => { setPicked(b); setTroopCounts({}); }}
@@ -333,7 +333,7 @@ export function SingleEinsatzModal({
 // ════════════════════════════════════════════════════════════════════
 // 3) MULTI-EINSATZ-MODAL
 // ════════════════════════════════════════════════════════════════════
-type MultiSlot = { begleiter: Begleiter | null; troops: Record<string, number> };
+type MultiSlot = { waechter: Waechter | null; troops: Record<string, number> };
 
 export function MultiEinsatzModal({
   targetLat, targetLng, onClose, onSent,
@@ -343,7 +343,7 @@ export function MultiEinsatzModal({
   onSent?: () => void;
 }) {
   const [data, setData] = useState<HeimatTroopsRes | null>(null);
-  const [slots, setSlots] = useState<MultiSlot[]>([{ begleiter: null, troops: {} }]);
+  const [slots, setSlots] = useState<MultiSlot[]>([{ waechter: null, troops: {} }]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -359,7 +359,7 @@ export function MultiEinsatzModal({
         const j = await troopsR.json() as HeimatTroopsRes;
         setData(j);
         if (j.guardians && j.guardians.length > 0) {
-          setSlots([{ begleiter: j.guardians[0], troops: {} }]);
+          setSlots([{ waechter: j.guardians[0], troops: {} }]);
         }
       }
       if (baseR.ok) {
@@ -383,7 +383,7 @@ export function MultiEinsatzModal({
   function addSlot() {
     if (slots.length >= queueCap) return;
     const next = data?.guardians?.[slots.length] ?? data?.guardians?.[0] ?? null;
-    setSlots((p) => [...p, { begleiter: next, troops: {} }]);
+    setSlots((p) => [...p, { waechter: next, troops: {} }]);
     setActiveIdx(slots.length);
   }
   function removeSlot(idx: number) {
@@ -396,13 +396,13 @@ export function MultiEinsatzModal({
     setBusy(true); setMsg(null);
     try {
       const marches = slots
-        .filter((s) => s.begleiter && Object.values(s.troops).some((n) => n > 0))
+        .filter((s) => s.waechter && Object.values(s.troops).some((n) => n > 0))
         .map((s) => ({
           target_lat: targetLat,
           target_lng: targetLng,
           troops: s.troops,
-          guardian_id: s.begleiter!.id,
-          legion_label: s.begleiter!.name,
+          guardian_id: s.waechter!.id,
+          legion_label: s.waechter!.name,
         }));
       if (marches.length === 0) { setMsg("❌ Mindestens 1 Slot mit Truppen nötig"); setBusy(false); return; }
       const r = await fetch("/api/base/coord-march", {
@@ -422,7 +422,7 @@ export function MultiEinsatzModal({
   }
 
   const slot = slots[activeIdx];
-  const matchClass = matchingTroopClass(slot?.begleiter?.guardian_type);
+  const matchClass = matchingTroopClass(slot?.waechter?.guardian_type);
   const matchedTroops = useMemo(
     () => (data?.troops ?? []).filter((t) => t.troop_class === matchClass && t.have > 0),
     [data, matchClass],
@@ -507,9 +507,9 @@ export function MultiEinsatzModal({
         <div style={{ overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
           {!data && <div style={{ color: "#8B8FA3", fontSize: 12, textAlign: "center", padding: 20 }}>Lade…</div>}
 
-          {slot?.begleiter && <BegleiterBanner begleiter={slot.begleiter} />}
+          {slot?.waechter && <WaechterBanner waechter={slot.waechter} />}
 
-          {slot?.begleiter && (
+          {slot?.waechter && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {matchedTroops.length === 0 && (
                 <div style={{ color: "#8B8FA3", fontSize: 11, padding: 10, textAlign: "center", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 8 }}>
@@ -556,12 +556,12 @@ export function MultiEinsatzModal({
       </div>
       </div>
 
-      {/* Begleiter-Sidebar am rechten Bildschirmrand */}
+      {/* Wächter-Sidebar am rechten Bildschirmrand */}
       {data && (data.guardians ?? []).length > 0 && (
-        <BegleiterSidebar
+        <WaechterSidebar
           list={data.guardians!}
-          picked={slot?.begleiter ?? null}
-          onPick={(b) => setSlot(activeIdx, { begleiter: b, troops: {} })}
+          picked={slot?.waechter ?? null}
+          onPick={(b) => setSlot(activeIdx, { waechter: b, troops: {} })}
         />
       )}
     </div>
@@ -587,9 +587,9 @@ function ModalHeader({ title, onClose }: { title: string; onClose: () => void })
 }
 
 // Großformatige Showcase-Card mit Portrait oben + Stats unten
-function BegleiterShowcase({ begleiter, fillHeight }: { begleiter: Begleiter; fillHeight?: boolean }) {
-  const rarityColor = RARITY_COLOR[begleiter.rarity ?? "common"] ?? PRIMARY;
-  const classColor = CLASS_COLOR[begleiter.guardian_type ?? "infantry"] ?? PRIMARY;
+function WaechterShowcase({ waechter, fillHeight }: { waechter: Waechter; fillHeight?: boolean }) {
+  const rarityColor = RARITY_COLOR[waechter.rarity ?? "common"] ?? PRIMARY;
+  const classColor = CLASS_COLOR[waechter.guardian_type ?? "infantry"] ?? PRIMARY;
   return (
     <div style={{
       display: "flex", flexDirection: "column",
@@ -611,8 +611,8 @@ function BegleiterShowcase({ begleiter, fillHeight }: { begleiter: Begleiter; fi
         position: "relative",
       }}>
         <div style={{ position: "absolute", inset: 0 }}>
-          <Begleiter3D
-            archetypeId={begleiter.archetype_id ?? undefined}
+          <Waechter3D
+            archetypeId={waechter.archetype_id ?? undefined}
             animation="idle"
             height="100%"
             background="transparent"
@@ -623,16 +623,16 @@ function BegleiterShowcase({ begleiter, fillHeight }: { begleiter: Begleiter; fi
       <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
           <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: rarityColor, textTransform: "uppercase" }}>
-            {begleiter.rarity ?? "common"}
+            {waechter.rarity ?? "common"}
           </div>
           <div style={{
             padding: "1px 5px", borderRadius: 4, background: `${GOLD}22`, border: `1px solid ${GOLD}66`,
             fontSize: 9, fontWeight: 900, color: GOLD, letterSpacing: 0.5,
-          }}>Lv {begleiter.level}</div>
-          <ClassChip cls={begleiter.guardian_type ?? "infantry"} small />
+          }}>Lv {waechter.level}</div>
+          <ClassChip cls={waechter.guardian_type ?? "infantry"} small />
         </div>
-        <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 14, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{begleiter.name}</div>
-        {begleiter.ability_name && (
+        <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 14, lineHeight: 1.1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{waechter.name}</div>
+        {waechter.ability_name && (
           <div style={{
             marginTop: 2, padding: "4px 6px",
             borderRadius: 6,
@@ -640,11 +640,11 @@ function BegleiterShowcase({ begleiter, fillHeight }: { begleiter: Begleiter; fi
             border: `1px solid ${classColor}33`,
           }}>
             <div style={{ fontSize: 9, color: classColor, fontWeight: 800, letterSpacing: 0.4 }}>
-              ✦ {begleiter.ability_name}
+              ✦ {waechter.ability_name}
             </div>
-            {begleiter.ability_desc && (
+            {waechter.ability_desc && (
               <div style={{ fontSize: 9, color: "#C8CDD9", lineHeight: 1.35, marginTop: 2 }}>
-                {begleiter.ability_desc}
+                {waechter.ability_desc}
               </div>
             )}
           </div>
@@ -654,9 +654,9 @@ function BegleiterShowcase({ begleiter, fillHeight }: { begleiter: Begleiter; fi
   );
 }
 
-function BegleiterBanner({ begleiter }: { begleiter: Begleiter }) {
-  const rarityColor = RARITY_COLOR[begleiter.rarity ?? "common"] ?? PRIMARY;
-  const classColor = CLASS_COLOR[begleiter.guardian_type ?? "infantry"] ?? PRIMARY;
+function WaechterBanner({ waechter }: { waechter: Waechter }) {
+  const rarityColor = RARITY_COLOR[waechter.rarity ?? "common"] ?? PRIMARY;
+  const classColor = CLASS_COLOR[waechter.guardian_type ?? "infantry"] ?? PRIMARY;
   return (
     <div style={{
       display: "flex", gap: 12, alignItems: "stretch",
@@ -673,31 +673,31 @@ function BegleiterBanner({ begleiter }: { begleiter: Begleiter }) {
         position: "relative",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
-        <PortraitCard begleiter={begleiter} medium />
+        <PortraitCard waechter={waechter} medium />
       </div>
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: rarityColor, textTransform: "uppercase" }}>
-            {begleiter.rarity ?? "common"}
+            {waechter.rarity ?? "common"}
           </div>
           <div style={{
             padding: "1px 6px", borderRadius: 4, background: `${GOLD}22`, border: `1px solid ${GOLD}66`,
             fontSize: 9, fontWeight: 900, color: GOLD, letterSpacing: 0.5,
-          }}>Lv {begleiter.level}</div>
+          }}>Lv {waechter.level}</div>
         </div>
-        <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 16, lineHeight: 1.1 }}>{begleiter.name}</div>
+        <div style={{ color: "#F0F0F0", fontWeight: 900, fontSize: 16, lineHeight: 1.1 }}>{waechter.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <ClassChip cls={begleiter.guardian_type ?? "infantry"} small />
-          {begleiter.role && (
-            <span style={{ fontSize: 10, color: "#8B8FA3" }}>· {begleiter.role}</span>
+          <ClassChip cls={waechter.guardian_type ?? "infantry"} small />
+          {waechter.role && (
+            <span style={{ fontSize: 10, color: "#8B8FA3" }}>· {waechter.role}</span>
           )}
         </div>
-        {begleiter.ability_name && (
+        {waechter.ability_name && (
           <div style={{
             fontSize: 10, color: classColor, fontWeight: 700, marginTop: 1,
             display: "flex", alignItems: "center", gap: 4,
           }}>
-            ✦ {begleiter.ability_name}
+            ✦ {waechter.ability_name}
           </div>
         )}
       </div>
@@ -709,16 +709,16 @@ function BegleiterBanner({ begleiter }: { begleiter: Begleiter }) {
 // Emoji-Card mit Klassen-Farbe + Rarity-Glow. Funktioniert für alle Archetypes,
 // keine 3D- oder PNG-Probleme.
 function PortraitCard({
-  begleiter, large, medium, thumb,
-}: { begleiter: Begleiter; large?: boolean; medium?: boolean; thumb?: boolean }) {
-  const rarityColor = RARITY_COLOR[begleiter.rarity ?? "common"] ?? PRIMARY;
-  const classColor = CLASS_COLOR[begleiter.guardian_type ?? "infantry"] ?? PRIMARY;
-  const url = begleiter.image_url;
+  waechter, large, medium, thumb,
+}: { waechter: Waechter; large?: boolean; medium?: boolean; thumb?: boolean }) {
+  const rarityColor = RARITY_COLOR[waechter.rarity ?? "common"] ?? PRIMARY;
+  const classColor = CLASS_COLOR[waechter.guardian_type ?? "infantry"] ?? PRIMARY;
+  const url = waechter.image_url;
   if (url) {
     return (
       <img
         src={url}
-        alt={begleiter.name}
+        alt={waechter.name}
         style={{
           width: thumb ? "92%" : "94%",
           height: thumb ? "92%" : "94%",
@@ -747,17 +747,17 @@ function PortraitCard({
         filter: `drop-shadow(0 4px 8px ${classColor}88)`,
         userSelect: "none",
       }}>
-        {begleiter.emoji ?? "🛡"}
+        {waechter.emoji ?? "🛡"}
       </span>
     </div>
   );
 }
 
 // Sidebar am LINKEN Bildschirmrand — fixe Position, schwebt neben dem Modal.
-// Zeigt eine vertikale Säule der verfügbaren Begleiter zum schnellen Wechsel.
-function BegleiterSidebar({
+// Zeigt eine vertikale Säule der verfügbaren Wächter zum schnellen Wechsel.
+function WaechterSidebar({
   list, picked, onPick,
-}: { list: Begleiter[]; picked: Begleiter | null; onPick: (b: Begleiter) => void }) {
+}: { list: Waechter[]; picked: Waechter | null; onPick: (b: Waechter) => void }) {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
@@ -815,7 +815,7 @@ function BegleiterSidebar({
               overflow: "hidden",
               position: "relative",
             }}>
-              <Begleiter3D
+              <Waechter3D
                 archetypeId={b.archetype_id ?? undefined}
                 animation="idle"
                 height="100%"
@@ -833,9 +833,9 @@ function BegleiterSidebar({
   );
 }
 
-function BegleiterPicker({
+function WaechterPicker({
   list, picked, onPick, vertical,
-}: { list: Begleiter[]; picked: Begleiter | null; onPick: (b: Begleiter) => void; vertical?: boolean }) {
+}: { list: Waechter[]; picked: Waechter | null; onPick: (b: Waechter) => void; vertical?: boolean }) {
   return (
     <div style={{
       display: "flex",
@@ -882,7 +882,7 @@ function BegleiterPicker({
               position: "relative",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <PortraitCard begleiter={b} thumb />
+              <PortraitCard waechter={b} thumb />
             </div>
             {!vertical && (
               <div style={{

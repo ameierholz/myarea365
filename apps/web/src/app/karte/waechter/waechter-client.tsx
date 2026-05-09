@@ -5,8 +5,8 @@ import { useState } from "react";
 
 // Lazy-load der Three.js-Komponente — three+r3f sind ~700KB gz, sollen nur
 // beim tatsächlichen Öffnen dieses Tabs geladen werden, nicht im Hauptbundle.
-const Begleiter3D = dynamic(
-  () => import("@/components/begleiter-3d").then((m) => m.Begleiter3D),
+const Waechter3D = dynamic(
+  () => import("@/components/waechter-3d").then((m) => m.Waechter3D),
   { ssr: false, loading: () => <Loading /> }
 );
 
@@ -25,7 +25,7 @@ const ANIMS: Array<{ id: Animation; label: string; emoji: string }> = [
   { id: "death",    label: "Niederlage",  emoji: "💀" },
 ];
 
-export function BegleiterClient() {
+export function WaechterClient() {
   const [anim, setAnim] = useState<Animation>("idle");
 
   return (
@@ -41,7 +41,7 @@ export function BegleiterClient() {
         boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
         overflow: "hidden",
       }}>
-        <Begleiter3D animation={anim} height={350} background="transparent" />
+        <Waechter3D animation={anim} height={350} background="transparent" />
         {/* Animation-Label oben */}
         <div style={{
           position: "absolute", top: 8, left: 12,

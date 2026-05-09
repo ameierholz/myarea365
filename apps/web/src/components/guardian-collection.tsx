@@ -117,7 +117,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
         }}>{tGC("shopBtn")}</button>
       </div>
 
-      {/* Starter-Wahl wenn User noch keinen Begleiter hat */}
+      {/* Starter-Wahl wenn User noch keinen Wächter hat */}
       {col.owned.length === 0 && (
         <div style={{
           padding: 12, borderRadius: 12, marginBottom: 12,
@@ -154,7 +154,7 @@ export function GuardianCollectionPanel({ onChange }: { onChange?: () => void })
         </div>
       )}
 
-      {/* Besessene Begleiter */}
+      {/* Besessene Wächter */}
       <div style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 800, letterSpacing: 0.8, marginBottom: 6 }}>
         {tGC("myGuardians", { count: col.owned.length })}
       </div>

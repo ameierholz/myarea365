@@ -1127,7 +1127,7 @@ function GuardianLeaderboardView() {
   const main = (
     <div>
       {!data ? (
-        <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Begleiter-Ranglisten…</div>
+        <div style={{ padding: 20, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>Lade Wächter-Ranglisten…</div>
       ) : currentRows.length === 0 ? (
         <div style={{ padding: 30, textAlign: "center", color: "#8B8FA3", fontSize: 12 }}>
           {subTab === "winrate" ? "Win-Rate-Rangliste benötigt mindestens 5 Kämpfe" : "Noch keine Daten"}
@@ -1197,7 +1197,7 @@ function GuardianLeaderboardView() {
   );
 }
 
-/* ═══ Arena Leaderboard (Begleiter-PvP) ═══ */
+/* ═══ Arena Leaderboard (Wächter-PvP) ═══ */
 type ArenaHonorRow = {
   user_id: string;
   username: string | null;
@@ -1569,7 +1569,7 @@ function ArenaLeaderboardView() {
         }
       } catch {}
       setIsDemo(true);
-      // Demo-Rows mit realen Begleiter-URLs anreichern (Eisenhand + Altmetall-Krieger)
+      // Demo-Rows mit realen Wächter-URLs anreichern (Eisenhand + Altmetall-Krieger)
       try {
         const r = await fetch("/api/guardian/archetypes-public?ids=eisenhand,schrotthaendler");
         const j = await r.json();
@@ -1626,7 +1626,7 @@ function ArenaLeaderboardView() {
           )}
         </div>
         <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2 }}>Rangliste der Gladiatoren</div>
-        <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>Ehre = Siege × Level × 10 — Begleiter-PvP aus der Arena</div>
+        <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>Ehre = Siege × Level × 10 — Wächter-PvP aus der Arena</div>
       </div>
 
       {/* Globale Stats (über Podium) */}
@@ -1643,7 +1643,7 @@ function ArenaLeaderboardView() {
             const avatarSize = isMobile ? (rank === 1 ? 54 : 44) : (rank === 1 ? 72 : 56);
             return (
               <div key={r.user_id} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                {/* Begleiter-Avatar (Video > Bild > Emoji) */}
+                {/* Wächter-Avatar (Video > Bild > Emoji) */}
                 <div style={{
                   width: avatarSize, height: avatarSize, borderRadius: "50%", overflow: "hidden",
                   border: `2px solid ${color}`,

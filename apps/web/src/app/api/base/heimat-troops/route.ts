@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * GET /api/base/heimat-troops
  *   Vereinfachter Endpoint für die Heimat-Karte-Modals (Legion/Multi/Hide):
  *   verheiratet user_troops mit troops_catalog und liefert flachen
- *   Truppen-Bestand + aktive Begleiter + March-Caps in einem Call.
+ *   Truppen-Bestand + aktive Wächter + March-Caps in einem Call.
  */
 export async function GET() {
   const sb = await createClient();
@@ -56,7 +56,7 @@ export async function GET() {
       id: g.id,
       level: g.level,
       archetype_id: arch?.id ?? null,
-      name: arch?.name ?? "Begleiter",
+      name: arch?.name ?? "Wächter",
       emoji: arch?.emoji ?? null,
       guardian_type: arch?.guardian_type ?? null,
       role: arch?.role ?? null,

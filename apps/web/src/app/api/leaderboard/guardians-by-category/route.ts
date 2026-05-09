@@ -6,7 +6,7 @@ export const revalidate = 60;
 
 /**
  * GET /api/leaderboard/guardians-by-category
- * Beste Begleiter pro Typ und pro Rarität — jeweils Top 5.
+ * Beste Wächter pro Typ und pro Rarität — jeweils Top 5.
  */
 export async function GET() {
   const sb = await createClient();

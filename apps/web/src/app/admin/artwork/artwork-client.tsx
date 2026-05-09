@@ -216,7 +216,7 @@ export function ArtworkAdminClient() {
   const doneModalBg = Object.values(cosmetic.modal_background ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
-    { id: "archetype", label: "🛡️ Begleiter",        done: doneArch,   total: archetypes.length },
+    { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
     { id: "item",      label: "⚔️ Ausrüstung",     done: doneItems,  total: items.length },
     { id: "material",  label: "🧱 Materialien",    done: doneMat,    total: materials.length },
     { id: "siegel",    label: "🏅 Siegel",          done: doneSiegel, total: SIEGEL_TYPES.length },
@@ -244,7 +244,7 @@ export function ArtworkAdminClient() {
     <div>
       <h1 className="text-2xl font-black mb-1">🎨 Artwork-Generator</h1>
       <p className="text-sm text-[#a8b4cf] mb-3">
-        KI-Prompts (Bild & Video) für Gemini Pro / Veo 2 / Midjourney generieren und die fertigen Assets direkt hochladen — für Begleiter, Map-Icons, Runner-Lights und Pin-Themes.
+        KI-Prompts (Bild & Video) für Gemini Pro / Veo 2 / Midjourney generieren und die fertigen Assets direkt hochladen — für Wächter, Map-Icons, Runner-Lights und Pin-Themes.
       </p>
 
       {/* Tab-Switcher */}
@@ -748,7 +748,7 @@ function buildItemPrompt(item: Item): string {
 }
 
 /* ═════════════════════════════════════════════════════════ */
-/*  Tab: Begleiter-Bilder (60 Archetypes)                       */
+/*  Tab: Wächter-Bilder (60 Archetypes)                       */
 /* ═════════════════════════════════════════════════════════ */
 function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onChange: () => void }) {
   const [filterRarity, setFilterRarity] = useState<string>("ALL");
@@ -863,7 +863,7 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         ))}
       </div>
       {filtered.length === 0 && (
-        <div className="p-10 text-center text-sm text-[#8B8FA3]">Keine Begleiter passen zu den Filtern.</div>
+        <div className="p-10 text-center text-sm text-[#8B8FA3]">Keine Wächter passen zu den Filtern.</div>
       )}
     </div>
   );
@@ -876,7 +876,7 @@ function WipeArchetypeArtworksButton({ onDone }: { onDone: () => void }) {
     <>
       <button
         onClick={async () => {
-          if (!confirm("ALLE Begleiter-Artworks (Bild + Video) aus Storage und DB löschen? Nicht rückgängig zu machen.")) return;
+          if (!confirm("ALLE Wächter-Artworks (Bild + Video) aus Storage und DB löschen? Nicht rückgängig zu machen.")) return;
           setBusy(true); setMsg(null);
           try {
             const res = await fetch("/api/admin/artwork/wipe-archetypes", { method: "POST" });
@@ -887,7 +887,7 @@ function WipeArchetypeArtworksButton({ onDone }: { onDone: () => void }) {
         }}
         disabled={busy}
         className="bg-[#FF2D78]/20 border border-[#FF2D78]/50 text-[#FF2D78] rounded-lg px-3 py-1 text-xs font-bold hover:bg-[#FF2D78]/30 disabled:opacity-50"
-        title="Löscht alle Begleiter-Bilder/Videos für Re-Generierung mit neuen Prompts"
+        title="Löscht alle Wächter-Bilder/Videos für Re-Generierung mit neuen Prompts"
       >
         {busy ? "Lösche…" : "🗑️ Wipe Artworks"}
       </button>

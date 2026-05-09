@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/guardian/xp-items
- * Liefert Katalog + eigenes Inventar an Begleiter-XP-Elixieren.
+ * Liefert Katalog + eigenes Inventar an Wächter-XP-Elixieren.
  */
 export async function GET() {
   const sb = await createClient();

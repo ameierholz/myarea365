@@ -94,7 +94,7 @@ export async function POST(req: Request) {
     runner_name: "Kaelthor", crew_name: "Kaelthors Kiez-Crew",
     gems: "100", wood: "1000", stone: "750", gold: "1000", mana: "500",
     item_name: "Goldene Truhe", item_count: "2",
-    chest_kind: "Eroberer", set_name: "Begleiter-Chroniken",
+    chest_kind: "Eroberer", set_name: "Wächter-Chroniken",
     sender_name: "Aurelius", level: "3", points: "200", sku: "mpack_small",
     survey_title: "Erste Eindrücke", guardian_name: "Khael Sturmflügel",
     offer_name: "Erstläufer-Paket", kind: "google", emoji: "🔐", label: "Google verknüpft",

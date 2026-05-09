@@ -1,4 +1,4 @@
-// Lädt Skill-Level + Talent-Bonuses eines Begleiters für die Battle-Engine.
+// Lädt Skill-Level + Talent-Bonuses eines Wächters für die Battle-Engine.
 // Aggregiert talent_nodes.effect_key × rank × effect_per_rank zu BattleInput-tauglichen Feldern.
 
 import type { SupabaseClient } from "@supabase/supabase-js";

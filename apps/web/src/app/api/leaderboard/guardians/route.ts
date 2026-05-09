@@ -7,9 +7,9 @@ export const revalidate = 60;
 /**
  * GET /api/leaderboard/guardians
  * Drei Ranglisten in einem Call:
- * - top_level: Begleiter mit höchstem Level (inkl. Runner-Info)
- * - most_played: Begleiter mit meisten Arena-Kämpfen (wins+losses)
- * - top_win_rate: Begleiter mit bester Win-Rate (min 5 Kämpfe)
+ * - top_level: Wächter mit höchstem Level (inkl. Runner-Info)
+ * - most_played: Wächter mit meisten Arena-Kämpfen (wins+losses)
+ * - top_win_rate: Wächter mit bester Win-Rate (min 5 Kämpfe)
  */
 export async function GET() {
   const sb = await createClient();

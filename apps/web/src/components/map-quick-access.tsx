@@ -98,7 +98,7 @@ export function MapQuickAccess({
   achievementsReady = 0,
   strongholdsNearby = 0,
 }: {
-  /** Öffnet das Profil-Dashboard-Modal (zeigt Base/Begleiter/Crew als Karten). */
+  /** Öffnet das Profil-Dashboard-Modal (zeigt Base/Wächter/Crew als Karten). */
   onOpenProfile: () => void;
   onOpenCrewModal: () => void;
   onOpenInbox: () => void;

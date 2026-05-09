@@ -84,7 +84,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "guardian", label: "Begleiter", icon: "🐾", color: PINK,
+    id: "guardian", label: "Wächter", icon: "🐾", color: PINK,
     rows: [
       { stat: "guardians_unlocked",      label: "Freigeschaltet" },
       { stat: "guardian_max_level",      label: "Höchste Stufe" },

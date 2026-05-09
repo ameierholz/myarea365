@@ -2285,7 +2285,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
       )}
 
-      {/* Profil-Modal: Dashboard-Karten (Base/Begleiter/Crew) als Overlay über der Map */}
+      {/* Profil-Modal: Dashboard-Karten (Base/Wächter/Crew) als Overlay über der Map */}
       {profileModalOpen && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 9100,
@@ -2344,7 +2344,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       )}
 
       {/* Crew-Modal: vollwertige CrewTab-Inhalte als Overlay über der Karte
-          (alle 12 Subtabs: Übersicht/Feed/Mitglieder/Begleiter/Challenges/Events/Chat/
+          (alle 12 Subtabs: Übersicht/Feed/Mitglieder/Wächter/Challenges/Events/Chat/
           Forschung/Bauwerke/Kopfgelder/Lagerhaus/Einstellungen) */}
       {mapCrewModalOpen && (
         <div style={{
@@ -2462,7 +2462,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         defenderName={heimatTapDefender?.name ?? null}
       />
 
-      {/* Live-Marker für aktive Begleiter-Märsche (eigene + Crew) */}
+      {/* Live-Marker für aktive Wächter-Märsche (eigene + Crew) */}
       <HeimatMarchMarkers />
 
       {/* Verlegen-Modus: Banner oben + Bestätigung wenn Ziel gesetzt */}
@@ -2732,7 +2732,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               if (data.error === "too_far") { await appAlert(tMD("tooFarTemple", { meters: data.distance_m })); return; }
               if (data.error === "location_required") { await appAlert(tMD("gpsRequired")); return; }
               if (data.ok) {
-                await appAlert(`🙏 +${data.xp_gained} Begleiter-Erfahrung`);
+                await appAlert(`🙏 +${data.xp_gained} Wächter-Erfahrung`);
                 const r = await fetch("/api/map-features", { cache: "no-store" });
                 if (r.ok) setMapFeatures(await r.json());
               }
@@ -3094,7 +3094,7 @@ function ProfilTab({
     return () => { cancelled = true; clearInterval(iv); };
   }, [p?.id, supabase]);
 
-  // Aktiver Begleiter für den Profil-Teaser-Block
+  // Aktiver Wächter für den Profil-Teaser-Block
   type ActiveGuardian = {
     id: string; level: number; wins: number; losses: number;
     current_hp_pct: number;
@@ -3675,7 +3675,7 @@ function ProfilTab({
           </button>
         )}
 
-        {/* ═══ AKTIVER Begleiter — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
+        {/* ═══ AKTIVER Wächter — Teaser-Block mit Video/Bild, Stats, Arena-CTA ═══ */}
         {activeGuardian && activeGuardian.archetype && (
           <SectionHeader title={tMD("labelGuardian")} action={<GuardianHelpButton />} />
         )}
@@ -3692,7 +3692,7 @@ function ProfilTab({
             }}
             aria-label={tMD("ariaOpenGuardianDetails")}
           >
-            {/* Portrait — bunter Gradient damit chroma-keyed Begleiter pop'pt */}
+            {/* Portrait — bunter Gradient damit chroma-keyed Wächter pop'pt */}
             {(() => {
               const typeColor = ARENA_TYPE_META[activeGuardian.archetype.guardian_type ?? ""]?.color ?? "#FF2D78";
               return (
@@ -3719,7 +3719,7 @@ function ProfilTab({
 
             {/* Text */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: "#FF6B4A" }}>⚔️ AKTIVER Begleiter</div>
+              <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.4, color: "#FF6B4A" }}>⚔️ AKTIVER Wächter</div>
               <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {activeGuardian.archetype.name}
               </div>
@@ -3753,7 +3753,7 @@ function ProfilTab({
           </button>
         )}
 
-        {/* ═══ DEINE CREW — Kompakt-Banner (parallel zu Base/Begleiter) ═══ */}
+        {/* ═══ DEINE CREW — Kompakt-Banner (parallel zu Base/Wächter) ═══ */}
         {(() => {
           const isAdmin = !!(myCrew && p && myCrew.owner_id === p.id);
           const repCount = crewSummary?.count_alive ?? 0;
@@ -9734,7 +9734,7 @@ function PowerZoneModal({ zone, onClose }: {
         </div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 14 }}>{zone.name}</div>
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.55 }}>
-          Wenn du innerhalb dieser Zone (Radius <strong>{zone.radius_m} m</strong>) läufst, bekommt dein <strong style={{ color: "#22D1C3" }}>Begleiter</strong> folgende passive Buffs:
+          Wenn du innerhalb dieser Zone (Radius <strong>{zone.radius_m} m</strong>) läufst, bekommt dein <strong style={{ color: "#22D1C3" }}>Wächter</strong> folgende passive Buffs:
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 16 }}>
           {buffs.map(([label, val, color]) => (
@@ -9751,7 +9751,7 @@ function PowerZoneModal({ zone, onClose }: {
           ))}
         </div>
         <div style={{ fontSize: 10, color: "#8B8FA3", marginBottom: 14, lineHeight: 1.5, fontStyle: "italic" }}>
-          Power-Zones sind strategische Orte. Nutze sie für Trainings-Runden, um deinen Begleiter schneller zu leveln — vor allem vor großen Arena-Kämpfen oder Area-Boss-Raids.
+          Power-Zones sind strategische Orte. Nutze sie für Trainings-Runden, um deinen Wächter schneller zu leveln — vor allem vor großen Arena-Kämpfen oder Area-Boss-Raids.
         </div>
         <button onClick={onClose} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: `${zone.color}22`, border: `1px solid ${zone.color}`, color: zone.color, fontSize: 12, fontWeight: 900, cursor: "pointer" }}>Verstanden</button>
       </div>
@@ -9792,7 +9792,7 @@ function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
           <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,215,0,0.3)" }}>
             <div style={{ fontSize: 18, marginBottom: 3 }}>🥇</div>
             <div style={{ color: "#FFD700", fontSize: 10, fontWeight: 900, marginBottom: 2 }}>NUR DIE STÄRKSTE CREW GEWINNT</div>
-            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>Crew mit dem meisten Gesamt-Damage holt den Loot. Begleiter-Level + Ausrüstung entscheiden.</div>
+            <div style={{ color: "#a8b4cf", fontSize: 10, lineHeight: 1.4 }}>Crew mit dem meisten Gesamt-Damage holt den Loot. Wächter-Level + Ausrüstung entscheiden.</div>
           </div>
           <div style={{ padding: 8, borderRadius: 10, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(168,85,247,0.3)" }}>
             <div style={{ fontSize: 18, marginBottom: 3 }}>👥</div>
@@ -9880,9 +9880,9 @@ function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
       <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
         <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
-        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>Begleiter-SANCTUARY</div>
+        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>Wächter-SANCTUARY</div>
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.5 }}>
-          Tägliches Training stärkt deinen Begleiter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Begleiter-Erfahrung</strong> zu holen.
+          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen.
         </div>
         {distM !== null && (
           <div style={{

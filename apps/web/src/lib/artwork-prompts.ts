@@ -170,7 +170,7 @@ export function generateAllPrompts(): GeneratedPrompt[] {
   return out;  // 8 × 4 × 4 = 128
 }
 
-/** Prompt für Begleiter-Archetyp (Charakter-Illustration oder animiertes Video) */
+/** Prompt für Wächter-Archetyp (Charakter-Illustration oder animiertes Video) */
 export type ArchetypeSpecies =
   | "human" | "elf" | "orc" | "beast" | "construct" | "spirit"
   | "undead" | "demon" | "celestial" | "dragonkin" | "cosmic"
@@ -208,7 +208,7 @@ const CLASS_MOD: Record<string, string> = {
   support: "caring protective pose, one hand extended in a casting / blessing gesture, robe with arcane sigils, warm secondary light around the casting hand, ethereal aura around the head",
 };
 
-// Spezies-Profile — DAS ist der Hauptgrund warum Begleiter unterschiedlich aussehen.
+// Spezies-Profile — DAS ist der Hauptgrund warum Wächter unterschiedlich aussehen.
 // Jede Spezies hat eine eigene Silhouette / Hautton / Körperbau / Augen / Detail-Marker.
 // Wird deterministisch über die Spalte `species` aus der DB gewählt — KEIN Hash-Pick.
 const SPECIES_PROFILE: Record<string, { subject: string; signature: string; auraColor: { name: string; primary: string; secondary: string } }> = {
@@ -429,7 +429,7 @@ export function buildArchetypePrompt(input: ArchetypePromptInput | string, legac
     ? in_.gender
     : in_.gender === "neutral" ? "neutral" : detectGenderFromName(in_.name);
 
-  // Variation je Begleiter-Name (additive Details, nicht das Hauptmerkmal):
+  // Variation je Wächter-Name (additive Details, nicht das Hauptmerkmal):
   const hair   = gender === "neutral"
     ? "no hair (or featureless headpiece appropriate to the species)"
     : nameHashPick(in_.name + ":hair",   gender === "female" ? HAIR_VARIANTS_FEMALE : HAIR_VARIANTS_MALE);
@@ -917,7 +917,7 @@ export function buildBaseThemePrompt(input: {
   const negative = baseNegative + (asset === "pin" ? pinNegative : "");
 
   // ════════════════════════════════════════════════════════════════════
-  // PIN-MODE: Greenscreen-Pipeline wie bei Begleiter-Prompts
+  // PIN-MODE: Greenscreen-Pipeline wie bei Wächter-Prompts
   // (Background-Anweisung muss als ZWEITE Zeile direkt hinter Shot-Spec
   //  stehen, sonst ignoriert Veo sie und produziert dunkle Szenen.)
   // ════════════════════════════════════════════════════════════════════
@@ -1597,10 +1597,10 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
   { id: "key_gold",   category: "key", name: "Goldener Schlüssel",  fallbackEmoji: "🗝", accent: "#FFD700", rarity: "epic",
     subject: "an ornate medieval gold skeleton-key with intricate dragon-shaped bow, polished brilliant gold, warm radiant glow, gem-inset ring-loop" },
 
-  // ── ELIXIRS (Begleiter-XP 5k / 20k) ────────────────────────────────
-  { id: "elixir_5k",  category: "elixir", name: "Begleiter-Elixier (5.000 XP)",  fallbackEmoji: "🧪", accent: "#a855f7", rarity: "rare",
+  // ── ELIXIRS (Wächter-XP 5k / 20k) ────────────────────────────────
+  { id: "elixir_5k",  category: "elixir", name: "Wächter-Elixier (5.000 XP)",  fallbackEmoji: "🧪", accent: "#a855f7", rarity: "rare",
     subject: "a tall ornate glass elixir bottle with swirling violet liquid and golden bubble caps, a small XP-rune label, magical violet glow" },
-  { id: "elixir_20k", category: "elixir", name: "Begleiter-Elixier (20.000 XP)", fallbackEmoji: "🧪", accent: "#FFD700", rarity: "epic",
+  { id: "elixir_20k", category: "elixir", name: "Wächter-Elixier (20.000 XP)", fallbackEmoji: "🧪", accent: "#FFD700", rarity: "epic",
     subject: "a regal large ornate glass elixir bottle with swirling gold liquid and prismatic cap, brilliant XP-burst rune label, intense golden god-light" },
 
   // ── TOKENS (Umsiedlung / Namensänderung / Premium-Ticket) ────────
@@ -2414,8 +2414,8 @@ export const MODAL_BACKGROUNDS_ART: ModalBackgroundArt[] = [
   },
   {
     id: "karte_waechter_bg",
-    name: "Begleiter — Trainingsarena",
-    description: "Hintergrund für /karte/waechter — Übungs-Hof der Begleiter",
+    name: "Wächter — Trainingsarena",
+    description: "Hintergrund für /karte/waechter — Übungs-Hof der Wächter",
     scene: "cinematic painted training-compound interior: weathered stone-and-iron rim with banners hanging from rafters, sand-and-grit floor in the foreground with crossed weapon-racks along the walls, training dummies and pell-posts, a forge glowing in the back-left, a window in the back-right opening to a sunset sky, hanging chains, ornate crew-class crests carved into pillars, ambient torchlight casting warm pools",
     mood: "rosé-sunset arena mood — palette warm rose (#FF6B4A) and apricot (#FFB088) sunset bleeding through windows, deep dusk-purple (#3A1F35) shadows, golden torch-glow accents, dramatic but inviting — feels like a heroic preparation space, equally at home in a city or village setting.",
     motion: "ONLY in-place oscillations: torch flames flicker with 1-second flicker-cycles (per torch), forge embers pulse from dim to bright and back over 2 seconds (NO drifting upward), banners sway gently in place with a 3-second left-right cycle returning to neutral, dust glitters shimmer-in-place in the window light. NO sparks traversing the frame, NO objects translating, NO character motion. Every element must end the 6-second clip in its exact starting state.",

@@ -5,15 +5,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET  /api/arena/season/pick  → Liste der wählbaren Archetypen (Begleiter aus der Collection des Users)
- * POST /api/arena/season/pick  → Wählt Saison-Begleiter: body { archetype_id }
+ * GET  /api/arena/season/pick  → Liste der wählbaren Archetypen (Wächter aus der Collection des Users)
+ * POST /api/arena/season/pick  → Wählt Saison-Wächter: body { archetype_id }
  */
 export async function GET() {
   const sb = await createClient();
   const { data: auth } = await sb.auth.getUser();
   if (!auth?.user) return NextResponse.json({ ok: false, error: "auth" }, { status: 401 });
 
-  // Alle Archetypen, die der User bereits besitzt (aus Begleiter-Collection)
+  // Alle Archetypen, die der User bereits besitzt (aus Wächter-Collection)
   // Fallback: alle verfügbaren Archetypen (für Starter)
   const { data: owned } = await sb.from("user_guardians")
     .select("archetype_id")

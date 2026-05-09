@@ -148,7 +148,7 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
             <b className="text-white">Belohnung bei Sieg</b><br/>
             • <b className="text-[#FFD700]">{stronghold.level * 500}</b> Tech-Schrott + Komponenten + Krypto (anteilig nach Beitrag)<br/>
             • <b className="text-[#FFD700]">{stronghold.level * 250}</b> Bandbreite<br/>
-            • Begleiter-XP × {stronghold.level * 10}<br/>
+            • Wächter-XP × {stronghold.level * 10}<br/>
             {stronghold.level >= 5 && <>• 🥈 Silber-Truhe (60% bei Lv 5–7)<br/></>}
             {stronghold.level >= 8 && <>• 🥇 Gold-Truhe (50% bei Lv 8+)<br/></>}
           </div>
@@ -215,7 +215,7 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
     type GRow = { id: string; level: number; archetype: { id: string; name: string; image_url: string | null; video_url: string | null } | null };
     setGuardians(((g.data ?? []) as unknown as GRow[]).map((r) => ({
       id: r.id, level: r.level,
-      name: r.archetype?.name ?? "Begleiter",
+      name: r.archetype?.name ?? "Wächter",
       image_url: r.archetype?.image_url ?? null,
       video_url: r.archetype?.video_url ?? null,
     })));
@@ -274,13 +274,13 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
             </div>
           )}
 
-          {/* Begleiter-Auswahl */}
+          {/* Wächter-Auswahl */}
           <div>
             <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">WÄCHTER (KOMMANDANT)</div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               <button onClick={() => setSelectedGuardian(null)}
                 className={`shrink-0 w-20 h-24 rounded-lg flex flex-col items-center justify-center text-xs font-black ${selectedGuardian === null ? "bg-[#FFD700]/20 border-2 border-[#FFD700] text-[#FFD700]" : "bg-white/5 border border-white/10 text-[#a8b4cf]"}`}>
-                <span className="text-2xl">—</span><span className="text-[10px] mt-1">Kein Begleiter</span>
+                <span className="text-2xl">—</span><span className="text-[10px] mt-1">Kein Wächter</span>
               </button>
               {guardians.map((g) => (
                 <button key={g.id} onClick={() => setSelectedGuardian(g.id)}
@@ -297,7 +297,7 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
                   <span className="text-[9px] text-[#FFD700]">Lv {g.level}</span>
                 </button>
               ))}
-              {guardians.length === 0 && <div className="text-[11px] text-[#a8b4cf] py-4">Kein aktiver Begleiter</div>}
+              {guardians.length === 0 && <div className="text-[11px] text-[#a8b4cf] py-4">Kein aktiver Wächter</div>}
             </div>
           </div>
 

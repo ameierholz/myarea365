@@ -5513,7 +5513,7 @@
   },
   "Effects": {
     "storage_cap_pct": "Lager-Kapazität",
-    "guardian_xp_pct": "Begleiter-Erfahrung",
+    "guardian_xp_pct": "Wächter-Erfahrung",
     "map_range_km": "Karten-Reichweite (km)",
     "rare_storage_pct": "Lager für seltene Items",
     "craft_speed_pct": "Crafting-Tempo",

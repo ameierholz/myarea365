@@ -19,7 +19,7 @@ function adminSb(): SupabaseClient {
 
 /**
  * GET /api/admin/artwork
- * Listet alle Begleiter-Archetypen + alle Items mit aktuellem image_url.
+ * Listet alle Wächter-Archetypen + alle Items mit aktuellem image_url.
  */
 export async function GET() {
   await requireAdmin();

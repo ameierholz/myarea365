@@ -1,5 +1,5 @@
 /**
- * Helpers für das Rendering von 3D-Begleitern als 2D-Sprite-Billboards
+ * Helpers für das Rendering von 3D-Wächtern als 2D-Sprite-Billboards
  * auf der Karte (Phase 3a).
  *
  * Wird verbraucht vom MarchSpritesLayer (custom Mapbox WebGL layer).

@@ -48,7 +48,7 @@ const SYSTEM_LABEL: Record<SystemKey, string> = {
 
 const SYSTEM_DESC: Record<SystemKey, string> = {
   shop_league: "Wöchentliche Liga pro Shop. Cron Mo 00:05 UTC. Reward = Gebietsruf an Crew-Mitglieder.",
-  arena:       "Globale Begleiter-vs-Begleiter-Liga. Cron 1. d. Monats 01:00 UTC. Reward = Diamanten + Siegel an Top-100.",
+  arena:       "Globale Wächter-vs-Wächter-Liga. Cron 1. d. Monats 01:00 UTC. Reward = Diamanten + Siegel an Top-100.",
   turf_war:    "Monatliche Crew-Liga (Revier-Cups + Flag-Events + Territorien). Cron Mo 00:10 UTC. Reward = Gebietsruf.",
 };
 

@@ -51,7 +51,7 @@ export async function GET() {
     : { data: [] as Array<{ id: string; name: string | null; color: string | null }> };
   const crewMap = new Map((crews ?? []).map((c) => [(c as { id: string }).id, c]));
 
-  // Aktive Begleiter pro User → für Avatar + Typ in der Rangliste
+  // Aktive Wächter pro User → für Avatar + Typ in der Rangliste
   type GuardianJoin = {
     user_id: string; archetype_id: string;
     guardian_archetypes: { name: string; emoji: string; guardian_type: string | null; image_url: string | null; video_url: string | null };
