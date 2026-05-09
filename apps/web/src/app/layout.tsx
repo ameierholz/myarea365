@@ -113,7 +113,7 @@ export default async function RootLayout({
                   url: "https://myarea365.de",
                   name: "MyArea365",
                   description:
-                    "Gamifizierte Geh- und Lauf-Community. Erschließe Straßenzüge, sammle Wegemünzen und entdecke lokale Geschäfte.",
+                    "Strategie-Aufbauspiel mit echten Städten als Schlachtfelder. Heimat-Stadt erobern, Crews schmieden, in CvC-Schlachten zum Don aufsteigen.",
                   inLanguage: LOCALE_BCP47[locale as (typeof LOCALES)[number]] ?? "de-DE",
                   publisher: { "@id": "https://myarea365.de/#organization" },
                   potentialAction: {
@@ -130,7 +130,7 @@ export default async function RootLayout({
                   applicationCategory: "HealthApplication",
                   applicationSubCategory: "Fitness",
                   description:
-                    "Gamifizierte Geh- und Lauf-Community für Android. Erschließe Straßenzüge, sammle Wegemünzen, gründe Crews.",
+                    "Strategie-Aufbauspiel für Android. Heimat-Stadt-Server, Crews gründen, Crew-vs-Crew-Schlachten, Don-Aufstieg.",
                   offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
                   publisher: { "@id": "https://myarea365.de/#organization" },
                   screenshot: "https://myarea365.de/og-default.png",

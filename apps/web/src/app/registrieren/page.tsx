@@ -8,37 +8,28 @@ import { createClient } from "@/lib/supabase/client";
 import { Mail, Lock, User, Loader2, AlertCircle, Users as UsersIcon, MapPin } from "lucide-react";
 import { HeroMap } from "@/components/hero-map-client";
 import { openLegalModal } from "@/components/legal-modal";
+import { ALL_PLAYSTYLES, type PlaystyleId } from "@/lib/playstyles";
 
 export default function RegisterPage() {
   const t = useTranslations("Register");
   const router = useRouter();
 
-  const FACTIONS = useMemo(() => [
-    {
-      id: "kronenwacht" as const,
-      name: t("factionKronenwacht"),
-      icon: "👑",
-      color: "#FFD700",
-      motto: t("factionKronenwachtMotto"),
-      buff_name: t("factionKronenwachtBuff"),
-      buff_lines: [t("factionKronenwachtBuff1"), t("factionKronenwachtBuff2")],
-    },
-    {
-      id: "gossenbund" as const,
-      name: t("factionGossenbund"),
-      icon: "🗝️",
-      color: "#22D1C3",
-      motto: t("factionGossenbundMotto"),
-      buff_name: t("factionGossenbundBuff"),
-      buff_lines: [t("factionGossenbundBuff1"), t("factionGossenbundBuff2")],
-    },
-  ], [t]);
+  // 4 Spielstile (Architekt / Warlord / Stratege / Diplomat)
+  const STYLES = useMemo(() => ALL_PLAYSTYLES.map((p) => ({
+    id: p.id,
+    name: t(`playstyle.${p.id}.name`),
+    icon: p.icon,
+    color: p.color,
+    motto: t(`playstyle.${p.id}.motto`),
+    buff_name: t(`playstyle.${p.id}.buffName`),
+    buff_lines: [t(`playstyle.${p.id}.buff1`), t(`playstyle.${p.id}.buff2`)],
+  })), [t]);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [heimatPlz, setHeimatPlz] = useState("");
-  const [faction, setFaction] = useState<"kronenwacht" | "gossenbund" | null>(null);
+  const [playstyle, setPlaystyle] = useState<PlaystyleId | null>(null);
   const [newsletter, setNewsletter] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -55,7 +46,7 @@ export default function RegisterPage() {
     setError("");
     if (username.length < 3) { setError(t("runnerNameMin")); return false; }
     if (password.length < 8) { setError(t("passwordMin")); return false; }
-    if (!faction) { setError(t("factionRequired")); return false; }
+    if (!playstyle) { setError(t("playstyleRequired")); return false; }
     if (!acceptTerms) { setError(t("termsRequired")); return false; }
     if (!heimatPlz) { setError(t("plzRequired")); return false; }
     if (!/^[0-9]{5}$/.test(heimatPlz)) { setError(t("plzInvalid")); return false; }
@@ -107,7 +98,7 @@ export default function RegisterPage() {
         data: {
           username: username.toLowerCase(),
           display_name: username,
-          faction,
+          faction: playstyle,  // schreibt neue Playstyle-IDs in legacy `faction`-Spalte
           heimat_plz: heimatPlz || null,
           newsletter_opt_in: newsletter,
           invite_code: inviteCode.trim() || null,
@@ -127,7 +118,7 @@ export default function RegisterPage() {
         id: data.user.id,
         username: username.toLowerCase(),
         display_name: username,
-        faction,
+        faction: playstyle,
         heimat_plz: heimatPlz || null,
         newsletter_opt_in: newsletter,
       });
@@ -242,31 +233,31 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {t("factionLabel")} <span className="text-text-muted font-normal">{t("factionSwitchHint")}</span>
+                  {t("playstyleLabel")} <span className="text-text-muted font-normal">{t("playstyleSwitchHint")}</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {FACTIONS.map((f) => {
-                    const active = faction === f.id;
+                  {STYLES.map((s) => {
+                    const active = playstyle === s.id;
                     return (
                       <button
-                        key={f.id} type="button" onClick={() => setFaction(f.id)}
+                        key={s.id} type="button" onClick={() => setPlaystyle(s.id)}
                         className={`p-3 rounded-lg border text-left transition-all ${active ? "border-transparent" : "border-border hover:border-primary/30"}`}
                         style={{
-                          background: active ? `${f.color}22` : undefined,
-                          borderColor: active ? f.color : undefined,
-                          boxShadow: active ? `0 0 16px ${f.color}44` : undefined,
+                          background: active ? `${s.color}22` : undefined,
+                          borderColor: active ? s.color : undefined,
+                          boxShadow: active ? `0 0 16px ${s.color}44` : undefined,
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xl">{f.icon}</span>
-                          <span className="font-bold" style={{ color: active ? f.color : undefined }}>{f.name}</span>
+                          <span className="text-xl">{s.icon}</span>
+                          <span className="font-bold" style={{ color: active ? s.color : undefined }}>{s.name}</span>
                         </div>
-                        <div className="text-[11px] text-text-muted leading-tight mb-2">{f.motto}</div>
-                        <div className="text-[11px] font-bold mb-1" style={{ color: f.color }}>⚡ {f.buff_name}</div>
+                        <div className="text-[11px] text-text-muted leading-tight mb-2">{s.motto}</div>
+                        <div className="text-[11px] font-bold mb-1" style={{ color: s.color }}>⚡ {s.buff_name}</div>
                         <ul className="text-[10px] text-text-muted leading-snug space-y-0.5 list-none">
-                          {f.buff_lines.map((line) => (
+                          {s.buff_lines.map((line) => (
                             <li key={line} className="flex items-start gap-1">
-                              <span style={{ color: f.color }}>+</span>
+                              <span style={{ color: s.color }}>+</span>
                               <span>{line}</span>
                             </li>
                           ))}
@@ -320,7 +311,7 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                disabled={loading || !acceptTerms || !faction}
+                disabled={loading || !acceptTerms || !playstyle}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("createAccount")}

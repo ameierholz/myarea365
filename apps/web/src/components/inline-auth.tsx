@@ -9,6 +9,7 @@ import { Loader2, ArrowRight, Info } from "lucide-react";
 import { getStoredReferralCode, clearStoredReferralCode } from "@/lib/referral";
 import { isCapacitorNative, APP_AUTH_CALLBACK } from "@/lib/capacitor";
 import { openLegalModal } from "@/components/legal-modal";
+import { ALL_PLAYSTYLES, type PlaystyleId } from "@/lib/playstyles";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -23,36 +24,26 @@ function GoogleIcon({ className }: { className?: string }) {
 
 export function InlineAuth() {
   const tA = useTranslations("InlineAuth");
-  const FACTIONS = useMemo(() => [
-    {
-      id: "kronenwacht" as const,
-      name: tA("factionKronenwachtName"),
-      icon: "👑",
-      color: "#FFD700",
-      motto: tA("factionKronenwachtMotto"),
-      buff_name: tA("factionKronenwachtBuffName"),
-      buff_lines: [tA("factionKronenwachtBuff1"), tA("factionKronenwachtBuff2")],
-    },
-    {
-      id: "gossenbund" as const,
-      name: tA("factionGossenbundName"),
-      icon: "🗝️",
-      color: "#22D1C3",
-      motto: tA("factionGossenbundMotto"),
-      buff_name: tA("factionGossenbundBuffName"),
-      buff_lines: [tA("factionGossenbundBuff1"), tA("factionGossenbundBuff2")],
-    },
-  ], [tA]);
+  // 4 Spielstile (Architekt / Warlord / Stratege / Diplomat) — i18n via tA(`playstyle.{id}.{key}`).
+  const STYLES = useMemo(() => ALL_PLAYSTYLES.map((p) => ({
+    id: p.id,
+    name: tA(`playstyle.${p.id}.name`),
+    icon: p.icon,
+    color: p.color,
+    motto: tA(`playstyle.${p.id}.motto`),
+    buff_name: tA(`playstyle.${p.id}.buffName`),
+    buff_lines: [tA(`playstyle.${p.id}.buff1`), tA(`playstyle.${p.id}.buff2`)],
+  })), [tA]);
   const router = useRouter();
   const [mode, setMode] = useState<"register" | "login">("register");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [heimatPlz, setHeimatPlz] = useState("");
-  const [faction, setFaction] = useState<"kronenwacht" | "gossenbund" | null>(null);
+  const [playstyle, setPlaystyle] = useState<PlaystyleId | null>(null);
   const [newsletter, setNewsletter] = useState(false); // DSGVO: Opt-in, nicht vorausgewählt
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [showFactionInfo, setShowFactionInfo] = useState(false);
+  const [showStyleInfo, setShowStyleInfo] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,11 +80,10 @@ export function InlineAuth() {
     setSuccess("");
 
     if (mode === "register") {
-      if (!faction) return setError(tA("needFaction"));
+      if (!playstyle) return setError(tA("needPlaystyle"));
       if (!acceptTerms) return setError(tA("needTerms"));
-      if (heimatPlz && !/^[0-9]{5}$/.test(heimatPlz)) {
-        return setError(tA("plzInvalid"));
-      }
+      if (!heimatPlz) return setError(tA("plzRequired"));
+      if (!/^[0-9]{5}$/.test(heimatPlz)) return setError(tA("plzInvalid"));
     }
 
     setLoading(true);
@@ -123,7 +113,7 @@ export function InlineAuth() {
         data: {
           username: username.toLowerCase(),
           display_name: username,
-          faction,
+          faction: playstyle, // schreibt neue Playstyle-IDs in legacy `faction`-Spalte
           newsletter_opt_in: newsletter,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -142,7 +132,7 @@ export function InlineAuth() {
         id: data.user.id,
         username: username.toLowerCase(),
         display_name: username,
-        faction,
+        faction: playstyle,
         heimat_plz: heimatPlz || null,
         newsletter_opt_in: newsletter,
         referred_by: referredBy,
@@ -199,50 +189,50 @@ export function InlineAuth() {
 
         {mode === "register" && (
           <>
-            {/* Fraktion */}
+            {/* Spielstil — 4 Archetypen (Architekt / Warlord / Stratege / Diplomat) */}
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-text-muted">{tA("factionLabel")}</label>
+                <label className="text-xs font-semibold text-text-muted">{tA("playstyleLabel")}</label>
                 <button
                   type="button"
-                  onClick={() => setShowFactionInfo((v) => !v)}
+                  onClick={() => setShowStyleInfo((v) => !v)}
                   className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-dim"
                 >
                   <Info className="w-3 h-3" />
-                  {showFactionInfo ? tA("closeFactionInfo") : tA("whatIsThis")}
+                  {showStyleInfo ? tA("closeInfo") : tA("whatIsThis")}
                 </button>
               </div>
-              {showFactionInfo && (
+              {showStyleInfo && (
                 <div className="absolute right-0 -top-2 -translate-y-full z-40 w-72 p-3 rounded-lg bg-bg-elevated border border-primary/60 text-[11px] text-text-muted leading-relaxed text-left shadow-2xl">
-                  {tA.rich("factionInfoRich", {
+                  {tA.rich("playstyleInfoRich", {
                     b: (chunks) => <b className="text-text">{chunks}</b>,
                   })}
-                  <span className="block mt-1 text-danger font-semibold">{tA("factionNotChangeable")}</span>
+                  <span className="block mt-1 text-text/70 font-semibold">{tA("playstyleSwitchHint")}</span>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
-                {FACTIONS.map((f) => {
-                  const active = faction === f.id;
+                {STYLES.map((s) => {
+                  const active = playstyle === s.id;
                   return (
                     <button
-                      key={f.id} type="button" onClick={() => setFaction(f.id)}
+                      key={s.id} type="button" onClick={() => setPlaystyle(s.id)}
                       className={`p-3 rounded-lg border text-left transition-all backdrop-blur-sm ${active ? "border-transparent" : "border-border hover:border-primary/30 bg-bg-elevated/60"}`}
                       style={{
-                        background: active ? `${f.color}22` : undefined,
-                        borderColor: active ? f.color : undefined,
-                        boxShadow: active ? `0 0 12px ${f.color}33` : undefined,
+                        background: active ? `${s.color}22` : undefined,
+                        borderColor: active ? s.color : undefined,
+                        boxShadow: active ? `0 0 12px ${s.color}33` : undefined,
                       }}
                     >
                       <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-base">{f.icon}</span>
-                        <span className="font-bold text-xs" style={{ color: active ? f.color : undefined }}>{f.name}</span>
+                        <span className="text-base">{s.icon}</span>
+                        <span className="font-bold text-xs" style={{ color: active ? s.color : undefined }}>{s.name}</span>
                       </div>
-                      <div className="text-[10px] text-text-muted mb-2">{f.motto}</div>
-                      <div className="text-[10px] font-bold mb-1" style={{ color: f.color }}>⚡ {f.buff_name}</div>
+                      <div className="text-[10px] text-text-muted mb-2">{s.motto}</div>
+                      <div className="text-[10px] font-bold mb-1" style={{ color: s.color }}>⚡ {s.buff_name}</div>
                       <ul className="text-[10px] text-text-muted leading-snug space-y-0.5 list-none">
-                        {f.buff_lines.map((line) => (
+                        {s.buff_lines.map((line) => (
                           <li key={line} className="flex items-start gap-1">
-                            <span style={{ color: f.color }}>+</span>
+                            <span style={{ color: s.color }}>+</span>
                             <span>{line}</span>
                           </li>
                         ))}
@@ -253,19 +243,25 @@ export function InlineAuth() {
               </div>
             </div>
 
-            {/* Heimat-PLZ (optional) — für Kiez-Badge & Nachbarschafts-Features */}
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]{5}"
-              maxLength={5}
-              value={heimatPlz}
-              onChange={(e) => setHeimatPlz(e.target.value.replace(/\D/g, "").slice(0, 5))}
-              placeholder={tA("phHeimatPlz")}
-              className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
-            />
+            {/* Heimat-PLZ — Pflicht, bestimmt Stadt-Server. DSGVO-Hinweis darunter. */}
+            <div>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{5}"
+                maxLength={5}
+                required
+                value={heimatPlz}
+                onChange={(e) => setHeimatPlz(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                placeholder={tA("phHeimatPlz")}
+                className="w-full px-4 py-2.5 rounded-lg bg-bg-elevated/80 border border-border text-text placeholder:text-text-muted/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors backdrop-blur-sm text-sm"
+              />
+              <p className="text-[10px] text-text-muted leading-relaxed mt-1.5">
+                {tA("plzPrivacyHint")}
+              </p>
+            </div>
 
-            {/* Newsletter — DSGVO: NICHT vorausgewählt */}
+            {/* Update-Newsletter (neutral, kein "Kiez") — DSGVO: nicht vorausgewählt */}
             <label className="flex items-start gap-2 cursor-pointer pt-1">
               <input
                 type="checkbox" checked={newsletter}
@@ -299,7 +295,7 @@ export function InlineAuth() {
 
         <button
           type="submit"
-          disabled={loading || (mode === "register" && (!faction || !acceptTerms))}
+          disabled={loading || (mode === "register" && (!playstyle || !acceptTerms || !heimatPlz))}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-bg-deep font-bold hover:bg-primary-dim disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
