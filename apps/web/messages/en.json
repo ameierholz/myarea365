@@ -1111,10 +1111,20 @@
   },
   "Cookie": {
     "ariaLabel": "Cookie settings",
-    "introBoldRich": "🍪 Datenschutz.",
-    "introRich": "We only set necessary cookies for login and security. For analytics and advertising we ask for your consent. Details in our <a>privacy policy</a>.",
-    "rejectBtn": "Necessary only",
-    "acceptBtn": "Accept all"
+    "title": "Privacy & Cookies",
+    "intro": "We set necessary cookies for login, security and language — these are functional and cannot be disabled. Optional: Statistics (usage analysis to improve) and Marketing (personalized ads via Google AdSense). You can change your choice anytime via the footer link „Cookie settings\". Details in our <a>privacy policy</a>.",
+    "catNecessary": "Necessary",
+    "catNecessaryDesc": "Login session, CSRF protection, language preference. Without these the app does not work.",
+    "catStatistics": "Statistics",
+    "catStatisticsDesc": "Anonymous usage data (Google Analytics) — helps us find bugs and prioritize features. No personal profiles.",
+    "catMarketing": "Marketing",
+    "catMarketingDesc": "Personalized advertising via Google AdSense (ad_storage, ad_user_data, ad_personalization). Without your consent, ad networks see no cookies from you.",
+    "alwaysActive": "Always active",
+    "rejectAllBtn": "Reject all",
+    "customizeBtn": "Customize",
+    "saveSelectionBtn": "Save selection",
+    "acceptAllBtn": "Accept all",
+    "footerHint": "Processing per GDPR Art. 6 (1) (a) (consent). Controller: see imprint. You can withdraw your consent for the future anytime."
   },
   "MapLegend": {
     "kicker": "MAP LEGEND",

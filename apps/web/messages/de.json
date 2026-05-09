@@ -1111,10 +1111,20 @@
   },
   "Cookie": {
     "ariaLabel": "Cookie-Einstellungen",
-    "introBoldRich": "🍪 Datenschutz.",
-    "introRich": "Wir setzen nur notwendige Cookies für Login und Sicherheit. Für Reichweiten-Messung und Werbung holen wir deine Zustimmung ein. Details in der <a>Datenschutzerklärung</a>.",
-    "rejectBtn": "Nur notwendige",
-    "acceptBtn": "Alle akzeptieren"
+    "title": "Datenschutz & Cookies",
+    "intro": "Wir setzen notwendige Cookies für Login, Sicherheit und Sprachwahl ein — diese sind funktional und können nicht deaktiviert werden. Optional: Statistik (Nutzungs-Analyse zur Verbesserung) und Marketing (personalisierte Werbung via Google AdSense). Du kannst deine Wahl jederzeit im Footer unter „Cookie-Einstellungen\" ändern. Details in der <a>Datenschutzerklärung</a>.",
+    "catNecessary": "Notwendig",
+    "catNecessaryDesc": "Login-Session, CSRF-Schutz, Spracheinstellung. Ohne diese funktioniert die App nicht.",
+    "catStatistics": "Statistik",
+    "catStatisticsDesc": "Anonyme Nutzungsdaten (Google Analytics) — hilft uns Bugs zu finden und Features zu priorisieren. Keine personenbezogenen Profile.",
+    "catMarketing": "Marketing",
+    "catMarketingDesc": "Personalisierte Werbung via Google AdSense (ad_storage, ad_user_data, ad_personalization). Ohne deine Zustimmung sehen Werbenetzwerke keine Cookies von dir.",
+    "alwaysActive": "Immer aktiv",
+    "rejectAllBtn": "Alle ablehnen",
+    "customizeBtn": "Auswahl anpassen",
+    "saveSelectionBtn": "Auswahl speichern",
+    "acceptAllBtn": "Alle akzeptieren",
+    "footerHint": "Verarbeitung gemäß DSGVO Art. 6 Abs. 1 lit. a (Einwilligung). Verantwortlicher: siehe Impressum. Du kannst deine Einwilligung jederzeit für die Zukunft widerrufen."
   },
   "MapLegend": {
     "kicker": "MAP-LEGENDE",

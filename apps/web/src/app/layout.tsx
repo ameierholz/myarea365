@@ -93,6 +93,47 @@ export default async function RootLayout({
         <meta name="theme-color" content="#1b2436" />
         {/* Google AdSense — bestaetigt Site-Ownership + aktiviert Ad-Serving. */}
         <meta name="google-adsense-account" content="ca-pub-9799640580685030" />
+        {/*
+          Google Consent Mode v2 — Default-Deny BEVOR irgendein Tracker laedt.
+          Nach User-Entscheidung im Cookie-Banner wird via gtag('consent','update',...)
+          freigeschaltet (siehe components/cookie-consent.tsx).
+          Re-load: `wait_for_update: 500` haelt Tracker bis zu 500ms zurueck damit
+          eine vorhandene Entscheidung aus localStorage greifen kann.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                window.gtag = window.gtag || gtag;
+                gtag('consent','default',{
+                  analytics_storage:'denied',
+                  ad_storage:'denied',
+                  ad_user_data:'denied',
+                  ad_personalization:'denied',
+                  functionality_storage:'granted',
+                  security_storage:'granted',
+                  wait_for_update: 500
+                });
+                try {
+                  var raw = window.localStorage.getItem('ma365_consent_v2');
+                  if (raw) {
+                    var s = JSON.parse(raw);
+                    if (s && s.v === 2) {
+                      gtag('consent','update',{
+                        analytics_storage: s.statistics ? 'granted' : 'denied',
+                        ad_storage:        s.marketing  ? 'granted' : 'denied',
+                        ad_user_data:      s.marketing  ? 'granted' : 'denied',
+                        ad_personalization: s.marketing ? 'granted' : 'denied'
+                      });
+                    }
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
