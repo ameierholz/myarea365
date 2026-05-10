@@ -597,7 +597,7 @@ interface AppMapProps {
   onOwnershipClick?: (kind: "segment" | "street" | "territory", id: string) => void;
   // ── Map-Features Wave ────────────────────────────────────
   powerZones?: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
-  bossRaids?: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number }>;
+  bossRaids?: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null }>;
   sanctuaries?: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean }>;
   flashPushes?: Array<{ id: string; business_id: string; business_lat: number; business_lng: number; radius_m: number; expires_at: string }>;
   shopTrail?: Array<{ business_id: string; name: string; lat: number; lng: number }>;
@@ -2507,9 +2507,39 @@ export function AppMap({
       const inner = document.createElement("div");
       inner.className = "ma365-boss-marker";
       inner.style.transformOrigin = "center bottom";
-      inner.innerHTML = `
-          <div class="ma365-boss-circle"><span class="ma365-boss-emoji">${b.emoji}</span></div>
-          <div class="ma365-boss-hpbar"><div class="ma365-boss-hpfill" style="width:${pct}%"></div></div>`;
+
+      // Visual: Artwork (video > image) ODER Emoji-Fallback. URLs stammen aus
+      // Admin-Upload (Storage), aber wir bauen via DOM-API statt String-Concat
+      // damit URL-Sonderzeichen nicht das HTML brechen können.
+      const circle = document.createElement("div");
+      circle.className = "ma365-boss-circle";
+      if (b.video_url) {
+        const v = document.createElement("video");
+        v.src = b.video_url;
+        v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+        v.style.width = "32px"; v.style.height = "32px"; v.style.objectFit = "contain";
+        circle.appendChild(v);
+      } else if (b.image_url) {
+        const img = document.createElement("img");
+        img.src = b.image_url;
+        img.alt = b.name;
+        img.style.width = "32px"; img.style.height = "32px"; img.style.objectFit = "contain";
+        circle.appendChild(img);
+      } else {
+        const span = document.createElement("span");
+        span.className = "ma365-boss-emoji";
+        span.textContent = b.emoji;
+        circle.appendChild(span);
+      }
+      const hpBar = document.createElement("div");
+      hpBar.className = "ma365-boss-hpbar";
+      const hpFill = document.createElement("div");
+      hpFill.className = "ma365-boss-hpfill";
+      hpFill.style.width = `${pct}%`;
+      hpBar.appendChild(hpFill);
+      inner.appendChild(circle);
+      inner.appendChild(hpBar);
+
       inner.title = b.name;
       outer.appendChild(inner);
       outer.addEventListener("click", () => onBossClick?.(b.id));

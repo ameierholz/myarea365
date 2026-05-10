@@ -66,7 +66,7 @@ export function GuardianGalleryModal({
   }, [releasedArchetypes]);
 
   return (
-    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
+    <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal} reserveLeftSpace={372}>
       <ModalHeader
         kicker={tG("kicker")}
         title={tG("title", { total: releasedArchetypes.length, owned: visibleOwned })}

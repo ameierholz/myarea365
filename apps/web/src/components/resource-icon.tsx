@@ -328,6 +328,37 @@ export function fetchAllArt(): Promise<AllArt | null> {
   });
 }
 
+/**
+ * Generischer Entity-Icon für TABLE_TARGETS (Research/Achievement/Boss/XP-Item/...).
+ *
+ * Anders als ResourceIcon/UiIcon, die Artwork via cosmetic_artwork-Tabelle ziehen,
+ * nimmt EntityIcon image_url/video_url direkt von der Entity-Row entgegen.
+ * Fallback auf Emoji wenn kein Pfad gesetzt ist.
+ */
+export function EntityIcon({
+  imageUrl, videoUrl, size = 24, fallback, alt, rounded,
+}: {
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  size?: number;
+  fallback: string;
+  alt?: string;
+  /** Wenn true: kreisförmig (für Avatare/Cards). Default: nur objectFit=contain. */
+  rounded?: boolean;
+}) {
+  const baseStyle: React.CSSProperties = {
+    width: size, height: size, objectFit: "contain",
+    display: "inline-block", verticalAlign: "middle", filter: CHROMA,
+    borderRadius: rounded ? "50%" : undefined,
+  };
+  if (videoUrl) return <video src={videoUrl} autoPlay loop muted playsInline style={baseStyle} />;
+  if (imageUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={imageUrl} alt={alt ?? ""} style={baseStyle} />;
+  }
+  return <span style={{ fontSize: size, lineHeight: 1, display: "inline-block", verticalAlign: "middle" }}>{fallback}</span>;
+}
+
 /** Generischer UI-Icon — fällt auf Emoji zurück, wenn kein Artwork hochgeladen ist. */
 export function UiIcon({ slot, size = 24, fallback, art }: {
   slot: string;

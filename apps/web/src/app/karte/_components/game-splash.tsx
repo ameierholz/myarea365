@@ -46,7 +46,7 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
   }, []);
 
   const LOGO_PHASE_MS = hasArtCache ? 1200 : 3000;
-  const LOADER_MIN_MS = hasArtCache ? 1500 : 8000;
+  const LOADER_MIN_MS = hasArtCache ? 3500 : 8000;
   const FADE_OUT_MS = hasArtCache ? 350 : 700;
 
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -86,10 +86,15 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
     // Bei Repeat-Visit (Cache da) deutlich kürzer — sonst wirkt der Splash künstlich.
     const schedule: Array<{ atMs: number; toPct: number; label: string }> = hasArtCache
       ? [
-          { atMs: 200,  toPct: 35,  label: "Lade Profil & Crew" },
-          { atMs: 600,  toPct: 70,  label: "Bereite Visuals vor" },
-          { atMs: 1100, toPct: 95,  label: "Initialisiere Karte" },
-          { atMs: 1500, toPct: 100, label: "Bereit" },
+          // Cached: 6 sichtbare Plateaus über 3.5 s — gleicher Stutter-Look wie Cold-Start,
+          // nur kompakter (statt eines Rauschens auf 95%).
+          { atMs: 400,  toPct: 18,  label: "Lade Profil & Crew" },
+          { atMs: 900,  toPct: 35,  label: "Lade Profil & Crew" },
+          { atMs: 1400, toPct: 55,  label: "Lade aktive Marches" },
+          { atMs: 2000, toPct: 72,  label: "Bereite Visuals vor" },
+          { atMs: 2700, toPct: 88,  label: "Initialisiere Karte" },
+          { atMs: 3200, toPct: 95,  label: "Initialisiere Karte" },
+          { atMs: 3500, toPct: 100, label: "Bereit" },
         ]
       : [
           { atMs: 600,  toPct: 12,  label: "Lade Artwork" },

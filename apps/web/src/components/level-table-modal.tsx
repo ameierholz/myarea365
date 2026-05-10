@@ -25,22 +25,14 @@ export type LevelRow = {
   /** Optional: Sub-Stat unter dem Haupt-Effekt, z.B. "Cap 30" für Production-Buildings */
   effectSub?: string;
   cost: { wood: number; stone: number; gold: number; mana: number };
-  /** Bauzeit/Forschungszeit in Minuten */
-  timeMinutes: number;
+  /** Ansehen-Gewinn beim Erreichen dieser Stufe (null = unbekannt) */
+  ansehen?: number | null;
 };
 
 function compactNum(n: number): string {
   if (n < 1000) return n.toString();
   if (n < 1_000_000) return (n / 1000).toFixed(n < 10_000 ? 1 : 0) + "k";
   return (n / 1_000_000).toFixed(1) + "M";
-}
-
-function fmtTime(min: number): string {
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return min % 60 > 0 ? `${h}h${min % 60}m` : `${h}h`;
-  const d = Math.floor(h / 24);
-  return h % 24 > 0 ? `${d}T${h % 24}h` : `${d}T`;
 }
 
 const RES_FB = {
@@ -77,14 +69,16 @@ export function LevelTableModal({
         background: "rgba(0,0,0,0.88)",
         backdropFilter: "blur(16px) saturate(140%)",
         WebkitBackdropFilter: "blur(16px) saturate(140%)",
-        display: "flex", alignItems: "stretch", justifyContent: "center",
+        // Right-aligned + reserveLeftSpace=372 (Chat-Bereich)
+        display: "flex", alignItems: "stretch", justifyContent: "flex-end",
         padding: "6px",
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 560,
+          width: "100%",
+          maxWidth: "min(560px, calc(100vw - 388px))",
           display: "flex", flexDirection: "column",
           background: "linear-gradient(165deg, #2A2F4A 0%, #1E2238 50%, #14182A 100%)",
           border: `1px solid ${accent}66`,
@@ -171,7 +165,7 @@ export function LevelTableModal({
           <div>STUFE</div>
           <div style={{ textAlign: "center" }}>{effectLabel.toUpperCase()}</div>
           <div style={{ textAlign: "center" }}>KOSTEN</div>
-          <div style={{ textAlign: "right" }}>ZEIT</div>
+          <div style={{ textAlign: "right" }}>ANSEHEN</div>
         </div>
 
         {/* SCROLL-CONTENT — Stufen-Liste */}
@@ -268,11 +262,19 @@ export function LevelTableModal({
                     )}
                   </div>
 
-                  {/* Zeit */}
+                  {/* Ansehen */}
                   <div style={{
-                    fontSize: 10, fontWeight: 800, textAlign: "right",
-                    color: MUTED, fontVariantNumeric: "tabular-nums",
-                  }}>{fmtTime(row.timeMinutes)}</div>
+                    fontSize: 11, fontWeight: 900, textAlign: "right",
+                    color: row.ansehen != null && row.ansehen > 0
+                      ? (isCurrent ? accent : isNext ? GREEN : GOLD)
+                      : MUTED,
+                    fontVariantNumeric: "tabular-nums",
+                    display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2,
+                  }}>
+                    {row.ansehen != null && row.ansehen > 0
+                      ? <>🌟 +{compactNum(row.ansehen)}</>
+                      : "—"}
+                  </div>
                 </div>
               );
             })}

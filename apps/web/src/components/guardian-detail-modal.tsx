@@ -144,10 +144,14 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
+      // Right-aligned, damit Chat (340px links) nicht überlappt wird
+      display: "flex", alignItems: "center", justifyContent: "flex-end", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "100dvh",
+        width: "100%",
+        // Max 640px ODER (Viewport − Chat-Reserve), je nachdem was kleiner ist
+        maxWidth: "min(640px, calc(100vw - 388px))",
+        maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
         background: "#1A1D23", borderRadius: 16,
         border: "1px solid rgba(34,209,195,0.5)",

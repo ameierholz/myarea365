@@ -22,7 +22,7 @@ export default async function RunnersPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageTitle title="🏃 Runner" subtitle={`${runners?.length ?? 0} Ergebnisse`} />
+      <PageTitle title="🎮 Spieler" subtitle={`${runners?.length ?? 0} Ergebnisse`} />
 
       <form className="flex gap-2 mb-4 flex-wrap">
         <Input name="q" defaultValue={sp.q} placeholder="Name oder Username suchen…" />

@@ -447,7 +447,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // Loyalty/Shop-Layer (flash_pushes, shop_reviews, shop_trail) archived 2026-05-05.
   const [mapFeatures, setMapFeatures] = useState<{
     power_zones: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
-    boss_raids: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number }>;
+    boss_raids: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null }>;
     sanctuaries: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean }>;
     explored_cells: Array<{ cell_x: number; cell_y: number }>;
   } | null>(null);
@@ -877,7 +877,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         (profile.total_walks || 0) + 1,
       );
 
-      // Pfadfinder-Crew-Fraktion: +10% Lauf-XP
+      // Pfadfinder-Crew-Fraktion: +10% Aktivitäts-Erfahrung
       let totalXpGained = bonuses.finalXp + bonuses.achievementXp;
       if (myCrew && (myCrew as { crew_faction?: string }).crew_faction === "pfadfinder") {
         totalXpGained = Math.round(totalXpGained * 1.10);
@@ -4098,7 +4098,7 @@ function ProfilTab({
                 <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{tMD("supportUs")}</div>
               </div>
               <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.45 }}>
-                Mit einem kurzen Werbevideo hilfst du uns, MyArea365 unabhängig weiterzuentwickeln — und kassierst selbst <b style={{ color: "#FFD700" }}>+100 🪙 Lauf-Bonus</b>. Danke! 🙏
+                Mit einem kurzen Werbevideo hilfst du uns, MyArea365 unabhängig weiterzuentwickeln — und kassierst selbst <b style={{ color: "#FFD700" }}>+100 Erfahrung Bonus</b>. Danke! 🙏
               </div>
               <RewardedAdButton placement="post_walk" userId={p.id} />
             </div>

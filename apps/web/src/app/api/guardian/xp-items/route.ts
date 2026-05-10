@@ -14,7 +14,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
 
   const [catalog, inv] = await Promise.all([
-    sb.from("guardian_xp_items").select("id, name, emoji, description, rarity, xp_amount, sort").order("sort"),
+    sb.from("guardian_xp_items").select("id, name, emoji, description, rarity, xp_amount, sort, image_url, video_url").order("sort"),
     sb.from("user_guardian_xp_items").select("item_id, count").eq("user_id", user.id),
   ]);
 

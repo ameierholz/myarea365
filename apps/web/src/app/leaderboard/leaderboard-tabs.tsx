@@ -141,10 +141,10 @@ function RunnersTab() {
         background: "radial-gradient(ellipse at top, rgba(34,209,195,0.18) 0%, transparent 60%), linear-gradient(180deg, rgba(34,209,195,0.06) 0%, rgba(15,17,21,0.95) 100%)",
       }}>
         <div className="flex items-center gap-3">
-          <div className="text-3xl">🏃</div>
+          <div className="text-3xl">🏆</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black tracking-widest text-[#22D1C3]">RUNNER</div>
-            <div className="text-lg font-black text-white">Top Läufer:innen</div>
+            <div className="text-[10px] font-black tracking-widest text-[#22D1C3]">RANGLISTE</div>
+            <div className="text-lg font-black text-white">Top-Spieler:innen</div>
             <div className="text-xs text-[#a8b4cf]">Wer dominiert die Karte? Filter nach Metrik, Fraktion oder suche gezielt.</div>
           </div>
         </div>

@@ -83,7 +83,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ username: strin
           background: `linear-gradient(135deg, ${accent}22, #FF2D7822)`,
           border: `3px solid ${accent}88`,
         }}>
-          <div style={{ fontSize: 40, fontWeight: 900, color: "#FFF", textAlign: "center" }}>Lauf mit mir 🏃</div>
+          <div style={{ fontSize: 40, fontWeight: 900, color: "#FFF", textAlign: "center" }}>Spiel mit mir 🎮</div>
           <div style={{ fontSize: 28, color: "#a8b4cf", marginTop: 16 }}>{cta}</div>
         </div>
       </div>

@@ -82,7 +82,7 @@ export function ServerOverviewModal({ open, onClose }: { open: boolean; onClose:
     : 0;
 
   return (
-    <Modal open={open} onClose={onClose} size="md" zIndex={Z.modalDeep}>
+    <Modal open={open} onClose={onClose} size="md" zIndex={Z.modalDeep} reserveLeftSpace={372}>
       <ModalHeader title="🏙️ STADT-SERVER" onClose={onClose} accent="primary" />
       <ModalBody padding="padded">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

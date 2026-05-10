@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UiIcon, useUiIconArt } from "@/components/resource-icon";
+import { UiIcon, useUiIconArt, EntityIcon } from "@/components/resource-icon";
 import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
@@ -17,6 +17,8 @@ type Achievement = {
   name: string;
   description: string;
   icon: string | null;
+  image_url: string | null;
+  video_url: string | null;
   tier: Tier;
   xp_reward: number;
   unlocked: boolean;
@@ -100,7 +102,7 @@ export function AchievementsModal({
   const meta = TIER_META[tier];
 
   return (
-    <Modal open={open} onClose={onClose} size="md" zIndex={Z.modalDeep}>
+    <Modal open={open} onClose={onClose} size="md" zIndex={Z.modalDeep} reserveLeftSpace={372}>
       <ModalHeader
         title={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -205,7 +207,13 @@ function AchievementRow({ achievement: a }: { achievement: Achievement }) {
         filter: a.unlocked ? `drop-shadow(0 0 4px ${meta.ring})` : "grayscale(1)",
         flexShrink: 0,
       }}>
-        {a.icon ?? "🏅"}
+        <EntityIcon
+          imageUrl={a.image_url}
+          videoUrl={a.video_url}
+          fallback={a.icon ?? "🏅"}
+          size={28}
+          alt={a.name}
+        />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6, justifyContent: "space-between" }}>

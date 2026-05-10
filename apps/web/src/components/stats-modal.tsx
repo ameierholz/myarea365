@@ -239,7 +239,7 @@ export function StatsModal({ open, onClose }: { open: boolean; onClose: () => vo
   if (!open) return null;
 
   return (
-    <Modal open={open} onClose={onClose} size="lg" zIndex={Z.modalDeep}>
+    <Modal open={open} onClose={onClose} size="lg" zIndex={Z.modalDeep} reserveLeftSpace={372}>
       <ModalHeader title="📊 STATISTIK" onClose={onClose} accent="primary" />
       <ModalBody padding="tight">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

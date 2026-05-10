@@ -322,11 +322,14 @@ export const GUARDIAN_ITEMS = {
 // ── Ad-Rewards ────────────────────────────────────────
 
 export const AD_REWARDS = {
-  post_walk:    { xp: 100, cooldown_min: 720, label: "Lauf-Bonus",            description: "+100 🪙 Wegemünzen für 30 Sek Video" },
-  pre_walk:     { xp: 250, cooldown_min: 360, label: "Pre-Walk-Starter",     description: "+250 🪙 vor dem Lauf-Start" },
-  boost_24h:    { xp: 0,   cooldown_min: 1440, label: "24h Doppel-🪙",         description: "Kurzes Video für 24h 2× Wegemünzen" },
-  double_xp:    { xp: 0,   cooldown_min: 360, label: "15 Min Doppel-🪙",       description: "Direkt-Boost für nächsten Lauf" },
-  streak_save:  { xp: 0,   cooldown_min: 720, label: "Streak retten",          description: "Verpasster Tag einmalig verzeihen" },
+  // Keys (post_walk/pre_walk/...) sind historische placement-Identifier, in DB persistiert.
+  // Sie bleiben unverändert, damit die ad_rewards-Tabelle weiter funktioniert. Labels +
+  // descriptions sind aufs aktuelle CoD/RoK-Gameplay aktualisiert.
+  post_walk:    { xp: 100, cooldown_min: 720, label: "Aktivitäts-Bonus",       description: "+100 Erfahrung für ein kurzes Video" },
+  pre_walk:     { xp: 250, cooldown_min: 360, label: "Start-Booster",          description: "+250 Erfahrung vor der nächsten Aktion" },
+  boost_24h:    { xp: 0,   cooldown_min: 1440, label: "24h Doppel-Erfahrung",  description: "Kurzes Video für 24 Stunden doppelte Erfahrung" },
+  double_xp:    { xp: 0,   cooldown_min: 360, label: "15 Min Doppel-Erfahrung",description: "Direkter Boost für die nächste Aktion" },
+  streak_save:  { xp: 0,   cooldown_min: 720, label: "Streak retten",          description: "Verpassten Tag einmalig verzeihen" },
 };
 
 // MyArea+ Features (als Display-Liste)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { EntityIcon } from "@/components/resource-icon";
 
 type CatalogItem = {
   id: string;
@@ -10,6 +11,8 @@ type CatalogItem = {
   rarity: "common" | "rare" | "epic";
   xp_amount: number;
   sort: number;
+  image_url?: string | null;
+  video_url?: string | null;
 };
 
 type InventoryRow = { item_id: string; count: number };
@@ -89,7 +92,7 @@ export function GuardianXpItemsPanel({ guardianId, onApplied }: { guardianId: st
               display: "flex", alignItems: "center", gap: 8, padding: 8, borderRadius: 8,
               background: RARITY_BG[it.rarity], border: `1px solid ${RARITY_BORDER[it.rarity]}`,
             }}>
-              <span style={{ fontSize: 18 }}>{it.emoji}</span>
+              <EntityIcon imageUrl={it.image_url} videoUrl={it.video_url} fallback={it.emoji} size={22} alt={it.name} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{it.name}</div>
                 <div style={{ color: "#a8b4cf", fontSize: 10 }}>+{it.xp_amount} XP · {have}× im Inventar</div>

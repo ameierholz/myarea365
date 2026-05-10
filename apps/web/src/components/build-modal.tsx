@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
-  useResourceArt, useBuildingArt, ResourceIcon,
+  useResourceArt, useBuildingArt, useUiIconArt, ResourceIcon, UiIcon,
   type ResourceArtMap,
 } from "@/components/resource-icon";
 import { LevelTableModal, type LevelRow } from "@/components/level-table-modal";
@@ -30,6 +30,7 @@ type Catalog = {
   category: string; max_level: number;
   base_cost_wood: number; base_cost_stone: number; base_cost_gold: number; base_cost_mana: number;
   base_buildtime_minutes: number;
+  buildtime_growth?: number;
   effect_key: string | null; effect_per_level: number;
   required_base_level: number; sort: number;
   /** Optional: explizite Per-Level-Werte (CoD-Style Kurve). Index 0 = Lv 1. */
@@ -49,6 +50,8 @@ type BaseMe = {
   queue: QueueItem[];
   resources: Resources & { vip_tickets?: number; guardian_xp?: number };
   catalog: Catalog[];
+  caps?: { wood: number; stone: number; gold: number; mana: number };
+  protected_amounts?: { wood: number; stone: number; gold: number; mana: number };
 };
 
 const ACCENT = "#22D1C3";
@@ -214,6 +217,7 @@ export function BuildModal({
   const [gems, setGems] = useState<number>(0);
   const resourceArt = useResourceArt();
   const buildingArt = useBuildingArt();
+  const uiIconArt = useUiIconArt();
   const fx = useRewardFx();
 
   // Diamant-Balance: einmal laden + auf globales Event reagieren
@@ -299,6 +303,15 @@ export function BuildModal({
     });
   }, [fx, tBld]);
   useEffect(() => { void reload(true); }, [reload]);
+
+  // Auto-Reload sobald die früheste Queue-Position abläuft → triggert
+  // /api/base/me → finish_building RPC → Level-Up-FX. Ohne diesen Effekt
+  // bleibt der Progress-Balken auf "FERTIG" stehen, ohne dass etwas passiert.
+  useEffect(() => {
+    if (!data?.queue.length) return;
+    const earliest = Math.min(...data.queue.map((q) => new Date(q.ends_at).getTime()));
+    if (earliest <= now) void reload();
+  }, [data, now, reload]);
 
   async function build(buildingId: string): Promise<boolean> {
     setBusy(buildingId); setErr(null);
@@ -399,8 +412,9 @@ export function BuildModal({
           from: getClickPoint(ev),
           rewards: { [j.resource]: j.amount! },
         });
-        // Reload erst nach Coin-Flugzeit, damit Bar nicht vor Coin-Ankunft updated
-        await new Promise((res) => setTimeout(res, 1300));
+        // Reload erst nach letzter Coin-Ankunft (siehe CollectStream: 250 + 7*80 + 700 = 1510ms
+        // bei max 8 Coins). 1600ms gibt minimalen Puffer und hält die Bar bis zum Pulse stabil.
+        await new Promise((res) => setTimeout(res, 1600));
       }
       await reload();
     } finally { setBusy(null); }
@@ -471,11 +485,10 @@ export function BuildModal({
 
   return (
     <>
-      <Modal open={true} onClose={onClose} size="md" zIndex={Z.modal}>
+      <Modal open={true} onClose={onClose} size="md" zIndex={Z.modal} reserveLeftSpace={372}>
         <style>{`
           @keyframes ma365BuildPulse { 0%,100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }
           @keyframes ma365BuildShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-          @keyframes ma365BuildFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
           .ma365-build-shell ::-webkit-scrollbar { display: none; }
           .ma365-build-card { transition: transform 0.15s, box-shadow 0.15s; }
           .ma365-build-card:active { transform: scale(0.97); }
@@ -591,24 +604,54 @@ export function BuildModal({
                 borderRadius: 12,
                 overflow: "hidden",
               }}>
-                {(["wood", "stone", "gold", "mana"] as const).map((k, i) => (
-                  <div key={k}
-                    data-rss-pill={k}
-                    style={{
-                      padding: "10px 8px",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                      borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                      minWidth: 0,
-                    }}>
-                    <ResourceIcon kind={k} size={44} fallback={RES_FALLBACK[k].icon} art={resourceArt} />
-                    <div style={{
-                      fontSize: 16, fontWeight: 900, color: RES_FALLBACK[k].color,
-                      fontVariantNumeric: "tabular-nums", letterSpacing: -0.3,
-                      textShadow: "0 1px 2px rgba(0,0,0,0.6)",
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>{compactNum(data.resources[k] ?? 0)}</div>
-                  </div>
-                ))}
+                {(["wood", "stone", "gold", "mana"] as const).map((k, i) => {
+                  const current = data.resources[k] ?? 0;
+                  const cap = data.caps?.[k] ?? 0;
+                  const prot = data.protected_amounts?.[k] ?? 0;
+                  const fillPct = cap > 0 ? Math.min(100, (current / cap) * 100) : 0;
+                  const isFull = cap > 0 && current >= cap;
+                  const isHigh = fillPct >= 80;
+                  return (
+                    <div key={k}
+                      data-rss-pill={k}
+                      style={{
+                        padding: "10px 8px",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                        borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                        minWidth: 0,
+                      }}>
+                      <ResourceIcon kind={k} size={44} fallback={RES_FALLBACK[k].icon} art={resourceArt} />
+                      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 1 }}>
+                        <div style={{
+                          fontSize: 14, fontWeight: 900, color: RES_FALLBACK[k].color,
+                          fontVariantNumeric: "tabular-nums", letterSpacing: -0.3,
+                          textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          lineHeight: 1,
+                        }}>{compactNum(current)}</div>
+                        {cap > 0 && (
+                          <div style={{
+                            fontSize: 9, fontWeight: 700,
+                            color: isFull ? "#FF2D78" : isHigh ? "#FF6B4A" : "#a8b4cf",
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: 1,
+                          }}>/ {compactNum(cap)}</div>
+                        )}
+                        {prot > 0 && (
+                          <div
+                            title={`Geschützt vor Plünderung: ${prot.toLocaleString("de-DE")}`}
+                            style={{
+                              fontSize: 9, fontWeight: 800,
+                              color: "#4ade80",
+                              fontVariantNumeric: "tabular-nums",
+                              lineHeight: 1,
+                              display: "inline-flex", alignItems: "center", gap: 2,
+                            }}>🛡️{compactNum(prot)}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -638,10 +681,13 @@ export function BuildModal({
                   }}
                 >
                   <span style={{
-                    fontSize: 22, lineHeight: 1,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 22, height: 22,
                     filter: isActive ? `drop-shadow(0 0 6px ${cat.color}88)` : "none",
                     opacity: isActive ? 1 : 0.7,
-                  }}>{cat.emoji}</span>
+                  }}>
+                    <UiIcon slot={`build_cat_${cat.key}`} fallback={cat.emoji} art={uiIconArt} size={22} />
+                  </span>
                   <span style={{
                     fontSize: 9, fontWeight: 900,
                     color: isActive ? cat.color : MUTED,
@@ -798,7 +844,9 @@ export function BuildModal({
                     if (isMax) { ringColor = `${GOLD}88`; statusBadge = { label: "MAX", color: GOLD }; }
                     else if (inQueue) { ringColor = `${ORANGE}88`; statusBadge = { label: "BAU", color: ORANGE }; }
                     else if (lvlLocked) { ringColor = "rgba(255,255,255,0.06)"; statusBadge = { label: "🔒", color: MUTED }; }
-                    else if (burgCapped) { ringColor = `${GOLD}44`; statusBadge = { label: "🏰", color: GOLD }; }
+                    // burgCapped: kein eigener Badge mehr — der Gold-Ring + Detail-Modal
+                    // kommunizieren das. So bleibt der Pending-Sammel-Badge oben rechts.
+                    else if (burgCapped) { ringColor = `${GOLD}44`; }
                     else if (isBuildable) { ringColor = `${activeMeta.color}99`; }
 
                     return (
@@ -864,20 +912,27 @@ export function BuildModal({
                               }}
                               style={{
                                 position: "absolute",
-                                top: statusBadge ? 26 : 6, right: 6,
-                                padding: "3px 7px", borderRadius: 5,
+                                top: statusBadge ? 24 : 4, right: 4,
+                                padding: "2px 6px", borderRadius: 5,
                                 background: `linear-gradient(135deg, ${GOLD}, ${GOLD}cc)`,
                                 color: "#0F1115",
-                                fontSize: 10, fontWeight: 900, letterSpacing: 0.3,
-                                boxShadow: `0 0 10px ${GOLD}88, 0 2px 5px rgba(0,0,0,0.35)`,
+                                fontSize: 10, fontWeight: 900, letterSpacing: 0.2,
+                                boxShadow: `0 0 8px ${GOLD}77, 0 1px 3px rgba(0,0,0,0.3)`,
                                 animation: p.capped ? "ma365BuildPulse 1.6s ease-in-out infinite" : "none",
                                 fontVariantNumeric: "tabular-nums",
-                                display: "inline-flex", alignItems: "center", gap: 2,
+                                display: "inline-flex", alignItems: "center", gap: 3,
                                 cursor: "pointer",
                                 userSelect: "none",
                                 zIndex: 2,
                               }}
-                            >{collectBusy ? "…" : `🪙 +${compactNum(p.amount)}`}</span>
+                            >
+                              {collectBusy ? "…" : (
+                                <>
+                                  <ResourceIcon kind={p.resource} size={15} fallback={RES_FALLBACK[p.resource].icon} art={resourceArt} />
+                                  <span>+{compactNum(p.amount)}</span>
+                                </>
+                              )}
+                            </span>
                           );
                         })()}
                         {/* Verfügbar-Glow oben links */}
@@ -892,19 +947,19 @@ export function BuildModal({
                         )}
                         {/* Artwork */}
                         <div style={{
-                          height: 64, width: "100%",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          position: "relative", marginTop: 4,
+                          height: 88, width: "100%",
+                          display: "flex", alignItems: "flex-end", justifyContent: "center",
+                          position: "relative", marginTop: 0, marginBottom: -6,
                         }}>
                           <div style={{
                             position: "absolute", bottom: 0, left: "50%",
                             transform: "translateX(-50%)",
-                            width: 50, height: 6, borderRadius: "50%",
+                            width: 70, height: 8, borderRadius: "50%",
                             background: `radial-gradient(ellipse, ${activeMeta.color}55, transparent 70%)`,
                             filter: "blur(2px)",
                           }} />
-                          <div style={{ animation: "ma365BuildFloat 3.5s ease-in-out infinite" }}>
-                            <BuildingThumb id={cat.id} fallback={cat.emoji} art={buildingArt} size={60} />
+                          <div>
+                            <BuildingThumb id={cat.id} fallback={cat.emoji} art={buildingArt} size={92} />
                           </div>
                         </div>
                         {/* Name */}
@@ -912,6 +967,7 @@ export function BuildModal({
                           fontSize: 11, fontWeight: 900, color: TEXT, lineHeight: 1.15,
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                           width: "100%",
+                          marginTop: 0,
                         }}>{bldName(cat.id, cat.name)}</div>
                         {/* Stufen-Pill */}
                         <div style={{
@@ -1031,13 +1087,16 @@ function BuildingDetail({
   // Stufen-Tabellen-Modal-State
   const [showLevelTable, setShowLevelTable] = useState(false);
 
-  // Stufen-Werte vorab-berechnet für die Tabelle
+  // Stufen-Werte vorab-berechnet für die Tabelle.
+  // Kosten skalieren mit 1.6^lvl (wie Backend). Ansehen aus level_stats wenn
+  // vorhanden, sonst Formel aus Mig 00135 (target_level² × 10).
   const levelRows: LevelRow[] = useMemo(() => {
     const rows: LevelRow[] = [];
     const isProduction = !!cat.effect_key && PRODUCTION_KEYS[cat.effect_key] != null;
     for (let i = 1; i <= cat.max_level; i++) {
-      const m = i === 1 ? 1 : Math.pow(1.6, i - 1);
+      const costMult = i === 1 ? 1 : Math.pow(1.6, i - 1);
       const { rate, cap } = rateForLevel(cat, i);
+      const ansehenFromStats = cat.level_stats?.[i - 1]?.ansehen;
       rows.push({
         level: i,
         effect: cat.effect_key
@@ -1045,24 +1104,23 @@ function BuildingDetail({
               ? `+${rate.toLocaleString("de-DE", { maximumFractionDigits: 1 })}`
               : `+${Math.round(rate * 100)}%`)
           : "—",
-        // Bei Production-Buildings: Lager-Cap als Sub-Zeile
         effectSub: isProduction
           ? `Cap ${Math.floor(cap).toLocaleString("de-DE")}`
           : undefined,
         cost: {
-          wood:  Math.round(cat.base_cost_wood  * m),
-          stone: Math.round(cat.base_cost_stone * m),
-          gold:  Math.round(cat.base_cost_gold  * m),
-          mana:  Math.round(cat.base_cost_mana  * m),
+          wood:  Math.round(cat.base_cost_wood  * costMult),
+          stone: Math.round(cat.base_cost_stone * costMult),
+          gold:  Math.round(cat.base_cost_gold  * costMult),
+          mana:  Math.round(cat.base_cost_mana  * costMult),
         },
-        timeMinutes: cat.base_buildtime_minutes * (i === 1 ? 1 : Math.ceil(m)),
+        ansehen: ansehenFromStats ?? (i * i * 10),
       });
     }
     return rows;
   }, [cat]);
 
   return (
-    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modalNested}>
+    <Modal open={true} onClose={onClose} size="md" zIndex={Z.modalNested} reserveLeftSpace={372}>
       <div
         style={{
           position: "relative",
@@ -1194,7 +1252,6 @@ function BuildingDetail({
               {/* Artwork */}
               <div style={{
                 position: "relative", zIndex: 1,
-                animation: "ma365BuildFloat 4s ease-in-out infinite",
                 filter: `drop-shadow(0 6px 14px ${accent}55)`,
               }}>
                 <BuildingThumb id={cat.id} fallback={cat.emoji} art={buildingArt} size={130} />
@@ -1482,12 +1539,12 @@ function BuildingDetail({
               style={{
                 padding: "6px 6px", borderRadius: 8, border: "none",
                 background: canInstant
-                  ? "linear-gradient(180deg, #C8B6FF, #7B61FF)"
+                  ? "linear-gradient(180deg, #FFE066, #FFD700)"
                   : "rgba(255,255,255,0.05)",
                 color: canInstant ? "#0F1115" : MUTED,
                 cursor: canInstant && busy !== cat.id ? "pointer" : "not-allowed",
                 fontSize: 12, fontWeight: 900, letterSpacing: 0.6,
-                boxShadow: canInstant ? "0 4px 12px rgba(123,97,255,0.55)" : "none",
+                boxShadow: canInstant ? "0 4px 12px rgba(255,215,0,0.55)" : "none",
                 opacity: busy === cat.id ? 0.5 : 1,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                 whiteSpace: "nowrap",
@@ -1505,19 +1562,19 @@ function BuildingDetail({
               </span>
             </button>
 
-            {/* VERBESSERN */}
+            {/* VERBESSERN — Grün als universelles Confirm */}
             <button
               onClick={(e) => onUpgrade(cat.id, { clientX: e.clientX, clientY: e.clientY })}
               disabled={!canUpgrade || busy === cat.id}
               style={{
                 padding: "6px 6px", borderRadius: 8, border: "none",
                 background: canUpgrade
-                  ? `linear-gradient(180deg, ${accent}, ${accent}aa)`
+                  ? "linear-gradient(180deg, #86efac, #22c55e)"
                   : "rgba(255,255,255,0.05)",
                 color: canUpgrade ? "#0F1115" : MUTED,
                 cursor: canUpgrade && busy !== cat.id ? "pointer" : "not-allowed",
                 fontSize: 12, fontWeight: 900, letterSpacing: 0.6,
-                boxShadow: canUpgrade ? `0 4px 12px ${accent}55` : "none",
+                boxShadow: canUpgrade ? "0 4px 12px rgba(34,197,94,0.55)" : "none",
                 opacity: busy === cat.id ? 0.5 : 1,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                 whiteSpace: "nowrap",
@@ -1660,7 +1717,10 @@ function StatRow({ label, current, delta }: { label: string; current: string; de
 function BuildingThumb({ id, fallback, art, size = 32 }: {
   id: string; fallback: string; art: ResourceArtMap; size?: number;
 }) {
-  const a = art[id];
+  // Multi-Instance (Mig 00316): saegewerk_2/_3 etc. nutzen das Artwork
+  // der Basis-Instanz. Suffix `_<digit>` → strippen wenn kein eigenes Art da.
+  const baseId = id.replace(/_(\d+)$/, "");
+  const a = art[id] ?? (baseId !== id ? art[baseId] : undefined);
   const filterCss: React.CSSProperties = {
     filter: "url(#ma365-chroma-black) drop-shadow(0 2px 4px rgba(0,0,0,0.5))",
   };

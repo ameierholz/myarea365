@@ -30,6 +30,13 @@ export type ModalProps = {
   ariaLabelledBy?: string;
   /** Wird nach abgeschlossenem Exit aufgerufen — z.B. um Reset-Logik laufen zu lassen. */
   onExited?: () => void;
+  /**
+   * Pixel die links für andere UI-Elemente reserviert bleiben sollen.
+   * Wird vom Modal-max-width abgezogen — z.B. damit das ChatWidget
+   * (340px + Padding ≈ 372px) in /karte/base sichtbar bleibt.
+   * Default: 0 (volle Breite bis SIZE-Cap).
+   */
+  reserveLeftSpace?: number;
   children: ReactNode;
 };
 
@@ -43,6 +50,7 @@ export function Modal({
   closeOnEsc = true,
   ariaLabelledBy,
   onExited,
+  reserveLeftSpace = 0,
   children,
 }: ModalProps) {
   // Mount/Unmount-State-Machine: rendered → exiting → unmounted
@@ -135,7 +143,12 @@ export function Modal({
         style={{
           position: "relative",
           width: "100%",
-          maxWidth: SIZE_MAX_WIDTH[size],
+          // Bei reserveLeftSpace>0: max-width auf min(SIZE_CAP, 100vw - reserveLeftSpace - 16px Padding)
+          // → Modal wird auf großen Screens nicht breiter als SIZE_CAP, auf schmalen
+          // Screens (z.B. Mobile-Landscape 915px) capped es so dass der Chat-Bereich frei bleibt.
+          maxWidth: reserveLeftSpace > 0 && !isDrawer
+            ? `min(${SIZE_MAX_WIDTH[size]}, calc(100vw - ${reserveLeftSpace + 16}px))`
+            : SIZE_MAX_WIDTH[size],
           maxHeight: isDrawer ? "92dvh" : "calc(100dvh - 8px)",
           display: "flex",
           flexDirection: "column",

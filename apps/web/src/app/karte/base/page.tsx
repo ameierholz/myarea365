@@ -16,21 +16,61 @@ export default async function BasePage() {
     .maybeSingle();
   if (profileErr) console.error("[/karte/base] profile error:", profileErr);
 
-  // Base-Level (für Badge auf Avatar)
+  // Base-Level + ID (Letzteres für Queue-Lookup)
   const { data: baseRow } = await sb
     .from("bases")
-    .select("level, plz")
+    .select("id, level, plz")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
-  // Aktive Bau- + Forschungs-Queues für Action-Tile-Badges (Counts)
-  // Tabellen-Namen tolerant: kann je nach Migration variieren
+  // Aktive Bau- + Forschungs-Queues + Slot-Capacity für Action-Tile-Badges
   let queueCount = 0;
   let researchCount = 0;
+  let buildSlotsMax = 1;       // 1 Basis-Slot, +VIP/Monatspack
+  let researchSlotsMax = 1;
+  let buildEarliestEndsAt: string | null = null;     // früheste Bau-Fertig-Zeit
+  let researchEarliestEndsAt: string | null = null;
   try {
-    const r = await sb.from("research_queue").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id);
-    researchCount = r.count ?? 0;
-  } catch { /* table may not exist */ }
+    // Bau-Queue: nur wo target_level > current level (= noch nicht fertig)
+    if (baseRow) {
+      const { data: bq } = await sb
+        .from("building_queue")
+        .select("id, ends_at")
+        .eq("base_id", (baseRow as { id?: string }).id ?? "")
+        .order("ends_at", { ascending: true });
+      const rows = (bq as Array<{ id: string; ends_at: string }> | null) ?? [];
+      queueCount = rows.length;
+      buildEarliestEndsAt = rows[0]?.ends_at ?? null;
+    }
+    // Forschungs-Queue: nur unfertige
+    const { data: rq } = await sb
+      .from("research_queue")
+      .select("id, ends_at, finished")
+      .eq("user_id", auth.user.id)
+      .eq("finished", false)
+      .order("ends_at", { ascending: true });
+    const rRows = (rq as Array<{ id: string; ends_at: string }> | null) ?? [];
+    researchCount = rRows.length;
+    researchEarliestEndsAt = rRows[0]?.ends_at ?? null;
+
+    // Slot-Capacity aus VIP-Level berechnen (Default 1 + extra_*_slots)
+    const { data: vipRow } = await sb
+      .from("vip_progress")
+      .select("vip_level")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+    const vipLevel = (vipRow as { vip_level?: number } | null)?.vip_level ?? 0;
+    if (vipLevel > 0) {
+      const { data: tier } = await sb
+        .from("vip_tier_thresholds")
+        .select("extra_build_slots, extra_research_slots")
+        .eq("vip_level", vipLevel)
+        .maybeSingle();
+      const t = tier as { extra_build_slots?: number; extra_research_slots?: number } | null;
+      buildSlotsMax    = 1 + (t?.extra_build_slots    ?? 0);
+      researchSlotsMax = 1 + (t?.extra_research_slots ?? 0);
+    }
+  } catch { /* tables may not exist in some envs */ }
 
   let crew: { id: string; name: string; tag: string | null; color: string | null; role: string } | null = null;
   if (profile?.current_crew_id) {
@@ -110,6 +150,10 @@ export default async function BasePage() {
       base={baseRow as { level?: number; plz?: string } | null}
       queueCount={queueCount}
       researchCount={researchCount}
+      buildSlotsMax={buildSlotsMax}
+      researchSlotsMax={researchSlotsMax}
+      buildEarliestEndsAt={buildEarliestEndsAt}
+      researchEarliestEndsAt={researchEarliestEndsAt}
       homeCity={homeCity}
     />
   );

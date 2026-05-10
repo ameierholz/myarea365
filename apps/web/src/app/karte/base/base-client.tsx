@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { FullscreenFrame } from "../_components/fullscreen-frame";
 import { UiIcon, useUiIconArt, useMarkerArt, useBaseRingArt, useArtworkReady } from "@/components/resource-icon";
+import { createClient } from "@/lib/supabase/client";
 import type { GuardianArchetype } from "@/lib/guardian";
 
 const ServerOverviewModal = dynamic(
@@ -21,6 +23,14 @@ const StatsModal = dynamic(
 );
 const BuildModal = dynamic(
   () => import("@/components/build-modal").then((m) => m.BuildModal),
+  { ssr: false },
+);
+const ResearchModal = dynamic(
+  () => import("@/components/research-modal").then((m) => m.ResearchModal),
+  { ssr: false },
+);
+const RanglistenModal = dynamic(
+  () => import("@/components/ranglisten-modal").then((m) => m.RanglistenModal),
   { ssr: false },
 );
 const GuardianDetailModal = dynamic(
@@ -68,6 +78,10 @@ export function BaseClient({
   base,
   queueCount,
   researchCount,
+  buildSlotsMax,
+  researchSlotsMax,
+  buildEarliestEndsAt,
+  researchEarliestEndsAt,
   homeCity,
 }: {
   profile: Profile | null;
@@ -78,17 +92,38 @@ export function BaseClient({
   base: { level?: number; plz?: string } | null;
   queueCount: number;
   researchCount: number;
+  buildSlotsMax: number;
+  researchSlotsMax: number;
+  buildEarliestEndsAt: string | null;
+  researchEarliestEndsAt: string | null;
   homeCity: { slug: string; name: string; era_number: number | null; era_started_at: string | null } | null;
 }) {
+  const router = useRouter();
   const [showServerOverview, setShowServerOverview] = useState(false);
   const [achievementTier, setAchievementTier] = useState<"bronze" | "silver" | "gold" | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showBuild, setShowBuild] = useState(false);
+  const [showResearch, setShowResearch] = useState(false);
+  const [showRanglisten, setShowRanglisten] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
   const [guardianData, setGuardianData] = useState<GuardianCollection | null>(null);
   const [guardianGalleryOpen, setGuardianGalleryOpen] = useState(false);
   const [guardianDetailId, setGuardianDetailId] = useState<string | null>(null);
   const [guardianBusy, setGuardianBusy] = useState(false);
   const [guardianBadge, setGuardianBadge] = useState<number>(0);
+
+  async function handleLogout() {
+    if (logoutBusy) return;
+    setLogoutBusy(true);
+    try {
+      const sb = createClient();
+      await sb.auth.signOut();
+      router.push("/");
+      router.refresh();
+    } finally {
+      setLogoutBusy(false);
+    }
+  }
 
   async function loadGuardianCollection(): Promise<GuardianCollection | null> {
     const r = await fetch("/api/guardian/my-collection", { cache: "no-store" });
@@ -172,6 +207,7 @@ export function BaseClient({
         @keyframes ma365Sparkle { 0%,100% { opacity: 0; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
         @keyframes ma365TileBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
         @keyframes ma365HeroPulse { 0%,100% { box-shadow: 0 0 24px rgba(255,210,122,0.55), inset 0 0 12px rgba(255,210,122,0.3); } 50% { box-shadow: 0 0 36px rgba(255,210,122,0.85), inset 0 0 18px rgba(255,210,122,0.5); } }
+        @keyframes ma365TilePulse { 0%,100% { transform: translateX(-50%) scale(1); filter: brightness(1); } 50% { transform: translateX(-50%) scale(1.08); filter: brightness(1.15); } }
 
         /* Tag-Funken — dezente warme Lichtpunkte */
         .ma365-bg-sparkle {
@@ -461,16 +497,28 @@ export function BaseClient({
             gap: 6,
             width: "min(540px, 60%)",
           }}>
-            <ArtTile slot="karte_base_bauen"         icon="🔨" label="Bauen"        onClick={() => setShowBuild(true)} badge={queueCount} />
-            <ArtTile slot="karte_base_forschung"     icon="⚗️" label="Forschung"    href="/karte/base"   badge={researchCount} />
-            <ArtTile slot="karte_base_banditen"      icon="🥷" label="Banditen"     href="/karte/base" />
+            <ArtTile
+              slot="karte_base_bauen"
+              icon="🔨"
+              label="Bauen"
+              onClick={() => setShowBuild(true)}
+              slot_status={{ active: queueCount, max: buildSlotsMax, earliestEndsAt: buildEarliestEndsAt }}
+            />
+            <ArtTile
+              slot="karte_base_forschung"
+              icon="⚗️"
+              label="Forschung"
+              onClick={() => setShowResearch(true)}
+              slot_status={{ active: researchCount, max: researchSlotsMax, earliestEndsAt: researchEarliestEndsAt }}
+            />
+            <ArtTile slot="karte_base_banditen"      icon="🥷" label="Banditen"     href="/karte" />
             <ArtTile slot="karte_base_waechter"      icon="🛡️" label="Wächter"      onClick={openGuardianHub} badge={guardianBadge} />
             <ArtTile slot="karte_base_trophaeen"     icon="🏆" label="Trophäen"     onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
-            <ArtTile slot="karte_base_ranglisten"    icon="📊" label="Ranglisten"   href="/karte/base" />
+            <ArtTile slot="karte_base_ranglisten"    icon="📊" label="Ranglisten"   onClick={() => setShowRanglisten(true)} />
             <ArtTile slot="karte_base_statistiken"   icon="📈" label="Statistiken"  onClick={() => setShowStats(true)} />
             <ArtTile slot="karte_base_server"        icon="🏙️" label="Server"       onClick={() => setShowServerOverview(true)} />
-            <ArtTile slot="karte_base_einstellungen" icon="⚙️" label="Einstellungen" href="/karte/base" />
-            <ArtTile slot="karte_base_logout"        icon="🚪" label="Ausloggen"    href="/logout" />
+            <ArtTile slot="karte_base_einstellungen" icon="⚙️" label="Einstellungen" href="/einstellungen" />
+            <ArtTile slot="karte_base_logout"        icon="🚪" label="Ausloggen"    onClick={handleLogout} />
           </div>
         </div>
       </div>
@@ -486,6 +534,8 @@ export function BaseClient({
       />
       <StatsModal open={showStats} onClose={() => setShowStats(false)} />
       {showBuild && <BuildModal onClose={() => setShowBuild(false)} />}
+      <ResearchModal open={showResearch} onClose={() => setShowResearch(false)} />
+      <RanglistenModal open={showRanglisten} onClose={() => setShowRanglisten(false)} />
 
       {guardianDetailId && (
         <GuardianDetailModal
@@ -525,17 +575,52 @@ export function BaseClient({
   );
 }
 
-function ArtTile({ slot, icon, label, href, onClick, badge, iconSize = 72 }: {
+function ArtTile({ slot, icon, label, href, onClick, badge, slot_status, iconSize = 72 }: {
   slot: string;
   icon: string;
   label: string;
   href?: string;
   onClick?: () => void;
   badge?: number;
+  /**
+   * Slot-Status für Bauen/Forschung. active=Anzahl belegter Slots,
+   * max=verfügbare Slots, earliestEndsAt=ISO-Zeit des nächsten Fertigstellung.
+   * Rendert statt klassischem Badge: "0/1" grün+pulsierend wenn frei,
+   * "⏱ 5m" wenn Bau läuft, "FERTIG" pulsierend wenn Timer abgelaufen.
+   */
+  slot_status?: { active: number; max: number; earliestEndsAt: string | null };
   /** Override Icon-Größe (Default 72). Emoji-Fallback skaliert proportional. */
   iconSize?: number;
 }) {
   const art = useUiIconArt();
+  // Live-Tick für Slot-Status (nur wenn aktiv) damit Timer auf "FERTIG" wechselt
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!slot_status?.earliestEndsAt) return;
+    const id = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(id);
+  }, [slot_status?.earliestEndsAt]);
+
+  // Status-Pill ableiten
+  let statusPill: { text: string; bg: string; color: string; pulse: boolean } | null = null;
+  if (slot_status) {
+    const { active, max, earliestEndsAt } = slot_status;
+    if (active === 0 && max > 0) {
+      // FREI — Spieler kann sofort starten
+      statusPill = { text: `${max} FREI`, bg: "linear-gradient(135deg, #86efac, #22c55e)", color: "#0F1115", pulse: true };
+    } else if (earliestEndsAt) {
+      const remainMs = new Date(earliestEndsAt).getTime() - now;
+      if (remainMs <= 0) {
+        statusPill = { text: "FERTIG", bg: "linear-gradient(135deg, #FFE066, #FFD700)", color: "#0F1115", pulse: true };
+      } else {
+        const m = Math.ceil(remainMs / 60000);
+        const text = m < 60 ? `⏱${m}m` : m < 1440 ? `⏱${Math.floor(m/60)}h` : `⏱${Math.floor(m/1440)}T`;
+        const remainText = active < max ? `${text} · ${max-active} frei` : text;
+        statusPill = { text: remainText, bg: "rgba(0,0,0,0.65)", color: "#FFF", pulse: false };
+      }
+    }
+  }
+
   const inner = (
     <>
       <div className="ma365-tile-art">
@@ -546,7 +631,8 @@ function ArtTile({ slot, icon, label, href, onClick, badge, iconSize = 72 }: {
           <span className="ma365-tile-icon" style={iconSize !== 72 ? { fontSize: Math.round(iconSize * 0.72) } : undefined}>{icon}</span>
         )}
 
-        {badge !== undefined && badge > 0 && (
+        {/* Klassischer Badge (z.B. Talent-Punkte, Achievements-Count) */}
+        {!slot_status && badge !== undefined && badge > 0 && (
           <div style={{
             position: "absolute", top: 4, right: 4,
             minWidth: 18, height: 18, borderRadius: 999,
@@ -560,8 +646,25 @@ function ArtTile({ slot, icon, label, href, onClick, badge, iconSize = 72 }: {
             zIndex: 4,
           }}>{badge}</div>
         )}
+
+        {/* Slot-Status-Pill — ersetzt klassischen Badge bei Bau/Forschung */}
+        {statusPill && (
+          <div style={{
+            position: "absolute", bottom: -2, left: "50%", transform: "translateX(-50%)",
+            padding: "2px 7px", borderRadius: 999,
+            background: statusPill.bg,
+            color: statusPill.color,
+            fontSize: 9, fontWeight: 900, letterSpacing: 0.4,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            border: "1.5px solid rgba(255,255,255,0.85)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+            zIndex: 4,
+            whiteSpace: "nowrap",
+            animation: statusPill.pulse ? "ma365TilePulse 1.4s ease-in-out infinite" : undefined,
+          }}>{statusPill.text}</div>
+        )}
       </div>
-      <div className="ma365-tile-label">{label}</div>
+      <div className="ma365-tile-label" style={statusPill ? { marginTop: 8 } : undefined}>{label}</div>
     </>
   );
   if (onClick) {

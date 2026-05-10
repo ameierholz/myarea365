@@ -20,16 +20,18 @@ export async function GET() {
   await sb.rpc("finish_building");
 
   // 2) Parallel laden
-  const [base, buildings, queue, resources, vip, vipThresholds, catalog, chests, themes] = await Promise.all([
+  const [base, buildings, queue, resources, vip, vipThresholds, catalog, chests, themes, caps, protectedAmounts] = await Promise.all([
     sb.from("bases").select("id, plz, level, exp, layout_json, lat, lng, visibility, theme_id, pin_label").eq("id", baseId as string).maybeSingle(),
     sb.from("base_buildings").select("id, building_id, position_x, position_y, level, status, last_collected_at, created_at").eq("base_id", baseId as string),
     sb.from("building_queue").select("id, building_id, action, target_level, started_at, ends_at, finished").eq("base_id", baseId as string).eq("finished", false).order("ends_at"),
     sb.from("user_resources").select("wood, stone, gold, mana, speed_tokens, vip_tickets, guardian_xp, updated_at").eq("user_id", user.id).maybeSingle(),
     sb.from("vip_progress").select("vip_level, vip_points, daily_login_streak, last_login_at, total_spent_eur, last_daily_claim_date").eq("user_id", user.id).maybeSingle(),
     sb.from("vip_tier_thresholds").select("vip_level, required_points, daily_chest_silver, daily_chest_gold, resource_bonus_pct, buildtime_bonus_pct, extra_build_slots, extra_research_slots, training_speed_pct, research_speed_pct, march_speed_pct, gather_speed_pct, troop_atk_pct, troop_def_pct, troop_hp_pct, daily_speed_tokens, daily_vip_tickets").order("vip_level"),
-    sb.from("buildings_catalog").select("id, name, emoji, description, category, scope, max_level, base_cost_wood, base_cost_stone, base_cost_gold, base_cost_mana, base_buildtime_minutes, effect_key, effect_per_level, required_base_level, sort, level_stats").eq("scope", "solo").order("sort"),
+    sb.from("buildings_catalog").select("id, name, emoji, description, category, scope, max_level, base_cost_wood, base_cost_stone, base_cost_gold, base_cost_mana, base_buildtime_minutes, buildtime_growth, effect_key, effect_per_level, required_base_level, sort, level_stats").eq("scope", "solo").order("sort"),
     sb.from("treasure_chests").select("id, kind, source, obtained_at, opens_at, opened_at, payload").eq("owner_user_id", user.id).is("opened_at", null).order("obtained_at", { ascending: false }),
     sb.from("base_themes").select("id, name, description, pin_emoji, pin_color, accent_color, modal_bg_url, resource_icon_wood, resource_icon_stone, resource_icon_gold, resource_icon_mana, unlock_kind, unlock_value, sort").order("sort"),
+    sb.rpc("get_all_resource_caps", { p_user: user.id }),
+    sb.rpc("get_all_resource_protected", { p_user: user.id }),
   ]);
 
   // VIP-Daily-Claim-Status: heute schon abgeholt? (UTC-Datum-Vergleich)
@@ -49,5 +51,9 @@ export async function GET() {
     catalog:     catalog.data ?? [],
     chests:      chests.data ?? [],
     themes:      themes.data ?? [],
+    caps:        (caps.data as { wood: number; stone: number; gold: number; mana: number } | null)
+                   ?? { wood: 50000, stone: 50000, gold: 50000, mana: 50000 },
+    protected_amounts: (protectedAmounts.data as { wood: number; stone: number; gold: number; mana: number } | null)
+                   ?? { wood: 0, stone: 0, gold: 0, mana: 0 },
   });
 }

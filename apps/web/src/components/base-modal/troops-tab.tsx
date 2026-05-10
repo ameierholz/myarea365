@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useResourceArt, ResourceIcon } from "@/components/resource-icon";
+import { useResourceArt, useTroopArt, ResourceIcon, UiIcon } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
 import { HospitalModal } from "@/components/hospital-modal";
 import { fetchBaseMe } from "@/lib/base-me-cache";
@@ -26,6 +26,7 @@ export function TroopsTab({ accent, reload }: { accent: string; reload: () => Pr
   const [hospital, setHospital] = useState<{ injuredTotal: number; cap: number; queueCount: number }>({ injuredTotal: 0, cap: 50, queueCount: 0 });
   const [gemsAvailable, setGemsAvailable] = useState<number>(0);
   const resourceArt = useResourceArt();
+  const troopArt = useTroopArt();
 
   const load = useCallback(async () => {
     const r = await fetch("/api/base/troops");
@@ -101,7 +102,10 @@ export function TroopsTab({ accent, reload }: { accent: string; reload: () => Pr
             const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
             return (
               <div key={q.id} className="flex justify-between text-[10px] text-white">
-                <span>{tr?.emoji} {tr?.name} × {q.count}</span>
+                <span className="inline-flex items-center gap-1">
+                  <UiIcon slot={tr?.id ?? ""} fallback={tr?.emoji ?? "⚔️"} art={troopArt} size={14} />
+                  {tr?.name} × {q.count}
+                </span>
                 <span className="text-[#a8b4cf]">{t("trainingMin", { n: remain })}</span>
               </div>
             );
@@ -131,7 +135,7 @@ export function TroopsTab({ accent, reload }: { accent: string; reload: () => Pr
                   return (
                     <button key={tr.id} onClick={() => setSelectedTroopId(tr.id)}
                       className="w-full text-left rounded p-2 flex items-center gap-2 bg-[#0F1115]/60 border border-white/5 hover:bg-[#0F1115]/80 hover:border-white/15 transition">
-                      <span className="text-2xl">{tr.emoji}</span>
+                      <UiIcon slot={tr.id} fallback={tr.emoji} art={troopArt} size={28} />
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-black text-white truncate">
                           {tr.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">{t("troopTier", { tier: tr.tier })}{tr.tier > 1 ? t("troopResearchSuffix") : ""}</span>

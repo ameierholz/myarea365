@@ -65,6 +65,7 @@ type OwnBaseData = {
   catalog: Catalog[];
   chests: Chest[];
   themes: Theme[];
+  caps?: { wood: number; stone: number; gold: number; mana: number };
 };
 
 type ForeignBaseData = {
@@ -1662,7 +1663,9 @@ function Benefit({ label, value }: { label: React.ReactNode; value: string }) {
 function BuildingThumb({ id, fallback, art, size = 28 }: {
   id: string; fallback: string; art: ResourceArtMap; size?: number;
 }) {
-  const a = art[id];
+  // Multi-Instance: saegewerk_2/_3 nutzen Basis-Artwork (Mig 00316).
+  const baseId = id.replace(/_(\d+)$/, "");
+  const a = art[id] ?? (baseId !== id ? art[baseId] : undefined);
   const filterCss: React.CSSProperties = { filter: "url(#ma365-chroma-black) drop-shadow(0 1px 2px rgba(0,0,0,0.4))" };
   if (a?.image_url) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -1687,13 +1690,13 @@ const FALLBACK_CATALOG: Catalog[] = [
   // ── Phase-1 Solo (00079) ──
   { id: "wegekasse",      name: "Wegekasse",     emoji: "🏦", description: "Erhöht das Lager-Limit für alle Resourcen pro Stufe.",     category: "storage",    scope: "solo", max_level: 10, base_cost_wood: 100, base_cost_stone:  50, base_cost_gold:  0, base_cost_mana:  0, base_buildtime_minutes:  5, effect_key: "storage_cap_pct",   effect_per_level: 0.10, required_base_level: 1, sort: 1 },
   { id: "waechter_halle", name: "Wächter-Halle", emoji: "⚔️", description: "Aktive Wächter erhalten mehr Erfahrung nach jedem Kampf und Resource-Sammeln.", category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 150, base_cost_stone: 150, base_cost_gold: 20, base_cost_mana: 10, base_buildtime_minutes: 10, effect_key: "guardian_xp_pct",   effect_per_level: 0.03, required_base_level: 2, sort: 3 },
-  { id: "laufturm",       name: "Lauftürme",     emoji: "🗼", description: "Erhöht die sichtbare Map-Reichweite + bessere Drops.",     category: "utility",    scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 100, base_cost_gold: 30, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "map_range_km",      effect_per_level: 0.30, required_base_level: 2, sort: 4 },
+  { id: "laufturm",       name: "Signal-Turm",   emoji: "🗼", description: "Erhöht die sichtbare Map-Reichweite + bessere Drops.",     category: "utility",    scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 100, base_cost_gold: 30, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "map_range_km",      effect_per_level: 0.30, required_base_level: 2, sort: 4 },
   // ── Starter (00082) ──
-  { id: "lagerhalle",     name: "Lauf-Lager",    emoji: "📦", description: "Zusätzliches Lager für seltene Drops + Wächter-Inventar.", category: "storage",    scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 200, base_cost_gold: 50, base_cost_mana:  0, base_buildtime_minutes: 15, effect_key: "rare_storage_pct",  effect_per_level: 0.08, required_base_level: 1, sort: 5 },
+  { id: "lagerhalle",     name: "Industrie-Hangar",emoji: "📦", description: "Großes Lager-Gebäude für Tech-Schrott und Komponenten zusammen.", category: "storage",   scope: "solo", max_level: 10, base_cost_wood: 200, base_cost_stone: 200, base_cost_gold: 50, base_cost_mana:  0, base_buildtime_minutes: 15, effect_key: "rare_storage_pct",  effect_per_level: 0.08, required_base_level: 1, sort: 5 },
   { id: "schmiede",       name: "Schmiede",      emoji: "⚒️", description: "Schaltet Item-Crafting + Ausrüstungs-Upgrades frei.",      category: "utility",    scope: "solo", max_level: 10, base_cost_wood: 150, base_cost_stone: 250, base_cost_gold: 80, base_cost_mana: 20, base_buildtime_minutes: 20, effect_key: "craft_speed_pct",   effect_per_level: 0.05, required_base_level: 3, sort: 6 },
   { id: "wachturm",       name: "Posten-Turm",   emoji: "🏯", description: "Verteidigt deine Base gegen Crew-Angriffe.",               category: "combat",     scope: "solo", max_level: 10, base_cost_wood: 300, base_cost_stone: 300, base_cost_gold: 100, base_cost_mana: 50, base_buildtime_minutes: 25, effect_key: "base_defense_pct",  effect_per_level: 0.05, required_base_level: 4, sort: 8 },
   // ── Expansion (00085) — Produktion ──
-  { id: "saegewerk",      name: "Reisig-Bündler",emoji: "🪓", description: "Passive Tech-Schrott-Produktion pro Stunde — auch ohne Laufen.",   category: "production", scope: "solo", max_level: 10, base_cost_wood: 100, base_cost_stone:  50, base_cost_gold: 10, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "wood_per_hour",     effect_per_level: 5.0,  required_base_level: 1, sort: 20 },
+  { id: "saegewerk",      name: "Recycling-Hof", emoji: "🪓", description: "Passive Tech-Schrott-Produktion pro Stunde.",                category: "production", scope: "solo", max_level: 10, base_cost_wood: 100, base_cost_stone:  50, base_cost_gold: 10, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "wood_per_hour",     effect_per_level: 5.0,  required_base_level: 1, sort: 20 },
   { id: "steinbruch",     name: "Pflaster-Brecher",emoji: "⛏️", description: "Passive Komponenten-Produktion pro Stunde.",                     category: "production", scope: "solo", max_level: 10, base_cost_wood:  50, base_cost_stone: 100, base_cost_gold: 10, base_cost_mana:  0, base_buildtime_minutes: 10, effect_key: "stone_per_hour",    effect_per_level: 5.0,  required_base_level: 1, sort: 21 },
   { id: "goldmine",       name: "Zoll-Schacht",  emoji: "💰", description: "Passive Krypto-Produktion pro Stunde.",                      category: "production", scope: "solo", max_level: 10, base_cost_wood: 100, base_cost_stone: 100, base_cost_gold: 20, base_cost_mana:  0, base_buildtime_minutes: 15, effect_key: "gold_per_hour",     effect_per_level: 4.0,  required_base_level: 2, sort: 22 },
   { id: "mana_quelle",    name: "Quellbrunnen",  emoji: "🌊", description: "Passive Bandbreite-Produktion pro Stunde.",                      category: "production", scope: "solo", max_level: 10, base_cost_wood: 100, base_cost_stone: 100, base_cost_gold: 30, base_cost_mana: 20, base_buildtime_minutes: 15, effect_key: "mana_per_hour",     effect_per_level: 3.0,  required_base_level: 2, sort: 23 },
