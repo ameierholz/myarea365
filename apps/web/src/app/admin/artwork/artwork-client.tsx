@@ -10,12 +10,14 @@ import { AdminArtworkControls } from "@/components/admin-artwork-controls";
 
 type Archetype = {
   id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
-  guardian_type: "infantry" | "cavalry" | "marksman" | "mage" | null;
+  guardian_type: "infantry" | "cavalry" | "marksman" | "mage" | "siege" | "collector" | null;
   class_id: "tank" | "support" | "ranged" | "melee" | null;
   role: "dps" | "tank" | "support" | "balanced" | null;
   species: string | null;
   gender: "male" | "female" | "neutral" | null;
   ability_name: string | null; lore: string | null;
+  faction?: "gossenbund" | "kronenwacht" | "netzhueter" | null;
+  wave_number?: number | null;
 };
 
 const RARITY_LABEL: Record<string, { label: string; color: string }> = {
@@ -29,10 +31,18 @@ const RARITY_LABEL: Record<string, { label: string; color: string }> = {
 };
 
 const TYPE_LABEL: Record<string, { label: string; icon: string; color: string }> = {
-  infantry: { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
-  cavalry:  { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
-  marksman: { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
-  mage:     { label: "Magier",        icon: "🔮", color: "#c084fc" },
+  infantry:  { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
+  cavalry:   { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
+  marksman:  { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
+  mage:      { label: "Magier",        icon: "🔮", color: "#c084fc" },
+  siege:     { label: "Belagerung",    icon: "💥", color: "#f59e0b" },
+  collector: { label: "Sammler",       icon: "📦", color: "#22D1C3" },
+};
+
+const FACTION_LABEL: Record<string, { label: string; emoji: string; color: string }> = {
+  gossenbund:  { label: "Untergrund",  emoji: "🔗", color: "#FF6B4A" },
+  kronenwacht: { label: "Stadtwache",  emoji: "🛡️", color: "#FFD700" },
+  netzhueter:  { label: "Hacker-Crew", emoji: "💻", color: "#22D1C3" },
 };
 
 // Neue 4-Klassen-Anzeige (tank/support/ranged/melee).
@@ -752,20 +762,30 @@ function buildItemPrompt(item: Item): string {
 /*  Tab: Wächter-Bilder (60 Archetypes)                       */
 /* ═════════════════════════════════════════════════════════ */
 function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onChange: () => void }) {
-  const [filterRarity, setFilterRarity] = useState<string>("ALL");
-  const [filterType,   setFilterType]   = useState<string>("ALL");
-  const [filterRole,   setFilterRole]   = useState<string>("ALL");
-  const [search,       setSearch]       = useState("");
-  const [missingOnly,  setMissingOnly]  = useState(false);
+  const [filterRarity,  setFilterRarity]  = useState<string>("ALL");
+  const [filterType,    setFilterType]    = useState<string>("ALL");
+  const [filterRole,    setFilterRole]    = useState<string>("ALL");
+  const [filterFaction, setFilterFaction] = useState<string>("ALL");
+  const [filterWave,    setFilterWave]    = useState<string>("ALL");
+  const [search,        setSearch]        = useState("");
+  const [missingOnly,   setMissingOnly]   = useState(false);
+
+  const waveOptions = useMemo(() => {
+    const set = new Set<number>();
+    archetypes.forEach((a) => { if (a.wave_number != null) set.add(a.wave_number); });
+    return Array.from(set).sort((a, b) => a - b);
+  }, [archetypes]);
 
   const filtered = useMemo(() => archetypes.filter((a) => {
     if (filterRarity !== "ALL" && a.rarity !== filterRarity) return false;
     if (filterType !== "ALL" && a.guardian_type !== filterType) return false;
     if (filterRole !== "ALL" && a.role !== filterRole) return false;
+    if (filterFaction !== "ALL" && a.faction !== filterFaction) return false;
+    if (filterWave !== "ALL" && String(a.wave_number ?? "") !== filterWave) return false;
     if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.toLowerCase().includes(search.toLowerCase())) return false;
     if (missingOnly && a.image_url) return false;
     return true;
-  }), [archetypes, filterRarity, filterType, filterRole, search, missingOnly]);
+  }), [archetypes, filterRarity, filterType, filterRole, filterFaction, filterWave, search, missingOnly]);
 
   const done = archetypes.filter(a => a.image_url).length;
   const pct = archetypes.length > 0 ? Math.round((done / archetypes.length) * 100) : 0;
@@ -841,6 +861,24 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         <button onClick={exportCsv} className="bg-[#22D1C3] text-[#0F1115] rounded-lg px-3 py-2 text-sm font-bold">
           ⬇️ CSV ({filtered.length})
         </button>
+      </div>
+
+      {/* Erweiterte Filter: Wave + Faction */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+        <select value={filterFaction} onChange={(e) => setFilterFaction(e.target.value)}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="ALL">Alle Fraktionen</option>
+          <option value="gossenbund">🔗 Untergrund</option>
+          <option value="kronenwacht">🛡️ Stadtwache</option>
+          <option value="netzhueter">💻 Hacker-Crew</option>
+        </select>
+        <select value={filterWave} onChange={(e) => setFilterWave(e.target.value)}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="ALL">Alle Wellen</option>
+          {waveOptions.map((w) => (
+            <option key={w} value={String(w)}>W{w} {w === 0 ? "(Pre-Launch)" : ""}</option>
+          ))}
+        </select>
       </div>
 
       {/* Progress-Bar + Wipe-Button */}
@@ -1003,6 +1041,23 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
         <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest"
           style={{ background: rarityMeta.color + "22", color: rarityMeta.color, border: `1px solid ${rarityMeta.color}` }}>
           {rarityMeta.label}
+        </div>
+        {/* Wave-Badge unten links + Faction-Badge unten rechts */}
+        <div className="absolute bottom-2 left-2 flex gap-1.5">
+          {a.wave_number != null && a.wave_number > 0 && (
+            <div className="px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider"
+              style={{ background: "linear-gradient(135deg, #22D1C3, #1ba59a)", color: "#0F1115", boxShadow: "0 0 6px rgba(34,209,195,0.5)" }}>
+              W{a.wave_number}
+            </div>
+          )}
+          {a.faction && FACTION_LABEL[a.faction] && (
+            <div className="px-1.5 py-0.5 rounded-full text-[9px] font-black flex items-center gap-1"
+              style={{ background: FACTION_LABEL[a.faction].color + "33", color: FACTION_LABEL[a.faction].color, border: `1px solid ${FACTION_LABEL[a.faction].color}77` }}
+              title={FACTION_LABEL[a.faction].label}>
+              <span>{FACTION_LABEL[a.faction].emoji}</span>
+              <span>{FACTION_LABEL[a.faction].label}</span>
+            </div>
+          )}
         </div>
       </div>
 

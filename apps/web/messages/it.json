@@ -900,7 +900,7 @@
   },
   "GuardianGallery": {
     "kicker": "COLLEZIONE",
-    "title": "60 guardiani · {owned} posseduti",
+    "title": "{total} guardiani · {owned} posseduti",
     "closeAria": "Chiudi",
     "tabAll": "Tutti",
     "onlyMissingArt": "🎨 Solo senza artwork",

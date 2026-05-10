@@ -176,14 +176,14 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
 
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3800,
+      position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(15,17,21,0.95)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "92vh", overflow: "hidden",
+        width: "100%", maxWidth: 640, maxHeight: "100dvh", overflow: "hidden",
         background: "radial-gradient(ellipse at top, rgba(255,107,74,0.18), #0F1115 70%)",
-        borderRadius: 20,
+        borderRadius: 14,
         border: "1px solid rgba(255,107,74,0.45)",
         boxShadow: "0 20px 60px rgba(0,0,0,0.8), 0 0 60px rgba(255,107,74,0.25)",
         color: "#F0F0F0",
@@ -191,25 +191,25 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
       }}>
         {/* Header */}
         <div style={{
-          padding: "18px 20px 14px",
+          padding: "6px 10px", flexShrink: 0,
           borderBottom: "1px solid rgba(255,107,74,0.25)",
           background: "linear-gradient(180deg, rgba(255,107,74,0.12), transparent)",
-          display: "flex", alignItems: "center", gap: 12,
+          display: "flex", alignItems: "center", gap: 8,
         }}>
-          <div style={{ fontSize: 40, animation: "forgeFlicker 1.2s ease-in-out infinite" }}>🔥</div>
+          <div style={{ fontSize: 22, animation: "forgeFlicker 1.2s ease-in-out infinite" }}>🔥</div>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FF6B4A", fontSize: 11, fontWeight: 900, letterSpacing: 2 }}>{tF("kicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900 }}>{tF("title")}</div>
+            <div style={{ color: "#FF6B4A", fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>{tF("kicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 14, fontWeight: 900 }}>{tF("title")}</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>✕</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf", width: 24, height: 24, borderRadius: 999, cursor: "pointer", fontSize: 14 }}>✕</button>
         </div>
 
         {/* Material-Balance — auf Handy 2 Spalten, ab ~520 px 4 */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-          gap: 8,
-          padding: "14px 16px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: 5, flexShrink: 0,
+          padding: "6px 8px",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
           background: "rgba(0,0,0,0.2)",
         }}>
@@ -238,7 +238,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
         </div>
 
         {/* Filter */}
-        <div style={{ padding: "10px 16px", display: "flex", gap: 4, flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+        <div style={{ padding: "5px 8px", display: "flex", gap: 3, flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.04)", flexShrink: 0 }}>
           <FilterChip label={tF("filterAll")} active={filterSlot === "ALL"} onClick={() => setFilterSlot("ALL")} />
           {(["helm","chest","legs","gloves","boots","weapon","necklace","ring"] as ItemSlot[]).map((s) => (
             <FilterChip key={s} label={`${SLOT_META[s].icon} ${SLOT_META[s].label}`} active={filterSlot === s} onClick={() => setFilterSlot(s)} />
@@ -246,7 +246,7 @@ export function ForgeModal({ items, onClose, onUpgraded }: {
         </div>
 
         {/* Item-Liste (scrollable) */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "6px 8px" }}>
           {filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: "center", color: "#8B8FA3" }}>
               {tF("noItems")}

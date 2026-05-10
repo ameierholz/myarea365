@@ -161,7 +161,7 @@ function BlackmarketBody({ buildingId, onChanged }: { buildingId: string; onChan
   if (!status) return null;
 
   return (
-    <div style={{ padding: "12px 16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
       {/* Treasury-Box */}
       <div style={{
         padding: 14, borderRadius: 12,
@@ -374,7 +374,7 @@ function BunkerBody({ buildingId, onChanged }: { buildingId: string; onChanged?:
   const eligible = troops.filter((t) => t.troop_class !== "gatherer" && (status.available_troops[t.id] ?? 0) > 0);
 
   return (
-    <div style={{ padding: "12px 16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
       {/* Defense-Box */}
       <div style={{
         padding: 14, borderRadius: 12,
@@ -571,7 +571,7 @@ function HangoutBody({ buildingId, onChanged }: { buildingId: string; onChanged?
   const buffMeta = buffActive ? BUFF_LABELS[buffActive.kind] : null;
 
   return (
-    <div style={{ padding: "12px 16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
       {/* Active Buff Box */}
       {buffActive && buffMeta ? (
         <div style={{
@@ -721,7 +721,7 @@ function TunnelBody({ buildingId, onChanged }: { buildingId: string; onChanged?:
   const TUNNEL_COLOR = "#A855F7";
 
   return (
-    <div style={{ padding: "12px 16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ padding: "8px 10px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
       {status.is_paired && status.partner ? (
         <div style={{
           padding: 14, borderRadius: 12,
@@ -822,7 +822,7 @@ function ModalShell({ children, onClose, title, subtitle, emoji, accent, hp, max
         position: "fixed", inset: 0, zIndex: 9300,
         background: "rgba(8,10,14,0.78)", backdropFilter: "blur(6px)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 12,
+        padding: 6,
       }}
     >
       <div
@@ -830,18 +830,18 @@ function ModalShell({ children, onClose, title, subtitle, emoji, accent, hp, max
         style={{
           width: "100%", maxWidth: 460,
           background: "rgba(15,17,21,0.96)",
-          borderRadius: 16,
+          borderRadius: 14,
           border: `1px solid ${accent}55`,
           boxShadow: `0 16px 48px rgba(0,0,0,0.7), 0 0 32px ${accent}33`,
           overflow: "hidden",
-          maxHeight: "90vh",
+          maxHeight: "100dvh",
           display: "flex", flexDirection: "column",
         }}
       >
         {/* Header */}
         <div style={{
-          position: "relative",
-          padding: "16px 16px 14px",
+          position: "relative", flexShrink: 0,
+          padding: "8px 10px 6px",
           background: `
             radial-gradient(ellipse at 30% 20%, ${accent}55 0%, transparent 55%),
             radial-gradient(ellipse at 75% 75%, ${accent}33 0%, transparent 50%),
@@ -852,25 +852,25 @@ function ModalShell({ children, onClose, title, subtitle, emoji, accent, hp, max
           <button
             onClick={onClose}
             style={{
-              position: "absolute", top: 10, right: 10,
-              width: 28, height: 28, borderRadius: 14,
+              position: "absolute", top: 6, right: 6,
+              width: 22, height: 22, borderRadius: 11,
               background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.15)",
-              color: "#FFF", fontSize: 14, cursor: "pointer", lineHeight: 1,
+              color: "#FFF", fontSize: 12, cursor: "pointer", lineHeight: 1,
             }}
           >×</button>
-          <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 6, filter: `drop-shadow(0 0 12px ${accent}88)` }}>{emoji}</div>
-          <div style={{ color: "#FFF", fontSize: 20, fontWeight: 400, fontFamily: "var(--font-display-stack)", letterSpacing: 0.6 }}>
+          <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 2, filter: `drop-shadow(0 0 12px ${accent}88)` }}>{emoji}</div>
+          <div style={{ color: "#FFF", fontSize: 14, fontWeight: 400, fontFamily: "var(--font-display-stack)", letterSpacing: 0.4 }}>
             {title}
           </div>
-          <div style={{ color: accent, fontSize: 10, fontWeight: 900, letterSpacing: 1.2, textTransform: "uppercase", marginTop: 2 }}>
+          <div style={{ color: accent, fontSize: 8, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", marginTop: 1 }}>
             {subtitle}
           </div>
-          <div style={{ marginTop: 10, padding: "0 8px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-              <span style={{ color: "#8B8FA3", fontSize: 10, fontWeight: 700 }}>Haltbarkeit</span>
-              <span style={{ color: "#FFF", fontSize: 10, fontWeight: 800 }}>{hp.toLocaleString("de-DE")} / {maxHp.toLocaleString("de-DE")}</span>
+          <div style={{ marginTop: 5, padding: "0 6px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+              <span style={{ color: "#8B8FA3", fontSize: 8, fontWeight: 700 }}>Haltbarkeit</span>
+              <span style={{ color: "#FFF", fontSize: 8, fontWeight: 800 }}>{hp.toLocaleString("de-DE")} / {maxHp.toLocaleString("de-DE")}</span>
             </div>
-            <div style={{ height: 5, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
               <div style={{
                 width: `${hpPct}%`, height: "100%",
                 background: hpPct > 50 ? "#22D1C3" : hpPct > 20 ? "#FFD700" : "#FF2D78",
@@ -881,7 +881,7 @@ function ModalShell({ children, onClose, title, subtitle, emoji, accent, hp, max
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {children}
         </div>
       </div>

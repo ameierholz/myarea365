@@ -62,7 +62,7 @@ export type ArchetypePromptInput = {
   name: string;
   rarity: "common" | "rare" | "legend" | "elite" | "epic" | "legendary";
   classId?: "tank" | "support" | "ranged" | "melee" | null;
-  guardianType?: "infantry" | "cavalry" | "marksman" | "mage" | null;
+  guardianType?: "infantry" | "cavalry" | "marksman" | "mage" | "siege" | "collector" | null;
   role?: "dps" | "tank" | "support" | "balanced" | null;
   species?: ArchetypeSpecies | string | null;
   gender?: "male" | "female" | "neutral" | null;
@@ -283,11 +283,13 @@ const SPECIES_POSE_HINT: Record<string, string> = {
 // Legacy-Mapping: alter guardian_type → neue Klasse (für Aufrufer die noch nicht migriert sind).
 function legacyTypeToClass(t: string | null | undefined): "tank" | "support" | "ranged" | "melee" | null {
   switch (t) {
-    case "infantry": return "tank";
-    case "cavalry":  return "melee";
-    case "marksman": return "ranged";
-    case "mage":     return "support";
-    default:         return null;
+    case "infantry":  return "tank";
+    case "cavalry":   return "melee";
+    case "marksman":  return "ranged";
+    case "mage":      return "support";
+    case "siege":     return "support";  // Belagerung — Special-Caster
+    case "collector": return "support";  // Sammler — Utility/Support
+    default:          return null;
   }
 }
 

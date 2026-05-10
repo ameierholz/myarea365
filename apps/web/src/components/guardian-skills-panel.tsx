@@ -36,7 +36,12 @@ export function GuardianSkillsPanel(props: Props) {
   }, [sorted, levelMap]);
 
   const availableSiegel = guardianType ? siegelForType(siegel, guardianType) : 0;
-  const siegelMeta = guardianType ? SIEGEL_META[guardianType] : null;
+  // siege/collector haben kein eigenes Siegel — fallback auf universal-Siegel-Meta
+  const siegelMeta = guardianType
+    ? (guardianType === "siege" || guardianType === "collector"
+        ? SIEGEL_META.universal
+        : SIEGEL_META[guardianType])
+    : null;
 
   async function handleUpgrade(id: string) {
     setBusy(id);

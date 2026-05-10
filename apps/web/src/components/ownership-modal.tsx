@@ -83,29 +83,29 @@ export function OwnershipModal({ query, onClose }: { query: OwnershipQuery; onCl
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, zIndex: 3000,
+        position: "fixed", inset: 0, zIndex: 9000,
         background: "rgba(15,17,21,0.88)", backdropFilter: "blur(10px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 420,
-          background: "#1A1D23", borderRadius: 18, padding: 22,
+          width: "100%", maxWidth: 420, maxHeight: "100dvh", overflowY: "auto",
+          background: "#1A1D23", borderRadius: 14, padding: 10,
           border: "1px solid rgba(255,255,255,0.12)",
           color: "#F0F0F0",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-          <span style={{ fontSize: 28 }}>{icon}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 18 }}>{icon}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 17, fontWeight: 900 }}>{title}</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{title}</div>
             {data?.street_name && (
-              <div style={{ color: "#a8b4cf", fontSize: 12 }}>{data.street_name}</div>
+              <div style={{ color: "#a8b4cf", fontSize: 10 }}>{data.street_name}</div>
             )}
           </div>
-          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 18, cursor: "pointer" }}>×</button>
         </div>
 
         {loading ? (

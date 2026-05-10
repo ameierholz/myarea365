@@ -41,11 +41,12 @@ export function ModalHeader({
     <header
       style={{
         display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-        padding: "14px 16px 12px",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 12px 8px",
         borderBottom: "1px solid var(--color-modal-divider)",
         background: `linear-gradient(180deg, ${accentColor}10 0%, transparent 100%)`,
+        flexShrink: 0,
       }}
     >
       {onBack && <BackButton onClick={onBack} />}
@@ -55,11 +56,12 @@ export function ModalHeader({
           <div
             style={{
               color: accentColor,
-              fontSize: 9,
+              fontSize: 8,
               fontWeight: 900,
-              letterSpacing: 2,
+              letterSpacing: 1.6,
               textTransform: "uppercase",
-              marginBottom: 2,
+              marginBottom: 1,
+              lineHeight: 1,
             }}
           >
             {kicker}
@@ -72,7 +74,7 @@ export function ModalHeader({
             style={{
               margin: 0,
               color: "var(--color-text)",
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: 800,
               lineHeight: 1.15,
               overflow: "hidden",
@@ -87,10 +89,10 @@ export function ModalHeader({
           <div
             style={{
               color: "var(--color-text-muted)",
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: 600,
-              marginTop: 2,
-              lineHeight: 1.3,
+              marginTop: 1,
+              lineHeight: 1.25,
             }}
           >
             {subtitle}

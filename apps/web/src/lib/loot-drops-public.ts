@@ -109,7 +109,7 @@ export const SEASON_REWARDS_TABLE: Array<{
   { system: "⚔️ CvC (Crew vs Crew)",      cadence: "wöchentlich pro CvC-Map",          tier: "#1 Champion-Crew",          reward: "1 500 💎 + 50 Universal-Siegel + Titel" },
   { system: "⚔️ CvC (Crew vs Crew)",      cadence: "—",                                tier: "#2-3 Finalisten",           reward: "750 💎 + 25 Siegel" },
   { system: "⚔️ CvC (Crew vs Crew)",      cadence: "—",                                tier: "#4-10 Halbfinale",          reward: "300 💎 + 10 Siegel" },
-  { system: "⚔️ CvC (Crew vs Crew)",      cadence: "—",                                tier: "#11-50 Aufgebot",           reward: "100 💎 + 3 Siegel" },
+  { system: "⚔️ CvC (Crew vs Crew)",      cadence: "—",                                tier: "#11-50 Trupp",              reward: "100 💎 + 3 Siegel" },
   { system: "⚔️ CvC (Crew vs Crew)",      cadence: "—",                                tier: "Teilnahme (≥1 Match)",      reward: "30 💎 + 1 Siegel" },
 
   { system: "🛡️ Wächter-Arena-Saison",    cadence: "monatlich (1. d. M. 01:00 UTC)",   tier: "#1 Champion",               reward: "500 💎 + 50 Universal-Siegel + Titel" },

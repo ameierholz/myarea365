@@ -86,35 +86,35 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)",
-      zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: BG, borderRadius: 16, width: "100%", maxWidth: 760, maxHeight: "92vh",
+        background: BG, borderRadius: 14, width: "100%", maxWidth: 760, maxHeight: "100dvh",
         border: `1px solid ${ACCENT}55`, overflow: "hidden",
         display: "flex", flexDirection: "column",
       }}>
         {/* Header */}
         <div style={{
-          padding: "14px 18px",
+          padding: "6px 10px", flexShrink: 0,
           background: `linear-gradient(135deg, ${ACCENT}33, ${PREMIUM}22 60%, transparent 100%)`,
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", gap: 12,
+          display: "flex", alignItems: "center", gap: 8,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: ACCENT, fontSize: 11, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase" }}>
+            <div style={{ color: ACCENT, fontSize: 9, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>
               {t("seasonPillLabel")} · {t("seasonDaysLeft", { days: season?.days_left ?? 0 })}
             </div>
-            <div style={{ color: TEXT, fontSize: 18, fontWeight: 900, marginTop: 2 }}>{season?.name}</div>
-            <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
+            <div style={{ color: TEXT, fontSize: 14, fontWeight: 900, marginTop: 1 }}>{season?.name}</div>
+            <div style={{ color: MUTED, fontSize: 10, marginTop: 2 }}>
               {t("seasonLevel", { level: progress?.level ?? 0 })}
               {" · "}
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{t("seasonXpProgress", { cur: xpInCurLevel, total: 1000 })}</span>
             </div>
-            <div style={{ marginTop: 6, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+            <div style={{ marginTop: 3, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${xpProgressPct}%`, background: `linear-gradient(90deg, ${ACCENT}, ${PREMIUM})`, transition: "width 300ms" }} />
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 22, cursor: "pointer", padding: 4 }}>✕</button>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 18, cursor: "pointer", padding: 2 }}>✕</button>
         </div>
 
         {/* Premium-Unlock-CTA */}
@@ -148,7 +148,7 @@ export function SeasonPassModal({ onClose }: { onClose: () => void }) {
         )}
 
         {/* Rewards-Liste */}
-        <div style={{ overflowY: "auto", padding: "12px 18px 18px", flex: 1 }}>
+        <div style={{ overflowY: "auto", padding: "6px 10px 10px", flex: 1, minHeight: 0 }}>
           {rewards?.map((r) => {
             const reached = (progress?.level ?? 0) >= r.level;
             const freeClaimed = progress?.free_claims?.includes(r.level);

@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
-import { UpgradeBody } from "@/components/upgrade-modal";
-import { BoostShopBody } from "@/components/boost-shop";
 import { GemShopBody } from "@/components/gem-shop-modal";
 import { DealsShopBody } from "@/components/deals-shop-modal";
 import { CosmeticsHubBody } from "@/components/cosmetics-hub-body";
+import { PremiumShopBody } from "@/components/premium-shop-body";
+import { DiamondsBuyBody } from "@/components/diamonds-buy-body";
 import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
-export type ShopHubTabId = "deals" | "plus" | "power" | "gems" | "cosmetics";
+// Hinweis: Tab-IDs aus Legacy-Kompatibilität teilweise unverändert lassen.
+// "plus" + "power" sind entfernt (Walking-App-Legacy), Mapping unten setzt sie auf "premium" um.
+export type ShopHubTabId = "deals" | "diamonds" | "premium" | "items" | "cosmetics" | "plus" | "power" | "gems";
 
 export function ShopHubModal({
   userId, onClose, initialTab = "deals", isAdmin = false,
@@ -19,26 +20,30 @@ export function ShopHubModal({
   initialTab?: ShopHubTabId;
   isAdmin?: boolean;
 }) {
-  const tM = useTranslations("Modals");
-  const [tab, setTab] = useState<ShopHubTabId>(initialTab);
+  // Legacy-Mapping: "plus" + "power" → "premium", "gems" → "items"
+  const mapLegacy = (t: ShopHubTabId): ShopHubTabId => {
+    if (t === "plus" || t === "power") return "premium";
+    if (t === "gems") return "items";
+    return t;
+  };
+  const [tab, setTab] = useState<ShopHubTabId>(mapLegacy(initialTab));
 
-  // Globale Events: andere Komponenten dürfen den Tab umschalten ohne neuen Hub zu öffnen
   useEffect(() => {
     const onSwitch = (e: Event) => {
       const ev = e as CustomEvent<{ tab: ShopHubTabId }>;
-      if (ev.detail?.tab) setTab(ev.detail.tab);
+      if (ev.detail?.tab) setTab(mapLegacy(ev.detail.tab));
     };
     window.addEventListener("ma365:shophub-switch", onSwitch as EventListener);
     return () => window.removeEventListener("ma365:shophub-switch", onSwitch as EventListener);
   }, []);
 
   const TABS: { id: ShopHubTabId; label: string; icon: string; color: string }[] = useMemo(() => [
-    { id: "deals",     label: "Angebote",  icon: "🔥", color: "#FF8A3C" },
-    { id: "gems",      label: tM("shTabGems"),  icon: "💠", color: "#5ddaf0" },
-    { id: "plus",      label: tM("shTabPlus"),  icon: "💎", color: "#22D1C3" },
-    { id: "power",     label: tM("shTabPower"), icon: "⚡", color: "#FFD700" },
-    { id: "cosmetics", label: "Kosmetik",  icon: "🎨", color: "#FF2D78" },
-  ], [tM]);
+    { id: "deals",     label: "Angebote",   icon: "🔥", color: "#FF8A3C" },
+    { id: "diamonds",  label: "Diamanten",  icon: "💎", color: "#FFD700" },
+    { id: "premium",   label: "Premium",    icon: "👑", color: "#FF2D78" },
+    { id: "items",     label: "Items",      icon: "🎁", color: "#22D1C3" },
+    { id: "cosmetics", label: "Kosmetik",   icon: "🎨", color: "#a855f7" },
+  ], []);
 
   return (
     <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
@@ -49,9 +54,8 @@ export function ShopHubModal({
         accent="primary"
       />
       <ModalBody padding="flush">
-        {/* Tabs — Mobile: horizontal scrollbar, Desktop: full row */}
         <div style={{
-          display: "flex", gap: 4, padding: "8px 8px 0", overflowX: "auto",
+          display: "flex", gap: 2, padding: "4px 6px 0", overflowX: "auto",
           borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0,
           scrollbarWidth: "none",
         }}>
@@ -61,25 +65,24 @@ export function ShopHubModal({
               <button key={t.id} onClick={() => setTab(t.id)} style={{
                 flexShrink: 0,
                 background: "transparent", border: "none", cursor: "pointer",
-                padding: "10px 12px", color: active ? t.color : "#8B8FA3",
-                fontSize: 11, fontWeight: 800,
+                padding: "5px 8px 6px", color: active ? t.color : "#8B8FA3",
+                fontSize: 9, fontWeight: 800,
                 borderBottom: active ? `2px solid ${t.color}` : "2px solid transparent",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                minWidth: 64,
+                display: "flex", flexDirection: "row", alignItems: "center", gap: 4,
+                whiteSpace: "nowrap",
               }}>
-                <span style={{ fontSize: 18 }}>{t.icon}</span>
+                <span style={{ fontSize: 14 }}>{t.icon}</span>
                 {t.label}
               </button>
             );
           })}
         </div>
 
-        {/* Body */}
-        <div style={{ padding: 14 }}>
+        <div style={{ padding: "10px 10px" }}>
           {tab === "deals"     && <DealsShopBody />}
-          {tab === "plus"      && <UpgradeBody mode="plus" userId={userId} onDone={onClose} />}
-          {tab === "power"     && <BoostShopBody userId={userId} onDone={onClose} />}
-          {tab === "gems"      && <GemShopBody />}
+          {tab === "diamonds"  && <DiamondsBuyBody />}
+          {tab === "premium"   && <PremiumShopBody />}
+          {tab === "items"     && <GemShopBody />}
           {tab === "cosmetics" && <CosmeticsHubBody userId={userId} isAdmin={isAdmin} />}
         </div>
       </ModalBody>

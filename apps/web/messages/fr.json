@@ -900,7 +900,7 @@
   },
   "GuardianGallery": {
     "kicker": "COLLECTION",
-    "title": "60 gardiens · {owned} possédés",
+    "title": "{total} gardiens · {owned} possédés",
     "closeAria": "Fermer",
     "tabAll": "Tous",
     "onlyMissingArt": "🎨 Sans artwork seulement",

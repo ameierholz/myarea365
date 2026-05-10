@@ -66,31 +66,31 @@ export function ForgeOfLightModal({ onClose }: { onClose: () => void }) {
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9100,
       background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 520, maxHeight: "92vh",
+        width: "100%", maxWidth: 520, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
         background: `linear-gradient(180deg, ${PRIMARY}1a 0%, #141a2d 60%)`,
-        borderRadius: 18, border: `2px solid ${PRIMARY}66`,
+        borderRadius: 14, border: `2px solid ${PRIMARY}66`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
-        <div style={{ padding: "16px 18px 8px", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ padding: "6px 10px 4px", display: "flex", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{t("kicker")}</div>
-            <div style={{ fontSize: 18, fontWeight: 900 }}>{event?.name ?? t("noEvent")}</div>
-            {event && <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 2 }}>⏳ {t("daysLeft", { n: daysLeft })}</div>}
+            <div style={{ color: PRIMARY, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>{t("kicker")}</div>
+            <div style={{ fontSize: 14, fontWeight: 900 }}>{event?.name ?? t("noEvent")}</div>
+            {event && <div style={{ color: TEXT_SOFT, fontSize: 10, marginTop: 1 }}>⏳ {t("daysLeft", { n: daysLeft })}</div>}
           </div>
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 16, background: "rgba(0,0,0,0.55)", border: "none",
-            color: "#FFF", fontSize: 18, fontWeight: 900, cursor: "pointer",
+            width: 24, height: 24, borderRadius: 12, background: "rgba(0,0,0,0.55)", border: "none",
+            color: "#FFF", fontSize: 14, fontWeight: 900, cursor: "pointer",
           }}>×</button>
         </div>
 
         {!event ? (
-          <div style={{ padding: 30, textAlign: "center", color: TEXT_SOFT }}>{t("noEventBody")}</div>
+          <div style={{ padding: 20, textAlign: "center", color: TEXT_SOFT }}>{t("noEventBody")}</div>
         ) : (
-          <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 8px 8px" }}>
             {/* Featured */}
             <div style={{ marginTop: 8, padding: 12, borderRadius: 12, background: `${GOLD}11`, border: `1px solid ${GOLD}55` }}>
               <div style={{ color: GOLD, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>{t("featured")}</div>

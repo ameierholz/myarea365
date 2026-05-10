@@ -56,8 +56,8 @@ function FactionTile({ which, stats, leads, total }: {
   total: number;
 }) {
   const color = which === "n" ? "#22D1C3" : "#FFD700";
-  const icon = which === "n" ? "🗝️" : "👑";
-  const name = which === "n" ? "Gossenbund" : "Kronenwacht";
+  const icon = which === "n" ? "🔗" : "🛡️";
+  const name = which === "n" ? "Untergrund" : "Stadtwache";
   const pct = total > 0 ? (stats.km_week / total) * 100 : 50;
   return (
     <div style={{
@@ -91,7 +91,7 @@ function FactionTile({ which, stats, leads, total }: {
 function FactionLeaderRow({ label, icon, nKm, sKm }: { label: string; icon: React.ReactNode; nKm: number; sKm: number }) {
   const leader = nKm >= sKm ? "n" : "s";
   const color = leader === "n" ? "#22D1C3" : "#FFD700";
-  const leaderName = leader === "n" ? "🗝️ Gossenbund" : "👑 Kronenwacht";
+  const leaderName = leader === "n" ? "🔗 Untergrund" : "🛡️ Stadtwache";
   const diff = Math.abs(nKm - sKm);
   return (
     <div style={{
@@ -123,11 +123,11 @@ function AnimatedDuelBar({ nKm, sKm }: { nKm: number; sKm: number }) {
   return (
     <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(30, 38, 60, 0.55)", border: `1px solid ${BORDER}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12 }}>
-        <span style={{ color: "#22D1C3", fontWeight: 900 }}>🗝️ {nKm.toFixed(0)} km</span>
+        <span style={{ color: "#22D1C3", fontWeight: 900 }}>🔗 {nKm.toFixed(0)} km</span>
         <span style={{ flex: 1, textAlign: "center", color: leader === "n" ? "#22D1C3" : "#FFD700", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>
-          {leader === "n" ? "🗝️ FÜHRT" : "👑 FÜHRT"} · +{diff.toFixed(0)} km
+          {leader === "n" ? "🔗 FÜHRT" : "🛡️ FÜHRT"} · +{diff.toFixed(0)} km
         </span>
-        <span style={{ color: "#FFD700", fontWeight: 900 }}>{sKm.toFixed(0)} km 👑</span>
+        <span style={{ color: "#FFD700", fontWeight: 900 }}>{sKm.toFixed(0)} km 🛡️</span>
       </div>
       <div style={{ position: "relative", height: 18, borderRadius: 9, overflow: "hidden", background: "rgba(255,255,255,0.06)" }}>
         <div style={{
@@ -1424,8 +1424,8 @@ function MmrLeaderboardView() {
         <div style={{ color: MUTED, fontSize: 10, fontWeight: 800, marginBottom: 6, letterSpacing: 0.5 }}>FRAKTION</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           <FilterPill active={factionFilter === "all"} onClick={() => setFactionFilter("all")}>Alle</FilterPill>
-          <FilterPill active={factionFilter === "kronenwacht"} onClick={() => setFactionFilter("kronenwacht")}>👑 Kronenwacht</FilterPill>
-          <FilterPill active={factionFilter === "gossenbund"} onClick={() => setFactionFilter("gossenbund")}>🗝️ Gossenbund</FilterPill>
+          <FilterPill active={factionFilter === "kronenwacht"} onClick={() => setFactionFilter("kronenwacht")}>🛡️ Stadtwache</FilterPill>
+          <FilterPill active={factionFilter === "gossenbund"} onClick={() => setFactionFilter("gossenbund")}>🔗 Untergrund</FilterPill>
         </div>
       </div>
       <div>
@@ -1889,7 +1889,7 @@ function ArenaGlobalStats({ rows }: { rows: ArenaHonorRow[] }) {
       <StatCard icon="🔥" label="LÄNGSTE SERIE" value={topStreak > 0 ? `${topStreak} Siege` : "—"} sub={streakHolder?.display_name ?? streakHolder?.username ?? "Noch keine Serie"} color="#FF2D78" />
       <StatCard icon="🏛️" label="FRAKTIONS-DUELL"
         value={`${vanguardPct}% vs ${100 - vanguardPct}%`}
-        sub="👑 Kronenwacht vs 🗝️ Gossenbund"
+        sub="🛡️ Stadtwache vs 🔗 Untergrund"
         color="#FFD700" />
       <StatCard icon="🌍" label="TOP-LÄNDER"
         value={topCountries.length > 0 ? topCountries.map(([, c]) => c).join(" · ") : "—"}

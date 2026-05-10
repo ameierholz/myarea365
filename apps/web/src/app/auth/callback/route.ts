@@ -27,10 +27,12 @@ export async function GET(request: Request) {
       if (user) {
         const { data: profile } = await supabase
           .from("users")
-          .select("username, faction")
+          .select("username, faction, guardian_faction")
           .eq("id", user.id)
           .maybeSingle();
-        if (!profile || !profile.faction || !profile.username) {
+        // Onboarding nötig wenn: Username fehlt, Spielstil (faction) fehlt,
+        // oder Wächter-Fraktion (guardian_faction) fehlt
+        if (!profile || !profile.username || !profile.faction || !profile.guardian_faction) {
           return NextResponse.redirect(`${origin}/onboarding`);
         }
       }

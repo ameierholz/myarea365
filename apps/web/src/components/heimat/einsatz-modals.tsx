@@ -229,14 +229,14 @@ export function SingleEinsatzModal({
 
   return (
     <div className="fixed inset-0 z-[9200] bg-black/75 overflow-y-auto" onClick={onClose}>
-      <div className="flex items-start justify-center p-2" style={{ minHeight: "100%" }}>
+      <div className="flex items-start justify-center" style={{ minHeight: "100%", padding: 6 }}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(620px, 100%)", maxHeight: "94vh",
+          width: "min(620px, 100%)", maxHeight: "100dvh",
           background: "linear-gradient(160deg, #1A1D23 0%, #0F1115 100%)",
           border: "none",
-          borderRadius: 24,
+          borderRadius: 16,
           boxShadow: `
             0 0 0 1px ${PRIMARY}22,
             0 0 28px ${PRIMARY}28,
@@ -248,7 +248,7 @@ export function SingleEinsatzModal({
         }}
       >
         <ModalHeader title="EINSATZ" onClose={onClose} />
-        <div style={{ overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0 }}>
           {!data && <div style={{ color: "#8B8FA3", fontSize: 12, textAlign: "center", padding: 20 }}>Lade…</div>}
           {data && (data.guardians ?? []).length === 0 && (
             <div style={{ color: "#FF6B4A", fontSize: 12, padding: 14, textAlign: "center" }}>
@@ -291,23 +291,23 @@ export function SingleEinsatzModal({
         </div>
 
         <div style={{
-          padding: "12px 14px",
+          padding: "6px 8px",
           borderTop: "1px solid rgba(255,255,255,0.06)",
           background: "rgba(15,17,21,0.85)",
-          display: "flex", flexDirection: "column", gap: 8,
+          display: "flex", flexDirection: "column", gap: 5, flexShrink: 0,
         }}>
           <MarchInfoLine distanceM={distance} marchSeconds={marchSeconds} />
-          {msg && <div style={{ fontSize: 12, color: msg.startsWith("✅") ? "#4ade80" : "#FF6B4A", textAlign: "center" }}>{msg}</div>}
+          {msg && <div style={{ fontSize: 11, color: msg.startsWith("✅") ? "#4ade80" : "#FF6B4A", textAlign: "center" }}>{msg}</div>}
           <button
             onClick={() => void send()}
             disabled={busy || !picked || total < 1 || total > cap}
             style={{
-              width: "100%", padding: "12px 14px", borderRadius: 12,
+              width: "100%", padding: "7px 10px", borderRadius: 10,
               background: total > 0 && total <= cap && picked
                 ? `linear-gradient(135deg, ${ACCENT}, #FF6B4A)`
                 : "rgba(255,255,255,0.06)",
               color: total > 0 && total <= cap && picked ? "#FFF" : "#8B8FA3",
-              fontWeight: 900, fontSize: 14, letterSpacing: 1.5,
+              fontWeight: 900, fontSize: 12, letterSpacing: 1.2,
               border: "none",
               boxShadow: total > 0 && total <= cap && picked ? `0 6px 20px ${ACCENT}55` : "none",
               cursor: busy || !picked || total < 1 || total > cap ? "not-allowed" : "pointer",
@@ -432,14 +432,14 @@ export function MultiEinsatzModal({
 
   return (
     <div className="fixed inset-0 z-[9200] bg-black/75 overflow-y-auto" onClick={onClose}>
-      <div className="flex items-start justify-center p-2" style={{ minHeight: "100%" }}>
+      <div className="flex items-start justify-center" style={{ minHeight: "100%", padding: 6 }}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(620px, 100%)", maxHeight: "94vh",
+          width: "min(620px, 100%)", maxHeight: "100dvh",
           background: "linear-gradient(160deg, #1A1D23 0%, #0F1115 100%)",
           border: "none",
-          borderRadius: 24,
+          borderRadius: 16,
           boxShadow: `
             0 0 0 1px ${ACCENT}22,
             0 0 28px ${ACCENT}28,
@@ -453,17 +453,17 @@ export function MultiEinsatzModal({
         <ModalHeader title={`MULTI-EINSATZ · ${slots.length}/${queueCap}`} onClose={onClose} />
 
         {/* Slot-Tabs (CoD-Style nummeriert 1..5) */}
-        <div style={{ display: "flex", gap: 6, padding: "10px 14px 4px", overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: 4, padding: "5px 8px 3px", overflowX: "auto", flexShrink: 0 }}>
           {slots.map((s, i) => (
             <button
               key={i}
               onClick={() => setActiveIdx(i)}
               style={{
-                width: 36, height: 36, borderRadius: 8,
+                width: 28, height: 28, borderRadius: 6,
                 border: i === activeIdx ? `2px solid ${PRIMARY}` : "1px solid rgba(255,255,255,0.1)",
                 background: i === activeIdx ? `${PRIMARY}22` : "rgba(255,255,255,0.04)",
                 color: i === activeIdx ? PRIMARY : "#8B8FA3",
-                fontWeight: 900, fontSize: 14, cursor: "pointer",
+                fontWeight: 900, fontSize: 12, cursor: "pointer",
                 position: "relative",
                 flexShrink: 0,
               }}
@@ -482,10 +482,10 @@ export function MultiEinsatzModal({
             <button
               onClick={addSlot}
               style={{
-                width: 36, height: 36, borderRadius: 8,
+                width: 28, height: 28, borderRadius: 6,
                 border: `1px dashed ${PRIMARY}77`,
                 background: "transparent",
-                color: PRIMARY, fontWeight: 900, fontSize: 18, cursor: "pointer",
+                color: PRIMARY, fontWeight: 900, fontSize: 14, cursor: "pointer",
                 flexShrink: 0,
               }}
             >+</button>
@@ -495,18 +495,18 @@ export function MultiEinsatzModal({
               onClick={() => removeSlot(activeIdx)}
               style={{
                 marginLeft: "auto",
-                padding: "0 10px", height: 36, borderRadius: 8,
+                padding: "0 8px", height: 28, borderRadius: 6,
                 border: "1px solid rgba(255,107,74,0.4)",
                 background: "rgba(255,107,74,0.08)",
-                color: "#FF6B4A", fontWeight: 900, fontSize: 11, cursor: "pointer",
-                flexShrink: 0,
+                color: "#FF6B4A", fontWeight: 900, fontSize: 10, cursor: "pointer",
+                flexShrink: 0, whiteSpace: "nowrap",
               }}
             >Slot entfernen</button>
           )}
         </div>
 
-        <div style={{ overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
-          {!data && <div style={{ color: "#8B8FA3", fontSize: 12, textAlign: "center", padding: 20 }}>Lade…</div>}
+        <div style={{ overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0 }}>
+          {!data && <div style={{ color: "#8B8FA3", fontSize: 11, textAlign: "center", padding: 16 }}>Lade…</div>}
 
           {slot?.waechter && <WaechterBanner waechter={slot.waechter} />}
 
@@ -531,21 +531,21 @@ export function MultiEinsatzModal({
         </div>
 
         <div style={{
-          padding: "12px 14px",
+          padding: "6px 8px",
           borderTop: "1px solid rgba(255,255,255,0.06)",
           background: "rgba(15,17,21,0.85)",
-          display: "flex", flexDirection: "column", gap: 8,
+          display: "flex", flexDirection: "column", gap: 5, flexShrink: 0,
         }}>
           <MarchInfoLine distanceM={distance} marchSeconds={marchSeconds} />
-          {msg && <div style={{ fontSize: 12, color: msg.startsWith("✅") ? "#4ade80" : "#FF6B4A", textAlign: "center" }}>{msg}</div>}
+          {msg && <div style={{ fontSize: 11, color: msg.startsWith("✅") ? "#4ade80" : "#FF6B4A", textAlign: "center" }}>{msg}</div>}
           <button
             onClick={() => void sendAll()}
             disabled={busy}
             style={{
-              width: "100%", padding: "12px 14px", borderRadius: 12,
+              width: "100%", padding: "7px 10px", borderRadius: 10,
               background: `linear-gradient(135deg, ${ACCENT}, #FF6B4A)`,
               color: "#FFF",
-              fontWeight: 900, fontSize: 14, letterSpacing: 1.5,
+              fontWeight: 900, fontSize: 12, letterSpacing: 1.2,
               border: "none",
               boxShadow: `0 6px 20px ${ACCENT}55`,
               cursor: busy ? "not-allowed" : "pointer",
@@ -576,13 +576,13 @@ export function MultiEinsatzModal({
 function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <div style={{
-      padding: "10px 16px",
+      padding: "6px 10px", flexShrink: 0,
       background: `linear-gradient(135deg, ${PRIMARY}30, ${ACCENT}20)`,
       display: "flex", justifyContent: "space-between", alignItems: "center",
       borderBottom: "1px solid rgba(255,255,255,0.06)",
     }}>
-      <div style={{ fontSize: 11, letterSpacing: 2, color: PRIMARY, fontWeight: 800 }}>{title}</div>
-      <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#8B8FA3", fontSize: 20, cursor: "pointer", lineHeight: 1 }}>✕</button>
+      <div style={{ fontSize: 10, letterSpacing: 1.5, color: PRIMARY, fontWeight: 800 }}>{title}</div>
+      <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#8B8FA3", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>✕</button>
     </div>
   );
 }
@@ -768,7 +768,7 @@ function WaechterSidebar({
         top: "50%",
         transform: "translateY(-50%)",
         zIndex: 9210,
-        maxHeight: "92vh",
+        maxHeight: "92dvh",
         display: "flex", flexDirection: "column", gap: 6,
         padding: 8,
         borderRadius: 16,

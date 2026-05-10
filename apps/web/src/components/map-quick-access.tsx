@@ -317,7 +317,7 @@ export function MapQuickAccess({
                 onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
                 onCancel={r.is_leader && r.status === "preparing"
                   ? async () => {
-                      if (!confirm("Aufgebot wirklich abbrechen? Alle Truppen werden zurückgegeben.")) return;
+                      if (!confirm("Trupp wirklich abbrechen? Alle Truppen werden zurückgegeben.")) return;
                       await fetch(`/api/base/rally/${r.rally_id}/cancel`, { method: "POST" });
                       const sb = createClient();
                       const { data } = await sb.rpc("get_joinable_rallies");
@@ -481,7 +481,7 @@ function RallyRow({
 
   const kick = async (userId: string) => {
     if (kickingId) return;
-    if (!confirm("Diesen Teilnehmer aus dem Aufgebot werfen? Die Truppen werden zurückgegeben.")) return;
+    if (!confirm("Diesen Teilnehmer aus dem Trupp werfen? Die Truppen werden zurückgegeben.")) return;
     setKickingId(userId);
     try {
       const r = await fetch(`/api/crews/turf/rally/${rallyId}/kick`, {
@@ -544,7 +544,7 @@ function RallyRow({
               fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
               whiteSpace: "nowrap", flexShrink: 0, lineHeight: 1.4,
               fontVariantNumeric: "tabular-nums",
-            }} title="Gesamt-Angriffskraft des Aufgebots">⚔ {totalAtk.toLocaleString("de-DE")}</span>
+            }} title="Gesamt-Angriffskraft des Trupps">⚔ {totalAtk.toLocaleString("de-DE")}</span>
           </div>
           {/* Zeile 2: Leader · N dabei · Countdown · Status */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: MUTED, fontSize: 11, flexWrap: "wrap" }}>
@@ -579,7 +579,7 @@ function RallyRow({
                   try { await onCancel(); } finally { setBusyCancel(false); setConfirmCancel(false); }
                 }}
                 disabled={busyCancel}
-                title={confirmCancel ? "Nochmal klicken zum Bestätigen" : "Aufgebot abbrechen (Truppen zurück)"}
+                title={confirmCancel ? "Nochmal klicken zum Bestätigen" : "Trupp abbrechen (Truppen zurück)"}
                 style={{
                   fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
                   color: confirmCancel ? "#FFF" : "#FF6B9A",

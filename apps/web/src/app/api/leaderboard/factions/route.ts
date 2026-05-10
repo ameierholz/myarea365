@@ -36,8 +36,8 @@ export async function GET() {
     const a = agg.get(id)!;
     return {
       id,
-      name: id === "gossenbund" ? "Gossenbund" : "Kronenwacht",
-      emoji: id === "gossenbund" ? "🗝️" : "👑",
+      name: id === "gossenbund" ? "Untergrund" : "Stadtwache",
+      emoji: id === "gossenbund" ? "🔗" : "🛡️",
       color: id === "gossenbund" ? "#22D1C3" : "#FFD700",
       runners: a.runners,
       total_xp: a.xp,

@@ -36,17 +36,16 @@ type DealsResponse = {
   };
 };
 
-export type DealsTabId = "seasonal" | "thresholds" | "themed" | "gems" | "daily" | "battlepass" | "subs";
+// Reduziert auf reine Promo-Angebote — Diamanten, Battle-Pass, Subs sind jetzt
+// im ShopHub als eigene Top-Tabs (Diamanten / Premium).
+export type DealsTabId = "daily" | "seasonal" | "thresholds" | "themed";
 type TabId = DealsTabId;
 
 const TABS: { id: TabId; icon: string; label: string }[] = [
+  { id: "daily",      icon: "🔥", label: "Tagesangebote" },
   { id: "seasonal",   icon: "🥚", label: "Saison-Pack" },
   { id: "thresholds", icon: "🏆", label: "Schwellen" },
   { id: "themed",     icon: "📦", label: "Themen-Pakete" },
-  { id: "gems",       icon: "💎", label: "Diamanten" },
-  { id: "daily",      icon: "🔥", label: "Tagesangebote" },
-  { id: "battlepass", icon: "📜", label: "Battle Pass" },
-  { id: "subs",       icon: "🎒", label: "Monats-Abos" },
 ];
 
 const formatPrice = (cents: number) => `EUR ${(cents / 100).toFixed(2).replace(".", ",")}`;
@@ -56,7 +55,7 @@ const formatNum = (n: number) => n.toLocaleString("de-DE");
  * Inline-Body — wird embeddable im UnifiedShopHub als Tab gerendert.
  * Die TABS werden hier intern gerendert (horizontal-scrollbar auf Mobile, Sidebar auf Desktop ≥640px via wrapper).
  */
-export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId }) {
+export function DealsShopBody({ initialTab = "daily" }: { initialTab?: TabId }) {
   const [tab, setTab] = useState<TabId>(initialTab);
   const [data, setData] = useState<DealsResponse | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -87,10 +86,10 @@ export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId 
 
   return (
     <div>
-      {/* Sub-Tabs — Mobile: horizontal scroll, Desktop ≥640px: 2 Reihen Pills */}
+      {/* Sub-Tabs — kompakt für Mobile-Landscape (915×412) */}
       <div style={{
-        display: "flex", gap: 6, overflowX: "auto", flexWrap: "nowrap",
-        marginBottom: 14, paddingBottom: 6,
+        display: "flex", gap: 4, overflowX: "auto", flexWrap: "nowrap",
+        marginBottom: 8, paddingBottom: 2,
         scrollbarWidth: "none",
       }}>
         {TABS.map((t) => {
@@ -99,20 +98,20 @@ export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId 
           return (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flexShrink: 0,
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "8px 12px", borderRadius: 999,
+              display: "flex", alignItems: "center", gap: 3,
+              padding: "4px 9px", borderRadius: 999,
               background: active ? `${PRIMARY}33` : "rgba(255,255,255,0.04)",
               border: active ? `1px solid ${PRIMARY}` : "1px solid rgba(255,255,255,0.08)",
               color: active ? "#fff" : "#a8b4cf",
-              fontSize: 12, fontWeight: active ? 900 : 700,
-              cursor: "pointer", whiteSpace: "nowrap",
+              fontSize: 10, fontWeight: active ? 900 : 700,
+              cursor: "pointer", whiteSpace: "nowrap", lineHeight: 1.2,
             }}>
-              <span style={{ fontSize: 14 }}>{t.icon}</span>
+              <span style={{ fontSize: 11 }}>{t.icon}</span>
               <span>{t.label}</span>
               {dailyCount > 0 && (
                 <span style={{
                   background: ACCENT, color: "#fff",
-                  fontSize: 9, fontWeight: 900, padding: "1px 5px", borderRadius: 999,
+                  fontSize: 8, fontWeight: 900, padding: "1px 4px", borderRadius: 999,
                 }}>{dailyCount}</span>
               )}
             </button>
@@ -122,13 +121,10 @@ export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId 
 
       {/* Content */}
       {!data && <div style={{ color: "#a8b4cf", textAlign: "center", padding: 40 }}>Lade Deals…</div>}
+      {data && tab === "daily" && <DailyView />}
       {data && tab === "seasonal" && <SeasonalView pack={data.seasonal} onCheckout={() => data.seasonal && checkout("seasonal", data.seasonal.id)} busy={busy} />}
       {data && tab === "thresholds" && <ThresholdsView thresholds={data.thresholds} progress={data.progress.gem_threshold} />}
       {data && tab === "themed" && <ThemedView packs={data.themed} purchasedToday={data.progress.themed_purchased_today ?? []} onCheckout={(id) => checkout("themed", id)} busy={busy} />}
-      {data && tab === "gems" && <GemsView tiers={data.tiers} onCheckout={(id) => checkout("gem_tier", id)} busy={busy} />}
-      {data && tab === "daily" && <DailyView />}
-      {data && tab === "battlepass" && <BattlePassView season={data.battle_pass_season} progress={data.progress.battle_pass} onCheckout={(t) => data.battle_pass_season && checkout("battle_pass", `${data.battle_pass_season.id}:${t}`)} busy={busy} />}
-      {data && tab === "subs" && <SubsView subs={data.subscriptions} active={data.progress.subscription} onCheckout={(id) => checkout("subscription", id)} busy={busy} />}
     </div>
   );
 }
@@ -341,53 +337,53 @@ function DailyView() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "12px 14px",
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "6px 10px", marginBottom: 8,
         background: "linear-gradient(135deg, rgba(255,107,74,0.22), rgba(255,215,0,0.16))",
-        borderRadius: 12,
+        borderRadius: 10,
         border: "1px solid rgba(255,215,0,0.3)",
       }}>
-        <span style={{ fontSize: 22 }}>🔥</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1.2, color: GOLD }}>TAGES-DEALS</div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: "#FFF" }}>
-            {standardOpen.length} Deals offen{bundlePack && !data.purchased_today.includes(bundlePack.id) ? <span style={{ color: GOLD }}> + 🎁 Bundle</span> : null}
+        <span style={{ fontSize: 16 }}>🔥</span>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: "#FFF", lineHeight: 1.1 }}>
+            {standardOpen.length} Deals{bundlePack && !data.purchased_today.includes(bundlePack.id) ? <span style={{ color: GOLD }}> + Bundle</span> : null}
           </div>
-          <div style={{ fontSize: 10, color: "#a8b4cf", marginTop: 1 }}>⏱ Reset in {countdown}</div>
+          <div style={{ fontSize: 9, color: "#a8b4cf" }}>⏱ {countdown}</div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, marginBottom: 8 }}>
         {standardPacks.map((p) => {
           const td = TIER_DEFS_INLINE[p.tier];
           const owned = data.purchased_today.includes(p.id);
           return (
             <div key={p.id} style={{
-              padding: 10, borderRadius: 10,
+              padding: 8, borderRadius: 9,
               background: owned ? "rgba(74,222,128,0.08)" : `linear-gradient(180deg, ${td.glow}, rgba(15,17,21,0.7))`,
               border: `1px solid ${owned ? "rgba(74,222,128,0.4)" : td.color}`,
               position: "relative",
+              display: "flex", flexDirection: "column", gap: 4,
             }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 22 }}>{p.icon}</div>
-                <div style={{ color: td.color, fontSize: 9, fontWeight: 900, letterSpacing: 0.8, marginTop: 1 }}>{td.label}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 18, lineHeight: 1 }}>{p.icon}</span>
+                <span style={{ color: td.color, fontSize: 9, fontWeight: 900, letterSpacing: 0.6 }}>{td.label}</span>
               </div>
-              <ul style={{ margin: "8px 0", padding: 0, listStyle: "none", color: "#a8b4cf", fontSize: 10, lineHeight: 1.5 }}>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", color: "#a8b4cf", fontSize: 9, lineHeight: 1.35 }}>
                 {p.contents.map((c, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: 12, lineHeight: 1, flexShrink: 0 }}>{dailyIconFor(c.type, c)}</span>
+                  <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 1 }}>
+                    <span style={{ fontSize: 10, lineHeight: 1, flexShrink: 0 }}>{dailyIconFor(c.type, c)}</span>
                     <span>{c.label}</span>
                   </li>
                 ))}
               </ul>
               <button disabled={owned || busy === p.id} onClick={() => !owned && buy(p.id)} style={{
-                width: "100%", padding: "8px 4px", borderRadius: 7,
+                width: "100%", padding: "5px 4px", borderRadius: 6, marginTop: "auto",
                 background: owned ? "rgba(74,222,128,0.15)" : `linear-gradient(135deg, ${td.color}, ${GOLD})`,
                 color: owned ? "#4ade80" : "#0F1115",
                 border: owned ? "1px solid rgba(74,222,128,0.4)" : "none",
-                fontSize: 11, fontWeight: 900,
+                fontSize: 10, fontWeight: 900,
                 cursor: owned ? "default" : busy === p.id ? "wait" : "pointer",
-              }}>{owned ? "✓ Heute gekauft" : busy === p.id ? "…" : priceLabel(p)}</button>
+              }}>{owned ? "✓" : busy === p.id ? "…" : priceLabel(p)}</button>
             </div>
           );
         })}
@@ -397,39 +393,37 @@ function DailyView() {
         const owned = data.purchased_today.includes(bundlePack.id);
         return (
           <button disabled={owned || busy === bundlePack.id} onClick={() => !owned && buy(bundlePack.id)} style={{
-            width: "100%", padding: "12px 14px", borderRadius: 14,
+            width: "100%", padding: "8px 10px", borderRadius: 12,
             background: owned ? "rgba(74,222,128,0.12)" : "linear-gradient(135deg, rgba(255,45,120,0.28), rgba(255,215,0,0.26), rgba(34,209,195,0.26))",
             border: owned ? "1px solid rgba(74,222,128,0.4)" : "1px solid rgba(255,215,0,0.7)",
-            boxShadow: owned ? "none" : "0 0 18px rgba(255,215,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1)",
+            boxShadow: owned ? "none" : "0 0 14px rgba(255,215,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
             cursor: owned ? "default" : busy === bundlePack.id ? "wait" : "pointer",
-            display: "flex", alignItems: "center", gap: 12,
+            display: "flex", alignItems: "center", gap: 8,
             textAlign: "left", color: "#FFF",
           }}>
-            <span style={{ fontSize: 28, flexShrink: 0 }}>{bundlePack.icon}</span>
+            <span style={{ fontSize: 22, flexShrink: 0 }}>{bundlePack.icon}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.8, padding: "2px 6px", borderRadius: 4, background: `linear-gradient(135deg, ${GOLD}, #FF6B4A)`, color: "#0F1115" }}>BESTPREIS</span>
-                <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.8, padding: "2px 6px", borderRadius: 4, background: "rgba(255,215,0,0.15)", border: "1px solid rgba(255,215,0,0.5)", color: GOLD }}>ALLE 3 PAKETE</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 7, fontWeight: 900, letterSpacing: 0.6, padding: "1px 5px", borderRadius: 3, background: `linear-gradient(135deg, ${GOLD}, #FF6B4A)`, color: "#0F1115" }}>BESTPREIS</span>
                 {!owned && savePct > 0 && (
-                  <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.6, padding: "2px 7px", borderRadius: 999, background: `linear-gradient(135deg, ${ACCENT}, #FF6B4A)`, color: "#FFF", boxShadow: "0 0 10px rgba(255,45,120,0.5)" }}>−{savePct}%</span>
+                  <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: 0.5, padding: "1px 6px", borderRadius: 999, background: `linear-gradient(135deg, ${ACCENT}, #FF6B4A)`, color: "#FFF" }}>−{savePct}%</span>
                 )}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 900, color: GOLD, letterSpacing: 0.4, marginTop: 3 }}>{bundlePack.name}</div>
-              <div style={{ fontSize: 10, color: "#FFF", marginTop: 1, fontWeight: 700 }}>🥉 Bronze + 🥈 Silber + 🥇 Gold</div>
+              <div style={{ fontSize: 12, fontWeight: 900, color: GOLD, letterSpacing: 0.3, marginTop: 2 }}>{bundlePack.name}</div>
+              <div style={{ fontSize: 9, color: "#a8b4cf", marginTop: 1 }}>🥉 + 🥈 + 🥇</div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
               {!owned && savePct > 0 && (
-                <div style={{ fontSize: 14, fontWeight: 900, lineHeight: 1 }}>
-                  <span style={{ color: "#a8b4cf", fontSize: 11 }}>statt </span>
-                  <span style={{ textDecoration: "line-through", textDecorationColor: ACCENT, textDecorationThickness: 2.5, color: "#FFF" }}>{(sumCents / 100).toFixed(2).replace(".", ",")} €</span>
+                <div style={{ fontSize: 9, color: "#a8b4cf", textDecoration: "line-through", textDecorationColor: ACCENT, textDecorationThickness: 2, lineHeight: 1 }}>
+                  {(sumCents / 100).toFixed(2).replace(".", ",")} €
                 </div>
               )}
               <div style={{
-                padding: "10px 16px", borderRadius: 10,
+                padding: "6px 12px", borderRadius: 8,
                 background: owned ? "rgba(74,222,128,0.2)" : `linear-gradient(135deg, ${GOLD}, #FF6B4A)`,
                 color: owned ? "#4ade80" : "#0F1115",
-                fontSize: 16, fontWeight: 900,
-                boxShadow: owned ? "none" : "0 0 14px rgba(255,215,0,0.55)",
+                fontSize: 13, fontWeight: 900,
+                boxShadow: owned ? "none" : "0 0 10px rgba(255,215,0,0.4)",
                 textAlign: "center", lineHeight: 1.1,
               }}>{owned ? "✓" : busy === bundlePack.id ? "…" : priceLabel(bundlePack)}</div>
             </div>

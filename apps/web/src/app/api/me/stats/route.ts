@@ -16,12 +16,14 @@ export async function GET() {
   // Row sicherstellen (idempotent insert) — vermeidet leere Response wenn noch nie inkrementiert
   await sb.from("user_stats").insert({ user_id: auth.user.id }).select().maybeSingle();
 
-  const { data, error } = await sb
-    .from("user_stats")
-    .select("*")
-    .eq("user_id", auth.user.id)
-    .maybeSingle();
+  const [{ data, error }, { data: me }] = await Promise.all([
+    sb.from("user_stats").select("*").eq("user_id", auth.user.id).maybeSingle(),
+    sb.from("users").select("faction").eq("id", auth.user.id).maybeSingle(),
+  ]);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ stats: data ?? {} });
+  return NextResponse.json({
+    stats: data ?? {},
+    faction: (me as { faction?: string | null } | null)?.faction ?? null,
+  });
 }

@@ -127,7 +127,7 @@ export function Modal({
         animation: backdropAnim,
         padding: isDrawer
           ? 0
-          : "max(env(safe-area-inset-top, 0px), 8px) 12px max(env(safe-area-inset-bottom, 0px), 8px) 12px",
+          : "max(env(safe-area-inset-top, 0px), 4px) 6px max(env(safe-area-inset-bottom, 0px), 4px) 6px",
       }}
     >
       <div
@@ -136,7 +136,7 @@ export function Modal({
           position: "relative",
           width: "100%",
           maxWidth: SIZE_MAX_WIDTH[size],
-          maxHeight: isDrawer ? "92vh" : "calc(100vh - 16px)",
+          maxHeight: isDrawer ? "92dvh" : "calc(100dvh - 8px)",
           display: "flex",
           flexDirection: "column",
           background: "var(--color-modal-surface)",

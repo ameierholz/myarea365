@@ -79,27 +79,27 @@ export function PotionInventoryModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 4500,
+      position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(15,17,21,0.88)", backdropFilter: "blur(10px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 600, maxHeight: "92vh",
+        width: "100%", maxWidth: 600, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
-        background: "#141a2d", borderRadius: 20,
+        background: "#141a2d", borderRadius: 14,
         border: "1px solid rgba(168,85,247,0.4)",
         color: "#F0F0F0", overflow: "hidden",
       }}>
-        <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <span style={{ fontSize: 24 }}>🧪</span>
+        <div style={{ padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+          <span style={{ fontSize: 16 }}>🧪</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#a855f7", fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tM("potKicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tM("potTitle")}</div>
+            <div style={{ color: "#a855f7", fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>{tM("potKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{tM("potTitle")}</div>
           </div>
-          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 18, cursor: "pointer", width: 24, height: 24 }}>×</button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{
             padding: 10, borderRadius: 10,
             background: "rgba(168,85,247,0.08)", border: "1px dashed rgba(168,85,247,0.3)",

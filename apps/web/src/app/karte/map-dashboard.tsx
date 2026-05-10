@@ -3974,7 +3974,7 @@ function ProfilTab({
                         padding: "2px 8px", borderRadius: 10,
                         background: `${myCrew.color}20`, border: `1px solid ${myCrew.color}40`,
                         color: myCrew.color, fontSize: 9, fontWeight: 900,
-                      }}>{normalizeFaction(p?.faction) === "kronenwacht" ? "👑 KRONENWACHT" : "🗝️ GOSSENBUND"}</span>
+                      }}>{normalizeFaction(p?.faction) === "kronenwacht" ? "🛡️ STADTWACHE" : "🔗 UNTERGRUND"}</span>
                     </div>
                     <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
                       PLZ {myCrew.zip} · {myCrew.member_count} Mitglieder
@@ -4799,7 +4799,7 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
       >
         <span style={{ fontSize: 14 }}>⚔️</span>
         <span style={{ color: leader === "nachtpuls" ? "#22D1C3" : "#FFD700", fontSize: 12, fontWeight: 900 }}>
-          {tMP("fpLeaderHint", { icon: leader === "nachtpuls" ? "🗝️" : "👑", city: f.city })}
+          {tMP("fpLeaderHint", { icon: leader === "nachtpuls" ? "🔗" : "🛡️", city: f.city })}
         </span>
         <span style={{ color: "#a8b4cf", fontSize: 12, fontWeight: 900, marginLeft: 2 }}>›</span>
       </button>
@@ -4823,9 +4823,9 @@ function MapFactionPanel({ onSwitchTab }: { onSwitchTab: () => void }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, fontSize: 11 }}>
-        <span style={{ color: "#22D1C3", fontWeight: 800 }}>🗝️ {f.nachtpuls.km_week.toFixed(0)} km</span>
+        <span style={{ color: "#22D1C3", fontWeight: 800 }}>🔗 {f.nachtpuls.km_week.toFixed(0)} km</span>
         <span style={{ flex: 1 }} />
-        <span style={{ color: "#FFD700", fontWeight: 800 }}>{f.sonnenwacht.km_week.toFixed(0)} km 👑</span>
+        <span style={{ color: "#FFD700", fontWeight: 800 }}>{f.sonnenwacht.km_week.toFixed(0)} km 🛡️</span>
       </div>
       <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", background: "rgba(255,255,255,0.08)" }}>
         <div style={{ width: `${pctN}%`, background: "linear-gradient(90deg, #22D1C3, #22D1C3aa)" }} />

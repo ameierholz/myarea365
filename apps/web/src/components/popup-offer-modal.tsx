@@ -95,33 +95,34 @@ export function PopupOfferGate() {
     <div onClick={dismiss} style={{
       position: "fixed", inset: 0, zIndex: 9300,
       background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 480,
+        width: "100%", maxWidth: 480, maxHeight: "100dvh",
+        display: "flex", flexDirection: "column",
         background: `linear-gradient(180deg, ${GOLD}26 0%, #141a2d 60%)`,
-        borderRadius: 18, border: `2px solid ${GOLD}`,
+        borderRadius: 14, border: `2px solid ${GOLD}`,
         boxShadow: `0 0 40px ${GOLD}66`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
         {/* Hero */}
         <div style={{
-          padding: "20px 16px 14px", textAlign: "center",
+          padding: "8px 10px 6px", textAlign: "center", flexShrink: 0,
           background: `radial-gradient(ellipse at top, ${GOLD}33, transparent 70%)`,
         }}>
-          <div style={{ fontSize: 56, lineHeight: 1 }}>{tpl.emoji ?? "🎁"}</div>
-          <div style={{ marginTop: 8, color: GOLD, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>
+          <div style={{ fontSize: 32, lineHeight: 1 }}>{tpl.emoji ?? "🎁"}</div>
+          <div style={{ marginTop: 4, color: GOLD, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>
             {t("limitedOffer")}
           </div>
-          <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, marginTop: 4 }}>{tpl.title}</div>
-          {tpl.subtitle && <div style={{ color: TEXT_SOFT, fontSize: 12, marginTop: 4 }}>{tpl.subtitle}</div>}
-          <div style={{ color: PINK, fontSize: 11, fontWeight: 700, marginTop: 8 }}>
+          <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900, marginTop: 2 }}>{tpl.title}</div>
+          {tpl.subtitle && <div style={{ color: TEXT_SOFT, fontSize: 10, marginTop: 2 }}>{tpl.subtitle}</div>}
+          <div style={{ color: PINK, fontSize: 10, fontWeight: 700, marginTop: 4 }}>
             ⏳ {t("expiresIn", { hours: hoursLeft, minutes: minutesLeft })}
           </div>
         </div>
 
         {/* Packs */}
-        <div style={{ padding: "8px 14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "5px 8px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
           {tpl.packs.map((p) => {
             const isPurchased = purchased.has(p.sku);
             return (
@@ -165,9 +166,9 @@ export function PopupOfferGate() {
 
         {/* Dismiss */}
         <button onClick={dismiss} disabled={busy !== null} style={{
-          width: "100%", padding: "12px",
+          width: "100%", padding: "6px", flexShrink: 0,
           background: "rgba(0,0,0,0.4)", border: "none", borderTop: "1px solid rgba(255,255,255,0.06)",
-          color: TEXT_SOFT, fontSize: 12, fontWeight: 700, cursor: "pointer",
+          color: TEXT_SOFT, fontSize: 11, fontWeight: 700, cursor: "pointer",
         }}>{t("notInterested")}</button>
       </div>
     </div>

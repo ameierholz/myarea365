@@ -284,15 +284,15 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
 
         {/* ─── Hero-Header mit Theme-Banner + XP ─── */}
         <div style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 50%, transparent 100%)` }}>
-          <div className="px-5 pt-5 pb-5 flex items-start gap-4">
-            <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-5xl shrink-0 overflow-hidden"
-                 style={{ background: `radial-gradient(circle at 50% 30%, ${accent}66, ${accent}22 50%, rgba(15,17,21,0.6))`, border: `2px solid ${accent}99`, boxShadow: `0 0 20px ${accent}55` }}>
+          <div className="px-2 pt-2 pb-2 flex items-start gap-2">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl shrink-0 overflow-hidden"
+                 style={{ background: `radial-gradient(circle at 50% 30%, ${accent}66, ${accent}22 50%, rgba(15,17,21,0.6))`, border: `2px solid ${accent}99`, boxShadow: `0 0 12px ${accent}55` }}>
               {(() => {
                 const tid = theme?.id ?? base.theme_id ?? "plattenbau";
                 const a = baseThemeArt[`${tid}_runner_pin`] ?? baseThemeArt[`${tid}_runner_banner`] ?? baseThemeArt[tid];
                 const f = "url(#ma365-chroma-black) drop-shadow(0 2px 6px rgba(0,0,0,0.5))";
-                if (a?.image_url) return <img src={a.image_url} alt={theme?.name ?? "Base"} style={{ width: 72, height: 72, objectFit: "contain", filter: f }} />;
-                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 72, height: 72, objectFit: "contain", filter: f }} />;
+                if (a?.image_url) return <img src={a.image_url} alt={theme?.name ?? "Base"} style={{ width: 44, height: 44, objectFit: "contain", filter: f }} />;
+                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 44, height: 44, objectFit: "contain", filter: f }} />;
                 return <span>{theme?.pin_emoji ?? "🏰"}</span>;
               })()}
             </div>
@@ -300,10 +300,10 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               <div className="text-[10px] font-black tracking-widest" style={{ color: accent }}>
                 {t("burgLevelHeader", { label: base.pin_label ?? t("pinLabelDefault"), plz: base.plz })}
               </div>
-              <div className="text-xl font-black text-white truncate mt-0.5">
+              <div className="text-xs sm:text-lg font-black text-white truncate mt-0.5">
                 {t("burgTitle", { theme: theme?.name ?? t("themeFallback"), level: burgLevel })}
               </div>
-              <div className="mt-2">
+              <div className="mt-1">
                 <div className="flex justify-between text-[9px] text-[#a8b4cf] font-black mb-1">
                   <span>{t("burgProgressLabel", { level: burgLevel })}</span>
                   <span>{burgLevel < 25 ? t("burgNext", { level: burgLevel + 1 }) : t("burgMax")}</span>
@@ -314,20 +314,20 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             {/* Action-Cluster: Settings + Close, rechts oben */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => setShowRoadmap(true)}
                 title={t("roadmapTitle")}
-                className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center">
+                className="w-6 h-6 rounded-md bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-xs font-black transition-colors flex items-center justify-center">
                 📜
               </button>
               <button onClick={() => setTab("settings")}
                 title={t("settingsTitle")}
-                className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center">
+                className="w-6 h-6 rounded-md bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-xs font-black transition-colors flex items-center justify-center">
                 ⚙️
               </button>
               <button onClick={onClose}
                 title={t("close")}
-                className="w-8 h-8 rounded-lg bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-lg font-black transition-colors flex items-center justify-center">
+                className="w-6 h-6 rounded-md bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center">
                 ×
               </button>
             </div>
@@ -366,14 +366,14 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Tabs (Settings ist als ⚙️ im Header) — kompakte Labels, alle 7 immer sichtbar */}
-        <div className="flex border-y border-white/10 text-[11px] font-black tracking-wider bg-[#0F1115]">
+        <div className="flex border-y border-white/10 text-[10px] font-black tracking-wider bg-[#0F1115] shrink-0">
           {(["overview","res","build","troops","research","chest","vip"] as const).map((tk) => {
             const titles: Record<string,string> = {overview:t("tabOverview"), res:t("tabRes"), build:t("tabBuild"), troops:t("tabTroops"), research:t("tabResearch"), chest:t("tabChest"), vip:t("tabVip")};
             const labels: Record<string,string> = {overview:t("tabBtnOverview"), res:t("tabBtnRes"), build:t("tabBtnBuild"), troops:t("tabBtnTroops"), research:t("tabBtnResearch"), chest:t("tabBtnChest"), vip:t("tabBtnVip")};
             return (
             <button key={tk} onClick={() => setTab(tk)}
               title={titles[tk]}
-              className={`flex-1 min-w-0 py-2.5 px-1 whitespace-nowrap transition-colors ${tab === tk ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
+              className={`flex-1 min-w-0 py-1.5 px-1 whitespace-nowrap transition-colors ${tab === tk ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
               style={tab === tk ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11` } : undefined}
             >
               {labels[tk]}
@@ -1111,9 +1111,9 @@ const BURG_MILESTONES: Array<{ level: number; unlocks: string[] }> = [
 function BurgRoadmapModal({ currentLevel, accent, onClose }: { currentLevel: number; accent: string; onClose: () => void }) {
   const t = useTranslations("BaseModal");
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[9300]" style={{ background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}>
+    <div onClick={onClose} className="fixed inset-0 z-[9300]" style={{ background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-[#1A1D23] border overflow-hidden flex flex-col"
-        style={{ borderColor: `${accent}66`, boxShadow: `0 0 40px ${accent}33`, maxHeight: "90vh" }}>
+        style={{ borderColor: `${accent}66`, boxShadow: `0 0 40px ${accent}33`, maxHeight: "100dvh" }}>
         <div className="p-4 border-b border-white/10 flex items-center gap-3">
           <span className="text-2xl">📜</span>
           <div className="flex-1 min-w-0">
@@ -1256,9 +1256,9 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-[9100] bg-black/75 backdrop-blur-md flex items-stretch justify-center p-3 sm:p-6"
-         onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl flex flex-col min-h-0">{children}</div>
+    <div className="fixed inset-0 z-[9100] bg-black/75 backdrop-blur-md flex items-stretch justify-center p-1.5 sm:p-6"
+         onClick={onClose} style={{ maxHeight: "100dvh" }}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl flex flex-col min-h-0" style={{ maxHeight: "100dvh" }}>{children}</div>
     </div>
   );
 }

@@ -254,8 +254,8 @@ function RunnersTab() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-white font-bold truncate">{r.display_name ?? r.username}</span>
                     {isMe && <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#22D1C3] text-[#0F1115] font-black">DU</span>}
-                    {(r.faction === "syndicate" || r.faction === "gossenbund") && <FactionBadge icon="🗝️" label={t("factionGossen")} color="#22D1C3" />}
-                    {(r.faction === "vanguard"  || r.faction === "kronenwacht") && <FactionBadge icon="👑" label={t("factionKronen")} color="#FFD700" />}
+                    {(r.faction === "syndicate" || r.faction === "gossenbund") && <FactionBadge icon="🔗" label={t("factionGossen")} color="#22D1C3" />}
+                    {(r.faction === "vanguard"  || r.faction === "kronenwacht") && <FactionBadge icon="🛡️" label={t("factionKronen")} color="#FFD700" />}
                   </div>
                   <div className="text-xs text-[#8B8FA3]">{t("valueLvlKm", { username: r.username ?? "", level: r.level ?? 1, km })}</div>
                 </div>

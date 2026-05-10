@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { FullscreenFrame } from "../_components/fullscreen-frame";
 import { UiIcon, useUiIconArt, useMarkerArt, useBaseRingArt, useArtworkReady } from "@/components/resource-icon";
+import type { GuardianArchetype } from "@/lib/guardian";
 
 const ServerOverviewModal = dynamic(
   () => import("@/components/server-overview-modal").then((m) => m.ServerOverviewModal),
@@ -22,6 +23,20 @@ const BuildModal = dynamic(
   () => import("@/components/build-modal").then((m) => m.BuildModal),
   { ssr: false },
 );
+const GuardianDetailModal = dynamic(
+  () => import("@/components/guardian-detail-modal").then((m) => m.GuardianDetailModal),
+  { ssr: false },
+);
+const GuardianGalleryModal = dynamic(
+  () => import("@/components/guardian-gallery-modal").then((m) => m.GuardianGalleryModal),
+  { ssr: false },
+);
+
+type GuardianCollection = {
+  owned: Array<{ id: string; archetype_id: string; level: number; is_active: boolean }>;
+  archetypes: GuardianArchetype[];
+  active_id: string | null;
+};
 
 type Profile = Record<string, unknown>;
 function s(p: Profile, k: string): string | null {
@@ -38,10 +53,10 @@ const PINK = "#FF2D78";
 const GOLD = "#FFD700";
 
 const FACTION_INFO: Record<string, { label: string; emoji: string; color: string }> = {
-  gossenbund:  { label: "Gossenbund",  emoji: "🗝️", color: "#FF6B4A" },
-  syndicate:   { label: "Gossenbund",  emoji: "🗝️", color: "#FF6B4A" },
-  kronenwacht: { label: "Kronenwacht", emoji: "👑", color: "#FFD700" },
-  vanguard:    { label: "Kronenwacht", emoji: "👑", color: "#FFD700" },
+  gossenbund:  { label: "Untergrund", emoji: "🔗", color: "#FF6B4A" },
+  syndicate:   { label: "Untergrund", emoji: "🔗", color: "#FF6B4A" },
+  kronenwacht: { label: "Stadtwache", emoji: "🛡️", color: "#FFD700" },
+  vanguard:    { label: "Stadtwache", emoji: "🛡️", color: "#FFD700" },
 };
 
 export function BaseClient({
@@ -69,6 +84,53 @@ export function BaseClient({
   const [achievementTier, setAchievementTier] = useState<"bronze" | "silver" | "gold" | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showBuild, setShowBuild] = useState(false);
+  const [guardianData, setGuardianData] = useState<GuardianCollection | null>(null);
+  const [guardianGalleryOpen, setGuardianGalleryOpen] = useState(false);
+  const [guardianDetailId, setGuardianDetailId] = useState<string | null>(null);
+  const [guardianBusy, setGuardianBusy] = useState(false);
+  const [guardianBadge, setGuardianBadge] = useState<number>(0);
+
+  async function loadGuardianCollection(): Promise<GuardianCollection | null> {
+    const r = await fetch("/api/guardian/my-collection", { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as GuardianCollection;
+  }
+
+  async function openGuardianHub() {
+    if (guardianBusy) return;
+    setGuardianBusy(true);
+    try {
+      const j = await loadGuardianCollection();
+      if (!j) { alert("Wächter-Sammlung konnte nicht geladen werden."); return; }
+      setGuardianData(j);
+      const active = j.owned.find((g) => g.is_active);
+      if (active) {
+        setGuardianDetailId(active.id);
+      } else {
+        setGuardianGalleryOpen(true);
+      }
+    } finally {
+      setGuardianBusy(false);
+    }
+  }
+
+  // Badge-Count: ungespendete Talent-Punkte des aktiven Wächters (Initial-Load)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const j = await loadGuardianCollection();
+        if (cancelled || !j) return;
+        const active = j.owned.find((g) => g.is_active);
+        if (!active) { setGuardianBadge(0); return; }
+        const r = await fetch(`/api/guardian/detail/${active.id}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const d = await r.json() as { guardian?: { talent_points_available?: number } };
+        if (!cancelled) setGuardianBadge(d.guardian?.talent_points_available ?? 0);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   if (!profile) {
     return (
@@ -402,6 +464,7 @@ export function BaseClient({
             <ArtTile slot="karte_base_bauen"         icon="🔨" label="Bauen"        onClick={() => setShowBuild(true)} badge={queueCount} />
             <ArtTile slot="karte_base_forschung"     icon="⚗️" label="Forschung"    href="/karte/base"   badge={researchCount} />
             <ArtTile slot="karte_base_banditen"      icon="🥷" label="Banditen"     href="/karte/base" />
+            <ArtTile slot="karte_base_waechter"      icon="🛡️" label="Wächter"      onClick={openGuardianHub} badge={guardianBadge} />
             <ArtTile slot="karte_base_trophaeen"     icon="🏆" label="Trophäen"     onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
             <ArtTile slot="karte_base_ranglisten"    icon="📊" label="Ranglisten"   href="/karte/base" />
             <ArtTile slot="karte_base_statistiken"   icon="📈" label="Statistiken"  onClick={() => setShowStats(true)} />
@@ -423,6 +486,41 @@ export function BaseClient({
       />
       <StatsModal open={showStats} onClose={() => setShowStats(false)} />
       {showBuild && <BuildModal onClose={() => setShowBuild(false)} />}
+
+      {guardianDetailId && (
+        <GuardianDetailModal
+          guardianId={guardianDetailId}
+          onClose={() => setGuardianDetailId(null)}
+          onSwitch={() => { setGuardianDetailId(null); setGuardianGalleryOpen(true); }}
+        />
+      )}
+
+      {guardianGalleryOpen && guardianData && (
+        <GuardianGalleryModal
+          archetypes={guardianData.archetypes}
+          ownedIds={new Set(guardianData.owned.map((g) => g.archetype_id))}
+          ownedGuardians={guardianData.owned}
+          activeArchetypeId={guardianData.active_id}
+          onClose={() => setGuardianGalleryOpen(false)}
+          onActivate={async (archetypeId) => {
+            const g = guardianData.owned.find((x) => x.archetype_id === archetypeId);
+            if (!g) return;
+            const res = await fetch("/api/guardian/my-collection", {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ action: "activate", guardian_id: g.id }),
+            });
+            if (!res.ok) {
+              const j = await res.json().catch(() => ({}));
+              alert(`Aktivierung fehlgeschlagen: ${String(j.error ?? res.status)}`);
+              return;
+            }
+            const fresh = await loadGuardianCollection();
+            if (fresh) setGuardianData(fresh);
+            setGuardianGalleryOpen(false);
+            setGuardianDetailId(g.id);
+          }}
+        />
+      )}
     </FullscreenFrame>
   );
 }

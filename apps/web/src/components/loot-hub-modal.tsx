@@ -119,27 +119,27 @@ export function LootHubModal({ onClose }: { onClose: () => void }) {
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9100,
       background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 560, maxHeight: "92vh",
+        width: "100%", maxWidth: 560, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
         background: `linear-gradient(180deg, ${PRIMARY}1f 0%, #141a2d 100%)`,
-        borderRadius: 18, border: `1px solid ${PRIMARY}66`,
+        borderRadius: 14, border: `1px solid ${PRIMARY}66`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
-        <div style={{ padding: "14px 18px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "6px 10px 4px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>LOOT-ZENTRALE</div>
-            <div style={{ fontSize: 18, fontWeight: 900 }}>Belohnungen & Aktivität</div>
+            <div style={{ color: PRIMARY, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>LOOT-ZENTRALE</div>
+            <div style={{ fontSize: 14, fontWeight: 900 }}>Belohnungen & Aktivität</div>
           </div>
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 16, background: "rgba(0,0,0,0.55)", border: "none",
-            color: "#FFF", fontSize: 18, fontWeight: 900, cursor: "pointer",
+            width: 24, height: 24, borderRadius: 12, background: "rgba(0,0,0,0.55)", border: "none",
+            color: "#FFF", fontSize: 14, fontWeight: 900, cursor: "pointer",
           }}>×</button>
         </div>
 
-        <div style={{ display: "flex", overflowX: "auto", padding: "0 8px", borderBottom: `1px solid ${BORDER}` }}>
+        <div style={{ display: "flex", overflowX: "auto", padding: "0 6px", borderBottom: `1px solid ${BORDER}`, flexShrink: 0 }}>
           {([
             { id: "activity",  label: "📊 Aktivität",  color: PRIMARY },
             { id: "lore",      label: "📜 Lore",       color: GOLD },
@@ -148,16 +148,16 @@ export function LootHubModal({ onClose }: { onClose: () => void }) {
             { id: "city_lord", label: "👑 Stadtherr",  color: PINK },
           ] as const).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
-              flexShrink: 0, padding: "10px 12px", border: "none",
+              flexShrink: 0, padding: "5px 8px", border: "none",
               background: "transparent",
               color: tab === t.id ? t.color : TEXT_SOFT,
               borderBottom: `2px solid ${tab === t.id ? t.color : "transparent"}`,
-              fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+              fontSize: 10, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
             }}>{t.label}</button>
           ))}
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 8 }}>
           {tab === "activity" && (
             <ActivityPanel state={activity} onClaim={claimActivity} busy={busy} />
           )}

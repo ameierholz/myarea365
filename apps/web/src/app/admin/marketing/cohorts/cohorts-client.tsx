@@ -10,8 +10,8 @@ type SampleUser = {
 const PRESETS = [
   { id: "high_xp_inactive", label: "🚨 High-XP & inaktiv >14d", filters: { xp_min: 10000, inactive_for_days: 14 } },
   { id: "fresh_signups",     label: "🌱 Frische Signups (7d)",     filters: { signup_after: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10) } },
-  { id: "kronenwacht_solo",  label: "👑 Kronenwacht ohne Crew",     filters: { faction: "kronenwacht", in_crew: false } },
-  { id: "gossenbund_solo",   label: "🗝️ Gossenbund ohne Crew",      filters: { faction: "gossenbund", in_crew: false } },
+  { id: "kronenwacht_solo",  label: "🛡️ Stadtwache ohne Crew",     filters: { faction: "kronenwacht", in_crew: false } },
+  { id: "gossenbund_solo",   label: "🔗 Untergrund ohne Crew",      filters: { faction: "gossenbund", in_crew: false } },
   { id: "active_today",      label: "✅ Aktiv (24h)",                filters: { active_within_days: 1 } },
   { id: "dormant_30d",       label: "💤 Dormant (>30d)",            filters: { inactive_for_days: 30 } },
 ];
@@ -84,8 +84,8 @@ export function CohortsClient() {
               <label className="text-[11px] uppercase text-[#8b8fa3]">Fraktion</label>
               <Select value={(filters.faction as string) ?? ""} onChange={(e) => set("faction", e.target.value || null)} className="w-full">
                 <option value="">— egal —</option>
-                <option value="kronenwacht">👑 Kronenwacht</option>
-                <option value="gossenbund">🗝️ Gossenbund</option>
+                <option value="kronenwacht">🛡️ Stadtwache</option>
+                <option value="gossenbund">🔗 Untergrund</option>
               </Select>
             </div>
             <div>

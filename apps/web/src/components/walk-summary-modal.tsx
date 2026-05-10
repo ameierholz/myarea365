@@ -122,11 +122,11 @@ export function WalkSummaryModal({ summary, userId, isPremium, onClose }: {
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
       background: "rgba(15,17,21,0.92)", backdropFilter: "blur(10px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div style={{
-        width: "100%", maxWidth: 420,
-        background: "#1A1D23", borderRadius: 20, padding: 24,
+        width: "100%", maxWidth: 420, maxHeight: "100dvh", overflowY: "auto",
+        background: "#1A1D23", borderRadius: 14, padding: 10,
         border: "1px solid rgba(255,255,255,0.1)",
         color: "#F0F0F0",
       }}>

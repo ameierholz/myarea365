@@ -208,53 +208,53 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9100,
       background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 760, maxHeight: "92vh",
+        width: "100%", maxWidth: 760, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
         background: `linear-gradient(180deg, ${PRIMARY}1f 0%, #141a2d 100%)`,
-        borderRadius: 18, border: `1px solid ${PRIMARY}66`,
+        borderRadius: 14, border: `1px solid ${PRIMARY}66`,
         boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
         color: "#F0F0F0", overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
-          padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: `1px solid ${BORDER}`,
+          padding: "6px 10px", display: "flex", alignItems: "center", justifyContent: "space-between",
+          borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
           background: "rgba(0,0,0,0.3)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 22 }}>📦</span>
-            <span style={{ fontSize: 16, fontWeight: 900, letterSpacing: 0.5 }}>{t("title")}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 16 }}>📦</span>
+            <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.4 }}>{t("title")}</span>
           </div>
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 16,
+            width: 24, height: 24, borderRadius: 12,
             background: "rgba(0,0,0,0.55)", border: "none",
-            color: "#FFF", fontSize: 18, fontWeight: 900, cursor: "pointer",
+            color: "#FFF", fontSize: 14, fontWeight: 900, cursor: "pointer",
           }} aria-label={tCommon("close")}>×</button>
         </div>
 
         {/* Tabs (horizontal scrollable on mobile) */}
         <div style={{
-          display: "flex", gap: 4, padding: "8px 12px",
+          display: "flex", gap: 3, padding: "5px 8px",
           overflowX: "auto", scrollbarWidth: "none",
-          borderBottom: `1px solid ${BORDER}`,
+          borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
           background: "rgba(0,0,0,0.2)",
         }}>
           {tabs.map((tab) => {
             const isActive = active === tab.id;
             return (
               <button key={tab.id} onClick={() => { setActive(tab.id); setSelected(null); }} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                padding: "8px 12px", minWidth: 64, flexShrink: 0,
-                borderRadius: 10,
+                display: "flex", flexDirection: "row", alignItems: "center", gap: 4,
+                padding: "5px 8px", flexShrink: 0,
+                borderRadius: 8, whiteSpace: "nowrap",
                 background: isActive ? `${tab.color}28` : "transparent",
                 border: isActive ? `1px solid ${tab.color}` : "1px solid transparent",
                 color: isActive ? tab.color : TEXT_SOFT,
-                cursor: "pointer", fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
+                cursor: "pointer", fontSize: 9, fontWeight: 800, letterSpacing: 0.4,
               }}>
-                <span style={{ fontSize: 20 }}>{tab.icon}</span>
+                <span style={{ fontSize: 13 }}>{tab.icon}</span>
                 <span>{t(tab.labelKey)}</span>
               </button>
             );
@@ -262,7 +262,7 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 12, position: "relative" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 8, position: "relative" }}>
           {error && <div style={{ padding: 24, textAlign: "center", color: PINK }}>{error}</div>}
           {!data && !error && <div style={{ padding: 24, textAlign: "center", color: TEXT_SOFT }}>{t("loading")}</div>}
 

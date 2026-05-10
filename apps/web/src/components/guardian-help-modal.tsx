@@ -113,34 +113,34 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, zIndex: 3600,
+        position: "fixed", inset: 0, zIndex: 9000,
         background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 640, maxHeight: "92vh",
+          width: "100%", maxWidth: 640, maxHeight: "100dvh",
           display: "flex", flexDirection: "column",
-          background: "#1A1D23", borderRadius: 20,
+          background: "#1A1D23", borderRadius: 14,
           border: "1px solid rgba(168,85,247,0.5)",
           boxShadow: "0 0 40px rgba(168,85,247,0.3)",
           color: "#F0F0F0", overflow: "hidden",
         }}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <span style={{ fontSize: 26 }}>🛡️</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+          <span style={{ fontSize: 16 }}>🛡️</span>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{tH("modalTitle")}</div>
-            <div style={{ color: "#a855f7", fontSize: 9, fontWeight: 800, letterSpacing: 1 }}>{tH("modalKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{tH("modalTitle")}</div>
+            <div style={{ color: "#a855f7", fontSize: 8, fontWeight: 800, letterSpacing: 0.8 }}>{tH("modalKicker")}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 18, cursor: "pointer" }}>×</button>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 3, padding: "5px 8px", borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto", flexShrink: 0 }}>
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
@@ -149,16 +149,16 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
                 onClick={() => setTab(t.id)}
                 style={{
                   flex: "0 0 auto",
-                  padding: "7px 11px", borderRadius: 9,
+                  padding: "5px 8px", borderRadius: 7,
                   background: active ? "#a855f7" : "transparent",
                   color: active ? "#FFF" : "#a8b4cf",
                   border: "1px solid " + (active ? "#a855f7" : "rgba(255,255,255,0.08)"),
-                  fontSize: 11, fontWeight: 800, cursor: "pointer",
+                  fontSize: 10, fontWeight: 800, cursor: "pointer",
                   whiteSpace: "nowrap",
-                  display: "inline-flex", alignItems: "center", gap: 5,
+                  display: "inline-flex", alignItems: "center", gap: 4,
                 }}
               >
-                <span style={{ fontSize: 13 }}>{t.icon}</span>
+                <span style={{ fontSize: 11 }}>{t.icon}</span>
                 <span>{t.label}</span>
               </button>
             );
@@ -166,7 +166,7 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 10px" }}>
           {tab === "overview"  && <OverviewTab />}
           {tab === "guardians" && <GuardiansTab />}
           {tab === "talents"   && <TalentsTab />}
@@ -178,11 +178,11 @@ export function GuardianHelpModal({ onClose, initialTab = "overview" }: { onClos
         </div>
 
         {/* Footer */}
-        <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: 8 }}>
+        <div style={{ padding: 6, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: 6, flexShrink: 0 }}>
           <button onClick={onClose} style={{
-            flex: 1, padding: 12, borderRadius: 10,
+            flex: 1, padding: 7, borderRadius: 8,
             background: "#22D1C3", color: "#0F1115",
-            border: "none", fontSize: 13, fontWeight: 900, cursor: "pointer",
+            border: "none", fontSize: 12, fontWeight: 900, cursor: "pointer",
           }}>{tH("gotIt")}</button>
         </div>
       </div>

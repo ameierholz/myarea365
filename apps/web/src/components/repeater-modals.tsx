@@ -273,7 +273,7 @@ export function AttackRepeaterModal({
 
         <div className="px-4 pb-2 flex gap-2">
           <ModeButton active={mode === "attack"} onClick={() => setMode("attack")} icon="⚔️" label="Solo-Angriff" />
-          <ModeButton active={mode === "rally"} onClick={() => hasCrew && setMode("rally")} disabled={!hasCrew} icon="📣" label="Crew-Aufgebot" />
+          <ModeButton active={mode === "rally"} onClick={() => hasCrew && setMode("rally")} disabled={!hasCrew} icon="📣" label="Crew-Trupp" />
         </div>
 
         {mode === "rally" && (
@@ -385,7 +385,7 @@ export function AttackRepeaterModal({
                 confirmLabel={busy ? "..."
                   : queueFull ? "⛔ Slots belegt"
                   : overCap ? `⚠ Cap (${totalCount}/${cap})`
-                  : mode === "rally" ? "Aufgebot starten" : "Angreifen"}
+                  : mode === "rally" ? "Trupp starten" : "Angreifen"}
                 confirmColor={mode === "rally" ? "#FF2D78" : "#22D1C3"}
               />
             </>

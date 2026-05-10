@@ -497,7 +497,7 @@ function SimpleAttackModal({ defenderUserId, defenderName, onClose }: {
           onClick={go}
           className="w-full bg-gradient-to-r from-[#FF2D78] to-[#22D1C3] text-white font-bold py-2.5 rounded-lg disabled:opacity-50"
         >
-          {busy ? "..." : "Aufgebot senden"}
+          {busy ? "..." : "Trupp senden"}
         </button>
       </div>
     </div>
@@ -566,7 +566,7 @@ function MultiLegionModal({ defenderUserId, defenderName, onClose }: {
       <div className="bg-[#1A1D23] border border-[#FF6B4A]/40 rounded-2xl p-4 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[#FF6B4A]">Multi-Aufgebot</div>
+            <div className="text-[10px] uppercase tracking-wider text-[#FF6B4A]">Multi-Trupp</div>
             <div className="text-lg font-bold text-[#F0F0F0]">→ {defenderName}</div>
             <div className="text-xs text-[#8B8FA3]">{legions.length} / {maxQueue} Slots</div>
           </div>

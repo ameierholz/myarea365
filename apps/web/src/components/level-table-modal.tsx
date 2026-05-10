@@ -78,7 +78,7 @@ export function LevelTableModal({
         backdropFilter: "blur(16px) saturate(140%)",
         WebkitBackdropFilter: "blur(16px) saturate(140%)",
         display: "flex", alignItems: "stretch", justifyContent: "center",
-        padding: "12px",
+        padding: "6px",
       }}
     >
       <div
@@ -119,39 +119,40 @@ export function LevelTableModal({
         {/* HEADER */}
         <div style={{
           position: "relative",
-          padding: "10px 12px",
+          padding: "6px 10px", flexShrink: 0,
           background: `linear-gradient(90deg, ${accent}33, ${accent}11)`,
           borderBottom: `1px solid ${accent}44`,
-          display: "flex", alignItems: "center", gap: 8,
+          display: "flex", alignItems: "center", gap: 6,
         }}>
           <button
             onClick={onClose}
             aria-label="Zurück"
             style={{
-              width: 30, height: 30, borderRadius: 8, border: "none",
+              width: 24, height: 24, borderRadius: 6, border: "none",
               background: "rgba(0,0,0,0.45)", color: "rgba(255,255,255,0.85)",
-              fontSize: 16, fontWeight: 900, cursor: "pointer", flexShrink: 0,
+              fontSize: 14, fontWeight: 900, cursor: "pointer", flexShrink: 0,
             }}
           >‹</button>
-          <div style={{ flex: 1, textAlign: "center" }}>
+          <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
             <div style={{
-              fontSize: 12, fontWeight: 900, color: accent, letterSpacing: 1.5,
+              fontSize: 8, fontWeight: 900, color: accent, letterSpacing: 1.2,
               textTransform: "uppercase",
             }}>STUFEN-TABELLE</div>
             <div style={{
-              fontSize: 14, fontWeight: 900, color: TEXT, marginTop: 1,
+              fontSize: 12, fontWeight: 900, color: TEXT, marginTop: 0,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{title}</div>
             {subtitle && (
-              <div style={{ fontSize: 9, color: MUTED, fontWeight: 700 }}>{subtitle}</div>
+              <div style={{ fontSize: 8, color: MUTED, fontWeight: 700 }}>{subtitle}</div>
             )}
           </div>
           <button
             onClick={onClose}
             aria-label="Schließen"
             style={{
-              width: 30, height: 30, borderRadius: 8, border: "none",
+              width: 24, height: 24, borderRadius: 6, border: "none",
               background: "rgba(0,0,0,0.45)", color: "rgba(255,255,255,0.85)",
-              fontSize: 18, fontWeight: 900, cursor: "pointer", flexShrink: 0,
+              fontSize: 14, fontWeight: 900, cursor: "pointer", flexShrink: 0,
             }}
           >×</button>
         </div>
@@ -159,11 +160,11 @@ export function LevelTableModal({
         {/* Spalten-Header */}
         <div style={{
           position: "relative",
-          padding: "8px 10px",
+          padding: "5px 8px", flexShrink: 0,
           display: "grid",
-          gridTemplateColumns: "44px 1fr 1fr 60px",
-          gap: 6,
-          fontSize: 9, fontWeight: 900, color: MUTED, letterSpacing: 1,
+          gridTemplateColumns: "36px 1fr 1fr 50px",
+          gap: 5,
+          fontSize: 8, fontWeight: 900, color: MUTED, letterSpacing: 0.8,
           background: "rgba(0,0,0,0.3)",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}>
@@ -189,10 +190,10 @@ export function LevelTableModal({
                 <div
                   key={row.level}
                   style={{
-                    padding: "8px 10px",
+                    padding: "5px 8px",
                     display: "grid",
-                    gridTemplateColumns: "44px 1fr 1fr 60px",
-                    gap: 6,
+                    gridTemplateColumns: "36px 1fr 1fr 50px",
+                    gap: 5,
                     alignItems: "center",
                     background: isCurrent
                       ? `linear-gradient(90deg, ${accent}33, ${accent}11)`
@@ -280,12 +281,12 @@ export function LevelTableModal({
 
         {/* FOOTER mit Legende */}
         <div style={{
-          position: "relative",
-          padding: "8px 12px",
+          position: "relative", flexShrink: 0,
+          padding: "5px 8px",
           background: "rgba(0,0,0,0.4)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
-          display: "flex", justifyContent: "center", gap: 14,
-          fontSize: 9, color: MUTED, fontWeight: 700,
+          display: "flex", justifyContent: "center", gap: 10,
+          fontSize: 8, color: MUTED, fontWeight: 700,
         }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: accent }} /> Aktuell

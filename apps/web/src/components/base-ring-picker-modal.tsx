@@ -65,29 +65,29 @@ export function BaseRingPickerModal({
 
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
+      position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 760, maxHeight: "92vh",
+        width: "100%", maxWidth: 760, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 20,
+        background: "#1A1D23", borderRadius: 14,
         border: `1px solid ${PRIMARY}66`,
         boxShadow: `0 0 40px ${PRIMARY}33`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
-        <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>BASE-RING</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>
+            <div style={{ color: PRIMARY, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>BASE-RING</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
               Base-Ring wählen ({items.filter((r) => r.owned).length} / {items.length})
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 18, cursor: "pointer", width: 24, height: 24 }}>×</button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 8 }}>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isAdmin ? 160 : 130}px, 1fr))`, gap: 8 }}>
             {items.map((r) => {
               const art = artMap[r.id];

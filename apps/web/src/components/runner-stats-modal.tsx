@@ -166,15 +166,15 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
 
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3800,
+      position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 520, maxHeight: "88vh",
+        width: "100%", maxWidth: 520, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
         background: `linear-gradient(180deg, ${color}22 0%, #141a2d 100%)`,
-        borderRadius: 22, border: `1px solid ${color}66`,
+        borderRadius: 16, border: `1px solid ${color}66`,
         boxShadow: `0 8px 32px rgba(0,0,0,0.6)`,
         color: "#F0F0F0", overflow: "hidden",
       }}>

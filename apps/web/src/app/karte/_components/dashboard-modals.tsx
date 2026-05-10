@@ -18,8 +18,8 @@ export function PowerZoneModal({ zone, onClose }: {
     ["Tempo",        zone.buff_spd, "#FFD700"],
   ];
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #0F1115 0%, #151823 100%)", borderRadius: 20, padding: 24, border: `2px solid ${zone.color}aa`, color: "#FFF", boxShadow: `0 0 30px ${zone.color}55` }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", maxHeight: "100dvh", overflowY: "auto", background: "linear-gradient(160deg, #0F1115 0%, #151823 100%)", borderRadius: 14, padding: 10, border: `2px solid ${zone.color}aa`, color: "#FFF", boxShadow: `0 0 30px ${zone.color}55` }}>
         <div style={{ fontSize: 11, color: zone.color, fontWeight: 900, letterSpacing: 0.8, marginBottom: 4 }}>
           {kindLabel[zone.kind] ?? "POWER-ZONE"}
         </div>
@@ -63,8 +63,8 @@ export function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
   const [attacking, setAttacking] = useState(false);
   const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460, width: "100%", background: "linear-gradient(160deg, #2a0618 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(255,45,120,0.7)", color: "#FFF", textAlign: "center", boxShadow: "0 0 40px rgba(255,45,120,0.5)" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460, width: "100%", maxHeight: "100dvh", overflowY: "auto", background: "linear-gradient(160deg, #2a0618 0%, #0F1115 90%)", borderRadius: 14, padding: 10, border: "2px solid rgba(255,45,120,0.7)", color: "#FFF", textAlign: "center", boxShadow: "0 0 40px rgba(255,45,120,0.5)" }}>
         <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 8, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.6))" }}>{boss.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4, letterSpacing: 0.5 }}>{boss.name}</div>
         <div style={{ fontSize: 11, color: "#FF6BA1", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>AREA-BOSS · LEGENDÄRER RAID</div>
@@ -164,8 +164,8 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
   const disabled = done || training || !inRange;
   const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3800, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 20, padding: 24, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", maxHeight: "100dvh", overflowY: "auto", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 14, padding: 10, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
         <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
         <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>Wächter-SANCTUARY</div>

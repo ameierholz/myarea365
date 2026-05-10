@@ -13,7 +13,7 @@ import { MMR_TIERS } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
 import { FACTIONS, normalizeFaction } from "@/lib/factions";
 import {
-  rarityMeta, xpForLevel, TYPE_META,
+  rarityMeta, xpForLevel, TYPE_META, FACTION_META,
   type GuardianArchetype, type GuardianTalent, type TalentNode,
   type ArchetypeSkill, type GuardianSkillLevel, type UserSiegel,
 } from "@/lib/guardian";
@@ -142,14 +142,14 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
 
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
+      position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(15,17,21,0.92)", backdropFilter: "blur(14px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "92vh",
+        width: "100%", maxWidth: 640, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
-        background: "#1A1D23", borderRadius: 20,
+        background: "#1A1D23", borderRadius: 16,
         border: "1px solid rgba(34,209,195,0.5)",
         boxShadow: "0 0 40px rgba(34,209,195,0.3)",
         color: "#F0F0F0", overflow: "hidden",
@@ -251,7 +251,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
       {/* Hero: großer Avatar links + Stats/Meta rechts */}
       <div style={{
         position: "relative",
-        padding: 16, display: "flex", gap: 14,
+        padding: 8, display: "flex", gap: 8, flexShrink: 0,
         background: `linear-gradient(135deg, ${rarity.glow}, transparent 75%)`,
         borderBottom: "1px solid rgba(255,255,255,0.08)",
       }}>
@@ -263,17 +263,51 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
         }}>×</button>
 
         <div style={{
-          width: 180, height: 220, flexShrink: 0, borderRadius: 14, overflow: "hidden",
+          width: 120, height: 150, flexShrink: 0, borderRadius: 12, overflow: "hidden",
           background: `radial-gradient(circle at 50% 35%, ${rarity.color}33 0%, rgba(15,17,21,0.6) 70%)`,
           border: `1px solid ${rarity.color}55`,
           boxShadow: `0 0 22px ${rarity.glow}`,
         }}>
-          <GuardianAvatar archetype={a} size={180} animation="idle" fillMode="cover" />
+          <GuardianAvatar archetype={a} size={120} animation="idle" fillMode="cover" />
         </div>
 
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <div style={{ color: rarity.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>
-            {rarity.label.toUpperCase()}{typeMeta ? ` · ${typeMeta.icon} ${typeMeta.label.toUpperCase()}` : ""}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ color: rarity.color, fontSize: 9, fontWeight: 900, letterSpacing: 1.5 }}>
+              {rarity.label.toUpperCase()}{typeMeta ? ` · ${typeMeta.icon} ${typeMeta.label.toUpperCase()}` : ""}
+            </span>
+            {/* Wave-Badge (W1, W2 …) — Welle des Helden-Releases */}
+            {a.wave_number != null && a.wave_number > 0 && (
+              <span style={{
+                fontSize: 8, fontWeight: 900, letterSpacing: 0.6,
+                padding: "1px 5px", borderRadius: 4,
+                background: "linear-gradient(135deg, #22D1C3, #1ba59a)",
+                color: "#0F1115",
+                boxShadow: "0 0 6px rgba(34,209,195,0.4)",
+              }} title={`Wächter-Welle ${a.wave_number}`}>W{a.wave_number}</span>
+            )}
+            {/* Faction-Pill */}
+            {a.faction && FACTION_META[a.faction] && (
+              <span style={{
+                fontSize: 8, fontWeight: 900, letterSpacing: 0.4,
+                padding: "1px 6px", borderRadius: 999,
+                background: `${FACTION_META[a.faction].color}22`,
+                border: `1px solid ${FACTION_META[a.faction].color}66`,
+                color: FACTION_META[a.faction].color,
+              }} title={FACTION_META[a.faction].theme}>
+                {FACTION_META[a.faction].emoji} {FACTION_META[a.faction].label}
+              </span>
+            )}
+            {/* Flying-Badge */}
+            {a.is_flying && (
+              <span style={{
+                fontSize: 8, fontWeight: 900, letterSpacing: 0.4,
+                padding: "1px 5px", borderRadius: 4,
+                background: "rgba(168,85,247,0.18)",
+                border: "1px solid rgba(168,85,247,0.55)",
+                color: "#a855f7",
+              }} title="Fliegender Wächter">✈ FLY</span>
+            )}
           </div>
           <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, lineHeight: 1.15, marginTop: 2 }}>
             {g.custom_name ?? a.name}
@@ -341,23 +375,54 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ padding: "8px 12px", display: "flex", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        {(["overview", "equipment", "talents", "skills"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: "8px 4px", borderRadius: 10,
-            background: tab === t ? "#22D1C3" : "rgba(255,255,255,0.06)",
-            color: tab === t ? "#0F1115" : "#a8b4cf",
-            border: "none", fontSize: 11, fontWeight: 900, letterSpacing: 1,
-            cursor: "pointer",
-          }}>
-            {t === "overview" ? tGD("tabOverview") : t === "equipment" ? tGD("tabEquipment") : t === "talents" ? `${tGD("tabTalents")}${g.talent_points_available > 0 ? ` (${g.talent_points_available})` : ""}` : tGD("tabSkills")}
-          </button>
-        ))}
+      {/* Tabs — mit Icons damit alle 4 Bereiche sofort erkennbar sind */}
+      <div style={{
+        padding: "6px 8px", display: "flex", gap: 4, flexShrink: 0,
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        background: "rgba(15,17,21,0.45)",
+      }}>
+        {(["overview", "equipment", "talents", "skills"] as Tab[]).map((t) => {
+          const meta = {
+            overview:  { icon: "📋", label: tGD("tabOverview"),  color: "#22D1C3" },
+            equipment: { icon: "🛡️", label: tGD("tabEquipment"), color: "#a855f7" },
+            talents:   { icon: "🌳", label: tGD("tabTalents"),   color: "#4ade80" },
+            skills:    { icon: "⚡", label: tGD("tabSkills"),    color: "#FFD700" },
+          }[t];
+          const active = tab === t;
+          const showBadge = t === "talents" && g.talent_points_available > 0;
+          return (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1, padding: "7px 4px", borderRadius: 8, position: "relative",
+              background: active ? `linear-gradient(135deg, ${meta.color}, ${meta.color}cc)` : "rgba(255,255,255,0.04)",
+              color: active ? "#0F1115" : "#a8b4cf",
+              border: active ? "none" : "1px solid rgba(255,255,255,0.06)",
+              fontSize: 10, fontWeight: 900, letterSpacing: 0.4,
+              cursor: "pointer", whiteSpace: "nowrap",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              boxShadow: active ? `0 0 12px ${meta.color}66` : "none",
+              transition: "background 0.15s, box-shadow 0.15s",
+            }}>
+              <span style={{ fontSize: 15, lineHeight: 1 }}>{meta.icon}</span>
+              <span>{meta.label}</span>
+              {showBadge && (
+                <span style={{
+                  position: "absolute", top: 1, right: 1,
+                  minWidth: 16, height: 16, borderRadius: 999,
+                  background: "linear-gradient(135deg, #FF6B4A, #FF2D78)",
+                  color: "#FFF", fontSize: 9, fontWeight: 900,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: "0 4px",
+                  border: "1.5px solid rgba(255,255,255,0.95)",
+                  boxShadow: "0 1px 4px rgba(255,45,120,0.5)",
+                }}>{g.talent_points_available}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 8 }}>
         {tab === "overview" && (() => {
           const totalBattles = g.wins + g.losses;
           const winRate = totalBattles > 0 ? Math.round((g.wins / totalBattles) * 100) : 0;
@@ -693,34 +758,34 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
       {(onArena || onSwitch || onForge) && (
         <div style={{
-          padding: 12, display: "flex", flexDirection: "column", gap: 8,
+          padding: 6, display: "flex", flexDirection: "column", gap: 5, flexShrink: 0,
           borderTop: "1px solid rgba(255,255,255,0.08)",
           background: "rgba(15,17,21,0.55)",
         }}>
           {onArena && (
             <button onClick={onArena} style={{
-              width: "100%", padding: "12px 14px", borderRadius: 10, border: "none",
+              width: "100%", padding: "7px 10px", borderRadius: 8, border: "none",
               background: "linear-gradient(135deg, #FF2D78, #FF6B4A)",
-              color: "#FFF", fontSize: 13, fontWeight: 900, cursor: "pointer",
+              color: "#FFF", fontSize: 12, fontWeight: 900, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               boxShadow: "0 0 14px rgba(255,45,120,0.45)",
             }}>{tGD("actionEnterArena")}</button>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 6 }}>
             {onForge && (
               <button onClick={onForge} style={{
-                flex: 1, padding: "10px 10px", borderRadius: 10,
+                flex: 1, padding: "6px 8px", borderRadius: 8,
                 background: "rgba(255,107,74,0.12)",
                 border: "1px solid rgba(255,107,74,0.55)",
-                color: "#FF6B4A", fontSize: 12, fontWeight: 900, cursor: "pointer",
+                color: "#FF6B4A", fontSize: 11, fontWeight: 900, cursor: "pointer",
               }}>{tGD("actionForge")}</button>
             )}
             {onSwitch && (
               <button onClick={onSwitch} style={{
-                flex: 1, padding: "10px 10px", borderRadius: 10,
+                flex: 1, padding: "6px 8px", borderRadius: 8,
                 background: "rgba(34,209,195,0.12)",
                 border: "1px solid rgba(34,209,195,0.5)",
-                color: "#22D1C3", fontSize: 12, fontWeight: 900, cursor: "pointer",
+                color: "#22D1C3", fontSize: 11, fontWeight: 900, cursor: "pointer",
               }}>{tGD("actionSwitch")}</button>
             )}
           </div>

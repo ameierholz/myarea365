@@ -73,27 +73,27 @@ export function GrowthFundModal({ onClose }: { onClose: () => void }) {
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9100,
       background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 480, maxHeight: "92vh",
+        width: "100%", maxWidth: 480, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
         background: `linear-gradient(180deg, ${GOLD}1a 0%, #141a2d 60%)`,
-        borderRadius: 18, border: `2px solid ${GOLD}aa`,
+        borderRadius: 14, border: `2px solid ${GOLD}aa`,
         boxShadow: `0 0 30px ${GOLD}55`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
         {/* Header */}
-        <div style={{ padding: "16px 18px 8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div style={{ padding: "6px 10px 4px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
-            <div style={{ color: GOLD, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{t("kicker")}</div>
-            <div style={{ fontSize: 20, fontWeight: 900, marginTop: 2 }}>{t("title")}</div>
-            <div style={{ color: TEXT_SOFT, fontSize: 11, marginTop: 4 }}>{t("subtitle", { gems: totalGems.toLocaleString("de-DE") })}</div>
+            <div style={{ color: GOLD, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>{t("kicker")}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, marginTop: 1 }}>{t("title")}</div>
+            <div style={{ color: TEXT_SOFT, fontSize: 10, marginTop: 2 }}>{t("subtitle", { gems: totalGems.toLocaleString("de-DE") })}</div>
           </div>
           <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 16,
+            width: 24, height: 24, borderRadius: 12,
             background: "rgba(0,0,0,0.55)", border: "none",
-            color: "#FFF", fontSize: 18, fontWeight: 900, cursor: "pointer",
+            color: "#FFF", fontSize: 14, fontWeight: 900, cursor: "pointer",
           }}>×</button>
         </div>
 
@@ -123,7 +123,7 @@ export function GrowthFundModal({ onClose }: { onClose: () => void }) {
         )}
 
         {/* Milestones */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 14px 14px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 8px 8px" }}>
           {!data && <div style={{ padding: 20, textAlign: "center", color: TEXT_SOFT }}>{tCommon("ok")}…</div>}
           {data?.milestones.map((m) => {
             const claimed = claimedSet.has(m.id);

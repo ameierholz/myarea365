@@ -486,7 +486,7 @@ export function SagaClient() {
         />
       )}
       {multiModal && (
-        <MultiAufgebotModal zone={multiModal.zone} snap={snap}
+        <MultiTruppModal zone={multiModal.zone} snap={snap}
           onClose={() => setMultiModal(null)}
           onConfirm={async (legions) => {
             const ok = await doAction({ action: "deploy_multi", legions });
@@ -809,12 +809,12 @@ function TapActionMenu({ menu, snap, onClose, onChoice, onMulti }: {
 
           {/* MARSCH-ANGRIFF — auf fremde/neutrale Zone */}
           {!isMine && z.zone_kind !== "gate" && (
-            <BigBtn icon="⚔" label="Marsch-Angriff" desc="Aufgebot losschicken zum Erobern" onClick={() => onChoice("marsch_angriff")} color="#FF2D78" />
+            <BigBtn icon="⚔" label="Marsch-Angriff" desc="Trupp losschicken zum Erobern" onClick={() => onChoice("marsch_angriff")} color="#FF2D78" />
           )}
 
           {/* EINSETZEN — Truppen-Auswahl bei eigener Zone */}
           {isMine && (
-            <BigBtn icon="🪖" label="Einsetzen" desc="Aufgebot oder Multi-Aufgebot" onClick={() => onChoice("verstärken")} color="#FFD700" />
+            <BigBtn icon="🪖" label="Einsetzen" desc="Trupp oder Multi-Trupp" onClick={() => onChoice("verstärken")} color="#FFD700" />
           )}
 
           {/* SAMMELN — auf Gather-Tiles */}
@@ -837,7 +837,7 @@ function TapActionMenu({ menu, snap, onClose, onChoice, onMulti }: {
 
           {/* MULTI-AUFGEBOT */}
           {isMine && (
-            <BigBtn icon="🪙" label="Multi-Aufgebot" desc="Bis zu 5 Aufgebote parallel" onClick={onMulti} color="#FFD700" />
+            <BigBtn icon="🪙" label="Multi-Trupp" desc="Bis zu 5 Trupps parallel" onClick={onMulti} color="#FFD700" />
           )}
         </div>
 
@@ -878,7 +878,7 @@ function LegionModal({ kind, zone, snap, onClose, onConfirm, busy }: {
                 kind === "verstärken"     ? "🛡 Verstärkung" :
                 kind === "sammeln"        ? "📦 Sammeln" :
                 kind === "rally"          ? "🚩 Rally" :
-                "🪖 Aufgebot";
+                "🪖 Trupp";
 
   return (
     <div className="fixed inset-0 z-9999 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
@@ -886,7 +886,7 @@ function LegionModal({ kind, zone, snap, onClose, onConfirm, busy }: {
         <div className="text-white font-black text-lg mb-1">{title}</div>
         <div className="text-text-muted text-xs mb-4">Ziel: {zone.name}</div>
 
-        <div className="text-[10px] uppercase text-text-muted mb-2">Aufgebot zusammenstellen</div>
+        <div className="text-[10px] uppercase text-text-muted mb-2">Trupp zusammenstellen</div>
         <div className="grid grid-cols-4 gap-2">
           <NumIn label="⚒ Inf" v={inf} setV={setInf} max={max.saga_slot_inf} />
           <NumIn label="🐎 Cav" v={cav} setV={setCav} max={max.saga_slot_cav} />
@@ -906,7 +906,7 @@ function LegionModal({ kind, zone, snap, onClose, onConfirm, busy }: {
 }
 
 // ────── MULTI-AUFGEBOT MODAL ──────
-function MultiAufgebotModal({ zone, snap, onClose, onConfirm, busy }: {
+function MultiTruppModal({ zone, snap, onClose, onConfirm, busy }: {
   zone: Zone; snap: Snap; onClose: () => void;
   onConfirm: (legions: Array<Record<string, unknown>>) => Promise<void>; busy: boolean;
 }) {
@@ -934,14 +934,14 @@ function MultiAufgebotModal({ zone, snap, onClose, onConfirm, busy }: {
   return (
     <div className="fixed inset-0 z-9999 bg-black/70 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-[#1A1D23] border border-white/10 rounded-xl p-5 max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="text-white font-black text-lg mb-1">🪙 Multi-Aufgebot</div>
-        <div className="text-text-muted text-xs mb-3">Ziel: {zone.name} · {legions.length}/{Math.min(5, slotsAvailable)} Aufgebote</div>
+        <div className="text-white font-black text-lg mb-1">🪙 Multi-Trupp</div>
+        <div className="text-text-muted text-xs mb-3">Ziel: {zone.name} · {legions.length}/{Math.min(5, slotsAvailable)} Trupps</div>
 
         <div className="space-y-2 mb-3">
           {legions.map((l, i) => (
             <div key={i} className="bg-white/5 rounded-lg p-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-white text-xs font-bold">Aufgebot #{i + 1}</span>
+                <span className="text-white text-xs font-bold">Trupp #{i + 1}</span>
                 {legions.length > 1 && <button onClick={() => removeLegion(i)} className="text-accent text-xs">✕</button>}
               </div>
               <div className="grid grid-cols-4 gap-1">
@@ -954,7 +954,7 @@ function MultiAufgebotModal({ zone, snap, onClose, onConfirm, busy }: {
           ))}
         </div>
         {legions.length < 5 && legions.length < slotsAvailable && (
-          <button onClick={addLegion} className="w-full py-1.5 rounded bg-white/10 text-primary text-xs font-bold mb-3">+ Aufgebot hinzufügen</button>
+          <button onClick={addLegion} className="w-full py-1.5 rounded bg-white/10 text-primary text-xs font-bold mb-3">+ Trupp hinzufügen</button>
         )}
 
         <div className="flex gap-2">

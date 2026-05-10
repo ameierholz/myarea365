@@ -119,13 +119,13 @@ export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)",
         zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 12,
+        padding: 6,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: BG, borderRadius: 16, width: "100%", maxWidth: 720, maxHeight: "92vh",
+          background: BG, borderRadius: 14, width: "100%", maxWidth: 720, maxHeight: "100dvh",
           border: `1px solid ${ACCENT}55`,
           boxShadow: `0 20px 60px ${ACCENT}33`,
           overflow: "hidden", display: "flex", flexDirection: "column",
@@ -133,20 +133,20 @@ export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
       >
         {/* Header mit Hero-% */}
         <div style={{
-          padding: "16px 18px 12px",
+          padding: "6px 10px", flexShrink: 0,
           background: `linear-gradient(135deg, ${ACCENT}22, transparent 60%)`,
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", gap: 14,
+          display: "flex", alignItems: "center", gap: 10,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: MUTED, fontSize: 11, fontWeight: 700, letterSpacing: 1.3, textTransform: "uppercase" }}>
+            <div style={{ color: MUTED, fontSize: 9, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>
               {t("berlinTitle")}
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 36, fontWeight: 900, color: TEXT, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 2, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: TEXT, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
                 {loading ? "…" : `${stats?.percent ?? 0}%`}
               </div>
-              <div style={{ color: MUTED, fontSize: 13, fontWeight: 600 }}>
+              <div style={{ color: MUTED, fontSize: 11, fontWeight: 600 }}>
                 {loading ? "" : t("berlinKieze", { covered: stats?.covered_blocks ?? 0, total: stats?.total_blocks ?? 0 })}
               </div>
             </div>
@@ -156,24 +156,24 @@ export function BerlinCoverageModal({ onClose }: { onClose: () => void }) {
             aria-label="Schließen"
             style={{
               background: "transparent", border: "none", color: MUTED,
-              fontSize: 22, cursor: "pointer", padding: 4, lineHeight: 1,
+              fontSize: 18, cursor: "pointer", padding: 2, lineHeight: 1,
             }}
           >✕</button>
         </div>
 
         {/* Map */}
-        <div style={{ position: "relative", height: "min(50vh, 360px)", background: "#0a0c0f" }}>
+        <div style={{ position: "relative", flex: 1, minHeight: 0, background: "#0a0c0f" }}>
           <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
           {loading && (
             <div style={{
               position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-              color: MUTED, fontSize: 13,
+              color: MUTED, fontSize: 11,
             }}>{t("berlinHeatmapLoading")}</div>
           )}
         </div>
 
         {/* Milestone-Liste */}
-        <div style={{ padding: "12px 18px 18px", overflowY: "auto" }}>
+        <div style={{ padding: "6px 10px 8px", overflowY: "auto", flexShrink: 0, maxHeight: "40%" }}>
           <div style={{ color: TEXT, fontSize: 13, fontWeight: 800, marginBottom: 8 }}>{t("berlinMilestones")}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {milestones.map((m) => (

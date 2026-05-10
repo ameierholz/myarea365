@@ -1,16 +1,20 @@
 "use client";
 
-// Kosmetik-Tab im SHOPS-Hub. Übersicht mit 6 Kacheln, jede öffnet den
-// bestehenden Picker. Ziel: ein Entry-Point für alle Cosmetic-Slots.
+// Kosmetik-Tab im SHOPS-Hub. Übersicht mit 9 Kacheln, jede öffnet den
+// bestehenden Picker. Ziel: ein Entry-Point für ALLE Cosmetic-Slots.
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { LightPickerModal } from "@/components/light-picker-modal";
 import { MarkerPickerModal } from "@/components/marker-picker-modal";
 import { NameplatePickerModal } from "@/components/nameplate-picker-modal";
 import { BaseRingPickerModal } from "@/components/base-ring-picker-modal";
 import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
 
-type SlotId = "marker" | "light" | "pin_theme" | "base_theme" | "base_ring" | "nameplate";
+// Endgame-Hub für Frames/Titles/Pets — lazy weil größeres Modal
+const EndgameHubModal = dynamic(() => import("@/components/endgame-hub-modal").then(m => m.EndgameHubModal), { ssr: false });
+
+type SlotId = "marker" | "light" | "pin_theme" | "base_theme" | "base_ring" | "nameplate" | "frames" | "titles" | "pets";
 
 const SLOTS: Array<{
   id: SlotId;
@@ -18,7 +22,7 @@ const SLOTS: Array<{
   icon: string;
   color: string;
   hint: string;
-  group: "runner" | "base";
+  group: "runner" | "base" | "profile";
 }> = [
   { id: "marker",     label: "Avatar",     icon: "📍", color: "#FF6B4A", hint: "Map-Icon beim Laufen", group: "runner" },
   { id: "light",      label: "Lauflinie",  icon: "✨", color: "#5ddaf0", hint: "Trail hinter dir",     group: "runner" },
@@ -26,12 +30,15 @@ const SLOTS: Array<{
   { id: "base_theme", label: "Base-Theme", icon: "🏰", color: "#FFD700", hint: "Gebäude-Skin",         group: "base" },
   { id: "base_ring",  label: "Base-Ring",  icon: "💍", color: "#22D1C3", hint: "Aura um die Base",     group: "base" },
   { id: "nameplate",  label: "Banner",     icon: "🎀", color: "#FF2D78", hint: "Namensschild",         group: "base" },
+  { id: "frames",     label: "Rahmen",     icon: "🖼", color: "#FFD700", hint: "Avatar-Rahmen",        group: "profile" },
+  { id: "titles",     label: "Titel",      icon: "🏷",  color: "#FF6B4A", hint: "Titel unter Namen",    group: "profile" },
+  { id: "pets",       label: "Begleiter",  icon: "🐾", color: "#a855f7", hint: "Aktiver Companion",    group: "profile" },
 ];
 
 export function CosmeticsHubBody({ userId: _userId, isAdmin = false }: { userId: string; isAdmin?: boolean }) {
   const [open, setOpen] = useState<SlotId | null>(null);
 
-  const renderGroup = (group: "runner" | "base", title: string, subtitle: string) => {
+  const renderGroup = (group: "runner" | "base" | "profile", title: string, subtitle: string) => {
     const items = SLOTS.filter((s) => s.group === group);
     return (
       <div style={{ marginBottom: 18 }}>
@@ -79,8 +86,9 @@ export function CosmeticsHubBody({ userId: _userId, isAdmin = false }: { userId:
         </div>
       </div>
 
-      {renderGroup("runner", "AUF DER KARTE", "Sichtbar wenn du läufst")}
-      {renderGroup("base",   "AN DEINER BASE", "Sichtbar wenn du nicht läufst")}
+      {renderGroup("runner",  "AUF DER KARTE",  "Sichtbar wenn du läufst")}
+      {renderGroup("base",    "AN DEINER BASE", "Sichtbar wenn du nicht läufst")}
+      {renderGroup("profile", "PROFIL & STATUS", "Rahmen, Titel und dein aktiver Begleiter")}
 
       {open === "marker" && (
         <MarkerPickerModal
@@ -113,6 +121,15 @@ export function CosmeticsHubBody({ userId: _userId, isAdmin = false }: { userId:
       {open === "nameplate" && (
         <NameplatePickerModal isAdmin={isAdmin} onClose={() => setOpen(null)} />
       )}
+      {open === "frames" && (
+        <EndgameHubModal initialTab="frames" onClose={() => setOpen(null)} />
+      )}
+      {open === "titles" && (
+        <EndgameHubModal initialTab="titles" onClose={() => setOpen(null)} />
+      )}
+      {open === "pets" && (
+        <EndgameHubModal initialTab="pets" onClose={() => setOpen(null)} />
+      )}
     </div>
   );
 }
@@ -120,7 +137,7 @@ export function CosmeticsHubBody({ userId: _userId, isAdmin = false }: { userId:
 function SimpleNotice({ msg, onClose }: { msg: string; onClose: () => void }) {
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3700,
+      position: "fixed", inset: 0, zIndex: 9200,
       background: "rgba(0,0,0,0.7)",
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
     }}>

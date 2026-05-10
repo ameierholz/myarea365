@@ -8,6 +8,41 @@ const GOLD = "#FFD700";
 const PINK = "#FF2D78";
 
 type Stats = Record<string, number | string | null>;
+type Faction = "architect" | "warlord" | "strategist" | "diplomat" | "kronenwacht" | "gossenbund" | string;
+
+// Spielstil-Definitionen — gespiegelt aus packages/supabase/migrations/00289_playstyle_buffs.sql
+// Wenn ein Buff dort gepatcht wird, hier nachziehen!
+type PlaystyleBuff = { label: string; mult: string; rpc: string; status: "live" | "stub" };
+const PLAYSTYLE_META: Record<string, { name: string; emoji: string; color: string; tagline: string; buffs: PlaystyleBuff[] }> = {
+  architect: {
+    name: "Architekt", emoji: "🏗️", color: GOLD, tagline: "Wirtschaft · Aufbau",
+    buffs: [
+      { label: "Bau-Geschwindigkeit",   mult: "+5 %", rpc: "start_building",         status: "live" },
+      { label: "Resourcen-Produktion",  mult: "+5 %", rpc: "_collect_one_building",  status: "live" },
+    ],
+  },
+  warlord: {
+    name: "Warlord", emoji: "⚔️", color: PINK, tagline: "Krieg · Eroberung",
+    buffs: [
+      { label: "Wächter-Schaden",       mult: "+5 %", rpc: "_reserve_user_troops",   status: "live" },
+      { label: "Beute beim Plündern",   mult: "+5 %", rpc: "tick_gather_marches",    status: "live" },
+    ],
+  },
+  strategist: {
+    name: "Stratege", emoji: "🧠", color: PRIMARY, tagline: "Forschung · Spionage",
+    buffs: [
+      { label: "Forschungs-Geschwindigkeit", mult: "+5 %",  rpc: "start_research",     status: "live" },
+      { label: "Tarn-Bonus bei Spionage",    mult: "0 Gold", rpc: "spy_player_base",   status: "live" },
+    ],
+  },
+  diplomat: {
+    name: "Diplomat", emoji: "🤝", color: "#a855f7", tagline: "Crew · Allianzen",
+    buffs: [
+      { label: "Crew-Beitrag",                  mult: "+10 %", rpc: "donate_to_crew_member", status: "live" },
+      { label: "Stärkere Don-Aura",              mult: "+20 %", rpc: "get_user_active_buffs", status: "live" },
+    ],
+  },
+};
 
 type Section = {
   id: string;
@@ -50,7 +85,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "crew", label: "Crew & Aufgebot", icon: "🤝", color: PRIMARY,
+    id: "crew", label: "Crew & Trupp", icon: "🤝", color: PRIMARY,
     rows: [
       { stat: "crew_donations",         label: "Spenden" },
       { stat: "crew_chat_messages",     label: "Chat-Nachrichten" },
@@ -176,26 +211,30 @@ function fmt(value: unknown, format?: string): string {
  */
 export function StatsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [faction, setFaction] = useState<Faction | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(SECTIONS.slice(0, 4).map(s => s.id)));
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(["playstyle", ...SECTIONS.slice(0, 4).map(s => s.id)]));
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setError(null); setStats(null);
+    setError(null); setStats(null); setFaction(null);
     void (async () => {
       try {
         const r = await fetch("/api/me/stats", { cache: "no-store" });
-        const j = await r.json() as { stats?: Stats; error?: string };
+        const j = await r.json() as { stats?: Stats; faction?: Faction | null; error?: string };
         if (cancelled) return;
         if (!r.ok) throw new Error(j.error ?? "Fehler beim Laden");
         setStats(j.stats ?? {});
+        setFaction(j.faction ?? null);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
     })();
     return () => { cancelled = true; };
   }, [open]);
+
+  const playstyle = faction && PLAYSTYLE_META[faction] ? PLAYSTYLE_META[faction] : null;
 
   if (!open) return null;
 
@@ -212,6 +251,74 @@ export function StatsModal({ open, onClose }: { open: boolean; onClose: () => vo
           {!stats && !error && (
             <div style={{ color: "#8B8FA3", fontSize: 12, textAlign: "center", padding: 24 }}>Lade Statistik…</div>
           )}
+
+          {/* Spielstil-Sektion (immer ganz oben, klappbar) */}
+          {playstyle && (() => {
+            const isOpen = openSections.has("playstyle");
+            return (
+              <div style={{
+                borderRadius: 10,
+                background: "rgba(15,17,21,0.6)",
+                border: `1px solid ${playstyle.color}55`,
+                overflow: "hidden", flexShrink: 0,
+              }}>
+                <button type="button" onClick={() => {
+                  setOpenSections((cur) => {
+                    const next = new Set(cur);
+                    if (next.has("playstyle")) next.delete("playstyle"); else next.add("playstyle");
+                    return next;
+                  });
+                }} style={{
+                  width: "100%", minHeight: 38, padding: "0 12px",
+                  background: `linear-gradient(135deg, ${playstyle.color}33, rgba(15,17,21,0.4))`,
+                  border: "none", color: "#FFFFFF",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  cursor: "pointer", fontSize: 13, fontWeight: 800, letterSpacing: 0.4,
+                  fontFamily: "inherit", textAlign: "left",
+                }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>{playstyle.emoji}</span>
+                    <span>Spielstil — {playstyle.name}</span>
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", fontWeight: 700, letterSpacing: 0.3 }}>
+                      {playstyle.tagline}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 14, color: playstyle.color, transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>▾</span>
+                </button>
+                {isOpen && (
+                  <div style={{ padding: "8px 12px 10px", background: "rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    {playstyle.buffs.map((b) => (
+                      <div key={b.label} style={{
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "6px 10px", borderRadius: 8,
+                        background: b.status === "live" ? `${playstyle.color}11` : "rgba(255,107,74,0.08)",
+                        border: `1px solid ${b.status === "live" ? `${playstyle.color}33` : "rgba(255,107,74,0.3)"}`,
+                        fontSize: 12, lineHeight: 1.3,
+                      }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <span style={{ color: "#FFFFFF", fontWeight: 700 }}>
+                            {b.status === "live" ? "✓" : "⏳"} {b.label}
+                          </span>
+                          <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontFamily: "monospace" }}>
+                            {b.status === "live" ? `aktiv in ${b.rpc}` : "noch nicht implementiert"}
+                          </span>
+                        </div>
+                        <span style={{
+                          color: b.status === "live" ? playstyle.color : "#FF6B4A",
+                          fontWeight: 900, fontSize: 14, fontVariantNumeric: "tabular-nums",
+                          textShadow: b.status === "live" ? `0 0 8px ${playstyle.color}66` : "none",
+                        }}>{b.mult}</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginTop: 4, fontStyle: "italic" }}>
+                      Spielstil wird beim Onboarding gewählt — DB-Spalte: <code>users.faction</code>, RPC: <code>playstyle_buff()</code>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {SECTIONS.map((sec) => {
             const isOpen = openSections.has(sec.id);
             const safeStats = stats ?? {};

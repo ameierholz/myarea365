@@ -1,5 +1,6 @@
-// Fraktionen (kronenwacht / gossenbund) mit mechanischen Buffs.
-// Zugehoerigkeit steht auf public.users.faction.
+// Legacy-Walking-Fraktion-Datei — wird noch von einigen Leaderboards/Charts referenziert.
+// Die ECHTE Wächter-Fraktion-Logik liegt in lib/guardian.ts (FACTION_META) mit 3 Werten.
+// DB-IDs (gossenbund/kronenwacht) bleiben als interne Keys. Nur UI-Labels modernisiert.
 
 export type FactionId = "kronenwacht" | "gossenbund";
 
@@ -16,20 +17,20 @@ export type FactionMeta = {
 export const FACTIONS: Record<FactionId, FactionMeta> = {
   kronenwacht: {
     id: "kronenwacht",
-    label: "Kronenwacht",
-    icon: "👑",
+    label: "Stadtwache",
+    icon: "🛡️",
     color: "#FFD700",
     buff_name: "Beständig",
-    buff_desc: "Bonus-Wegemünzen für lange gehaltene Straßenzüge · deine Gebiete verblassen langsamer (Farb-Zerfall bremsen)",
+    buff_desc: "Bonus für lange gehaltene Gebiete · deine Claims verblassen langsamer.",
     vibe: "Wurzeln schlagen, Gebiete halten, das Viertel pflegen.",
   },
   gossenbund: {
     id: "gossenbund",
-    label: "Gossenbund",
-    icon: "🗝️",
+    label: "Untergrund",
+    icon: "🔗",
     color: "#22D1C3",
     buff_name: "Raubzug",
-    buff_desc: "Bonus-Wegemünzen beim Erobern neuer Straßen · übermalst gegnerische Straßen schneller",
+    buff_desc: "Bonus beim Erobern neuer Gebiete · übermalst gegnerische Claims schneller.",
     vibe: "Grenzen verschieben, fremdes Revier erobern, nie stehenbleiben.",
   },
 };

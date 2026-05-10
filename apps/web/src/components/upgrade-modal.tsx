@@ -183,31 +183,31 @@ export function UpgradeModal({ mode, userId, crewId, onClose }: {
   const accent = mode === "plus" ? "#22D1C3" : "#FF2D78";
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center",
+      position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "flex-end", justifyContent: "center",
       background: "rgba(15,17,21,0.75)", backdropFilter: "blur(6px)",
     }} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
-          background: "#1A1D23", border: `1px solid ${accent}55`, borderRadius: "20px 20px 0 0",
-          padding: 24, color: "#F0F0F0",
+          width: "100%", maxWidth: 520, maxHeight: "100dvh", overflowY: "auto",
+          background: "#1A1D23", border: `1px solid ${accent}55`, borderRadius: "14px 14px 0 0",
+          padding: 10, color: "#F0F0F0",
           boxShadow: `0 -10px 40px ${accent}33`,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 28 }}>{mode === "plus" ? "💎" : "👥"}</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 18 }}>{mode === "plus" ? "💎" : "👥"}</span>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>
+              <div style={{ fontSize: 14, fontWeight: 900 }}>
                 {mode === "plus" ? t("modalPlus") : t("modalCrew")}
               </div>
-              <div style={{ fontSize: 11, color: "#a8b4cf" }}>
+              <div style={{ fontSize: 10, color: "#a8b4cf" }}>
                 {mode === "plus" ? t("modalSubPlus") : t("modalSubCrew")}
               </div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 22, cursor: "pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#a8b4cf", fontSize: 18, cursor: "pointer" }}>✕</button>
         </div>
         <UpgradeBody mode={mode} userId={userId} crewId={crewId} onDone={onClose} />
       </div>

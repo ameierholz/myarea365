@@ -92,29 +92,29 @@ export function ShopBillingModal({ defaultShopId, onClose }: {
 
   return (
     <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 3900,
+      position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(15,17,21,0.92)", backdropFilter: "blur(10px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 640, maxHeight: "92vh", overflowY: "auto",
-        background: "#1A1D23", borderRadius: 20,
+        width: "100%", maxWidth: 640, maxHeight: "100dvh", overflowY: "auto",
+        background: "#1A1D23", borderRadius: 14,
         border: "1px solid rgba(34,209,195,0.4)",
         color: "#F0F0F0", boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
       }}>
-        <div style={{ padding: "18px 22px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, background: "#1A1D23", zIndex: 1 }}>
-          <div style={{ fontSize: 26 }}>💳</div>
+        <div style={{ padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: 8, position: "sticky", top: 0, background: "#1A1D23", zIndex: 1 }}>
+          <div style={{ fontSize: 18 }}>💳</div>
           <div style={{ flex: 1 }}>
-            <div style={{ color: "#22D1C3", fontSize: 10, fontWeight: 900, letterSpacing: 2 }}>{t("billingKicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{t("billingHeader")}</div>
+            <div style={{ color: "#22D1C3", fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>{t("billingKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{t("billingHeader")}</div>
           </div>
           <button onClick={onClose} style={{
             background: "rgba(255,255,255,0.08)", border: "none", color: "#a8b4cf",
-            width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16,
+            width: 24, height: 24, borderRadius: 999, cursor: "pointer", fontSize: 14,
           }}>✕</button>
         </div>
 
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: 10 }}>
           {shops.length === 0 ? (
             <div style={{ padding: 30, textAlign: "center", background: "#0F1115", borderRadius: 14, border: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontSize: 40, marginBottom: 10 }}>🏪</div>

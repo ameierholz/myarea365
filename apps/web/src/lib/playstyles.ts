@@ -16,7 +16,7 @@
 //   diplomat:   +10% Wert deiner Crew-Spenden
 //
 // PHASE-4 (Stub im Helper, Mechanik kommt mit Don-System):
-//   diplomat: erweiterte Don-Aura-Reichweite
+//   diplomat: +20 % stärkere Don-Aura (5%→6% all-stats wenn Don)
 
 export type PlaystyleId = "architect" | "warlord" | "strategist" | "diplomat";
 
@@ -56,7 +56,7 @@ export const PLAYSTYLES: Record<PlaystyleId, PlaystyleMeta> = {
     motto: "Krieg · Eroberung",
     buff_name: "Schlachtruf",
     buff_lines: [
-      "+5 % Truppen-Damage in Rallies und Aufgeboten",
+      "+5 % Truppen-Damage in Rallies und Trupps",
       "+5 % Beute aus Wegelager-Plünderzügen",
     ],
   },
@@ -81,7 +81,7 @@ export const PLAYSTYLES: Record<PlaystyleId, PlaystyleMeta> = {
     buff_name: "Verbündete",
     buff_lines: [
       "+10 % Wert deiner Resourcen-Spenden an Crew-Mitglieder",
-      "Erweiterte Don-Aura-Reichweite (in Vorbereitung — Phase 4)",
+      "Stärkere Don-Aura (+20 % Bonus auf all-stats wenn deine Crew Don ist)",
     ],
   },
 };

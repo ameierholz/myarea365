@@ -80,24 +80,24 @@ export function RunRouteModal({ runId, streetName, teamColor, onClose }: {
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9000,
       background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 720, maxHeight: "90vh",
+        width: "100%", maxWidth: 720, maxHeight: "100dvh",
         display: "flex", flexDirection: "column",
-        background: "#141a2d", borderRadius: 20,
+        background: "#141a2d", borderRadius: 14,
         border: `1px solid ${teamColor}66`,
         boxShadow: `0 8px 32px rgba(0,0,0,0.6)`,
         color: "#F0F0F0", overflow: "hidden",
       }}>
-        <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: teamColor, fontSize: 9, fontWeight: 900, letterSpacing: 2 }}>{tM("rtKicker")}</div>
-            <div style={{ color: "#FFF", fontSize: 16, fontWeight: 900 }}>{streetName || tM("rtUnknownPath")}</div>
+            <div style={{ color: teamColor, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>{tM("rtKicker")}</div>
+            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{streetName || tM("rtUnknownPath")}</div>
           </div>
-          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 22, cursor: "pointer", width: 32, height: 32 }}>×</button>
+          <button onClick={onClose} aria-label={tM("closeAria")} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 18, cursor: "pointer", width: 24, height: 24 }}>×</button>
         </div>
-        <div style={{ flex: 1, minHeight: 400, position: "relative", background: "#0F1115" }}>
+        <div style={{ flex: 1, minHeight: 0, position: "relative", background: "#0F1115" }}>
           {error ? (
             <div style={{ padding: 40, textAlign: "center", color: "#FF2D78" }}>{error}</div>
           ) : !route ? (

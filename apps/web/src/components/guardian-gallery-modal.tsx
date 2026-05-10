@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { GuardianAvatar } from "@/components/guardian-avatar";
 import {
-  rarityMeta, TYPE_META, RARITY_META,
-  type GuardianArchetype, type GuardianType,
+  rarityMeta, TYPE_META, RARITY_META, FACTION_META,
+  type GuardianArchetype, type GuardianType, type GuardianFaction,
 } from "@/lib/guardian";
 import { buildArchetypePrompt } from "@/lib/artwork-prompts";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
@@ -32,46 +32,95 @@ export function GuardianGalleryModal({
 }) {
   const tG = useTranslations("GuardianGallery");
   const [tab, setTab] = useState<Tab>("all");
+  const [factionFilter, setFactionFilter] = useState<GuardianFaction | "all">("all");
   const [onlyMissingArt, setOnlyMissingArt] = useState(false);
 
+  // Pre-Launch (W0) komplett ausblenden — nur live-released Wellen sichtbar
+  const releasedArchetypes = useMemo(
+    () => archetypes.filter((a) => a.wave_number != null && a.wave_number > 0),
+    [archetypes]
+  );
+
+  // owned-Count nur über sichtbare (released) Wächter
+  const visibleOwned = useMemo(
+    () => releasedArchetypes.reduce((n, a) => n + (ownedIds.has(a.id) ? 1 : 0), 0),
+    [releasedArchetypes, ownedIds]
+  );
+
   const filtered = useMemo(() => {
-    const base = tab === "all" ? archetypes : archetypes.filter((a) => a.guardian_type === tab);
+    let base = tab === "all" ? releasedArchetypes : releasedArchetypes.filter((a) => a.guardian_type === tab);
+    if (factionFilter !== "all") base = base.filter((a) => a.faction === factionFilter);
     return onlyMissingArt ? base.filter((a) => !a.image_url) : base;
-  }, [archetypes, tab, onlyMissingArt]);
+  }, [releasedArchetypes, tab, factionFilter, onlyMissingArt]);
 
   const counts = useMemo(() => {
-    const c: Record<Tab, number> = { all: archetypes.length, infantry: 0, cavalry: 0, marksman: 0, mage: 0 };
-    for (const a of archetypes) if (a.guardian_type) c[a.guardian_type]++;
+    const c: Record<Tab, number> = { all: releasedArchetypes.length, infantry: 0, cavalry: 0, marksman: 0, mage: 0, siege: 0, collector: 0 };
+    for (const a of releasedArchetypes) if (a.guardian_type) c[a.guardian_type]++;
     return c;
-  }, [archetypes]);
+  }, [releasedArchetypes]);
+
+  const factionCounts = useMemo(() => {
+    const c: Record<GuardianFaction | "all", number> = { all: releasedArchetypes.length, gossenbund: 0, kronenwacht: 0, netzhueter: 0 };
+    for (const a of releasedArchetypes) if (a.faction) c[a.faction]++;
+    return c;
+  }, [releasedArchetypes]);
 
   return (
     <Modal open={true} onClose={onClose} size="lg" zIndex={Z.modal}>
       <ModalHeader
         kicker={tG("kicker")}
-        title={tG("title", { owned: ownedIds.size })}
+        title={tG("title", { total: releasedArchetypes.length, owned: visibleOwned })}
         onClose={onClose}
         accent="primary"
       />
       <ModalBody padding="flush">
-        {/* Tabs */}
-        <div style={{ padding: "8px 12px", display: "flex", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto" }}>
-          {(["all", "infantry", "cavalry", "marksman", "mage"] as Tab[]).map((t) => {
-            const meta = t === "all" ? { label: tG("tabAll"), icon: "🌐", color: "#22D1C3" } : TYPE_META[t];
+        {/* Type-Tabs */}
+        <div style={{ padding: "6px 8px 4px", display: "flex", gap: 4, borderBottom: "1px solid rgba(255,255,255,0.05)", overflowX: "auto", scrollbarWidth: "none" }}>
+          {(["all", "infantry", "cavalry", "marksman", "mage", "siege", "collector"] as Tab[]).map((t) => {
+            const rawMeta = t === "all" ? { label: tG("tabAll"), icon: "🌐", color: "#22D1C3" } : TYPE_META[t];
+            // Defensive fallback falls TYPE_META veraltete Bundle-Version (Turbopack-Cache)
+            const meta = rawMeta ?? { label: t.toUpperCase(), icon: "?", color: "#8B8FA3" };
             return (
               <button key={t} onClick={() => setTab(t)} style={{
-                flexShrink: 0, padding: "7px 12px", borderRadius: 10,
-                background: tab === t ? meta.color : "rgba(255,255,255,0.06)",
+                flexShrink: 0, padding: "5px 9px", borderRadius: 8,
+                background: tab === t ? meta.color : "rgba(255,255,255,0.04)",
                 color: tab === t ? "#0F1115" : "#a8b4cf",
-                border: "none", fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
-                cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                border: "none", fontSize: 10, fontWeight: 900, letterSpacing: 0.4,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
               }}>
                 <span>{meta.icon}</span>
                 <span>{meta.label.toUpperCase()}</span>
-                <span style={{ opacity: 0.7 }}>({counts[t]})</span>
+                <span style={{ opacity: 0.7 }}>({counts[t] ?? 0})</span>
               </button>
             );
           })}
+        </div>
+
+        {/* Faction-Filter */}
+        <div style={{ padding: "4px 8px 6px", display: "flex", gap: 4, borderBottom: "1px solid rgba(255,255,255,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
+          {(["all", "gossenbund", "kronenwacht", "netzhueter"] as const).map((f) => {
+            const rawMeta = f === "all" ? { label: "Alle Fraktionen", emoji: "⚔", color: "#8B8FA3" } : FACTION_META[f];
+            const meta = rawMeta ?? { label: f.toUpperCase(), emoji: "?", color: "#8B8FA3" };
+            const active = factionFilter === f;
+            return (
+              <button key={f} onClick={() => setFactionFilter(f)} style={{
+                flexShrink: 0, padding: "4px 8px", borderRadius: 999,
+                background: active ? `${meta.color}33` : "rgba(255,255,255,0.03)",
+                color: active ? meta.color : "#8B8FA3",
+                border: `1px solid ${active ? `${meta.color}77` : "rgba(255,255,255,0.06)"}`,
+                fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 3, whiteSpace: "nowrap",
+              }}>
+                <span>{meta.emoji}</span>
+                <span>{meta.label}</span>
+                <span style={{ opacity: 0.6 }}>({factionCounts[f]})</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Admin-Toggle */}
+        <div style={{ padding: "4px 8px", display: "flex", justifyContent: "flex-end" }}>
           {isAdmin && (
             <label style={{
               flexShrink: 0, padding: "7px 10px", borderRadius: 10,
@@ -187,6 +236,32 @@ function GalleryCard({ archetype: a, owned, isActive = false, ownedLevel = null,
           border: isActive ? "none" : "1px solid rgba(74,222,128,0.5)",
           fontSize: 8, fontWeight: 900, letterSpacing: 0.5, zIndex: 2,
         }}>{isActive ? tG("active") : tG("level", { n: ownedLevel ?? 1 })}</div>
+      )}
+
+      {/* Wave-Badge oben links — W1, W2 ... (W0 = Pre-Launch nicht zeigen) */}
+      {a.wave_number != null && a.wave_number > 0 && (
+        <div style={{
+          position: "absolute", top: 4, left: 4, zIndex: 2,
+          padding: "2px 6px", borderRadius: 4,
+          background: "linear-gradient(135deg, #22D1C3, #1ba59a)",
+          color: "#0F1115",
+          fontSize: 8, fontWeight: 900, letterSpacing: 0.6,
+          boxShadow: "0 0 6px rgba(34,209,195,0.5)",
+        }} title={`Wächter-Welle ${a.wave_number}`}>W{a.wave_number}</div>
+      )}
+
+      {/* Faction-Indicator unter dem Wave-Badge (mini) */}
+      {a.faction && FACTION_META[a.faction] && (
+        <div style={{
+          position: "absolute", top: a.wave_number != null && a.wave_number > 0 ? 24 : 4, left: 4, zIndex: 2,
+          width: 18, height: 18, borderRadius: "50%",
+          background: `${FACTION_META[a.faction].color}33`,
+          border: `1px solid ${FACTION_META[a.faction].color}88`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 10,
+        }} title={`${FACTION_META[a.faction].label} — ${FACTION_META[a.faction].theme}`}>
+          {FACTION_META[a.faction].emoji}
+        </div>
       )}
 
       {/* Wächter-Portrait — groß, transparenter Hintergrund, nur Boden-Glow */}

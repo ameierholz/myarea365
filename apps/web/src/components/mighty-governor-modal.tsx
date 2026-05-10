@@ -61,7 +61,7 @@ export function MightyGovernorModal({ onClose }: { onClose: () => void }) {
   return (
     <div onClick={onClose} className="fixed inset-0 z-[9400] bg-black/85 backdrop-blur-md flex items-end sm:items-center justify-center p-2 sm:p-4">
       <div onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[96vh]"
+        className="relative w-full max-w-3xl rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-dvh"
         style={{ background: MODAL_BG }}>
         <button onClick={onClose} aria-label="Schließen"
           className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-black/50 text-white text-lg font-black backdrop-blur">×</button>
