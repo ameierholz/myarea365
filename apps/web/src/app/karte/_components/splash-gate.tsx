@@ -11,11 +11,15 @@
  * Splash läuft nicht erneut — das passiert ohne Extra-Logik via React-State.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameSplash } from "./game-splash";
 
 export function SplashGate({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true);
+  // Splash erst nach Mount rendern — sonst Hydration-Mismatch durch
+  // LocalStorage-Cache-Detection in GameSplash (server kennt cache nicht).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   const handleReady = () => {
     setShowSplash(false);
@@ -29,7 +33,7 @@ export function SplashGate({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      {showSplash && <GameSplash onReady={handleReady} />}
+      {mounted && showSplash && <GameSplash onReady={handleReady} />}
     </>
   );
 }
