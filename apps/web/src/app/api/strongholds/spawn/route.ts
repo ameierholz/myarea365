@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,13 @@ export const dynamic = "force-dynamic";
 // nach Login OK — RPC ist idempotent (bis zu 5 aktive Strongholds pro PLZ).
 export async function POST(req: Request) {
   const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+  const rl = await rateLimitSmart(`stronghold:spawn:${user.id}`, 6, 60_000);
+  const limited = rateLimitResponse(rl);
+  if (limited) return limited;
+
   const { plz, lat, lng } = await req.json() as { plz?: string; lat?: number; lng?: number };
   if (!plz || typeof lat !== "number" || typeof lng !== "number") {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });

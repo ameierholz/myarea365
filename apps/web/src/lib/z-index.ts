@@ -22,6 +22,9 @@ export const Z = {
   modalNested: 9100,
   modalDeep: 9200,
 
+  // Chat-Overlay — über Modals damit Spieler in jedem Screen lesen/antworten können
+  chat: 9300,
+
   toast: 9500,
   fxLayer: 9800,
 } as const;

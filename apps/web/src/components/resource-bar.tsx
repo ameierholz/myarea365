@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ResourceIcon, useResourceArt } from "@/components/resource-icon";
+import { fetchBaseMe } from "@/lib/base-me-cache";
 
 const GOLD = "#FFD700";
 const PRIMARY = "#22D1C3";
@@ -101,18 +102,19 @@ function useResources() {
   const [res, setRes] = useState<Resources | null>(null);
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
+    const load = async (force = false) => {
       try {
-        const r = await fetch("/api/base/me", { cache: "no-store" });
-        if (!r.ok) return;
-        const j = await r.json() as { resources?: Resources };
-        if (!cancelled && j.resources) setRes(j.resources);
+        const j = await fetchBaseMe(force ? { force: true } : undefined) as { resources?: Resources } | null;
+        if (!cancelled && j?.resources) setRes(j.resources);
       } catch { /* silent */ }
     };
     void load();
-    const onChange = () => void load();
+    const onChange = () => void load(true);
     window.addEventListener("ma365:resources-changed", onChange);
-    const iv = setInterval(load, 30000);
+    const iv = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      void load();
+    }, 30000);
     return () => { cancelled = true; window.removeEventListener("ma365:resources-changed", onChange); clearInterval(iv); };
   }, []);
   return res;

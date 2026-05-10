@@ -71,10 +71,13 @@ export function DealsShopBody({ initialTab = "seasonal" }: { initialTab?: TabId 
   async function checkout(skuKind: string, skuId: string) {
     setBusy(`${skuKind}:${skuId}`);
     try {
+      // Convention: SKU = "<kind>:<id>", z.B. "seasonal:abc-uuid", "battle_pass:season1:premium"
+      // Resolver in lib/monetization.ts erkennt den Prefix.
+      const sku = `${skuKind}:${skuId}`;
       const r = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind: skuKind, id: skuId }),
+        body: JSON.stringify({ sku }),
       });
       const j = await r.json();
       if (j.url) window.location.href = j.url;

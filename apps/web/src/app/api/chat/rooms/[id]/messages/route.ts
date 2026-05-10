@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,6 +64,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+  const rl = await rateLimitSmart(`chat:msg:${user.id}`, 30, 60_000);
+  const limited = rateLimitResponse(rl);
+  if (limited) return limited;
+
   const { id } = await ctx.params;
   const body = await req.json() as { body?: string; attachments?: unknown; reply_to_id?: string; kind?: string };
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useModalBackgroundArt } from "@/components/resource-icon";
+import { useModalBackgroundArt, useArtworkReady } from "@/components/resource-icon";
 
 /**
  * Wiederverwendbarer Fullscreen-Modal-Frame für die Tab-Routen
@@ -42,8 +42,11 @@ export function FullscreenFrame({
 }) {
   const router = useRouter();
   const palette = THEME_BG[theme];
+  const artReady = useArtworkReady();
   const bgArt = useModalBackgroundArt();
-  const customBg = bgSlot ? bgArt[bgSlot] : null;
+  // Hydration-Safe: customBg erst nutzen wenn Artwork-Cache geladen ist —
+  // sonst rendert Server <div.ma365-frame-bg> aber Client direkt <img>.
+  const customBg = artReady && bgSlot ? bgArt[bgSlot] : null;
 
   // ESC = zurück zur Karte
   useEffect(() => {
@@ -108,7 +111,8 @@ export function FullscreenFrame({
         .ma365-frame-header {
           position: relative; z-index: 2;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 0;
+          gap: 12px;
+          padding: 10px 14px;
           background: linear-gradient(180deg, rgba(15,17,21,0.45) 0%, transparent 100%);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
@@ -116,10 +120,10 @@ export function FullscreenFrame({
           flex-shrink: 0;
         }
         .ma365-frame-title {
-          font-size: 14px; font-weight: 900; letter-spacing: 0.4px;
+          font-size: 16px; font-weight: 900; letter-spacing: 0.4px;
           color: #FFF;
           text-shadow: 0 1px 2px rgba(0,0,0,0.7);
-          line-height: 1.1;
+          line-height: 1.15;
         }
         .ma365-frame-subtitle {
           font-size: 9px; color: #8B8FA3; margin-top: 1px;

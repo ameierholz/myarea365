@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { fetchBaseMe } from "@/lib/base-me-cache";
 
 // 3D-Modell lazy: spart Bundle-Kosten wenn das Modal nicht offen ist.
 const Waechter3D = dynamic(() => import("@/components/waechter-3d").then((m) => m.Waechter3D), {
@@ -174,18 +175,18 @@ export function SingleEinsatzModal({
 
   useEffect(() => {
     void (async () => {
-      const [troopsR, baseR] = await Promise.all([
+      const [troopsR, baseJ] = await Promise.all([
         fetch("/api/base/heimat-troops", { cache: "no-store" }),
-        fetch("/api/base/me", { cache: "no-store" }),
+        fetchBaseMe(),
       ]);
       if (troopsR.ok) {
         const j = await troopsR.json() as HeimatTroopsRes;
         setData(j);
         if (j.guardians && j.guardians.length > 0) setPicked(j.guardians[0]);
       }
-      if (baseR.ok) {
-        const j = await baseR.json() as { base?: { lat?: number | null; lng?: number | null } };
-        if (j.base?.lat != null && j.base?.lng != null) {
+      {
+        const j = baseJ as { base?: { lat?: number | null; lng?: number | null } } | null;
+        if (j?.base?.lat != null && j?.base?.lng != null) {
           setBase({ lat: j.base.lat, lng: j.base.lng });
         }
       }
@@ -351,9 +352,9 @@ export function MultiEinsatzModal({
 
   useEffect(() => {
     void (async () => {
-      const [troopsR, baseR] = await Promise.all([
+      const [troopsR, baseJ] = await Promise.all([
         fetch("/api/base/heimat-troops", { cache: "no-store" }),
-        fetch("/api/base/me", { cache: "no-store" }),
+        fetchBaseMe(),
       ]);
       if (troopsR.ok) {
         const j = await troopsR.json() as HeimatTroopsRes;
@@ -362,9 +363,9 @@ export function MultiEinsatzModal({
           setSlots([{ waechter: j.guardians[0], troops: {} }]);
         }
       }
-      if (baseR.ok) {
-        const j = await baseR.json() as { base?: { lat?: number | null; lng?: number | null } };
-        if (j.base?.lat != null && j.base?.lng != null) {
+      {
+        const j = baseJ as { base?: { lat?: number | null; lng?: number | null } } | null;
+        if (j?.base?.lat != null && j?.base?.lng != null) {
           setBase({ lat: j.base.lat, lng: j.base.lng });
         }
       }

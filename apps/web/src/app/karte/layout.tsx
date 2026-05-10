@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { PurchaseStatusBanner } from "@/components/purchase-status-banner";
-import { ChatWidget } from "@/components/chat/chat-widget";
+import { ChatWidgetLazy } from "@/components/chat/chat-widget-lazy";
 import { SplashGate } from "./_components/splash-gate";
 import { RewardFxProvider } from "@/components/reward-fx";
 
@@ -22,7 +22,7 @@ export default async function DashboardLayout({
       <SplashGate>
         <PurchaseStatusBanner />
         {children}
-        <ChatWidget currentUserId={user.id} />
+        <ChatWidgetLazy currentUserId={user.id} />
       </SplashGate>
     </RewardFxProvider>
   );

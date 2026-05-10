@@ -15,15 +15,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SplashRadarBg } from "./splash-radar-bg";
+import { fetchBaseMe } from "@/lib/base-me-cache";
 
 // Splash läuft in 2 Phasen:
 // 1) "logo"   → Beide Logos solo (Branding-Moment, keine Wortmarke, kein Loader)
 // 2) "loader" → Logos schrumpfen nach oben + Wortmarke + Tagline + Progress-Bar
 // Dann Fade-out auf die Map.
-const LOGO_PHASE_MS = 3000;     // Phase 1: Logos allein 3s
-const CROSSFADE_MS = 0;         // Harter Cut Logo→Loader (kein Fade)
-const LOADER_MIN_MS = 8000;     // Phase 2: Loader mind. 8s mit Ruckler-Effekt
-const FADE_OUT_MS = 700;        // Out-Fade zur Map
+//
+// Repeat-Visit: Wenn Cosmetic-Artwork bereits im LocalStorage liegt (LS_KEY)
+// — also alles vorgeladen — läuft die Splash-Pipeline drastisch verkürzt
+// (Branding-Moment kurz halten, kein 8s-Ruckler-Loop nochmal).
+const HAS_ART_CACHE = typeof window !== "undefined" && !!window.localStorage.getItem("ma365_cosmetic_art_v2");
+const LOGO_PHASE_MS = HAS_ART_CACHE ? 1200 : 3000;
+const CROSSFADE_MS = 0;
+const LOADER_MIN_MS = HAS_ART_CACHE ? 1500 : 8000;
+const FADE_OUT_MS = HAS_ART_CACHE ? 350 : 700;
 
 const PRELOAD_TASKS: Array<{ key: string; label: string }> = [
   { key: "artwork",  label: "Lade Artwork" },
@@ -68,18 +74,24 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
     const start = performance.now();
     let rafId = 0;
     // Stutter-Schedule: jedes Plateau = [pause-ms, target-pct]
-    // Das ergibt ein "ruckelndes" Loading-Feel statt smooth-linear.
-    // 8 Plateaus über 8s mit längeren Pausen zwischen Sprüngen — realistisches Network-Feel
-    const schedule: Array<{ atMs: number; toPct: number; label: string }> = [
-      { atMs: 600,  toPct: 12,  label: "Lade Artwork" },
-      { atMs: 1700, toPct: 25,  label: "Lade Artwork" },
-      { atMs: 2600, toPct: 42,  label: "Lade Profil & Crew" },
-      { atMs: 3700, toPct: 55,  label: "Lade Profil & Crew" },
-      { atMs: 4900, toPct: 68,  label: "Lade aktive Marches" },
-      { atMs: 6000, toPct: 82,  label: "Bereite Visuals vor" },
-      { atMs: 7100, toPct: 94,  label: "Initialisiere Karte" },
-      { atMs: 8000, toPct: 100, label: "Bereit" },
-    ];
+    // Bei Repeat-Visit (Cache da) deutlich kürzer — sonst wirkt der Splash künstlich.
+    const schedule: Array<{ atMs: number; toPct: number; label: string }> = HAS_ART_CACHE
+      ? [
+          { atMs: 200,  toPct: 35,  label: "Lade Profil & Crew" },
+          { atMs: 600,  toPct: 70,  label: "Bereite Visuals vor" },
+          { atMs: 1100, toPct: 95,  label: "Initialisiere Karte" },
+          { atMs: 1500, toPct: 100, label: "Bereit" },
+        ]
+      : [
+          { atMs: 600,  toPct: 12,  label: "Lade Artwork" },
+          { atMs: 1700, toPct: 25,  label: "Lade Artwork" },
+          { atMs: 2600, toPct: 42,  label: "Lade Profil & Crew" },
+          { atMs: 3700, toPct: 55,  label: "Lade Profil & Crew" },
+          { atMs: 4900, toPct: 68,  label: "Lade aktive Marches" },
+          { atMs: 6000, toPct: 82,  label: "Bereite Visuals vor" },
+          { atMs: 7100, toPct: 94,  label: "Initialisiere Karte" },
+          { atMs: 8000, toPct: 100, label: "Bereit" },
+        ];
     const tick = (now: number) => {
       const elapsed = now - start;
       // Finde aktuelles Segment
@@ -123,37 +135,46 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
     };
 
     void (async () => {
-      // ── Artwork-Manifest ──
-      try {
-        await fetch(`/api/cosmetic-artwork?v=2`, { cache: "no-cache" });
-      } catch { /* tolerate */ }
+      // ── Artwork-Manifest ── (NICHT explizit fetchen — resource-icon.tsx
+      // löst ensureFetch automatisch beim ersten Hook-Aufruf aus. Doppel-Fetch vermieden.)
       mark("artwork", "Lade Profil & Crew");
 
-      // ── Profile + Active Marches ── (parallel)
+      // ── Profile + Active Marches ── (parallel, deduped)
       const [, marchesRes] = await Promise.allSettled([
-        fetch("/api/base/me", { cache: "no-store" }),
+        fetchBaseMe(), // shared cache → folgende callers (splash-radar, chat-widget, etc.) reuse
         fetch("/api/base/marches", { cache: "no-store" }),
       ]);
       mark("profile");
       mark("marches", "Bereite Visuals vor");
 
-      // ── Pre-decode der eigenen Base-Bilder ──
-      // Holt das Artwork-Manifest erneut aus dem Cache + decodiert relevante PNGs/JPGs
-      // damit der Map-Marker beim Erscheinen instant gerendert wird.
+      // ── Pre-decode der eigenen Base-Bilder + warm-fetch aller anderen Art ──
+      // Manifest EINMAL holen + parsen, beide Verbraucher nutzen dieselbe Variable.
+      // (Vorher: artR.clone() nach artR.json() = Body schon verbraucht = warm-fetch silent broken!)
+      type ArtKindMap = Record<string, { image_url: string | null; video_url: string | null }>;
+      type ArtManifest = {
+        base_theme?: ArtKindMap;
+        base_ring?: ArtKindMap;
+        nameplate?: ArtKindMap;
+        marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>>;
+        building?: ArtKindMap;
+        chest?: ArtKindMap;
+        resource?: ArtKindMap;
+        ui_icon?: ArtKindMap;
+        loot_drop?: ArtKindMap;
+        inventory_item?: ArtKindMap;
+        troop?: ArtKindMap;
+        resource_node?: ArtKindMap;
+        modal_background?: ArtKindMap;
+        stronghold?: ArtKindMap;
+      };
       try {
         const artR = await fetch(`/api/cosmetic-artwork?v=2`, { cache: "no-cache" });
-        const profR = await fetch(`/api/base/me?v=2`, { cache: "no-cache" });
-        if (artR.ok && profR.ok) {
-          const art = await artR.json() as {
-            base_theme?: Record<string, { image_url: string | null; video_url: string | null }>;
-            base_ring?: Record<string, { image_url: string | null; video_url: string | null }>;
-            nameplate?: Record<string, { image_url: string | null; video_url: string | null }>;
-            marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>>;
-          };
-          const prof = await profR.json() as {
-            base?: { theme_id?: string | null; kind?: "runner" | "crew" | null };
-            user?: { equipped_base_ring_id?: string | null; equipped_nameplate_id?: string | null; equipped_marker_id?: string | null; equipped_marker_variant?: string | null };
-          };
+        const prof = await fetchBaseMe() as {
+          base?: { theme_id?: string | null; kind?: "runner" | "crew" | null };
+          user?: { equipped_base_ring_id?: string | null; equipped_nameplate_id?: string | null; equipped_marker_id?: string | null; equipped_marker_variant?: string | null };
+        } | null;
+        if (artR.ok && prof) {
+          const art = await artR.json() as ArtManifest;
           const themeId = prof.base?.theme_id;
           // Scope = runner (default) oder crew. Ohne explizites Feld nehmen wir runner als Standard.
           const scope = prof.base?.kind === "crew" ? "crew" : "runner";
@@ -201,6 +222,62 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
           ]);
           // eslint-disable-next-line no-console
           console.log("[splash] pre-decoded", imageUrls.length, "images +", videoUrls.length, "videos");
+
+          // ── FIRE-AND-FORGET warm-fetch + decode aller Modal-Art ──
+          // Liest aus dem oben bereits geparsten `art`-Manifest (kein zweiter clone+json nötig).
+          try {
+            const warmKinds = [
+              art.building, art.chest, art.resource, art.ui_icon,
+              art.loot_drop, art.inventory_item, art.troop, art.resource_node,
+              art.modal_background, art.base_theme, art.base_ring, art.nameplate,
+              art.stronghold,
+            ];
+            // Decode-Pool: max 6 parallel damit HTTP/2-Multiplexing nicht überlastet wird.
+            // Jedes Bild wird komplett dekodiert (nicht nur im HTTP-Cache abgelegt) →
+            // beim späteren `<img>`-Render keine zweite Decode-Phase mehr.
+            const allUrls: string[] = [];
+            const allVideos: string[] = [];
+            for (const kind of warmKinds) {
+              if (!kind) continue;
+              for (const slot in kind) {
+                const u = kind[slot]?.image_url;
+                if (u) allUrls.push(u);
+                const vu = kind[slot]?.video_url;
+                if (vu) allVideos.push(vu);
+              }
+            }
+            // Dedupe
+            const uniqImgs = Array.from(new Set(allUrls));
+            const uniqVids = Array.from(new Set(allVideos));
+            const decodeOne = (url: string) => new Promise<void>((resolve) => {
+              const img = new Image();
+              img.decoding = "async";
+              let done = false;
+              const finish = () => { if (done) return; done = true; resolve(); };
+              img.addEventListener("load", () => {
+                img.decode().catch(() => undefined).finally(finish);
+              }, { once: true });
+              img.addEventListener("error", finish, { once: true });
+              window.setTimeout(finish, 6000); // per-image safety
+              img.src = url;
+            });
+            const CONC = 6;
+            let cursor = 0;
+            const worker = async () => {
+              while (cursor < uniqImgs.length) {
+                const idx = cursor++;
+                await decodeOne(uniqImgs[idx]);
+              }
+            };
+            // Fire-and-forget: blockt Splash NICHT (läuft im Hintergrund weiter)
+            void Promise.all(Array.from({ length: Math.min(CONC, uniqImgs.length) }, worker));
+            // Videos parallel anschubsen (Browser begrenzt sowieso)
+            for (const vu of uniqVids) {
+              const vid = document.createElement("video");
+              vid.preload = "auto"; vid.muted = true; vid.playsInline = true;
+              vid.src = vu;
+            }
+          } catch { /* ignore */ }
         }
       } catch { /* tolerate */ }
       mark("decode", "Initialisiere Karte");
@@ -209,7 +286,25 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
       // Importiert mapbox-gl früh damit der Map-Init beim ersten Render keinen
       // Code-Split-Wait mehr macht.
       try { await import("mapbox-gl"); } catch { /* tolerate */ }
-      mark("mapbox");
+      // mark("mapbox") feuert erst wenn die Karte WIRKLICH idle ist
+      // (alle Tiles + 3D-Gebäude voll gerendert) — siehe app-map.tsx:1265
+      // Hard-Cap-Timer im Splash-Effect dismisst notfalls.
+      const onMapIdle = () => mark("mapbox");
+      window.addEventListener("ma365:map-idle", onMapIdle, { once: true });
+      // Safety: falls Map gar nicht mountet (z.B. anderer Page-Bereich), nach 8s mark
+      window.setTimeout(() => mark("mapbox"), 8000);
+
+      // ── Modal-Chunks pre-warm ──
+      // Spieler klickt im Base-Modal auf Bauen/Forschung/Trophäen/etc → ohne pre-warm
+      // wartet er ~500ms auf den dynamic-import. Mit pre-warm: instant.
+      // Fire-and-forget, blockt Splash NICHT.
+      void Promise.allSettled([
+        import("@/components/build-modal"),
+        import("@/components/server-overview-modal"),
+        import("@/components/achievements-modal"),
+        import("@/components/stats-modal"),
+        import("@/components/base-modal"),
+      ]);
       // Status-Text wird vom Loader-Schedule (rAF-Effect) gesteuert, nicht hier.
     })();
 
@@ -223,7 +318,10 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
 
   // Progress wird komplett von der zeitbasierten Schedule gesteuert (keine Mischung
   // mit tatsächlichem Task-Status mehr, sonst springt's auf 100% bevor visuell sinnvoll).
-  const progress = timeProgress;
+  // Bar folgt timeProgress (zeitbasierte Schedule). Cap bei 95% solange noch ein Mark
+  // fehlt — verhindert "zeigt 100% aber Splash hängt". Sobald allDone, kein Cap mehr.
+  const allDone = completed.size >= PRELOAD_TASKS.length;
+  const progress = allDone ? timeProgress : Math.min(timeProgress, 95);
 
   return (
     <div

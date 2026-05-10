@@ -75,50 +75,27 @@ export const PLANS = {
   crew_pro_yearly:  { sku: "crew_pro_yearly",  name: "Crew-Pro Jahr",       price: 7900,  duration_days: 365, target: "crew" as const, savings_pct: 34 },
 };
 
+// Crew-Boost: 24h × 2 für Resourcen-Yield aller Crew-Mitglieder.
+// (Walking-App-Wegemünzen-Boosts sind komplett entfernt.)
 export const BOOST_PACKS = {
-  boost_24h:      { sku: "boost_24h",      name: "24 Stunden 2× Wegemünzen", price: 199, multiplier: 2, hours: 24,  icon: "⚡" },
-  boost_48h:      { sku: "boost_48h",      name: "48 Stunden 2× Wegemünzen", price: 299, multiplier: 2, hours: 48,  icon: "⚡" },
-  boost_weekend:  { sku: "boost_weekend",  name: "Weekend 2× Wegemünzen",    price: 249, multiplier: 2, hours: 48,  icon: "🎉", desc: "2× 🪙 für 2 Tage" },
-  boost_week_2x:  { sku: "boost_week_2x",  name: "1 Woche 2× Wegemünzen",    price: 499, multiplier: 2, hours: 168, icon: "⚡" },
-  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",           price: 499, multiplier: 2, hours: 24,  icon: "👥", desc: "2× 🪙 für alle deine Crew-Mitglieder" },
+  crew_boost_24h: { sku: "crew_boost_24h", name: "Crew-Boost 24h",           price: 499, multiplier: 2, hours: 24,  icon: "👥", desc: "2× Resourcen-Yield für alle deine Crew-Mitglieder" },
 };
 
-// Wegemünzen-Packs: bewusst klein gehalten, damit Echtgeld Progression
-// beschleunigt, aber nicht ersetzt. 1 km ≈ 500 🪙 durch Straßen-Claims —
-// 500 🪙 = ~1 km Ersparnis, 2.500 🪙 = ~5 km, 6.000 🪙 = ~12 km.
-export const XP_PACKS = {
-  xp_1k:   { sku: "xp_1k",   name: "500 Wegemünzen",   price: 199,  xp: 500,   icon: "✨" },
-  xp_5k:   { sku: "xp_5k",   name: "2.500 Wegemünzen", price: 799,  xp: 2500,  icon: "💫" },
-  xp_15k:  { sku: "xp_15k",  name: "6.000 Wegemünzen", price: 1999, xp: 6000,  icon: "⭐" },
-};
+// Walking-App-Wegemünzen-Packs sind ausgemustert — Premium-Currency
+// sind jetzt Diamanten (siehe GEM_BUNDLES in gem-bundles.ts).
+export const XP_PACKS = {} as Record<string, { sku: string; name: string; price: number; xp?: number; icon: string }>;
 
 export const GAMEPLAY_ITEMS = {
-  reclaim_ticket:   { sku: "reclaim_ticket",   name: "Reclaim-Ticket",        price: 149, icon: "🔁", desc: "Ein verlorenes Gebiet zurückholen" },
-  mystery_box:      { sku: "mystery_box",      name: "Wahl-Box",               price: 299, icon: "🎁", desc: "Du wählst 1 aus 11 Premium-Belohnungen — kein Zufall, kein Glücksspiel (EU-konform)" },
-  ghost_mode:       { sku: "ghost_mode",       name: "Ghost-Mode (1 Lauf)",   price: 249, icon: "👻", desc: "Unsichtbar für Gegner-Fraktion" },
-  double_claim:     { sku: "double_claim",     name: "Doppel-Claim (1 Lauf)", price: 349, icon: "🎯", desc: "Doppelte Gebiete im nächsten Lauf" },
-  faction_switch:   { sku: "faction_switch",   name: "Fraktions-Wechsel",     price: 599, icon: "⚔️", desc: "Zur anderen Fraktion wechseln (max 1×/Monat)" },
-  explorer_compass: { sku: "explorer_compass", name: "Explorer-Kompass 7 T",  price: 399, icon: "🧭", desc: "Zeigt uneroberte Straßen auf der Karte" },
+  mystery_box:    { sku: "mystery_box",    name: "Wahl-Box",          price: 299, icon: "🎁", desc: "Du wählst 1 aus 11 Premium-Belohnungen — kein Zufall, kein Glücksspiel (EU-konform)" },
+  faction_switch: { sku: "faction_switch", name: "Spielstil-Wechsel", price: 599, icon: "🔄", desc: "Spielstil ändern (Architekt / Warlord / Stratege / Diplomat) — max 1×/Monat" },
 };
 
-export const COSMETICS = {
-  golden_trail:    { sku: "golden_trail",    name: "Golden Trail (30 T)",    price: 299, icon: "✨", desc: "Lauf hinterlässt goldene Leuchtspur" },
-  neon_trail:      { sku: "neon_trail",      name: "Neon Trail (30 T)",      price: 299, icon: "💜", desc: "Pink/Lila Neon-Leuchtspur" },
-  aura_effect:     { sku: "aura_effect",     name: "Aura-Effekt (30 T)",     price: 399, icon: "🌟", desc: "Marker pulsiert mit Glühen" },
-  map_cyberpunk:   { sku: "map_cyberpunk",   name: "Map-Theme Cyberpunk",    price: 499, icon: "🌆", desc: "Dauerhaft freigeschaltet" },
-  map_retro:       { sku: "map_retro",       name: "Map-Theme Retro-80s",    price: 499, icon: "🕹️", desc: "Dauerhaft freigeschaltet" },
-  rainbow_name:    { sku: "rainbow_name",    name: "Rainbow-Name (30 T)",    price: 199, icon: "🌈", desc: "Animierter Regenbogen-Name im Ranking" },
-  victory_dance:   { sku: "victory_dance",   name: "Victory-Dance",          price: 249, icon: "💃", desc: "Animation beim Eroberung, dauerhaft" },
-};
+// Walking-App-Cosmetics (Trails / Map-Themes / Rainbow-Name) sind raus.
+// Cosmetics werden jetzt über Wahl-Box-Tokens + Bundle-Beigaben verteilt.
+export const COSMETICS = {} as Record<string, { sku: string; name: string; price: number; icon: string; desc?: string }>;
 
-export const EXTRAS = {
-  streak_pack_5: { sku: "streak_pack_5", name: "5× Streak-Freeze",         price: 299, icon: "❄️" },
-  streak_pack_15: { sku: "streak_pack_15", name: "15× Streak-Freeze",      price: 799, icon: "🧊" },
-  shout_pack_10: { sku: "shout_pack_10", name: "10× Kiez-Shout",           price: 299, icon: "📢", desc: "Nachricht an alle Runner im 500m-Umkreis" },
-  badge_bronze:  { sku: "badge_bronze",  name: "Bronze-Supporter-Badge",   price: 199, icon: "🥉" },
-  badge_silver:  { sku: "badge_silver",  name: "Silber-Supporter-Badge",   price: 499, icon: "🥈" },
-  badge_gold:    { sku: "badge_gold",    name: "Gold-Supporter-Badge",     price: 999, icon: "🥇" },
-};
+// Walking-App-Extras (Streak-Freeze, Kiez-Shout, Supporter-Badges) sind raus.
+export const EXTRAS = {} as Record<string, { sku: string; name: string; price: number; icon: string; desc?: string }>;
 
 // ═══════════════════════════════════════════════════════
 // CREW PAY-TO-PROGRESS (Diamanten fließen in Crew-Pool)
@@ -168,6 +145,74 @@ export function resolveSkuPrice(sku: string): PriceEntry | null {
       return { price: bundle.price_cents, name: `Diamanten ${sku}` };
     }
   } catch { /* ignore */ }
+  return null;
+}
+
+/**
+ * Async-Resolver für DB-basierte Deal-SKUs (seasonal:UUID, themed:UUID,
+ * gem_tier:UUID, battle_pass:season_id:tier, subscription:UUID).
+ * Wird in /api/stripe/checkout aufgerufen wenn der statische Resolver nichts findet.
+ */
+export type AsyncPriceEntry = PriceEntry & { mode?: "payment" | "subscription"; metadata?: Record<string, string> };
+
+// Untyped Supabase-Wrapper — wir reichen den echten Client durch und casten intern.
+type AnySb = { from: (table: string) => unknown };
+
+export async function resolveSkuPriceFromDb(
+  sku: string,
+  sb: AnySb,
+): Promise<AsyncPriceEntry | null> {
+  const [prefix, ...rest] = sku.split(":");
+  const restJoined = rest.join(":");
+  if (!prefix || !restJoined) return null;
+
+  // Generischer Helper — vermeidet repetitives Casten
+  const fetchOne = async <T extends Record<string, unknown>>(
+    table: string, cols: string, where: { col: string; val: string }
+  ): Promise<T | null> => {
+    const q = (sb.from(table) as { select: (c: string) => unknown }).select(cols);
+    const f = (q as { eq: (c: string, v: string) => unknown }).eq(where.col, where.val);
+    const r = await (f as { maybeSingle: () => Promise<{ data: T | null }> }).maybeSingle();
+    return r.data ?? null;
+  };
+
+  if (prefix === "seasonal") {
+    const r = await fetchOne<{ id: string; title: string; price_cents: number }>(
+      "monetization_seasonal_packs", "id, title, price_cents", { col: "id", val: restJoined });
+    if (r && r.price_cents > 0) return { price: r.price_cents, name: r.title, metadata: { deal_kind: "seasonal", deal_id: r.id } };
+  }
+  if (prefix === "themed") {
+    const r = await fetchOne<{ id: string; title: string; price_cents: number }>(
+      "monetization_themed_packs", "id, title, price_cents", { col: "id", val: restJoined });
+    if (r && r.price_cents > 0) return { price: r.price_cents, name: r.title, metadata: { deal_kind: "themed", deal_id: r.id } };
+  }
+  if (prefix === "gem_tier") {
+    const r = await fetchOne<{ id: string; label: string; price_cents: number }>(
+      "monetization_gem_tiers", "id, label, price_cents", { col: "id", val: restJoined });
+    if (r && r.price_cents > 0) return { price: r.price_cents, name: r.label, metadata: { deal_kind: "gem_tier", deal_id: r.id } };
+  }
+  if (prefix === "battle_pass") {
+    const [seasonId, tier] = restJoined.split(":");
+    if (!seasonId || !tier) return null;
+    const r = await fetchOne<{ id: string; title: string; price_premium_cents: number; price_premium_plus_cents: number }>(
+      "monetization_battle_pass_seasons", "id, title, price_premium_cents, price_premium_plus_cents", { col: "id", val: seasonId });
+    if (!r) return null;
+    const price = tier === "premium_plus" ? r.price_premium_plus_cents : r.price_premium_cents;
+    if (price > 0) return { price, name: `${r.title} — ${tier}`, metadata: { deal_kind: "battle_pass", season_id: r.id, tier } };
+  }
+  if (prefix === "subscription") {
+    const r = await fetchOne<{ id: string; label: string; price_cents: number }>(
+      "monetization_subscriptions", "id, label, price_cents", { col: "id", val: restJoined });
+    if (r && r.price_cents > 0) return { price: r.price_cents, name: r.label, mode: "subscription", metadata: { deal_kind: "subscription", deal_id: r.id } };
+  }
+  if (prefix === "monthly_pack") {
+    const r = await fetchOne<{ sku: string; label: string; price_cents: number }>(
+      "monthly_pack_skus", "sku, label, price_cents", { col: "sku", val: restJoined });
+    if (r && r.price_cents > 0) return { price: r.price_cents, name: r.label, metadata: { deal_kind: "monthly_pack", sku: r.sku } };
+  }
+  if (prefix === "growth_fund") {
+    return { price: 999, name: "Growth Fund", metadata: { deal_kind: "growth_fund" } };
+  }
   return null;
 }
 

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { UNITS } from "@/lib/game-config";
 import { useUnitLabel } from "@/lib/i18n-game";
+import { enablePushNotifications, disablePushNotifications } from "@/lib/push-subscribe";
 
 const PRIMARY = "#22D1C3";
 
@@ -249,6 +250,83 @@ export function AppSettingsContent({ p, updateSetting, onExportData, onLogout }:
   const [emailMonthly, setEmailMonthly] = useLocalPref<boolean>("email_monthly", true);
   const [emailNewsletter, setEmailNewsletter] = useLocalPref<boolean>("email_newsletter", false);
   const [emailFlashDeals, setEmailFlashDeals] = useLocalPref<boolean>("email_flash_deals", false);
+
+  // Sync notification-toggles to backend (user_notification_prefs).
+  // Beim ersten Mount: Server-State holen (überschreibt LS) — danach: bei jeder
+  // Änderung als Patch zurücksenden. Push-Toggle triggert zusätzlich Subscribe/
+  // Unsubscribe gegen den Browser-PushManager.
+  const _hydratedRef = useRef(false);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await fetch("/api/me/notif-prefs", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { prefs?: Record<string, boolean | number | null> };
+        const p = j.prefs;
+        if (!p) return;
+        if (typeof p.push_enabled === "boolean") setPushEnabled(p.push_enabled);
+        if (typeof p.crew_chat === "boolean") setNotifCrewChat(p.crew_chat);
+        if (typeof p.crew_events === "boolean") setNotifCrewEvents(p.crew_events);
+        if (typeof p.duels === "boolean") setNotifDuels(p.duels);
+        if (typeof p.achievements === "boolean") setNotifAchievements(p.achievements);
+        if (typeof p.rank_up === "boolean") setNotifRankUp(p.rank_up);
+        if (typeof p.shop_deals === "boolean") setNotifShopDeals(p.shop_deals);
+        if (typeof p.streak_warn === "boolean") setNotifStreakWarn(p.streak_warn);
+        if (typeof p.quiet_mode === "boolean") setNotifQuietMode(p.quiet_mode);
+        if (typeof p.quiet_start_hour === "number") setQuietStart(String(p.quiet_start_hour));
+        if (typeof p.quiet_end_hour === "number") setQuietEnd(String(p.quiet_end_hour));
+        if (typeof p.email_weekly === "boolean") setEmailWeekly(p.email_weekly);
+        if (typeof p.email_monthly === "boolean") setEmailMonthly(p.email_monthly);
+        if (typeof p.email_newsletter === "boolean") setEmailNewsletter(p.email_newsletter);
+        if (typeof p.email_flash_deals === "boolean") setEmailFlashDeals(p.email_flash_deals);
+      } finally {
+        _hydratedRef.current = true;
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!_hydratedRef.current) return;
+    const patch = {
+      push_enabled: pushEnabled,
+      crew_chat: notifCrewChat,
+      crew_events: notifCrewEvents,
+      duels: notifDuels,
+      achievements: notifAchievements,
+      rank_up: notifRankUp,
+      shop_deals: notifShopDeals,
+      streak_warn: notifStreakWarn,
+      quiet_mode: notifQuietMode,
+      quiet_start_hour: parseInt(quietStart, 10) || 22,
+      quiet_end_hour: parseInt(quietEnd, 10) || 7,
+      email_weekly: emailWeekly,
+      email_monthly: emailMonthly,
+      email_newsletter: emailNewsletter,
+      email_flash_deals: emailFlashDeals,
+    };
+    void fetch("/api/me/notif-prefs", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+  }, [pushEnabled, notifCrewChat, notifCrewEvents, notifDuels, notifAchievements,
+      notifRankUp, notifShopDeals, notifStreakWarn, notifQuietMode, quietStart, quietEnd,
+      emailWeekly, emailMonthly, emailNewsletter, emailFlashDeals]);
+
+  useEffect(() => {
+    if (!_hydratedRef.current) return;
+    if (pushEnabled) {
+      void enablePushNotifications().then((res) => {
+        if (!res.ok && res.reason === "denied") {
+          // Browser-Permission abgelehnt → Toggle zurücksetzen damit UI ehrlich bleibt
+          setPushEnabled(false);
+        }
+      });
+    } else {
+      void disablePushNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushEnabled]);
 
   const [leaderboardVisible, setLeaderboardVisible] = useLocalPref<boolean>("privacy_leaderboard", true);
   const [liveLocationCrew, setLiveLocationCrew] = useLocalPref<boolean>("privacy_live_crew", true);

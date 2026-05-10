@@ -6,7 +6,7 @@ export type ResourceKind = "wood" | "stone" | "gold" | "mana" | "speed_token";
 export type ChestKind = "silver" | "gold" | "event";
 export type ResourceArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
 
-type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; resource_node: ResourceArtMap; loot_drop: ResourceArtMap; base_ring: ResourceArtMap; inventory_item: ResourceArtMap; modal_background: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+type AllArt = { resource: ResourceArtMap; chest: ResourceArtMap; stronghold: ResourceArtMap; base_theme: ResourceArtMap; building: ResourceArtMap; nameplate: ResourceArtMap; ui_icon: ResourceArtMap; troop: ResourceArtMap; resource_node: ResourceArtMap; loot_drop: ResourceArtMap; base_ring: ResourceArtMap; inventory_item: ResourceArtMap; modal_background: ResourceArtMap; rank: ResourceArtMap; light: ResourceArtMap; pin_theme: ResourceArtMap; siegel: ResourceArtMap; potion: ResourceArtMap; marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
 
 // localStorage-Cache: erspart Fallback-Flash bei jedem Reload.
 // Format: { v: number, ts: number, art: AllArt }
@@ -56,8 +56,8 @@ function installArtworkChangeListener() {
       try {
         const r = await fetch(`/api/cosmetic-artwork?ts=${Date.now()}`, { cache: "no-store" });
         if (!r.ok) return;
-        const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; modal_background?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
-        const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, modal_background: j.modal_background ?? {}, marker: j.marker ?? {} };
+        const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; modal_background?: ResourceArtMap; rank?: ResourceArtMap; light?: ResourceArtMap; pin_theme?: ResourceArtMap; siegel?: ResourceArtMap; potion?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+        const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, modal_background: j.modal_background ?? {}, rank: j.rank ?? {}, light: j.light ?? {}, pin_theme: j.pin_theme ?? {}, siegel: j.siegel ?? {}, potion: j.potion ?? {}, marker: j.marker ?? {} };
         _cache = fresh;
         _hasRevalidated = true;
         saveToLocalStorage(fresh);
@@ -90,8 +90,8 @@ function ensureFetch() {
     try {
       const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
       if (!r.ok) return;
-      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; modal_background?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
-      const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, modal_background: j.modal_background ?? {}, marker: j.marker ?? {} };
+      const j = await r.json() as { resource?: ResourceArtMap; chest?: ResourceArtMap; stronghold?: ResourceArtMap; base_theme?: ResourceArtMap; building?: ResourceArtMap; nameplate?: ResourceArtMap; ui_icon?: ResourceArtMap; troop?: ResourceArtMap; resource_node?: ResourceArtMap; loot_drop?: ResourceArtMap; base_ring?: ResourceArtMap; inventory_item?: ResourceArtMap; modal_background?: ResourceArtMap; rank?: ResourceArtMap; light?: ResourceArtMap; pin_theme?: ResourceArtMap; siegel?: ResourceArtMap; potion?: ResourceArtMap; marker?: Record<string, Record<string, { image_url: string | null; video_url: string | null }>> };
+      const fresh: AllArt = { resource: j.resource ?? {}, chest: j.chest ?? {}, stronghold: j.stronghold ?? {}, base_theme: j.base_theme ?? {}, building: j.building ?? {}, nameplate: j.nameplate ?? {}, ui_icon: j.ui_icon ?? {}, troop: j.troop ?? {}, resource_node: j.resource_node ?? {}, loot_drop: j.loot_drop ?? {}, base_ring: j.base_ring ?? {}, inventory_item: j.inventory_item ?? {}, modal_background: j.modal_background ?? {}, rank: (j as { rank?: ResourceArtMap }).rank ?? {}, light: (j as { light?: ResourceArtMap }).light ?? {}, pin_theme: (j as { pin_theme?: ResourceArtMap }).pin_theme ?? {}, siegel: (j as { siegel?: ResourceArtMap }).siegel ?? {}, potion: (j as { potion?: ResourceArtMap }).potion ?? {}, marker: j.marker ?? {} };
       _cache = fresh;
       _hasRevalidated = true;
       saveToLocalStorage(fresh);
@@ -109,7 +109,9 @@ function ensureFetch() {
  * Verhindert Flicker (Fallback → User-Art) bei Map-Markern, die Art aus DB beziehen.
  */
 export function useArtworkReady(): boolean {
-  const [ready, setReady] = useState<boolean>(_ready);
+  // Initial IMMER false damit Server-HTML (false) und Client-First-Render matchen.
+  // useEffect setzt sofort auf true wenn _ready beim Mount bereits true ist.
+  const [ready, setReady] = useState<boolean>(false);
   useEffect(() => {
     if (_ready) { setReady(true); return; }
     const sub = (r: boolean) => setReady(r);
@@ -121,7 +123,7 @@ export function useArtworkReady(): boolean {
 }
 
 export function useResourceArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.resource ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.resource); return; }
     const sub = (m: AllArt) => setArt(m.resource);
@@ -133,7 +135,7 @@ export function useResourceArt(): ResourceArtMap {
 }
 
 export function useChestArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.chest ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.chest); return; }
     const sub = (m: AllArt) => setArt(m.chest);
@@ -145,7 +147,7 @@ export function useChestArt(): ResourceArtMap {
 }
 
 export function useStrongholdArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.stronghold ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.stronghold); return; }
     const sub = (m: AllArt) => setArt(m.stronghold);
@@ -157,7 +159,7 @@ export function useStrongholdArt(): ResourceArtMap {
 }
 
 export function useBaseThemeArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.base_theme ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.base_theme); return; }
     const sub = (m: AllArt) => setArt(m.base_theme);
@@ -169,7 +171,7 @@ export function useBaseThemeArt(): ResourceArtMap {
 }
 
 export function useBuildingArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.building ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.building); return; }
     const sub = (m: AllArt) => setArt(m.building);
@@ -181,7 +183,7 @@ export function useBuildingArt(): ResourceArtMap {
 }
 
 export function useNameplateArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.nameplate ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.nameplate); return; }
     const sub = (m: AllArt) => setArt(m.nameplate);
@@ -193,7 +195,7 @@ export function useNameplateArt(): ResourceArtMap {
 }
 
 export function useBaseRingArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.base_ring ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.base_ring); return; }
     const sub = (m: AllArt) => setArt(m.base_ring);
@@ -205,7 +207,7 @@ export function useBaseRingArt(): ResourceArtMap {
 }
 
 export function useResourceNodeArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.resource_node ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.resource_node); return; }
     const sub = (m: AllArt) => setArt(m.resource_node);
@@ -217,7 +219,7 @@ export function useResourceNodeArt(): ResourceArtMap {
 }
 
 export function useLootDropArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.loot_drop ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.loot_drop); return; }
     const sub = (m: AllArt) => setArt(m.loot_drop);
@@ -229,7 +231,7 @@ export function useLootDropArt(): ResourceArtMap {
 }
 
 export function useInventoryItemArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.inventory_item ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.inventory_item); return; }
     const sub = (m: AllArt) => setArt(m.inventory_item);
@@ -241,7 +243,7 @@ export function useInventoryItemArt(): ResourceArtMap {
 }
 
 export function useTroopArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.troop ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.troop); return; }
     const sub = (m: AllArt) => setArt(m.troop);
@@ -253,7 +255,7 @@ export function useTroopArt(): ResourceArtMap {
 }
 
 export function useMarkerArt(): Record<string, Record<string, { image_url: string | null; video_url: string | null }>> {
-  const [art, setArt] = useState(_cache?.marker ?? {});
+  const [art, setArt] = useState<AllArt["marker"]>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.marker); return; }
     const sub = (m: AllArt) => setArt(m.marker);
@@ -265,7 +267,7 @@ export function useMarkerArt(): Record<string, Record<string, { image_url: strin
 }
 
 export function useModalBackgroundArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.modal_background ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.modal_background); return; }
     const sub = (m: AllArt) => setArt(m.modal_background);
@@ -277,7 +279,7 @@ export function useModalBackgroundArt(): ResourceArtMap {
 }
 
 export function useUiIconArt(): ResourceArtMap {
-  const [art, setArt] = useState<ResourceArtMap>(_cache?.ui_icon ?? {});
+  const [art, setArt] = useState<ResourceArtMap>({});
   useEffect(() => {
     if (_cache) { setArt(_cache.ui_icon); return; }
     const sub = (m: AllArt) => setArt(m.ui_icon);
@@ -286,6 +288,44 @@ export function useUiIconArt(): ResourceArtMap {
     return () => { _listeners.delete(sub); };
   }, []);
   return art;
+}
+
+/**
+ * Hook: liefert das gesamte AllArt-Objekt aus dem zentralen Cache.
+ * Komponenten (app-map, loadout-trio, rank-badge, ...) sollten DIESEN
+ * Hook benutzen statt /api/cosmetic-artwork direkt zu fetchen.
+ */
+export function useAllArt(): AllArt | null {
+  const [art, setArt] = useState<AllArt | null>(_cache);
+  useEffect(() => {
+    if (_cache) { setArt(_cache); return; }
+    const sub = (m: AllArt) => setArt(m);
+    _listeners.add(sub);
+    ensureFetch();
+    return () => { _listeners.delete(sub); };
+  }, []);
+  return art;
+}
+
+/**
+ * Promise-Variante (für Effekte ohne React-Subscription).
+ * Coalesziert mit dem zentralen Cache; löst sich auf, sobald der Fetch
+ * abgeschlossen ist (oder sofort, falls schon im Cache).
+ */
+export function fetchAllArt(): Promise<AllArt | null> {
+  if (_cache && _hasRevalidated) return Promise.resolve(_cache);
+  return new Promise((resolve) => {
+    if (_cache) {
+      // LS-Hit: sofort liefern, Revalidate läuft im Hintergrund
+      ensureFetch();
+      resolve(_cache);
+      return;
+    }
+    const sub = (m: AllArt) => { _listeners.delete(sub); resolve(m); };
+    _listeners.add(sub);
+    ensureFetch();
+    setTimeout(() => { _listeners.delete(sub); resolve(_cache); }, 8000);
+  });
 }
 
 /** Generischer UI-Icon — fällt auf Emoji zurück, wenn kein Artwork hochgeladen ist. */

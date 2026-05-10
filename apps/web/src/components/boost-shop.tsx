@@ -4,13 +4,16 @@ import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { getNumberLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
-import { BOOST_PACKS, EXTRAS, XP_PACKS, GAMEPLAY_ITEMS, COSMETICS, formatPrice, stackBoostUntil } from "@/lib/monetization";
+import { BOOST_PACKS, GAMEPLAY_ITEMS, formatPrice, stackBoostUntil } from "@/lib/monetization";
+import { GEM_BUNDLES, totalGemsOfBundle } from "@/lib/gem-bundles";
+import { CREW_GEM_PACKS, CREW_SLOT_PACKS } from "@/lib/monetization";
+import { ALL_PLAYSTYLES, normalizePlaystyle, type PlaystyleId } from "@/lib/playstyles";
 import { appAlert } from "@/components/app-dialog";
 import { StripeCheckoutModal } from "@/components/stripe-embedded-checkout";
 import { IapNotAvailableNotice } from "@/components/iap-not-available-notice";
 import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
-type ShopTab = "boosts" | "xp" | "gameplay" | "cosmetics" | "extras";
+type ShopTab = "gems" | "wahlbox" | "crew" | "items";
 
 export function BoostShopBody({ userId, onDone }: { userId: string; onDone?: () => void }) {
   return <BoostShopInner userId={userId} onClose={() => onDone?.()} embedded />;
@@ -25,19 +28,22 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
   const locale = useLocale();
   const numLocale = getNumberLocale(locale);
   const sb = createClient();
-  const [tab, setTab] = useState<ShopTab>("boosts");
+  const [tab, setTab] = useState<ShopTab>("gems");
   const [loading, setLoading] = useState<string | null>(null);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
   // Wahl-Box (ehemals Mystery-Box) — User wählt VORHER, kein Zufall.
   // Verhindert dass die Box als „Loot-Box" unter EU-Regulierung fällt
   // (Belgien/Niederlande/Spanien). Kann auch BE/NL/ES sicher angezeigt werden.
+  // Diese 11 Belohnungen MÜSSEN 1:1 mit WAHL_BOX_OPTIONS in
+  // apps/web/src/lib/loot-drops-public.ts übereinstimmen — die Drop-Raten-
+  // Seite ist die öffentliche Compliance-Quelle.
   type WahlBoxKind =
-    | "xp_500" | "xp_2000" | "xp_10000"
-    | "boost_24" | "boost_48"
-    | "streak_5" | "shouts_10"
-    | "trail_golden" | "trail_neon"
-    | "aura_30d" | "rainbow_30d";
+    | "gems_500" | "gems_200" | "gems_50"
+    | "tech_10k" | "components_10k" | "crypto_5k" | "bandwidth_5k"
+    | "speed_48h"
+    | "guardian_xp"
+    | "pin_theme_token" | "map_icon_token";
   const [wahlBoxOpen, setWahlBoxOpen] = useState(false);
   const [wahlBoxChoice, setWahlBoxChoice] = useState<WahlBoxKind | null>(null);
 
@@ -78,154 +84,138 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
       await sb.from("purchases").update({ status: "completed", applied_at: new Date().toISOString() }).eq("id", data.id);
 
       // Effekt anwenden (Demo: direkt freischalten)
-      if (sku.startsWith("boost_")) {
-        const pack = (BOOST_PACKS as Record<string, { hours: number; multiplier: number }>)[sku];
-        if (pack) {
-          const { data: u } = await sb.from("users").select("xp_boost_until, xp_boost_multiplier").eq("id", userId).single();
-          const stacked = stackBoostUntil(u?.xp_boost_until, u?.xp_boost_multiplier, pack.hours, pack.multiplier);
-          await sb.from("users").update({
-            xp_boost_until: stacked.until,
-            xp_boost_multiplier: stacked.mult,
-          }).eq("id", userId);
-          if (stacked.capped) {
-            appAlert(tBS("boostCappedAlert"));
+      // Diamanten-Pakete (Premium-Currency)
+      if (sku.startsWith("gems_")) {
+        const bundle = GEM_BUNDLES.find((b) => b.sku === sku);
+        if (bundle) {
+          const total = totalGemsOfBundle(bundle);
+          const { data: g } = await sb.from("user_gems").select("gems").eq("user_id", userId).maybeSingle();
+          if (g) {
+            await sb.from("user_gems").update({ gems: (g.gems ?? 0) + total }).eq("user_id", userId);
+          } else {
+            await sb.from("user_gems").insert({ user_id: userId, gems: total });
           }
+          appAlert(`+${total.toLocaleString(numLocale)} 💎 auf dein Konto.`);
         }
-      } else if (sku.startsWith("xp_")) {
-        const pack = (XP_PACKS as Record<string, { xp: number }>)[sku];
-        if (pack) {
-          const { data: u } = await sb.from("users").select("xp").eq("id", userId).single();
-          await sb.from("users").update({ xp: (u?.xp ?? 0) + pack.xp }).eq("id", userId);
+      }
+      // Crew-Diamanten (in Crew-Pool)
+      else if (sku.startsWith("crew_gems_")) {
+        const pack = (CREW_GEM_PACKS as Record<string, { gems: number; bonus: number }>)[sku];
+        const { data: u } = await sb.from("users").select("current_crew_id").eq("id", userId).single();
+        if (pack && u?.current_crew_id) {
+          const total = pack.gems + pack.bonus;
+          const { data: c } = await sb.from("crews").select("gem_pool").eq("id", u.current_crew_id).maybeSingle();
+          await sb.from("crews").update({
+            gem_pool: ((c?.gem_pool as number | undefined) ?? 0) + total,
+          }).eq("id", u.current_crew_id);
+          appAlert(`+${total.toLocaleString(numLocale)} 💎 in den Crew-Pool.`);
         }
-      } else if (sku.startsWith("badge_")) {
-        const tier = sku === "badge_gold" ? "gold" : sku === "badge_silver" ? "silver" : "bronze";
-        await sb.from("users").update({
-          supporter_tier: tier,
-          supporter_since: new Date().toISOString(),
-        }).eq("id", userId);
-      } else if (sku === "streak_pack_5" || sku === "streak_pack_15") {
-        const add = sku === "streak_pack_15" ? 15 : 5;
-        const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
-        await sb.from("users").update({
-          streak_freezes_remaining: (u?.streak_freezes_remaining ?? 0) + add,
-        }).eq("id", userId);
-      } else if (sku === "shout_pack_10") {
-        const { data: u } = await sb.from("users").select("shouts_remaining").eq("id", userId).single();
-        await sb.from("users").update({
-          shouts_remaining: (u?.shouts_remaining ?? 0) + 10,
-        }).eq("id", userId);
-      } else if (sku === "golden_trail" || sku === "neon_trail") {
-        await sb.from("users").update({ equipped_trail: sku }).eq("id", userId);
-      } else if (sku === "aura_effect") {
-        await sb.from("users").update({
-          aura_until: new Date(Date.now() + 30 * 86400000).toISOString(),
-        }).eq("id", userId);
-      } else if (sku === "rainbow_name") {
-        await sb.from("users").update({
-          rainbow_name_until: new Date(Date.now() + 30 * 86400000).toISOString(),
-        }).eq("id", userId);
-      } else if (sku === "victory_dance") {
-        await sb.from("users").update({ victory_dance_enabled: true }).eq("id", userId);
-      } else if (sku === "map_cyberpunk" || sku === "map_retro") {
-        await sb.from("users").update({ map_theme: sku }).eq("id", userId);
-      } else if (sku === "ghost_mode") {
-        const { data: u } = await sb.from("users").select("ghost_mode_charges").eq("id", userId).single();
-        await sb.from("users").update({
-          ghost_mode_charges: (u?.ghost_mode_charges ?? 0) + 1,
-        }).eq("id", userId);
-      } else if (sku === "double_claim") {
-        const { data: u } = await sb.from("users").select("double_claim_charges").eq("id", userId).single();
-        await sb.from("users").update({
-          double_claim_charges: (u?.double_claim_charges ?? 0) + 1,
-        }).eq("id", userId);
-      } else if (sku === "reclaim_ticket") {
-        const { data: u } = await sb.from("users").select("reclaim_tickets").eq("id", userId).single();
-        await sb.from("users").update({
-          reclaim_tickets: (u?.reclaim_tickets ?? 0) + 1,
-        }).eq("id", userId);
-      } else if (sku === "explorer_compass") {
-        await sb.from("users").update({
-          explorer_compass_until: new Date(Date.now() + 7 * 86400000).toISOString(),
-        }).eq("id", userId);
-      } else if (sku === "faction_switch") {
+      }
+      // Crew-Mitglieder-Slots
+      else if (sku.startsWith("crew_slots_")) {
+        const pack = (CREW_SLOT_PACKS as Record<string, { slots: number }>)[sku];
+        const { data: u } = await sb.from("users").select("current_crew_id").eq("id", userId).single();
+        if (pack && u?.current_crew_id) {
+          const { data: c } = await sb.from("crews").select("max_members").eq("id", u.current_crew_id).maybeSingle();
+          await sb.from("crews").update({
+            max_members: ((c?.max_members as number | undefined) ?? 50) + pack.slots,
+          }).eq("id", u.current_crew_id);
+          appAlert(`+${pack.slots} Mitglieder-Slots für deine Crew.`);
+        }
+      }
+      // Spielstil-Wechsel (ehemals faction_switch — jetzt auf Playstyles
+      // architect/warlord/strategist/diplomat). Cooldown 30 Tage.
+      else if (sku === "faction_switch") {
         const { data: u } = await sb.from("users").select("faction, faction_switch_at").eq("id", userId).single();
         const lastSwitch = u?.faction_switch_at ? new Date(u.faction_switch_at).getTime() : 0;
         if (Date.now() - lastSwitch < 30 * 86400000) {
           throw new Error(tBS("factionSwitchTooSoon"));
         }
-        const newFaction = (u?.faction === "syndicate" || u?.faction === "gossenbund") ? "kronenwacht" : "gossenbund";
+        const current: PlaystyleId | null = normalizePlaystyle(u?.faction);
+        // Cycle through the 4 playstyles in fixed order; falls aktueller
+        // Style unbekannt ist, lande auf "architect".
+        const order: PlaystyleId[] = ["architect", "warlord", "strategist", "diplomat"];
+        const idx = current ? order.indexOf(current) : -1;
+        const next = order[(idx + 1) % order.length];
         await sb.from("users").update({
-          faction: newFaction,
+          faction: next,
           faction_switch_at: new Date().toISOString(),
         }).eq("id", userId);
-      } else if (sku === "mystery_box") {
-        // Wahl-Box: User-Wahl wurde im Choice-Modal getroffen, ist in
-        // wahlBoxChoice gespeichert. Kein Zufall mehr — DETERMINISTISCH.
-        type Roll =
-          | { kind: "xp"; xp: number }
-          | { kind: "boost"; boost_hours: number; mult: number }
-          | { kind: "streak"; streak: number }
-          | { kind: "shouts"; shouts: number }
-          | { kind: "trail"; trail: string }
-          | { kind: "aura"; aura_days: number }
-          | { kind: "rainbow"; rainbow_days: number };
-        const choiceMap: Record<WahlBoxKind, Roll> = {
-          xp_500:      { kind: "xp",      xp: 500 },
-          xp_2000:     { kind: "xp",      xp: 2000 },
-          xp_10000:    { kind: "xp",      xp: 10000 },
-          boost_24:    { kind: "boost",   boost_hours: 24, mult: 2 },
-          boost_48:    { kind: "boost",   boost_hours: 48, mult: 2 },
-          streak_5:    { kind: "streak",  streak: 5 },
-          shouts_10:   { kind: "shouts",  shouts: 10 },
-          trail_golden:{ kind: "trail",   trail: "golden_trail" },
-          trail_neon:  { kind: "trail",   trail: "neon_trail" },
-          aura_30d:    { kind: "aura",    aura_days: 30 },
-          rainbow_30d: { kind: "rainbow", rainbow_days: 30 },
-        };
+        appAlert(`Spielstil gewechselt: ${ALL_PLAYSTYLES.find((p) => p.id === next)?.label ?? next}`);
+      }
+      else if (sku === "mystery_box") {
+        // Wahl-Box: User-Wahl wurde im Choice-Modal getroffen.
+        // Belohnungen MÜSSEN 1:1 mit /loot-drops (WAHL_BOX_OPTIONS) übereinstimmen.
         if (!wahlBoxChoice) {
           await appAlert("Bitte wähle vorher eine Belohnung in der Wahl-Box.");
           return;
         }
-        const r = choiceMap[wahlBoxChoice];
-        // Choice nach Anwendung leeren, damit nächster Kauf wieder Modal öffnet.
+        const choice = wahlBoxChoice;
         setWahlBoxChoice(null);
-        if (r.kind === "xp") {
-          const { data: u } = await sb.from("users").select("wegemuenzen").eq("id", userId).single();
-          await sb.from("users").update({ wegemuenzen: (u?.wegemuenzen ?? 0) + r.xp }).eq("id", userId);
-          appAlert(tBS("mysteryXp", { amount: r.xp.toLocaleString(numLocale) }));
-        } else if (r.kind === "boost") {
-          const { data: u } = await sb.from("users").select("xp_boost_until, xp_boost_multiplier").eq("id", userId).single();
-          const stacked = stackBoostUntil(u?.xp_boost_until, u?.xp_boost_multiplier, r.boost_hours, r.mult);
-          await sb.from("users").update({
-            xp_boost_until: stacked.until,
-            xp_boost_multiplier: stacked.mult,
-          }).eq("id", userId);
-          appAlert(tBS("mysteryBoost", { mult: r.mult, hours: r.boost_hours, capped: stacked.capped ? tBS("mysteryBoostCapped") : "" }));
-        } else if (r.kind === "streak") {
-          const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
-          await sb.from("users").update({
-            streak_freezes_remaining: (u?.streak_freezes_remaining ?? 0) + r.streak,
-          }).eq("id", userId);
-          appAlert(tBS("mysteryStreak", { count: r.streak }));
-        } else if (r.kind === "shouts") {
-          const { data: u } = await sb.from("users").select("shouts_remaining").eq("id", userId).single();
-          await sb.from("users").update({
-            shouts_remaining: (u?.shouts_remaining ?? 0) + r.shouts,
-          }).eq("id", userId);
-          appAlert(tBS("mysteryShout", { count: r.shouts }));
-        } else if (r.kind === "trail") {
-          await sb.from("users").update({ equipped_trail: r.trail }).eq("id", userId);
-          appAlert(r.trail === "golden_trail" ? tBS("mysteryTrailGolden") : tBS("mysteryTrailNeon"));
-        } else if (r.kind === "aura") {
-          await sb.from("users").update({
-            aura_until: new Date(Date.now() + r.aura_days * 86400000).toISOString(),
-          }).eq("id", userId);
-          appAlert(tBS("mysteryAura", { days: r.aura_days }));
-        } else if (r.kind === "rainbow") {
-          await sb.from("users").update({
-            rainbow_name_until: new Date(Date.now() + r.rainbow_days * 86400000).toISOString(),
-          }).eq("id", userId);
-          appAlert(tBS("mysteryRainbow", { days: r.rainbow_days }));
+
+        // Diamanten — user_gems.gems
+        if (choice === "gems_500" || choice === "gems_200" || choice === "gems_50") {
+          const amount = choice === "gems_500" ? 500 : choice === "gems_200" ? 200 : 50;
+          const { data: g } = await sb.from("user_gems").select("gems").eq("user_id", userId).maybeSingle();
+          if (g) {
+            await sb.from("user_gems").update({ gems: (g.gems ?? 0) + amount }).eq("user_id", userId);
+          } else {
+            await sb.from("user_gems").insert({ user_id: userId, gems: amount });
+          }
+          appAlert(`+${amount.toLocaleString(numLocale)} 💎 auf dein Konto.`);
+        }
+        // Crew-Resourcen — user_resources (DB-Spalten wood/stone/gold/mana = UI Tech-Schrott/Komponenten/Krypto/Bandbreite)
+        else if (
+          choice === "tech_10k" || choice === "components_10k" ||
+          choice === "crypto_5k" || choice === "bandwidth_5k" || choice === "speed_48h"
+        ) {
+          const colMap = {
+            tech_10k:       { col: "wood",         delta: 10000, label: "10.000 Tech-Schrott" },
+            components_10k: { col: "stone",        delta: 10000, label: "10.000 Komponenten" },
+            crypto_5k:      { col: "gold",         delta: 5000,  label: "5.000 Krypto" },
+            bandwidth_5k:   { col: "mana",         delta: 5000,  label: "5.000 Bandbreite" },
+            speed_48h:      { col: "speed_tokens", delta: 48 * 60, label: "48 h Bauzeit-Verkürzer (2.880 Tokens)" },
+          } as const;
+          const { col, delta, label } = colMap[choice];
+          const { data: r } = await sb.from("user_resources").select(col).eq("user_id", userId).maybeSingle();
+          const current = ((r as Record<string, number> | null)?.[col] as number | undefined) ?? 0;
+          if (r) {
+            await sb.from("user_resources").update({ [col]: current + delta }).eq("user_id", userId);
+          } else {
+            await sb.from("user_resources").insert({ user_id: userId, [col]: delta });
+          }
+          appAlert(`+${label}`);
+        }
+        // Wächter-XP — Item ins Inventar (User wendet auf Wunsch-Wächter an)
+        else if (choice === "guardian_xp") {
+          const itemId = "medium_xp_potion";
+          const { data: inv } = await sb
+            .from("user_guardian_xp_items")
+            .select("count")
+            .eq("user_id", userId)
+            .eq("item_id", itemId)
+            .maybeSingle();
+          if (inv) {
+            await sb.from("user_guardian_xp_items")
+              .update({ count: (inv.count ?? 0) + 1 })
+              .eq("user_id", userId).eq("item_id", itemId);
+          } else {
+            await sb.from("user_guardian_xp_items")
+              .insert({ user_id: userId, item_id: itemId, count: 1 });
+          }
+          appAlert("+1 Wächter-XP-Boost im Inventar — anwendbar im Wächter-Modal.");
+        }
+        // Cosmetic-Token — User wählt Theme/Icon im Cosmetic-Hub aus
+        else if (choice === "pin_theme_token" || choice === "map_icon_token") {
+          const tokenSku = choice === "pin_theme_token" ? "token_pin_theme" : "token_map_icon";
+          await sb.from("user_shop_purchases").insert({
+            user_id: userId, shop_item_id: tokenSku,
+          });
+          appAlert(
+            choice === "pin_theme_token"
+              ? "+1 Pin-Theme-Token — wähle dein Theme im Cosmetic-Hub."
+              : "+1 Map-Icon-Token — wähle dein Icon im Cosmetic-Hub."
+          );
         }
         onClose();
         location.reload();
@@ -272,28 +262,38 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
         </div>
         <style>{`.ma365-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
         <div className="ma365-hide-scrollbar" style={{ display: "flex", gap: 4, padding: 4, background: "rgba(255,255,255,0.05)", borderRadius: 10, marginBottom: 14, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-          <TabBtn active={tab === "boosts"} onClick={() => setTab("boosts")}>{tBS("tabBoosts")}</TabBtn>
-          <TabBtn active={tab === "xp"} onClick={() => setTab("xp")}>{tBS("tabXp")}</TabBtn>
-          <TabBtn active={tab === "gameplay"} onClick={() => setTab("gameplay")}>{tBS("tabGameplay")}</TabBtn>
-          <TabBtn active={tab === "cosmetics"} onClick={() => setTab("cosmetics")}>{tBS("tabCosmetics")}</TabBtn>
-          <TabBtn active={tab === "extras"} onClick={() => setTab("extras")}>{tBS("tabExtras")}</TabBtn>
+          <TabBtn active={tab === "gems"}    onClick={() => setTab("gems")}>💎 Diamanten</TabBtn>
+          <TabBtn active={tab === "wahlbox"} onClick={() => setTab("wahlbox")}>🎁 Wahl-Box</TabBtn>
+          <TabBtn active={tab === "crew"}    onClick={() => setTab("crew")}>👥 Crew</TabBtn>
+          <TabBtn active={tab === "items"}   onClick={() => setTab("items")}>🎮 Items</TabBtn>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(
-            tab === "boosts"    ? Object.values(BOOST_PACKS) :
-            tab === "xp"        ? Object.values(XP_PACKS) :
-            tab === "gameplay"  ? Object.values(GAMEPLAY_ITEMS) :
-            tab === "cosmetics" ? Object.values(COSMETICS) :
-                                  Object.values(EXTRAS)
+            tab === "gems"    ? GEM_BUNDLES.map((b) => ({
+                                  sku: b.sku,
+                                  name: `${totalGemsOfBundle(b).toLocaleString("de-DE")} 💎`,
+                                  price: b.price_cents,
+                                  icon: "💎",
+                                  desc: b.bonus > 0 ? `+${b.bonus.toLocaleString("de-DE")} Bonus-Diamanten` : undefined,
+                                })) :
+            tab === "wahlbox" ? Object.values(GAMEPLAY_ITEMS).filter((it) => it.sku === "mystery_box") :
+            tab === "crew"    ? [
+                                  ...Object.values(BOOST_PACKS),
+                                  ...Object.values(CREW_GEM_PACKS).map((p) => ({
+                                    sku: p.sku, name: p.name, price: p.price, icon: p.icon,
+                                    desc: `${(p.gems + p.bonus).toLocaleString("de-DE")} 💎 in den Crew-Pool` + (p.bonus > 0 ? ` (inkl. ${p.bonus.toLocaleString("de-DE")} Bonus)` : ""),
+                                  })),
+                                  ...Object.values(CREW_SLOT_PACKS).map((p) => ({
+                                    sku: p.sku, name: p.name, price: p.price, icon: p.icon,
+                                    desc: `+${p.slots} Slots für Crew-Mitglieder`,
+                                  })),
+                                ] :
+                                  Object.values(GAMEPLAY_ITEMS).filter((it) => it.sku !== "mystery_box")
           ).map((p) => {
-            const pp = p as { hours?: number; multiplier?: number; desc?: string; xp?: number };
-            const desc = pp.hours !== undefined && pp.multiplier !== undefined
-              ? `${pp.multiplier}× 🪙 · ${pp.hours >= 168 ? `${pp.hours / 168} Woche` : `${pp.hours} h`}`
-              : typeof pp.desc === "string" ? pp.desc
-              : typeof pp.xp === "number" ? `+${pp.xp.toLocaleString("de-DE")} 🪙 direkt aufs Konto`
-              : "";
-            const isBadge = p.sku.startsWith("badge_");
+            const pp = p as { desc?: string };
+            const desc = typeof pp.desc === "string" ? pp.desc : "";
+            const isBadge = false;
             const icon = "icon" in p && typeof p.icon === "string" ? p.icon : "🎁";
             return (
               <div key={p.sku} style={{
@@ -391,24 +391,24 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 // Belohnung aus 11 fixen Optionen, kein Zufall — also kein Glücks-
 // spiel-Mechanismus unter den BE/NL/ES-Loot-Box-Regulierungen.
 type WahlBoxKindUI =
-  | "xp_500" | "xp_2000" | "xp_10000"
-  | "boost_24" | "boost_48"
-  | "streak_5" | "shouts_10"
-  | "trail_golden" | "trail_neon"
-  | "aura_30d" | "rainbow_30d";
+  | "gems_500" | "gems_200" | "gems_50"
+  | "tech_10k" | "components_10k" | "crypto_5k" | "bandwidth_5k"
+  | "speed_48h"
+  | "guardian_xp"
+  | "pin_theme_token" | "map_icon_token";
 
 const WAHL_BOX_OPTIONS_UI: Array<{ kind: WahlBoxKindUI; icon: string; title: string; desc: string }> = [
-  { kind: "xp_10000",    icon: "🪙", title: "10 000 Wegemünzen",    desc: "Direkt aufs Konto" },
-  { kind: "xp_2000",     icon: "🪙", title: "2 000 Wegemünzen",     desc: "Mittlerer Boost" },
-  { kind: "xp_500",      icon: "🪙", title: "500 Wegemünzen",       desc: "Snack-Pack" },
-  { kind: "boost_48",    icon: "⚡", title: "48 h × 2 Boost",       desc: "Doppelte Wegemünzen, 2 Tage" },
-  { kind: "boost_24",    icon: "⚡", title: "24 h × 2 Boost",       desc: "Doppelte Wegemünzen, 1 Tag" },
-  { kind: "streak_5",    icon: "❄️", title: "5 Streak-Freezes",     desc: "Tages-Streak schützen" },
-  { kind: "shouts_10",   icon: "📣", title: "10 Crew-Shouts",       desc: "Aufmerksamkeit ziehen" },
-  { kind: "trail_golden",icon: "✨", title: "Goldener Trail",       desc: "Permanent — Cosmetic" },
-  { kind: "trail_neon",  icon: "💚", title: "Neon Trail",           desc: "Permanent — Cosmetic" },
-  { kind: "aura_30d",    icon: "💫", title: "30 Tage Aura",         desc: "Sichtbar auf der Karte" },
-  { kind: "rainbow_30d", icon: "🌈", title: "30 Tage Rainbow-Name", desc: "Animierter Name" },
+  { kind: "gems_500",        icon: "💎", title: "500 Diamanten",          desc: "Direkt aufs Konto" },
+  { kind: "gems_200",        icon: "💎", title: "200 Diamanten",          desc: "Direkt aufs Konto" },
+  { kind: "gems_50",         icon: "💎", title: "50 Diamanten",           desc: "Direkt aufs Konto" },
+  { kind: "tech_10k",        icon: "🔧", title: "10 000 Tech-Schrott",    desc: "Resource für Bauen" },
+  { kind: "components_10k",  icon: "⚙️", title: "10 000 Komponenten",     desc: "Resource für Bauen" },
+  { kind: "crypto_5k",       icon: "₿",  title: "5 000 Krypto",           desc: "Resource für Bauen" },
+  { kind: "bandwidth_5k",    icon: "📡", title: "5 000 Bandbreite",       desc: "Resource für Forschen" },
+  { kind: "speed_48h",       icon: "⚡", title: "48 h Bauzeit-Verkürzer", desc: "Beschleunigt Bauen für 48 h" },
+  { kind: "guardian_xp",     icon: "🔮", title: "Wächter-XP-Boost",       desc: "+2.500 XP für deinen Wächter" },
+  { kind: "pin_theme_token", icon: "✨", title: "Pin-Theme freischalten", desc: "Eines aus 18 Auras (Cosmetic)" },
+  { kind: "map_icon_token",  icon: "🎨", title: "Map-Icon freischalten",  desc: "Strategie-Marker (Cosmetic)" },
 ];
 
 function WahlBoxChoiceModal({

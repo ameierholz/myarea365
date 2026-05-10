@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, buildLineItem, skuMode } from "@/lib/stripe";
-import { resolveSkuPrice } from "@/lib/monetization";
+import { resolveSkuPrice, resolveSkuPriceFromDb } from "@/lib/monetization";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -20,25 +20,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  // SECURITY: Preis + Name werden ausschließlich serverseitig aus dem Katalog
-  // aufgelöst. Ein Client kann damit keine 1-Cent-Preise erzwingen.
-  const resolved = resolveSkuPrice(sku);
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  // SECURITY: Preis + Name werden ausschließlich serverseitig aufgelöst —
+  // erst statisch (PLANS, Bundles), dann via DB (seasonal/themed/battle_pass/...)
+  // damit Clients keine 1-Cent-Preise erzwingen können.
+  let resolved = resolveSkuPrice(sku);
+  let dynamicMetadata: Record<string, string> = {};
+  let modeOverride: "payment" | "subscription" | null = null;
+  if (!resolved) {
+    const dbResolved = await resolveSkuPriceFromDb(sku, sb);
+    if (dbResolved) {
+      resolved = { price: dbResolved.price, name: dbResolved.name };
+      dynamicMetadata = dbResolved.metadata ?? {};
+      if (dbResolved.mode) modeOverride = dbResolved.mode;
+    }
+  }
   if (!resolved) {
     return NextResponse.json({ error: "Unknown SKU" }, { status: 400 });
   }
   const amount_cents = resolved.price;
   const name = resolved.name;
 
-  const sb = await createClient();
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
   // Rate-Limit: 10 Checkout-Inits pro Minute pro User — normaler Kaufflow braucht 1-2.
   const rl = rateLimit(`checkout:${user.id}`, 10, 60_000);
   const blocked = rateLimitResponse(rl);
   if (blocked) return blocked;
 
-  const mode = skuMode(sku);
+  const mode = modeOverride ?? skuMode(sku);
   const lineItem = buildLineItem(sku, name, amount_cents, mode);
 
   const origin = req.headers.get("origin") ?? "https://myarea365.de";
@@ -55,8 +66,8 @@ export async function POST(req: NextRequest) {
         }),
     client_reference_id: user.id,
     customer_email: user.email ?? undefined,
-    metadata: { sku, user_id: user.id, crew_id: crew_id ?? "", business_id: business_id ?? "" },
-    ...(mode === "subscription" ? { subscription_data: { metadata: { sku, user_id: user.id, crew_id: crew_id ?? "", business_id: business_id ?? "" } } } : {}),
+    metadata: { sku, user_id: user.id, crew_id: crew_id ?? "", business_id: business_id ?? "", ...dynamicMetadata },
+    ...(mode === "subscription" ? { subscription_data: { metadata: { sku, user_id: user.id, crew_id: crew_id ?? "", business_id: business_id ?? "", ...dynamicMetadata } } } : {}),
   });
 
   // Purchase-Record anlegen (pending)

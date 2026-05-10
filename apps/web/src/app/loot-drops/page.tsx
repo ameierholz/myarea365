@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { useTranslations } from "next-intl";
 import { LandingBack } from "@/components/landing-back";
 import {
-  RARITY_LABEL, RARITY_COLOR,
-  REDEMPTION_LOOT_TABLE, EQUIPMENT_DROP_NOTE,
-  MAP_LOOT_CRATE_TABLE, WAHL_BOX_OPTIONS,
+  PAID_DETERMINISTIC_ITEMS,
+  WAHL_BOX_OPTIONS,
   ARENA_WIN_REWARDS, SEASON_REWARDS_TABLE, LOOT_DISCLOSURE_META,
-  type LootRarity,
 } from "@/lib/loot-drops-public";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,25 +13,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t("metaTitle"),
     description: t("metaDescription"),
   };
-}
-
-function RarityPill({ rarity }: { rarity: LootRarity }) {
-  return (
-    <span style={{
-      display: "inline-block",
-      padding: "2px 10px",
-      borderRadius: 999,
-      background: `${RARITY_COLOR[rarity]}22`,
-      border: `1px solid ${RARITY_COLOR[rarity]}`,
-      color: RARITY_COLOR[rarity],
-      fontSize: 11,
-      fontWeight: 900,
-      letterSpacing: 0.5,
-      textTransform: "uppercase",
-    }}>
-      {RARITY_LABEL[rarity]}
-    </span>
-  );
 }
 
 function Section({ num, title, children }: { num: string; title: string; children: React.ReactNode }) {
@@ -56,50 +34,6 @@ function Section({ num, title, children }: { num: string; title: string; childre
       </h2>
       {children}
     </section>
-  );
-}
-
-function LootTable({
-  rows,
-}: {
-  rows: Array<{ rarity: LootRarity; chance_pct: number; [k: string]: unknown }>;
-}) {
-  const t = useTranslations("LootDrops");
-  return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-        <thead>
-          <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-            <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{t("thRarity")}</th>
-            <th style={{ textAlign: "right", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{t("thChance")}</th>
-            <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>{t("thReward")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <td style={{ padding: "10px" }}><RarityPill rarity={r.rarity} /></td>
-              <td style={{ padding: "10px", textAlign: "right", color: RARITY_COLOR[r.rarity], fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>
-                {r.chance_pct.toFixed(1)} %
-              </td>
-              <td style={{ padding: "10px", color: "#DDD" }}>
-                {typeof (r as Record<string, unknown>).xp_reward === "number"
-                  ? `+${(r as Record<string, unknown>).xp_reward} 🪙`
-                  : (typeof (r as Record<string, unknown>).reward === "string" ? String((r as Record<string, unknown>).reward) : "—")}
-                {typeof (r as Record<string, unknown>).note === "string" && (
-                  <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 2 }}>{String((r as Record<string, unknown>).note)}</div>
-                )}
-                {Array.isArray((r as Record<string, unknown>).kinds) && (
-                  <div style={{ color: "#8B8FA3", fontSize: 11, marginTop: 2 }}>
-                    {t("rowKindsPrefix")} {((r as Record<string, unknown>).kinds as string[]).join(" · ")}
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
 
@@ -135,33 +69,29 @@ export default async function LootDropsPage() {
         </div>
 
         <Section num="1" title={t("section1Title")}>
-          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}
-             dangerouslySetInnerHTML={{ __html: t("section1Body") }} />
-          <LootTable rows={REDEMPTION_LOOT_TABLE} />
+          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.55 }}>
+            <strong style={{ color: "#FFD700" }}>{t("section1Lead")}</strong> {t("section1Body")}
+          </p>
+          <div style={{ display: "grid", gap: 6 }}>
+            {PAID_DETERMINISTIC_ITEMS.map((it, i) => (
+              <div key={i} style={{
+                padding: "10px 12px", borderRadius: 10,
+                background: "rgba(74,222,128,0.05)", border: "1px solid rgba(74,222,128,0.25)",
+                display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13,
+              }}>
+                <span style={{ fontSize: 18, lineHeight: 1.2 }}>{it.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: "#FFF", fontWeight: 800 }}>{it.title}</div>
+                  <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2 }}>{it.mechanic}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </Section>
 
         <Section num="2" title={t("section2Title")}>
-          <p style={{ color: "#DDD", fontSize: 13, lineHeight: 1.5 }}>{EQUIPMENT_DROP_NOTE}</p>
-          <p style={{ color: "#8B8FA3", fontSize: 11, marginTop: 10 }}
-             dangerouslySetInnerHTML={{ __html: t("section2Foot") }} />
-        </Section>
-
-        <Section num="3" title={t("section3Title")}>
-          <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            {t("section3Body")}
-          </p>
-          <LootTable rows={MAP_LOOT_CRATE_TABLE} />
-        </Section>
-
-        <Section num="4" title="Wahl-Box (€ 2,99) — KEIN Zufall">
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.55 }}>
-            <strong style={{ color: "#FFD700" }}>EU-konform per Wahl statt Zufall.</strong>{" "}
-            Die ehemals randomisierte „Mystery-Box" wurde im April 2026 zur <b>Wahl-Box</b>
-            umgebaut: Du klickst „Wahl-Box öffnen", siehst alle 11 möglichen Belohnungen,
-            wählst <b>EINE</b> aus — und zahlst erst dann die € 2,99. Kein Zufalls-Roll,
-            kein Lootbox-Mechanismus, damit fällt das Produkt explizit nicht unter die
-            Loot-Box-Regulierung von Belgien (KGBC 2018), Niederlande (KSA) und Spanien
-            (Ley 13/2011).
+            <strong style={{ color: "#FFD700" }}>{t("section2Lead")}</strong> {t("section2Body")}
           </p>
           <div style={{ display: "grid", gap: 6 }}>
             {WAHL_BOX_OPTIONS.map((o, i) => (
@@ -180,9 +110,9 @@ export default async function LootDropsPage() {
           </div>
         </Section>
 
-        <Section num="5" title={t("section5Title")}>
+        <Section num="3" title={t("section3Title")}>
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.5 }}>
-            {t("section5Body")}
+            {t("section3Body")}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {ARENA_WIN_REWARDS.map((r, i) => (
@@ -200,23 +130,23 @@ export default async function LootDropsPage() {
           </div>
         </Section>
 
-        <Section num="6" title="Saison-Belohnungen (deterministisch)">
+        <Section num="4" title={t("section4Title")}>
           <p style={{ color: "#a8b4cf", fontSize: 12, marginBottom: 12, lineHeight: 1.55 }}>
-            Die drei Saison-Systeme (Stadt-Server-Saison pro Ära, CvC wöchentlich
-            pro Map, Wächter-Arena monatlich) verteilen am Ende jeder Saison <b>feste,
-            rang-basierte Belohnungen</b> — kein Zufall, daher keine Loot-Mechanik im
-            rechtlichen Sinne. Aktuelle Werte sind hier transparent gelistet (live
-            editierbar in
-            <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 4 }}>/admin/seasons</code>):
+            {t.rich("section4Body", {
+              b: (chunks) => <b style={{ color: "#FFF" }}>{chunks}</b>,
+              code: (chunks) => (
+                <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 4 }}>{chunks}</code>
+              ),
+            })}
           </p>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>SYSTEM</th>
-                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>RHYTHMUS</th>
-                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>RANG</th>
-                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>BELOHNUNG</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>{t("thSystem")}</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>{t("thCadence")}</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>{t("thTier")}</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", color: "#8B8FA3", fontSize: 11, fontWeight: 800 }}>{t("thReward")}</th>
                 </tr>
               </thead>
               <tbody>

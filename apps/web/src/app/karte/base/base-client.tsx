@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { FullscreenFrame } from "../_components/fullscreen-frame";
-import { UiIcon, useUiIconArt, useMarkerArt, useBaseRingArt } from "@/components/resource-icon";
+import { UiIcon, useUiIconArt, useMarkerArt, useBaseRingArt, useArtworkReady } from "@/components/resource-icon";
 
 const ServerOverviewModal = dynamic(
   () => import("@/components/server-overview-modal").then((m) => m.ServerOverviewModal),
@@ -86,10 +86,13 @@ export function BaseClient({
   const equippedMarker = s(profile, "equipped_marker_id") || "foot";
   const equippedMarkerVariant = (s(profile, "equipped_marker_variant") as "neutral" | "male" | "female" | null) || "neutral";
   const equippedBaseRing = s(profile, "equipped_base_ring_id");
+  const artReady = useArtworkReady();
   const markerArt = useMarkerArt();
   const baseRingArt = useBaseRingArt();
-  const markerAsset = markerArt[equippedMarker]?.[equippedMarkerVariant] ?? markerArt[equippedMarker]?.neutral;
-  const ringAsset = equippedBaseRing && equippedBaseRing !== "default" ? baseRingArt[equippedBaseRing] : null;
+  // Hydration-Safe: Marker/Ring-Art erst nach Cache-Ready exposen, sonst
+  // rendert Server den Fallback-Avatar während Client schon das Bild hat.
+  const markerAsset = artReady ? (markerArt[equippedMarker]?.[equippedMarkerVariant] ?? markerArt[equippedMarker]?.neutral) : null;
+  const ringAsset = artReady && equippedBaseRing && equippedBaseRing !== "default" ? baseRingArt[equippedBaseRing] : null;
   const uiIconArtMap = useUiIconArt();
   const ringColor = faction?.color ?? GOLD;
   const city = s(profile, "city");
@@ -122,8 +125,9 @@ export function BaseClient({
           all: unset;
           position: relative;
           box-sizing: border-box;
-          width: 86px;
-          height: 90px;
+          width: 100%;
+          max-width: 120px;
+          height: 76px;
           padding-top: 2px;
           padding-bottom: 2px;
           display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0;
@@ -136,8 +140,9 @@ export function BaseClient({
         }
         .ma365-tile-art {
           position: relative;
-          width: 82px;
-          height: 72px;
+          width: 100%;
+          max-width: 82px;
+          height: 58px;
           display: flex; align-items: center; justify-content: center;
         }
         /* Schimmer hinter dem Icon: kräftiger dunkler Halo (radial), damit
@@ -218,8 +223,8 @@ export function BaseClient({
         {/* BANNER — Avatar links, Stats-Grid rechts */}
         <div style={{
           flexShrink: 0,
-          display: "grid", gridTemplateColumns: "128px 1fr", gap: 12,
-          padding: 12,
+          display: "grid", gridTemplateColumns: "128px 1fr", gap: 10,
+          padding: "10px 12px",
           background: "linear-gradient(180deg, rgba(15,17,21,0.55) 0%, rgba(15,17,21,0.4) 100%)",
           backdropFilter: "blur(8px) saturate(1.1)",
           WebkitBackdropFilter: "blur(8px) saturate(1.1)",
@@ -321,8 +326,8 @@ export function BaseClient({
               )}
             </div>
 
-            {/* Info-Grid (3 Spalten) */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, flex: 1, minHeight: 0 }}>
+            {/* Info-Grid (3 Spalten) — Spalte C breiter, weil ScoreCards + CvcBar mehr Platz brauchen */}
+            <div style={{ display: "grid", gridTemplateColumns: "0.95fr 1fr 1.35fr", gap: 8, flex: 1, minHeight: 0 }}>
               {/* Spalte A — Stats-Liste */}
               <div style={{ display: "flex", flexDirection: "column", gap: 1, fontSize: 10 }}>
                 <StatRow label="Heimat" value={homeCity?.name ?? city ?? district ?? "—"} />
@@ -380,31 +385,29 @@ export function BaseClient({
           </div>
         </div>
 
-        {/* TILES — top-aligned damit Chat (bottom-left) sie nicht verdeckt */}
+        {/* TILES — 2×5 oben-rechts; lässt Chat-Widget unten-links frei.
+            Tiles wurden auf 76px Höhe verkleinert damit 2 Reihen sicher
+            in den verbleibenden Container passen. */}
         <div style={{
           flex: 1, minHeight: 0,
           display: "flex", alignItems: "flex-start", justifyContent: "flex-end",
-          padding: "4px 4px 0",
+          padding: "8px 4px 0",
         }}>
           <div style={{
-            display: "flex", flexWrap: "wrap", justifyContent: "flex-end",
-            gap: 2,
-            maxWidth: 564,
+            display: "grid",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            gap: 6,
+            width: "min(540px, 60%)",
           }}>
-            <ArtTile slot="karte_base_bauen"      icon="🔨" label="Bauen"       onClick={() => setShowBuild(true)} badge={queueCount} iconSize={80} />
-            <ArtTile slot="karte_base_forschung"  icon="⚗️" label="Forschung"   href="/karte/base"   badge={researchCount} />
-            <ArtTile slot="karte_base_banditen"   icon="🥷" label="Banditen"    href="/karte/base" />
-            <ArtTile slot="karte_base_trophaeen"  icon="🏆" label="Trophäen"    onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
-            <ArtTile slot="karte_base_ranglisten" icon="📊" label="Ranglisten"  href="/karte/base" />
-            <ArtTile slot="karte_base_statistiken" icon="📈" label="Statistiken" onClick={() => setShowStats(true)} />
-            <ArtTile
-              slot="karte_base_server"
-              icon="🏙️"
-              label="Server"
-              onClick={() => setShowServerOverview(true)}
-            />
+            <ArtTile slot="karte_base_bauen"         icon="🔨" label="Bauen"        onClick={() => setShowBuild(true)} badge={queueCount} />
+            <ArtTile slot="karte_base_forschung"     icon="⚗️" label="Forschung"    href="/karte/base"   badge={researchCount} />
+            <ArtTile slot="karte_base_banditen"      icon="🥷" label="Banditen"     href="/karte/base" />
+            <ArtTile slot="karte_base_trophaeen"     icon="🏆" label="Trophäen"     onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
+            <ArtTile slot="karte_base_ranglisten"    icon="📊" label="Ranglisten"   href="/karte/base" />
+            <ArtTile slot="karte_base_statistiken"   icon="📈" label="Statistiken"  onClick={() => setShowStats(true)} />
+            <ArtTile slot="karte_base_server"        icon="🏙️" label="Server"       onClick={() => setShowServerOverview(true)} />
             <ArtTile slot="karte_base_einstellungen" icon="⚙️" label="Einstellungen" href="/karte/base" />
-            <ArtTile slot="karte_base_logout"     icon="🚪" label="Ausloggen"   href="/logout" />
+            <ArtTile slot="karte_base_logout"        icon="🚪" label="Ausloggen"    href="/logout" />
           </div>
         </div>
       </div>
@@ -579,7 +582,7 @@ function CvcBar({ joined, won, peak }: { joined: number; won: number; peak: numb
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1.1,
       }}>
         <span style={{ fontSize: 7, color: "rgba(255,255,255,0.65)", letterSpacing: 0.3, fontWeight: 700, textAlign: "center", whiteSpace: "nowrap" }}>
-          Höchstes Vertrauen
+          Peak-Vertrauen
         </span>
         <span style={{ fontSize: 10, fontWeight: 900, color: ACCENT, textShadow: `0 0 6px ${ACCENT}66`, fontVariantNumeric: "tabular-nums", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", letterSpacing: -0.2 }}>
           {peak.toLocaleString("de-DE")}

@@ -38,8 +38,26 @@ export function useRealtimeAwareInterval(
 
   useEffect(() => {
     void cb();
-    const id = setInterval(cb, rtConnected ? slowMs : fastMs);
-    return () => clearInterval(id);
+    // Pause polling while the tab is hidden — saves traffic + battery.
+    // We don't fire-on-visible immediately because the Supabase realtime channel
+    // delivers any missed change as soon as the tab is foregrounded.
+    const tick = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      void cb();
+    };
+    const id = setInterval(tick, rtConnected ? slowMs : fastMs);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") void cb();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
+    return () => {
+      clearInterval(id);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rtConnected, fastMs, slowMs]);
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +10,11 @@ export async function POST(req: NextRequest) {
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+  const rl = await rateLimitSmart(`chat:poll:${user.id}`, 5, 60_000);
+  const limited = rateLimitResponse(rl);
+  if (limited) return limited;
+
   const body = await req.json() as {
     room_id?: string; question?: string; options?: string[];
     multi_choice?: boolean; closes_at?: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 
 const PRIMARY = "#22D1C3";
@@ -17,6 +17,7 @@ type Server = {
   top_crew: { id: string; name: string; members: number } | null;
   is_home: boolean;
 };
+type TokenInfo = { tokens: number; cooldown_ends_at: string | null };
 
 /**
  * In-Game Server-Übersicht: zeigt alle aktiven Stadt-Server.
@@ -29,28 +30,56 @@ type Server = {
  */
 export function ServerOverviewModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [servers, setServers] = useState<Server[] | null>(null);
+  const [tokens, setTokens] = useState<TokenInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      const [r, tr] = await Promise.all([
+        fetch("/api/cities", { cache: "no-store" }),
+        fetch("/api/me/migrate-server", { cache: "no-store" }),
+      ]);
+      const j = await r.json() as { servers?: Server[]; error?: string };
+      if (!r.ok) throw new Error(j.error ?? "Fehler beim Laden");
+      setServers(j.servers ?? []);
+      const tj = await tr.json() as { ok?: boolean; tokens?: number; cooldown_ends_at?: string | null };
+      setTokens({ tokens: tj.tokens ?? 0, cooldown_ends_at: tj.cooldown_ends_at ?? null });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
-    setError(null);
-    setServers(null);
-    void (async () => {
-      try {
-        const r = await fetch("/api/cities", { cache: "no-store" });
-        const j = await r.json() as { servers?: Server[]; error?: string };
-        if (cancelled) return;
-        if (!r.ok) throw new Error(j.error ?? "Fehler beim Laden");
-        setServers(j.servers ?? []);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [open]);
+    setError(null); setServers(null); setMsg(null);
+    void reload();
+  }, [open, reload]);
+
+  async function migrate(slug: string, name: string) {
+    if (!confirm(`Wirklich nach "${name}" wechseln?\n\nDeine Crew-Mitgliedschaft wird beendet, und es startet ein 7-Tage-Cooldown bis zum nächsten Wechsel.`)) return;
+    setBusy(slug); setMsg(null);
+    try {
+      const r = await fetch("/api/me/migrate-server", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ target_city_slug: slug }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string; new_home_city_slug?: string };
+      if (j.ok) { setMsg(`✓ Erfolgreich nach "${name}" migriert.`); await reload(); }
+      else if (j.error === "no_token") setMsg("⚠ Kein Migration-Token verfügbar — verdiene eines durch Era-Reset oder kaufe im Shop.");
+      else if (j.error === "cooldown_active") setMsg("⏳ Cooldown läuft noch. Warte bis er abgelaufen ist.");
+      else if (j.error === "already_home") setMsg("ℹ Du bist schon dort.");
+      else if (j.error === "city_not_active") setMsg("⚠ Server nicht aktiv.");
+      else setMsg(`⚠ ${j.error ?? "Fehler"}`);
+    } finally { setBusy(null); }
+  }
 
   if (!open) return null;
+  const cooldownActive = tokens?.cooldown_ends_at && new Date(tokens.cooldown_ends_at).getTime() > Date.now();
+  const cooldownRemain = cooldownActive
+    ? Math.ceil((new Date(tokens!.cooldown_ends_at!).getTime() - Date.now()) / (3600 * 1000))
+    : 0;
 
   return (
     <Modal open={open} onClose={onClose} size="md" zIndex={Z.modalDeep}>
@@ -63,6 +92,35 @@ export function ServerOverviewModal({ open, onClose }: { open: boolean; onClose:
             </div>
           )}
 
+          {/* Migration-Token-Status */}
+          {tokens && (
+            <div style={{
+              padding: 10, borderRadius: 10,
+              background: tokens.tokens > 0 ? "rgba(34,209,195,0.1)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${tokens.tokens > 0 ? "rgba(34,209,195,0.3)" : "rgba(255,255,255,0.08)"}`,
+              fontSize: 11, color: "#C8CDD9", display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <span style={{ fontSize: 18 }}>🎟</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: tokens.tokens > 0 ? PRIMARY : "#8B8FA3", fontWeight: 800 }}>
+                  {tokens.tokens} Migration-Token
+                </div>
+                <div style={{ color: "#8B8FA3", fontSize: 10 }}>
+                  {cooldownActive ? `Cooldown: noch ${cooldownRemain}h` : tokens.tokens > 0 ? "Bereit zum Wechseln" : "Verdiene eines durch Era-Reset oder Shop"}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {msg && (
+            <div style={{
+              padding: 10, borderRadius: 10,
+              background: msg.startsWith("✓") ? "rgba(74,222,128,0.1)" : "rgba(255,107,74,0.1)",
+              color: msg.startsWith("✓") ? "#4ade80" : "#FF6B4A",
+              fontSize: 11, fontWeight: 700,
+            }}>{msg}</div>
+          )}
+
           {!servers && !error && (
             <div style={{ color: "#8B8FA3", fontSize: 12, textAlign: "center", padding: 24 }}>Lade Server…</div>
           )}
@@ -73,26 +131,19 @@ export function ServerOverviewModal({ open, onClose }: { open: boolean; onClose:
             </div>
           )}
 
-          {servers && servers.map((s) => <ServerCard key={s.slug} server={s} />)}
-
-          {/* Hinweis Server-Wechsel */}
-          <div style={{
-            marginTop: 8, padding: 12, borderRadius: 10,
-            background: "rgba(255,215,0,0.06)",
-            border: "1px solid rgba(255,215,0,0.25)",
-            fontSize: 11, color: "#C8CDD9", lineHeight: 1.5,
-          }}>
-            <div style={{ color: GOLD, fontWeight: 800, marginBottom: 4 }}>🔄 Server-Wechsel kommt</div>
-            Aktuell ist deine Heimat fest an deine PLZ gebunden. Server-Wechsel
-            (mit Cooldown + Carry-Over-Regeln für Premium-Inhalte) ist in Planung.
-          </div>
+          {servers && servers.map((s) => (
+            <ServerCard key={s.slug} server={s}
+              canMigrate={!s.is_home && (tokens?.tokens ?? 0) > 0 && !cooldownActive}
+              busy={busy === s.slug}
+              onMigrate={() => void migrate(s.slug, s.name)} />
+          ))}
         </div>
       </ModalBody>
     </Modal>
   );
 }
 
-function ServerCard({ server }: { server: Server }) {
+function ServerCard({ server, canMigrate, busy, onMigrate }: { server: Server; canMigrate: boolean; busy: boolean; onMigrate: () => void }) {
   const isHome = server.is_home;
   const accent = isHome ? PRIMARY : "rgba(255,255,255,0.12)";
   return (
@@ -165,21 +216,23 @@ function ServerCard({ server }: { server: Server }) {
         </div>
       )}
 
-      {/* Wechsel-Button (deaktiviert in Phase 1) */}
+      {/* Wechsel-Button */}
       {!isHome && (
         <button
-          disabled
-          title="Server-Wechsel ist in Planung"
+          onClick={onMigrate}
+          disabled={!canMigrate || busy}
+          title={canMigrate ? `Wechseln zu ${server.name}` : "Migration-Token + Cooldown abwarten"}
           style={{
-            padding: "6px 10px", borderRadius: 8,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "#8B8FA3", fontSize: 10, fontWeight: 700, letterSpacing: 0.4,
-            cursor: "not-allowed", opacity: 0.7,
+            padding: "8px 12px", borderRadius: 8,
+            background: canMigrate ? `linear-gradient(180deg, ${PRIMARY}, #1aa89c)` : "rgba(255,255,255,0.04)",
+            border: `1px solid ${canMigrate ? PRIMARY : "rgba(255,255,255,0.1)"}`,
+            color: canMigrate ? "#0F1115" : "#8B8FA3",
+            fontSize: 11, fontWeight: 900, letterSpacing: 0.4,
+            cursor: canMigrate ? "pointer" : "not-allowed", opacity: busy ? 0.5 : 1,
             alignSelf: "flex-start",
           }}
         >
-          🔒 Wechseln (bald)
+          {busy ? "…" : canMigrate ? "🚀 Hierhin wechseln (1 Token)" : "🔒 Token / Cooldown"}
         </button>
       )}
     </div>

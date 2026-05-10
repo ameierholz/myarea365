@@ -11,7 +11,7 @@ const BG = "#0F1115";
 const TEXT = "#F0F0F0";
 const MUTED = "#8B8FA3";
 
-type Tab = "uebersicht" | "mitglieder" | "tech" | "bauwerke" | "kopfgelder" | "shop" | "einstellungen";
+type Tab = "uebersicht" | "mitglieder" | "tech" | "bauwerke" | "kopfgelder" | "shop" | "hilfe" | "diplomatie" | "nachrichten" | "einstellungen";
 
 type Overview = {
   crew: { id: string; name: string; tag: string; color: string; zip: string; created_at: string };
@@ -91,6 +91,9 @@ export function CrewModal({ onClose, onPlaceBuilding, onOpenWar }: { onClose: ()
               {tab === "bauwerke"     && <TabBauwerke onPlaceBuilding={(kind) => { onPlaceBuilding?.(kind); onClose(); }} />}
               {tab === "kopfgelder"   && <TabKopfgelder crewId={overview.crew.id} />}
               {tab === "shop"         && <TabShop />}
+              {tab === "hilfe"        && <TabHilfe />}
+              {tab === "diplomatie"   && <TabDiplomatie crewId={overview.crew.id} />}
+              {tab === "nachrichten"  && <TabNachrichten />}
               {tab === "einstellungen"&& <TabEinstellungen />}
             </div>
           </>
@@ -145,6 +148,9 @@ function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; 
     { id: "bauwerke",      label: tt("tabBuildings"), slot: "crew_tab_buildings", fallback: "🏗" },
     { id: "kopfgelder",    label: tt("tabBounties"),  slot: "crew_tab_bounties", fallback: "🎯" },
     { id: "shop",          label: tt("tabShop"),      slot: "crew_tab_shop",     fallback: "📦" },
+    { id: "hilfe",         label: "Hilfe",            slot: "crew_tab_help",     fallback: "🤝" },
+    { id: "diplomatie",    label: "Diplomatie",       slot: "crew_tab_diplomacy", fallback: "🤝" },
+    { id: "nachrichten",   label: "Nachrichten",      slot: "crew_tab_mail",     fallback: "✉" },
     { id: "einstellungen", label: tt("tabSettings"),  slot: "crew_tab_settings", fallback: "⚙" },
   ];
   return (
@@ -960,6 +966,275 @@ function PlannedRow({ building, uiArt }: { building: PlannedBuilding; uiArt: Ret
       {open && (
         <div style={{ padding: "0 12px 12px 48px", color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
           {t(building.descKey)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───────────────────────── HILFE-TAB (Crew-Help) ─────────────────────────────
+function TabHilfe() {
+  type HelpReq = { id: string; user_id: string; user_name: string; job_kind: string; job_label: string; helps_received: number; max_helps: number; expires_at: string; created_at: string };
+  const [list, setList] = useState<HelpReq[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch("/api/crew/help", { cache: "no-store" });
+    const j = await r.json() as { ok?: boolean; requests?: HelpReq[]; error?: string } | HelpReq[];
+    if (Array.isArray(j)) setList(j);
+    else setList(j?.requests ?? []);
+  }, []);
+  useEffect(() => { void load(); const id = setInterval(load, 15_000); return () => clearInterval(id); }, [load]);
+
+  async function give(reqId: string) {
+    setBusy(reqId); setMsg(null);
+    try {
+      const r = await fetch("/api/crew/help", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "give", request_id: reqId }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string; reduced_seconds?: number };
+      if (j.ok) {
+        setMsg(`✓ -${j.reduced_seconds ?? 0}s · danke!`);
+        await load();
+      } else if (j.error === "cooldown_active") setMsg("⏳ 30s Cooldown.");
+      else if (j.error === "max_helps_reached") setMsg("ℹ Schon voll.");
+      else if (j.error === "self_help_not_allowed") setMsg("✋ Eigene Aufträge nicht.");
+      else setMsg(`⚠ ${j.error ?? "Fehler"}`);
+    } finally { setBusy(null); }
+  }
+
+  if (!list) return <div style={{ color: MUTED, fontSize: 12 }}>Lade Hilfe-Anfragen…</div>;
+  return (
+    <div>
+      <div style={{ background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+        <div style={{ color: PRIMARY, fontSize: 12, fontWeight: 900, marginBottom: 4 }}>🤝 Crew-Hilfe</div>
+        <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
+          Hilf Crew-Mitgliedern und reduziere ihre Bauzeit/Forschung um 1% pro Klick. <b style={{ color: TEXT }}>30s Cooldown</b> zwischen Klicks.
+        </div>
+      </div>
+      {msg && <div style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF6B9A", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>{msg}</div>}
+      {list.length === 0 ? (
+        <div style={{ color: MUTED, fontSize: 12, textAlign: "center", padding: 24 }}>
+          Keine offenen Hilfe-Anfragen. Wenn du baust/forschst kannst du selbst eine senden — passiert automatisch.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {list.map((r) => {
+            const pct = Math.min(100, (r.helps_received / Math.max(1, r.max_helps)) * 100);
+            return (
+              <div key={r.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>{r.user_name}</div>
+                  <div style={{ color: MUTED, fontSize: 10 }}>{r.job_label || r.job_kind}</div>
+                </div>
+                <div style={{ height: 6, borderRadius: 4, background: "rgba(0,0,0,0.4)", overflow: "hidden", marginBottom: 6 }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: PRIMARY }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: MUTED, fontSize: 10 }}>{r.helps_received}/{r.max_helps} Hilfen</span>
+                  <button onClick={() => void give(r.id)} disabled={busy === r.id}
+                    style={{ background: PRIMARY, color: BG, fontSize: 11, fontWeight: 900, padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+                    {busy === r.id ? "…" : "HELFEN"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───────────────────────── DIPLOMATIE-TAB ─────────────────────────────
+function TabDiplomatie({ crewId }: { crewId: string }) {
+  type Dipl = { other_crew_id: string; other_crew_name: string; other_crew_tag: string; status: "nap" | "allied" | "enemy"; expires_at: string | null };
+  const [list, setList] = useState<Dipl[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [allCrews, setAllCrews] = useState<Array<{ id: string; name: string; tag: string }>>([]);
+  const [picker, setPicker] = useState<{ crewId: string; status: string }>({ crewId: "", status: "nap" });
+
+  const load = useCallback(async () => {
+    const r = await fetch(`/api/crew/diplomacy?crew_id=${crewId}`, { cache: "no-store" });
+    const j = await r.json() as { ok?: boolean; diplomacy?: Dipl[] };
+    setList(j.diplomacy ?? []);
+  }, [crewId]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const sb = createClient();
+    void (async () => {
+      const { data } = await sb.from("crews").select("id, name, tag").neq("id", crewId).limit(50);
+      setAllCrews((data as Array<{ id: string; name: string; tag: string }>) ?? []);
+    })();
+  }, [crewId]);
+
+  async function setStatus(otherCrew: string, status: string) {
+    setBusy(otherCrew); setMsg(null);
+    try {
+      const r = await fetch("/api/crew/diplomacy", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ other_crew: otherCrew, status, duration_hours: status === "nap" ? 168 : null }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string };
+      if (j.ok) { setMsg("✓ Aktualisiert."); await load(); }
+      else if (j.error === "not_leader") setMsg("⚠ Nur Crew-Leader darf das.");
+      else setMsg(`⚠ ${j.error ?? "Fehler"}`);
+    } finally { setBusy(null); }
+  }
+
+  const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
+    nap: { color: "#FFD700", bg: "rgba(255,215,0,0.15)", label: "NAP" },
+    allied: { color: "#4ade80", bg: "rgba(74,222,128,0.15)", label: "VERBÜNDET" },
+    enemy: { color: "#FF2D78", bg: "rgba(255,45,120,0.15)", label: "FEIND" },
+  };
+
+  if (!list) return <div style={{ color: MUTED, fontSize: 12 }}>Lade Diplomatie…</div>;
+  return (
+    <div>
+      <div style={{ background: "rgba(34,209,195,0.08)", border: "1px solid rgba(34,209,195,0.3)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+        <div style={{ color: PRIMARY, fontSize: 12, fontWeight: 900, marginBottom: 4 }}>🤝 Diplomatie</div>
+        <div style={{ color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
+          Setze NAP (Nicht-Angriffs-Pakt, 7 Tage), Bündnisse (kein Schaden zwischen Crews) oder erkläre offiziell Krieg. <b style={{ color: TEXT }}>Nur Crew-Leader.</b>
+        </div>
+      </div>
+      {msg && <div style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF6B9A", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>{msg}</div>}
+
+      {/* Liste */}
+      {list.length === 0 ? (
+        <div style={{ color: MUTED, fontSize: 12, textAlign: "center", padding: 16 }}>Noch keine Diplomatie-Beziehungen.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+          {list.map((d) => {
+            const st = STATUS_STYLE[d.status] ?? { color: MUTED, bg: "transparent", label: d.status };
+            return (
+              <div key={d.other_crew_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ flex: 1, color: TEXT, fontSize: 13, fontWeight: 700 }}>[{d.other_crew_tag}] {d.other_crew_name}</div>
+                <span style={{ color: st.color, background: st.bg, padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 900 }}>{st.label}</span>
+                <button onClick={() => void setStatus(d.other_crew_id, "nap")} disabled={busy === d.other_crew_id}
+                  style={{ background: "rgba(255,215,0,0.15)", color: "#FFD700", border: "1px solid rgba(255,215,0,0.4)", borderRadius: 6, padding: "4px 8px", fontSize: 9, fontWeight: 800, cursor: "pointer" }}>NAP</button>
+                <button onClick={() => void setStatus(d.other_crew_id, "allied")} disabled={busy === d.other_crew_id}
+                  style={{ background: "rgba(74,222,128,0.15)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.4)", borderRadius: 6, padding: "4px 8px", fontSize: 9, fontWeight: 800, cursor: "pointer" }}>Verb.</button>
+                <button onClick={() => void setStatus(d.other_crew_id, "enemy")} disabled={busy === d.other_crew_id}
+                  style={{ background: "rgba(255,45,120,0.15)", color: "#FF2D78", border: "1px solid rgba(255,45,120,0.4)", borderRadius: 6, padding: "4px 8px", fontSize: 9, fontWeight: 800, cursor: "pointer" }}>Feind</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Neuer Eintrag */}
+      <div style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 12 }}>
+        <div style={{ color: TEXT, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>Neue Beziehung</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <select value={picker.crewId} onChange={(e) => setPicker({ ...picker, crewId: e.target.value })}
+            style={{ flex: 1, background: "rgba(0,0,0,0.5)", color: TEXT, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", fontSize: 11 }}>
+            <option value="">— Crew wählen —</option>
+            {allCrews.map((c) => <option key={c.id} value={c.id}>[{c.tag}] {c.name}</option>)}
+          </select>
+          <select value={picker.status} onChange={(e) => setPicker({ ...picker, status: e.target.value })}
+            style={{ background: "rgba(0,0,0,0.5)", color: TEXT, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", fontSize: 11 }}>
+            <option value="nap">NAP</option>
+            <option value="allied">Verbündet</option>
+            <option value="enemy">Feind</option>
+          </select>
+          <button onClick={() => picker.crewId && void setStatus(picker.crewId, picker.status)} disabled={!picker.crewId || busy === picker.crewId}
+            style={{ background: PRIMARY, color: BG, border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 11, fontWeight: 900, cursor: "pointer" }}>
+            Setzen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────── NACHRICHTEN-TAB (Crew-Mail) ─────────────────────────────
+function TabNachrichten() {
+  type Mail = { id: string; sender_id: string; kind: string; title: string; body: string; created_at: string };
+  const [list, setList] = useState<Mail[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [composer, setComposer] = useState<{ open: boolean; kind: string; title: string; body: string }>({ open: false, kind: "announcement", title: "", body: "" });
+
+  const load = useCallback(async () => {
+    const r = await fetch("/api/crew/mail", { cache: "no-store" });
+    const j = await r.json() as { ok?: boolean; mails?: Mail[] };
+    setList(j.mails ?? []);
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  async function send() {
+    if (!composer.title.trim() || !composer.body.trim()) return;
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch("/api/crew/mail", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: composer.kind, title: composer.title, body: composer.body }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string };
+      if (j.ok) {
+        setMsg("✓ Versendet.");
+        setComposer({ open: false, kind: "announcement", title: "", body: "" });
+        await load();
+      } else setMsg(`⚠ ${j.error ?? "Fehler"}`);
+    } finally { setBusy(false); }
+  }
+
+  const KIND_LABEL: Record<string, string> = {
+    announcement: "📢 Ankündigung",
+    war: "⚔ Krieg",
+    event: "🎉 Event",
+    raid: "👹 Raid",
+  };
+
+  if (!list) return <div style={{ color: MUTED, fontSize: 12 }}>Lade Nachrichten…</div>;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>✉ Crew-Mail ({list.length})</div>
+        <button onClick={() => setComposer((s) => ({ ...s, open: !s.open }))}
+          style={{ background: PRIMARY, color: BG, border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 11, fontWeight: 900, cursor: "pointer" }}>
+          {composer.open ? "Abbrechen" : "+ Schreiben"}
+        </button>
+      </div>
+      {msg && <div style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF6B9A", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>{msg}</div>}
+
+      {composer.open && (
+        <div style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            <select value={composer.kind} onChange={(e) => setComposer({ ...composer, kind: e.target.value })}
+              style={{ background: "rgba(0,0,0,0.5)", color: TEXT, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", fontSize: 11 }}>
+              {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+            <input value={composer.title} onChange={(e) => setComposer({ ...composer, title: e.target.value })}
+              placeholder="Titel"
+              style={{ flex: 1, background: "rgba(0,0,0,0.5)", color: TEXT, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", fontSize: 11 }} />
+          </div>
+          <textarea value={composer.body} onChange={(e) => setComposer({ ...composer, body: e.target.value })}
+            placeholder="Nachricht…" rows={4}
+            style={{ width: "100%", background: "rgba(0,0,0,0.5)", color: TEXT, border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "8px 10px", fontSize: 12, resize: "vertical", marginBottom: 8 }} />
+          <button onClick={() => void send()} disabled={busy || !composer.title.trim() || !composer.body.trim()}
+            style={{ background: PRIMARY, color: BG, border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 900, cursor: "pointer", opacity: busy ? 0.5 : 1 }}>
+            {busy ? "…" : "Senden"}
+          </button>
+        </div>
+      )}
+
+      {list.length === 0 ? (
+        <div style={{ color: MUTED, fontSize: 12, textAlign: "center", padding: 24 }}>Noch keine Nachrichten.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {list.map((m) => (
+            <div key={m.id} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>{KIND_LABEL[m.kind] ?? m.kind} · {m.title}</span>
+                <span style={{ color: MUTED, fontSize: 10 }}>{new Date(m.created_at).toLocaleString("de-DE")}</span>
+              </div>
+              <div style={{ color: MUTED, fontSize: 12, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{m.body}</div>
+            </div>
+          ))}
         </div>
       )}
     </div>

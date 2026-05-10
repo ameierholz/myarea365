@@ -26,9 +26,8 @@ export function ServiceWorkerRegister() {
 
     // DEV: alle vorhandenen SWs killen + Caches leeren, sonst werden alte
     // Bundles ausgeliefert und HMR funktioniert nicht.
-    // Wichtig: wenn ein SW gefunden + entfernt wird, MUSS die Seite einmal
-    // hart reloadet werden — sonst lebt die aktuell-geladene Seite weiter mit
-    // dem alten SW-Bundle. Marker im sessionStorage verhindert Reload-Loop.
+    // IMMER bei jedem Mount alle ma365-* Caches löschen — nicht nur einmal
+    // pro Session. Sonst persistieren Asset-Caches über Reloads hinweg.
     void (async () => {
       try {
         const regs = await navigator.serviceWorker.getRegistrations();
@@ -36,6 +35,8 @@ export function ServiceWorkerRegister() {
         for (const r of regs) {
           if (await r.unregister()) unregistered++;
         }
+        // Caches IMMER leeren (auch ohne aktive SW-Registration), weil
+        // Caches getrennt vom SW lebendig sein können.
         if (typeof caches !== "undefined") {
           const keys = await caches.keys();
           await Promise.all(keys.filter((k) => k.startsWith("ma365-")).map((k) => caches.delete(k)));

@@ -26,6 +26,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MessageSquare, X, Hash, Users, MapPin, Sword, Inbox, Send, Smile, AtSign, Paperclip, MoreVertical, Reply, Edit3, Trash2, Pin, Flag, UserX, Save, Clock, BarChart3 } from "lucide-react";
 import { useChatRealtime } from "./use-chat-realtime";
+import { Z } from "@/lib/z-index";
+import { useMarkerArt, useBaseRingArt } from "@/components/resource-icon";
+import { fetchBaseMe } from "@/lib/base-me-cache";
+import { useModalStackDepth } from "@/lib/modal-stack";
 
 // ════════════════════════════════════════════════════════════════════
 // TYPES
@@ -88,6 +92,10 @@ type TabKey = "heimat" | "crew" | "dm" | "cvc";
 
 export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   const [open, setOpen] = useState(true);
+  // Bei nested Modals (Bauen/Forschung/etc. inside Meine Base) Chat verstecken —
+  // dann braucht der Spieler die Bildschirmfläche für das aktive Modal.
+  const modalDepth = useModalStackDepth();
+  const hiddenByModal = modalDepth >= 1;
   // mode: "preview" = kompakte Vorschau-Lasche auf Karte (Default, RoK-Stil),
   //       "expanded" = großes Modal mit Tabs/Räumen/Input
   const [mode, setMode] = useState<"preview" | "expanded">("preview");
@@ -96,16 +104,14 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [previewRoomId, setPreviewRoomId] = useState<string | null>(null);
   const [unreadTotal, setUnreadTotal] = useState(0);
-  const [cosmeticArt, setCosmeticArt] = useState<CosmeticArt>({});
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const r = await fetch(`/api/cosmetic-artwork?v=2`, { cache: "no-cache" });
-        if (r.ok) setCosmeticArt(await r.json() as CosmeticArt);
-      } catch { /* noop */ }
-    })();
-  }, []);
+  // Cosmetic-Art aus dem zentralen _cache lesen statt eigenem Fetch.
+  // Spart 1 redundanten /api/cosmetic-artwork-Roundtrip pro Page-Load (~30KB).
+  const markerArt = useMarkerArt();
+  const baseRingArt = useBaseRingArt();
+  const cosmeticArt = useMemo<CosmeticArt>(
+    () => ({ marker: markerArt, base_ring: baseRingArt }),
+    [markerArt, baseRingArt],
+  );
 
   const refreshRooms = useCallback(async () => {
     try {
@@ -125,11 +131,10 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   useEffect(() => {
     if (!open) return;
     void (async () => {
-      // Heimat-Geo: PLZ via /api/base/me, Bezirk/Stadt via reverse-geo (best effort)
+      // Heimat-Geo: PLZ aus shared base-me cache (vom Splash gefüllt)
       try {
-        const baseRes = await fetch("/api/base/me", { cache: "no-store" });
-        if (baseRes.ok) {
-          const base = await baseRes.json() as { base?: { lat?: number; lng?: number; plz?: string } };
+        const base = await fetchBaseMe() as { base?: { lat?: number; lng?: number; plz?: string } } | null;
+        if (base) {
           // Heimat-Räume basieren auf der PLZ aus den Einstellungen (Base) — NICHT auf
           // dem aktuellen Standort. Wir leiten Bezirk+Stadt aus der Base-Position ab,
           // joinen aber NUR Bezirk + Stadt — keine PLZ-Räume (sonst sammelt der Runner
@@ -182,12 +187,16 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+  // Chat bleibt sichtbar auch wenn Modal offen — Modal ist rechtsbündig, Chat hat links Platz.
+  // (modalDepth wird trotzdem getrackt, falls wir später wieder hide-bei-deep-nested brauchen)
+  void hiddenByModal;
+
   if (!open) {
     return (
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(true); }}
-        style={{ position: "fixed", bottom: 0, left: 0, zIndex: 99999 }}
+        style={{ position: "fixed", bottom: 0, left: 0, zIndex: Z.chat }}
         className="w-12 h-12 rounded-full bg-gradient-to-br from-[#22D1C3] to-[#FF2D78] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition"
         aria-label="Chat öffnen"
       >
@@ -223,7 +232,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
           position: "fixed",
           bottom: 0,
           left: 0,
-          zIndex: 99998,
+          zIndex: Z.chat,
           width: "min(340px, 60vw)",
           maxHeight: 150,
           background: "linear-gradient(180deg, rgba(15,17,21,0.55) 0%, rgba(15,17,21,0.35) 100%)",
@@ -310,14 +319,14 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
       {/* Backdrop — transparent, fängt nur Klicks außerhalb (Karte bleibt voll sichtbar) */}
       <div
         onClick={() => setMode("preview")}
-        style={{ position: "fixed", inset: 0, zIndex: 99997, background: "transparent" }}
+        style={{ position: "fixed", inset: 0, zIndex: Z.chat - 1, background: "transparent" }}
       />
       <div
         style={{
           position: "fixed",
           bottom: 0,
           left: 0,
-          zIndex: 99998,
+          zIndex: Z.chat,
           width: "min(340px, 60vw)",
           height: "min(560px, calc(100vh - 24px))",
           background: "linear-gradient(180deg, rgba(26,29,35,0.30) 0%, rgba(15,17,21,0.22) 100%)",
@@ -977,12 +986,12 @@ function MessageRow({ m, sameAuthor, currentUserId, messages, cosmeticArt, onRep
           )}
           {moreOpen && menuPos && typeof document !== "undefined" && createPortal(
             <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 100000 }} onClick={() => setMoreOpen(false)} />
+              <div style={{ position: "fixed", inset: 0, zIndex: Z.chat + 99 }} onClick={() => setMoreOpen(false)} />
               <div
                 className="rounded-xl shadow-2xl flex items-stretch p-1 gap-0.5"
                 style={{
                   position: "fixed",
-                  zIndex: 100001,
+                  zIndex: Z.chat + 100,
                   ...(isOwn ? { right: menuPos.right } : { left: menuPos.left }),
                   top: Math.max(8, menuPos.top - 56),
                   background: "rgba(15,17,21,0.82)",
@@ -1338,11 +1347,8 @@ function RallyComposer({ roomId, onClose, onSent }: { roomId: string; onClose: (
         return;
       } catch { /* fallback */ }
       try {
-        const r = await fetch("/api/base/me", { cache: "no-store" });
-        if (r.ok) {
-          const j = await r.json() as { base?: { lat?: number; lng?: number } };
-          if (j.base?.lat && j.base?.lng) setCoords({ lat: j.base.lat, lng: j.base.lng });
-        }
+        const j = await fetchBaseMe() as { base?: { lat?: number; lng?: number } } | null;
+        if (j?.base?.lat && j?.base?.lng) setCoords({ lat: j.base.lat, lng: j.base.lng });
       } catch { /* noop */ }
     })();
   }, []);

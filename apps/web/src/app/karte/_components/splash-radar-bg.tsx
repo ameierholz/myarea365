@@ -13,6 +13,7 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { fetchBaseMe } from "@/lib/base-me-cache";
 
 const FALLBACK_CENTER: [number, number] = [13.405, 52.52];
 
@@ -66,12 +67,11 @@ export function SplashRadarBg() {
     mapRef.current = map;
 
     map.once("load", () => {
-      // Hole User-Base-Position async (gecached vom Splash-Pre-Loader).
+      // Hole User-Base-Position aus shared cache (vom Splash-Pre-Loader gefüllt).
       void (async () => {
         try {
-          const r = await fetch(`/api/base/me?v=2`, { cache: "no-cache" });
-          if (!r.ok) throw new Error("no base");
-          const j = await r.json() as { base?: { lat?: number | null; lng?: number | null } };
+          const j = await fetchBaseMe() as { base?: { lat?: number | null; lng?: number | null } } | null;
+          if (!j) throw new Error("no base");
           const lat = j.base?.lat;
           const lng = j.base?.lng;
           if (typeof lat === "number" && typeof lng === "number" && mapRef.current) {

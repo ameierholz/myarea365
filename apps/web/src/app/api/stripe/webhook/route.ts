@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient as createAdminClient, type SupabaseClient } from "@supabase/supabase-js";
-import { BOOST_PACKS, XP_PACKS, PLANS } from "@/lib/monetization";
+import { PLANS } from "@/lib/monetization";
+import { normalizePlaystyle, type PlaystyleId } from "@/lib/playstyles";
 import type Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -89,12 +90,20 @@ export async function POST(req: NextRequest) {
           : null,
       }).eq("id", userId);
     }
-    if (sku?.startsWith("badge_") && userId) {
-      const active = sub.status === "active" || sub.status === "trialing";
-      const tier = sku === "badge_gold" ? "gold" : sku === "badge_silver" ? "silver" : "bronze";
-      await admin().from("users").update({
-        supporter_tier: active ? tier : null,
-      }).eq("id", userId);
+    // 3 SKU-Tier-Subs aus monetization_subscriptions
+    if (sku?.startsWith("subscription:") && userId) {
+      const subId = sku.split(":")[1];
+      const isActive = sub.status === "active" || sub.status === "trialing";
+      const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end;
+      await admin().from("monetization_subscription_status").upsert({
+        user_id: userId,
+        subscription_id: subId,
+        status: isActive ? "active" : "cancelled",
+        next_renewal_at: isActive && typeof periodEnd === "number"
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        cancelled_at: isActive ? null : new Date().toISOString(),
+      }, { onConflict: "user_id,subscription_id" });
     }
   }
 
@@ -119,11 +128,16 @@ async function activateFromSession(session: Stripe.Checkout.Session): Promise<Ne
     stripe_payment_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
   }).eq("stripe_session_id", session.id);
 
-  await applyPurchaseEffect(sku, userId, crewId, businessId);
+  const wahlboxChoice = session.metadata?.wahlbox_choice ?? null;
+  await applyPurchaseEffect(sku, userId, crewId, businessId, { wahlboxChoice });
   return null;
 }
 
-async function applyPurchaseEffect(sku: string, userId: string, crewId: string | null, businessId: string | null = null) {
+async function applyPurchaseEffect(
+  sku: string, userId: string, crewId: string | null,
+  businessId: string | null = null,
+  extras: { wahlboxChoice?: string | null } = {},
+) {
   const sb = admin();
   if (sku === "plus_monthly" || sku === "plus_yearly") {
     const plan = (PLANS as Record<string, { duration_days: number | null }>)[sku];
@@ -146,16 +160,6 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
       plan: "pro",
       plan_expires_at: expiresAt,
     }).eq("id", crewId);
-    return;
-  }
-  if (sku.startsWith("boost_")) {
-    const pack = (BOOST_PACKS as Record<string, { hours: number; multiplier: number }>)[sku];
-    if (pack) {
-      await sb.from("users").update({
-        xp_boost_until: new Date(Date.now() + pack.hours * 3600000).toISOString(),
-        xp_boost_multiplier: pack.multiplier,
-      }).eq("id", userId);
-    }
     return;
   }
   if (sku === "crew_boost_24h") {
@@ -192,8 +196,21 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
     const { findGemBundle, totalGemsOfBundle } = await import("@/lib/gem-bundles");
     const bundle = findGemBundle(sku);
     if (bundle) {
-      const add = totalGemsOfBundle(bundle);
-      // upsert user_gems, dann inkrementieren
+      let add = totalGemsOfBundle(bundle);
+      // First-Purchase-Bonus +100% Gems
+      const { data: u } = await sb.from("users").select("first_purchase_at, first_purchase_bonus_used, total_gems_purchased").eq("id", userId).maybeSingle<{ first_purchase_at: string | null; first_purchase_bonus_used: boolean; total_gems_purchased: number }>();
+      const isFirstPurchase = !u?.first_purchase_at && !u?.first_purchase_bonus_used;
+      let firstPurchaseBonus = 0;
+      if (isFirstPurchase) {
+        firstPurchaseBonus = add; // +100%
+        add += firstPurchaseBonus;
+        await sb.from("users").update({
+          first_purchase_at: new Date().toISOString(),
+          first_purchase_bonus_used: true,
+        }).eq("id", userId);
+        // Popup-Trigger (best-effort)
+        try { await sb.rpc("grant_popup_for_event", { p_user_id: userId, p_event: "first_purchase" }); } catch { /* ignore */ }
+      }
       await sb.from("user_gems").upsert(
         { user_id: userId, gems: 0, total_purchased: 0 },
         { onConflict: "user_id", ignoreDuplicates: true },
@@ -205,79 +222,136 @@ async function applyPurchaseEffect(sku: string, userId: string, crewId: string |
         total_purchased: (existing?.total_purchased ?? 0) + add,
         updated_at: new Date().toISOString(),
       }).eq("user_id", userId);
+      // Tracker für Recharge-Milestones
+      await sb.from("users").update({ total_gems_purchased: (u?.total_gems_purchased ?? 0) + add }).eq("id", userId);
       await sb.from("gem_transactions").insert({
         user_id: userId, delta: add, reason: "stripe_purchase",
-        metadata: { sku, base: bundle.gems, bonus: bundle.bonus, price_cents: bundle.price_cents },
+        metadata: { sku, base: bundle.gems, bonus: bundle.bonus, first_purchase_bonus: firstPurchaseBonus, price_cents: bundle.price_cents },
       });
     }
     return;
   }
 
-  if (sku.startsWith("xp_")) {
-    // Legacy-SKU „xp_*" — ab 00046 werden Käufe als Wegemünzen gutgeschrieben.
-    const pack = (XP_PACKS as Record<string, { xp: number }>)[sku];
-    if (pack) {
-      const { data: u } = await sb.from("users").select("wegemuenzen").eq("id", userId).single();
-      await sb.from("users").update({ wegemuenzen: (u?.wegemuenzen ?? 0) + pack.xp }).eq("id", userId);
+  // ═══ Battle-Pass-Unlock ═══
+  if (sku.startsWith("battle_pass:")) {
+    // SKU-Format: "battle_pass:<season_id>:<track>"
+    const parts = sku.split(":");
+    const seasonId = parts[1];
+    const track = parts[2];
+    if (seasonId && (track === "premium" || track === "premium_plus")) {
+      await sb.rpc("unlock_battle_pass_track", {
+        p_user_id: userId, p_season_id: seasonId, p_track: track,
+      });
     }
     return;
   }
-  if (sku === "streak_pack_5" || sku === "streak_pack_15") {
-    const add = sku === "streak_pack_15" ? 15 : 5;
-    const { data: u } = await sb.from("users").select("streak_freezes_remaining").eq("id", userId).single();
-    await sb.from("users").update({
-      streak_freezes_remaining: (u?.streak_freezes_remaining ?? 0) + add,
-    }).eq("id", userId);
+
+  // ═══ Monthly Pack ═══
+  if (sku.startsWith("monthly_pack:")) {
+    const packSku = sku.split(":")[1];
+    if (packSku) {
+      await sb.from("user_monthly_packs").insert({
+        user_id: userId, sku: packSku, started_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+      });
+    }
     return;
   }
-  if (sku === "shout_pack_10") {
-    const { data: u } = await sb.from("users").select("shouts_remaining").eq("id", userId).single();
-    await sb.from("users").update({ shouts_remaining: (u?.shouts_remaining ?? 0) + 10 }).eq("id", userId);
+
+  // ═══ Growth Fund ═══
+  if (sku === "growth_fund" || sku.startsWith("growth_fund:")) {
+    await sb.from("user_growth_fund").upsert({
+      user_id: userId, purchased_at: new Date().toISOString(), total_paid_cents: 999,
+    }, { onConflict: "user_id" });
     return;
   }
-  if (sku === "golden_trail" || sku === "neon_trail") {
-    await sb.from("users").update({ equipped_trail: sku }).eq("id", userId);
+
+  // ═══ Saisonale / Themed / Gem-Tier-Packs ═══
+  if (sku.startsWith("seasonal:") || sku.startsWith("themed:") || sku.startsWith("gem_tier:")) {
+    const [kind, dealId] = sku.split(":");
+    // Pack laden + rewards.gems gutschreiben (vereinfacht)
+    const tableName = kind === "seasonal" ? "monetization_seasonal_packs"
+      : kind === "themed" ? "monetization_themed_packs"
+      : "monetization_gem_tiers";
+    const { data: pack } = await sb.from(tableName).select("rewards, bonus_gems, gems_total").eq("id", dealId).maybeSingle<{ rewards?: Record<string, number>; bonus_gems?: number; gems_total?: number }>();
+    if (pack) {
+      const gems = (pack.gems_total ?? 0) + (pack.bonus_gems ?? 0);
+      if (gems > 0) {
+        await sb.from("user_gems").upsert({ user_id: userId, gems: 0, total_purchased: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
+        const { data: existing } = await sb.from("user_gems").select("gems, total_purchased").eq("user_id", userId).maybeSingle<{ gems: number; total_purchased: number }>();
+        await sb.from("user_gems").update({
+          gems: (existing?.gems ?? 0) + gems, total_purchased: (existing?.total_purchased ?? 0) + gems,
+          updated_at: new Date().toISOString(),
+        }).eq("user_id", userId);
+      }
+      // RSS aus rewards-blob
+      if (pack.rewards) {
+        const r = pack.rewards;
+        const wood = Number(r.wood ?? 0); const stone = Number(r.stone ?? 0);
+        const gold = Number(r.gold ?? 0); const mana = Number(r.mana ?? 0);
+        const speed = Number(r.speed_token ?? 0);
+        if (wood + stone + gold + mana + speed > 0) {
+          try {
+            await sb.rpc("add_resources_to_user", { p_user_id: userId, p_wood: wood, p_stone: stone, p_gold: gold, p_mana: mana, p_speed_token: speed });
+          } catch {
+            await sb.from("user_resources").update({ wood, stone, gold, mana, speed_tokens: speed }).eq("user_id", userId);
+          }
+        }
+      }
+      try {
+        await sb.from("monetization_themed_pack_purchases").insert({
+          user_id: userId, pack_id: dealId, kind, purchased_at: new Date().toISOString(),
+        });
+      } catch { /* table evtl. anders */ }
+    }
     return;
   }
-  if (sku === "aura_effect") {
-    await sb.from("users").update({ aura_until: new Date(Date.now() + 30 * 86400000).toISOString() }).eq("id", userId);
+
+  // ═══ Subscription (3 Tier-SKUs) ═══
+  if (sku.startsWith("subscription:")) {
+    const subId = sku.split(":")[1];
+    if (subId) {
+      await sb.from("monetization_subscription_status").upsert({
+        user_id: userId, subscription_id: subId,
+        status: "active", started_at: new Date().toISOString(),
+        next_renewal_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+      }, { onConflict: "user_id,subscription_id" });
+    }
     return;
   }
-  if (sku === "rainbow_name") {
-    await sb.from("users").update({ rainbow_name_until: new Date(Date.now() + 30 * 86400000).toISOString() }).eq("id", userId);
-    return;
-  }
-  if (sku === "victory_dance") {
-    await sb.from("users").update({ victory_dance_enabled: true }).eq("id", userId);
-    return;
-  }
-  if (sku === "map_cyberpunk" || sku === "map_retro") {
-    await sb.from("users").update({ map_theme: sku }).eq("id", userId);
-    return;
-  }
-  if (sku === "ghost_mode") {
-    const { data: u } = await sb.from("users").select("ghost_mode_charges").eq("id", userId).single();
-    await sb.from("users").update({ ghost_mode_charges: (u?.ghost_mode_charges ?? 0) + 1 }).eq("id", userId);
-    return;
-  }
-  if (sku === "double_claim") {
-    const { data: u } = await sb.from("users").select("double_claim_charges").eq("id", userId).single();
-    await sb.from("users").update({ double_claim_charges: (u?.double_claim_charges ?? 0) + 1 }).eq("id", userId);
-    return;
-  }
-  if (sku === "reclaim_ticket") {
-    const { data: u } = await sb.from("users").select("reclaim_tickets").eq("id", userId).single();
-    await sb.from("users").update({ reclaim_tickets: (u?.reclaim_tickets ?? 0) + 1 }).eq("id", userId);
-    return;
-  }
-  if (sku === "explorer_compass") {
-    await sb.from("users").update({ explorer_compass_until: new Date(Date.now() + 7 * 86400000).toISOString() }).eq("id", userId);
-    return;
-  }
+
+  // Spielstil-Wechsel — Cycle durch architect → warlord → strategist → diplomat
   if (sku === "faction_switch") {
     const { data: u } = await sb.from("users").select("faction").eq("id", userId).single();
-    const newFaction = (u?.faction === "syndicate" || u?.faction === "gossenbund") ? "kronenwacht" : "gossenbund";
-    await sb.from("users").update({ faction: newFaction, faction_switch_at: new Date().toISOString() }).eq("id", userId);
+    const current: PlaystyleId | null = normalizePlaystyle(u?.faction);
+    const order: PlaystyleId[] = ["architect", "warlord", "strategist", "diplomat"];
+    const idx = current ? order.indexOf(current) : -1;
+    const next = order[(idx + 1) % order.length];
+    await sb.from("users").update({ faction: next, faction_switch_at: new Date().toISOString() }).eq("id", userId);
+    return;
+  }
+  // mystery_box — User wählt im Frontend, Wahl wandert via session.metadata
+  if (sku === "mystery_box") {
+    const choice = extras.wahlboxChoice;
+    if (!choice) return;
+    // Wahl-Inhalte: speed_token | gem_pack_small | rss_pack | gem_pack_large
+    if (choice === "speed_token") {
+      await sb.from("user_resources").update({ speed_tokens: 5 }).eq("user_id", userId);
+    } else if (choice === "gem_pack_small") {
+      await sb.from("user_gems").upsert({ user_id: userId, gems: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
+      const { data: ex } = await sb.from("user_gems").select("gems").eq("user_id", userId).maybeSingle<{ gems: number }>();
+      await sb.from("user_gems").update({ gems: (ex?.gems ?? 0) + 250 }).eq("user_id", userId);
+    } else if (choice === "gem_pack_large") {
+      await sb.from("user_gems").upsert({ user_id: userId, gems: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
+      const { data: ex } = await sb.from("user_gems").select("gems").eq("user_id", userId).maybeSingle<{ gems: number }>();
+      await sb.from("user_gems").update({ gems: (ex?.gems ?? 0) + 600 }).eq("user_id", userId);
+    } else if (choice === "rss_pack") {
+      try { await sb.rpc("add_resources_to_user", { p_user_id: userId, p_wood: 5000, p_stone: 5000, p_gold: 5000, p_mana: 5000, p_speed_token: 0 }); } catch { /* RPC evtl. nicht da */ }
+    }
+    await sb.from("gem_transactions").insert({
+      user_id: userId, delta: 0, reason: "mystery_box_choice",
+      metadata: { sku, choice },
+    });
     return;
   }
 

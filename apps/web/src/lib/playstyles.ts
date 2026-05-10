@@ -3,7 +3,20 @@
 //
 // Konzept: Country / Stadt / Dorf / Crews / Banden — Strategie-Aufbauspiel.
 // Die 4 Archetypen geben dem Spieler einen klaren Rollen-Fokus + sanften Soft-Buff.
-// Buffs sind initial nur "deklariert" — Aktivierung in späterer Migration (siehe TODO).
+//
+// Aktivierung in Migration 00289_playstyle_buffs.sql — Helper-Function
+// public.playstyle_buff(uid, kind) wird in start_building, start_research,
+// _collect_one_building, _reserve_user_troops, spy_player_base,
+// tick_gather_marches, donate_to_crew_member aufgerufen.
+//
+// LIVE-Buffs (in DB aktiv):
+//   architect:  -5% Bauzeit, +5% Resourcen-Yield
+//   warlord:    +5% Truppen-Damage, +5% Plünder-Beute
+//   strategist: -5% Forschungszeit, Spionage gratis (statt 500 Gold)
+//   diplomat:   +10% Wert deiner Crew-Spenden
+//
+// PHASE-4 (Stub im Helper, Mechanik kommt mit Don-System):
+//   diplomat: erweiterte Don-Aura-Reichweite
 
 export type PlaystyleId = "architect" | "warlord" | "strategist" | "diplomat";
 
@@ -31,8 +44,8 @@ export const PLAYSTYLES: Record<PlaystyleId, PlaystyleMeta> = {
     motto: "Wirtschaft · Aufbau",
     buff_name: "Meisterbau",
     buff_lines: [
-      "+5 % Bau-Geschwindigkeit deiner Gebäude",
-      "+5 % Resourcen-Produktion in deiner Heimat-Stadt",
+      "−5 % Bauzeit aller Gebäude",
+      "+5 % Yield beim Einsammeln deiner Produktions-Gebäude",
     ],
   },
   warlord: {
@@ -43,8 +56,8 @@ export const PLAYSTYLES: Record<PlaystyleId, PlaystyleMeta> = {
     motto: "Krieg · Eroberung",
     buff_name: "Schlachtruf",
     buff_lines: [
-      "+5 % Wächter-Schaden im Aufgebot",
-      "+5 % Beute beim Plündern von Wegelagern",
+      "+5 % Truppen-Damage in Rallies und Aufgeboten",
+      "+5 % Beute aus Wegelager-Plünderzügen",
     ],
   },
   strategist: {
@@ -55,8 +68,8 @@ export const PLAYSTYLES: Record<PlaystyleId, PlaystyleMeta> = {
     motto: "Forschung · Spionage",
     buff_name: "Vorausschau",
     buff_lines: [
-      "+5 % Forschungs-Geschwindigkeit",
-      "Tarn-Bonus bei Spionage-Marschen auf andere Crews",
+      "−5 % Forschungszeit",
+      "Spionage kostet dich 0 Krypto (statt 500)",
     ],
   },
   diplomat: {
@@ -67,8 +80,8 @@ export const PLAYSTYLES: Record<PlaystyleId, PlaystyleMeta> = {
     motto: "Crew · Allianzen",
     buff_name: "Verbündete",
     buff_lines: [
-      "+10 % Crew-Beitrag bei gemeinsamen Aktionen",
-      "Erweiterte Reichweite der Don-Aura wenn deine Crew herrscht",
+      "+10 % Wert deiner Resourcen-Spenden an Crew-Mitglieder",
+      "Erweiterte Don-Aura-Reichweite (in Vorbereitung — Phase 4)",
     ],
   },
 };

@@ -1,12 +1,18 @@
 /**
- * Öffentliche Drop-Rate-Transparenz (EU DSA / Loot-Box-Gesetzgebung).
+ * Öffentliche Drop-Rate-Transparenz (EU Digital Fairness Act,
+ * Belgien KGBC 2018, Niederlande KSA, Spanien Ley 13/2011).
  *
- * Auch wenn alle Drops in MyArea365 GRATIS sind (kein Geld-Einsatz),
- * legen wir proaktiv sämtliche Drop-Chancen und Rewards offen.
- * Diese Datei ist die "Single Source of Truth" und wird 1:1 auf
- * /loot-drops gerendert.
+ * Auswahl-Prinzip: Sämtliche kostenpflichtigen Box-Käufe in MyArea365
+ * sind deterministisch — der Käufer sieht VOR der Bezahlung, was er
+ * bekommt. Es gibt keine bezahlten Loot-Boxen mit Zufallsinhalt.
  *
- * Änderungen an DB-Drop-Tabellen MÜSSEN hier gespiegelt werden.
+ * Gratis-Belohnungen aus Wächter-Arena, Wegelager-Plünderung und
+ * Boss-Raids sind leistungs-basiert (proportional zum eigenen
+ * Schaden) — kein Zufalls-Roll, alle Werte hier offen einsehbar.
+ *
+ * Diese Datei ist die Single Source of Truth und wird 1:1 auf
+ * /loot-drops gerendert. Änderungen an DB-Drop-Tabellen MÜSSEN hier
+ * gespiegelt werden.
  */
 
 export type LootRarity = "none" | "common" | "rare" | "epic" | "legend";
@@ -28,65 +34,31 @@ export const RARITY_COLOR: Record<LootRarity, string> = {
 };
 
 /**
- * 1️⃣ Deal-Redemption-Loot (nach QR-Einlösung bei Partner-Shop)
- * Server-RPC: award_redemption_loot (Migration 00017)
- * Roll nach random() — Chancen und Rewards identisch in DB hinterlegt.
+ * 1️⃣ Auswahl-Prinzip — Übersicht aller kostenpflichtigen Box-Käufe
+ *
+ * Jeder dieser Artikel ist deterministisch: der Käufer sieht VOR der
+ * Bezahlung den exakten Inhalt. Damit fallen sie nicht unter die
+ * Loot-Box-Regulierung von BE/NL/ES.
  */
-export const REDEMPTION_LOOT_TABLE: Array<{
-  rarity: LootRarity;
-  chance_pct: number;
-  xp_reward: number;
-  note?: string;
+export const PAID_DETERMINISTIC_ITEMS: Array<{
+  icon: string;
+  title: string;
+  mechanic: string;
 }> = [
-  { rarity: "none",   chance_pct: 60.0, xp_reward: 0,    note: "Kein Wächter-Loot dieses Mal" },
-  { rarity: "common", chance_pct: 25.0, xp_reward: 100 },
-  { rarity: "rare",   chance_pct: 10.0, xp_reward: 300 },
-  { rarity: "epic",   chance_pct:  4.0, xp_reward: 800 },
-  { rarity: "legend", chance_pct:  1.0, xp_reward: 2500 },
+  { icon: "💎", title: "Diamanten-Pakete",      mechanic: "Feste Diamanten-Menge pro Preis (z. B. 500 💎 für € 4,99). Kein Roll." },
+  { icon: "🎁", title: "Wahl-Box (€ 2,99)",     mechanic: "User wählt VOR dem Kauf eine von aktuell 11 fixen Belohnungen aus." },
+  { icon: "🎫", title: "Monthly Pass",           mechanic: "Täglicher Reward + monatliche Diamanten — feste Liste, kein Zufall." },
+  { icon: "📦", title: "Tagesangebote (Bronze/Silber/Gold/SUPER)", mechanic: "Jedes Bundle hat fest definierte Items + Diamanten (gelegentlich mit Kosmetik-Bonus). Inhalt sichtbar vor Kauf." },
 ];
 
 /**
- * 2️⃣ Equipment-Drop bei Rare+ Redemption-Loot
- * Server-RPC: drop_equipment_item (Migration 00018).
- * Zusätzlich zu XP bekommt der Runner ab "rare" ein zufälliges
- * Item aus item_catalog in der gleichen Rarity-Klasse.
- */
-export const EQUIPMENT_DROP_NOTE =
-  "Bei Rare / Epic / Legendary zusätzlich: 1 zufälliges Equipment-Item " +
-  "aus dem Item-Katalog der gleichen Rarity-Klasse. Slot (Helm/Rüstung/Amulett) " +
-  "sowie Stats (Leben/Angriff/Verteidigung/Tempo) sind pro Item fest im Katalog hinterlegt.";
-
-/**
- * 3️⃣ Map-Loot-Drops (Kisten auf der Karte)
- * Client-Spawn alle 90-120s in 450m Radius um User.
- * Rarity-Verteilung durch gewichtetes Array:
- *   common × 63 + rare × 25 + epic × 10 + legendary × 2
- * => 63% / 25% / 10% / 2%  (Legendary "mega selten")
- * Auto-Pickup bei ≤30m Entfernung.
- */
-export const MAP_LOOT_CRATE_TABLE: Array<{
-  rarity: LootRarity;
-  chance_pct: number;
-  reward: string;
-  kinds: string[];
-}> = [
-  { rarity: "common", chance_pct: 63.0, reward: "Resourcen + kleine Diamanten",  kinds: ["📦 Tech-Schrott / Komponenten / Krypto"] },
-  { rarity: "rare",   chance_pct: 25.0, reward: "Resourcen + Speed-Boost",        kinds: ["🎁 Bauzeit-Verkürzer", "🎁 Wahl-Box-Ticket"] },
-  { rarity: "epic",   chance_pct: 10.0, reward: "Diamanten-Paket + Material",     kinds: ["💎 Diamanten-Drop", "💎 Wahl-Box-Ticket"] },
-  { rarity: "legend", chance_pct:  2.0, reward: "Großes Diamanten-Paket + Siegel", kinds: ["👑 Wahl-Box-Ticket"] },
-];
-
-/**
- * 4️⃣ Wahl-Box (Shop-Kauf € 2,99)
+ * 2️⃣ Wahl-Box (€ 2,99) — Auswahl-Prinzip
  *
- * **Umbau April 2026:** Die ehemals randomisierte „Mystery-Box" wurde durch eine
- * deterministische Wahl-Box ersetzt — User wählt VOR dem Kauf eine von 11 fixen
- * Belohnungen. Damit fällt das Produkt explizit nicht mehr unter die Loot-Box-
- * Regulierung von Belgien (KGBC 2018), Niederlande (KSA), Spanien
- * (Ley 13/2011) und die kommenden EU Digital-Fairness-Act-Regeln.
- *
- * Liste rein zur Transparenz — der User sieht sie auch direkt im Shop-Modal
- * vor dem Klick auf „Auswählen".
+ * Umbau April 2026: ehemals randomisierte „Mystery-Box" wurde zur
+ * deterministischen Wahl-Box. User wählt VOR dem Kauf eine von 11
+ * Belohnungen — kein Zufalls-Roll, keine Loot-Mechanik im rechtlichen
+ * Sinne. Liste rein zur Transparenz; sie ist im Shop-Modal direkt
+ * vor dem Klick auf „Auswählen" sichtbar.
  */
 export const WAHL_BOX_OPTIONS: Array<{ icon: string; title: string; value: string }> = [
   { icon: "💎", title: "500 Diamanten",          value: "Direkt aufs Konto" },
@@ -103,23 +75,25 @@ export const WAHL_BOX_OPTIONS: Array<{ icon: string; title: string; value: strin
 ];
 
 /**
- * 5️⃣ Arena/PvP-Win-Loot (automatisch nach 3-Sieg-Streak)
- * Wächter fusioniert + trophy unlock, keine Random-Rolls.
- * 100% deterministisch.
+ * 3️⃣ Arena, Wegelager & Boss-Raid-Loot (GRATIS, leistungs-basiert)
+ *
+ * Wächter-Arena = deterministisch (1-Sieg, 3-Sieg-Streak).
+ * Wegelager-Plünderung + Boss-Raid = anteilig zum eigenen Schaden.
  */
 export const ARENA_WIN_REWARDS: Array<{ condition: string; reward: string }> = [
-  { condition: "1. Sieg in Wächter-Arena",     reward: "+500 Wächter-XP (garantiert) + 1 Siegel" },
-  { condition: "3-Sieg-Streak gleicher Gegner", reward: "Legendary Trophy + Wächter-Fusion" },
-  { condition: "Wegelager-Plünderung (Crew-Raid)", reward: "Loot proportional zum eigenen Schaden — Tech-Schrott / Komponenten / Diamanten / Siegel" },
-  { condition: "Boss-Raid Beteiligung",         reward: "Anteilig 100-5000 XP je nach Schaden + Legendary Loot bei Sieg" },
+  { condition: "1. Sieg in Wächter-Arena",         reward: "+500 Wächter-XP (garantiert) + 1 Siegel" },
+  { condition: "3-Sieg-Streak gleicher Gegner",     reward: "Legendary Trophy + Wächter-Fusion" },
+  { condition: "Wegelager-Plünderung (Crew-Raid)",  reward: "Loot proportional zum eigenen Schaden — Tech-Schrott / Komponenten / Diamanten / Siegel" },
+  { condition: "Boss-Raid Beteiligung",             reward: "Anteilig 100-5000 XP je nach Schaden + Legendary Loot bei Sieg" },
 ];
 
 /**
- * 6️⃣ Saison-Belohnungen (deterministisch, nicht zufällig)
+ * 4️⃣ Saison-Belohnungen (deterministisch, nicht zufällig)
  *
- * Die drei Saison-Systeme verteilen am Ende jeder Saison feste Belohnungen
- * an die Top-Plätze. Quelle: season_reward_tiers (in /admin/seasons live
- * editierbar). Hier sind die aktuell aktiven Werte gespiegelt.
+ * Die drei Saison-Systeme verteilen am Ende jeder Saison feste
+ * Belohnungen an Top-Plätze. Quelle: season_reward_tiers
+ * (in /admin/seasons live editierbar). Hier sind die aktuell
+ * aktiven Werte gespiegelt.
  */
 export const SEASON_REWARDS_TABLE: Array<{
   system: string;
@@ -149,15 +123,16 @@ export const SEASON_REWARDS_TABLE: Array<{
 export const LOOT_DISCLOSURE_META = {
   last_updated: "2026-05-09",
   legal_note:
-    "MyArea365 verkauft keine kostenpflichtigen Loot-Boxen mit Zufallsinhalt. " +
-    "Die kostenpflichtige Wahl-Box (€ 2,99) ist deterministisch — der User wählt " +
-    "VOR dem Kauf, was er bekommt; kein Zufalls-Roll. Diamanten-Pakete sind " +
-    "ebenfalls deterministisch (feste Diamanten-Menge pro Preis). Alle übrigen " +
-    "Zufalls-Drops (Karten-Truhen, Wegelager-Loot, Arena-Belohnungen) sind " +
-    "gratis und werden durch Spielen erworben. Trotzdem legen wir vollständig " +
-    "offen, was mit welcher Chance droppen kann. Transparenz ist Pflicht — auch " +
-    "bei Gratis-Mechaniken. Belgien (KGBC 2018), Niederlande (KSA) und Spanien " +
-    "(Ley 13/2011) haben bezahlte Loot-Boxen bereits reguliert; die EU plant " +
-    "im Rahmen des Digital Fairness Act verbindliche Transparenz-Regeln.",
+    "MyArea365 verkauft keine Loot-Boxen mit Zufallsinhalt. Jeder " +
+    "kostenpflichtige Box-Kauf folgt dem Auswahl-Prinzip — der Käufer " +
+    "sieht VOR der Bezahlung exakt, was er bekommt (Diamanten-Pakete, " +
+    "Wahl-Box € 2,99, Monthly Pass, Tagesangebote). Damit fallen " +
+    "unsere Käufe explizit nicht unter die Loot-Box-Regulierung von " +
+    "Belgien (KGBC 2018), Niederlande (KSA) oder Spanien (Ley 13/2011). " +
+    "Bei den GRATIS-Mechaniken (Wächter-Arena, Wegelager-Plünderung, " +
+    "Boss-Raids) sind die Belohnungen leistungs-basiert (proportional " +
+    "zum eigenen Schaden) — alle Werte sind hier offen einsehbar. " +
+    "Wir gehen damit über die kommenden EU-Digital-Fairness-Act-Regeln " +
+    "hinaus.",
   contact: "a.meierholz@gmail.com",
 } as const;

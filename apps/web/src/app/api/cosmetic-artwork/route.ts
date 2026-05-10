@@ -77,6 +77,6 @@ export async function GET() {
   }
   return NextResponse.json(
     { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop, base_ring, loot_drop, resource_node, inventory_item, modal_background },
-    { headers: { "Cache-Control": "no-store" } }
+    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } }
   );
 }

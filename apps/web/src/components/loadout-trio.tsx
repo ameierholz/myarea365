@@ -18,6 +18,7 @@ import { LightTrailPreview } from "@/components/light-trail-preview";
 import { PinThemePreview } from "@/components/pin-theme-preview";
 import { NameplatePickerModal } from "@/components/nameplate-picker-modal";
 import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
+import { fetchAllArt } from "@/components/resource-icon";
 import { BaseRingPickerModal } from "@/components/base-ring-picker-modal";
 import { useNameplateArt, useBaseThemeArt } from "@/components/resource-icon";
 
@@ -84,8 +85,8 @@ export function LoadoutTrio({
     if (res.ok) setCol(await res.json() as CollectionResponse);
   }
   async function loadArt() {
-    const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
-    if (res.ok) setCosmeticArt(await res.json());
+    const j = await fetchAllArt();
+    if (j) setCosmeticArt(j as unknown as typeof cosmeticArt);
   }
   async function loadTheme() {
     const res = await fetch("/api/shop/pin-theme");
@@ -99,12 +100,12 @@ export function LoadoutTrio({
   }
   async function loadBaseAndNameplate() {
     try {
-      const [tRes, rRes, nRes, aRes] = await Promise.all([
+      const [tRes, rRes, nRes] = await Promise.all([
         fetch("/api/base/theme", { cache: "no-store" }),
         fetch("/api/base/ring", { cache: "no-store" }),
         fetch("/api/nameplates", { cache: "no-store" }),
-        fetch("/api/cosmetic-artwork", { cache: "no-store" }),
       ]);
+      void fetchAllArt();
       if (tRes.ok) {
         const j = await tRes.json() as { themes: Array<{ id: string; name: string; pin_emoji?: string; emoji?: string; rarity: string; pin_color?: string; accent_color?: string }>; active_theme_id: string };
         const cur = j.themes.find((t) => t.id === j.active_theme_id) ?? null;
@@ -121,18 +122,13 @@ export function LoadoutTrio({
         if (cur) setNameplate({ id: cur.id, name: cur.name, emoji: cur.preview_emoji, rarity: cur.rarity });
         else setNameplate(null);
       }
-      if (aRes.ok) {
-        await aRes.json();
-      }
     } catch {}
   }
   // Base-Ring artwork separat nachziehen (für Tile-Vorschau)
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/cosmetic-artwork", { cache: "no-store" }).then(async (r) => {
-      if (!r.ok || cancelled) return;
-      const j = await r.json() as { base_ring?: Record<string, { image_url: string | null; video_url: string | null }> };
-      if (cancelled || !baseRing) return;
+    void fetchAllArt().then((j) => {
+      if (cancelled || !baseRing || !j) return;
       setBaseRingArt(j.base_ring?.[baseRing.id] ?? null);
     });
     return () => { cancelled = true; };

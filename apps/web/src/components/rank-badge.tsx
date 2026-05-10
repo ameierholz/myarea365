@@ -2,31 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { RUNNER_RANKS } from "@/lib/game-config";
+import { fetchAllArt } from "@/components/resource-icon";
 
 export type RankArtMap = Record<string, { image_url: string | null; video_url: string | null }>;
 
-let _rankArtCache: RankArtMap | null = null;
-const _rankArtListeners = new Set<(m: RankArtMap) => void>();
-let _rankArtFetching = false;
-
 export function useRankArt(): RankArtMap {
-  const [art, setArt] = useState<RankArtMap>(_rankArtCache ?? {});
+  const [art, setArt] = useState<RankArtMap>({});
   useEffect(() => {
-    if (_rankArtCache) { setArt(_rankArtCache); return; }
-    _rankArtListeners.add(setArt);
-    if (!_rankArtFetching) {
-      _rankArtFetching = true;
-      void (async () => {
-        try {
-          const r = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
-          if (!r.ok) return;
-          const j = await r.json() as { rank?: RankArtMap };
-          _rankArtCache = j.rank ?? {};
-          _rankArtListeners.forEach((l) => l(_rankArtCache!));
-        } catch { /* silent */ } finally { _rankArtFetching = false; }
-      })();
-    }
-    return () => { _rankArtListeners.delete(setArt); };
+    let cancelled = false;
+    void fetchAllArt().then((j) => {
+      if (!cancelled && j) setArt(j.rank ?? {});
+    });
+    return () => { cancelled = true; };
   }, []);
   return art;
 }

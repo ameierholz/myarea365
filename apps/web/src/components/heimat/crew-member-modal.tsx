@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Star, Share2, Info } from "lucide-react";
+import { fetchBaseMe } from "@/lib/base-me-cache";
 
 type Stats = {
   ok: boolean;
@@ -177,10 +178,10 @@ function DonateResourcesSubModal({ recipient, onClose, onSuccess }: {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/base/me", { cache: "no-store" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((j: { resources?: { wood?: number; stone?: number; gold?: number; mana?: number } } | null) => {
-        const r = j?.resources;
+    void fetchBaseMe()
+      .then((j) => {
+        const data = j as { resources?: { wood?: number; stone?: number; gold?: number; mana?: number } } | null;
+        const r = data?.resources;
         if (r) setHave({ wood: r.wood ?? 0, stone: r.stone ?? 0, gold: r.gold ?? 0, mana: r.mana ?? 0 });
       })
       .catch(() => {});

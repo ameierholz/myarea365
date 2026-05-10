@@ -426,16 +426,16 @@ function FlyingCoin({
         transform: "translate(0px, 0px) scale(0.4)",
         opacity: 0,
         willChange: "transform, opacity",
-        width: 22, height: 22,
-        marginLeft: -11, marginTop: -11,
+        width: 32, height: 32,
+        marginLeft: -16, marginTop: -16,
         display: "flex", alignItems: "center", justifyContent: "center",
-        filter: `drop-shadow(0 0 6px ${meta.color}aa) drop-shadow(0 2px 4px rgba(0,0,0,0.5))`,
+        filter: `drop-shadow(0 0 8px ${meta.color}bb) drop-shadow(0 2px 5px rgba(0,0,0,0.5))`,
       }}
     >
       {meta.kind ? (
-        <ResourceIcon kind={meta.kind} size={22} fallback={meta.fallback} art={art} />
+        <ResourceIcon kind={meta.kind} size={32} fallback={meta.fallback} art={art} />
       ) : (
-        <span style={{ fontSize: 22, lineHeight: 1 }}>{meta.fallback}</span>
+        <span style={{ fontSize: 32, lineHeight: 1 }}>{meta.fallback}</span>
       )}
     </div>
   );

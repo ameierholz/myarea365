@@ -7,7 +7,7 @@
  *     Anforderungen und SOFORT/VERBESSERN Buttons.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   useResourceArt, useBuildingArt, ResourceIcon,
@@ -16,6 +16,7 @@ import {
 import { LevelTableModal, type LevelRow } from "@/components/level-table-modal";
 import { useRewardFx, getClickPoint } from "@/components/reward-fx";
 import { Modal, Z } from "@/components/ui";
+import { fetchBaseMe, invalidateBaseMe } from "@/lib/base-me-cache";
 
 type Building = {
   id: string;
@@ -180,7 +181,15 @@ const RES_FALLBACK: Record<keyof Resources, { icon: string; color: string }> = {
   speed_tokens:  { icon: "⚡", color: GOLD },
 };
 
-export function BuildModal({ onClose }: { onClose: () => void }) {
+export function BuildModal({
+  onClose,
+  initialBuildingId,
+}: {
+  onClose: () => void;
+  /** Wenn gesetzt: Detail-Sheet für dieses Gebäude öffnet automatisch nach Load
+   *  (für Iso-Scene-Click-Through). */
+  initialBuildingId?: string;
+}) {
   const t = useTranslations("BaseModal");
   const tBld = useTranslations("Buildings");
   const tEff = useTranslations("Effects");
@@ -190,6 +199,18 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [activeCat, setActiveCat] = useState<CategoryKey>("production");
   const [detail, setDetail] = useState<Catalog | null>(null);
+  // Auto-Open Detail bei initialBuildingId (Iso-Scene-Flow)
+  const initialOpenedRef = useRef(false);
+  useEffect(() => {
+    if (initialOpenedRef.current) return;
+    if (!data || !initialBuildingId) return;
+    const cat = data.catalog.find((c) => c.id === initialBuildingId);
+    if (cat) {
+      setActiveCat((cat.category as CategoryKey) ?? "production");
+      setDetail(cat);
+      initialOpenedRef.current = true;
+    }
+  }, [data, initialBuildingId]);
   const [gems, setGems] = useState<number>(0);
   const resourceArt = useResourceArt();
   const buildingArt = useBuildingArt();
@@ -236,8 +257,8 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
    * Skipped wenn `silent=true` (z.B. erstes Load).
    */
   const reload = useCallback(async (silent = false) => {
-    const r = await fetch("/api/base/me", { cache: "no-store" });
-    const next = await r.json() as BaseMe;
+    const next = await fetchBaseMe({ force: true }) as BaseMe | null;
+    if (!next) return;
     setData((prev) => {
       if (!silent && prev) {
         // Detect level-ups (Queue-Finishes via finish_building RPC)
@@ -330,8 +351,8 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
     try {
       const ok = await build(buildingId);
       if (!ok) return;
-      const r = await fetch("/api/base/me", { cache: "no-store" });
-      const fresh = await r.json() as BaseMe;
+      const fresh = await fetchBaseMe({ force: true }) as BaseMe | null;
+      if (!fresh) return;
       setData(fresh);
       const q = fresh.queue.find((qi) => qi.building_id === buildingId);
       if (!q) return;
@@ -474,6 +495,10 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
             overflow: "hidden",
             minHeight: 0,
             flex: 1,
+            // Solider Background — kein Durchschimmern des Karten-Hintergrunds.
+            background: MODAL_BG,
+            // Selber Radius wie ui/Modal, sonst überdeckt der Background die Ecken.
+            borderRadius: "var(--radius-modal)",
           }}
         >
           {/* Ambient warm-Glow + Sparkles für freundlichere Atmosphäre */}
@@ -553,41 +578,87 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
             >×</button>
           </div>
 
-          {/* RESOURCEN */}
+          {/* RESOURCEN — zusammenhängende Glas-Bar mit großen Icons */}
           {data && (
             <div style={{
-              padding: "8px 12px",
-              display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6,
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              padding: "10px 12px",
               flexShrink: 0,
             }}>
-              {(["wood", "stone", "gold", "mana"] as const).map((k) => (
-                <div key={k} style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 8, padding: "5px 4px",
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
-                }}>
-                  <ResourceIcon kind={k} size={20} fallback={RES_FALLBACK[k].icon} art={resourceArt} />
-                  <div style={{
-                    fontSize: 10, fontWeight: 900, color: RES_FALLBACK[k].color,
-                    fontVariantNumeric: "tabular-nums",
-                  }}>{compactNum(data.resources[k] ?? 0)}</div>
-                </div>
-              ))}
               <div style={{
-                background: `${GOLD}1f`, border: `1px solid ${GOLD}55`,
-                borderRadius: 8, padding: "5px 4px",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
+                display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+                background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 12,
+                overflow: "hidden",
               }}>
-                <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />
-                <div style={{
-                  fontSize: 10, fontWeight: 900, color: GOLD,
-                  fontVariantNumeric: "tabular-nums",
-                }}>{data.resources.speed_tokens ?? 0}</div>
+                {(["wood", "stone", "gold", "mana"] as const).map((k, i) => (
+                  <div key={k}
+                    data-rss-pill={k}
+                    style={{
+                      padding: "10px 8px",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                      borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                      minWidth: 0,
+                    }}>
+                    <ResourceIcon kind={k} size={44} fallback={RES_FALLBACK[k].icon} art={resourceArt} />
+                    <div style={{
+                      fontSize: 16, fontWeight: 900, color: RES_FALLBACK[k].color,
+                      fontVariantNumeric: "tabular-nums", letterSpacing: -0.3,
+                      textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>{compactNum(data.resources[k] ?? 0)}</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
+
+          {/* KATEGORIE-TABS — oben (Standard für Modal-Tabs) */}
+          <div style={{
+            padding: "0 12px",
+            display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 0,
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            flexShrink: 0,
+          }}>
+            {CATEGORIES.map((cat) => {
+              const isActive = activeCat === cat.key;
+              const availableCount = availableByCat[cat.key] ?? 0;
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveCat(cat.key)}
+                  style={{
+                    position: "relative",
+                    padding: "10px 4px 8px", border: "none",
+                    background: isActive ? `linear-gradient(180deg, ${cat.color}11, transparent)` : "transparent",
+                    borderBottom: isActive ? `2px solid ${cat.color}` : "2px solid transparent",
+                    marginBottom: -1,
+                    cursor: "pointer",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                  }}
+                >
+                  <span style={{
+                    fontSize: 22, lineHeight: 1,
+                    filter: isActive ? `drop-shadow(0 0 6px ${cat.color}88)` : "none",
+                    opacity: isActive ? 1 : 0.7,
+                  }}>{cat.emoji}</span>
+                  <span style={{
+                    fontSize: 9, fontWeight: 900,
+                    color: isActive ? cat.color : MUTED,
+                    letterSpacing: 0.3,
+                  }}>{cat.label}</span>
+                  {availableCount > 0 && !isActive && (
+                    <span style={{
+                      position: "absolute", top: 6, right: "calc(50% - 18px)",
+                      width: 7, height: 7, borderRadius: "50%",
+                      background: cat.color, boxShadow: `0 0 8px ${cat.color}`,
+                      animation: "ma365BuildPulse 1.6s ease-in-out infinite",
+                    }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
           {/* FEHLER */}
           {err && (
@@ -690,16 +761,9 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
             {data && (
               <>
                 <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  marginBottom: 10, padding: "0 2px",
+                  display: "flex", alignItems: "center", justifyContent: "flex-end",
+                  marginBottom: 8, padding: "0 2px",
                 }}>
-                  <div style={{
-                    display: "inline-flex", alignItems: "center", gap: 8,
-                    fontSize: 13, fontWeight: 900, color: TEXT,
-                  }}>
-                    <span style={{ fontSize: 18 }}>{activeMeta.emoji}</span>
-                    <span style={{ letterSpacing: 0.5 }}>{activeMeta.label.toUpperCase()}</span>
-                  </div>
                   <div style={{ fontSize: 10, color: MUTED, fontWeight: 700 }}>
                     {items.filter((i) => builtMap.has(i.id)).length}/{items.length} gebaut
                   </div>
@@ -872,51 +936,6 @@ export function BuildModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          {/* KATEGORIE-BAR */}
-          <div style={{
-            padding: "8px 8px 10px",
-            borderTop: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(0,0,0,0.4)",
-            display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4,
-            flexShrink: 0,
-          }}>
-            {CATEGORIES.map((cat) => {
-              const isActive = activeCat === cat.key;
-              const availableCount = availableByCat[cat.key] ?? 0;
-              return (
-                <button
-                  key={cat.key}
-                  onClick={() => setActiveCat(cat.key)}
-                  style={{
-                    position: "relative",
-                    padding: "8px 4px", borderRadius: 10, border: "none",
-                    background: isActive ? `linear-gradient(180deg, ${cat.color}33, ${cat.color}11)` : "transparent",
-                    borderTop: isActive ? `2px solid ${cat.color}` : "2px solid transparent",
-                    cursor: "pointer",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                  }}
-                >
-                  <span style={{
-                    fontSize: 22, lineHeight: 1,
-                    filter: isActive ? `drop-shadow(0 0 6px ${cat.color}88)` : "none",
-                  }}>{cat.emoji}</span>
-                  <span style={{
-                    fontSize: 9, fontWeight: 900,
-                    color: isActive ? cat.color : MUTED,
-                    letterSpacing: 0.3,
-                  }}>{cat.label}</span>
-                  {availableCount > 0 && !isActive && (
-                    <span style={{
-                      position: "absolute", top: 4, right: "calc(50% - 18px)",
-                      width: 7, height: 7, borderRadius: "50%",
-                      background: cat.color, boxShadow: `0 0 8px ${cat.color}`,
-                      animation: "ma365BuildPulse 1.6s ease-in-out infinite",
-                    }} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </div>
       </Modal>
 
@@ -995,12 +1014,16 @@ function BuildingDetail({
     gold:  Math.round(cat.base_cost_gold  * mult),
     mana:  Math.round(cat.base_cost_mana  * mult),
   };
+  // Speed-Token-Pflicht beim finalen Sprung zur Max-Stufe (= 1 Token pro Max-Upgrade).
+  // Spiegelt server-seitige Logik in start_building (Migration 00291).
+  const speedTokenCost = (targetLvl === cat.max_level && lvl > 0) ? 1 : 0;
+  const haveSpeedTokens = data.resources.speed_tokens ?? 0;
   const canPay = (["wood","stone","gold","mana"] as const)
-    .every((k) => (data.resources[k] ?? 0) >= cost[k]);
+    .every((k) => (data.resources[k] ?? 0) >= cost[k])
+    && haveSpeedTokens >= speedTokenCost;
   const lvlLocked = (data.base?.level ?? 1) < cat.required_base_level;
   const burgCapped = cat.id !== "burg" && !isMax && targetLvl > Math.max(burgLevel, 1);
   const buildTime = cat.base_buildtime_minutes * (lvl === 0 ? 1 : Math.ceil(mult));
-  // SOFORT-Bau: 1 Diamant pro Minute Bauzeit (mind. 1)
   const gemsNeeded = Math.max(1, buildTime);
   const canInstant = canPay && !lvlLocked && !burgCapped && !inQueue && !isMax && gems >= gemsNeeded;
   const canUpgrade = canPay && !lvlLocked && !burgCapped && !inQueue && !isMax;
@@ -1047,6 +1070,8 @@ function BuildingDetail({
           display: "flex", flexDirection: "column",
           overflow: "hidden", minHeight: 0,
           flex: 1,
+          background: MODAL_BG,
+          borderRadius: "var(--radius-modal)",
         }}
       >
         {/* Ambient warm-Glow + Sparkles */}
@@ -1302,6 +1327,26 @@ function BuildingDetail({
                           </div>
                         );
                       })}
+                      {/* Speed-Token-Cost beim Sprung zur Max-Stufe (Lv 24→25 etc.) */}
+                      {speedTokenCost > 0 && (
+                        <div style={{
+                          display: "inline-flex", alignItems: "center", gap: 3,
+                          flexShrink: 0,
+                          padding: "1px 5px",
+                          background: haveSpeedTokens >= speedTokenCost
+                            ? `${GOLD}22`
+                            : `${PINK}22`,
+                          border: `1px solid ${haveSpeedTokens >= speedTokenCost ? GOLD + "66" : PINK + "66"}`,
+                          borderRadius: 5,
+                        }}>
+                          <ResourceIcon kind="speed_token" size={ICON_SIZE - 8} fallback="⚡" art={resourceArt} />
+                          <span style={{
+                            fontSize: 10, fontWeight: 900,
+                            color: haveSpeedTokens >= speedTokenCost ? GOLD : PINK,
+                            fontVariantNumeric: "tabular-nums",
+                          }}>{speedTokenCost}</span>
+                        </div>
+                      )}
                       <div style={{
                         display: "inline-flex", alignItems: "center", gap: 3,
                         flexShrink: 0, marginLeft: "auto",
@@ -1313,6 +1358,40 @@ function BuildingDetail({
                         }}>{fmtBuildTime(buildTime)}</span>
                       </div>
                     </div>
+                    {/* Speed-Token Buy-Button wenn nicht genug & Max-Upgrade ansteht */}
+                    {speedTokenCost > 0 && haveSpeedTokens < speedTokenCost && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const r = await fetch("/api/base/buy-speed-token", { method: "POST" });
+                            const j = await r.json() as { ok?: boolean; error?: string };
+                            if (j.ok) {
+                              window.dispatchEvent(new CustomEvent("ma365:gems-changed"));
+                              window.dispatchEvent(new CustomEvent("ma365:base-resources-changed"));
+                            } else {
+                              alert(j.error === "not_enough_gems" ? "Nicht genug Krypto." : "Kauf fehlgeschlagen.");
+                            }
+                          } catch { alert("Netzwerk-Fehler."); }
+                        }}
+                        style={{
+                          marginTop: 4,
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          background: `linear-gradient(180deg, ${GOLD}33, ${GOLD}11)`,
+                          border: `1px solid ${GOLD}66`,
+                          cursor: "pointer",
+                          color: GOLD,
+                          fontSize: 11,
+                          fontWeight: 900,
+                          letterSpacing: 0.3,
+                        }}
+                      >
+                        <ResourceIcon kind="speed_token" size={18} fallback="⚡" art={resourceArt} />
+                        Max-Stufe Token kaufen — 2000 💎
+                      </button>
+                    )}
                     {/* Gebäude-Anforderungen — zentriert, nebeneinander wenn mehrere */}
                     {buildingReqs.length > 0 && (
                       <div style={{

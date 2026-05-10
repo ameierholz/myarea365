@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +17,14 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const token = process.env.MAPBOX_ACCESS_TOKEN;
   if (!token) return NextResponse.json({ ok: false, error: "missing_mapbox_token" }, { status: 500 });
+
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ ok: false, error: "not_authenticated" }, { status: 401 });
+
+  const rl = await rateLimitSmart(`mapbox:route:${user.id}`, 30, 60_000);
+  const limited = rateLimitResponse(rl);
+  if (limited) return limited;
 
   const url = new URL(req.url);
   const from = url.searchParams.get("from");

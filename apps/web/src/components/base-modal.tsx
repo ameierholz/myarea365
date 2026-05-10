@@ -11,10 +11,16 @@ import { useTranslations } from "next-intl";
 import { DailyDealTeaser } from "@/components/daily-deal-teaser";
 import { useResourceArt, ResourceIcon, useChestArt, ChestIcon, useBuildingArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
 import { TroopDetailModal } from "@/components/troop-detail-modal";
+import { HospitalModal } from "@/components/hospital-modal";
+import { VipTierProgression, VipShopSection, VipDailyClaim, VipTicketRedeem } from "@/components/base-modal/vip-sections";
+import { IntroBox } from "@/components/base-modal/_shared";
+import { TroopsTab } from "@/components/base-modal/troops-tab";
+import { ResearchTab } from "@/components/base-modal/research-tab";
 import { BaseThemeShopModal } from "@/components/base-theme-shop-modal";
 import { BaseRingPickerModal } from "@/components/base-ring-picker-modal";
 import { NameplatePickerModal } from "@/components/nameplate-picker-modal";
 import { createClient } from "@/lib/supabase/client";
+import { fetchBaseMe, invalidateBaseMe } from "@/lib/base-me-cache";
 
 type Theme = {
   id: string; name: string; description: string;
@@ -103,8 +109,8 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
   const baseThemeArt = useBaseThemeArt();
 
   const reload = useCallback(async () => {
-    const r = await fetch("/api/base/me", { cache: "no-store" });
-    setData(await r.json() as OwnBaseData);
+    const data = await fetchBaseMe({ force: true });
+    if (data) setData(data as OwnBaseData);
   }, []);
 
   // Klappbare Bau-Kategorien — Default: alle zu, Toggle persistiert in localStorage
@@ -330,21 +336,15 @@ function OwnRunnerBase({ onClose }: { onClose: () => void }) {
           {/* Resource-HUD direkt unter Header — nur außerhalb des RES-Tabs sichtbar
               (auf RES-Tab zeigen die Cards darunter ohnehin alles im Detail) */}
           {tab !== "res" && tab !== "overview" && (
-            <div className="px-3 pb-3" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 }}>
+            <div className="px-3 pb-3" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
               {(Object.keys(RES) as Array<keyof typeof RES>).map((k) => (
                 <div key={k} className="rounded-lg bg-black/30 backdrop-blur px-2 py-1.5 text-center" style={{ minWidth: 0 }}>
-                  <div className="leading-none flex items-center justify-center" style={{ height: 28 }}>
-                    <ResourceIcon kind={k} size={28} fallback={RES[k].icon} art={resourceArt} />
+                  <div className="leading-none flex items-center justify-center" style={{ height: 40 }}>
+                    <ResourceIcon kind={k} size={40} fallback={RES[k].icon} art={resourceArt} />
                   </div>
-                  <div className="text-[10px] font-black mt-0.5" style={{ color: RES[k].color }}>{compactNum(resources[k])}</div>
+                  <div className="text-[12px] font-black mt-0.5" style={{ color: RES[k].color }}>{compactNum(resources[k])}</div>
                 </div>
               ))}
-              <div className="rounded-lg bg-[#FFD700]/15 border border-[#FFD700]/40 px-2 py-1.5 text-center" style={{ minWidth: 0 }}>
-                <div className="leading-none flex items-center justify-center" style={{ height: 28 }}>
-                  <ResourceIcon kind="speed_token" size={28} fallback="⚡" art={resourceArt} />
-                </div>
-                <div className="text-[10px] font-black mt-0.5 text-[#FFD700]">{resources.speed_tokens}</div>
-              </div>
             </div>
           )}
           {tab !== "res" && tab !== "overview" && ((resources.vip_tickets ?? 0) > 0 || (resources.guardian_xp ?? 0) > 0) && (
@@ -1290,35 +1290,7 @@ function Spinner({ label }: { label: string }) {
   );
 }
 
-/**
- * Klappbare "Was ist das?"-Box. Default eingeklappt, merkt sich pro Titel im
- * localStorage ob der User es schon gelesen hat (dann bleibt eingeklappt).
- */
-function IntroBox({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
-  const storageKey = `ma365.base.intro.${title}`;
-  const [open, setOpen] = useState(false);
-  // Default IMMER eingeklappt — User muss bewusst aufklappen.
-  function toggle() {
-    setOpen((v) => {
-      const next = !v;
-      try { if (!next) window.localStorage.setItem(storageKey, "1"); } catch {}
-      return next;
-    });
-  }
-  return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: `${accent}55`, background: `${accent}0d` }}>
-      <button onClick={toggle} className="w-full flex items-center justify-between px-3 py-2 text-left">
-        <span className="text-[10px] font-black tracking-widest" style={{ color: accent }}>{title}</span>
-        <span className="text-[#a8b4cf] text-xs">{open ? "▼" : "▶"}</span>
-      </button>
-      {open && (
-        <div className="px-3 pb-3 text-[11px] text-[#a8b4cf] leading-relaxed">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
+// IntroBox → siehe base-modal/_shared.tsx
 
 /**
  * Klappbare Section mit deutlichem Header + Hint. Default zu, persistiert in localStorage.
@@ -1453,257 +1425,9 @@ function BaseLabelEditor({ accent, currentLabel, onSaved }: {
  * Report-Button für unangemessene Base-Namen. Öffnet kleinen Confirm-Dialog,
  * sendet Report an /api/base/report-label. User kann nur 1× pro 24h pro Base reporten.
  */
-// ───────────────────────── TRUPPEN-TAB ─────────────────────────────
-function TroopsTab({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
-  const t = useTranslations("BaseModal");
-  type Troop = {
-    id: string; name: string; emoji: string; troop_class: string; tier: number;
-    base_atk: number; base_def: number; base_hp: number;
-    cost_wood: number; cost_stone: number; cost_gold: number; cost_mana: number;
-    train_time_seconds: number; required_building_level: number; description: string;
-  };
-  type Owned = { troop_id: string; count: number };
-  type QueueRow = { id: string; troop_id: string; count: number; ends_at: string };
-  type Data = { catalog: Troop[]; owned: Owned[]; queue: QueueRow[]; caps?: Record<string, number> };
-  const [data, setData] = useState<Data | null>(null);
-  const [openClass, setOpenClass] = useState<string | null>("infantry");
-  const [selectedTroopId, setSelectedTroopId] = useState<string | null>(null);
-  const [gemsAvailable, setGemsAvailable] = useState<number>(0);
-  const resourceArt = useResourceArt();
+// TroopsTab → siehe base-modal/troops-tab.tsx
 
-  const load = useCallback(async () => {
-    const r = await fetch("/api/base/troops");
-    setData(await r.json());
-    try {
-      const g = await fetch("/api/base/me", { cache: "no-store" });
-      if (g.ok) {
-        const j = await g.json() as { user_resources?: { gems?: number } };
-        setGemsAvailable(j.user_resources?.gems ?? 0);
-      }
-    } catch { /* ignore */ }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-
-  if (!data) return <div className="text-[11px] text-[#a8b4cf]">{t("troopsLoading")}</div>;
-  const ownedMap = new Map(data.owned.map((o) => [o.troop_id, o.count]));
-  const classes: Array<{ id: string; label: string; building: string }> = [
-    { id: "infantry",  label: t("troopClassInfantry"),  building: t("troopBuildingBar") },
-    { id: "cavalry",   label: t("troopClassCavalry"),   building: t("troopBuildingGarage") },
-    { id: "marksman",  label: t("troopClassMarksman"),  building: t("troopBuildingGym") },
-    { id: "siege",     label: t("troopClassSiege"),     building: t("troopBuildingWerkhof") },
-    { id: "collector", label: t("troopClassCollector"), building: t("troopBuildingDepot") },
-  ];
-
-  return (
-    <div className="space-y-3">
-      <IntroBox accent={accent} title={t("introTroopsTitle")}>
-        {t("introTroopsBody1")}<b className="text-white">{t("introTroopsBuildings")}</b>{t("introTroopsBody2")}<b className="text-white">{t("introTroopsT1")}</b>{t("introTroopsBody3")}<b className="text-white">{t("introTroopsT2T5")}</b>{t("introTroopsBody4")}<b className="text-white">{t("introTroopsResearchTab")}</b>{t("introTroopsBody5")}
-        <span className="block mt-1 text-[#6c7590]">{t("introTroopsBody6")}</span>
-      </IntroBox>
-
-
-      {data.queue.length > 0 && (
-        <div className="rounded-lg p-2 bg-[#FF6B4A]/10 border border-[#FF6B4A]/40 text-[11px]">
-          <div className="font-black text-[#FF6B4A] mb-1">{t("trainingHeader")}</div>
-          {data.queue.map((q) => {
-            const tr = data.catalog.find((x) => x.id === q.troop_id);
-            const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
-            return (
-              <div key={q.id} className="flex justify-between text-[10px] text-white">
-                <span>{tr?.emoji} {tr?.name} × {q.count}</span>
-                <span className="text-[#a8b4cf]">{t("trainingMin", { n: remain })}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {classes.map((c) => {
-        const troops = data.catalog.filter((t) => t.troop_class === c.id);
-        const totalCount = troops.reduce((s, t) => s + (ownedMap.get(t.id) ?? 0), 0);
-        const open = openClass === c.id;
-        return (
-          <div key={c.id} className="rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <button onClick={() => setOpenClass(open ? null : c.id)} className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black text-white">
-              <span>{c.label}</span>
-              <span className="text-[#a8b4cf] text-[10px] flex items-center gap-2">
-                {totalCount > 0 && (
-                  <span className="text-[#FFD700] font-black">×{totalCount.toLocaleString("de-DE")}</span>
-                )}
-                <span>{c.building} · {open ? "▾" : "▸"}</span>
-              </span>
-            </button>
-            {open && (
-              <div className="p-2 space-y-1.5">
-                {troops.map((tr) => {
-                  const have = ownedMap.get(tr.id) ?? 0;
-                  return (
-                    <button key={tr.id} onClick={() => setSelectedTroopId(tr.id)}
-                      className="w-full text-left rounded p-2 flex items-center gap-2 bg-[#0F1115]/60 border border-white/5 hover:bg-[#0F1115]/80 hover:border-white/15 transition">
-                      <span className="text-2xl">{tr.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-black text-white truncate">
-                          {tr.name} <span className="text-[9px] text-[#a8b4cf] font-bold ml-1">{t("troopTier", { tier: tr.tier })}{tr.tier > 1 ? t("troopResearchSuffix") : ""}</span>
-                        </div>
-                        <div className="text-[9px] text-[#a8b4cf]">⚔️ {tr.base_atk} · 🛡 {tr.base_def} · ❤️ {tr.base_hp} · ⏱ {tr.train_time_seconds}s</div>
-                        <div className="text-[9px] text-[#a8b4cf] flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="wood"  size={11} fallback="⚙️" art={resourceArt} />{tr.cost_wood}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="stone" size={11} fallback="🔩" art={resourceArt} />{tr.cost_stone}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="gold"  size={11} fallback="💸" art={resourceArt} />{tr.cost_gold}</span>·
-                          <span className="inline-flex items-center gap-0.5"><ResourceIcon kind="mana"  size={11} fallback="📡" art={resourceArt} />{tr.cost_mana}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="text-[10px] text-[#FFD700] font-black">×{have}</div>
-                        <div className="text-[9px] text-[#a8b4cf]">{t("troopTapToOpen")}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {selectedTroopId && (
-        <TroopDetailModal
-          catalog={data.catalog}
-          owned={ownedMap}
-          initialTroopId={selectedTroopId}
-          gemsAvailable={gemsAvailable}
-          caps={data.caps ?? { infantry: 0, cavalry: 0, marksman: 0, siege: 0, collector: 0 }}
-          onClose={() => setSelectedTroopId(null)}
-          onTrained={async () => { await Promise.all([load(), reload()]); }}
-        />
-      )}
-    </div>
-  );
-}
-
-// ───────────────────────── FORSCHUNG-TAB ─────────────────────────────
-function ResearchTab({ accent, reload }: { accent: string; reload: () => Promise<void> }) {
-  const t = useTranslations("BaseModal");
-  type Def = {
-    id: string; name: string; emoji: string; description: string; branch: string; tier: number;
-    prereq_id: string | null; max_level: number;
-    base_cost_wood: number; base_cost_stone: number; base_cost_gold: number; base_cost_mana: number;
-    base_time_minutes: number; effect_key: string | null; effect_per_level: number;
-    required_burg_level: number;
-  };
-  type Progress = { research_id: string; level: number };
-  type QueueRow = { id: string; research_id: string; target_level: number; ends_at: string };
-  type Data = { ok: boolean; definitions: Def[]; progress: Progress[]; queue: QueueRow[] };
-  const [data, setData] = useState<Data | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [openBranch, setOpenBranch] = useState<string | null>("economy");
-
-  const load = useCallback(async () => {
-    const r = await fetch("/api/base/research");
-    setData(await r.json());
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-
-  async function start(researchId: string) {
-    setBusy(researchId); setMsg(null);
-    try {
-      const r = await fetch("/api/base/research", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ research_id: researchId }),
-      });
-      const j = await r.json() as { ok?: boolean; error?: string; minutes?: number };
-      if (j.ok) { setMsg(t("researchStarted", { min: j.minutes ?? 0 })); await Promise.all([load(), reload()]); }
-      else if (j.error === "prereq_missing") setMsg(t("researchErrPrereq"));
-      else if (j.error === "burg_level_too_low") setMsg(t("researchErrBurgLow"));
-      else if (j.error === "queue_full") setMsg(t("researchErrQueueFull"));
-      else if (j.error === "not_enough_resources") setMsg(t("researchErrNotEnoughRes"));
-      else setMsg(j.error ?? t("errGeneric"));
-    } finally { setBusy(null); }
-  }
-
-  if (!data) return <div className="text-[11px] text-[#a8b4cf]">{t("troopsLoading")}</div>;
-  const progressMap = new Map(data.progress.map((p) => [p.research_id, p.level]));
-  const branches: Array<{ id: string; label: string; color: string }> = [
-    { id: "economy",        label: t("researchBranchEconomy"),  color: "#FFD700" },
-    { id: "military",       label: t("researchBranchMilitary"), color: "#FF2D78" },
-    { id: "infrastructure", label: t("researchBranchInfra"),    color: "#22D1C3" },
-    { id: "social",         label: t("researchBranchSocial"),   color: "#a855f7" },
-  ];
-
-  return (
-    <div className="space-y-3">
-      <IntroBox accent={accent} title={t("introResearchTitle")}>
-        {t("introResearchBody1")}<b className="text-white">{t("introResearchBoni")}</b>{t("introResearchBody2")}
-        <span className="block mt-1 text-[#6c7590]">{t("introResearchBody3")}</span>
-      </IntroBox>
-
-      {data.queue.length > 0 && (
-        <div className="rounded-lg p-2 bg-[#22D1C3]/10 border border-[#22D1C3]/40 text-[11px]">
-          <div className="font-black text-[#22D1C3] mb-1">{t("researchInProgress")}</div>
-          {data.queue.map((q) => {
-            const d = data.definitions.find((x) => x.id === q.research_id);
-            const remain = Math.max(0, Math.ceil((new Date(q.ends_at).getTime() - Date.now()) / 60000));
-            return (
-              <div key={q.id} className="flex justify-between text-[10px] text-white">
-                <span>{d?.emoji} {t("researchToLevel", { name: d?.name ?? "", target: q.target_level })}</span>
-                <span className="text-[#a8b4cf]">{t("trainingMin", { n: remain })}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {branches.map((b) => {
-        const items = data.definitions.filter((d) => d.branch === b.id).sort((a, c) => (a.tier - c.tier) || a.name.localeCompare(c.name));
-        const open = openBranch === b.id;
-        const tiers = Array.from(new Set(items.map((d) => d.tier))).sort((a, c) => a - c);
-        const totalProgress = items.filter((d) => (progressMap.get(d.id) ?? 0) > 0).length;
-        return (
-          <div key={b.id} className="rounded-lg overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${b.color}33` }}>
-            <button onClick={() => setOpenBranch(open ? null : b.id)} className="w-full flex items-center justify-between px-3 py-2 text-[12px] font-black" style={{ color: b.color }}>
-              <span>{b.label} <span className="text-[9px] text-[#a8b4cf] ml-1 font-normal">{totalProgress}/{items.length}</span></span><span className="text-[10px]">{open ? "▾" : "▸"}</span>
-            </button>
-            {open && (
-              <div className="p-2 space-y-3">
-                {tiers.map((tier) => (
-                <div key={tier} className="space-y-1.5">
-                  <div className="text-[9px] font-black tracking-widest text-[#6c7590] px-1">{t("researchTier", { tier })}</div>
-                {items.filter((d) => d.tier === tier).map((d) => {
-                  const lvl = progressMap.get(d.id) ?? 0;
-                  const prereqLvl = d.prereq_id ? (progressMap.get(d.prereq_id) ?? 0) : 1;
-                  const locked = d.prereq_id !== null && prereqLvl < 1;
-                  const maxed = lvl >= d.max_level;
-                  return (
-                    <div key={d.id} className="rounded p-2 bg-[#0F1115]/60 border border-white/5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{d.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-black text-white">
-                            {d.name} <span className="text-[9px] text-[#a8b4cf] ml-1">{t("researchItemMeta", { tier: d.tier, lvl, max: d.max_level, burg: d.required_burg_level })}</span>
-                          </div>
-                          <div className="text-[9px] text-[#a8b4cf]">{d.description}</div>
-                          {locked && <div className="text-[9px] text-[#FF6B4A]">{t("researchPrereqLocked")}</div>}
-                        </div>
-                        <button onClick={() => start(d.id)} disabled={busy === d.id || locked || maxed}
-                          className="text-[10px] font-black px-2 py-1 rounded disabled:opacity-40"
-                          style={{ background: `${b.color}26`, border: `1px solid ${b.color}66`, color: b.color }}>
-                          {maxed ? "MAX" : busy === d.id ? "…" : t("researchToNextLevel", { level: lvl + 1 })}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {msg && <div className="text-[11px] text-center font-black" style={{ color: msg.startsWith("✓") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
-    </div>
-  );
-}
+// ResearchTab → siehe base-modal/research-tab.tsx
 
 function BaseRelocatePanel({ accent, reload, tokenCount }: { accent: string; reload: () => Promise<void>; tokenCount: number }) {
   const t = useTranslations("BaseModal");
@@ -1932,294 +1656,6 @@ function Benefit({ label, value }: { label: React.ReactNode; value: string }) {
   );
 }
 
-function VipTierProgression({ thresholds, currentLevel, chestArt, resourceArt }: {
-  thresholds: Array<{ vip_level: number; required_points: number; daily_chest_silver: number; daily_chest_gold: number; resource_bonus_pct: number; buildtime_bonus_pct: number; extra_build_slots?: number; extra_research_slots?: number; training_speed_pct?: number; research_speed_pct?: number; march_speed_pct?: number; gather_speed_pct?: number; troop_atk_pct?: number; troop_def_pct?: number; troop_hp_pct?: number; daily_speed_tokens?: number; daily_vip_tickets?: number }>;
-  currentLevel: number;
-  chestArt: ResourceArtMap;
-  resourceArt: ResourceArtMap;
-}) {
-  const tt = useTranslations("BaseModal");
-  const [expanded, setExpanded] = useState<number | null>(currentLevel + 1);
-  const tiers = thresholds.filter((t) => t.vip_level > 0);
-
-  return (
-    <div className="space-y-1.5">
-      <div className="text-[10px] font-black text-[#a8b4cf] tracking-widest mb-2">{tt("vipTiersHeader")}</div>
-      {tiers.map((t) => {
-        const reached = t.vip_level <= currentLevel;
-        const isNext = t.vip_level === currentLevel + 1;
-        const open = expanded === t.vip_level;
-
-        // Top-3 Highlights für Compact-Row
-        const highlights: React.ReactNode[] = [];
-        if (t.daily_chest_gold > 0) highlights.push(<span key="g" className="inline-flex items-center gap-0.5"><ChestIcon kind="gold" size={20} fallback="🥇" art={chestArt} />×{t.daily_chest_gold}</span>);
-        else if (t.daily_chest_silver > 0) highlights.push(<span key="s" className="inline-flex items-center gap-0.5"><ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />×{t.daily_chest_silver}</span>);
-        if ((t.daily_speed_tokens ?? 0) > 0) highlights.push(<span key="sp" className="inline-flex items-center gap-0.5"><ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />×{t.daily_speed_tokens}</span>);
-        if (t.resource_bonus_pct > 0) highlights.push(<span key="r" className="text-[#FFD700] font-black">+{Math.round(t.resource_bonus_pct*100)}% Res</span>);
-        if (highlights.length < 3 && t.buildtime_bonus_pct > 0) highlights.push(<span key="b" className="text-[#22D1C3] font-black">−{Math.round(t.buildtime_bonus_pct*100)}% Zeit</span>);
-
-        return (
-          <div key={t.vip_level} className={`rounded-lg overflow-hidden ${reached ? "bg-[#FFD700]/10 border border-[#FFD700]/30" : isNext ? "bg-white/5 border border-[#FFD700]/40" : "bg-white/5 border border-white/5"}`}>
-            <button
-              onClick={() => setExpanded(open ? null : t.vip_level)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left"
-            >
-              <span className={`text-sm font-black w-16 shrink-0 ${reached ? "text-[#FFD700]" : isNext ? "text-[#FFD700]" : "text-[#6c7590]"}`}>
-                {reached ? "✓ " : ""}{tt("vipTierLabel", { level: t.vip_level })}
-              </span>
-              <div className="flex-1 min-w-0 flex items-center gap-2 text-[12px] text-white">
-                {highlights.slice(0, 3)}
-              </div>
-              <span className="text-[10px] font-black text-[#a8b4cf] shrink-0">{t.required_points.toLocaleString("de-DE")}</span>
-              <span className="text-[#6c7590] text-[10px] shrink-0 w-3 text-right">{open ? "▾" : "▸"}</span>
-            </button>
-            {open && (
-              <div className="px-3 pb-3 pt-1 border-t border-white/10 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-white">
-                {t.daily_chest_silver > 0 && <span className="inline-flex items-center gap-1"><ChestIcon kind="silver" size={28} fallback="🥈" art={chestArt} /><span className="font-black">×{t.daily_chest_silver}/d</span></span>}
-                {t.daily_chest_gold > 0 && <span className="inline-flex items-center gap-1"><ChestIcon kind="gold" size={28} fallback="🥇" art={chestArt} /><span className="font-black">×{t.daily_chest_gold}/d</span></span>}
-                {(t.daily_speed_tokens ?? 0) > 0 && <span className="inline-flex items-center gap-1"><ResourceIcon kind="speed_token" size={28} fallback="⚡" art={resourceArt} /><span className="font-black">×{t.daily_speed_tokens}/d</span></span>}
-                {(t.daily_vip_tickets ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[24px]">🎟</span><span className="font-black">×{t.daily_vip_tickets}/d</span></span>}
-                {t.resource_bonus_pct > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">📦</span><span className="font-black text-[#FFD700]">+{Math.round(t.resource_bonus_pct*100)}%</span></span>}
-                {t.buildtime_bonus_pct > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🏗</span><span className="font-black text-[#22D1C3]">−{Math.round(t.buildtime_bonus_pct*100)}%</span></span>}
-                {(t.gather_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🌾</span><span className="font-black">+{Math.round((t.gather_speed_pct ?? 0)*100)}%</span></span>}
-                {(t.training_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">⚔️</span><span className="font-black">+{Math.round((t.training_speed_pct ?? 0)*100)}%</span></span>}
-                {(t.research_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🔬</span><span className="font-black">+{Math.round((t.research_speed_pct ?? 0)*100)}%</span></span>}
-                {(t.march_speed_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🐎</span><span className="font-black">+{Math.round((t.march_speed_pct ?? 0)*100)}%</span></span>}
-                {(t.troop_atk_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">⚔</span><span className="font-black text-[#FF6B4A]">+{Math.round((t.troop_atk_pct ?? 0)*100)}%</span></span>}
-                {(t.troop_def_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🛡</span><span className="font-black text-[#22D1C3]">+{Math.round((t.troop_def_pct ?? 0)*100)}%</span></span>}
-                {(t.troop_hp_pct ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">❤</span><span className="font-black text-[#FF2D78]">+{Math.round((t.troop_hp_pct ?? 0)*100)}%</span></span>}
-                {(t.extra_build_slots ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🔨</span><span className="font-black">+{t.extra_build_slots} Slot</span></span>}
-                {(t.extra_research_slots ?? 0) > 0 && <span className="inline-flex items-center gap-1"><span className="text-[18px]">🔬</span><span className="font-black">+{t.extra_research_slots} Slot</span></span>}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function VipShopSection({ vipLevel, reload, defaultOpen = false }: { vipLevel: number; reload: () => Promise<void>; defaultOpen?: boolean }) {
-  const t = useTranslations("BaseModal");
-  type Offer = { id: string; name: string; description: string; emoji: string; required_vip: number; reward_kind: string; reward_amount: number; price_gems: number; original_gems: number | null; daily_limit: number; sort: number };
-  type Data = { ok: boolean; offers: Offer[]; purchased_today: Record<string, number> };
-  const [data, setData] = useState<Data | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [open, setOpen] = useState(defaultOpen);
-  const sb = createClient();
-  const chestArt = useChestArt();
-  const resourceArt = useResourceArt();
-
-  const load = useCallback(async () => {
-    const { data: d } = await sb.rpc("get_vip_shop_state");
-    setData(d as Data);
-  }, [sb]);
-  useEffect(() => { if (open && !data) void load(); }, [open, data, load]);
-
-  async function buy(offerId: string) {
-    setBusy(offerId); setMsg(null);
-    const { data: res, error } = await sb.rpc("purchase_vip_shop_offer", { p_offer_id: offerId });
-    setBusy(null);
-    type Res = { ok?: boolean; error?: string; reward_kind?: string; reward_amount?: number };
-    const r = (res ?? null) as Res | null;
-    if (error || !r?.ok) {
-      const errMap: Record<string, string> = {
-        vip_level_too_low: t("vipShopErrLevel"),
-        daily_limit_reached: t("vipShopErrLimit"),
-        not_enough_gems: t("vipShopErrGems"),
-      };
-      setMsg(t("vipShopErrPrefix", { msg: errMap[r?.error ?? ""] ?? r?.error ?? error?.message ?? t("errGeneric") }));
-    } else {
-      setMsg(t("vipShopOk", { amount: r.reward_amount ?? 0, kind: r.reward_kind ?? "" }));
-      await Promise.all([load(), reload()]);
-    }
-    setTimeout(() => setMsg(null), 2800);
-  }
-
-  return (
-    <div className="rounded-xl bg-[#1A1D23] border border-[#FFD700]/30 overflow-hidden">
-      {!defaultOpen && (
-        <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-3 py-3 text-[13px] font-black text-[#FFD700]">
-          <span>{t("vipShopHeader")} <span className="text-[10px] text-[#a8b4cf] font-normal ml-1">{t("vipShopHint")}</span></span>
-          <span>{open ? "▾" : "▸"}</span>
-        </button>
-      )}
-      {open && (
-        <div className="p-2 space-y-2">
-          {!data && <div className="text-[11px] text-[#a8b4cf] text-center py-3">{t("vipShopLoading")}</div>}
-          {data && data.offers.filter((o) => o.required_vip <= 15).sort((a, b) => a.sort - b.sort).map((o) => {
-            const purchasedToday = data.purchased_today[o.id] ?? 0;
-            const remaining = Math.max(0, o.daily_limit - purchasedToday);
-            const locked = vipLevel < o.required_vip;
-            const soldOut = remaining === 0;
-            const disabled = locked || soldOut || busy === o.id;
-            const discount = o.original_gems && o.original_gems > o.price_gems
-              ? Math.round((1 - o.price_gems / o.original_gems) * 100) : 0;
-
-            // Icon pick
-            const icon = o.reward_kind === "silver_chest"
-              ? <ChestIcon kind="silver" size={36} fallback="🥈" art={chestArt} />
-              : o.reward_kind === "gold_chest"
-              ? <ChestIcon kind="gold" size={36} fallback="🥇" art={chestArt} />
-              : ["wood","stone","gold","mana","speed_token"].includes(o.reward_kind)
-              ? <ResourceIcon kind={o.reward_kind as "wood"|"stone"|"gold"|"mana"|"speed_token"} size={36} fallback={o.emoji} art={resourceArt} />
-              : <span className="text-[28px]">{o.emoji}</span>;
-
-            return (
-              <div key={o.id} className={`flex items-center gap-3 p-2 rounded-lg ${locked ? "bg-white/[0.02] opacity-50" : "bg-black/30 border border-white/5"}`}>
-                <div className="relative shrink-0">
-                  {icon}
-                  {discount > 0 && !locked && (
-                    <span className="absolute -top-1 -right-2 px-1 rounded text-[8px] font-black bg-[#FF2D78] text-white">−{discount}%</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-black text-white">{o.name}</div>
-                  <div className="text-[10px] text-[#a8b4cf]">{o.description}</div>
-                  <div className="text-[9px] text-[#6c7590] mt-0.5">
-                    {locked ? t("vipShopLockedAt", { level: o.required_vip }) : t("vipShopRemaining", { remain: remaining, limit: o.daily_limit })}
-                  </div>
-                </div>
-                <button onClick={() => buy(o.id)} disabled={disabled}
-                  className="text-[11px] font-black px-3 py-2 rounded-lg disabled:opacity-40 shrink-0"
-                  style={{ background: disabled ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #FFD700, #FF6B4A)", color: disabled ? "#6c7590" : "#0F1115" }}>
-                  {busy === o.id ? "…" : soldOut ? t("vipShopSoldOut") : (
-                    <span className="flex flex-col items-center leading-tight">
-                      {discount > 0 && <span className="text-[8px] line-through opacity-60">💎{o.original_gems}</span>}
-                      <span>💎{o.price_gems}</span>
-                    </span>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-          {msg && <div className="text-[11px] text-center font-black text-white">{msg}</div>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VipDailyClaim({ tier, alreadyClaimed, reload }: {
-  tier: { vip_level: number; daily_chest_silver: number; daily_chest_gold: number; daily_speed_tokens?: number; daily_vip_tickets?: number };
-  alreadyClaimed: boolean;
-  reload: () => Promise<void>;
-}) {
-  const t = useTranslations("BaseModal");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const sb = createClient();
-  const chestArt = useChestArt();
-  const resourceArt = useResourceArt();
-
-  type GiftItem = { node: React.ReactNode; label: string; n: number };
-  const items: GiftItem[] = [
-    { node: <ChestIcon kind="silver" size={20} fallback="🥈" art={chestArt} />, label: t("vipDailySilver"), n: tier.daily_chest_silver },
-    { node: <ChestIcon kind="gold"   size={20} fallback="🥇" art={chestArt} />, label: t("vipDailyGold"),   n: tier.daily_chest_gold },
-    { node: <ResourceIcon kind="speed_token" size={20} fallback="⚡" art={resourceArt} />, label: t("vipDailySpeedToken"), n: tier.daily_speed_tokens ?? 0 },
-    { node: <span className="text-[16px]">🎟</span>, label: t("vipDailyTicket"), n: tier.daily_vip_tickets ?? 0 },
-  ].filter((i) => i.n > 0);
-
-  if (items.length === 0) return null;
-
-  async function claim() {
-    if (busy || alreadyClaimed) return;
-    setBusy(true); setMsg(null);
-    const { data, error } = await sb.rpc("claim_vip_daily_rewards");
-    setBusy(false);
-    type Res = { ok?: boolean; error?: string; silver_chests?: number; gold_chests?: number; speed_tokens?: number; vip_tickets?: number };
-    const res = (data ?? null) as Res | null;
-    if (error || !res?.ok) {
-      setMsg(t("vipShopErrPrefix", { msg: res?.error ?? error?.message ?? t("errGeneric") }));
-    } else {
-      const parts: string[] = [];
-      if ((res.silver_chests ?? 0) > 0) parts.push(`🥈×${res.silver_chests}`);
-      if ((res.gold_chests ?? 0) > 0)   parts.push(`🥇×${res.gold_chests}`);
-      if ((res.speed_tokens ?? 0) > 0)  parts.push(`⚡×${res.speed_tokens}`);
-      if ((res.vip_tickets ?? 0) > 0)   parts.push(`🎟×${res.vip_tickets}`);
-      setMsg(`✅ ${parts.join(" · ")}`);
-      await reload();
-    }
-    setTimeout(() => setMsg(null), 3000);
-  }
-
-  return (
-    <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-[#FF6B4A]/10 border border-[#FFD700]/40 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("vipDailyHeader")}</div>
-          <div className="text-[10px] text-[#a8b4cf] mt-0.5">
-            {alreadyClaimed ? t("vipDailyClaimed") : t("vipDailyOncePerDay", { level: tier.vip_level })}
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        {items.map((i, idx) => (
-          <div key={idx} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-black/40 border border-white/10 text-[11px] font-black text-white">
-            {i.node}<span>×{i.n}</span><span className="text-[#a8b4cf] font-normal">{i.label}</span>
-          </div>
-        ))}
-        <button onClick={claim} disabled={busy || alreadyClaimed}
-          className="ml-auto px-3 h-9 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-xs disabled:opacity-40">
-          {busy ? "…" : alreadyClaimed ? t("vipDailyClaimedBtn") : t("vipDailyClaimBtn")}
-        </button>
-      </div>
-      {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
-    </div>
-  );
-}
-
-function VipTicketRedeem({ available, reload }: { available: number; reload: () => Promise<void> }) {
-  const t = useTranslations("BaseModal");
-  const [count, setCount] = useState(1);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const sb = createClient();
-
-  async function redeem() {
-    if (busy || count < 1 || count > available) return;
-    setBusy(true); setMsg(null);
-    const { data, error } = await sb.rpc("redeem_vip_ticket", { p_count: count });
-    setBusy(false);
-    type RedeemResult = { ok?: boolean; error?: string; points_added?: number };
-    const res = (data ?? null) as RedeemResult | null;
-    if (error || !res?.ok) {
-      setMsg(t("vipShopErrPrefix", { msg: res?.error ?? error?.message ?? t("errGeneric") }));
-    } else {
-      setMsg(t("vipTicketsResultOk", { points: res.points_added ?? 0 }));
-      await reload();
-    }
-    setTimeout(() => setMsg(null), 2600);
-  }
-
-  return (
-    <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/40 p-3">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{t("vipTicketsHeader")}</div>
-          <div className="text-[10px] text-[#a8b4cf] mt-0.5">{t("vipTicketsSub", { n: available })}</div>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button onClick={() => setCount((c) => Math.max(1, c - 1))} disabled={count <= 1}
-          className="w-8 h-8 rounded-lg bg-white/5 text-white font-black disabled:opacity-30">−</button>
-        <input type="number" min={1} max={available} value={count}
-          onChange={(e) => setCount(Math.max(1, Math.min(available, parseInt(e.target.value || "1", 10))))}
-          className="w-16 text-center bg-black/40 border border-white/10 rounded-lg py-1.5 text-white font-black text-sm" />
-        <button onClick={() => setCount((c) => Math.min(available, c + 1))} disabled={count >= available}
-          className="w-8 h-8 rounded-lg bg-white/5 text-white font-black disabled:opacity-30">+</button>
-        <button onClick={() => setCount(available)} disabled={count === available}
-          className="px-2 h-8 rounded-lg bg-white/5 text-[#a8b4cf] text-[10px] font-black disabled:opacity-30">{t("vipTicketsMax")}</button>
-        <button onClick={redeem} disabled={busy || count < 1 || count > available}
-          className="ml-auto px-3 h-8 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-xs disabled:opacity-40">
-          {busy ? "…" : t("vipTicketsRedeemBtn", { points: count * 50 })}
-        </button>
-      </div>
-      {msg && <div className="mt-2 text-[10px] text-center text-white">{msg}</div>}
-    </div>
-  );
-}
 
 /** Building-Thumb: zieht Artwork aus cosmetic_artwork (slot_id = `building_<id>`),
  * mit Chroma-Key-Filter (Greenscreen-PNGs werden freigestellt). Emoji als Fallback. */

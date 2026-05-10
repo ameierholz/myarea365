@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * Mapbox Map Matching — Snap-to-Roads für Gehwege/Pfade/Straßen.
@@ -68,6 +70,14 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+
+  const sb = await createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+  const rl = await rateLimitSmart(`mapbox:snap:${user.id}`, 30, 60_000);
+  const limited = rateLimitResponse(rl);
+  if (limited) return limited;
 
   let body: { coords: Coord[] };
   try {

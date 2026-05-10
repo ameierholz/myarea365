@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Z } from "@/lib/z-index";
+import { pushModalStack, popModalStack } from "@/lib/modal-stack";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
 export type ModalVariant = "modal" | "drawer";
@@ -83,6 +84,13 @@ export function Modal({
     return () => { document.body.style.overflow = prevOverflow; };
   }, [rendered]);
 
+  // Modal-Stack-Counter: ChatWidget versteckt sich bei nested Modals
+  useEffect(() => {
+    if (!rendered) return;
+    pushModalStack();
+    return () => { popModalStack(); };
+  }, [rendered]);
+
   if (!rendered) return null;
   if (typeof document === "undefined") return null;
 
@@ -113,12 +121,13 @@ export function Modal({
         zIndex,
         display: "flex",
         alignItems: isDrawer ? "flex-end" : "center",
-        justifyContent: "center",
+        // Modal an rechtem Rand platziert — Chat hat links Platz.
+        justifyContent: isDrawer ? "center" : "flex-end",
         background: "var(--color-modal-backdrop)",
-        backdropFilter: "blur(12px) saturate(140%)",
-        WebkitBackdropFilter: "blur(12px) saturate(140%)",
         animation: backdropAnim,
-        padding: isDrawer ? 0 : "max(env(safe-area-inset-top, 0px), 8px) 8px max(env(safe-area-inset-bottom, 0px), 8px)",
+        padding: isDrawer
+          ? 0
+          : "max(env(safe-area-inset-top, 0px), 8px) 12px max(env(safe-area-inset-bottom, 0px), 8px) 12px",
       }}
     >
       <div

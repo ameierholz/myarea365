@@ -134,44 +134,6 @@ export default async function PricingPage() {
           </div>
         </section>
 
-        {/* Cosmetics */}
-        <section className="mb-14">
-          <div className="text-center mb-6">
-            <div className="text-xs font-black tracking-widest text-accent mb-2">{t("cosmeticsKicker")}</div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">{t("cosmeticsHeading")}</h2>
-            <p className="text-sm text-text-muted max-w-xl mx-auto">{t("cosmeticsIntro")}</p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { icon: "📍", title: t("cosmPin"),   desc: t("cosmPinDesc"),   accent: "#22D1C3" },
-              { icon: "🧭", title: t("cosmMarker"),desc: t("cosmMarkerDesc"),accent: "#FFD700" },
-              { icon: "✨", title: t("cosmLight"), desc: t("cosmLightDesc"), accent: "#a855f7" },
-              { icon: "🏰", title: t("cosmBase"),  desc: t("cosmBaseDesc"),  accent: "#FF2D78" },
-            ].map((c) => (
-              <div
-                key={c.title}
-                className="rounded-xl p-4 text-center"
-                style={{
-                  background: `${c.accent}10`,
-                  border: `1px solid ${c.accent}44`,
-                }}
-              >
-                <div className="text-2xl mb-1" aria-hidden="true">{c.icon}</div>
-                <div className="font-bold text-sm" style={{ color: c.accent }}>{c.title}</div>
-                <div className="text-[10px] text-text-muted mt-1 leading-tight">{c.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-6">
-            <Link
-              href="/karte/?modal=cosmetics"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-sm font-bold hover:bg-accent/25 transition-colors"
-            >
-              🎨 {t("cosmeticsCta")}
-            </Link>
-          </div>
-        </section>
-
         {/* Fair-Play-Disclaimer — was es NICHT für Geld gibt */}
         <section className="mb-14">
           <div
@@ -191,9 +153,11 @@ export default async function PricingPage() {
             <ul className="space-y-2 text-sm text-text">
               <FairplayRow icon="🛡️">{t("fairplay1")}</FairplayRow>
               <FairplayRow icon="🪖">{t("fairplay2")}</FairplayRow>
-              <FairplayRow icon="🧪">{t("fairplay3")}</FairplayRow>
               <FairplayRow icon="🏆">{t("fairplay4")}</FairplayRow>
               <FairplayRow icon="👑">{t("fairplay5")}</FairplayRow>
+              <FairplayRow icon="🏅">{t("fairplay6")}</FairplayRow>
+              <FairplayRow icon="🤝">{t("fairplay7")}</FairplayRow>
+              <FairplayRow icon="🧠">{t("fairplay8")}</FairplayRow>
             </ul>
             <p className="text-xs text-text-muted mt-5 leading-relaxed">
               {t.rich("fairplayLootRich", {

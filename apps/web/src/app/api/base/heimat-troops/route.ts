@@ -4,6 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// In-Memory-Cache für troops_catalog (ändert sich praktisch nie).
+// Pro Lambda-Instanz ein Cache, TTL 5min.
+type CatRow = { id: string; name: string; tier: number; troop_class: string | null; emoji: string | null };
+let _catalogCache: { data: CatRow[]; ts: number } | null = null;
+const CATALOG_TTL_MS = 5 * 60 * 1000;
+
 /**
  * GET /api/base/heimat-troops
  *   Vereinfachter Endpoint für die Heimat-Karte-Modals (Legion/Multi/Hide):
@@ -15,9 +21,14 @@ export async function GET() {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
 
+  const now = Date.now();
+  const catalogStale = !_catalogCache || (now - _catalogCache.ts) > CATALOG_TTL_MS;
+
   const [troopsRes, catalogRes, guardiansRes, capsRes] = await Promise.all([
     sb.from("user_troops").select("troop_id, count").eq("user_id", user.id).gt("count", 0),
-    sb.from("troops_catalog").select("id, name, tier, troop_class, emoji"),
+    catalogStale
+      ? sb.from("troops_catalog").select("id, name, tier, troop_class, emoji")
+      : Promise.resolve({ data: _catalogCache!.data, error: null }),
     sb.from("user_guardians")
       .select("id, level, archetype:guardian_archetypes(id, name, emoji, guardian_type, role, rarity, image_url, ability_name, ability_desc)")
       .eq("user_id", user.id)
@@ -25,7 +36,9 @@ export async function GET() {
     sb.rpc("get_march_caps", { p_user_id: user.id }),
   ]);
 
-  type CatRow = { id: string; name: string; tier: number; troop_class: string | null; emoji: string | null };
+  if (catalogStale && catalogRes.data) {
+    _catalogCache = { data: catalogRes.data as CatRow[], ts: now };
+  }
   const catMap = new Map<string, CatRow>(((catalogRes.data ?? []) as CatRow[]).map((c) => [c.id, c]));
 
   type TroopRow = { troop_id: string; count: number };

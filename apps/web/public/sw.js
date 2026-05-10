@@ -166,3 +166,31 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 });
+
+// ── Web-Push: Empfangs-Handler ─────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { /* ignore */ }
+  const title = payload.title || "MyArea365";
+  const body  = payload.body  || "";
+  const url   = payload.url   || "/karte";
+  const icon  = payload.icon  || "/icons/icon-192.png";
+  const tag   = payload.tag   || `ma365-${Date.now()}`;
+  event.waitUntil(self.registration.showNotification(title, {
+    body, icon, tag, data: { url },
+    badge: "/icons/icon-192.png",
+    vibrate: [200, 100, 200],
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/karte";
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of all) {
+      if (client.url.includes(url) && "focus" in client) return client.focus();
+    }
+    if (self.clients.openWindow) return self.clients.openWindow(url);
+  })());
+});

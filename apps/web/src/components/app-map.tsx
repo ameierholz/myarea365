@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS } from "@/lib/game-config";
 import { addRunnerLight, removeRunnerLight, type LightRenderHandles } from "@/lib/runner-light-render";
 import { RunnerParticleOverlay } from "@/components/runner-particle-overlay";
+import { fetchAllArt } from "@/components/resource-icon";
 import type { ClaimedArea, SupplyDrop, GlitchZone, MapRunner } from "@/lib/game-config";
 
 export type ShopPin = {
@@ -48,25 +49,9 @@ const DEFAULT_CITY_BOUNDS: [[number, number], [number, number]] = [
 ];
 const DEFAULT_CITY_MIN_ZOOM = 11;
 
-// rAF-Throttle: koalesziert viele Aufrufe (z.B. Mapbox "zoom" mit ~60Hz während Pinch/Wheel)
-// auf einen einzigen Aufruf pro Frame. Drastische Perf-Verbesserung bei vielen DOM-Markern.
-function rafThrottle<F extends (...args: unknown[]) => void>(fn: F): F & { cancel(): void } {
-  let scheduled = false;
-  let lastArgs: unknown[] | null = null;
-  const wrapped = ((...args: unknown[]) => {
-    lastArgs = args;
-    if (scheduled) return;
-    scheduled = true;
-    requestAnimationFrame(() => {
-      scheduled = false;
-      const a = lastArgs;
-      lastArgs = null;
-      if (a) fn(...(a as Parameters<F>));
-    });
-  }) as F & { cancel(): void };
-  wrapped.cancel = () => { scheduled = false; lastArgs = null; };
-  return wrapped;
-}
+// Helper-Functions in eigenes Modul ausgelagert für Bundle-Splitting + Wartbarkeit
+import { rafThrottle, getCurrentLightPreset, pointInGeoJSONPolygon, escapeHtml, zoomWidth, polygonFeature, wrapForZoomScale } from "@/components/app-map/map-helpers";
+import { buildSelfMarkerEl, buildRunnerMarkerEl, buildDropMarkerEl } from "@/components/app-map/marker-builders";
 
 // Marker-Animationen EINMAL global im <head> injecten (verhindert Flickering bei Zoom).
 // Bei jedem Modul-Reload aktualisiert (existing element wird ersetzt damit CSS-Updates greifen).
@@ -569,13 +554,7 @@ const MAP_STYLES: Record<string, string> = {
 };
 
 // LightPreset automatisch basierend auf Tageszeit
-function getCurrentLightPreset(): "dawn" | "day" | "dusk" | "night" {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 8)   return "dawn";
-  if (h >= 8 && h < 18)  return "day";
-  if (h >= 18 && h < 21) return "dusk";
-  return "night";
-}
+// getCurrentLightPreset → siehe app-map/map-helpers
 
 interface AppMapProps {
   onLocationUpdate?: (lng: number, lat: number) => void;
@@ -787,231 +766,18 @@ interface AppMapProps {
 }
 
 // Helper: Point-in-Polygon (Ray-Casting). Akzeptiert GeoJSON Polygon oder MultiPolygon.
-function pointInGeoJSONPolygon(lat: number, lng: number, geom: GeoJSON.Geometry): boolean {
-  const x = lng, y = lat;
-  const ringContains = (ring: number[][]): boolean => {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const xi = ring[i][0], yi = ring[i][1];
-      const xj = ring[j][0], yj = ring[j][1];
-      const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  };
-  if (geom.type === "Polygon") {
-    if (!ringContains(geom.coordinates[0])) return false;
-    for (let i = 1; i < geom.coordinates.length; i++) {
-      if (ringContains(geom.coordinates[i])) return false;  // im Loch
-    }
-    return true;
-  }
-  if (geom.type === "MultiPolygon") {
-    return geom.coordinates.some((poly) => {
-      if (!ringContains(poly[0])) return false;
-      for (let i = 1; i < poly.length; i++) if (ringContains(poly[i])) return false;
-      return true;
-    });
-  }
-  return false;
-}
+// pointInGeoJSONPolygon, escapeHtml, zoomWidth, polygonFeature → siehe app-map/map-helpers
 
-// Helper: escape user-provided text for innerHTML usage.
-function escapeHtml(s: string): string {
-  return String(s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
-}
-
-// Helper: Zoom-responsive line-width.
-// Linien haben FIXE Screen-Pixel-Breite -> beim Rauszoomen werden Strassen-
-// Features kleiner, aber Linie bleibt gleich breit -> wirkt relativ dicker.
-// Fix: multiplikativer Zoom-Faktor (klein bei weitem Rauszoomen).
-function zoomWidth(base: number): mapboxgl.ExpressionSpecification {
-  return [
-    "interpolate", ["exponential", 1.6], ["zoom"],
-    10, base * 0.18,
-    13, base * 0.40,
-    16, base * 0.75,
-    19, base * 1.25,
-  ];
-}
-
-// Helper: Polygon als GeoJSON-Feature (geschlossener Ring)
-function polygonFeature(area: ClaimedArea) {
-  const ring = [...area.polygon.map((p) => [p.lng, p.lat]), [area.polygon[0].lng, area.polygon[0].lat]];
-  return {
-    type: "Feature" as const,
-    geometry: { type: "Polygon" as const, coordinates: [ring] },
-    properties: {
-      id: area.id,
-      color: area.owner_color,
-      fillOpacity: area.owner_type === "me" || area.owner_type === "crew" ? 0.12 : 0.07,
-      strokeWeight: area.level === 3 ? 3.5 : area.level === 2 ? 3 : 2.5,
-    },
-  };
-}
-
-// Eigenes Marker-DOM (Emoji mit Glow)
-function buildSelfMarkerEl(
-  emoji: string, color: string, isRunning: boolean,
-  supporterTier?: "bronze" | "silver" | "gold" | null,
-  auraActive = false,
-  crewColor?: string | null, crewName?: string | null,
-  displayName?: string | null,
-  markerArt?: { image_url: string | null; video_url: string | null } | null,
-): HTMLDivElement {
-  const size = isRunning ? 50 : 44;
-  const glow = isRunning ? 28 : 18;
-  const el = document.createElement("div");
-  // Klasse NICHT auf el — sonst kleben Theme-Pseudoelemente (::before/::after) am
-  // OUTER-el und skalieren nicht mit dem Zoom-Wrap. wrapForZoomScale verschiebt
-  // die Klasse auf den inner-Wrap (siehe dort).
-  el.dataset.runnerPinHost = "1";
-  el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 20}px;height:${size + 20}px;pointer-events:none`;
-  const tierCfg = supporterTier === "gold"
-    ? { bg: "linear-gradient(135deg,#FFD700,#B8860B)", border: "#FFD700", icon: "★", shadow: "0 0 10px #FFD700cc" }
-    : supporterTier === "silver"
-      ? { bg: "linear-gradient(135deg,#E0E0E0,#9A9A9A)", border: "#C0C0C0", icon: "★", shadow: "0 0 8px #C0C0C0cc" }
-      : supporterTier === "bronze"
-        ? { bg: "linear-gradient(135deg,#CD7F32,#A0522D)", border: "#CD7F32", icon: "★", shadow: "0 0 8px #CD7F32cc" }
-        : null;
-  // Chip sitzt oben-rechts klar AUSSERHALB des Kreises
-  const supporterChip = tierCfg
-    ? `<div style="position:absolute;top:-10px;right:-10px;width:20px;height:20px;border-radius:50%;background:${tierCfg.bg};border:2px solid ${tierCfg.border};display:flex;align-items:center;justify-content:center;font-size:11px;color:#0F1115;font-weight:900;box-shadow:${tierCfg.shadow};z-index:3">${tierCfg.icon}</div>`
-    : "";
-  // Name-Badge (frosted glass, crew-color border glow, Speech-Bubble-Pfeil, klickbar)
-  const cleanName = (displayName ?? "").trim();
-  const badgeColor = crewColor ?? "#22D1C3";
-  const nameLabel = cleanName
-    ? `<div class="ma365-runner-badge" data-action="open-runner-profile"
-            title="${crewName ? "Crew: " + crewName + " · Klick öffnet dein Runner-Profil" : "Klick öffnet dein Runner-Profil"}"
-            style="--badge-color:${badgeColor}"
-            onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('ma365:open-runner-profile'));"
-            onmousedown="event.stopPropagation();"
-            ontouchstart="event.stopPropagation();"
-       >
-        ${crewColor ? `<span class="ma365-runner-badge-dot" style="background:${crewColor}"></span>` : ""}
-        <span class="ma365-runner-badge-at">@</span><span class="ma365-runner-badge-name">${cleanName}</span>
-       </div>`
-    : "";
-  const auraLayer = auraActive
-    ? `<div style="position:absolute;width:${size + 28}px;height:${size + 28}px;border-radius:50%;background:conic-gradient(from 0deg,#FFD700 0deg,#22D1C3 120deg,#FF2D78 240deg,#FFD700 360deg);opacity:0.35;filter:blur(6px);animation:auraSpin 4s linear infinite"></div>
-       <div style="position:absolute;width:${size + 14}px;height:${size + 14}px;border-radius:50%;border:2px solid #FFD700aa;box-shadow:0 0 20px #FFD700cc;animation:auraPulse 2s ease-in-out infinite"></div>`
-    : "";
-  el.innerHTML = `
-    ${auraLayer}
-    <div class="runner-ring" style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color}25;box-shadow:0 0 ${glow}px ${color}cc;${isRunning ? "animation:selfPulse 1.5s ease-in-out infinite" : ""}"></div>
-    ${markerArt?.video_url
-      ? `<video class="runner-emoji" src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;width:${isRunning ? 50 : 44}px;height:${isRunning ? 50 : 44}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)"></video>`
-      : markerArt?.image_url
-        ? `<img class="runner-emoji" src="${markerArt.image_url}" alt="" style="position:relative;width:${isRunning ? 50 : 44}px;height:${isRunning ? 50 : 44}px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)" />`
-        : `<span class="runner-emoji" style="position:relative;font-size:${isRunning ? 40 : 34}px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 12px ${color}aa)">${emoji}</span>`
-    }
-    ${supporterChip}
-    ${nameLabel}
-    <style>
-      @keyframes selfPulse{0%,100%{transform:scale(1);opacity:0.95}50%{transform:scale(1.15);opacity:0.5}}
-      @keyframes auraSpin{to{transform:rotate(360deg)}}
-      @keyframes auraPulse{0%,100%{transform:scale(1);opacity:0.9}50%{transform:scale(1.1);opacity:0.5}}
-    </style>
-  `;
-  // Click-Handler direkt an der Node. Mapbox ruft auf Marker-mousedown teils
-  // preventDefault auf, was das folgende `click`-Event unterdruecken kann.
-  // Deshalb feuern wir bereits auf pointerdown/mouseup — nicht nur auf click.
-  const badgeEl = el.querySelector(".ma365-runner-badge") as HTMLElement | null;
-  if (badgeEl) {
-    let fired = false;
-    const fire = (ev: Event) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      (ev as Event).stopImmediatePropagation?.();
-      if (fired) return;
-      fired = true;
-      setTimeout(() => { fired = false; }, 500);
-      window.dispatchEvent(new CustomEvent("ma365:open-runner-profile"));
-    };
-    badgeEl.addEventListener("pointerdown", fire);
-    badgeEl.addEventListener("mouseup", fire);
-    badgeEl.addEventListener("click", fire);
-    badgeEl.addEventListener("touchend", fire, { passive: false });
-  }
-  return el;
-}
-
-function buildRunnerMarkerEl(r: MapRunner): HTMLDivElement {
-  const isCrew = r.is_crew_member;
-  const size = isCrew ? 50 : 42;
-  const iconSize = isCrew ? 28 : 24;
-  const el = document.createElement("div");
-  el.style.cssText = `position:relative;display:flex;align-items:center;justify-content:center;width:${size + 12}px;height:${size + 12}px`;
-
-  const crewRing = isCrew
-    ? `<div style="position:absolute;width:${size - 2}px;height:${size - 2}px;border-radius:50%;border:2.5px solid ${r.color};box-shadow:0 0 14px ${r.color}aa, inset 0 0 8px ${r.color}44"></div>`
-    : "";
-  const crewStar = isCrew
-    ? `<div style="position:absolute;top:-5px;right:-5px;width:19px;height:19px;border-radius:50%;background:${r.color};border:1.5px solid #0F1115;display:flex;align-items:center;justify-content:center;font-size:10px;color:#0F1115;box-shadow:0 0 8px ${r.color};z-index:2">★</div>`
-    : "";
-  const walkRipple = r.is_walking
-    ? `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;border:2px solid ${r.color}cc;animation:runnerRipple 1.6s ease-out infinite"></div>`
-    : "";
-  const walkBadge = r.is_walking
-    ? `<div style="position:absolute;bottom:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#0F1115;border:1.5px solid #4ade80;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 0 10px #4ade80aa;animation:runnerBob 0.6s ease-in-out infinite alternate;z-index:2">🏃</div>`
-    : "";
-
-  el.innerHTML = `
-    ${walkRipple}
-    ${crewRing}
-    <div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 30% 30%, ${r.color}55, ${r.color}22);border:1px solid ${r.color}88;box-shadow:0 0 12px ${r.color}88, inset 0 0 10px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center">
-      <span style="font-size:${iconSize}px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)) drop-shadow(0 0 6px ${r.color}88)">${r.marker_icon}</span>
-    </div>
-    ${crewStar}
-    ${walkBadge}
-    <style>
-      @keyframes runnerRipple{0%{transform:scale(1);opacity:0.8}100%{transform:scale(1.8);opacity:0}}
-      @keyframes runnerBob{from{transform:translateY(0)}to{transform:translateY(-3px)}}
-    </style>
-  `;
-  return el;
-}
-
-function buildDropMarkerEl(drop: SupplyDrop): HTMLDivElement {
-  const rarityColor: Record<string, string> = {
-    common: "#9ba8c7", rare: "#5ddaf0", epic: "#a855f7", legendary: "#FFD700",
-  };
-  const color = rarityColor[drop.rarity] || "#5ddaf0";
-  const el = document.createElement("div");
-  el.style.cssText = "position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:56px;cursor:pointer";
-  el.innerHTML = `
-    <div style="position:absolute;width:50px;height:50px;border-radius:50%;background:${color}25;box-shadow:0 0 22px ${color}cc;animation:dropPulse 1.6s ease-in-out infinite"></div>
-    <div style="position:absolute;width:38px;height:38px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 12px rgba(255,255,255,0.4)">
-      <span style="font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5))">🎁</span>
-    </div>
-    <style>@keyframes dropPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:0.5}}</style>
-  `;
-  return el;
-}
+// Marker-Builder ausgelagert nach app-map/marker-builders:
+// buildSelfMarkerEl / buildRunnerMarkerEl / buildDropMarkerEl
+// (reine DOM-Builder ohne Modul-State, daher problemlos splittbar)
 
 /**
  * Wraps existing marker content in an inner element with [data-zoom-scale]
  * so transform:scale can be applied without overwriting Mapbox's translate.
  * Idempotent — no-op if already wrapped.
  */
-function wrapForZoomScale(el: HTMLElement): void {
-  if (el.querySelector(':scope > [data-zoom-scale="1"]')) return;
-  if (!el.style.position) el.style.position = "relative";
-  const inner = document.createElement("div");
-  inner.dataset.zoomScale = "1";
-  // position:absolute + inset:0 → wrap überdeckt el exakt. Alle absolute-Kinder
-  // im wrap nehmen den wrap als Containing Block und skalieren mit.
-  inner.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform;backface-visibility:hidden;-webkit-font-smoothing:subpixel-antialiased";
-  // Falls das host-el ein Runner-Pin ist: Klasse auf den Wrap verschieben, damit
-  // theme-spezifische ::before/::after Pseudoelemente im Scale-Container hängen.
-  if (el.dataset.runnerPinHost === "1") {
-    inner.classList.add("ma365-runner-pin");
-  }
-  while (el.firstChild) inner.appendChild(el.firstChild);
-  el.appendChild(inner);
-}
+// wrapForZoomScale → siehe app-map/map-helpers
 
 
 export function AppMap({
@@ -1161,13 +927,8 @@ export function AppMap({
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/cosmetic-artwork", { cache: "no-store" });
-        if (!res.ok) return;
-        const j = await res.json() as {
-          marker: Record<string, Record<string, { image_url: string | null; video_url: string | null }>>;
-          resource_node?: Record<string, { image_url: string | null; video_url: string | null }>;
-          loot_drop?: Record<string, { image_url: string | null; video_url: string | null }>;
-        };
+        const j = await fetchAllArt();
+        if (!j) return;
         const variants = j.marker?.[markerId];
         const art = variants?.[markerVariant] ?? variants?.neutral ?? null;
         if (alive) {
@@ -1263,6 +1024,10 @@ export function AppMap({
       // direkten Zugriff haben ohne ref-prop-drilling. Wird beim Unmount geräumt.
       (window as unknown as { __ma365Map?: mapboxgl.Map }).__ma365Map = map;
       window.dispatchEvent(new CustomEvent("ma365:map-ready"));
+      // Erstes "idle" = alle Tiles + 3D-Gebäude voll gerendert. Splash wartet darauf.
+      map.once("idle", () => {
+        window.dispatchEvent(new CustomEvent("ma365:map-idle"));
+      });
 
       // Heimat-Stadt-Bounds dynamisch nachladen (PLZ → cities.bounds).
       // Defaults sind Berlin — sobald /api/me/city antwortet, überschreiben

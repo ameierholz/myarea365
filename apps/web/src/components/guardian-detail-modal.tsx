@@ -44,6 +44,7 @@ type DetailResponse = {
     custom_name: string | null; talent_points_available: number; talent_points_spent: number;
     current_hp_pct: number | null; wounded_until: string | null;
     acquired_at: string | null;
+    star_level?: number; sculpts_collected?: number;
     archetype: GuardianArchetype & { class_id?: string | null };
   };
   talent_nodes: TalentNode[];
@@ -162,7 +163,7 @@ export function GuardianDetailModal({ guardianId, onClose, onArena, onSwitch, on
             data={data} tab={tab} setTab={setTab} onClose={onClose} action={action}
             onArena={onArena} onSwitch={onSwitch} onForge={openForge} onOpenRanking={onOpenRanking}
             materials={materials} materialCatalog={materialCatalog}
-            mmr={mmr} equipped={equipped}
+            mmr={mmr} equipped={equipped} reload={load}
           />
         )}
       </div>
@@ -213,7 +214,7 @@ function gearScore(equipped: Record<string, EquippedItem | null> | null): { tota
   return { total: Math.round(total), slots: filled };
 }
 
-function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, onForge, onOpenRanking, materials, materialCatalog, mmr, equipped }: {
+function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, onForge, onOpenRanking, materials, materialCatalog, mmr, equipped, reload }: {
   data: DetailResponse; tab: Tab; setTab: (t: Tab) => void; onClose: () => void;
   action: (body: object) => Promise<void>;
   onArena?: () => void;
@@ -224,6 +225,7 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
   materialCatalog: MaterialCatalogEntry[] | null;
   mmr: MmrInfo | null;
   equipped: Record<string, EquippedItem | null> | null;
+  reload: () => Promise<void>;
 }) {
   const tGD = useTranslations("GuardianDetail");
   const locale = useLocale();
@@ -276,6 +278,21 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
           <div style={{ color: "#FFF", fontSize: 18, fontWeight: 900, lineHeight: 1.15, marginTop: 2 }}>
             {g.custom_name ?? a.name}
           </div>
+          {(() => {
+            const stars = Math.max(0, Math.min(5, g.star_level ?? 0));
+            return (
+              <div style={{ marginTop: 4, display: "flex", gap: 2, alignItems: "center" }} title={`${stars}/5 Sterne · ${g.sculpts_collected ?? 0} Sculpts`}>
+                {[1,2,3,4,5].map((i) => (
+                  <span key={i} style={{ fontSize: 13, color: i <= stars ? "#FFD700" : "rgba(255,255,255,0.18)", textShadow: i <= stars ? "0 0 6px #FFD700" : undefined }}>★</span>
+                ))}
+                {(g.sculpts_collected ?? 0) > 0 && (
+                  <span style={{ marginLeft: 4, fontSize: 9, color: "#FFD700", fontWeight: 800 }}>
+                    · {g.sculpts_collected} 🪨
+                  </span>
+                )}
+              </div>
+            );
+          })()}
           <div style={{ color: "#a8b4cf", fontSize: 11, marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span>{tGD("level", { level: g.level })}</span>
             <span>·</span>
@@ -638,6 +655,9 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                   <div style={{ color: "#6c7590", fontSize: 11, marginTop: 8, fontStyle: "italic" }}>„{a.lore}"</div>
                 )}
               </div>
+
+              {/* Sterne / Star-Up */}
+              <GuardianStarUp guardianId={g.id} starLevel={g.star_level ?? 0} sculpts={g.sculpts_collected ?? 0} reload={reload} />
             </div>
           );
         })()}
@@ -750,6 +770,76 @@ function Stat({ label, value, color, delta }: { label: string; value: number; co
           <span style={{ color: "#4ade80", fontSize: 9, fontWeight: 900 }}>+{delta}</span>
         )}
       </span>
+    </div>
+  );
+}
+
+const STAR_COSTS = [10, 30, 50, 100, 200];
+function GuardianStarUp({ guardianId, starLevel, sculpts, reload }: {
+  guardianId: string; starLevel: number; sculpts: number; reload: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const stars = Math.max(0, Math.min(5, starLevel));
+  const isMax = stars >= 5;
+  const cost = isMax ? 0 : (STAR_COSTS[stars] ?? 200);
+  const enough = sculpts >= cost;
+  const pct = isMax ? 100 : Math.min(100, (sculpts / Math.max(1, cost)) * 100);
+
+  async function starUp() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch("/api/guardians/star-up", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ guardian_id: guardianId }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string; new_star_level?: number };
+      if (j.ok) { setMsg(`★ Wächter ist jetzt ${j.new_star_level ?? stars + 1}-Sterne!`); await reload(); }
+      else if (j.error === "not_enough_sculpts") setMsg("⚠ Nicht genug Sculpts.");
+      else if (j.error === "max_star_level") setMsg("⭐ Bereits 5 Sterne.");
+      else setMsg(`⚠ ${j.error ?? "Fehler"}`);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ padding: 12, borderRadius: 12, background: "rgba(15,17,21,0.7)", border: "1px solid rgba(255,215,0,0.4)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.2 }}>★ STERNE-PROGRESSION</span>
+        <span style={{ display: "flex", gap: 2 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <span key={i} style={{ fontSize: 14, color: i <= stars ? "#FFD700" : "rgba(255,255,255,0.2)" }}>★</span>
+          ))}
+        </span>
+      </div>
+      <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.4, marginBottom: 8 }}>
+        Sammle <b style={{ color: "#FFD700" }}>Sculpts</b> aus Truhen, Events oder Shop, um deinen Wächter aufzuwerten. Mehr Sterne = stärkere Stats und neue Skill-Stufen.
+      </div>
+      {isMax ? (
+        <div style={{ textAlign: "center", color: "#FFD700", fontSize: 12, fontWeight: 900, padding: 8 }}>
+          ⭐ Maximale Sternenstufe erreicht
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <div style={{ flex: 1, height: 8, background: "rgba(0,0,0,0.4)", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", background: enough ? "#FFD700" : "#22D1C3" }} />
+            </div>
+            <span style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{sculpts}/{cost} 🪨</span>
+          </div>
+          <button onClick={() => void starUp()} disabled={busy || !enough}
+            style={{
+              width: "100%", padding: "8px 12px", borderRadius: 8,
+              background: enough ? "linear-gradient(180deg, #FFD700 0%, #FF8A00 100%)" : "rgba(255,255,255,0.06)",
+              color: enough ? "#1a0e00" : "#8B8FA3",
+              border: "none", fontSize: 12, fontWeight: 900, letterSpacing: 0.5, cursor: enough ? "pointer" : "not-allowed",
+              opacity: busy ? 0.5 : 1,
+            }}>
+            {busy ? "…" : enough ? `★ AUFWERTEN auf ${stars + 1}` : `${cost - sculpts} Sculpts fehlen`}
+          </button>
+        </>
+      )}
+      {msg && <div style={{ marginTop: 6, color: msg.startsWith("★") ? "#FFD700" : "#FF6B9A", fontSize: 11, fontWeight: 700, textAlign: "center" }}>{msg}</div>}
     </div>
   );
 }

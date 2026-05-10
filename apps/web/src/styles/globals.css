@@ -27,9 +27,9 @@
 
   /* ─── Warm-Dusk Design-System (Phase 1) ─────────────────────────────── */
   /* Modal-Surfaces: glassy indigo, lifted, friendly */
-  --color-modal-backdrop:   rgba(15, 16, 32, 0.60);
-  --color-modal-surface:    rgba(45, 52, 88, 0.92);
-  --color-modal-surface-hi: rgba(58, 66, 108, 0.88);
+  --color-modal-backdrop:   rgba(15, 16, 32, 0.45);
+  --color-modal-surface:    rgba(45, 52, 88, 0.96);
+  --color-modal-surface-hi: rgba(58, 66, 108, 0.94);
   --color-modal-border:     rgba(34, 209, 195, 0.25);
   --color-modal-divider:    rgba(255, 255, 255, 0.08);
 
