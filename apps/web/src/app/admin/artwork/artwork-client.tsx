@@ -122,6 +122,24 @@ type Material = {
   image_url: string | null; video_url: string | null;
 };
 
+// Mega-Kategorien für die Tab-Gliederung. Jede Gruppe enthält thematisch
+// verwandte Tabs. Hilft bei Übersicht (statt 22 flache Tabs).
+const TAB_GROUPS: Array<{ id: string; label: string; emoji: string; color: string; tabs: TabId[] }> = [
+  { id: "guardian", label: "Wächter & Truppen",  emoji: "🛡️", color: "#22D1C3", tabs: ["archetype", "troop", "siegel"] },
+  { id: "crafting", label: "Items & Crafting",   emoji: "⚔️", color: "#a855f7", tabs: ["item", "material", "potion", "inventory_item"] },
+  { id: "world",    label: "Welt & Karte",       emoji: "🌍", color: "#FF6B4A", tabs: ["base_theme", "building", "base_ring", "marker", "light", "map_building", "resource_node", "pin_theme"] },
+  { id: "objects",  label: "Spiel-Objekte",      emoji: "💎", color: "#FFD700", tabs: ["resource", "chest", "loot_drop", "rank"] },
+  { id: "ui",       label: "UI-System",          emoji: "🎨", color: "#FF2D78", tabs: ["ui_icon", "nameplate", "modal_background"] },
+];
+
+// Helper: Color-Code für Done-Status (rot=leer, gelb=teilweise, grün=fertig)
+function progressColor(done: number, total: number): string {
+  if (total === 0) return "#8B8FA3";
+  if (done === 0) return "#FF2D78";        // rot — komplett leer
+  if (done >= total) return "#4ade80";     // grün — fertig
+  return "#FFD700";                         // gelb — teilweise
+}
+
 export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -131,6 +149,9 @@ export function ArtworkAdminClient() {
   const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabId>("archetype");
+  const [activeGroup, setActiveGroup] = useState<string>("guardian");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showOnlyEmpty, setShowOnlyEmpty] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -251,17 +272,120 @@ export function ArtworkAdminClient() {
     { id: "modal_background", label: "🖼️ Modal-Backgrounds", done: doneModalBg, total: MODAL_BACKGROUNDS_ART.length },
   ];
 
+  // Aggregierte Stats über alle Tabs
+  const tabsById = Object.fromEntries(tabs.map(t => [t.id, t])) as Record<TabId, typeof tabs[number]>;
+  const totalDone = tabs.reduce((acc, t) => acc + t.done, 0);
+  const totalSlots = tabs.reduce((acc, t) => acc + t.total, 0);
+  const overallPct = totalSlots > 0 ? Math.round((totalDone / totalSlots) * 100) : 0;
+
+  // Gruppen-Aggregation
+  const groupStats = TAB_GROUPS.map(g => {
+    const groupTabs = g.tabs.map(id => tabsById[id]).filter(Boolean);
+    const done = groupTabs.reduce((acc, t) => acc + t.done, 0);
+    const total = groupTabs.reduce((acc, t) => acc + t.total, 0);
+    return { ...g, done, total, tabsResolved: groupTabs };
+  });
+
+  // Aktive Gruppe finden + Tab-Wechsel synchronisieren wenn Gruppe gewechselt wird
+  const activeGroupData = groupStats.find(g => g.id === activeGroup) ?? groupStats[0];
+  const visibleTabs = activeGroupData.tabsResolved;
+
+  // Filter: Search + onlyEmpty wirken auf die sichtbaren Tabs
+  const q = searchQuery.trim().toLowerCase();
+  const filteredTabs = visibleTabs.filter(t => {
+    if (showOnlyEmpty && t.done >= t.total) return false;
+    if (q && !t.label.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  // Tab-Auto-Switch: wenn aktiver Tab nicht in der gewählten Gruppe → ersten Tab der Gruppe nehmen
+  useEffect(() => {
+    if (!visibleTabs.find(t => t.id === tab)) {
+      const first = filteredTabs[0]?.id ?? visibleTabs[0]?.id;
+      if (first) setTab(first);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGroup]);
+
   return (
     <div>
-      <h1 className="text-2xl font-black mb-1">🎨 Artwork-Generator</h1>
+      <div className="flex items-baseline gap-3 mb-1">
+        <h1 className="text-2xl font-black">🎨 Artwork-Generator</h1>
+        <span className="text-sm text-[#a8b4cf]">
+          <b className="text-white">{totalDone}/{totalSlots}</b> Slots befüllt
+          <span className="ml-2 px-2 py-0.5 rounded text-[11px] font-bold"
+            style={{ background: `${progressColor(totalDone, totalSlots)}22`, color: progressColor(totalDone, totalSlots) }}>
+            {overallPct}%
+          </span>
+        </span>
+      </div>
       <p className="text-sm text-[#a8b4cf] mb-3">
-        KI-Prompts (Bild & Video) für Gemini Pro / Veo 2 / Midjourney generieren und die fertigen Assets direkt hochladen — für Wächter, Map-Icons, Runner-Lights und Pin-Themes.
+        KI-Prompts für Gemini / Veo 2 / Midjourney generieren und Assets hochladen.
       </p>
 
-      {/* Tab-Switcher */}
+      {/* Globale Progress-Bar */}
+      <div className="mb-3 h-1.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-full transition-all" style={{
+          width: `${overallPct}%`,
+          background: `linear-gradient(90deg, ${progressColor(totalDone, totalSlots)}, ${progressColor(totalDone, totalSlots)}aa)`,
+        }} />
+      </div>
+
+      {/* Mega-Gruppen */}
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {groupStats.map(g => {
+          const active = activeGroup === g.id;
+          const pct = g.total > 0 ? Math.round((g.done / g.total) * 100) : 0;
+          return (
+            <button key={g.id} onClick={() => setActiveGroup(g.id)}
+              className="px-3 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2"
+              style={{
+                background: active ? g.color : "#1A1D23",
+                color: active ? "#0F1115" : "#a8b4cf",
+                border: active ? "none" : "1px solid rgba(255,255,255,0.08)",
+              }}>
+              <span className="text-base">{g.emoji}</span>
+              <span>{g.label}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                style={{
+                  background: active ? "rgba(15,17,21,0.2)" : `${progressColor(g.done, g.total)}22`,
+                  color: active ? "#0F1115" : progressColor(g.done, g.total),
+                }}>
+                {g.done}/{g.total}
+                <span className="opacity-70 ml-1">· {pct}%</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Globale Filter (Search + Only-Empty) */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 p-2 rounded-lg bg-[#1A1D23]/50 border border-white/5">
+        <input
+          type="text" placeholder="🔍 Tab durchsuchen…"
+          value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 min-w-[180px] max-w-xs bg-[#0F1115] border border-white/10 rounded px-3 py-1.5 text-sm text-white placeholder:text-[#8B8FA3] focus:outline-none focus:border-[#22D1C3]/50"
+        />
+        <label className="flex items-center gap-2 text-xs font-bold text-[#a8b4cf] cursor-pointer px-2 py-1.5 rounded hover:bg-white/5">
+          <input type="checkbox" checked={showOnlyEmpty} onChange={(e) => setShowOnlyEmpty(e.target.checked)}
+            className="w-3.5 h-3.5 accent-[#FF2D78]" />
+          🚨 Nur unfertige Tabs zeigen
+        </label>
+        <span className="text-[11px] text-[#8B8FA3] ml-auto">
+          Gruppe: <b style={{ color: activeGroupData.color }}>{activeGroupData.emoji} {activeGroupData.label}</b> ·
+          <b className="text-white ml-1">{activeGroupData.done}/{activeGroupData.total}</b> Slots
+        </span>
+      </div>
+
+      {/* Sub-Tabs der aktiven Gruppe */}
       <div className="flex flex-wrap gap-2 mb-4 border-b border-white/10 pb-2">
-        {tabs.map((t) => {
+        {filteredTabs.length === 0 ? (
+          <div className="text-sm text-[#8B8FA3] py-2">
+            Keine Tabs in dieser Gruppe entsprechen den Filtern.
+          </div>
+        ) : filteredTabs.map((t) => {
           const active = tab === t.id;
+          const color = progressColor(t.done, t.total);
           return (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-3 py-2 rounded-lg text-sm font-bold transition ${
@@ -270,7 +394,11 @@ export function ArtworkAdminClient() {
                   : "bg-[#1A1D23] border border-white/10 text-[#a8b4cf] hover:text-white"
               }`}>
               {t.label}
-              <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] ${active ? "bg-[#0F1115]/20" : "bg-[#22D1C3]/15 text-[#22D1C3]"}`}>
+              <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                style={{
+                  background: active ? "rgba(15,17,21,0.2)" : `${color}22`,
+                  color: active ? "#0F1115" : color,
+                }}>
                 {t.done}/{t.total}
               </span>
             </button>
@@ -619,7 +747,7 @@ function ItemsTab({ items, onChange }: { items: Item[]; onChange: () => void }) 
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Raritäten</option>
           <option value="common">Gewöhnlich</option>
-          <option value="rare">Selten</option>
+          <option value="rare">Elite</option>
           <option value="epic">Episch</option>
           <option value="legend">Legendär</option>
         </select>
@@ -633,10 +761,13 @@ function ItemsTab({ items, onChange }: { items: Item[]; onChange: () => void }) 
       <div className="mb-4 p-3 rounded-xl bg-[#1A1D23] border border-white/10">
         <div className="flex items-center justify-between mb-2 text-xs text-[#a8b4cf]">
           <span><strong className="text-white">{filtered.length}</strong> gefiltert · {done}/{items.length} mit Bild ({pct}%)</span>
-          <span className="text-[#4ade80] font-bold">{done === items.length ? "🎉 Alle fertig!" : `${items.length - done} offen`}</span>
+          <span className="font-bold" style={{ color: progressColor(done, items.length) }}>{done === items.length ? "🎉 Alle fertig!" : `${items.length - done} offen`}</span>
         </div>
         <div className="h-2 bg-[#0F1115] rounded overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#22D1C3] to-[#FFD700] transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full transition-all" style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, ${progressColor(done, items.length)}, ${progressColor(done, items.length)}aa)`,
+          }} />
         </div>
       </div>
 
@@ -818,11 +949,13 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         </select>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
-          <option value="ALL">Alle Klassen</option>
-          <option value="tank">🛡️ Tank</option>
-          <option value="support">✨ Support</option>
-          <option value="ranged">🏹 Fernkampf</option>
-          <option value="melee">⚔️ Nahkampf</option>
+          <option value="ALL">Alle Truppentypen</option>
+          <option value="infantry">🛡️ Infanterie</option>
+          <option value="cavalry">🐎 Kavallerie</option>
+          <option value="marksman">🏹 Scharfschütze</option>
+          <option value="mage">🔮 Magier</option>
+          <option value="siege">💥 Belagerung</option>
+          <option value="collector">📦 Sammler</option>
         </select>
         <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
@@ -886,12 +1019,15 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         <div className="flex items-center justify-between mb-2 text-xs text-[#a8b4cf]">
           <span><strong className="text-white">{filtered.length}</strong> gefiltert · {done}/{archetypes.length} mit Bild ({pct}%)</span>
           <div className="flex items-center gap-2">
-            <span className="text-[#4ade80] font-bold">{done === archetypes.length ? "🎉 Alle fertig!" : `${archetypes.length - done} offen`}</span>
+            <span className="font-bold" style={{ color: progressColor(done, archetypes.length) }}>{done === archetypes.length ? "🎉 Alle fertig!" : `${archetypes.length - done} offen`}</span>
             <WipeArchetypeArtworksButton onDone={onChange} />
           </div>
         </div>
         <div className="h-2 bg-[#0F1115] rounded overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-[#22D1C3] to-[#FFD700] transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-full transition-all" style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, ${progressColor(done, archetypes.length)}, ${progressColor(done, archetypes.length)}aa)`,
+          }} />
         </div>
       </div>
 
@@ -1637,11 +1773,12 @@ function UiIconArtTab({ artMap, slots, onChange }: {
   const filtered = filter === "ALL" ? slots : slots.filter((s) => s.category === filter);
 
   const CAT_LABEL: Record<string, { label: string; color: string }> = {
-    stat:   { label: "STATS",    color: "#5ddaf0" },
-    class:  { label: "KLASSEN",  color: "#FF6B4A" },
-    action: { label: "AKTIONEN", color: "#FF2D78" },
-    badge:  { label: "BADGES",   color: "#FFD700" },
-    misc:   { label: "SONSTIGE", color: "#a8b4cf" },
+    stat:    { label: "STATS",      color: "#5ddaf0" },
+    class:   { label: "KLASSEN",    color: "#FF6B4A" },
+    action:  { label: "AKTIONEN",   color: "#FF2D78" },
+    badge:   { label: "BADGES",     color: "#FFD700" },
+    misc:    { label: "SONSTIGE",   color: "#a8b4cf" },
+    faction: { label: "FRAKTIONEN", color: "#22D1C3" },
   };
 
   return (
