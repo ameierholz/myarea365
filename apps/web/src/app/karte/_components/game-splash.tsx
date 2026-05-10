@@ -23,13 +23,10 @@ import { fetchBaseMe } from "@/lib/base-me-cache";
 // Dann Fade-out auf die Map.
 //
 // Repeat-Visit: Wenn Cosmetic-Artwork bereits im LocalStorage liegt (LS_KEY)
-// — also alles vorgeladen — läuft die Splash-Pipeline drastisch verkürzt
-// (Branding-Moment kurz halten, kein 8s-Ruckler-Loop nochmal).
-const HAS_ART_CACHE = typeof window !== "undefined" && !!window.localStorage.getItem("ma365_cosmetic_art_v2");
-const LOGO_PHASE_MS = HAS_ART_CACHE ? 1200 : 3000;
+// — also alles vorgeladen — läuft die Splash-Pipeline drastisch verkürzt.
+// Cache-Detection passiert NACH Mount via useState — sonst Hydration-Mismatch
+// (server hätte immer false, client mit Cache hätte true → unterschiedliche Timer).
 const CROSSFADE_MS = 0;
-const LOADER_MIN_MS = HAS_ART_CACHE ? 1500 : 8000;
-const FADE_OUT_MS = HAS_ART_CACHE ? 350 : 700;
 
 const PRELOAD_TASKS: Array<{ key: string; label: string }> = [
   { key: "artwork",  label: "Lade Artwork" },
@@ -40,6 +37,18 @@ const PRELOAD_TASKS: Array<{ key: string; label: string }> = [
 ];
 
 export function GameSplash({ onReady }: { onReady: () => void }) {
+  // Hydration-safe: initial false (server-konform). Nach Mount: lese Cache.
+  // Wenn Cache da → setHasArtCache(true) → Timer-Effects re-firen mit kürzeren Werten.
+  const [hasArtCache, setHasArtCache] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("ma365_cosmetic_art_v2")) setHasArtCache(true);
+  }, []);
+
+  const LOGO_PHASE_MS = hasArtCache ? 1200 : 3000;
+  const LOADER_MIN_MS = hasArtCache ? 1500 : 8000;
+  const FADE_OUT_MS = hasArtCache ? 350 : 700;
+
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [statusText, setStatusText] = useState(PRELOAD_TASKS[0].label);
   const [phase, setPhase] = useState<"logo" | "loader">("logo");
@@ -51,7 +60,7 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
   useEffect(() => {
     const t1 = window.setTimeout(() => setPhase("loader"), LOGO_PHASE_MS);
     return () => window.clearTimeout(t1);
-  }, []);
+  }, [LOGO_PHASE_MS]);
 
   // Splash-Ende: erst wenn ALLE Tasks fertig (echtes Pre-Decode!) UND
   // Mindestzeit erreicht. Sonst sieht man die Base nach Splash-Ende noch laden.
@@ -63,7 +72,7 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
     const t2 = window.setTimeout(() => setFadingOut(true), timeLeft);
     const t3 = window.setTimeout(onReady, timeLeft + FADE_OUT_MS);
     return () => { window.clearTimeout(t2); window.clearTimeout(t3); };
-  }, [completed, onReady]);
+  }, [completed, onReady, LOGO_PHASE_MS, LOADER_MIN_MS, FADE_OUT_MS]);
 
   // ── Realistic Progress mit Ruckler-Effekt ──
   // Statt linearer Bar: Plateau-Phasen (kurzer Stillstand) + Sprünge dazwischen.
@@ -75,7 +84,7 @@ export function GameSplash({ onReady }: { onReady: () => void }) {
     let rafId = 0;
     // Stutter-Schedule: jedes Plateau = [pause-ms, target-pct]
     // Bei Repeat-Visit (Cache da) deutlich kürzer — sonst wirkt der Splash künstlich.
-    const schedule: Array<{ atMs: number; toPct: number; label: string }> = HAS_ART_CACHE
+    const schedule: Array<{ atMs: number; toPct: number; label: string }> = hasArtCache
       ? [
           { atMs: 200,  toPct: 35,  label: "Lade Profil & Crew" },
           { atMs: 600,  toPct: 70,  label: "Bereite Visuals vor" },
