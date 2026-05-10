@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 import { ResearchTab } from "@/components/base-modal/research-tab";
+import { ResourceHeader } from "@/components/base-modal/_resource-header";
 import { fetchBaseMe } from "@/lib/base-me-cache";
 
 const ACCENT = "#22D1C3";
@@ -20,6 +21,7 @@ export function ResearchModal({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <Modal open={open} onClose={onClose} size="md" zIndex={Z.modal} reserveLeftSpace={372}>
       <ModalHeader title="Forschung" onClose={onClose} accent="primary" />
+      <ResourceHeader />
       <ModalBody padding="padded">
         <ResearchTab accent={ACCENT} reload={reload} />
       </ModalBody>

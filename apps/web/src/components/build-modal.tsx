@@ -184,6 +184,13 @@ const RES_FALLBACK: Record<keyof Resources, { icon: string; color: string }> = {
   speed_tokens:  { icon: "⚡", color: GOLD },
 };
 
+const RES_LABEL: Record<"wood" | "stone" | "gold" | "mana", string> = {
+  wood:  "Tech-Schrott",
+  stone: "Komponenten",
+  gold:  "Krypto",
+  mana:  "Bandbreite",
+};
+
 export function BuildModal({
   onClose,
   initialBuildingId,
@@ -615,12 +622,24 @@ export function BuildModal({
                     <div key={k}
                       data-rss-pill={k}
                       style={{
-                        padding: "10px 8px",
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                        padding: "6px 8px 8px",
+                        display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4,
                         borderRight: i < 3 ? "1px solid rgba(255,255,255,0.06)" : "none",
                         minWidth: 0,
                       }}>
-                      <ResourceIcon kind={k} size={44} fallback={RES_FALLBACK[k].icon} art={resourceArt} />
+                      <div style={{
+                        fontSize: 8, fontWeight: 900, letterSpacing: 0.8,
+                        color: RES_FALLBACK[k].color, opacity: 0.85,
+                        textAlign: "center",
+                        textTransform: "uppercase",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        lineHeight: 1,
+                      }}>{RES_LABEL[k]}</div>
+                      <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                        minWidth: 0,
+                      }}>
+                      <ResourceIcon kind={k} size={40} fallback={RES_FALLBACK[k].icon} art={resourceArt} />
                       <div style={{ display: "flex", flexDirection: "column", minWidth: 0, gap: 1 }}>
                         <div style={{
                           fontSize: 14, fontWeight: 900, color: RES_FALLBACK[k].color,
@@ -637,17 +656,18 @@ export function BuildModal({
                             lineHeight: 1,
                           }}>/ {compactNum(cap)}</div>
                         )}
-                        {prot > 0 && (
-                          <div
-                            title={`Geschützt vor Plünderung: ${prot.toLocaleString("de-DE")}`}
-                            style={{
-                              fontSize: 9, fontWeight: 800,
-                              color: "#4ade80",
-                              fontVariantNumeric: "tabular-nums",
-                              lineHeight: 1,
-                              display: "inline-flex", alignItems: "center", gap: 2,
-                            }}>🛡️{compactNum(prot)}</div>
-                        )}
+                        <div
+                          title={prot > 0
+                            ? `Geschützt vor Plünderung: ${prot.toLocaleString("de-DE")}`
+                            : "Kein Schutz aktiv – Geheim-Tresor bauen"}
+                          style={{
+                            fontSize: 9, fontWeight: 800,
+                            color: prot > 0 ? "#4ade80" : "rgba(255,255,255,0.35)",
+                            fontVariantNumeric: "tabular-nums",
+                            lineHeight: 1,
+                            display: "inline-flex", alignItems: "center", gap: 2,
+                          }}>🛡️{compactNum(prot)}</div>
+                      </div>
                       </div>
                     </div>
                   );
@@ -1664,14 +1684,13 @@ function TechStatFrame({
         }}>
           <span style={{
             fontSize: 9, fontWeight: 700, color: MUTED, letterSpacing: 0.2,
-            flexShrink: 0, maxWidth: "40%",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            flex: 1, minWidth: 0,
+            wordBreak: "break-word", lineHeight: 1.15,
           }}>{row.label}</span>
-          <span style={{ color: TEXT, fontWeight: 800 }}>{row.current}</span>
-          <span style={{ color: accent, fontSize: 10 }}>→</span>
-          <span style={{ color: GREEN, fontWeight: 900, textShadow: `0 0 6px ${GREEN}66` }}>{row.next}</span>
+          <span style={{ color: TEXT, fontWeight: 800, flexShrink: 0 }}>{row.current}</span>
+          <span style={{ color: accent, fontSize: 10, flexShrink: 0 }}>→</span>
+          <span style={{ color: GREEN, fontWeight: 900, textShadow: `0 0 6px ${GREEN}66`, flexShrink: 0 }}>{row.next}</span>
           <span style={{
-            marginLeft: "auto",
             fontSize: 9, fontWeight: 900,
             padding: "1px 5px", borderRadius: 3,
             background: `${GREEN}22`, color: GREEN,

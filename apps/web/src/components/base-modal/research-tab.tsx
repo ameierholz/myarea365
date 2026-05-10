@@ -528,10 +528,8 @@ function ItemCard({
       <div
         className="text-[10px] font-black text-white w-full"
         style={{
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
           lineHeight: 1.1,
+          wordBreak: "break-word",
         }}
       >
         {def.name}
@@ -649,7 +647,7 @@ function DetailSheet({
                   <div className="text-[8px] font-black tracking-widest" style={{ color: level > 0 ? "#4ade80" : "#FFD700" }}>
                     {level > 0 ? "AKTIVER UNLOCK" : "SCHALTET FREI"}
                   </div>
-                  <div className="text-[11px] font-black text-white truncate">
+                  <div className="text-[11px] font-black text-white" style={{ wordBreak: "break-word", lineHeight: 1.2 }}>
                     {effectLabel(def.effect_key)}
                   </div>
                 </div>
@@ -661,7 +659,7 @@ function DetailSheet({
               >
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px]">📈</span>
-                  <span className="text-[10px] font-black tracking-wide text-[#22D1C3] truncate">
+                  <span className="text-[10px] font-black tracking-wide text-[#22D1C3]" style={{ wordBreak: "break-word", lineHeight: 1.2, flex: 1, minWidth: 0 }}>
                     {effectLabel(def.effect_key)}
                   </span>
                   <span className="text-[8px] text-[#a8b4cf] tabular-nums ml-auto flex-shrink-0">

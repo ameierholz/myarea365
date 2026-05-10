@@ -29,6 +29,10 @@ const ResearchModal = dynamic(
   () => import("@/components/research-modal").then((m) => m.ResearchModal),
   { ssr: false },
 );
+const TroopsModal = dynamic(
+  () => import("@/components/troops-modal").then((m) => m.TroopsModal),
+  { ssr: false },
+);
 const RanglistenModal = dynamic(
   () => import("@/components/ranglisten-modal").then((m) => m.RanglistenModal),
   { ssr: false },
@@ -104,6 +108,7 @@ export function BaseClient({
   const [showStats, setShowStats] = useState(false);
   const [showBuild, setShowBuild] = useState(false);
   const [showResearch, setShowResearch] = useState(false);
+  const [showTroops, setShowTroops] = useState(false);
   const [showRanglisten, setShowRanglisten] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [guardianData, setGuardianData] = useState<GuardianCollection | null>(null);
@@ -511,7 +516,7 @@ export function BaseClient({
               onClick={() => setShowResearch(true)}
               slot_status={{ active: researchCount, max: researchSlotsMax, earliestEndsAt: researchEarliestEndsAt }}
             />
-            <ArtTile slot="karte_base_banditen"      icon="🥷" label="Banditen"     href="/karte" />
+            <ArtTile slot="karte_base_banditen"      icon="🥷" label="Banditen"     onClick={() => setShowTroops(true)} />
             <ArtTile slot="karte_base_waechter"      icon="🛡️" label="Wächter"      onClick={openGuardianHub} badge={guardianBadge} />
             <ArtTile slot="karte_base_trophaeen"     icon="🏆" label="Trophäen"     onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
             <ArtTile slot="karte_base_ranglisten"    icon="📊" label="Ranglisten"   onClick={() => setShowRanglisten(true)} />
@@ -535,6 +540,7 @@ export function BaseClient({
       <StatsModal open={showStats} onClose={() => setShowStats(false)} />
       {showBuild && <BuildModal onClose={() => setShowBuild(false)} />}
       <ResearchModal open={showResearch} onClose={() => setShowResearch(false)} />
+      <TroopsModal open={showTroops} onClose={() => setShowTroops(false)} />
       <RanglistenModal open={showRanglisten} onClose={() => setShowRanglisten(false)} />
 
       {guardianDetailId && (
