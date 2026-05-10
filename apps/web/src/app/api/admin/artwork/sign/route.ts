@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
+import { TABLE_TARGETS, COSMETIC_TARGETS, type ArtworkTargetType } from "@/lib/artwork-targets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,20 +13,29 @@ function adminSb() {
   return createAdminClient(url, key, { auth: { persistSession: false } });
 }
 
-/**
- * POST /api/admin/artwork/sign
- * Body: { target_type: "archetype"|"item", target_id, file_name, content_type }
- * Returns: { upload_url, token, path, is_video }
- *
- * Generiert eine Signed-Upload-URL mit Service-Role — der Client lädt dann
- * direkt zu Supabase Storage. Umgeht das 4.5 MB Body-Limit von Vercel für Videos.
- */
+// Cosmetic-Targets benutzen feste Folder-Namen; hier zentral festgehalten.
+// (TABLE_TARGETS bringt ihren Folder selbst mit.)
+const COSMETIC_FOLDER_MAP: Record<string, string> = {
+  marker: "markers", light: "lights", pin_theme: "pin-themes", siegel: "siegel",
+  potion: "potions", rank: "ranks", base_theme: "base-themes", building: "buildings",
+  resource: "resources", chest: "chests", stronghold: "strongholds", ui_icon: "ui-icons",
+  troop: "troops", nameplate: "nameplates", base_ring: "base-rings", loot_drop: "loot-drops",
+  resource_node: "resource-nodes", inventory_item: "inventory-items", modal_background: "modal-backgrounds",
+};
+
+function folderForTarget(targetType: string): string | null {
+  if (targetType in TABLE_TARGETS) return TABLE_TARGETS[targetType].folder;
+  return COSMETIC_FOLDER_MAP[targetType] ?? null;
+}
+
+const ALL_TARGETS: string[] = [...Object.keys(TABLE_TARGETS), ...COSMETIC_TARGETS];
+
 export async function POST(req: Request) {
   await requireAdmin();
   const sb = adminSb();
 
   const body = await req.json() as {
-    target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "loot_drop" | "resource_node" | "inventory_item" | "modal_background";
+    target_type: ArtworkTargetType;
     target_id: string;
     file_name: string;
     content_type: string;
@@ -35,7 +45,7 @@ export async function POST(req: Request) {
   if (!body.target_id || !body.file_name) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
-  if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "stronghold", "ui_icon", "troop", "nameplate", "base_ring", "loot_drop", "resource_node", "inventory_item", "modal_background"].includes(body.target_type)) {
+  if (!ALL_TARGETS.includes(body.target_type)) {
     return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
   }
 
@@ -44,33 +54,9 @@ export async function POST(req: Request) {
   const variant = body.variant && ["neutral","male","female"].includes(body.variant) ? body.variant : "neutral";
   const isVideo = (body.content_type || "").startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
 
-  // Bild + Video liegen im selben Folder — unterscheiden sich über die Endung.
-  // Die alte Subfolder-Trennung (/video/) hatte Bucket-Policy-Probleme bei neuen Pfaden.
-  const folderMap: Record<string, string> = {
-    archetype: "archetypes",
-    item:      "items",
-    material:  "materials",
-    marker:    "markers",
-    light:     "lights",
-    pin_theme: "pin-themes",
-    siegel:    "siegel",
-    potion:    "potions",
-    rank:      "ranks",
-    base_theme: "base-themes",
-    building:   "buildings",
-    resource:   "resources",
-    chest:      "chests",
-    stronghold: "strongholds",
-    ui_icon:    "ui-icons",
-    troop:      "troops",
-    nameplate:    "nameplates",
-    base_ring:    "base-rings",
-    loot_drop:    "loot-drops",
-    resource_node:"resource-nodes",
-    inventory_item:"inventory-items",
-    modal_background:"modal-backgrounds",
-  };
-  const folder = folderMap[body.target_type] ?? "items";
+  const folder = folderForTarget(body.target_type);
+  if (!folder) return NextResponse.json({ error: "unknown_folder" }, { status: 400 });
+  // Marker hat per-variant Files (male/female/neutral)
   const filename = body.target_type === "marker" ? `${safeId}_${variant}.${ext}` : `${safeId}.${ext}`;
   const path = `${folder}/${filename}`;
 

@@ -7,6 +7,8 @@ import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
 import { AdminArtworkControls } from "@/components/admin-artwork-controls";
+import { TABLE_TARGETS, type TableTargetType } from "@/lib/artwork-targets";
+import { buildEntityPrompt } from "@/lib/artwork-prompts-generic";
 
 type Archetype = {
   id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
@@ -105,7 +107,18 @@ type CosmeticArt = {
   modal_background: Record<string, Art>;  // slot_id = karte_base_bg / karte_waechter_bg / karte_crew_bg / karte_inventar_bg / karte_shop_bg
 };
 
-type TabId = "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "resource_node" | "loot_drop" | "inventory_item" | "modal_background";
+type TabId =
+  | "archetype" | "item" | "material" | "marker" | "light" | "pin_theme"
+  | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource"
+  | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate"
+  | "base_ring" | "resource_node" | "loot_drop" | "inventory_item"
+  | "modal_background"
+  // Phase 2 — über generischen EntityArtTab via TABLE_TARGETS
+  | "pet" | "guardian_xp" | "boss_raid" | "area_boss"
+  | "achievement" | "quest" | "research" | "mission" | "crew_challenge"
+  | "gem_shop_item" | "daily_deal_pack" | "popup_offer" | "vip_offer"
+  | "monet_daily_deal" | "monet_gem_tier" | "monet_seasonal"
+  | "monet_subscription" | "monet_themed";
 
 type TroopSlot = { id: string; name: string; emoji: string; troop_class: string; tier: number };
 
@@ -123,13 +136,14 @@ type Material = {
 };
 
 // Mega-Kategorien für die Tab-Gliederung. Jede Gruppe enthält thematisch
-// verwandte Tabs. Hilft bei Übersicht (statt 22 flache Tabs).
+// verwandte Tabs. 6 Gruppen mit allen 36 Tabs (22 alt + 14 neu).
 const TAB_GROUPS: Array<{ id: string; label: string; emoji: string; color: string; tabs: TabId[] }> = [
-  { id: "guardian", label: "Wächter & Truppen",  emoji: "🛡️", color: "#22D1C3", tabs: ["archetype", "troop", "siegel"] },
-  { id: "crafting", label: "Items & Crafting",   emoji: "⚔️", color: "#a855f7", tabs: ["item", "material", "potion", "inventory_item"] },
-  { id: "world",    label: "Welt & Karte",       emoji: "🌍", color: "#FF6B4A", tabs: ["base_theme", "building", "base_ring", "marker", "light", "map_building", "resource_node", "pin_theme"] },
-  { id: "objects",  label: "Spiel-Objekte",      emoji: "💎", color: "#FFD700", tabs: ["resource", "chest", "loot_drop", "rank"] },
-  { id: "ui",       label: "UI-System",          emoji: "🎨", color: "#FF2D78", tabs: ["ui_icon", "nameplate", "modal_background"] },
+  { id: "guardian",     label: "Wächter & Truppen",  emoji: "🛡️", color: "#22D1C3", tabs: ["archetype", "troop", "siegel", "pet", "guardian_xp"] },
+  { id: "world",        label: "Welt & Karte",       emoji: "🌍", color: "#FF6B4A", tabs: ["base_theme", "building", "base_ring", "marker", "light", "map_building", "resource_node", "pin_theme", "boss_raid", "area_boss"] },
+  { id: "inventar",     label: "Inventar & Crafting",emoji: "🎒", color: "#a855f7", tabs: ["item", "material", "potion", "inventory_item", "resource", "chest", "loot_drop"] },
+  { id: "progression",  label: "Progression",        emoji: "📊", color: "#FFD700", tabs: ["rank", "achievement", "quest", "research", "mission", "crew_challenge"] },
+  { id: "monetization", label: "Shop & Werbung",     emoji: "💸", color: "#4ade80", tabs: ["gem_shop_item", "daily_deal_pack", "popup_offer", "vip_offer", "monet_daily_deal", "monet_gem_tier", "monet_seasonal", "monet_subscription", "monet_themed"] },
+  { id: "ui",           label: "UI-System",          emoji: "🎨", color: "#FF2D78", tabs: ["ui_icon", "nameplate", "modal_background"] },
 ];
 
 // Helper: Color-Code für Done-Status (rot=leer, gelb=teilweise, grün=fertig)
@@ -152,15 +166,22 @@ export function ArtworkAdminClient() {
   const [activeGroup, setActiveGroup] = useState<string>("guardian");
   const [searchQuery, setSearchQuery] = useState("");
   const [showOnlyEmpty, setShowOnlyEmpty] = useState(false);
+  // Counts für die neuen Generic-Entity-Tabs (lazy via /artwork-entity-counts)
+  const [entityCounts, setEntityCounts] = useState<Record<string, { done: number; total: number }>>({});
 
   const reload = async () => {
     setLoading(true);
-    const [aw, co, slotsRes, troopsRes] = await Promise.all([
+    const [aw, co, slotsRes, troopsRes, countsRes] = await Promise.all([
       fetch("/api/admin/artwork", { cache: "no-store" }),
       fetch("/api/cosmetic-artwork", { cache: "no-store" }),
       fetch("/api/admin/ui-icon-slots", { cache: "no-store" }),
       fetch("/api/base/troops", { cache: "no-store" }),
+      fetch("/api/admin/artwork-entity-counts", { cache: "no-store" }),
     ]);
+    if (countsRes.ok) {
+      const cj = await countsRes.json() as { counts: Record<string, { done: number; total: number }> };
+      setEntityCounts(cj.counts ?? {});
+    }
     if (slotsRes.ok) {
       const sj = await slotsRes.json() as { slots: UiIconSlot[] };
       setUiIconSlots(sj.slots ?? []);
@@ -270,6 +291,25 @@ export function ArtworkAdminClient() {
     { id: "loot_drop", label: "🎁 Loot-Drops",       done: doneLootDrop,  total: 4 },
     { id: "inventory_item", label: "📦 Inventar-Items", done: doneInventoryItem, total: INVENTORY_ITEMS_ART.length },
     { id: "modal_background", label: "🖼️ Modal-Backgrounds", done: doneModalBg, total: MODAL_BACKGROUNDS_ART.length },
+    // Phase 2: 14 generische Entity-Tabs (counts lazy aus /artwork-entity-counts)
+    { id: "pet",                label: "🐾 Pets",                done: entityCounts.pet?.done ?? 0,                total: entityCounts.pet?.total ?? 0 },
+    { id: "guardian_xp",        label: "⚡ Wächter-XP",          done: entityCounts.guardian_xp?.done ?? 0,        total: entityCounts.guardian_xp?.total ?? 0 },
+    { id: "boss_raid",          label: "👹 Boss-Raids",          done: entityCounts.boss_raid?.done ?? 0,          total: entityCounts.boss_raid?.total ?? 0 },
+    { id: "area_boss",          label: "🥊 Area-Bosse",          done: entityCounts.area_boss?.done ?? 0,          total: entityCounts.area_boss?.total ?? 0 },
+    { id: "achievement",        label: "🏆 Achievements",        done: entityCounts.achievement?.done ?? 0,        total: entityCounts.achievement?.total ?? 0 },
+    { id: "quest",              label: "📜 Quests",              done: entityCounts.quest?.done ?? 0,              total: entityCounts.quest?.total ?? 0 },
+    { id: "research",           label: "🔬 Forschung",           done: entityCounts.research?.done ?? 0,           total: entityCounts.research?.total ?? 0 },
+    { id: "mission",            label: "🎯 Missionen",           done: entityCounts.mission?.done ?? 0,            total: entityCounts.mission?.total ?? 0 },
+    { id: "crew_challenge",     label: "🤜 Crew-Challenges",     done: entityCounts.crew_challenge?.done ?? 0,     total: entityCounts.crew_challenge?.total ?? 0 },
+    { id: "gem_shop_item",      label: "💎 Gem-Shop",            done: entityCounts.gem_shop_item?.done ?? 0,      total: entityCounts.gem_shop_item?.total ?? 0 },
+    { id: "daily_deal_pack",    label: "🎁 Daily-Deal-Packs",    done: entityCounts.daily_deal_pack?.done ?? 0,    total: entityCounts.daily_deal_pack?.total ?? 0 },
+    { id: "popup_offer",        label: "💥 Popup-Offers",        done: entityCounts.popup_offer?.done ?? 0,        total: entityCounts.popup_offer?.total ?? 0 },
+    { id: "vip_offer",          label: "👑 VIP-Offers",          done: entityCounts.vip_offer?.done ?? 0,          total: entityCounts.vip_offer?.total ?? 0 },
+    { id: "monet_daily_deal",   label: "🖼️ Daily-Deal-Banner",   done: entityCounts.monet_daily_deal?.done ?? 0,   total: entityCounts.monet_daily_deal?.total ?? 0 },
+    { id: "monet_gem_tier",     label: "🖼️ Gem-Tier-Banner",     done: entityCounts.monet_gem_tier?.done ?? 0,     total: entityCounts.monet_gem_tier?.total ?? 0 },
+    { id: "monet_seasonal",     label: "🖼️ Saison-Pack-Banner",  done: entityCounts.monet_seasonal?.done ?? 0,     total: entityCounts.monet_seasonal?.total ?? 0 },
+    { id: "monet_subscription", label: "🖼️ Abo-Banner",          done: entityCounts.monet_subscription?.done ?? 0, total: entityCounts.monet_subscription?.total ?? 0 },
+    { id: "monet_themed",       label: "🖼️ Themed-Pack-Banner",  done: entityCounts.monet_themed?.done ?? 0,       total: entityCounts.monet_themed?.total ?? 0 },
   ];
 
   // Aggregierte Stats über alle Tabs
@@ -428,7 +468,9 @@ export function ArtworkAdminClient() {
         : tab === "loot_drop" ? <LootDropArtTab artMap={cosmetic.loot_drop} onChange={reload} />
         : tab === "inventory_item" ? <InventoryItemArtTab artMap={cosmetic.inventory_item} onChange={reload} />
         : tab === "modal_background" ? <ModalBackgroundArtTab artMap={cosmetic.modal_background} onChange={reload} />
-        : <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
+        : tab === "troop"     ? <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
+        // Phase 2: alle generischen Entity-Tabs nutzen EntityArtTab (Daten lazy aus /artwork-entities/[type])
+        : <EntityArtTab key={tab} entityType={tab as TableTargetType} onChange={reload} />
       )}
     </div>
   );
@@ -1773,12 +1815,13 @@ function UiIconArtTab({ artMap, slots, onChange }: {
   const filtered = filter === "ALL" ? slots : slots.filter((s) => s.category === filter);
 
   const CAT_LABEL: Record<string, { label: string; color: string }> = {
-    stat:    { label: "STATS",      color: "#5ddaf0" },
-    class:   { label: "KLASSEN",    color: "#FF6B4A" },
-    action:  { label: "AKTIONEN",   color: "#FF2D78" },
-    badge:   { label: "BADGES",     color: "#FFD700" },
-    misc:    { label: "SONSTIGE",   color: "#a8b4cf" },
-    faction: { label: "FRAKTIONEN", color: "#22D1C3" },
+    stat:      { label: "STATS",      color: "#5ddaf0" },
+    class:     { label: "KLASSEN",    color: "#FF6B4A" },
+    action:    { label: "AKTIONEN",   color: "#FF2D78" },
+    badge:     { label: "BADGES",     color: "#FFD700" },
+    misc:      { label: "SONSTIGE",   color: "#a8b4cf" },
+    faction:   { label: "FRAKTIONEN", color: "#22D1C3" },
+    playstyle: { label: "SPIELSTILE", color: "#a855f7" },
   };
 
   return (
@@ -2298,6 +2341,150 @@ function ModalBackgroundArtTab({ artMap, onChange }: { artMap: Record<string, { 
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════ */
+/*  Generic EntityArtTab — für alle TABLE_TARGETS-Tabs        */
+/*  (Pets/Achievements/Quests/Boss-Raids/Monetization/...)    */
+/* ═════════════════════════════════════════════════════════ */
+
+type EntityRow = {
+  id: string;
+  label: string;
+  icon: string | null;
+  description: string | null;
+  image_url: string | null;
+  video_url: string | null;
+};
+
+function EntityArtTab({ entityType, onChange }: { entityType: TableTargetType; onChange: () => void }) {
+  const spec = TABLE_TARGETS[entityType];
+  const [rows, setRows] = useState<EntityRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [missingOnly, setMissingOnly] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const res = await fetch(`/api/admin/artwork-entities/${entityType}`, { cache: "no-store" });
+    if (res.ok) {
+      const j = await res.json() as { rows: EntityRow[] };
+      setRows(j.rows ?? []);
+    }
+    setLoading(false);
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [entityType]);
+
+  const filtered = rows.filter((r) => {
+    if (missingOnly && (r.image_url || r.video_url)) return false;
+    if (search && !r.label.toLowerCase().includes(search.toLowerCase()) && !r.id.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const done = rows.filter((r) => r.image_url || r.video_url).length;
+  const pct = rows.length > 0 ? Math.round((done / rows.length) * 100) : 0;
+  const isHero = entityType.startsWith("monet_");
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2 mb-3 items-center">
+        <input
+          type="text" placeholder="🔍 Name/ID suchen…"
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm flex-1 min-w-[180px] max-w-xs"
+        />
+        <label className="flex items-center gap-2 bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
+          Nur ohne Bild
+        </label>
+        <span className="text-[11px] text-[#a8b4cf] ml-auto">
+          Tabelle: <code className="text-white">{spec.table}</code> · Folder: <code className="text-white">artwork/{spec.folder}/</code>
+        </span>
+      </div>
+
+      <div className="mb-4 p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+        <div className="flex items-center justify-between mb-2 text-xs text-[#a8b4cf]">
+          <span><strong className="text-white">{filtered.length}</strong> gefiltert · {done}/{rows.length} mit Artwork ({pct}%)</span>
+          <span className="font-bold" style={{ color: progressColor(done, rows.length) }}>
+            {done === rows.length && rows.length > 0 ? "🎉 Alle fertig!" : `${rows.length - done} offen`}
+          </span>
+        </div>
+        <div className="h-2 bg-[#0F1115] rounded overflow-hidden">
+          <div className="h-full transition-all" style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, ${progressColor(done, rows.length)}, ${progressColor(done, rows.length)}aa)`,
+          }} />
+        </div>
+      </div>
+
+      {loading ? <LoadingBox /> : filtered.length === 0 ? (
+        <div className="p-10 text-center text-sm text-[#8B8FA3]">
+          {rows.length === 0 ? `Keine Einträge in ${spec.table}.` : "Keine Einträge passen zu den Filtern."}
+        </div>
+      ) : (
+        <div className="grid gap-3" style={{ gridTemplateColumns: isHero ? "repeat(auto-fill, minmax(360px, 1fr))" : "repeat(auto-fill, minmax(220px, 1fr))" }}>
+          {filtered.map((r) => (
+            <EntityCard
+              key={r.id}
+              row={r}
+              entityType={entityType}
+              isHero={isHero}
+              allowsVideo={spec.allowsVideo}
+              onChange={() => { load(); onChange(); }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EntityCard({ row, entityType, isHero, onChange }: {
+  row: EntityRow;
+  entityType: TableTargetType;
+  isHero: boolean;
+  allowsVideo: boolean;
+  onChange: () => void;
+}) {
+  const hasArt = !!(row.image_url || row.video_url);
+  const aspectClass = isHero ? "aspect-[2/1]" : "aspect-square";
+  return (
+    <div className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+      <div className={`${aspectClass} relative rounded-lg overflow-hidden bg-[#0F1115] mb-2 flex items-center justify-center`}>
+        {row.video_url ? (
+          <video src={row.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+        ) : row.image_url ? (
+          <img src={row.image_url} alt={row.label} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-4xl opacity-50">{row.icon ?? "—"}</span>
+        )}
+        {!hasArt && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded text-[9px] font-bold text-[#FF2D78] bg-[#FF2D78]/15 border border-[#FF2D78]/30">LEER</span>
+        )}
+      </div>
+      <div className="text-sm font-black text-white truncate">{row.label}</div>
+      {row.description && (
+        <div className="text-[10px] text-[#8B8FA3] line-clamp-2 mt-0.5">{row.description}</div>
+      )}
+      <div className="text-[9px] text-[#a8b4cf]/60 font-mono mt-0.5 truncate">id: {row.id}</div>
+      <div className="mt-2">
+        <AdminArtworkControls
+          targetType={entityType}
+          targetId={row.id}
+          hasImage={!!row.image_url}
+          hasVideo={!!row.video_url}
+          buildPrompt={(mode) => buildEntityPrompt({
+            targetType: entityType,
+            id: row.id,
+            label: row.label,
+            description: row.description,
+            mode,
+          })}
+          onUploaded={onChange}
+        />
       </div>
     </div>
   );

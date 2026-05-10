@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
+import { type ArtworkTargetType } from "@/lib/artwork-targets";
 
 export function AdminArtworkControls({
   targetType, targetId, variant, buildPrompt, hasImage, hasVideo, onUploaded,
 }: {
-  targetType: "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "material" | "base_theme" | "building" | "resource" | "chest" | "stronghold" | "ui_icon" | "troop" | "nameplate" | "base_ring" | "loot_drop" | "resource_node" | "inventory_item" | "modal_background";
+  targetType: ArtworkTargetType;
   targetId: string;
   variant?: "neutral" | "male" | "female";
   buildPrompt: (mode: "image" | "video") => string;

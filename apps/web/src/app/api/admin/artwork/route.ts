@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSb, type SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin";
+import { TABLE_TARGETS, COSMETIC_TARGETS, type ArtworkTargetType } from "@/lib/artwork-targets";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,9 +18,13 @@ function adminSb(): SupabaseClient {
   return _adminSb;
 }
 
+const ALL_TARGETS: string[] = [...Object.keys(TABLE_TARGETS), ...COSMETIC_TARGETS];
+const COSMETIC_SET = new Set<string>(COSMETIC_TARGETS);
+
 /**
  * GET /api/admin/artwork
- * Listet alle Wächter-Archetypen + alle Items mit aktuellem image_url.
+ * Listet bestehende Wächter/Items/Materialien — bleibt für Backwards-Compat.
+ * Neue Entity-Listen kommen über /api/admin/artwork-entities/[type].
  */
 export async function GET() {
   await requireAdmin();
@@ -40,8 +45,8 @@ export async function GET() {
 
 /**
  * POST /api/admin/artwork
- * FormData: file (image), target_type (archetype|item), target_id
- * Lädt in Storage 'artwork/<type>/<id>.<ext>' und setzt image_url.
+ * Finalize nach Direct-Upload (Signed URL).
+ * Body: { target_type, target_id, path, is_video, variant? }
  */
 export async function POST(req: Request) {
   await requireAdmin();
@@ -49,23 +54,22 @@ export async function POST(req: Request) {
 
   const contentType = req.headers.get("content-type") || "";
 
-  // ─── Pfad A: JSON-Finalize nach Direct-Upload via Signed URL ───
-  // Body: { target_type, target_id, path, is_video }
   if (contentType.includes("application/json")) {
     const body = await req.json() as {
-      target_type: "archetype" | "item" | "material" | "marker" | "light" | "pin_theme" | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource" | "chest" | "ui_icon" | "troop" | "stronghold" | "nameplate" | "base_ring" | "loot_drop" | "resource_node" | "inventory_item" | "modal_background";
+      target_type: ArtworkTargetType;
       target_id: string;
       path: string;
       is_video: boolean;
       variant?: "neutral" | "male" | "female";
     };
     if (!body.target_id || !body.path) return NextResponse.json({ error: "missing_params" }, { status: 400 });
-    if (!["archetype", "item", "material", "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon", "troop", "stronghold", "nameplate", "base_ring", "loot_drop", "resource_node", "inventory_item", "modal_background"].includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+    if (!ALL_TARGETS.includes(body.target_type)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
 
     const { data: pub } = sb.storage.from("artwork").getPublicUrl(body.path);
     const publicUrl = pub.publicUrl;
 
-    if (body.target_type !== "archetype" && body.target_type !== "item" && body.target_type !== "material") {
+    // ── Cosmetic-Targets: cosmetic_artwork-Tabelle (kind, slot_id, variant) ──
+    if (COSMETIC_SET.has(body.target_type)) {
       const col = body.is_video ? "video_url" : "image_url";
       const variant = body.target_type === "marker"
         ? (body.variant && ["neutral","male","female"].includes(body.variant) ? body.variant : "neutral")
@@ -74,62 +78,40 @@ export async function POST(req: Request) {
         kind: body.target_type, slot_id: body.target_id, variant, [col]: publicUrl, updated_at: new Date().toISOString(),
       }, { onConflict: "kind,slot_id,variant" });
       if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
-      // unstable_cache in /api/cosmetic-artwork bursten
       revalidateTag("cosmetic-artwork", { expire: 0 });
       return NextResponse.json({ ok: true, image_url: body.is_video ? null : publicUrl, video_url: body.is_video ? publicUrl : null, is_video: body.is_video, variant });
     }
 
-    const table = body.target_type === "archetype"
-      ? "guardian_archetypes"
-      : body.target_type === "material"
-        ? "material_catalog"
-        : "item_catalog";
-    // archetype + material erlauben sowohl Bild als auch Video; item nur Bild
-    const allowsVideo = body.target_type === "archetype" || body.target_type === "material";
-    const updatePayload = (body.is_video && allowsVideo)
-      ? { video_url: publicUrl }
-      : { image_url: publicUrl };
-    // Service-Role — diese Kataloge haben keine UPDATE-RLS-Policy fuer Endnutzer
-    const { data: updatedRows, error: dbErr } = await adminSb().from(table).update(updatePayload).eq("id", body.target_id).select();
-    const hintMigration = body.target_type === "material"
-      ? "Migration 00066_material_artwork_columns.sql im Supabase SQL Editor ausführen."
-      : "Migration 00036_artwork_columns.sql im Supabase SQL Editor ausführen.";
-    if (dbErr) return NextResponse.json({ error: dbErr.message, hint: dbErr.message?.includes("column") ? hintMigration : undefined }, { status: 500 });
+    // ── Table-Targets: image_url / video_url Spalte direkt in der Entity-Tabelle ──
+    const spec = TABLE_TARGETS[body.target_type];
+    if (!spec) return NextResponse.json({ error: "unknown_target" }, { status: 400 });
+    const isVideoFinal = body.is_video && spec.allowsVideo;
+    const updatePayload = isVideoFinal ? { video_url: publicUrl } : { image_url: publicUrl };
+    const { data: updatedRows, error: dbErr } = await adminSb().from(spec.table).update(updatePayload).eq("id", body.target_id).select();
+    if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
     if (!updatedRows || updatedRows.length === 0) {
-      return NextResponse.json({ error: `kein Eintrag mit id="${body.target_id}" in ${table}` }, { status: 404 });
+      return NextResponse.json({ error: `kein Eintrag mit id="${body.target_id}" in ${spec.table}` }, { status: 404 });
     }
-    // Sicherheitscheck: wurde die Spalte wirklich persistiert?
-    const row = updatedRows[0] as Record<string, unknown>;
-    const expectedCol = body.is_video && allowsVideo ? "video_url" : "image_url";
-    if (row[expectedCol] !== publicUrl) {
-      return NextResponse.json({
-        error: `DB-Update lief durch, aber ${expectedCol} wurde nicht gesetzt (Spalte existiert vermutlich nicht). ${hintMigration}`,
-        got: row[expectedCol],
-        expected: publicUrl,
-      }, { status: 500 });
-    }
-
-    const isVideoFinal = body.is_video && allowsVideo;
     return NextResponse.json({ ok: true, image_url: isVideoFinal ? null : publicUrl, video_url: isVideoFinal ? publicUrl : null, is_video: isVideoFinal });
   }
 
   // ─── Pfad B: Legacy Multipart-Form Upload (nur fuer kleine Bilder <4.5 MB) ───
   const form = await req.formData();
   const file = form.get("file") as File | null;
-  const targetType = form.get("target_type") as string;
+  const targetType = form.get("target_type") as ArtworkTargetType;
   const targetId   = form.get("target_id") as string;
 
   if (!file) return NextResponse.json({ error: "file_missing" }, { status: 400 });
-  if (!["archetype", "item"].includes(targetType)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
+  if (!ALL_TARGETS.includes(targetType)) return NextResponse.json({ error: "bad_target_type" }, { status: 400 });
   if (!targetId) return NextResponse.json({ error: "target_id_missing" }, { status: 400 });
+  // Legacy nur für Tabellen-Targets (cosmetic_artwork verlangt Variant-Handling)
+  const spec = TABLE_TARGETS[targetType];
+  if (!spec) return NextResponse.json({ error: "use_signed_upload_for_cosmetic" }, { status: 400 });
 
   const ext = (file.name.split(".").pop() || "png").toLowerCase();
   const safeId = targetId.replace(/[^a-z0-9_-]/gi, "_");
   const isVideo = (file.type || "").startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
-  const folder = targetType === "archetype"
-    ? "archetypes"
-    : "items";
-  const path = `${folder}/${safeId}.${ext}`;
+  const path = `${spec.folder}/${safeId}.${ext}`;
 
   const buf = Buffer.from(await file.arrayBuffer());
   const { error: upErr } = await sb.storage.from("artwork").upload(path, buf, {
@@ -141,19 +123,17 @@ export async function POST(req: Request) {
   const { data: pub } = sb.storage.from("artwork").getPublicUrl(path);
   const publicUrl = pub.publicUrl;
 
-  const table = targetType === "archetype" ? "guardian_archetypes" : "item_catalog";
-  const updatePayload = (isVideo && targetType === "archetype")
-    ? { video_url: publicUrl }
-    : { image_url: publicUrl };
-  const { error: dbErr } = await adminSb().from(table).update(updatePayload).eq("id", targetId);
+  const isVideoFinal = isVideo && spec.allowsVideo;
+  const updatePayload = isVideoFinal ? { video_url: publicUrl } : { image_url: publicUrl };
+  const { error: dbErr } = await adminSb().from(spec.table).update(updatePayload).eq("id", targetId);
   if (dbErr) return NextResponse.json({ error: dbErr.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, image_url: isVideo ? null : publicUrl, video_url: isVideo ? publicUrl : null, is_video: isVideo });
+  return NextResponse.json({ ok: true, image_url: isVideoFinal ? null : publicUrl, video_url: isVideoFinal ? publicUrl : null, is_video: isVideoFinal });
 }
 
 /**
  * DELETE /api/admin/artwork?target_type=X&target_id=Y
- * Entfernt Bild aus Storage und setzt image_url=null.
+ * Entfernt Bild aus Storage und setzt image_url/video_url=null.
  */
 export async function DELETE(req: Request) {
   await requireAdmin();
@@ -165,9 +145,8 @@ export async function DELETE(req: Request) {
   const clear      = url.searchParams.get("clear") || "all"; // "image" | "video" | "all"
   if (!targetId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
-  // ─── cosmetic_artwork-Kinds ───
-  const cosmeticKinds = ["marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme", "building", "resource", "chest", "ui_icon", "troop", "stronghold", "nameplate", "base_ring", "loot_drop", "resource_node", "inventory_item", "modal_background"];
-  if (cosmeticKinds.includes(targetType)) {
+  // ── Cosmetic ──
+  if (COSMETIC_SET.has(targetType)) {
     const { data: row } = await adminSb().from("cosmetic_artwork")
       .select("image_url, video_url")
       .eq("kind", targetType).eq("slot_id", targetId).eq("variant", variant)
@@ -187,26 +166,22 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  if (!["archetype", "item", "material"].includes(targetType)) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  // ── Table ──
+  const spec = TABLE_TARGETS[targetType];
+  if (!spec) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
-  const table = targetType === "archetype"
-    ? "guardian_archetypes"
-    : targetType === "material"
-      ? "material_catalog"
-      : "item_catalog";
-  const allowsVideo = targetType === "archetype" || targetType === "material";
-  const selectCols = allowsVideo ? "image_url, video_url" : "image_url";
-  const { data: row } = await sb.from(table).select(selectCols).eq("id", targetId).maybeSingle<{ image_url: string | null; video_url?: string | null }>();
+  const selectCols = spec.allowsVideo ? "image_url, video_url" : "image_url";
+  const { data: row } = await sb.from(spec.table).select(selectCols).eq("id", targetId).maybeSingle<{ image_url: string | null; video_url?: string | null }>();
   const urlsToRemove: string[] = [];
   if ((clear === "all" || clear === "image") && row?.image_url) urlsToRemove.push(row.image_url);
-  if ((clear === "all" || clear === "video") && allowsVideo && row?.video_url) urlsToRemove.push(row.video_url);
+  if ((clear === "all" || clear === "video") && spec.allowsVideo && row?.video_url) urlsToRemove.push(row.video_url);
   for (const u of urlsToRemove) {
     const m = u.match(/\/artwork\/(.+)$/);
     if (m) await sb.storage.from("artwork").remove([m[1]]);
   }
   const payload: Record<string, null> = {};
   if (clear === "all" || clear === "image") payload.image_url = null;
-  if (allowsVideo && (clear === "all" || clear === "video")) payload.video_url = null;
-  await adminSb().from(table).update(payload).eq("id", targetId);
+  if (spec.allowsVideo && (clear === "all" || clear === "video")) payload.video_url = null;
+  await adminSb().from(spec.table).update(payload).eq("id", targetId);
   return NextResponse.json({ ok: true });
 }
