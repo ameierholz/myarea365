@@ -90,22 +90,54 @@ function toPolygon(el: OverpassEl): GeoJSON.Polygon | GeoJSON.MultiPolygon | nul
   return null;
 }
 
+async function callOverpass(query: string): Promise<Response> {
+  return fetch(OVERPASS, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "application/json",
+      "User-Agent": "MyArea365-ETL/1.0 (+https://myarea365.de)",
+    },
+    body: "data=" + encodeURIComponent(query),
+  });
+}
+
+async function fetchWithRetry(query: string, attempts = 3): Promise<Response | null> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await callOverpass(query);
+      if (res.ok) return res;
+      // 504 (timeout) → try way-only; 429 (rate limit) → wait + retry
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, 30_000));
+        continue;
+      }
+      if (res.status === 504 && i === 0) {
+        // try way-only (strip rel[...]) on first 504
+        const wayOnly = query.replace(/(rel|relation)\[[^\]]+\](?:\[[^\]]+\])*\([^)]*\);\s*/g, "");
+        if (wayOnly !== query) {
+          await new Promise((r) => setTimeout(r, 2000));
+          const res2 = await callOverpass(wayOnly);
+          if (res2.ok) return res2;
+        }
+      }
+      // Other errors → final attempt with simpler query
+      if (i === attempts - 1) return res;
+      await new Promise((r) => setTimeout(r, 5000 * (i + 1)));
+    } catch {
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  return null;
+}
+
 async function fetchTag(citySlug: string, tag: string, bbox: string): Promise<number> {
   const query = bboxQuery(TAG_QUERIES[tag], bbox);
   const start = Date.now();
-  let res: Response;
-  try {
-    res = await fetch(OVERPASS, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: query,
-    });
-  } catch (e) {
-    console.log(`    ERROR: fetch ${e}`);
-    return 0;
-  }
-  if (!res.ok) {
-    console.log(`    ERROR: HTTP ${res.status}`);
+  const res = await fetchWithRetry(query);
+  if (!res || !res.ok) {
+    const status = res?.status ?? "no-response";
+    console.log(`    ERROR: ${status} after retries`);
     return 0;
   }
   const data = await res.json() as { elements: OverpassEl[] };
@@ -154,7 +186,7 @@ async function fetchTag(citySlug: string, tag: string, bbox: string): Promise<nu
   return total;
 }
 
-async function importCity(slug: string) {
+async function importCity(slug: string, tagFilter: string[] | null) {
   const { data: city, error } = await sb.from("cities")
     .select("slug,name,bounds_sw_lat,bounds_sw_lng,bounds_ne_lat,bounds_ne_lng")
     .eq("slug", slug).single();
@@ -165,21 +197,24 @@ async function importCity(slug: string) {
   const bbox = `${city.bounds_sw_lat},${city.bounds_sw_lng},${city.bounds_ne_lat},${city.bounds_ne_lng}`;
   console.log(`\n=== ${city.name} (${city.slug}) === bbox=${bbox}`);
   let total = 0;
-  for (const tag of Object.keys(TAG_QUERIES)) {
+  const tags = tagFilter ?? Object.keys(TAG_QUERIES);
+  for (const tag of tags) {
+    if (!TAG_QUERIES[tag]) { console.log(`  ${tag}... UNKNOWN TAG`); continue; }
     process.stdout.write(`  ${tag}...\n`);
     const n = await fetchTag(city.slug, tag, bbox);
     total += n;
-    // Overpass rate-limit (free tier)
-    await new Promise((r) => setTimeout(r, 2500));
+    await new Promise((r) => setTimeout(r, 3000));
   }
   console.log(`=== ${city.name}: ${total} total polygons imported ===\n`);
 }
 
 async function main() {
+  // Usage: tsx etl-terrain-polygons.ts [city] [tag1 tag2 ...]
   const target = process.argv[2];
+  const tagFilter = process.argv.slice(3).length > 0 ? process.argv.slice(3) : null;
   const cities = target ? [target] : (await sb.from("cities").select("slug").eq("is_active", true)).data?.map((c) => c.slug) ?? [];
   for (const slug of cities) {
-    await importCity(slug);
+    await importCity(slug, tagFilter);
   }
 }
 
