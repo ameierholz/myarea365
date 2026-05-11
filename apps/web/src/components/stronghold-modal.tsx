@@ -148,7 +148,7 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
             <b className="text-white">Belohnung bei Sieg</b><br/>
             • <b className="text-[#FFD700]">{stronghold.level * 500}</b> Tech-Schrott + Komponenten + Krypto (anteilig nach Beitrag)<br/>
             • <b className="text-[#FFD700]">{stronghold.level * 250}</b> Bandbreite<br/>
-            • Wächter-XP × {stronghold.level * 10}<br/>
+            • Wächter-EP × {stronghold.level * 10}<br/>
             {stronghold.level >= 5 && <>• 🥈 Silber-Truhe (60% bei Lv 5–7)<br/></>}
             {stronghold.level >= 8 && <>• 🥇 Gold-Truhe (50% bei Lv 8+)<br/></>}
           </div>

@@ -203,7 +203,7 @@ function BoostShopInner({ userId, onClose, embedded }: { userId: string; onClose
             await sb.from("user_guardian_xp_items")
               .insert({ user_id: userId, item_id: itemId, count: 1 });
           }
-          appAlert("+1 Wächter-XP-Boost im Inventar — anwendbar im Wächter-Modal.");
+          appAlert("+1 Wächter-EP-Boost im Inventar — anwendbar im Wächter-Modal.");
         }
         // Cosmetic-Token — User wählt Theme/Icon im Cosmetic-Hub aus
         else if (choice === "pin_theme_token" || choice === "map_icon_token") {
@@ -406,7 +406,7 @@ const WAHL_BOX_OPTIONS_UI: Array<{ kind: WahlBoxKindUI; icon: string; title: str
   { kind: "crypto_5k",       icon: "₿",  title: "5 000 Krypto",           desc: "Resource für Bauen" },
   { kind: "bandwidth_5k",    icon: "📡", title: "5 000 Bandbreite",       desc: "Resource für Forschen" },
   { kind: "speed_48h",       icon: "⚡", title: "48 h Bauzeit-Verkürzer", desc: "Beschleunigt Bauen für 48 h" },
-  { kind: "guardian_xp",     icon: "🔮", title: "Wächter-XP-Boost",       desc: "+2.500 XP für deinen Wächter" },
+  { kind: "guardian_xp",     icon: "🔮", title: "Wächter-EP-Boost",       desc: "+2.500 EP für deinen Wächter" },
   { kind: "pin_theme_token", icon: "✨", title: "Pin-Theme freischalten", desc: "Eines aus 18 Auras (Cosmetic)" },
   { kind: "map_icon_token",  icon: "🎨", title: "Map-Icon freischalten",  desc: "Strategie-Marker (Cosmetic)" },
 ];

@@ -14,6 +14,9 @@ type March = {
   finishes_at: string;
   returns_at: string;
   collected: number;
+  terrain_tag?: string | null;
+  terrain_gather_mult?: number | null;
+  terrain_speed_mult?: number | null;
   node: {
     id: number;
     kind: "scrapyard" | "factory" | "atm" | "datacenter";
@@ -32,6 +35,19 @@ const KIND_EMOJI: Record<string, string> = {
 };
 const KIND_LABEL: Record<string, string> = {
   scrapyard: "Schrottplatz", factory: "Fabrik", atm: "ATM", datacenter: "Datacenter",
+};
+
+const TERRAIN_EMOJI: Record<string, string> = {
+  industrial: "🏭", residential: "🏘️", commercial: "🏪", park: "🌳",
+  water: "💧", forest: "🌲", motorway: "🛣️", railway: "🚂",
+  university: "🎓", hospital: "🏥", government: "🏛️", tourism: "🗿",
+  warehouse: "📦",
+};
+const TERRAIN_LABEL: Record<string, string> = {
+  industrial: "Industrie", residential: "Wohngebiet", commercial: "Gewerbe", park: "Park",
+  water: "Wasser", forest: "Wald", motorway: "Autobahn", railway: "Bahn",
+  university: "Uni", hospital: "Klinik", government: "Behörde", tourism: "Sehenswert",
+  warehouse: "Lager",
 };
 
 function fmtRemaining(ms: number): string {
@@ -143,6 +159,30 @@ export function ActiveMarchesBanner({ marches, onClose, onCancelled }: { marches
                       Plünderzeit nach Ankunft: <span className="text-[#FFD700] font-bold">{fmtRemaining(gatherSeconds * 1000)}</span>
                     </div>
                   )}
+                  {(m.terrain_tag && m.terrain_tag !== "default") && (() => {
+                    const gMult = m.terrain_gather_mult ?? 1;
+                    const sMult = m.terrain_speed_mult ?? 1;
+                    const gDelta = Math.round((gMult - 1) * 100);
+                    const sDelta = Math.round((sMult - 1) * 100);
+                    const sigG = Math.abs(gDelta) >= 5;
+                    const sigS = Math.abs(sDelta) >= 5;
+                    if (!sigG && !sigS) return null;
+                    return (
+                      <div className="text-[9px] text-[#a8b4cf] mt-1 ml-7 flex flex-wrap items-center gap-1">
+                        <span>{TERRAIN_EMOJI[m.terrain_tag] ?? "📍"} {TERRAIN_LABEL[m.terrain_tag] ?? m.terrain_tag}</span>
+                        {sigG && (
+                          <span className={gDelta > 0 ? "text-[#4ade80] font-bold" : "text-[#FF6B8D] font-bold"}>
+                            {gDelta > 0 ? "+" : ""}{gDelta}% Beute
+                          </span>
+                        )}
+                        {sigS && (
+                          <span className={sDelta > 0 ? "text-[#22D1C3] font-bold" : "text-[#FF6B8D] font-bold"}>
+                            {sDelta > 0 ? "+" : ""}{sDelta}% Tempo
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div className="mt-1.5 h-1 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#FFD700] to-[#FF8C00]" style={{ width: `${pct.toFixed(1)}%` }} />
                   </div>

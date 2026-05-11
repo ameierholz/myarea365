@@ -268,7 +268,7 @@ export function ArtworkAdminClient() {
     { id: "modal_background", label: "🖼️ Modal-Backgrounds", done: doneModalBg, total: MODAL_BACKGROUNDS_ART.length },
     // Phase 2: 14 generische Entity-Tabs (counts lazy aus /artwork-entity-counts)
     { id: "pet",                label: "🐾 Pets",                done: entityCounts.pet?.done ?? 0,                total: entityCounts.pet?.total ?? 0 },
-    { id: "guardian_xp",        label: "⚡ Wächter-XP",          done: entityCounts.guardian_xp?.done ?? 0,        total: entityCounts.guardian_xp?.total ?? 0 },
+    { id: "guardian_xp",        label: "⚡ Wächter-EP",          done: entityCounts.guardian_xp?.done ?? 0,        total: entityCounts.guardian_xp?.total ?? 0 },
     { id: "boss_raid",          label: "👹 Boss-Raids",          done: entityCounts.boss_raid?.done ?? 0,          total: entityCounts.boss_raid?.total ?? 0 },
     { id: "area_boss",          label: "🥊 Area-Bosse",          done: entityCounts.area_boss?.done ?? 0,          total: entityCounts.area_boss?.total ?? 0 },
     { id: "achievement",        label: "🏆 Achievements",        done: entityCounts.achievement?.done ?? 0,        total: entityCounts.achievement?.total ?? 0 },

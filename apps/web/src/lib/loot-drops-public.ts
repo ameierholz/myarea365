@@ -69,7 +69,7 @@ export const WAHL_BOX_OPTIONS: Array<{ icon: string; title: string; value: strin
   { icon: "₿",  title: "5 000 Krypto",          value: "Resource für Bauen" },
   { icon: "📡", title: "5 000 Bandbreite",      value: "Resource für Forschen" },
   { icon: "⚡", title: "48 h Bauzeit-Verkürzer", value: "Beschleunigt Bauen für 48 h" },
-  { icon: "🔮", title: "Wächter-XP-Boost",      value: "+2.500 XP für deinen Wächter" },
+  { icon: "🔮", title: "Wächter-EP-Boost",      value: "+2.500 EP für deinen Wächter" },
   { icon: "✨", title: "Pin-Theme freischalten", value: "Eines aus 18 Auras (Cosmetic)" },
   { icon: "🎨", title: "Map-Icon freischalten",  value: "Strategie-Marker (Cosmetic)" },
 ];
@@ -81,10 +81,10 @@ export const WAHL_BOX_OPTIONS: Array<{ icon: string; title: string; value: strin
  * Wegelager-Plünderung + Boss-Raid = anteilig zum eigenen Schaden.
  */
 export const ARENA_WIN_REWARDS: Array<{ condition: string; reward: string }> = [
-  { condition: "1. Sieg in Wächter-Arena",         reward: "+500 Wächter-XP (garantiert) + 1 Siegel" },
+  { condition: "1. Sieg in Wächter-Arena",         reward: "+500 Wächter-EP (garantiert) + 1 Siegel" },
   { condition: "3-Sieg-Streak gleicher Gegner",     reward: "Legendary Trophy + Wächter-Fusion" },
   { condition: "Wegelager-Plünderung (Crew-Raid)",  reward: "Loot proportional zum eigenen Schaden — Tech-Schrott / Komponenten / Diamanten / Siegel" },
-  { condition: "Boss-Raid Beteiligung",             reward: "Anteilig 100-5000 XP je nach Schaden + Legendary Loot bei Sieg" },
+  { condition: "Boss-Raid Beteiligung",             reward: "Anteilig 100-5000 EP je nach Schaden + Legendary Loot bei Sieg" },
 ];
 
 /**

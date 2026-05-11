@@ -16,22 +16,29 @@ export async function GET(req: Request) {
   const userId = auth?.user?.id ?? null;
 
   // Loyalty-Shops archived (pivot 2026-05-05) — keine shop_reviews_agg / shop_push_messages / local_businesses mehr
-  const [zones, raids, sanctuaries, cells, visits] = await Promise.all([
+  const [zones, raids, sanctuaries, cells, visits, cooldowns] = await Promise.all([
     sb.from("power_zones").select("*"),
     sb.from("boss_raids").select("*").eq("status", "active"),
     sb.from("sanctuaries").select("*"),
     userId ? sb.from("explored_cells").select("cell_x, cell_y").eq("user_id", userId) : Promise.resolve({ data: [] }),
     userId ? sb.from("sanctuary_visits").select("sanctuary_id, visited_at").eq("user_id", userId).gte("visited_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString()) : Promise.resolve({ data: [] }),
+    userId ? sb.rpc("sanctuary_cooldowns_for_user") : Promise.resolve({ data: [] }),
   ]);
   // Loyalty-Stubs (alle archiviert)
   const reviews = { data: [] as Array<{ business_id: string; avg_rating: number; review_count: number }> };
   const pushes = { data: [] as Array<{ id: string; business_id: string; message: string | null; radius_m: number; expires_at: string; local_businesses: { id: string; name: string; lat: number; lng: number } | null }> };
   const trail = { data: [] as Array<{ business_id: string; local_businesses: { id: string; name: string; lat: number; lng: number } | null }> };
 
-  // Trained-today flag je Sanctuary
+  // Trained-today + 7-Tage-Bezirk-Cooldown je Sanctuary
   const trainedIds = new Set<string>((visits.data ?? []).map((v: { sanctuary_id: string }) => v.sanctuary_id));
+  const cooldownMap = new Map<string, string>(
+    ((cooldowns.data ?? []) as Array<{ sanctuary_id: string; cooldown_until: string }>)
+      .map((c) => [c.sanctuary_id, c.cooldown_until])
+  );
   const sanctuariesOut = (sanctuaries.data ?? []).map((s: { id: string }) => ({
-    ...s, trained_today: trainedIds.has(s.id),
+    ...s,
+    trained_today: trainedIds.has(s.id),
+    cooldown_until: cooldownMap.get(s.id) ?? null,
   }));
 
   // Flash-Push umformen

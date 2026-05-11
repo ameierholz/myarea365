@@ -58,7 +58,7 @@ export function GuardianXpItemsPanel({ guardianId, onApplied }: { guardianId: st
       if (!res.ok || j.ok === false) {
         setMsg(`❌ ${j.error ?? "Fehler"}`);
       } else {
-        setMsg(`✅ +${j.xp_added} XP`);
+        setMsg(`✅ +${j.xp_added} EP`);
         setInv((prev) => ({ ...prev, [itemId]: Math.max(0, (prev[itemId] ?? 0) - 1) }));
         onApplied?.(j.xp_added);
       }
@@ -72,7 +72,7 @@ export function GuardianXpItemsPanel({ guardianId, onApplied }: { guardianId: st
   if (ownedCatalog.length === 0) {
     return (
       <div style={{ padding: 12, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>WÄCHTER-XP-ELIXIERE</div>
+        <div style={{ color: "#a8b4cf", fontSize: 11, fontWeight: 800, letterSpacing: 1.5 }}>WÄCHTER-EP-ELIXIERE</div>
         <div style={{ color: "#6c7590", fontSize: 11, marginTop: 4 }}>Noch keine — droppen bei Deal-Einlösungen (rare+).</div>
       </div>
     );
@@ -81,7 +81,7 @@ export function GuardianXpItemsPanel({ guardianId, onApplied }: { guardianId: st
   return (
     <div style={{ padding: 10, borderRadius: 10, background: "rgba(15,17,21,0.6)", border: "1px solid rgba(255,255,255,0.05)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>WÄCHTER-XP-ELIXIERE</div>
+        <div style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.5 }}>WÄCHTER-EP-ELIXIERE</div>
         {msg && <div style={{ fontSize: 10, color: msg.startsWith("✅") ? "#4ade80" : "#FF2D78" }}>{msg}</div>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -95,7 +95,7 @@ export function GuardianXpItemsPanel({ guardianId, onApplied }: { guardianId: st
               <EntityIcon imageUrl={it.image_url} videoUrl={it.video_url} fallback={it.emoji} size={22} alt={it.name} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: "#FFF", fontSize: 12, fontWeight: 900 }}>{it.name}</div>
-                <div style={{ color: "#a8b4cf", fontSize: 10 }}>+{it.xp_amount} XP · {have}× im Inventar</div>
+                <div style={{ color: "#a8b4cf", fontSize: 10 }}>+{it.xp_amount} EP · {have}× im Inventar</div>
               </div>
               <button
                 onClick={() => void apply(it.id)}
@@ -108,7 +108,7 @@ export function GuardianXpItemsPanel({ guardianId, onApplied }: { guardianId: st
                   cursor: have > 0 ? "pointer" : "not-allowed",
                 }}
               >
-                {busy === it.id ? "…" : `+${it.xp_amount} XP`}
+                {busy === it.id ? "…" : `+${it.xp_amount} EP`}
               </button>
             </div>
           );

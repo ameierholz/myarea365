@@ -598,7 +598,7 @@ interface AppMapProps {
   // ── Map-Features Wave ────────────────────────────────────
   powerZones?: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
   bossRaids?: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null }>;
-  sanctuaries?: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null }>;
+  sanctuaries?: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null; cooldown_until?: string | null }>;
   flashPushes?: Array<{ id: string; business_id: string; business_lat: number; business_lng: number; radius_m: number; expires_at: string }>;
   shopTrail?: Array<{ business_id: string; name: string; lat: number; lng: number }>;
   shadowRoute?: { id: string; runner_color: string; geom: Array<{ lat: number; lng: number }> } | null;
@@ -2583,12 +2583,18 @@ export function AppMap({
       outer.style.pointerEvents = "auto";
       outer.style.cursor = "pointer";
       const done = s.trained_today;
+      const cooldownActive = !!s.cooldown_until && new Date(s.cooldown_until).getTime() > Date.now();
       const inner = document.createElement("div");
-      inner.className = `ma365-sanctuary-marker ${done ? "done" : ""}`;
+      inner.className = `ma365-sanctuary-marker ${done || cooldownActive ? "done" : ""}`;
       const xpLabel = s.xp_reward >= 1000 ? `+${(s.xp_reward / 1000).toFixed(0)}k` : `+${s.xp_reward}`;
+      const badge = done
+        ? '<div class="ma365-sanctuary-check">✓</div>'
+        : cooldownActive
+        ? '<div class="ma365-sanctuary-check" style="color:#FF6BA1;border-color:#FF6BA1;">🔒</div>'
+        : `<div class="ma365-sanctuary-xp">${xpLabel} EP</div>`;
       inner.innerHTML = `
           <div class="ma365-sanctuary-emoji">${s.emoji}</div>
-          ${done ? '<div class="ma365-sanctuary-check">✓</div>' : `<div class="ma365-sanctuary-xp">${xpLabel} XP</div>`}`;
+          ${badge}`;
       outer.appendChild(inner);
       outer.addEventListener("click", () => onSanctuaryClick?.(s.id));
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })

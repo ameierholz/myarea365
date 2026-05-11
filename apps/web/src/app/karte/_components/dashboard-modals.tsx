@@ -160,9 +160,21 @@ export function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
   );
 }
 
+function fmtCooldownLong(target: string | null | undefined): string | null {
+  if (!target) return null;
+  const ms = new Date(target).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const totalH = Math.floor(ms / 3_600_000);
+  const days = Math.floor(totalH / 24);
+  const h = totalH % 24;
+  if (days > 0) return h > 0 ? `${days}d ${h}h` : `${days}d`;
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 /* ═══ Sanctuary Modal ═══ */
 export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
-  sanctuary: { id: string; name: string; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null };
+  sanctuary: { id: string; name: string; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null; cooldown_until?: string | null };
   distM: number | null;
   inRange: boolean;
   onClose: () => void;
@@ -171,6 +183,7 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
   const tMD = useTranslations("MapDashboard");
   const [training, setTraining] = useState(false);
   const [remaining, setRemaining] = useState<string | null>(fmtRemaining(sanctuary.valid_until));
+  const [cooldownRemaining, setCooldownRemaining] = useState<string | null>(fmtCooldownLong(sanctuary.cooldown_until));
   useEffect(() => {
     if (!sanctuary.valid_until) return;
     const tick = () => setRemaining(fmtRemaining(sanctuary.valid_until));
@@ -178,8 +191,16 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
     const id = setInterval(tick, 60_000);
     return () => clearInterval(id);
   }, [sanctuary.valid_until]);
+  useEffect(() => {
+    if (!sanctuary.cooldown_until) return;
+    const tick = () => setCooldownRemaining(fmtCooldownLong(sanctuary.cooldown_until));
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [sanctuary.cooldown_until]);
+  const onCooldown = !!cooldownRemaining;
   const done = !!sanctuary.trained_today;
-  const disabled = done || training || !inRange;
+  const disabled = done || onCooldown || training || !inRange;
   const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(15,17,21,0.9)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 6 }}>
@@ -187,13 +208,18 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
         <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
         <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 10, letterSpacing: 0.6 }}>Wächter-SANCTUARY</div>
-        {remaining && (
+        {remaining && !onCooldown && (
           <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 800, marginBottom: 12, padding: "5px 10px", borderRadius: 999, background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.35)", display: "inline-block" }}>
             ⏳ Rotiert in {remaining}
           </div>
         )}
+        {onCooldown && (
+          <div style={{ fontSize: 11, color: "#FF6BA1", fontWeight: 800, marginBottom: 12, padding: "6px 12px", borderRadius: 10, background: "rgba(255,45,120,0.12)", border: "1px solid rgba(255,45,120,0.45)" }}>
+            🔒 Bezirk-Cooldown — erneut trainierbar in {cooldownRemaining}
+          </div>
+        )}
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.5 }}>
-          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen. Jede Nacht spawnt das Sanctuary an einem anderen Ort im Bezirk.
+          Pro Bezirk darfst du nur alle <strong style={{ color: "#FF6BA1" }}>7 Tage</strong> trainieren. Komm einmal pro Woche vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen. Sanctuaries rotieren jede Nacht innerhalb des Bezirks — die ganze Stadt durch belohnt Reisen.
         </div>
         {distM !== null && (
           <div style={{
@@ -218,12 +244,12 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
           disabled={disabled}
           style={{
             width: "100%", padding: "14px 20px", borderRadius: 12,
-            background: done ? "rgba(74,222,128,0.2)" : !inRange ? "rgba(120,120,120,0.2)" : "linear-gradient(135deg, #22D1C3, #5ddaf0)",
-            border: done ? "1px solid #4ade80" : !inRange ? "1px solid rgba(255,255,255,0.1)" : "none",
-            color: done ? "#4ade80" : !inRange ? "#8B8FA3" : "#0F1115",
+            background: done || onCooldown ? "rgba(74,222,128,0.2)" : !inRange ? "rgba(120,120,120,0.2)" : "linear-gradient(135deg, #22D1C3, #5ddaf0)",
+            border: done ? "1px solid #4ade80" : onCooldown ? "1px solid #FF6BA1" : !inRange ? "1px solid rgba(255,255,255,0.1)" : "none",
+            color: done ? "#4ade80" : onCooldown ? "#FF6BA1" : !inRange ? "#8B8FA3" : "#0F1115",
             fontSize: 14, fontWeight: 900, cursor: disabled ? "not-allowed" : "pointer", marginBottom: 8,
           }}
-        >{done ? tMD("labelAlreadyTrainedToday") : training ? tMD("labelTraining") : !inRange ? tMD("labelTooFar") : tMD("labelTrainAction", { xp: sanctuary.xp_reward })}</button>
+        >{done ? tMD("labelAlreadyTrainedToday") : onCooldown ? `🔒 Cooldown ${cooldownRemaining}` : training ? tMD("labelTraining") : !inRange ? tMD("labelTooFar") : tMD("labelTrainAction", { xp: sanctuary.xp_reward })}</button>
         <button onClick={onClose} style={{ width: "100%", padding: "8px 12px", borderRadius: 10, background: "transparent", border: "1px solid rgba(255,255,255,0.2)", color: "#a8b4cf", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{tMD("labelBack")}</button>
       </div>
     </div>

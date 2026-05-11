@@ -22,6 +22,7 @@ export async function GET() {
       started_at, arrives_at, finishes_at, returns_at,
       status, collected, origin_lat, origin_lng,
       route_geom_json, route_distance_m, recall_progress,
+      terrain_tag, terrain_gather_mult, terrain_speed_mult,
       node:resource_nodes (id, kind, resource_type, name, lat, lng, level, total_yield, current_yield)
     `)
     .eq("user_id", user.id)

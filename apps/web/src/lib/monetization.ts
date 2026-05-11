@@ -315,7 +315,7 @@ export function hasSpotlightActive(business: { spotlight_until?: string | null }
 
 export const GUARDIAN_ITEMS = {
   revival_token: { sku: "revival_token", name: "Revival-Token",     price: 199,  icon: "💊", desc: "Verwundung deines Wächters sofort heilen" },
-  guardian_xp:   { sku: "guardian_xp",   name: "Wächter-XP-Boost",   price: 299,  icon: "⚡", desc: "+2.500 XP für euren Wächter" },
+  guardian_xp:   { sku: "guardian_xp",   name: "Wächter-EP-Boost",   price: 299,  icon: "⚡", desc: "+2.500 EP für euren Wächter" },
   guardian_skin: { sku: "guardian_skin", name: "Wächter-Glow-Skin",  price: 499,  icon: "✨", desc: "Leuchtender Rahmen für euren Wächter (dauerhaft)" },
 };
 

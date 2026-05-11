@@ -27,7 +27,7 @@ const RES_LABEL: Record<string, string> = {
   gold: "💸 Krypto",
   mana: "📡 Bandbreite",
   vip_points: "⭐ VIP-Punkte",
-  guardian_xp: "🛡 Wächter-XP",
+  guardian_xp: "🛡 Wächter-EP",
 };
 
 export function MightyGovernorModal({ onClose }: { onClose: () => void }) {

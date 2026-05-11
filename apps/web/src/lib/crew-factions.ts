@@ -44,7 +44,7 @@ export const CREW_FACTIONS: Record<CrewFactionId, CrewFactionMeta> = {
     icon: "🔮",
     color: "#a855f7",
     tagline: "Wissen ist Macht.",
-    buff: "+10 % Wächter-XP",
+    buff: "+10 % Wächter-EP",
     buffDetail: "Wächter der Mitglieder leveln 10 % schneller.",
   },
 };

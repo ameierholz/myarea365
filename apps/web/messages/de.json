@@ -2327,7 +2327,7 @@
     "networkError": "Fehler von Netzwerk",
     "labelAlreadyTrainedToday": "✓ Bereits allenato heute",
     "labelTraining": "Training…",
-    "labelTrainAction": "🙏 Allena (+{XP} XP)"
+    "labelTrainAction": "🙏 Allena (+{XP} EP)"
   },
   "Arena": {
     "loadingOpponents": "Lade Gegner …",
@@ -4344,7 +4344,7 @@
     "settingsTitle": "Base-Einstellungen",
     "close": "Schließen",
     "vipTickets": "⭐ Premium-Ticket",
-    "guardianXp": "⚔️ Wächter-XP",
+    "guardianXp": "⚔️ Wächter-EP",
     "tabOverview": "Übersicht",
     "tabRes": "Ressourcen",
     "tabBuild": "Bauen",
@@ -5395,8 +5395,8 @@
           "desc": "Heilt die Wunden deines Wächters sofort"
         },
         "guardian_xp": {
-          "name": "Wächter-XP-Boost",
-          "desc": "+2.500 XP für deinen Wächter"
+          "name": "Wächter-EP-Boost",
+          "desc": "+2.500 EP für deinen Wächter"
         },
         "guardian_skin": {
           "name": "Wächter-Glanz-Skin",
