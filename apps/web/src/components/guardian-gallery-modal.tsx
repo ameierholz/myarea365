@@ -76,7 +76,7 @@ export function GuardianGalleryModal({
       <ModalBody padding="flush">
         {/* Type-Tabs */}
         <div style={{ padding: "6px 8px 4px", display: "flex", gap: 4, borderBottom: "1px solid rgba(255,255,255,0.05)", overflowX: "auto", scrollbarWidth: "none" }}>
-          {(["all", "infantry", "cavalry", "marksman", "mage", "siege", "collector"] as Tab[]).map((t) => {
+          {(["all", "infantry", "cavalry", "marksman", "siege", "collector", "architect"] as Tab[]).map((t) => {
             const rawMeta = t === "all" ? { label: tG("tabAll"), icon: "🌐", color: "#22D1C3" } : TYPE_META[t];
             // Defensive fallback falls TYPE_META veraltete Bundle-Version (Turbopack-Cache)
             const meta = rawMeta ?? { label: t.toUpperCase(), icon: "?", color: "#8B8FA3" };

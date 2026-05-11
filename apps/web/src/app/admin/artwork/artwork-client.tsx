@@ -912,7 +912,6 @@ function buildItemPrompt(item: Item): string {
 function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onChange: () => void }) {
   const [filterRarity,  setFilterRarity]  = useState<string>("ALL");
   const [filterType,    setFilterType]    = useState<string>("ALL");
-  const [filterRole,    setFilterRole]    = useState<string>("ALL");
   const [filterFaction, setFilterFaction] = useState<string>("ALL");
   const [filterWave,    setFilterWave]    = useState<string>("ALL");
   const [search,        setSearch]        = useState("");
@@ -927,13 +926,12 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
   const filtered = useMemo(() => archetypes.filter((a) => {
     if (filterRarity !== "ALL" && a.rarity !== filterRarity) return false;
     if (filterType !== "ALL" && a.guardian_type !== filterType) return false;
-    if (filterRole !== "ALL" && a.role !== filterRole) return false;
     if (filterFaction !== "ALL" && a.faction !== filterFaction) return false;
     if (filterWave !== "ALL" && String(a.wave_number ?? "") !== filterWave) return false;
     if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !a.id.toLowerCase().includes(search.toLowerCase())) return false;
     if (missingOnly && a.image_url) return false;
     return true;
-  }), [archetypes, filterRarity, filterType, filterRole, filterFaction, filterWave, search, missingOnly]);
+  }), [archetypes, filterRarity, filterType, filterFaction, filterWave, search, missingOnly]);
 
   const done = archetypes.filter(a => a.image_url).length;
   const pct = archetypes.length > 0 ? Math.round((done / archetypes.length) * 100) : 0;
@@ -954,7 +952,7 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
 
   return (
     <div>
-      {/* Filter-Bar */}
+      {/* Filter-Bar — Rollen abgeschafft (nur Wächtertyp + Fraktion + Welle bleiben) */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3">
         <select value={filterRarity} onChange={(e) => setFilterRarity(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
@@ -966,61 +964,20 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
         </select>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
-          <option value="ALL">Alle Truppentypen</option>
-          <option value="infantry">🛡️ Infanterie</option>
-          <option value="cavalry">🐎 Kavallerie</option>
-          <option value="marksman">🏹 Scharfschütze</option>
-          <option value="mage">🔮 Magier</option>
-          <option value="siege">💥 Belagerung</option>
+          <option value="ALL">Alle Wächtertypen</option>
+          <option value="infantry">🥷 Türsteher</option>
+          <option value="cavalry">🏍️ Kurier</option>
+          <option value="marksman">🎯 Schütze</option>
+          <option value="siege">🔨 Brecher</option>
           <option value="collector">📦 Sammler</option>
+          <option value="architect">🏗️ Konstrukteur</option>
         </select>
-        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}
-          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
-          <option value="ALL">Alle Rollen</option>
-          <optgroup label="🛡️ Tank">
-            <option value="krieger">Krieger</option>
-            <option value="ritter">Ritter</option>
-            <option value="paladin">Paladin</option>
-            <option value="berserker">Berserker</option>
-          </optgroup>
-          <optgroup label="✨ Support">
-            <option value="priester">Priester</option>
-            <option value="schamane">Schamane</option>
-            <option value="kleriker">Kleriker</option>
-            <option value="orakel">Orakel</option>
-          </optgroup>
-          <optgroup label="🏹 Fernkampf">
-            <option value="magier">Magier</option>
-            <option value="bogenschuetze">Bogenschütze</option>
-            <option value="hexer">Hexer</option>
-            <option value="runenmeister">Runenmeister</option>
-          </optgroup>
-          <optgroup label="⚔️ Nahkampf">
-            <option value="schurke">Schurke</option>
-            <option value="moench">Mönch</option>
-            <option value="samurai">Samurai</option>
-            <option value="ninja">Ninja</option>
-          </optgroup>
-        </select>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche Name/ID…"
-          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm" />
-        <label className="flex items-center gap-2 bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer">
-          <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
-          Nur ohne Bild
-        </label>
-        <button onClick={exportCsv} className="bg-[#22D1C3] text-[#0F1115] rounded-lg px-3 py-2 text-sm font-bold">
-          ⬇️ CSV ({filtered.length})
-        </button>
-      </div>
-
-      {/* Erweiterte Filter: Wave + Faction */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
         <select value={filterFaction} onChange={(e) => setFilterFaction(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
           <option value="ALL">Alle Fraktionen</option>
-          <option value="gossenbund">🔗 Untergrund</option>
-          <option value="kronenwacht">🛡️ Stadtwache</option>
-          <option value="netzhueter">💻 Hacker-Crew</option>
+          <option value="gossenbund">🔗 Gossenbund</option>
+          <option value="kronenwacht">🛡️ Kronenwacht</option>
+          <option value="netzhueter">📡 Netzhüter</option>
         </select>
         <select value={filterWave} onChange={(e) => setFilterWave(e.target.value)}
           className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm">
@@ -1029,6 +986,18 @@ function ArchetypesTab({ archetypes, onChange }: { archetypes: Archetype[]; onCh
             <option key={w} value={String(w)}>W{w} {w === 0 ? "(Pre-Launch)" : ""}</option>
           ))}
         </select>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Suche Name/ID…"
+          className="bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm" />
+        <label className="flex items-center gap-2 bg-[#1A1D23] border border-white/10 rounded-lg px-3 py-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={missingOnly} onChange={(e) => setMissingOnly(e.target.checked)} />
+          Nur ohne Bild
+        </label>
+      </div>
+
+      <div className="mb-3 flex justify-end">
+        <button onClick={exportCsv} className="bg-[#22D1C3] text-[#0F1115] rounded-lg px-3 py-2 text-sm font-bold">
+          ⬇️ CSV ({filtered.length})
+        </button>
       </div>
 
       {/* Progress-Bar + Wipe-Button */}

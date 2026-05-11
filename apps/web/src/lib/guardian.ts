@@ -99,12 +99,11 @@ export const RARITY_META: Record<AnyRarity, RarityMeta> = {
 };
 
 // 3 Wächter-Fraktionen (separat vom User-Spielstil — Set-Bonus-System)
-// Hinweis: DB-IDs (gossenbund/kronenwacht/netzhueter) bleiben als interne Keys.
-// Nur die UI-Labels sind moderne real-life-Begriffe (kein Fantasy/kein Cyberpunk).
+// Faction-Namen sind eigene Spielwelt-Begriffe (siehe project_terminology memory).
 export const FACTION_META: Record<GuardianFaction, { label: string; emoji: string; color: string; theme: string }> = {
-  gossenbund:  { label: "Untergrund",  emoji: "🔗", color: "#FF6B4A", theme: "Gangs, Slum, Tunnel-Viertel" },
-  kronenwacht: { label: "Stadtwache",  emoji: "🛡️", color: "#FFD700", theme: "Polizei, Sicherheit, Etablissement" },
-  netzhueter:  { label: "Hacker-Crew", emoji: "💻", color: "#22D1C3", theme: "Tech, Daten, Cyber-Spezialisten" },
+  gossenbund:  { label: "Gossenbund",  emoji: "🔗", color: "#FF6B4A", theme: "Gangs, Slum, Tunnel-Viertel" },
+  kronenwacht: { label: "Kronenwacht", emoji: "🛡️", color: "#FFD700", theme: "Polizei, Sicherheit, Etablissement" },
+  netzhueter:  { label: "Netzhüter",   emoji: "📡", color: "#FF2D78", theme: "Tech, Daten, Cyber-Spezialisten" },
 };
 
 // Legacy-Label-Helper (falls alte Daten noch common/rare/legend haben)
