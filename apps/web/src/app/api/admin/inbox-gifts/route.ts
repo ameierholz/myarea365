@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const [inv, xp] = await Promise.all([
+  const [inv, xp, art] = await Promise.all([
     sb.from("inventory_item_catalog")
       .select("id, name, emoji, image_url, category, rarity")
       .eq("active", true)
@@ -141,13 +141,25 @@ export async function GET(req: NextRequest) {
     sb.from("guardian_xp_items")
       .select("id, name, emoji, image_url, rarity, xp_amount")
       .order("sort"),
+    sb.from("cosmetic_artwork")
+      .select("slot_id, image_url")
+      .eq("kind", "inventory_item")
+      .eq("variant", "neutral"),
   ]);
+
+  // Cosmetic-Artwork als Fallback wenn inventory_item_catalog.image_url leer ist.
+  // (Manche Items haben ihre Bilder ausschließlich in cosmetic_artwork.)
+  const artMap = new Map<string, string>(
+    ((art.data ?? []) as Array<{ slot_id: string; image_url: string | null }>)
+      .filter((a) => a.image_url)
+      .map((a) => [a.slot_id, a.image_url as string])
+  );
 
   const inventory = (inv.data ?? []).map((r) => ({
     catalog_id: r.id as string,
     name: r.name as string,
     emoji: (r.emoji ?? "📦") as string,
-    image_url: (r.image_url ?? null) as string | null,
+    image_url: (r.image_url ?? artMap.get(r.id) ?? null) as string | null,
     category: r.category as string,
     rarity: (r.rarity ?? "common") as string,
     source: "inventory_item_catalog" as const,
