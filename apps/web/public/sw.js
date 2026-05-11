@@ -6,7 +6,7 @@
  *  - HTML-Navigation: network-first, fallback Cache → /offline
  */
 
-const VERSION = "v2";
+const VERSION = "v5";
 const TILE_CACHE = `ma365-tiles-${VERSION}`;
 const ASSET_CACHE = `ma365-assets-${VERSION}`;
 const PAGE_CACHE = `ma365-pages-${VERSION}`;

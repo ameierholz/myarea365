@@ -14,10 +14,10 @@ import { type TableTargetType } from "@/lib/artwork-targets";
 
 export const STYLE_FOOTER_ICON = [
   "Style: bold modern flat-icon, single-subject, 3D-rendered with subtle ambient occlusion.",
-  "Background: solid #00FF00 greenscreen for chroma-key.",
-  "Format: 1024×1024, centered subject filling ~75% of canvas.",
+  "Background: SOLID PURE NEON GREEN #00FF00 (chroma-key green), flat uniform color filling the ENTIRE 1024×1024 frame from edge to edge, no gradient, no vignette, no border frame.",
+  "Format: 1024×1024, centered subject filling ~78% of canvas, silhouette must NOT touch any frame edge, AT LEAST 8% pure-green margin around the subject on all sides.",
   "Setting: contemporary urban (2026, real-life). NO cyberpunk lights, NO medieval gear, NO sci-fi tech.",
-  "Negatives: no text, no watermark, no logo, no border, no human face close-up.",
+  "Negatives: no text, no watermark, no logo, NO BLACK BORDER, NO BLACK FRAME around the image, NO DARK VIGNETTE at the corners, NO LETTERBOX BARS, no human face close-up. The green background MUST extend cleanly to all four edges of the 1024×1024 canvas.",
 ].join(" ");
 
 export const STYLE_FOOTER_HERO = [

@@ -192,32 +192,40 @@ if (typeof window !== "undefined") {
     /* ═══════════════════════════════════════════════════════
        Wave-Features: Boss, Sanctuary, Loot, Arena-Countdown, Reviews
        ═══════════════════════════════════════════════════════ */
-    @keyframes ma365BossPulse {
-      0%,100% { box-shadow: 0 0 20px rgba(255,45,120,0.55), 0 4px 12px rgba(0,0,0,0.4); filter: brightness(1); }
-      50%     { box-shadow: 0 0 36px rgba(255,45,120,1),    0 6px 18px rgba(0,0,0,0.5); filter: brightness(1.12); }
+    @keyframes ma365BossIdle {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-3px); }
     }
     .ma365-boss-marker {
       position: relative;
       display: flex; flex-direction: column; align-items: center;
       cursor: pointer;
+      animation: ma365BossIdle 2.4s ease-in-out infinite;
+      border: none; outline: none; background: transparent;
     }
+    .ma365-boss-marker > * { border: none; outline: none; }
     .ma365-boss-circle {
-      width: 50px; height: 50px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 50% 40%, rgba(120,0,40,0.95) 0%, rgba(20,0,10,0.95) 100%);
-      border: 2px solid rgba(255,45,120,0.85);
-      animation: ma365BossPulse 1.8s ease-in-out infinite;
+      width: 60px; height: 60px;
       display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      outline: none;
       color: #FFF;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
     }
-    .ma365-boss-emoji { font-size: 26px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+    .ma365-boss-circle img,
+    .ma365-boss-circle video {
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+    }
+    .ma365-boss-emoji { font-size: 56px; line-height: 1; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7)); }
     .ma365-boss-name { display: none; }
     .ma365-boss-hpbar {
-      width: 48px;
-      margin-top: 3px;
-      height: 4px; background: rgba(0,0,0,0.7); border-radius: 3px; overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.18);
+      width: 52px;
+      margin-top: 1px;
+      height: 3px; background: rgba(0,0,0,0.7); border-radius: 2px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.2);
     }
     .ma365-boss-hpfill {
       height: 100%;
@@ -235,18 +243,17 @@ if (typeof window !== "undefined") {
       transform-origin: center bottom;
     }
     .ma365-sanctuary-emoji {
-      font-size: 32px; line-height: 1;
-      filter: drop-shadow(0 2px 6px rgba(34,209,195,0.6)) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+      font-size: 56px; line-height: 1;
+      filter: drop-shadow(0 3px 8px rgba(34,209,195,0.7)) drop-shadow(0 2px 4px rgba(0,0,0,0.5));
     }
-    .ma365-sanctuary-marker.done .ma365-sanctuary-emoji { filter: drop-shadow(0 2px 6px rgba(74,222,128,0.6)); opacity: 0.6; }
-    .ma365-sanctuary-xp {
-      font-size: 9px; font-weight: 900;
-      padding: 2px 6px; border-radius: 999px;
-      background: linear-gradient(90deg, #22D1C3, #5ddaf0); color: #0F1115;
-      border: 1.5px solid rgba(255,255,255,0.9);
-      letter-spacing: 0.3px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    .ma365-sanctuary-art {
+      width: 84px; height: 84px;
+      object-fit: contain;
+      clip-path: inset(7%);
+      filter: url(#ma365-chromakey) drop-shadow(0 3px 6px rgba(0,0,0,0.55));
     }
+    .ma365-sanctuary-marker.done .ma365-sanctuary-emoji,
+    .ma365-sanctuary-marker.done .ma365-sanctuary-art { filter: drop-shadow(0 2px 6px rgba(74,222,128,0.6)); opacity: 0.55; }
     .ma365-sanctuary-check {
       font-size: 11px; font-weight: 900; color: #4ade80;
       background: rgba(15,17,21,0.85); border: 1.5px solid #4ade80;
@@ -598,7 +605,7 @@ interface AppMapProps {
   // ── Map-Features Wave ────────────────────────────────────
   powerZones?: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
   bossRaids?: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null }>;
-  sanctuaries?: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null; cooldown_until?: string | null }>;
+  sanctuaries?: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null; cooldown_until?: string | null; image_url?: string | null; video_url?: string | null }>;
   flashPushes?: Array<{ id: string; business_id: string; business_lat: number; business_lng: number; radius_m: number; expires_at: string }>;
   shopTrail?: Array<{ business_id: string; name: string; lat: number; lng: number }>;
   shadowRoute?: { id: string; runner_color: string; geom: Array<{ lat: number; lng: number }> } | null;
@@ -2518,13 +2525,19 @@ export function AppMap({
         const v = document.createElement("video");
         v.src = b.video_url;
         v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
-        v.style.width = "32px"; v.style.height = "32px"; v.style.objectFit = "contain";
+        v.style.width = "68px"; v.style.height = "68px"; v.style.objectFit = "contain";
+        v.style.clipPath = "inset(5.5%)";
+        v.style.filter = "url(#ma365-chromakey)";
+        v.style.background = "transparent";
         circle.appendChild(v);
       } else if (b.image_url) {
         const img = document.createElement("img");
         img.src = b.image_url;
         img.alt = b.name;
-        img.style.width = "32px"; img.style.height = "32px"; img.style.objectFit = "contain";
+        img.style.width = "68px"; img.style.height = "68px"; img.style.objectFit = "contain";
+        img.style.clipPath = "inset(5.5%)";
+        img.style.filter = "url(#ma365-chromakey)";
+        img.style.background = "transparent";
         circle.appendChild(img);
       } else {
         const span = document.createElement("span");
@@ -2543,7 +2556,7 @@ export function AppMap({
 
       inner.title = b.name;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onBossClick?.(b.id));
+      outer.addEventListener("click", (ev) => { ev.stopPropagation(); ev.preventDefault(); onBossClick?.(b.id); });
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([b.lng, b.lat]).addTo(map);
       bossMarkersRef.current.push({ marker, el: inner });
@@ -2551,8 +2564,12 @@ export function AppMap({
 
     const applyScale = () => {
       const zoom = map.getZoom();
-      const hide = zoom < 13;
-      const scale = Math.max(0.35, Math.min(1.0, (zoom - 11) / 6 + 0.4));
+      // Bosse bleiben sichtbar auch beim weit rausgezoomten Stadt-Server-Blick.
+      // Ausblenden erst auf Welt-Ebene (zoom < 6 = Kontinent/Welt).
+      // Beim Reinzoomen (z. B. 3D-Stadt-Detail) deutlich größer skalieren,
+      // damit Bosse zwischen 3D-Gebäuden nicht verschwinden.
+      const hide = zoom < 6;
+      const scale = Math.max(0.6, Math.min(2.2, (zoom - 10) / 4 + 0.7));
       bossMarkersRef.current.forEach(({ el }) => {
         el.style.transform = `scale(${scale.toFixed(2)})`;
         el.style.opacity = hide ? "0" : "1";
@@ -2587,17 +2604,22 @@ export function AppMap({
       const cooldownActive = !!s.cooldown_until && new Date(s.cooldown_until).getTime() > Date.now();
       const inner = document.createElement("div");
       inner.className = `ma365-sanctuary-marker ${done || cooldownActive ? "done" : ""}`;
-      const xpLabel = s.xp_reward >= 1000 ? `+${(s.xp_reward / 1000).toFixed(0)}k` : `+${s.xp_reward}`;
-      const badge = done
+      const statusBadge = done
         ? '<div class="ma365-sanctuary-check">✓</div>'
         : cooldownActive
         ? '<div class="ma365-sanctuary-check" style="color:#FF6BA1;border-color:#FF6BA1;">🔒</div>'
-        : `<div class="ma365-sanctuary-xp">${xpLabel} EP</div>`;
+        : "";
+      const districtLabel = (s.name ?? "").replace(/</g, "&lt;");
+      const iconHtml = s.video_url
+        ? `<video class="ma365-sanctuary-art" src="${s.video_url}" autoplay loop muted playsinline></video>`
+        : s.image_url
+        ? `<img class="ma365-sanctuary-art" src="${s.image_url}" alt="${districtLabel}" />`
+        : `<div class="ma365-sanctuary-emoji">${s.emoji}</div>`;
       inner.innerHTML = `
-          <div class="ma365-sanctuary-emoji">${s.emoji}</div>
-          ${badge}`;
+          ${iconHtml}
+          ${statusBadge}`;
       outer.appendChild(inner);
-      outer.addEventListener("click", () => onSanctuaryClick?.(s.id));
+      outer.addEventListener("click", (ev) => { ev.stopPropagation(); ev.preventDefault(); onSanctuaryClick?.(s.id); });
       const marker = new mapboxgl.Marker({ element: outer, anchor: "bottom" })
         .setLngLat([s.lng, s.lat]).addTo(map);
       sanctuaryMarkersRef.current.push({ marker, el: inner });
@@ -2711,6 +2733,8 @@ export function AppMap({
         <div class="ma365-stronghold-level">${s.level}</div>`;
       outer.appendChild(inner);
       outer.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
         const me = ev as MouseEvent;
         onStrongholdClickRef.current?.(s.id, me.clientX, me.clientY);
       });
@@ -5760,6 +5784,25 @@ export function AppMap({
 
   return (
     <div style={{ position: "absolute", inset: 0 }} data-pin-theme={pinTheme ?? "default"}>
+      {/* Chroma-Key-Filter: greenscreen #00FF00 → transparent, alles andere (auch
+          schwarze Boss-Details) bleibt opak.
+          alpha = R − 2G + B + 1  →  pure green: −1, schwarz/weiß/mid: 1.
+          Asset-Frames (sofern sehr dünn) werden via clip-path inset(5%) weggeschnitten. */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+        <defs>
+          <filter id="ma365-chromakey" colorInterpolationFilters="sRGB">
+            <feColorMatrix
+              type="matrix"
+              values="1 0 0 0 0
+                      0 1 0 0 0
+                      0 0 1 0 0
+                      1 -2 1 0 1" />
+            <feComponentTransfer>
+              <feFuncA type="discrete" tableValues="0 0 0 0 1 1 1 1 1 1" />
+            </feComponentTransfer>
+          </filter>
+        </defs>
+      </svg>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
       <RunnerParticleOverlay
         map={mapRef.current}

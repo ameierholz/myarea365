@@ -1750,3 +1750,81 @@ export function buildModalBackgroundPrompt(input: { bg: ModalBackgroundArt; mode
     `Output format: high-quality JPG or PNG (no alpha needed). No text, no UI mockups, no watermark, no logo, no people in frame.`,
   ].join(" ");
 }
+
+// ─── SANCTUARY catalog ────────────────────────────────────────────────
+// 12 Map-Pin-Artworks für tägliche Sanctuaries (rotiert pro Bezirk).
+// Greenscreen #00FF00 wie Chest/Stronghold.
+export type SanctuaryArt = {
+  id: string;
+  name: string;
+  fallbackEmoji: string;
+  accent: string;
+  subject: string;
+  style: string;
+};
+
+export const SANCTUARIES_ART: SanctuaryArt[] = [
+  { id: "torii", name: "Torii-Tor", fallbackEmoji: "⛩️", accent: "#FF6B4A",
+    subject: "an iconic vermillion japanese torii gate standing solitary, two crimson uprights with a curved black top-rail, weathered wood texture, paper prayer-strips fluttering at the base",
+    style: "stylized 3D-render, painterly hand-painted feel, warm dusk rim-light, drifting cherry petals, subtle teal magic glow behind the gate" },
+  { id: "temple", name: "Tempel-Eingang", fallbackEmoji: "🏛️", accent: "#FFD700",
+    subject: "a small classical temple façade with four marble columns and triangular pediment, golden engraved frieze, stone steps glowing with soft golden runes",
+    style: "stylized 3D-render, marble white with gold filigree, warm key-light from above, dust motes in sun-rays, painterly highlights" },
+  { id: "stupa", name: "Stupa", fallbackEmoji: "🛕", accent: "#22D1C3",
+    subject: "a buddhist stupa with a polished white dome, golden spire and tiered umbrella at the top, prayer flags woven between bamboo poles around it, mandala-engraved base",
+    style: "stylized 3D-render, white marble + warm gold contrast, drifting teal-gold particles, painterly soft shading" },
+  { id: "shrine", name: "Kleiner Schrein", fallbackEmoji: "⚜️", accent: "#a855f7",
+    subject: "a tiny cedar-wood shrine with a sloped wooden roof, lit paper lanterns hanging at the front, ornate brass bell with a knotted rope, single white candle burning inside",
+    style: "stylized 3D-render, cozy lantern-glow lighting, warm orange-purple palette, painterly texture, soft inner shrine glow" },
+  { id: "statue", name: "Stein-Wächter", fallbackEmoji: "🗿", accent: "#9ba8c7",
+    subject: "a weathered stone guardian statue with crossed arms and grim face, mossy stone base, glowing teal runes etched on its chest, slight cracks revealing inner blue light",
+    style: "stylized 3D-render, gray-blue weathered stone, vivid teal rune glow, painterly fog at the base, AAA mobile-game look" },
+  { id: "obelisk", name: "Obelisk", fallbackEmoji: "🗽", accent: "#FFD700",
+    subject: "a tall slim egyptian-style obelisk in polished sandstone, pyramid-cap covered in gold leaf, hieroglyphic engravings glowing softly along the four faces, dust drifting at the base",
+    style: "stylized 3D-render, warm sandstone + glowing gold runes, painterly highlights, sun-flare on the cap, drifting golden particles" },
+  { id: "crystal", name: "Kristall-Schrein", fallbackEmoji: "💎", accent: "#5ddaf0",
+    subject: "a floating cyan crystal cluster hovering above a low rune-etched stone pedestal, swirling magical particles, faceted gemstone refracting inner light",
+    style: "stylized 3D-render, vibrant cyan crystal with cool rim-light, swirling magic motes, painterly hand-painted feel, dramatic key-light from above" },
+  { id: "brazier", name: "Feuer-Schale", fallbackEmoji: "🔥", accent: "#FF6B4A",
+    subject: "an ornate brass brazier on three legs with a roaring orange-red flame inside, glowing embers floating upward, weathered patina on the brass",
+    style: "stylized 3D-render, warm flame-glow, drifting orange embers, painterly fire feel, polished brass with copper-green patina accents" },
+  { id: "runestone", name: "Runenstein", fallbackEmoji: "🪨", accent: "#22D1C3",
+    subject: "a tall standing stone with deeply carved nordic runes glowing in teal, moss-covered base, single raven perched on the top",
+    style: "stylized 3D-render, weathered grey stone, vivid teal rune glow pulsing softly, painterly fog at base, brooding magical mood" },
+  { id: "altar", name: "Altar", fallbackEmoji: "✨", accent: "#FFD700",
+    subject: "a low ornate stone altar with carved golden inlays, a single ceremonial gold cup at the center, golden light beams shining from the cup, flower petals scattered around",
+    style: "stylized 3D-render, polished marble + gold inlay, warm divine god-rays, drifting petals, painterly hand-painted feel" },
+  { id: "pagoda", name: "Pagode", fallbackEmoji: "🏯", accent: "#FF2D78",
+    subject: "a three-tiered chinese pagoda with upturned eaves and red lacquered wooden columns, golden roof tiles, paper lanterns hanging at each tier, soft glow from inside",
+    style: "stylized 3D-render, red lacquer + gold roof tiles, warm lantern glow, painterly highlights, drifting cherry-pink particles" },
+  { id: "lantern", name: "Laternenpfad", fallbackEmoji: "🏮", accent: "#FF6B4A",
+    subject: "a tall ornate stone lantern pillar with a wooden cap, golden flame visible inside through square windows, twin smaller lanterns hovering on either side via thin chains",
+    style: "stylized 3D-render, warm orange flame-light, weathered stone + dark wood, painterly soft shadows, drifting fireflies around the lanterns" },
+];
+
+export function buildSanctuaryPrompt(input: { sanctuary: SanctuaryArt; mode: "image" | "video" }): string {
+  const { sanctuary, mode } = input;
+  const greenscreenNegative = `CRITICAL: NO green tones on the sanctuary itself (stone, wood, gold, gems, flames, glow). Use only the colors described. The ONLY green is the pure #00FF00 background. No text, no labels, no UI overlays, no watermark, no border frames, no surrounding environment, no ground patch.`;
+  if (mode === "video") {
+    return [
+      `Shot: a 3-second seamlessly looping animated game-map pin of a "${sanctuary.name}" sanctuary, square 1:1, 1024×1024, 30 fps.`,
+      `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green / green screen). Completely flat uniform color filling the ENTIRE 1024×1024 frame including a clean ~12% margin around the sanctuary. No gradients, no patterns, no ground.`,
+      `Subject: ${sanctuary.subject}.`,
+      `Style: ${sanctuary.style}.`,
+      `Composition: sanctuary perfectly centered, slight 3/4 angle, viewed from a low-front camera position (map-pin angle). Silhouette must NOT touch any frame edge. The base sits on an INVISIBLE ground (green is everything below the sanctuary too).`,
+      `Lighting: bright key light from upper-left, warm rim-light from upper-right, subtle ${sanctuary.accent} ambient glow emanating from the sanctuary's core.`,
+      `Motion: gentle in-place idle — soft glow pulse, flickering flame / floating particles (close to the sanctuary only, NOT drifting through empty green space), subtle bob (±2 px) for floating elements. Camera fully static. First and last frame identical.`,
+      `No audio.`,
+      greenscreenNegative,
+    ].join(" ");
+  }
+  return [
+    `A stylized 3D game-map-pin of a "${sanctuary.name}" sanctuary, square 1:1, 1024×1024.`,
+    `Background: SOLID PURE NEON GREEN (#00FF00, chroma-key green). Completely flat uniform color filling the entire frame with ~12% margin around the sanctuary — no gradient, no ground, no environment. (Chroma-keyed to transparent in the app.)`,
+    `Subject: ${sanctuary.subject}.`,
+    `Style: ${sanctuary.style}.`,
+    `Composition: sanctuary perfectly centered, slight 3/4 angle, viewed from a low-front camera position (map-pin angle). Silhouette must NOT touch any frame edge.`,
+    `Lighting: bright key light from upper-left, warm rim-light from upper-right, subtle ${sanctuary.accent} ambient glow emanating from the sanctuary's core.`,
+    greenscreenNegative,
+  ].join(" ");
+}

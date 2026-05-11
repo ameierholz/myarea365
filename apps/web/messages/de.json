@@ -2321,13 +2321,13 @@
     "mottoCrewNeighborhood": "Ein Viertel, eine Crew.",
     "mottoCrewOpen": "Komm vorbei — los geht's bald.",
     "labelAttacking": "Greift an…",
-    "labelTooFar": "🔒 Zu weit weg",
+    "labelTooFar": "🔒 Du bist zu weit entfernt",
     "labelAttack": "⚔️ Angreifen (500–2000 DMG)",
     "leaderboardLoadFailed": "Nicht möglich laden die Rangliste",
     "networkError": "Fehler von Netzwerk",
-    "labelAlreadyTrainedToday": "✓ Bereits allenato heute",
-    "labelTraining": "Training…",
-    "labelTrainAction": "🙏 Allena (+{XP} EP)"
+    "labelAlreadyTrainedToday": "✓ Bereits trainiert",
+    "labelTraining": "Trainiert …",
+    "labelTrainAction": "🙏 Trainieren (+{XP} EP)"
   },
   "Arena": {
     "loadingOpponents": "Lade Gegner …",

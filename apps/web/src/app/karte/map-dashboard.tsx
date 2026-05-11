@@ -454,9 +454,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // Loyalty/Shop-Layer (flash_pushes, shop_reviews, shop_trail) archived 2026-05-05.
   const [mapFeatures, setMapFeatures] = useState<{
     power_zones: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
-    boss_raids: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null }>;
-    sanctuaries: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null; cooldown_until?: string | null }>;
+    boss_raids: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null; claimed_by_crew_id?: string | null; claim_expires_at?: string | null }>;
+    sanctuaries: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null; cooldown_until?: string | null; image_url?: string | null; video_url?: string | null }>;
     explored_cells: Array<{ cell_x: number; cell_y: number }>;
+    my_crew_id?: string | null;
   } | null>(null);
   const [lorePieces, setLorePieces] = useState<Array<{ piece_id: string; lat: number; lng: number; name: string; set_name?: string }>>([]);
   const [mapGemShopOpen, setMapGemShopOpen] = useState(false);
@@ -2665,40 +2666,27 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       )}
       {legendOpen && <MapLegendModal onClose={() => setLegendOpen(false)} />}
 
-      {/* Area-Boss Modal */}
+      {/* Area-Boss Modal — eine Crew lockt den Boss für 30 min ab erstem Angriff */}
       {viewingBoss && (() => {
         const boss = mapFeatures?.boss_raids.find((b) => b.id === viewingBoss);
         if (!boss) return null;
-        const distM = userCenter
-          ? Math.round(6371000 * 2 * Math.asin(Math.sqrt(
-              Math.sin(((boss.lat - userCenter.lat) * Math.PI / 180) / 2) ** 2 +
-              Math.cos(userCenter.lat * Math.PI / 180) * Math.cos(boss.lat * Math.PI / 180) *
-              Math.sin(((boss.lng - userCenter.lng) * Math.PI / 180) / 2) ** 2
-            )))
-          : null;
-        const inRange = distM !== null && distM <= 500;
         return (
           <BossRaidModal
             boss={boss}
-            distM={distM}
-            inRange={inRange}
+            myCrewId={mapFeatures?.my_crew_id ?? null}
             onClose={() => setViewingBoss(null)}
             onAttack={async () => {
-              if (!userCenter) { await appAlert(tMD("gpsRequired")); return; }
               const res = await fetch("/api/map-features", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   action: "boss_damage",
                   raid_id: boss.id,
                   damage: Math.floor(500 + Math.random() * 1500),
-                  user_lat: userCenter.lat,
-                  user_lng: userCenter.lng,
                 }),
               });
               const data = await res.json();
-              if (data.error === "too_far") { await appAlert(tMD("tooFar", { meters: data.distance_m })); return; }
-              if (data.error === "location_required") { await appAlert(tMD("gpsRequiredShort")); return; }
-              if (data.error === "crew_full") { await appAlert(tMD("crewFull")); return; }
+              if (data.error === "crew_required") { await appAlert("Du brauchst eine Crew, um Bosse anzugreifen."); return; }
+              if (data.error === "claimed_by_other_crew") { await appAlert("Dieser Boss wird gerade von einer anderen Crew belagert. Versuche es wieder, wenn der Claim abgelaufen ist."); return; }
               if (data.defeated) await appAlert(tMD("areaBossDefeated"));
               const r = await fetch("/api/map-features", { cache: "no-store" });
               if (r.ok) setMapFeatures(await r.json());
@@ -2714,15 +2702,19 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         return <PowerZoneModal zone={z} onClose={() => setViewingPowerZone(null)} />;
       })()}
 
-      {/* Sanctuary Training Modal */}
+      {/* Sanctuary Training Modal — GPS-Pflicht: vor Ort sein (50m) */}
       {viewingSanctuary && (() => {
         const s = mapFeatures?.sanctuaries.find((x) => x.id === viewingSanctuary);
         if (!s) return null;
-        const distM = userCenter
+        const ucLat = userCenter?.lat, ucLng = userCenter?.lng;
+        const sLat = s.lat, sLng = s.lng;
+        const haveGeo = Number.isFinite(ucLat) && Number.isFinite(ucLng)
+          && Number.isFinite(sLat) && Number.isFinite(sLng);
+        const distM = haveGeo
           ? Math.round(6371000 * 2 * Math.asin(Math.sqrt(
-              Math.sin(((s.lat - userCenter.lat) * Math.PI / 180) / 2) ** 2 +
-              Math.cos(userCenter.lat * Math.PI / 180) * Math.cos(s.lat * Math.PI / 180) *
-              Math.sin(((s.lng - userCenter.lng) * Math.PI / 180) / 2) ** 2
+              Math.sin(((sLat - (ucLat as number)) * Math.PI / 180) / 2) ** 2 +
+              Math.cos((ucLat as number) * Math.PI / 180) * Math.cos(sLat * Math.PI / 180) *
+              Math.sin(((sLng - (ucLng as number)) * Math.PI / 180) / 2) ** 2
             )))
           : null;
         const inRange = distM !== null && distM <= 50;

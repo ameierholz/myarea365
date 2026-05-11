@@ -15,15 +15,20 @@ export async function GET(req: Request) {
   const { data: auth } = await sb.auth.getUser();
   const userId = auth?.user?.id ?? null;
 
+  // Abgelaufene Boss-Claims freigeben, damit das Frontend keinen stale-Claim sieht.
+  await sb.rpc("release_expired_boss_claims");
+
   // Loyalty-Shops archived (pivot 2026-05-05) — keine shop_reviews_agg / shop_push_messages / local_businesses mehr
-  const [zones, raids, sanctuaries, cells, visits, cooldowns] = await Promise.all([
+  const [zones, raids, sanctuaries, cells, visits, cooldowns, meCrew] = await Promise.all([
     sb.from("power_zones").select("*"),
     sb.from("boss_raids").select("*").eq("status", "active"),
     sb.from("sanctuaries").select("*"),
     userId ? sb.from("explored_cells").select("cell_x, cell_y").eq("user_id", userId) : Promise.resolve({ data: [] }),
     userId ? sb.from("sanctuary_visits").select("sanctuary_id, visited_at").eq("user_id", userId).gte("visited_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString()) : Promise.resolve({ data: [] }),
     userId ? sb.rpc("sanctuary_cooldowns_for_user") : Promise.resolve({ data: [] }),
+    userId ? sb.from("users").select("current_crew_id").eq("id", userId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
+  const myCrewId = (meCrew as { data: { current_crew_id: string | null } | null }).data?.current_crew_id ?? null;
   // Loyalty-Stubs (alle archiviert)
   const reviews = { data: [] as Array<{ business_id: string; avg_rating: number; review_count: number }> };
   const pushes = { data: [] as Array<{ id: string; business_id: string; message: string | null; radius_m: number; expires_at: string; local_businesses: { id: string; name: string; lat: number; lng: number } | null }> };
@@ -83,6 +88,7 @@ export async function GET(req: Request) {
     flash_pushes: flashPushes,
     explored_cells: cells.data ?? [],
     shop_trail: trailTop,
+    my_crew_id: myCrewId,
   });
 }
 
@@ -164,9 +170,10 @@ export async function POST(req: Request) {
     const roll = 8 + Math.random() * 10;
     const damage = Math.max(50, Math.round(effAtk * roll * hpMod * skillMult * critMult));
 
+    // GPS-Sperre entfernt — Boss-Raids sind von überall im Stadt-Server angreifbar.
+    // lat/lng werden nur noch für Power-Zone-Buff durchgereicht (oben) und in der RPC ignoriert.
     const { data, error } = await sb.rpc("contribute_boss_damage", {
       p_raid_id: body.raid_id as string, p_damage: damage,
-      p_user_lat: body.user_lat as number, p_user_lng: body.user_lng as number,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ...data, damage, crit: critRoll, power_zones: zone.zones });

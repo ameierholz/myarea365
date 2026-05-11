@@ -21,6 +21,7 @@ const COSMETIC_FOLDER_MAP: Record<string, string> = {
   resource: "resources", chest: "chests", stronghold: "strongholds", ui_icon: "ui-icons",
   troop: "troops", nameplate: "nameplates", base_ring: "base-rings", loot_drop: "loot-drops",
   resource_node: "resource-nodes", inventory_item: "inventory-items", modal_background: "modal-backgrounds",
+  sanctuary: "sanctuaries",
 };
 
 function folderForTarget(targetType: string): string | null {

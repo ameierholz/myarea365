@@ -45,24 +45,47 @@ function openDb(): Promise<IDBDatabase> {
         os.createIndex("enqueuedAt", "enqueuedAt", { unique: false });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Wenn DB geschlossen wird (z.B. "Clear site data", anderes Tab updated Version, Browser-GC)
+      // → cached Promise invalidieren, damit nächster Call frisch öffnet.
+      db.onclose = () => { dbPromise = null; };
+      db.onversionchange = () => { try { db.close(); } catch { /* ignore */ } dbPromise = null; };
+      resolve(db);
+    };
+    req.onerror = () => { dbPromise = null; reject(req.error); };
   });
   return dbPromise;
 }
 
+function isClosedError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  return e.name === "InvalidStateError" || /closing|closed/i.test(e.message);
+}
+
 async function tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest | void): Promise<T> {
-  const db = await openDb();
-  return new Promise<T>((resolve, reject) => {
-    const t = db.transaction(STORE, mode);
-    const store = t.objectStore(STORE);
-    const r = fn(store);
-    let result: T | undefined;
-    if (r) r.onsuccess = () => { result = r.result as T; };
-    t.oncomplete = () => resolve(result as T);
-    t.onerror = () => reject(t.error);
-    t.onabort = () => reject(t.error);
-  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const db = await openDb();
+    try {
+      return await new Promise<T>((resolve, reject) => {
+        const t = db.transaction(STORE, mode);
+        const store = t.objectStore(STORE);
+        const r = fn(store);
+        let result: T | undefined;
+        if (r) r.onsuccess = () => { result = r.result as T; };
+        t.oncomplete = () => resolve(result as T);
+        t.onerror = () => reject(t.error);
+        t.onabort = () => reject(t.error);
+      });
+    } catch (e) {
+      if (attempt === 0 && isClosedError(e)) {
+        dbPromise = null;
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error("offline-outbox tx: unreachable");
 }
 
 function uuid(): string {
@@ -113,18 +136,29 @@ async function sendMutation(m: PendingMutation): Promise<Response> {
 }
 
 export async function listPending(): Promise<PendingMutation[]> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction(STORE, "readonly");
-    const idx = t.objectStore(STORE).index("enqueuedAt");
-    const out: PendingMutation[] = [];
-    const req = idx.openCursor();
-    req.onsuccess = () => {
-      const c = req.result;
-      if (c) { out.push(c.value as PendingMutation); c.continue(); } else { resolve(out); }
-    };
-    req.onerror = () => reject(req.error);
-  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const db = await openDb();
+    try {
+      return await new Promise<PendingMutation[]>((resolve, reject) => {
+        const t = db.transaction(STORE, "readonly");
+        const idx = t.objectStore(STORE).index("enqueuedAt");
+        const out: PendingMutation[] = [];
+        const req = idx.openCursor();
+        req.onsuccess = () => {
+          const c = req.result;
+          if (c) { out.push(c.value as PendingMutation); c.continue(); } else { resolve(out); }
+        };
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      if (attempt === 0 && isClosedError(e)) {
+        dbPromise = null;
+        continue;
+      }
+      throw e;
+    }
+  }
+  return [];
 }
 
 export async function deletePending(id: string): Promise<void> {

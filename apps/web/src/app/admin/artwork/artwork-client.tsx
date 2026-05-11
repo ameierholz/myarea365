@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { buildArchetypePrompt, buildMarkerPrompt, buildLightPrompt, buildPinThemePrompt, BASE_RINGS_ART, buildBaseRingPrompt, NAMEPLATES_ART, buildNameplatePrompt } from "@/lib/artwork-prompts";
-import { buildPrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt, INVENTORY_ITEMS_ART, buildInventoryItemPrompt, type InventoryItemArt, MODAL_BACKGROUNDS_ART, buildModalBackgroundPrompt } from "@/lib/artwork-prompts-admin";
+import { buildPrompt, buildSiegelPrompt, SIEGEL_TYPES, buildPotionPrompt, POTION_CATALOG_ART, buildRankPrompt, RANK_TIERS_ART, buildMaterialPrompt, BASE_THEMES_ART, buildBaseThemePrompt, buildBaseThemeId, type BaseThemeScope, type BaseThemeAsset, BUILDINGS_ART, buildBuildingPrompt, RESOURCES_ART, buildResourcePrompt, CHESTS_ART, buildChestPrompt, STRONGHOLDS_ART, buildStrongholdPrompt, buildUiIconPrompt, buildTroopPrompt, LOOT_DROPS_ART, buildLootDropPrompt, RESOURCE_NODES_ART, buildResourceNodePrompt, INVENTORY_ITEMS_ART, buildInventoryItemPrompt, type InventoryItemArt, MODAL_BACKGROUNDS_ART, buildModalBackgroundPrompt, SANCTUARIES_ART, buildSanctuaryPrompt } from "@/lib/artwork-prompts-admin";
 import { uploadArtworkDirect } from "@/lib/artwork-upload";
 import { UNLOCKABLE_MARKERS, RUNNER_LIGHTS, LIGHT_VISUAL_SPECS, GENDERED_MARKER_IDS, MARKER_VARIANT_LABEL } from "@/lib/game-config";
 import { PIN_THEME_META, ALL_PIN_THEMES } from "@/lib/pin-themes";
@@ -80,6 +80,7 @@ type CosmeticArt = {
   loot_drop:    Record<string, Art>;  // slot_id = common|rare|epic|legendary
   inventory_item: Record<string, Art>;  // slot_id = item_id (speedup_*, boost_*, key_*, elixir_*, token_*)
   modal_background: Record<string, Art>;  // slot_id = karte_base_bg / karte_waechter_bg / karte_crew_bg / karte_inventar_bg / karte_shop_bg
+  sanctuary: Record<string, Art>;  // slot_id = torii / temple / stupa / shrine / statue / obelisk / crystal / brazier / runestone / altar / pagoda / lantern
 };
 
 type TabId =
@@ -87,7 +88,7 @@ type TabId =
   | "siegel" | "potion" | "rank" | "base_theme" | "building" | "resource"
   | "chest" | "map_building" | "ui_icon" | "troop" | "nameplate"
   | "base_ring" | "resource_node" | "loot_drop" | "inventory_item"
-  | "modal_background"
+  | "modal_background" | "sanctuary"
   // Phase 2 — über generischen EntityArtTab via TABLE_TARGETS
   | "pet" | "guardian_xp" | "boss_raid" | "area_boss"
   | "achievement" | "quest" | "research" | "mission" | "crew_challenge"
@@ -114,7 +115,7 @@ type Material = {
 // verwandte Tabs. 6 Gruppen mit allen 36 Tabs (22 alt + 14 neu).
 const TAB_GROUPS: Array<{ id: string; label: string; emoji: string; color: string; tabs: TabId[] }> = [
   { id: "guardian",     label: "Wächter & Truppen",  emoji: "🛡️", color: "#22D1C3", tabs: ["archetype", "troop", "siegel", "pet", "guardian_xp"] },
-  { id: "world",        label: "Welt & Karte",       emoji: "🌍", color: "#FF6B4A", tabs: ["base_theme", "building", "base_ring", "marker", "light", "map_building", "resource_node", "pin_theme", "boss_raid", "area_boss"] },
+  { id: "world",        label: "Welt & Karte",       emoji: "🌍", color: "#FF6B4A", tabs: ["base_theme", "building", "base_ring", "marker", "light", "map_building", "resource_node", "pin_theme", "boss_raid", "area_boss", "sanctuary"] },
   { id: "inventar",     label: "Inventar & Crafting",emoji: "🎒", color: "#a855f7", tabs: ["item", "material", "potion", "inventory_item", "resource", "chest", "loot_drop"] },
   { id: "progression",  label: "Progression",        emoji: "📊", color: "#FFD700", tabs: ["rank", "achievement", "quest", "research", "mission", "crew_challenge"] },
   { id: "monetization", label: "Shop & Werbung",     emoji: "💸", color: "#4ade80", tabs: ["gem_shop_item", "daily_deal_pack", "popup_offer", "vip_offer", "monet_daily_deal", "monet_gem_tier", "monet_seasonal", "monet_subscription", "monet_themed"] },
@@ -133,7 +134,7 @@ export function ArtworkAdminClient() {
   const [archetypes, setArchetypes] = useState<Archetype[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {}, inventory_item: {}, modal_background: {} });
+  const [cosmetic, setCosmetic] = useState<CosmeticArt>({ marker: {}, light: {}, pin_theme: {}, siegel: {}, potion: {}, rank: {}, base_theme: {}, building: {}, resource: {}, chest: {}, stronghold: {}, ui_icon: {}, troop: {}, nameplate: {}, base_ring: {}, resource_node: {}, loot_drop: {}, inventory_item: {}, modal_background: {}, sanctuary: {} });
   const [uiIconSlots, setUiIconSlots] = useState<UiIconSlot[]>([]);
   const [troopSlots, setTroopSlots] = useState<TroopSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,6 +203,7 @@ export function ArtworkAdminClient() {
         loot_drop:    bustMap(raw.loot_drop    ?? {}),
         inventory_item: bustMap(raw.inventory_item ?? {}),
         modal_background: bustMap(raw.modal_background ?? {}),
+        sanctuary: bustMap(raw.sanctuary ?? {}),
       });
     }
     setLoading(false);
@@ -242,6 +244,7 @@ export function ArtworkAdminClient() {
   const doneLootDrop  = Object.values(cosmetic.loot_drop ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneInventoryItem = Object.values(cosmetic.inventory_item ?? {}).filter(a => a.image_url || a.video_url).length;
   const doneModalBg = Object.values(cosmetic.modal_background ?? {}).filter(a => a.image_url || a.video_url).length;
+  const doneSanctuary = Object.values(cosmetic.sanctuary ?? {}).filter(a => a.image_url || a.video_url).length;
 
   const tabs: Array<{ id: TabId; label: string; done: number; total: number }> = [
     { id: "archetype", label: "🛡️ Wächter",        done: doneArch,   total: archetypes.length },
@@ -266,6 +269,7 @@ export function ArtworkAdminClient() {
     { id: "loot_drop", label: "🎁 Loot-Drops",       done: doneLootDrop,  total: 4 },
     { id: "inventory_item", label: "📦 Inventar-Items", done: doneInventoryItem, total: INVENTORY_ITEMS_ART.length },
     { id: "modal_background", label: "🖼️ Modal-Backgrounds", done: doneModalBg, total: MODAL_BACKGROUNDS_ART.length },
+    { id: "sanctuary", label: "⛩️ Sanktum-Pool", done: doneSanctuary, total: SANCTUARIES_ART.length },
     // Phase 2: 14 generische Entity-Tabs (counts lazy aus /artwork-entity-counts)
     { id: "pet",                label: "🐾 Pets",                done: entityCounts.pet?.done ?? 0,                total: entityCounts.pet?.total ?? 0 },
     { id: "guardian_xp",        label: "⚡ Wächter-EP",          done: entityCounts.guardian_xp?.done ?? 0,        total: entityCounts.guardian_xp?.total ?? 0 },
@@ -443,6 +447,7 @@ export function ArtworkAdminClient() {
         : tab === "loot_drop" ? <LootDropArtTab artMap={cosmetic.loot_drop} onChange={reload} />
         : tab === "inventory_item" ? <InventoryItemArtTab artMap={cosmetic.inventory_item} onChange={reload} />
         : tab === "modal_background" ? <ModalBackgroundArtTab artMap={cosmetic.modal_background} onChange={reload} />
+        : tab === "sanctuary" ? <SanctuaryArtTab artMap={cosmetic.sanctuary} onChange={reload} />
         : tab === "troop"     ? <TroopArtTab artMap={cosmetic.troop} slots={troopSlots} onChange={reload} />
         // Phase 2: alle generischen Entity-Tabs nutzen EntityArtTab (Daten lazy aus /artwork-entities/[type])
         : <EntityArtTab key={tab} entityType={tab as TableTargetType} onChange={reload} />
@@ -1687,6 +1692,50 @@ function ResourceArtTab({ artMap, onChange }: { artMap: Record<string, { image_u
 /* ═════════════════════════════════════════════════════════ */
 /*  Tab: Truhen-Grafiken (Silber / Gold / Event)              */
 /* ═════════════════════════════════════════════════════════ */
+
+function SanctuaryArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
+  return (
+    <div>
+      <div className="text-[10px] text-[#a8b4cf] mb-3">
+        Sanktum-Pool für die tägliche Bezirks-Rotation. Aus diesen 12 Artworks wird pro Tag pro Bezirk zufällig eins gewählt und auf der Heimat-Karte als Map-Pin angezeigt. Style: Greenscreen (#00FF00), zentriert, ~12% Margin, 1024×1024.
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {SANCTUARIES_ART.map((s) => {
+          const art = artMap[s.id];
+          return (
+            <div key={s.id} className="p-3 rounded-xl bg-[#1A1D23] border border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center rounded-lg overflow-hidden" style={{
+                  width: 80, height: 80,
+                  background: `radial-gradient(circle at 50% 30%, ${s.accent}55, ${s.accent}22 50%, rgba(15,17,21,0.6))`,
+                  border: `2px solid ${s.accent}`,
+                  boxShadow: `0 0 14px ${s.accent}66`,
+                }}>
+                  {art?.video_url ? <video src={art.video_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                    : art?.image_url ? <img src={art.image_url} alt={s.name} className="w-full h-full object-cover" />
+                    : <span style={{ fontSize: 36 }}>{s.fallbackEmoji}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] font-bold tracking-wider" style={{ color: s.accent }}>SANKTUM</div>
+                  <div className="text-sm font-black text-white truncate">{s.name}</div>
+                  <div className="text-[10px] text-[#a8b4cf] line-clamp-2">{s.subject.slice(0, 90)}…</div>
+                </div>
+              </div>
+              <AdminArtworkControls
+                targetType="sanctuary"
+                targetId={s.id}
+                hasImage={!!art?.image_url}
+                hasVideo={!!art?.video_url}
+                buildPrompt={(mode) => buildSanctuaryPrompt({ sanctuary: s, mode })}
+                onUploaded={onChange}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function ChestArtTab({ artMap, onChange }: { artMap: Record<string, { image_url: string | null; video_url: string | null }>; onChange: () => void }) {
   return (

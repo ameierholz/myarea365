@@ -58,7 +58,7 @@ export const COSMETIC_TARGETS = [
   "marker", "light", "pin_theme", "siegel", "potion", "rank", "base_theme",
   "building", "resource", "chest", "stronghold", "ui_icon", "troop",
   "nameplate", "base_ring", "loot_drop", "resource_node",
-  "inventory_item", "modal_background",
+  "inventory_item", "modal_background", "sanctuary",
 ] as const;
 
 export type CosmeticTargetType = typeof COSMETIC_TARGETS[number];

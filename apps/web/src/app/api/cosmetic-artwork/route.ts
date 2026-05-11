@@ -32,6 +32,7 @@ export async function GET() {
   const resource_node: Record<string, Art> = {};
   const inventory_item: Record<string, Art> = {};
   const modal_background: Record<string, Art> = {};
+  const sanctuary: Record<string, Art> = {};
   for (const r of (data ?? []) as Array<{ kind: string; slot_id: string; variant: string; image_url: string | null; video_url: string | null }>) {
     const art: Art = { image_url: r.image_url, video_url: r.video_url };
     if (r.kind === "marker") {
@@ -73,10 +74,12 @@ export async function GET() {
       inventory_item[r.slot_id] = art;
     } else if (r.kind === "modal_background") {
       modal_background[r.slot_id] = art;
+    } else if (r.kind === "sanctuary") {
+      sanctuary[r.slot_id] = art;
     }
   }
   return NextResponse.json(
-    { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop, base_ring, loot_drop, resource_node, inventory_item, modal_background },
+    { marker, light, pin_theme, siegel, potion, rank, base_theme, building, resource, chest, stronghold, nameplate, ui_icon, troop, base_ring, loot_drop, resource_node, inventory_item, modal_background, sanctuary },
     { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } }
   );
 }
