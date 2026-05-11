@@ -34,6 +34,12 @@ export default async function DatenschutzPage() {
     googleAdsSettings: (chunks: React.ReactNode) => (
       <a href="https://adssettings.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{chunks}</a>
     ),
+    googleAdPolicy: (chunks: React.ReactNode) => (
+      <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{chunks}</a>
+    ),
+    youronlinechoices: (chunks: React.ReactNode) => (
+      <a href="https://www.youronlinechoices.eu/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{chunks}</a>
+    ),
     icoLink: (chunks: React.ReactNode) => (
       <a href="https://ico.org.uk/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{chunks}</a>
     ),

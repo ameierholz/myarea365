@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { setConsent as setLibConsent } from "@/lib/consent";
 
 // v2: granulare 3-Stufen + Google Consent Mode v2 Integration.
 // Storage-Key bewusst hochgezogen → alte v1-Entscheidungen werden re-prompted
@@ -99,6 +100,14 @@ export function CookieConsent() {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
     setState(next);
     pushGtagUpdate(next);
+
+    // Bridge zu lib/consent.ts — `consent-gated-tracking.tsx` + `ump-consent.tsx`
+    // subscriben dort über onConsentChange. Ohne diesen Call lädt adsbygoogle.js NIE
+    // (= einer der bestätigten AdSense-Reject-Gründe).
+    try {
+      setLibConsent({ analytics: stats, ads: mkt, personalization: mkt });
+    } catch {}
+
     try {
       window.dispatchEvent(new CustomEvent("ma365:consent-change", { detail: next }));
     } catch {}
@@ -116,7 +125,7 @@ export function CookieConsent() {
       aria-live="polite"
       aria-modal="true"
       aria-label={tC("ariaLabel")}
-      className="fixed inset-0 z-2000 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-9500 flex items-end sm:items-center justify-center"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* Backdrop — nicht klickbar zum Schließen, der User muss aktiv entscheiden. */}

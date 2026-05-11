@@ -33,6 +33,10 @@ const TroopsModal = dynamic(
   () => import("@/components/troops-modal").then((m) => m.TroopsModal),
   { ssr: false },
 );
+const FriendsModal = dynamic(
+  () => import("@/components/friends-modal").then((m) => m.FriendsModal),
+  { ssr: false },
+);
 const RanglistenModal = dynamic(
   () => import("@/components/ranglisten-modal").then((m) => m.RanglistenModal),
   { ssr: false },
@@ -110,6 +114,7 @@ export function BaseClient({
   const [showResearch, setShowResearch] = useState(false);
   const [showTroops, setShowTroops] = useState(false);
   const [showRanglisten, setShowRanglisten] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [guardianData, setGuardianData] = useState<GuardianCollection | null>(null);
   const [guardianGalleryOpen, setGuardianGalleryOpen] = useState(false);
@@ -520,6 +525,7 @@ export function BaseClient({
             <ArtTile slot="karte_base_waechter"      icon="🛡️" label="Wächter"      onClick={openGuardianHub} badge={guardianBadge} />
             <ArtTile slot="karte_base_trophaeen"     icon="🏆" label="Trophäen"     onClick={() => setAchievementTier("bronze")} badge={achievementsCount} />
             <ArtTile slot="karte_base_ranglisten"    icon="📊" label="Ranglisten"   onClick={() => setShowRanglisten(true)} />
+            <ArtTile slot="karte_base_freunde"       icon="🤝" label="Freunde"      onClick={() => setShowFriends(true)} />
             <ArtTile slot="karte_base_statistiken"   icon="📈" label="Statistiken"  onClick={() => setShowStats(true)} />
             <ArtTile slot="karte_base_server"        icon="🏙️" label="Server"       onClick={() => setShowServerOverview(true)} />
             <ArtTile slot="karte_base_einstellungen" icon="⚙️" label="Einstellungen" href="/einstellungen" />
@@ -542,6 +548,7 @@ export function BaseClient({
       <ResearchModal open={showResearch} onClose={() => setShowResearch(false)} />
       <TroopsModal open={showTroops} onClose={() => setShowTroops(false)} />
       <RanglistenModal open={showRanglisten} onClose={() => setShowRanglisten(false)} />
+      <FriendsModal open={showFriends} onClose={() => setShowFriends(false)} />
 
       {guardianDetailId && (
         <GuardianDetailModal

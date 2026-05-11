@@ -211,17 +211,10 @@ async function applyPurchaseEffect(
         // Popup-Trigger (best-effort)
         try { await sb.rpc("grant_popup_for_event", { p_user_id: userId, p_event: "first_purchase" }); } catch { /* ignore */ }
       }
-      await sb.from("user_gems").upsert(
-        { user_id: userId, gems: 0, total_purchased: 0 },
-        { onConflict: "user_id", ignoreDuplicates: true },
-      );
-      const { data: existing } = await sb.from("user_gems")
-        .select("gems, total_purchased").eq("user_id", userId).maybeSingle<{ gems: number; total_purchased: number }>();
-      await sb.from("user_gems").update({
-        gems: (existing?.gems ?? 0) + add,
-        total_purchased: (existing?.total_purchased ?? 0) + add,
-        updated_at: new Date().toISOString(),
-      }).eq("user_id", userId);
+      // Atomar: gems UND total_purchased werden in einer RPC inkrementiert.
+      await sb.rpc("add_gems_to_user", {
+        p_user_id: userId, p_delta: add, p_track_purchased: true,
+      });
       // Tracker für Recharge-Milestones
       await sb.from("users").update({ total_gems_purchased: (u?.total_gems_purchased ?? 0) + add }).eq("id", userId);
       await sb.from("gem_transactions").insert({
@@ -277,12 +270,7 @@ async function applyPurchaseEffect(
     if (pack) {
       const gems = (pack.gems_total ?? 0) + (pack.bonus_gems ?? 0);
       if (gems > 0) {
-        await sb.from("user_gems").upsert({ user_id: userId, gems: 0, total_purchased: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
-        const { data: existing } = await sb.from("user_gems").select("gems, total_purchased").eq("user_id", userId).maybeSingle<{ gems: number; total_purchased: number }>();
-        await sb.from("user_gems").update({
-          gems: (existing?.gems ?? 0) + gems, total_purchased: (existing?.total_purchased ?? 0) + gems,
-          updated_at: new Date().toISOString(),
-        }).eq("user_id", userId);
+        await sb.rpc("add_gems_to_user", { p_user_id: userId, p_delta: gems, p_track_purchased: true });
       }
       // RSS aus rewards-blob
       if (pack.rewards) {
@@ -335,18 +323,19 @@ async function applyPurchaseEffect(
     const choice = extras.wahlboxChoice;
     if (!choice) return;
     // Wahl-Inhalte: speed_token | gem_pack_small | rss_pack | gem_pack_large
+    // Alle Pfade nutzen atomare RPCs — kein Lost-Update bei parallelen Webhooks.
     if (choice === "speed_token") {
-      await sb.from("user_resources").update({ speed_tokens: 5 }).eq("user_id", userId);
+      await sb.rpc("add_resources_to_user", {
+        p_user_id: userId, p_wood: 0, p_stone: 0, p_gold: 0, p_mana: 0, p_speed_token: 5,
+      });
     } else if (choice === "gem_pack_small") {
-      await sb.from("user_gems").upsert({ user_id: userId, gems: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
-      const { data: ex } = await sb.from("user_gems").select("gems").eq("user_id", userId).maybeSingle<{ gems: number }>();
-      await sb.from("user_gems").update({ gems: (ex?.gems ?? 0) + 250 }).eq("user_id", userId);
+      await sb.rpc("add_gems_to_user", { p_user_id: userId, p_delta: 250 });
     } else if (choice === "gem_pack_large") {
-      await sb.from("user_gems").upsert({ user_id: userId, gems: 0 }, { onConflict: "user_id", ignoreDuplicates: true });
-      const { data: ex } = await sb.from("user_gems").select("gems").eq("user_id", userId).maybeSingle<{ gems: number }>();
-      await sb.from("user_gems").update({ gems: (ex?.gems ?? 0) + 600 }).eq("user_id", userId);
+      await sb.rpc("add_gems_to_user", { p_user_id: userId, p_delta: 600 });
     } else if (choice === "rss_pack") {
-      try { await sb.rpc("add_resources_to_user", { p_user_id: userId, p_wood: 5000, p_stone: 5000, p_gold: 5000, p_mana: 5000, p_speed_token: 0 }); } catch { /* RPC evtl. nicht da */ }
+      await sb.rpc("add_resources_to_user", {
+        p_user_id: userId, p_wood: 5000, p_stone: 5000, p_gold: 5000, p_mana: 5000, p_speed_token: 0,
+      });
     }
     await sb.from("gem_transactions").insert({
       user_id: userId, delta: 0, reason: "mystery_box_choice",

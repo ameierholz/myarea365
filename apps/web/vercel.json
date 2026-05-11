@@ -8,6 +8,7 @@
     { "path": "/api/cron/gdpr-purge",          "schedule": "0 3 * * *" },
     { "path": "/api/cron/chat-dispatch",       "schedule": "* * * * *" },
     { "path": "/api/cron/crew-phase4",         "schedule": "0 * * * *" },
-    { "path": "/api/cron/spawn-raid-boss",      "schedule": "0 12 * * 1" }
+    { "path": "/api/cron/spawn-raid-boss",      "schedule": "0 12 * * 1" },
+    { "path": "/api/cron/send-pending-pushes", "schedule": "*/3 * * * *" }
   ]
 }

@@ -37,7 +37,7 @@ import { useModalStackDepth } from "@/lib/modal-stack";
 
 type Room = {
   room_id: string;
-  kind: "heimat_plz"|"heimat_bezirk"|"heimat_stadt"|"crew"|"pm"|"group"|"cvc"|"saved";
+  kind: "heimat_plz"|"heimat_bezirk"|"heimat_stadt"|"crew"|"pm"|"group"|"cvc"|"saved"|"world";
   name: string | null;
   avatar_url: string | null;
   last_message_at: string | null;
@@ -84,7 +84,7 @@ type Message = {
   poll: Poll | null;
 };
 
-type TabKey = "heimat" | "crew" | "dm" | "cvc";
+type TabKey = "heimat" | "crew" | "dm" | "cvc" | "welt";
 
 // ════════════════════════════════════════════════════════════════════
 // MAIN
@@ -158,6 +158,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
       } catch { /* noop */ }
       try { await fetch("/api/chat/cvc", { method: "POST" }); } catch { /* noop */ }
       try { await fetch("/api/chat/saved", { method: "POST" }); } catch { /* noop */ }
+      try { await fetch("/api/chat/world", { method: "POST" }); } catch { /* noop */ }
       void refreshRooms();
     })();
   }, [open, refreshRooms]);
@@ -167,11 +168,12 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
     if (tab === "crew") return rooms.filter((r) => r.kind === "crew");
     if (tab === "dm") return rooms.filter((r) => r.kind === "pm" || r.kind === "group" || r.kind === "saved");
     if (tab === "cvc") return rooms.filter((r) => r.kind === "cvc");
+    if (tab === "welt") return rooms.filter((r) => r.kind === "world");
     return [];
   }, [rooms, tab]);
 
   // Auto-Open: nur Crew/CvC (genau 1 Room). Heimat ist jetzt Liste (PLZ+Bezirk+Stadt+History).
-  const autoOpenSingle = (tab === "crew" || tab === "cvc") && filteredRooms.length === 1;
+  const autoOpenSingle = (tab === "crew" || tab === "cvc" || tab === "welt") && filteredRooms.length === 1;
   useEffect(() => {
     if (!autoOpenSingle) return;
     if (activeRoomId === filteredRooms[0]?.room_id) return;
@@ -263,7 +265,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
             <span className="text-[9px] text-[#8B8FA3] px-2 py-0.5">Keine Räume</span>
           ) : rooms.map((r) => {
             const isActive = activePreview?.room_id === r.room_id;
-            const labelKind = r.kind === "saved" ? "📝" : r.kind === "pm" ? "💬" : r.kind === "group" ? "👥" : r.kind === "crew" ? "🛡" : r.kind === "cvc" ? "⚔" : r.kind === "heimat_plz" ? "📍" : r.kind === "heimat_bezirk" ? "🏘" : "🏙";
+            const labelKind = r.kind === "saved" ? "📝" : r.kind === "pm" ? "💬" : r.kind === "group" ? "👥" : r.kind === "crew" ? "🛡" : r.kind === "cvc" ? "⚔" : r.kind === "world" ? "🌍" : r.kind === "heimat_plz" ? "📍" : r.kind === "heimat_bezirk" ? "🏘" : "🏙";
             return (
               <button
                 key={r.room_id}
@@ -354,6 +356,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
                 borderBottom: "1px solid rgba(255,255,255,0.08)",
               }}
             >
+              <TabBtn active={tab === "welt"} onClick={() => setTab("welt")} icon={<span style={{ fontSize: 14 }}>🌍</span>} label="Welt" />
               <TabBtn active={tab === "heimat"} onClick={() => setTab("heimat")} icon={<MapPin size={14} />} label="Heimat" />
               <TabBtn active={tab === "crew"} onClick={() => setTab("crew")} icon={<Users size={14} />} label="Crew" />
               <TabBtn active={tab === "dm"} onClick={() => setTab("dm")} icon={<Hash size={14} />} label="DM" />
@@ -470,7 +473,7 @@ function TabBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
   );
 }
 function RoomRow({ room, onClick, onAfterAction }: { room: Room; onClick: () => void; onAfterAction: () => void }) {
-  const labelKind = room.kind === "saved" ? "📝" : room.kind === "pm" ? "💬" : room.kind === "group" ? "👥" : room.kind === "crew" ? "🛡" : room.kind === "cvc" ? "⚔️" : room.kind === "heimat_plz" ? "📍" : room.kind === "heimat_bezirk" ? "🏘" : "🏙";
+  const labelKind = room.kind === "saved" ? "📝" : room.kind === "pm" ? "💬" : room.kind === "group" ? "👥" : room.kind === "crew" ? "🛡" : room.kind === "cvc" ? "⚔️" : room.kind === "world" ? "🌍" : room.kind === "heimat_plz" ? "📍" : room.kind === "heimat_bezirk" ? "🏘" : "🏙";
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const lpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

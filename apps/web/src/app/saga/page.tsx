@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { SagaClient } from "./saga-client";
 import { LandingBack } from "@/components/landing-back";
+import { AdSenseSlot } from "@/components/adsense-slot";
 
 export const revalidate = 30;
 
@@ -28,6 +29,8 @@ export default function SagaPage() {
         </div>
 
         <SagaClient />
+
+        <AdSenseSlot placement="ranking_list" format="in-feed" />
 
         <div className="mt-10 grid sm:grid-cols-3 gap-3 text-xs text-text-muted">
           <InfoCard icon="🎽" title="Auftakt (7 Tage)" body="Erkundung · Versorgung · Konditions-Drill. Sieger-Stadt startet mit Heimvorteil (+15%) in die Hauptphase." />

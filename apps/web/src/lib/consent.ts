@@ -66,8 +66,13 @@ export function setConsent(partial: Partial<Omit<ConsentState, "necessary" | "de
     version: CURRENT_VERSION,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  // Cookie für Server-Side-Auswertung (1 Jahr, SameSite=Lax)
-  const cookieValue = next.analytics ? "1" : "0";
+  // Cookie für Server-Side-Auswertung (1 Jahr, SameSite=Lax).
+  // Format: "a:<analytics>;m:<ads>;p:<personalization>" — kompakt, parsbar.
+  const cookieValue = [
+    `a:${next.analytics ? 1 : 0}`,
+    `m:${next.ads ? 1 : 0}`,
+    `p:${next.personalization ? 1 : 0}`,
+  ].join(";");
   document.cookie = `ma365_consent=${cookieValue}; Path=/; Max-Age=${365 * 24 * 3600}; SameSite=Lax; Secure`;
   notifyListeners(next);
   return next;

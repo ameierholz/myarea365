@@ -28,7 +28,12 @@ export default function ImpressumPage() {
 
         <section>
           <h2 className="text-lg font-bold text-text mb-2">Verantwortlich für journalistisch-redaktionelle Inhalte nach § 18 Abs. 2 MStV</h2>
-          <p>Andre Meierholz (Anschrift wie oben)</p>
+          <p>
+            Andre Meierholz<br />
+            Kolonnenstr. 8<br />
+            10827 Berlin<br />
+            Deutschland
+          </p>
         </section>
 
         <section>

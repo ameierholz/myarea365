@@ -45,6 +45,7 @@ type DetailResponse = {
     current_hp_pct: number | null; wounded_until: string | null;
     acquired_at: string | null;
     star_level?: number; sculpts_collected?: number;
+    awakened?: boolean; awakened_at?: string | null;
     archetype: GuardianArchetype & { class_id?: string | null };
   };
   talent_nodes: TalentNode[];
@@ -727,6 +728,13 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
 
               {/* Sterne / Star-Up */}
               <GuardianStarUp guardianId={g.id} starLevel={g.star_level ?? 0} sculpts={g.sculpts_collected ?? 0} reload={reload} />
+              <GuardianAwakening
+                guardianId={g.id}
+                starLevel={g.star_level ?? 0}
+                awakened={!!g.awakened}
+                sculpts={g.sculpts_collected ?? 0}
+                reload={reload}
+              />
             </div>
           );
         })()}
@@ -909,6 +917,109 @@ function GuardianStarUp({ guardianId, starLevel, sculpts, reload }: {
         </>
       )}
       {msg && <div style={{ marginTop: 6, color: msg.startsWith("★") ? "#FFD700" : "#FF6B9A", fontSize: 11, fontWeight: 700, textAlign: "center" }}>{msg}</div>}
+    </div>
+  );
+}
+
+const AWAKEN_COST = 200;
+
+function GuardianAwakening({ guardianId, starLevel, awakened, sculpts, reload }: {
+  guardianId: string;
+  starLevel: number;
+  awakened: boolean;
+  sculpts: number;
+  reload: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  // Vor 5 Sternen ist Awakening gar nicht sichtbar — der Spieler soll
+  // erstmal die Sternstufen erreichen, sonst zu viele konkurrierende UI-Elemente.
+  if (starLevel < 5) return null;
+
+  if (awakened) {
+    return (
+      <div style={{
+        padding: 12, borderRadius: 12,
+        background: "linear-gradient(135deg, rgba(255,215,0,0.20), rgba(255,45,120,0.15))",
+        border: "1px solid #FFD700",
+        boxShadow: "0 0 20px rgba(255,215,0,0.35)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.2 }}>
+            ✨ ERWECKT
+          </span>
+          <span style={{ color: "#FFF", fontSize: 11, fontWeight: 800 }}>Endgame-Stufe</span>
+        </div>
+        <div style={{ color: "#FFF", fontSize: 11, lineHeight: 1.4 }}>
+          Dauerhafte Boni:&nbsp;
+          <b style={{ color: "#4ade80" }}>+25% Lebenspunkte</b>,&nbsp;
+          <b style={{ color: "#FF6B4A" }}>+20% Angriff</b>,&nbsp;
+          <b style={{ color: "#22D1C3" }}>+20% Verteidigung</b>.
+        </div>
+      </div>
+    );
+  }
+
+  const enough = sculpts >= AWAKEN_COST;
+  const pct = Math.min(100, (sculpts / AWAKEN_COST) * 100);
+
+  async function awaken() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch("/api/guardians/awaken", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ guardian_id: guardianId }),
+      });
+      const j = await r.json() as { ok?: boolean; error?: string };
+      if (j.ok) { setMsg("✨ Wächter ist erweckt — Endgame-Buffs aktiv!"); await reload(); }
+      else if (j.error === "not_enough_sculpts") setMsg("⚠ Nicht genug Sculpts.");
+      else if (j.error === "needs_5_stars") setMsg("⭐ Erst 5 Sterne nötig.");
+      else if (j.error === "already_awakened") setMsg("✨ Bereits erweckt.");
+      else setMsg(`⚠ ${j.error ?? "Fehler"}`);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{
+      padding: 12, borderRadius: 12,
+      background: "linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,45,120,0.06))",
+      border: "1px solid rgba(255,215,0,0.45)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ color: "#FFD700", fontSize: 11, fontWeight: 900, letterSpacing: 1.2 }}>
+          ✨ ERWECKUNG (ENDGAME)
+        </span>
+        <span style={{ display: "flex", gap: 2 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <span key={i} style={{ fontSize: 13, color: "#FFD700" }}>★</span>
+          ))}
+        </span>
+      </div>
+      <div style={{ color: "#a8b4cf", fontSize: 11, lineHeight: 1.4, marginBottom: 8 }}>
+        Erwecke deinen Wächter und entfessle den Endgame-Modus:&nbsp;
+        <b style={{ color: "#4ade80" }}>+25% Lebenspunkte</b>,&nbsp;
+        <b style={{ color: "#FF6B4A" }}>+20% Angriff</b>,&nbsp;
+        <b style={{ color: "#22D1C3" }}>+20% Verteidigung</b>. Dauerhaft.
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <div style={{ flex: 1, height: 8, background: "rgba(0,0,0,0.4)", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ width: `${pct}%`, height: "100%", background: enough ? "#FFD700" : "#22D1C3" }} />
+        </div>
+        <span style={{ color: "#FFF", fontSize: 11, fontWeight: 900 }}>{sculpts}/{AWAKEN_COST} 🪨</span>
+      </div>
+      <button onClick={() => void awaken()} disabled={busy || !enough}
+        style={{
+          width: "100%", padding: "8px 12px", borderRadius: 8,
+          background: enough ? "linear-gradient(135deg, #FFD700 0%, #FF2D78 100%)" : "rgba(255,255,255,0.06)",
+          color: enough ? "#1a0e00" : "#8B8FA3",
+          border: "none", fontSize: 12, fontWeight: 900, letterSpacing: 0.5, cursor: enough ? "pointer" : "not-allowed",
+          opacity: busy ? 0.5 : 1,
+          boxShadow: enough ? "0 0 14px rgba(255,215,0,0.5)" : "none",
+        }}>
+        {busy ? "…" : enough ? "✨ JETZT ERWECKEN" : `${AWAKEN_COST - sculpts} Sculpts fehlen`}
+      </button>
+      {msg && <div style={{ marginTop: 6, color: msg.startsWith("✨") ? "#FFD700" : "#FF6B9A", fontSize: 11, fontWeight: 700, textAlign: "center" }}>{msg}</div>}
     </div>
   );
 }

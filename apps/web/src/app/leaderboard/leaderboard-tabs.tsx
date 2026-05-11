@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { getNumberLocale, getDateLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
+import { AdSenseSlot } from "@/components/adsense-slot";
 
 type TabId = "runners" | "guardians" | "factions" | "crews" | "shop-league" | "arena" | "arena-fights" | "turf-war" | "kiez" | "saga";
 type LBT = ReturnType<typeof useTranslations<"Leaderboard">>;
@@ -49,6 +50,8 @@ export function LeaderboardTabs() {
       {tab === "arena-fights" && <ArenaFightsTab />}
       {tab === "arena"        && <ArenaTab />}
       {tab === "kiez"         && <KiezTab />}
+
+      <AdSenseSlot placement="ranking_list" format="in-feed" />
     </div>
   );
 }

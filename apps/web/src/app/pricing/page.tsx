@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { GEM_BUNDLES, totalGemsOfBundle } from "@/lib/gem-bundles";
 import { LandingBack } from "@/components/landing-back";
+import { AdSenseSlot } from "@/components/adsense-slot";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("PricingPage");
@@ -166,6 +167,8 @@ export default async function PricingPage() {
             </p>
           </div>
         </section>
+
+        <AdSenseSlot placement="deals_list" format="in-feed" />
 
         {/* Footer */}
         <div className="text-center text-xs text-text-muted">

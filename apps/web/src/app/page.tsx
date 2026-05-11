@@ -330,6 +330,7 @@ export default async function LandingPage() {
                 <li><a href="#cvc" className="text-text-muted hover:text-text">{t("navCvc")}</a></li>
                 <li><a href="#styles" className="text-text-muted hover:text-text">{t("navStyles")}</a></li>
                 <li><Link href="/leaderboard" className="text-text-muted hover:text-text">{t("footerLinkLeaderboard")}</Link></li>
+                <li><Link href="/blog" className="text-text-muted hover:text-text">Strategie-Blog</Link></li>
               </ul>
             </div>
             <div>

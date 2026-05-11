@@ -1,8 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Modal, Z } from "@/components/ui";
+
+const WarReplayModal = dynamic(
+  () => import("@/components/war-replay-modal").then((m) => m.WarReplayModal),
+  { ssr: false },
+);
 
 const PRIMARY = "#22D1C3";
 const ACCENT  = "#FF2D78";
@@ -45,6 +51,7 @@ export function WarModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [replayWarId, setReplayWarId] = useState<string | null>(null);
 
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(i); }, []);
 
@@ -134,7 +141,21 @@ export function WarModal({ onClose }: { onClose: () => void }) {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {active.map((w) => <ActiveWarCard key={w.id} war={w} now={now} />)}
+                {active.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => setReplayWarId(w.id)}
+                    style={{
+                      all: "unset", cursor: "pointer", display: "block",
+                      transition: "transform 120ms ease",
+                    }}
+                    onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.99)")}
+                    onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                    title="Replay anzeigen"
+                  >
+                    <ActiveWarCard war={w} now={now} />
+                  </button>
+                ))}
               </div>
             )
           )}
@@ -161,12 +182,27 @@ export function WarModal({ onClose }: { onClose: () => void }) {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {history.map((h) => <HistoryWarCard key={h.id} h={h} />)}
+                {history.map((h) => (
+                  <button
+                    key={h.id}
+                    onClick={() => setReplayWarId(h.id)}
+                    style={{
+                      all: "unset", cursor: "pointer", display: "block",
+                      transition: "transform 120ms ease",
+                    }}
+                    title="Replay anzeigen"
+                  >
+                    <HistoryWarCard h={h} />
+                  </button>
+                ))}
               </div>
             )
           )}
         </div>
       </div>
+      {replayWarId && (
+        <WarReplayModal warId={replayWarId} onClose={() => setReplayWarId(null)} />
+      )}
     </Modal>
   );
 }
