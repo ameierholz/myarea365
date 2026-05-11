@@ -7,23 +7,22 @@ import { getNumberLocale, getDateLocale } from "@/i18n/config";
 import { createClient } from "@/lib/supabase/client";
 import { AdSenseSlot } from "@/components/adsense-slot";
 
-type TabId = "runners" | "guardians" | "factions" | "crews" | "shop-league" | "arena" | "arena-fights" | "turf-war" | "kiez" | "saga";
+type TabId = "players" | "guardians" | "factions" | "crews" | "arena" | "arena-fights" | "turf-war" | "plz" | "saga";
 type LBT = ReturnType<typeof useTranslations<"Leaderboard">>;
 
 export function LeaderboardTabs() {
   const t = useTranslations("Leaderboard");
-  const [tab, setTab] = useState<TabId>("runners");
+  const [tab, setTab] = useState<TabId>("players");
   const TABS: Array<{ id: TabId; label: string }> = [
-    { id: "runners",       label: t("tabRunners") },
+    { id: "players",       label: t("tabPlayers") },
     { id: "guardians",     label: t("tabGuardians") },
     { id: "factions",      label: t("tabFactions") },
     { id: "crews",         label: t("tabCrews") },
     { id: "saga",          label: t("tabSaga") },
     { id: "turf-war",      label: t("tabTurfWar") },
-    { id: "shop-league",   label: t("tabShopLeague") },
     { id: "arena-fights",  label: t("tabArenaFights") },
     { id: "arena",         label: t("tabArena") },
-    { id: "kiez",          label: t("tabKiez") },
+    { id: "plz",           label: t("tabPlz") },
   ];
   return (
     <div>
@@ -40,44 +39,48 @@ export function LeaderboardTabs() {
         ))}
       </div>
 
-      {tab === "runners"      && <RunnersTab />}
+      {tab === "players"      && <PlayersTab />}
       {tab === "guardians"    && <GuardiansTab />}
       {tab === "factions"     && <FactionsTab />}
       {tab === "crews"        && <CrewsTab />}
       {tab === "saga"         && <SagaTab />}
       {tab === "turf-war"     && <TurfWarTab />}
-      {tab === "shop-league"  && <ShopLeagueTab />}
       {tab === "arena-fights" && <ArenaFightsTab />}
       {tab === "arena"        && <ArenaTab />}
-      {tab === "kiez"         && <KiezTab />}
+      {tab === "plz"          && <PlzThronTab />}
 
       <AdSenseSlot placement="ranking_list" format="in-feed" />
     </div>
   );
 }
 
-type Runner = {
+type Player = {
   username: string | null;
   display_name: string | null;
-  faction: string | null;
-  total_distance_m: number | null;
-  total_walks: number | null;
-  total_xp: number | null;
-  wegemuenzen: number | null;
-  gebietsruf: number | null;
-  sessionehre: number | null;
+  guardian_faction: string | null;
   level: number | null;
+  xp: number | null;
+  ansehen: number | null;
+  bandits_killed: number | null;
+  members_killed: number | null;
 };
 
-type RunnerMetric = "wegemuenzen" | "gebietsruf" | "sessionehre" | "km" | "walks" | "level";
+type PlayerMetric = "level" | "xp" | "ansehen" | "bandits_killed" | "members_killed";
+type GuardianFaction = "all" | "gossenbund" | "kronenwacht" | "netzhueter";
 
-function RunnersTab() {
+const GUARDIAN_FACTION_META: Record<Exclude<GuardianFaction, "all">, { icon: string; color: string; labelKey: "factionGossen"|"factionKronen"|"factionNetz" }> = {
+  gossenbund:  { icon: "🔗", color: "#22D1C3", labelKey: "factionGossen" },
+  kronenwacht: { icon: "🛡️", color: "#FFD700", labelKey: "factionKronen" },
+  netzhueter:  { icon: "📡", color: "#FF2D78", labelKey: "factionNetz"  },
+};
+
+function PlayersTab() {
   const t = useTranslations("Leaderboard");
   const locale = useLocale();
   const numLocale = getNumberLocale(locale);
-  const [metric, setMetric] = useState<RunnerMetric>("wegemuenzen");
-  const [faction, setFaction] = useState<"all"|"gossenbund"|"kronenwacht">("all");
-  const [runners, setRunners] = useState<Runner[]>([]);
+  const [metric, setMetric] = useState<PlayerMetric>("level");
+  const [faction, setFaction] = useState<GuardianFaction>("all");
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [me, setMe] = useState<{ username: string | null } | null>(null);
@@ -86,13 +89,12 @@ function RunnersTab() {
     setLoading(true);
     const q = new URLSearchParams({ metric });
     if (faction !== "all") q.set("faction", faction);
-    fetch(`/api/leaderboard/runners?${q}`)
+    fetch(`/api/leaderboard/players?${q}`)
       .then((r) => r.json())
-      .then((d) => setRunners(d.runners ?? []))
+      .then((d) => setPlayers(d.players ?? []))
       .finally(() => setLoading(false));
   }, [metric, faction]);
 
-  // „Dein Rang" — eigenen Username einmalig via Supabase-Client holen.
   useEffect(() => {
     const sb = createClient();
     void (async () => {
@@ -103,39 +105,29 @@ function RunnersTab() {
     })();
   }, []);
 
-  const valueOf = (r: Runner): number => {
+  const fmtPrimary = (p: Player): string => {
+    const n = (v: number | null) => Number(v ?? 0).toLocaleString(numLocale);
     switch (metric) {
-      case "km":          return (r.total_distance_m ?? 0) / 1000;
-      case "walks":       return r.total_walks ?? 0;
-      case "level":       return r.level ?? 0;
-      case "gebietsruf":  return Number(r.gebietsruf ?? 0);
-      case "sessionehre": return Number(r.sessionehre ?? 0);
-      default:            return Number(r.wegemuenzen ?? 0);
+      case "xp":              return t("valueXp",       { n: n(p.xp) });
+      case "ansehen":         return t("valueAnsehen",  { n: n(p.ansehen) });
+      case "bandits_killed":  return t("valueBandits",  { n: n(p.bandits_killed) });
+      case "members_killed":  return t("valueKills",    { n: n(p.members_killed) });
+      default:                return t("valueLevel",    { n: p.level ?? 1 });
     }
-  };
-  const fmtPrimary = (r: Runner): string => {
-    const km = ((r.total_distance_m ?? 0) / 1000).toFixed(1);
-    if (metric === "km")          return `${km} km`;
-    if (metric === "walks")       return t("valueWalks", { n: (r.total_walks ?? 0).toLocaleString(numLocale) });
-    if (metric === "level")       return t("valueLevel", { n: r.level ?? 1 });
-    if (metric === "gebietsruf")  return t("valueRep",   { n: (r.gebietsruf ?? 0).toLocaleString(numLocale) });
-    if (metric === "sessionehre") return t("valueHonor", { n: (r.sessionehre ?? 0).toLocaleString(numLocale) });
-    return t("valueCoins", { n: (r.wegemuenzen ?? 0).toLocaleString(numLocale) });
   };
 
   const filtered = search.trim()
-    ? runners.filter((r) => {
+    ? players.filter((p) => {
         const q = search.toLowerCase();
-        return (r.display_name ?? "").toLowerCase().includes(q) ||
-               (r.username ?? "").toLowerCase().includes(q);
+        return (p.display_name ?? "").toLowerCase().includes(q) ||
+               (p.username ?? "").toLowerCase().includes(q);
       })
-    : runners;
+    : players;
 
-  // „Dein Rang" — Position innerhalb der vollständigen Liste (nicht der gefilterten)
-  const myIndex = me?.username ? runners.findIndex((r) => r.username === me.username) : -1;
-  const myEntry = myIndex >= 0 ? runners[myIndex] : null;
+  const myIndex = me?.username ? players.findIndex((p) => p.username === me.username) : -1;
+  const myEntry = myIndex >= 0 ? players[myIndex] : null;
 
-  const top3 = runners.slice(0, 3);
+  const top3 = players.slice(0, 3);
 
   return (
     <div className="space-y-4">
@@ -146,9 +138,9 @@ function RunnersTab() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">🏆</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black tracking-widest text-[#22D1C3]">RANGLISTE</div>
-            <div className="text-lg font-black text-white">Top-Spieler:innen</div>
-            <div className="text-xs text-[#a8b4cf]">Wer dominiert die Karte? Filter nach Metrik, Fraktion oder suche gezielt.</div>
+            <div className="text-[10px] font-black tracking-widest text-[#22D1C3]">{t("playersKicker")}</div>
+            <div className="text-lg font-black text-white">{t("playersHeader")}</div>
+            <div className="text-xs text-[#a8b4cf]">{t("playersSub")}</div>
           </div>
         </div>
       </div>
@@ -156,20 +148,20 @@ function RunnersTab() {
       {/* ─── Podium Top-3 ────────────────────────────────────────── */}
       {!loading && top3.length >= 3 && (
         <div className="grid grid-cols-3 gap-2">
-          {[top3[1], top3[0], top3[2]].map((r) => {
-            const actualRank = r === top3[0] ? 1 : r === top3[1] ? 2 : 3;
+          {[top3[1], top3[0], top3[2]].map((p) => {
+            const actualRank = p === top3[0] ? 1 : p === top3[1] ? 2 : 3;
             const medal = actualRank === 1 ? "🥇" : actualRank === 2 ? "🥈" : "🥉";
             const color = actualRank === 1 ? "#FFD700" : actualRank === 2 ? "#C0C0C0" : "#CD7F32";
             const height = actualRank === 1 ? 110 : actualRank === 2 ? 90 : 75;
             return (
-              <Link href={`/u/${r.username ?? ""}`} key={r.username}
+              <Link href={`/u/${p.username ?? ""}`} key={p.username}
                 className="flex flex-col items-center justify-end hover:opacity-90 transition">
                 <div style={{ fontSize: 28 }}>{medal}</div>
-                <div className="text-xs font-black text-white text-center truncate w-full px-1" title={r.display_name ?? r.username ?? ""}>
-                  {r.display_name ?? r.username}
+                <div className="text-xs font-black text-white text-center truncate w-full px-1" title={p.display_name ?? p.username ?? ""}>
+                  {p.display_name ?? p.username}
                 </div>
                 <div className="text-[10px] text-[#8B8FA3] mb-1 truncate w-full text-center">
-                  Lvl {r.level ?? 1}
+                  {t("valueLevel", { n: p.level ?? 1 })}
                 </div>
                 <div style={{
                   width: "100%", height,
@@ -182,7 +174,7 @@ function RunnersTab() {
                 }}>
                   <div className="text-xs font-black" style={{ color: "#0F1115" }}>#{actualRank}</div>
                   <div className="text-[10px] font-black" style={{ color: "#0F1115" }}>
-                    {fmtPrimary(r)}
+                    {fmtPrimary(p)}
                   </div>
                 </div>
               </Link>
@@ -208,42 +200,44 @@ function RunnersTab() {
         <div>
           <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-1">{t("metricFilterLabel")}</div>
           <div className="flex flex-wrap gap-1.5">
-            <Chip active={metric==="wegemuenzen"} onClick={() => setMetric("wegemuenzen")}>{t("metricCoins")}</Chip>
-            <Chip active={metric==="gebietsruf"}  onClick={() => setMetric("gebietsruf")}>{t("metricRep")}</Chip>
-            <Chip active={metric==="sessionehre"} onClick={() => setMetric("sessionehre")}>{t("metricHonor")}</Chip>
-            <Chip active={metric==="km"}    onClick={() => setMetric("km")}>{t("metricKm")}</Chip>
-            <Chip active={metric==="walks"} onClick={() => setMetric("walks")}>{t("metricWalks")}</Chip>
-            <Chip active={metric==="level"} onClick={() => setMetric("level")}>{t("metricLevel")}</Chip>
+            <Chip active={metric==="level"}           onClick={() => setMetric("level")}>{t("metricLevel")}</Chip>
+            <Chip active={metric==="xp"}              onClick={() => setMetric("xp")}>{t("metricXp")}</Chip>
+            <Chip active={metric==="ansehen"}         onClick={() => setMetric("ansehen")}>{t("metricAnsehen")}</Chip>
+            <Chip active={metric==="bandits_killed"}  onClick={() => setMetric("bandits_killed")}>{t("metricBandits")}</Chip>
+            <Chip active={metric==="members_killed"}  onClick={() => setMetric("members_killed")}>{t("metricKills")}</Chip>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 items-end justify-between">
           <div>
             <div className="text-[10px] font-black tracking-widest text-[#8B8FA3] mb-1">{t("factionFilterLabel")}</div>
-            <div className="flex gap-1.5">
-              <Chip active={faction==="all"}        onClick={() => setFaction("all")}>{t("filterAll")}</Chip>
-              <Chip active={faction==="gossenbund"} onClick={() => setFaction("gossenbund")}>{t("filterGossen")}</Chip>
+            <div className="flex gap-1.5 flex-wrap">
+              <Chip active={faction==="all"}         onClick={() => setFaction("all")}>{t("filterAll")}</Chip>
+              <Chip active={faction==="gossenbund"}  onClick={() => setFaction("gossenbund")}>{t("filterGossen")}</Chip>
               <Chip active={faction==="kronenwacht"} onClick={() => setFaction("kronenwacht")}>{t("filterKronen")}</Chip>
+              <Chip active={faction==="netzhueter"}  onClick={() => setFaction("netzhueter")}>{t("filterNetz")}</Chip>
             </div>
           </div>
           <input
             type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("runnersSearchPh")}
+            placeholder={t("playersSearchPh")}
             className="flex-1 min-w-[200px] max-w-md px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-[#8B8FA3] focus:outline-none focus:border-[#22D1C3]/50"
           />
         </div>
       </div>
 
       {/* ─── Liste ──────────────────────────────────────────────── */}
-      {loading ? <Loading /> : filtered.length === 0 ? <Empty text={t("emptyRunners")} /> : (
+      {loading ? <Loading /> : filtered.length === 0 ? <Empty text={t("emptyPlayers")} /> : (
         <div className="bg-[#1A1D23] border border-white/10 rounded-2xl overflow-hidden">
-          {filtered.map((r) => {
-            const i = runners.indexOf(r);
-            const km = ((r.total_distance_m ?? 0) / 1000).toFixed(1);
-            const color = (r.faction === "syndicate" || r.faction === "gossenbund") ? "#22D1C3" : (r.faction === "vanguard" || r.faction === "kronenwacht") ? "#FFD700" : "#22D1C3";
-            const isMe = !!(me?.username && r.username === me.username);
+          {filtered.map((p) => {
+            const i = players.indexOf(p);
+            const meta = p.guardian_faction && p.guardian_faction in GUARDIAN_FACTION_META
+              ? GUARDIAN_FACTION_META[p.guardian_faction as Exclude<GuardianFaction, "all">]
+              : null;
+            const color = meta?.color ?? "#22D1C3";
+            const isMe = !!(me?.username && p.username === me.username);
             const rankPx = i + 1;
             return (
-              <Link key={r.username ?? i} href={`/u/${r.username}`}
+              <Link key={p.username ?? i} href={`/u/${p.username}`}
                 className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition"
                 style={isMe ? { background: "rgba(34,209,195,0.08)" } : undefined}>
                 <div className="w-10 text-center">
@@ -251,19 +245,18 @@ function RunnersTab() {
                   {i < 3 && <div className="text-[10px]">{i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}</div>}
                 </div>
                 <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0" style={{ background: `linear-gradient(135deg, ${color}, ${color}aa)`, color: "#0F1115" }}>
-                  {(r.display_name ?? r.username ?? "?").charAt(0).toUpperCase()}
+                  {(p.display_name ?? p.username ?? "?").charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-white font-bold truncate">{r.display_name ?? r.username}</span>
+                    <span className="text-white font-bold truncate">{p.display_name ?? p.username}</span>
                     {isMe && <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#22D1C3] text-[#0F1115] font-black">DU</span>}
-                    {(r.faction === "syndicate" || r.faction === "gossenbund") && <FactionBadge icon="🔗" label={t("factionGossen")} color="#22D1C3" />}
-                    {(r.faction === "vanguard"  || r.faction === "kronenwacht") && <FactionBadge icon="🛡️" label={t("factionKronen")} color="#FFD700" />}
+                    {meta && <FactionBadge icon={meta.icon} label={t(meta.labelKey)} color={meta.color} />}
                   </div>
-                  <div className="text-xs text-[#8B8FA3]">{t("valueLvlKm", { username: r.username ?? "", level: r.level ?? 1, km })}</div>
+                  <div className="text-xs text-[#8B8FA3]">{t("playerMetaLine", { username: p.username ?? "", level: p.level ?? 1 })}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-black" style={{ color }}>{fmtPrimary(r)}</div>
+                  <div className="text-sm font-black" style={{ color }}>{fmtPrimary(p)}</div>
                 </div>
               </Link>
             );
@@ -368,141 +361,6 @@ function TurfWarTab() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SHOP-LIGA (wöchentliches Ranking pro Shop)
-// ═══════════════════════════════════════════════════════════════════
-type ShopLeagueRow = {
-  id: string;
-  business_id: string;
-  starts_at: string;
-  ends_at: string;
-  total_battles: number;
-  local_businesses: { name: string | null; address: string | null; logo_url: string | null } | null;
-  leader: {
-    crew_id: string; wins: number; losses: number; score: number;
-    crews: { name: string | null; color: string | null; custom_emblem_url: string | null } | null;
-  } | null;
-};
-type ShopLeagueDetail = {
-  shop: { name: string; address: string | null; logo_url: string | null } | null;
-  season: { id: string; ends_at: string; total_battles: number } | null;
-  standings: Array<{
-    crew_id: string; wins: number; losses: number; score: number;
-    crews: { name: string | null; color: string | null; custom_emblem_url: string | null; member_count: number | null } | null;
-  }>;
-};
-
-function ShopLeagueTab() {
-  const t = useTranslations("Leaderboard");
-  const [list, setList] = useState<ShopLeagueRow[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [detail, setDetail] = useState<ShopLeagueDetail | null>(null);
-
-  useEffect(() => {
-    fetch("/api/leaderboard/shop-leagues").then((r) => r.json()).then((d) => setList(d.leagues ?? []));
-  }, []);
-  useEffect(() => {
-    if (!selected) { setDetail(null); return; }
-    fetch(`/api/leaderboard/shop-leagues?business_id=${selected}`).then((r) => r.json()).then(setDetail);
-  }, [selected]);
-
-  if (list === null) return <Loading />;
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl p-4 border border-[#FFD700]/30" style={{
-        background: "radial-gradient(ellipse at top, rgba(255,215,0,0.18) 0%, transparent 60%), linear-gradient(180deg, rgba(255,215,0,0.06) 0%, rgba(15,17,21,0.95) 100%)",
-      }}>
-        <div className="flex items-center gap-3">
-          <div className="text-3xl">🏆</div>
-          <div className="flex-1">
-            <div className="text-[10px] font-black tracking-widest text-[#FFD700]">SHOP-LIGA</div>
-            <div className="text-lg font-black text-white">{t("shopLeagueHeader")}</div>
-            <div className="text-xs text-[#a8b4cf]">{t("shopLeagueSub")}</div>
-          </div>
-          {selected && (
-            <button onClick={() => setSelected(null)}
-              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-[#a8b4cf] hover:text-white">
-              ← Übersicht
-            </button>
-          )}
-        </div>
-      </div>
-
-      {!selected && (
-        list.length === 0 ? <Empty text={t("shopLeagueEmpty")} /> : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {list.map((s) => {
-              const leaderCrew = s.leader?.crews;
-              const leaderColor = leaderCrew?.color ?? "#FFD700";
-              return (
-                <button key={s.id} onClick={() => setSelected(s.business_id)}
-                  className="text-left p-3 rounded-xl border border-white/10 bg-gradient-to-br from-[#FFD700]/8 to-transparent hover:border-[#FFD700]/40 transition">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded shrink-0 flex items-center justify-center bg-[#FFD700]/20 text-lg">
-                      🏪
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white font-bold truncate">{s.local_businesses?.name ?? "Shop"}</div>
-                      {s.local_businesses?.address && (
-                        <div className="text-[10px] text-[#8B8FA3] truncate">📍 {s.local_businesses.address}</div>
-                      )}
-                      <div className="text-[10px] text-[#8B8FA3] mt-0.5">{t("shopLeagueBattles", { n: s.total_battles })}</div>
-                    </div>
-                  </div>
-                  {s.leader && (
-                    <div className="mt-2 flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.03] border border-white/5">
-                      <span className="text-[10px] font-black text-[#FFD700]">👑 #1</span>
-                      <span className="text-xs font-bold text-white truncate flex-1" style={{ color: leaderColor }}>
-                        {leaderCrew?.name ?? "—"}
-                      </span>
-                      <span className="text-[10px] text-[#8B8FA3]">{s.leader.wins}W</span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )
-      )}
-
-      {selected && detail && (
-        <div className="space-y-3">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center gap-3">
-            <div className="text-2xl">🏪</div>
-            <div className="flex-1">
-              <div className="text-white font-bold">{detail.shop?.name ?? "Shop"}</div>
-              {detail.shop?.address && <div className="text-[10px] text-[#8B8FA3]">📍 {detail.shop.address}</div>}
-              {detail.season && <Countdown endsAt={detail.season.ends_at} />}
-            </div>
-          </div>
-
-          {detail.standings.length === 0 ? <Empty text="Noch keine Battles diese Woche." /> : (
-            <div className="bg-[#1A1D23] border border-white/10 rounded-xl overflow-hidden">
-              {detail.standings.map((s, i) => {
-                const c = s.crews?.color ?? "#FFD700";
-                return (
-                  <div key={s.crew_id} className="flex items-center gap-3 px-3 py-2 border-b border-white/5 last:border-0">
-                    <div className="w-6 text-center text-xs font-black" style={{ color: i < 3 ? "#FFD700" : "#8B8FA3" }}>#{i + 1}</div>
-                    <div className="w-7 h-7 rounded shrink-0 flex items-center justify-center font-black" style={{ background: c, color: "#0F1115" }}>
-                      {s.crews?.name?.charAt(0).toUpperCase() ?? "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-white font-bold truncate">{s.crews?.name ?? "—"}</div>
-                      <div className="text-[10px] text-[#8B8FA3]">{s.wins}W · {s.losses}L · 👥 {s.crews?.member_count ?? 0}</div>
-                    </div>
-                    <div className="text-sm font-black" style={{ color: c }}>{s.score} P</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 type GuardianRow = {
   id: string;
   user_id: string;
@@ -514,14 +372,16 @@ type GuardianRow = {
   users: { username: string; display_name: string | null };
 };
 
-const TYPE_DEFS: Record<string, { labelKey: "typeInfantry"|"typeCavalry"|"typeMarksman"|"typeMage"; icon: string; color: string }> = {
-  infantry: { labelKey: "typeInfantry", icon: "🛡️", color: "#60a5fa" },
-  cavalry:  { labelKey: "typeCavalry",  icon: "🐎", color: "#fb923c" },
-  marksman: { labelKey: "typeMarksman", icon: "🏹", color: "#4ade80" },
-  mage:     { labelKey: "typeMage",     icon: "🔮", color: "#c084fc" },
+const TYPE_DEFS: Record<string, { labelKey: "typeInfantry"|"typeCavalry"|"typeMarksman"|"typeSiege"|"typeCollector"|"typeArchitect"; icon: string; color: string }> = {
+  infantry:  { labelKey: "typeInfantry",  icon: "🥷", color: "#60a5fa" },
+  cavalry:   { labelKey: "typeCavalry",   icon: "🏍️", color: "#fb923c" },
+  marksman:  { labelKey: "typeMarksman",  icon: "🎯", color: "#4ade80" },
+  siege:     { labelKey: "typeSiege",     icon: "🔨", color: "#f59e0b" },
+  collector: { labelKey: "typeCollector", icon: "📦", color: "#22D1C3" },
+  architect: { labelKey: "typeArchitect", icon: "🏗️", color: "#a855f7" },
 };
 const RARITY_DEFS: Record<string, { labelKey: "rarityElite"|"rarityEpic"|"rarityLegendary"; color: string }> = {
-  elite:     { labelKey: "rarityElite",     color: "#22D1C3" },
+  elite:     { labelKey: "rarityElite",     color: "#60a5fa" },
   epic:      { labelKey: "rarityEpic",      color: "#a855f7" },
   legendary: { labelKey: "rarityLegendary", color: "#FFD700" },
 };
@@ -612,7 +472,7 @@ function GuardianList({ title, rows, metric, accent = "#22D1C3" }: { title: stri
 
 type Faction = {
   id: string; name: string; emoji: string; color: string;
-  runners: number; total_xp: number; total_km: number; avg_level: number;
+  members: number; total_xp: number; total_ansehen: number; avg_level: number;
 };
 
 function FactionsTab() {
@@ -627,23 +487,23 @@ function FactionsTab() {
   }, []);
 
   if (loading) return <Loading />;
-  const total = factions.reduce((s, f) => s + f.total_xp, 0);
+  const totalAnsehen = factions.reduce((s, f) => s + f.total_ansehen, 0);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-3">
       {factions.map((f) => {
-        const share = total > 0 ? Math.round((f.total_xp / total) * 100) : 50;
+        const share = totalAnsehen > 0 ? Math.round((f.total_ansehen / totalAnsehen) * 100) : Math.round(100 / factions.length);
         return (
           <div key={f.id} className="bg-[#1A1D23] border border-white/10 rounded-2xl p-5" style={{ boxShadow: `inset 0 0 0 1px ${f.color}22` }}>
             <div className="flex items-center gap-3 mb-3">
               <div className="text-4xl">{f.emoji}</div>
               <div className="flex-1">
                 <div className="text-xl font-black text-white">{f.name}</div>
-                <div className="text-xs text-[#8B8FA3]">{t("factionsRunnersLine", { n: f.runners.toLocaleString(numLocale), lvl: f.avg_level })}</div>
+                <div className="text-xs text-[#8B8FA3]">{t("factionsMembersLine", { n: f.members.toLocaleString(numLocale), lvl: f.avg_level })}</div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-black" style={{ color: f.color }}>{share}%</div>
-                <div className="text-[10px] text-[#8B8FA3]">{t("coinShare")}</div>
+                <div className="text-[10px] text-[#8B8FA3]">{t("ansehenShare")}</div>
               </div>
             </div>
             <div className="h-2 bg-[#0F1115] rounded overflow-hidden mb-3">
@@ -651,12 +511,12 @@ function FactionsTab() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <div className="text-xs text-[#8B8FA3]">{t("totalCoins")}</div>
-                <div className="text-sm font-bold text-white">{f.total_xp.toLocaleString(numLocale)}</div>
+                <div className="text-xs text-[#8B8FA3]">{t("totalAnsehen")}</div>
+                <div className="text-sm font-bold text-white">{f.total_ansehen.toLocaleString(numLocale)}</div>
               </div>
               <div>
-                <div className="text-xs text-[#8B8FA3]">{t("totalKm")}</div>
-                <div className="text-sm font-bold text-white">{f.total_km.toLocaleString(numLocale)}</div>
+                <div className="text-xs text-[#8B8FA3]">{t("totalXp")}</div>
+                <div className="text-sm font-bold text-white">{f.total_xp.toLocaleString(numLocale)}</div>
               </div>
             </div>
           </div>
@@ -1053,38 +913,37 @@ function Countdown({ endsAt }: { endsAt: string }) {
   return <div className="text-xs text-[#FFD700] font-bold">{t("sessionRemaining", { d, h })}</div>;
 }
 
-type KiezKing = {
+type PlzThronKing = {
   plz: string;
   user_id: string;
   display_name: string | null;
   username: string | null;
-  heimat_plz: string | null;
-  total_km: number;
-  segments: number;
-  week_start: string;
+  level: number;
+  ansehen: number;
+  residents: number;
 };
 
-type KiezRankingRow = {
+type PlzThronRankingRow = {
   rank: number;
   user_id: string;
   display_name: string | null;
   username: string | null;
-  heimat_plz: string | null;
-  total_km: number;
-  segments: number;
+  level: number;
+  ansehen: number;
 };
 
-function KiezTab() {
+function PlzThronTab() {
   const t = useTranslations("Leaderboard");
-  const [kings, setKings] = useState<KiezKing[] | null>(null);
+  const locale = useLocale();
+  const numLocale = getNumberLocale(locale);
+  const [kings, setKings] = useState<PlzThronKing[] | null>(null);
   const [selectedPlz, setSelectedPlz] = useState<string | null>(null);
-  const [ranking, setRanking] = useState<KiezRankingRow[] | null>(null);
-  const [weekStart, setWeekStart] = useState<string | null>(null);
+  const [ranking, setRanking] = useState<PlzThronRankingRow[] | null>(null);
   const [filter, setFilter] = useState("");
 
   useEffect(() => {
     (async () => {
-      const r = await fetch("/api/leaderboard/kiez", { cache: "no-store" });
+      const r = await fetch("/api/leaderboard/plz-thron", { cache: "no-store" });
       if (!r.ok) return;
       const j = await r.json();
       setKings(j.kings ?? []);
@@ -1094,15 +953,14 @@ function KiezTab() {
   useEffect(() => {
     if (!selectedPlz) { setRanking(null); return; }
     (async () => {
-      const r = await fetch(`/api/leaderboard/kiez?plz=${selectedPlz}`, { cache: "no-store" });
+      const r = await fetch(`/api/leaderboard/plz-thron?plz=${selectedPlz}`, { cache: "no-store" });
       if (!r.ok) return;
       const j = await r.json();
       setRanking(j.ranking ?? []);
-      setWeekStart(j.week_start ?? null);
     })();
   }, [selectedPlz]);
 
-  if (kings === null) return <Empty text={t("kiezLoading")} />;
+  if (kings === null) return <Empty text={t("plzThronLoading")} />;
 
   const filtered = filter
     ? kings.filter((k) => k.plz.startsWith(filter) || (k.display_name ?? k.username ?? "").toLowerCase().includes(filter.toLowerCase()))
@@ -1114,9 +972,9 @@ function KiezTab() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">👑</span>
           <div className="flex-1">
-            <div className="font-bold text-[#FFD700]">{t("kiezTitle")}</div>
+            <div className="font-bold text-[#FFD700]">{t("plzThronTitle")}</div>
             <div className="text-xs text-[#a8b4cf] mt-0.5 leading-relaxed">
-              {t("kiezBody")}
+              {t("plzThronBody")}
             </div>
           </div>
         </div>
@@ -1127,12 +985,12 @@ function KiezTab() {
           type="text" inputMode="numeric" maxLength={5}
           value={filter}
           onChange={(e) => setFilter(e.target.value.replace(/\D/g, "").slice(0, 5))}
-          placeholder={t("kiezSearchPh")}
+          placeholder={t("plzThronSearchPh")}
           className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:border-[#22D1C3]/50"
         />
         {selectedPlz && (
           <button onClick={() => setSelectedPlz(null)} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs text-[#a8b4cf] hover:text-white">
-            {t("kiezBack")}
+            {t("plzThronBack")}
           </button>
         )}
       </div>
@@ -1142,28 +1000,28 @@ function KiezTab() {
           <div className="px-4 py-3 border-b border-white/10 flex items-baseline justify-between">
             <div>
               <span className="text-sm font-bold">📍 {selectedPlz}</span>
-              <span className="text-[11px] text-[#8B8FA3] ml-2">{t("kiezRunningWeek", { date: weekStart ?? "—" })}</span>
             </div>
-            <span className="text-[10px] text-[#8B8FA3]">{t("kiezTop10")}</span>
+            <span className="text-[10px] text-[#8B8FA3]">{t("plzThronTop10")}</span>
           </div>
           {ranking.length === 0 ? (
-            <Empty text={t("kiezNoActivity")} />
+            <Empty text={t("plzThronNoActivity")} />
           ) : (
             <div className="divide-y divide-white/5">
               {ranking.map((row) => {
                 const name = row.display_name ?? row.username ?? t("unknown");
                 const isKing = row.rank === 1;
                 return (
-                  <div key={row.user_id} className="flex items-center gap-3 px-4 py-3">
+                  <Link key={row.user_id} href={`/u/${row.username ?? ""}`}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isKing ? "bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/40" : "bg-white/5 text-[#a8b4cf]"}`}>
                       {isKing ? "👑" : row.rank}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold truncate">{name}{row.heimat_plz && <span className="ml-2 text-[10px] text-[#22D1C3]">📍{row.heimat_plz}</span>}</div>
-                      <div className="text-[11px] text-[#8B8FA3]">{t("kiezSegments", { n: row.segments })}</div>
+                      <div className="font-semibold truncate">{name}</div>
+                      <div className="text-[11px] text-[#8B8FA3]">{t("valueLevel", { n: row.level })}</div>
                     </div>
-                    <div className="text-sm font-bold text-[#22D1C3]">{t("kiezKm", { km: row.total_km.toFixed(2) })}</div>
-                  </div>
+                    <div className="text-sm font-bold text-[#FFD700]">{t("valueAnsehen", { n: row.ansehen.toLocaleString(numLocale) })}</div>
+                  </Link>
                 );
               })}
             </div>
@@ -1173,7 +1031,7 @@ function KiezTab() {
 
       {!selectedPlz && (
         filtered.length === 0 ? (
-          <Empty text={kings.length === 0 ? t("kiezNoCrowns") : t("kiezNoMatches")} />
+          <Empty text={kings.length === 0 ? t("plzThronNoCrowns") : t("plzThronNoMatches")} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {filtered.map((k) => {
@@ -1190,8 +1048,8 @@ function KiezTab() {
                   </div>
                   <div className="font-semibold truncate text-sm">{name}</div>
                   <div className="flex justify-between items-baseline mt-1">
-                    <span className="text-[11px] text-[#8B8FA3]">{t("kiezSegments", { n: k.segments })}</span>
-                    <span className="text-sm font-bold text-[#FFD700]">{t("kiezKm", { km: k.total_km.toFixed(2) })}</span>
+                    <span className="text-[11px] text-[#8B8FA3]">{t("plzThronResidents", { n: k.residents })}</span>
+                    <span className="text-sm font-bold text-[#FFD700]">{t("valueAnsehen", { n: k.ansehen.toLocaleString(numLocale) })}</span>
                   </div>
                 </button>
               );

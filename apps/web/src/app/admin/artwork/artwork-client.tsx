@@ -12,7 +12,7 @@ import { buildEntityPrompt } from "@/lib/artwork-prompts-generic";
 
 type Archetype = {
   id: string; name: string; emoji: string; rarity: string; image_url: string | null; video_url: string | null;
-  guardian_type: "infantry" | "cavalry" | "marksman" | "mage" | "siege" | "collector" | null;
+  guardian_type: "infantry" | "cavalry" | "marksman" | "siege" | "collector" | "architect" | null;
   class_id: "tank" | "support" | "ranged" | "melee" | null;
   role: "dps" | "tank" | "support" | "balanced" | null;
   species: string | null;
@@ -24,27 +24,29 @@ type Archetype = {
 
 const RARITY_LABEL: Record<string, { label: string; color: string }> = {
   common:    { label: "GEWÖHNLICH", color: "#9aa3b8" },
-  elite:     { label: "ELITE",      color: "#22D1C3" },
+  elite:     { label: "ELITE",      color: "#60a5fa" },
   epic:      { label: "EPISCH",     color: "#a855f7" },
   legendary: { label: "LEGENDÄR",   color: "#FFD700" },
   // Legacy-Fallback (vor 5x4-Rework)
-  rare:      { label: "ELITE",      color: "#22D1C3" },
+  rare:      { label: "ELITE",      color: "#60a5fa" },
   legend:    { label: "LEGENDÄR",   color: "#FFD700" },
 };
 
+// Wächtertyp = Truppentyp (1:1 Mapping zum troops_catalog.troop_class).
+// 4 Combat-Klassen im RPS-Counter, Sammler + Konstrukteur sind non-combat.
 const TYPE_LABEL: Record<string, { label: string; icon: string; color: string }> = {
-  infantry:  { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
-  cavalry:   { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
-  marksman:  { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
-  mage:      { label: "Magier",        icon: "🔮", color: "#c084fc" },
-  siege:     { label: "Belagerung",    icon: "💥", color: "#f59e0b" },
+  infantry:  { label: "Türsteher",     icon: "🥷", color: "#60a5fa" },
+  cavalry:   { label: "Kurier",        icon: "🏍️", color: "#fb923c" },
+  marksman:  { label: "Schütze",       icon: "🎯", color: "#4ade80" },
+  siege:     { label: "Brecher",       icon: "🔨", color: "#f59e0b" },
   collector: { label: "Sammler",       icon: "📦", color: "#22D1C3" },
+  architect: { label: "Konstrukteur",  icon: "🏗️", color: "#a855f7" },
 };
 
 const FACTION_LABEL: Record<string, { label: string; emoji: string; color: string }> = {
-  gossenbund:  { label: "Untergrund",  emoji: "🔗", color: "#FF6B4A" },
-  kronenwacht: { label: "Stadtwache",  emoji: "🛡️", color: "#FFD700" },
-  netzhueter:  { label: "Hacker-Crew", emoji: "💻", color: "#22D1C3" },
+  gossenbund:  { label: "Gossenbund",  emoji: "🔗", color: "#FF6B4A" },
+  kronenwacht: { label: "Kronenwacht", emoji: "🛡️", color: "#FFD700" },
+  netzhueter:  { label: "Netzhüter",   emoji: "📡", color: "#FF2D78" },
 };
 
 // Neue 4-Klassen-Anzeige (tank/support/ranged/melee).
@@ -55,34 +57,7 @@ const CLASS_LABEL: Record<string, { label: string; icon: string; color: string }
   melee:   { label: "Nahkampf",  icon: "⚔️", color: "#FF6B4A" },
 };
 
-// Sub-Rollen aus Migration 00073 (4 pro Klasse). Plus Legacy-Werte (dps/tank/support/balanced).
-const ROLE_LABEL: Record<string, { label: string; icon: string }> = {
-  // Tank
-  krieger:        { label: "Krieger",        icon: "🛡️" },
-  ritter:         { label: "Ritter",         icon: "🛡️" },
-  paladin:        { label: "Paladin",        icon: "🛡️" },
-  berserker:      { label: "Berserker",      icon: "🛡️" },
-  // Support
-  priester:       { label: "Priester",       icon: "✨" },
-  schamane:       { label: "Schamane",       icon: "✨" },
-  kleriker:       { label: "Kleriker",       icon: "✨" },
-  orakel:         { label: "Orakel",         icon: "✨" },
-  // Ranged
-  magier:         { label: "Magier",         icon: "🏹" },
-  bogenschuetze:  { label: "Bogenschütze",   icon: "🏹" },
-  hexer:          { label: "Hexer",          icon: "🏹" },
-  runenmeister:   { label: "Runenmeister",   icon: "🏹" },
-  // Melee
-  schurke:        { label: "Schurke",        icon: "⚔️" },
-  moench:         { label: "Mönch",          icon: "⚔️" },
-  samurai:        { label: "Samurai",        icon: "⚔️" },
-  ninja:          { label: "Ninja",          icon: "⚔️" },
-  // Legacy fallback
-  dps:            { label: "DPS",            icon: "·" },
-  tank:           { label: "Tank",           icon: "·" },
-  support:        { label: "Support",        icon: "·" },
-  balanced:       { label: "Balanced",       icon: "·" },
-};
+// Rollen wurden abgeschafft (User-Entscheidung 2026-05-11) — nur Wächtertyp ist relevant.
 
 type Art = { image_url: string | null; video_url: string | null };
 type CosmeticArt = {
@@ -1133,10 +1108,6 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
   const promptVideo = buildArchetypePrompt({ ...promptInputBase, mode: "video" });
 
   const rarityMeta = RARITY_LABEL[a.rarity] ?? RARITY_LABEL.epic;
-  const classMeta  = a.class_id ? CLASS_LABEL[a.class_id] : null;
-  const roleMeta   = a.role ? ROLE_LABEL[a.role] : null;
-  // Fallback auf legacy guardian_type, falls class_id leer ist
-  const typeFallback = !classMeta && a.guardian_type ? TYPE_LABEL[a.guardian_type] : null;
 
   const upload = async (file: File) => {
     setBusy(true); setErr(null);
@@ -1202,7 +1173,7 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
         ) : (
           <>
             <div className="text-7xl opacity-20">{a.emoji}</div>
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FF2D78]/20 to-transparent text-center py-2 text-[10px] font-bold text-[#FF2D78] tracking-widest">
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest bg-[#FF2D78]/15 text-[#FF2D78] border border-[#FF2D78]/40 whitespace-nowrap">
               KEIN ARTWORK
             </div>
           </>
@@ -1239,23 +1210,13 @@ function ArchetypeCard({ archetype: a, onChange }: { archetype: Archetype; onCha
         </div>
       </div>
 
-      {/* Info */}
+      {/* Info — nur noch Wächtertyp (Truppentyp) anzeigen, Rollen abgeschafft */}
       <div className="p-3">
         <div className="font-black text-sm">{a.name}</div>
         <div className="text-[10px] text-[#8B8FA3] flex items-center gap-2 mt-1 flex-wrap">
-          {classMeta && (
-            <span style={{ color: classMeta.color }} className="font-bold">
-              {classMeta.icon} {classMeta.label}
-            </span>
-          )}
-          {roleMeta && (
-            <span style={{ color: classMeta?.color ?? "#a8b4cf" }} className="font-bold">
-              {roleMeta.icon} {roleMeta.label}
-            </span>
-          )}
-          {!classMeta && typeFallback && (
-            <span style={{ color: typeFallback.color }} className="font-bold">
-              {typeFallback.icon} {typeFallback.label}
+          {a.guardian_type && TYPE_LABEL[a.guardian_type] && (
+            <span style={{ color: TYPE_LABEL[a.guardian_type].color }} className="font-bold">
+              {TYPE_LABEL[a.guardian_type].icon} {TYPE_LABEL[a.guardian_type].label}
             </span>
           )}
         </div>

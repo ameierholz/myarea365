@@ -54,7 +54,7 @@ export function GuardianGalleryModal({
   }, [releasedArchetypes, tab, factionFilter, onlyMissingArt]);
 
   const counts = useMemo(() => {
-    const c: Record<Tab, number> = { all: releasedArchetypes.length, infantry: 0, cavalry: 0, marksman: 0, mage: 0, siege: 0, collector: 0 };
+    const c: Record<Tab, number> = { all: releasedArchetypes.length, infantry: 0, cavalry: 0, marksman: 0, siege: 0, collector: 0, architect: 0 };
     for (const a of releasedArchetypes) if (a.guardian_type) c[a.guardian_type]++;
     return c;
   }, [releasedArchetypes]);

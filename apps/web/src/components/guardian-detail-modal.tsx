@@ -14,6 +14,7 @@ import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/g
 import { FACTIONS, normalizeFaction } from "@/lib/factions";
 import {
   rarityMeta, xpForLevel, TYPE_META, FACTION_META,
+  typeCounters, typeCounteredBy,
   type GuardianArchetype, type GuardianTalent, type TalentNode,
   type ArchetypeSkill, type GuardianSkillLevel, type UserSiegel,
 } from "@/lib/guardian";
@@ -355,6 +356,51 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
               );
             })()}
           </div>
+
+          {/* Counter-Info — RPS-Matrix (Türsteher > Schütze > Kurier > Brecher > Türsteher) */}
+          {a.guardian_type && (() => {
+            const counters = typeCounters(a.guardian_type);
+            const counteredBy = typeCounteredBy(a.guardian_type);
+            if (!counters && !counteredBy) {
+              return (
+                <div style={{
+                  marginTop: 6, padding: "4px 8px", borderRadius: 6,
+                  background: "rgba(255,255,255,0.04)",
+                  fontSize: 9, color: "#8B8FA3", fontWeight: 700,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }} title="Sammler & Konstrukteure haben keinen Kampf-Counter.">
+                  ⚖️ Non-Combat · Kein RPS-Counter
+                </div>
+              );
+            }
+            const cMeta = counters ? TYPE_META[counters] : null;
+            const cbMeta = counteredBy ? TYPE_META[counteredBy] : null;
+            return (
+              <div style={{
+                marginTop: 6, padding: "4px 8px", borderRadius: 6,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                display: "flex", alignItems: "center", gap: 8,
+                fontSize: 9, fontWeight: 700,
+              }} title="Stein-Schere-Papier-Counter im Kampf: +25% ATK gegen counter, -15% ATK gegen counter-counter.">
+                {cMeta && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "#4ade80" }}>
+                    <span>+25%</span>
+                    <span style={{ color: "#a8b4cf" }}>vs.</span>
+                    <span style={{ color: cMeta.color }}>{cMeta.icon} {cMeta.label}</span>
+                  </span>
+                )}
+                {cMeta && cbMeta && <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>}
+                {cbMeta && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "#FF6B4A" }}>
+                    <span>-15%</span>
+                    <span style={{ color: "#a8b4cf" }}>vs.</span>
+                    <span style={{ color: cbMeta.color }}>{cbMeta.icon} {cbMeta.label}</span>
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10 }}>
             <Stat label="Leben"        value={eff.effective.hp}  delta={eff.delta.hp}  color="#4ade80" />

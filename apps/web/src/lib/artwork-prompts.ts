@@ -62,7 +62,7 @@ export type ArchetypePromptInput = {
   name: string;
   rarity: "common" | "rare" | "legend" | "elite" | "epic" | "legendary";
   classId?: "tank" | "support" | "ranged" | "melee" | null;
-  guardianType?: "infantry" | "cavalry" | "marksman" | "mage" | "siege" | "collector" | null;
+  guardianType?: "infantry" | "cavalry" | "marksman" | "siege" | "collector" | "architect" | null;
   role?: "dps" | "tank" | "support" | "balanced" | null;
   species?: ArchetypeSpecies | string | null;
   gender?: "male" | "female" | "neutral" | null;

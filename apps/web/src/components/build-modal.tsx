@@ -16,6 +16,7 @@ import {
 import { LevelTableModal, type LevelRow } from "@/components/level-table-modal";
 import { useRewardFx, getClickPoint } from "@/components/reward-fx";
 import { Modal, Z } from "@/components/ui";
+import { CrewBuildHelpModal } from "@/components/crew-build-help-modal";
 import { fetchBaseMe, invalidateBaseMe } from "@/lib/base-me-cache";
 
 type Building = {
@@ -80,6 +81,12 @@ const CATEGORIES: Array<{ key: CategoryKey; label: string; emoji: string; color:
 const ABSOLUTE_EFFECTS = new Set([
   "map_range_km", "wood_per_hour", "stone_per_hour", "gold_per_hour", "mana_per_hour",
   "event_preview_days", "daily_quest_count", "build_queue_slots",
+  // Truppen-pro-Ausbildung: absolute Anzahl (+10/lvl), nicht Prozent
+  "troops_per_train",
+  // Base-HP-Flat: absolute HP (+500 oder +1000/lvl)
+  "base_hp_flat",
+  // Main-Building-Level: absoluter Level-Wert (Burg)
+  "main_building_level",
 ]);
 
 const PRODUCTION_KEYS: Record<string, "wood" | "stone" | "gold" | "mana"> = {
@@ -209,6 +216,7 @@ export function BuildModal({
   const [err, setErr] = useState<string | null>(null);
   const [activeCat, setActiveCat] = useState<CategoryKey>("production");
   const [detail, setDetail] = useState<Catalog | null>(null);
+  const [showCrewHelp, setShowCrewHelp] = useState(false);
   // Auto-Open Detail bei initialBuildingId (Iso-Scene-Flow)
   const initialOpenedRef = useRef(false);
   useEffect(() => {
@@ -676,6 +684,23 @@ export function BuildModal({
             </div>
           )}
 
+          {/* CREW-HELP-BUTTON — Floating oben rechts (über Tabs) */}
+          <button
+            type="button"
+            onClick={() => setShowCrewHelp(true)}
+            title="Crew-Bauten helfen"
+            style={{
+              position: "absolute", top: 6, right: 44, zIndex: 5,
+              padding: "4px 10px",
+              background: `linear-gradient(135deg, #22c55e, ${ACCENT})`,
+              color: "#0F1115", border: "none", borderRadius: 999,
+              fontSize: 10, fontWeight: 900, letterSpacing: 0.3,
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(34,197,94,0.45)",
+              display: "inline-flex", alignItems: "center", gap: 4,
+            }}
+          >🤝 Crew helfen</button>
+
           {/* KATEGORIE-TABS — oben (Standard für Modal-Tabs) */}
           <div style={{
             padding: "0 12px",
@@ -692,31 +717,31 @@ export function BuildModal({
                   onClick={() => setActiveCat(cat.key)}
                   style={{
                     position: "relative",
-                    padding: "10px 4px 8px", border: "none",
+                    padding: "4px 4px 4px", border: "none",
                     background: isActive ? `linear-gradient(180deg, ${cat.color}11, transparent)` : "transparent",
                     borderBottom: isActive ? `2px solid ${cat.color}` : "2px solid transparent",
                     marginBottom: -1,
                     cursor: "pointer",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 0,
                   }}
                 >
                   <span style={{
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 22, height: 22,
-                    filter: isActive ? `drop-shadow(0 0 6px ${cat.color}88)` : "none",
-                    opacity: isActive ? 1 : 0.7,
+                    width: 56, height: 56,
+                    filter: isActive ? `drop-shadow(0 0 8px ${cat.color}aa)` : "none",
+                    opacity: isActive ? 1 : 0.75,
                   }}>
-                    <UiIcon slot={`build_cat_${cat.key}`} fallback={cat.emoji} art={uiIconArt} size={22} />
+                    <UiIcon slot={`build_cat_${cat.key}`} fallback={cat.emoji} art={uiIconArt} size={56} />
                   </span>
                   <span style={{
-                    fontSize: 9, fontWeight: 900,
+                    fontSize: 10, fontWeight: 900,
                     color: isActive ? cat.color : MUTED,
                     letterSpacing: 0.3,
                   }}>{cat.label}</span>
                   {availableCount > 0 && !isActive && (
                     <span style={{
-                      position: "absolute", top: 6, right: "calc(50% - 18px)",
-                      width: 7, height: 7, borderRadius: "50%",
+                      position: "absolute", top: 6, right: "calc(50% - 26px)",
+                      width: 8, height: 8, borderRadius: "50%",
                       background: cat.color, boxShadow: `0 0 8px ${cat.color}`,
                       animation: "ma365BuildPulse 1.6s ease-in-out infinite",
                     }} />
@@ -815,7 +840,7 @@ export function BuildModal({
           {/* DECK */}
           <div style={{
             flex: 1, minHeight: 0, overflowY: "auto",
-            padding: "12px 12px 8px",
+            padding: "6px 12px 8px",
             scrollbarWidth: "none",
           }}>
             {!data && (
@@ -826,15 +851,6 @@ export function BuildModal({
 
             {data && (
               <>
-                <div style={{
-                  display: "flex", alignItems: "center", justifyContent: "flex-end",
-                  marginBottom: 8, padding: "0 2px",
-                }}>
-                  <div style={{ fontSize: 10, color: MUTED, fontWeight: 700 }}>
-                    {items.filter((i) => builtMap.has(i.id)).length}/{items.length} gebaut
-                  </div>
-                </div>
-
                 <div style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -1044,7 +1060,15 @@ export function BuildModal({
             await collectBuilding(id, ev);
             // Modal nicht schließen — User sieht updated state
           }}
+          onSwitchTo={(id) => {
+            const target = data.catalog.find((c) => c.id === id);
+            if (target) setDetail(target);
+          }}
         />
+      )}
+
+      {showCrewHelp && (
+        <CrewBuildHelpModal onClose={() => setShowCrewHelp(false)} />
       )}
     </>
   );
@@ -1058,7 +1082,7 @@ function BuildingDetail({
   cat, data, accent, burgLevel, gems, busy,
   builtMap, queueMap, pending,
   buildingArt, resourceArt,
-  bldName, effLabel, onClose, onUpgrade, onInstant, onCollect,
+  bldName, effLabel, onClose, onUpgrade, onInstant, onCollect, onSwitchTo,
 }: {
   cat: Catalog;
   data: BaseMe;
@@ -1077,6 +1101,8 @@ function BuildingDetail({
   onUpgrade: (buildingId: string, ev?: { clientX: number; clientY: number }) => Promise<void>;
   onInstant: (buildingId: string, ev?: { clientX: number; clientY: number }) => Promise<void>;
   onCollect: (buildingId: string, ev?: { clientX: number; clientY: number }) => Promise<void>;
+  /** Wechsel der Detail-Ansicht auf ein anderes Gebäude (z. B. via Anforderungs-Tile). */
+  onSwitchTo: (buildingId: string) => void;
 }) {
   const built = builtMap.get(cat.id);
   const inQueue = queueMap.get(cat.id);
@@ -1475,12 +1501,24 @@ function BuildingDetail({
                         display: "flex", justifyContent: "center", gap: 10,
                         marginTop: 2,
                       }}>
-                        {buildingReqs.map((req) => (
-                          <div key={req.id} style={{
-                            display: "flex", flexDirection: "column",
-                            alignItems: "center", gap: 2,
-                            opacity: req.met ? 1 : 0.95,
-                          }}>
+                        {buildingReqs.map((req) => {
+                          const targetExists = data.catalog.some((c) => c.id === req.id);
+                          const isClickable = targetExists && req.id !== cat.id;
+                          return (
+                          <button
+                            key={req.id}
+                            type="button"
+                            onClick={isClickable ? () => onSwitchTo(req.id) : undefined}
+                            disabled={!isClickable}
+                            title={isClickable ? "Zum Gebäude springen" : undefined}
+                            style={{
+                              display: "flex", flexDirection: "column",
+                              alignItems: "center", gap: 2,
+                              opacity: req.met ? 1 : 0.95,
+                              background: "none", border: "none", padding: 0,
+                              cursor: isClickable ? "pointer" : "default",
+                              fontFamily: "inherit",
+                            }}>
                             <div style={{
                               position: "relative",
                               width: 44, height: 44,
@@ -1491,6 +1529,17 @@ function BuildingDetail({
                               border: `1px solid ${req.met ? "rgba(255,255,255,0.10)" : PINK + "55"}`,
                               borderRadius: 8,
                               boxShadow: req.met ? "none" : `0 0 8px ${PINK}33`,
+                              transition: "transform 120ms ease, box-shadow 120ms ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isClickable) return;
+                              (e.currentTarget as HTMLDivElement).style.transform = "scale(1.05)";
+                              (e.currentTarget as HTMLDivElement).style.boxShadow = req.met ? `0 0 8px ${accent}55` : `0 0 10px ${PINK}66`;
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isClickable) return;
+                              (e.currentTarget as HTMLDivElement).style.transform = "scale(1)";
+                              (e.currentTarget as HTMLDivElement).style.boxShadow = req.met ? "none" : `0 0 8px ${PINK}33`;
                             }}>
                               <BuildingThumb id={req.id} fallback="🏰" art={buildingArt} size={36} />
                               {!req.met && (
@@ -1516,8 +1565,9 @@ function BuildingDetail({
                               fontSize: 8, fontWeight: 700, color: MUTED,
                               letterSpacing: 0.3, lineHeight: 1,
                             }}>{req.label}</div>
-                          </div>
-                        ))}
+                          </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

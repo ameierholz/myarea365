@@ -11,7 +11,9 @@ export type GuardianRarity = "advanced" | "elite" | "epic" | "legendary";
 export type LegacyRarity = "common" | "rare" | "legend";
 export type AnyRarity = GuardianRarity | LegacyRarity;
 
-export type GuardianType = "infantry" | "cavalry" | "marksman" | "mage" | "siege" | "collector";
+// Wächtertyp = Truppentyp (urban-Banditen-Thema).
+// 6 Klassen — 4 Combat (RPS) + 2 non-combat.
+export type GuardianType = "infantry" | "cavalry" | "marksman" | "siege" | "collector" | "architect";
 export type GuardianRole = "dps" | "tank" | "support" | "balanced";
 export type GuardianClassId = "tank" | "support" | "ranged" | "melee";
 export type GuardianGender = "male" | "female" | "neutral";
@@ -87,12 +89,12 @@ type RarityMeta = { label: string; color: string; glow: string };
 // Legacy-Werte werden auf neue Skala gespiegelt damit alte Callsites nicht brechen.
 export const RARITY_META: Record<AnyRarity, RarityMeta> = {
   advanced:  { label: "Fortgeschritten", color: "#4ade80", glow: "rgba(74,222,128,0.40)" },
-  elite:     { label: "Elite",           color: "#22D1C3", glow: "rgba(34,209,195,0.45)" },
+  elite:     { label: "Elite",           color: "#60a5fa", glow: "rgba(96,165,250,0.50)" },
   epic:      { label: "Episch",          color: "#a855f7", glow: "rgba(168,85,247,0.55)" },
   legendary: { label: "Legendär",        color: "#FFD700", glow: "rgba(255,215,0,0.65)" },
   // Legacy — auf neue Skala gespiegelt
-  common:    { label: "Elite",           color: "#22D1C3", glow: "rgba(34,209,195,0.45)" },
-  rare:      { label: "Elite",           color: "#22D1C3", glow: "rgba(34,209,195,0.45)" },
+  common:    { label: "Elite",           color: "#60a5fa", glow: "rgba(96,165,250,0.50)" },
+  rare:      { label: "Elite",           color: "#60a5fa", glow: "rgba(96,165,250,0.50)" },
   legend:    { label: "Legendär",        color: "#FFD700", glow: "rgba(255,215,0,0.65)" },
 };
 
@@ -111,30 +113,40 @@ export function rarityMeta(r: AnyRarity) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Typen: Stein-Schere-Papier (+25% / -25%)
-// Infanterie → Kavallerie → Scharfschütze → Infanterie
-// Magier = Wildcard (neutral gegen alle, keine eigenen Counter)
+// Wächtertyp-Counter (4-class RPS, +25% / -15%) — spiegelt _class_counter_mult in DB.
+// Türsteher > Schütze > Kurier > Brecher > Türsteher
+// Sammler + Konstrukteur sind non-combat (keine Counter).
 // ─────────────────────────────────────────────────────────────
 export const TYPE_META: Record<GuardianType, { label: string; icon: string; color: string }> = {
-  infantry:  { label: "Infanterie",    icon: "🛡️", color: "#60a5fa" },
-  cavalry:   { label: "Kavallerie",    icon: "🐎", color: "#fb923c" },
-  marksman:  { label: "Scharfschütze", icon: "🏹", color: "#4ade80" },
-  mage:      { label: "Magier",        icon: "🔮", color: "#c084fc" },
-  siege:     { label: "Belagerung",    icon: "💥", color: "#f59e0b" },
-  collector: { label: "Sammler",       icon: "📦", color: "#22D1C3" },
+  infantry:  { label: "Türsteher",    icon: "🥷", color: "#60a5fa" },
+  cavalry:   { label: "Kurier",       icon: "🏍️", color: "#fb923c" },
+  marksman:  { label: "Schütze",      icon: "🎯", color: "#4ade80" },
+  siege:     { label: "Brecher",      icon: "🔨", color: "#f59e0b" },
+  collector: { label: "Sammler",      icon: "📦", color: "#22D1C3" },
+  architect: { label: "Konstrukteur", icon: "🏗️", color: "#a855f7" },
 };
 
+/** Was kontert mein Wächtertyp (return null wenn non-combat). */
+export function typeCounters(t: GuardianType): GuardianType | null {
+  if (t === "infantry") return "marksman";
+  if (t === "marksman") return "cavalry";
+  if (t === "cavalry")  return "siege";
+  if (t === "siege")    return "infantry";
+  return null;
+}
+
+/** Was kontert mich (return null wenn non-combat). */
+export function typeCounteredBy(t: GuardianType): GuardianType | null {
+  if (t === "infantry") return "siege";
+  if (t === "marksman") return "infantry";
+  if (t === "cavalry")  return "marksman";
+  if (t === "siege")    return "cavalry";
+  return null;
+}
+
 export function typeCounter(attacker: GuardianType, defender: GuardianType): number {
-  // Magier/Belagerung/Sammler = neutral (kein Stein-Schere-Papier)
-  if (attacker === "mage" || defender === "mage") return 1.0;
-  if (attacker === "siege" || defender === "siege") return 1.0;
-  if (attacker === "collector" || defender === "collector") return 1.0;
-  if (attacker === "infantry" && defender === "cavalry") return 1.25;
-  if (attacker === "cavalry"  && defender === "marksman") return 1.25;
-  if (attacker === "marksman" && defender === "infantry") return 1.25;
-  if (defender === "infantry" && attacker === "cavalry") return 0.75;
-  if (defender === "cavalry"  && attacker === "marksman") return 0.75;
-  if (defender === "marksman" && attacker === "infantry") return 0.75;
+  if (typeCounters(attacker) === defender) return 1.25;
+  if (typeCounteredBy(attacker) === defender) return 0.85;
   return 1.0;
 }
 
@@ -261,7 +273,6 @@ export function siegelForType(inv: UserSiegel | null | undefined, t: GuardianTyp
   return t === "infantry" ? inv.siegel_infantry
        : t === "cavalry"  ? inv.siegel_cavalry
        : t === "marksman" ? inv.siegel_marksman
-       : t === "mage"     ? inv.siegel_mage
-       : t === "siege" || t === "collector" ? inv.siegel_universal  // Belagerung + Sammler nutzen Universal-Siegel
+       : t === "siege" || t === "collector" || t === "architect" ? inv.siegel_universal
        : 0;
 }

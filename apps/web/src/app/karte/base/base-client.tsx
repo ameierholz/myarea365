@@ -614,22 +614,24 @@ function ArtTile({ slot, icon, label, href, onClick, badge, slot_status, iconSiz
     return () => clearInterval(id);
   }, [slot_status?.earliestEndsAt]);
 
-  // Status-Pill ableiten
-  let statusPill: { text: string; bg: string; color: string; pulse: boolean } | null = null;
+  // Status-Pill ableiten.
+  // FREI (free slots, no active build): kompakter Corner-Badge oben rechts — überlappt
+  // den Titel nicht. Timer/FERTIG (lauft/wartet auf Abholung): bottom-center mit
+  // Label-Offset, da informativ und länger.
+  let statusPill: { text: string; bg: string; color: string; pulse: boolean; position: "corner"|"bottom" } | null = null;
   if (slot_status) {
     const { active, max, earliestEndsAt } = slot_status;
     if (active === 0 && max > 0) {
-      // FREI — Spieler kann sofort starten
-      statusPill = { text: `${max} FREI`, bg: "linear-gradient(135deg, #86efac, #22c55e)", color: "#0F1115", pulse: true };
+      statusPill = { text: `${max} FREI`, bg: "linear-gradient(135deg, #86efac, #22c55e)", color: "#0F1115", pulse: true, position: "corner" };
     } else if (earliestEndsAt) {
       const remainMs = new Date(earliestEndsAt).getTime() - now;
       if (remainMs <= 0) {
-        statusPill = { text: "FERTIG", bg: "linear-gradient(135deg, #FFE066, #FFD700)", color: "#0F1115", pulse: true };
+        statusPill = { text: "FERTIG", bg: "linear-gradient(135deg, #FFE066, #FFD700)", color: "#0F1115", pulse: true, position: "bottom" };
       } else {
         const m = Math.ceil(remainMs / 60000);
         const text = m < 60 ? `⏱${m}m` : m < 1440 ? `⏱${Math.floor(m/60)}h` : `⏱${Math.floor(m/1440)}T`;
         const remainText = active < max ? `${text} · ${max-active} frei` : text;
-        statusPill = { text: remainText, bg: "rgba(0,0,0,0.65)", color: "#FFF", pulse: false };
+        statusPill = { text: remainText, bg: "rgba(0,0,0,0.65)", color: "#FFF", pulse: false, position: "bottom" };
       }
     }
   }
@@ -660,8 +662,24 @@ function ArtTile({ slot, icon, label, href, onClick, badge, slot_status, iconSiz
           }}>{badge}</div>
         )}
 
-        {/* Slot-Status-Pill — ersetzt klassischen Badge bei Bau/Forschung */}
-        {statusPill && (
+        {/* Slot-Status-Pill — ersetzt klassischen Badge bei Bau/Forschung.
+            FREI: oben rechts (kompakt, kein Label-Offset). Timer/FERTIG: unten (informativ). */}
+        {statusPill && statusPill.position === "corner" && (
+          <div style={{
+            position: "absolute", top: 2, right: 2,
+            padding: "1px 5px", borderRadius: 999,
+            background: statusPill.bg,
+            color: statusPill.color,
+            fontSize: 8, fontWeight: 900, letterSpacing: 0.3, lineHeight: 1.3,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            border: "1.5px solid rgba(255,255,255,0.95)",
+            boxShadow: "0 2px 6px rgba(34,197,94,0.55)",
+            zIndex: 4,
+            whiteSpace: "nowrap",
+            animation: statusPill.pulse ? "ma365TilePulse 1.4s ease-in-out infinite" : undefined,
+          }}>{statusPill.text}</div>
+        )}
+        {statusPill && statusPill.position === "bottom" && (
           <div style={{
             position: "absolute", bottom: -2, left: "50%", transform: "translateX(-50%)",
             padding: "2px 7px", borderRadius: 999,
@@ -677,7 +695,7 @@ function ArtTile({ slot, icon, label, href, onClick, badge, slot_status, iconSiz
           }}>{statusPill.text}</div>
         )}
       </div>
-      <div className="ma365-tile-label" style={statusPill ? { marginTop: 8 } : undefined}>{label}</div>
+      <div className="ma365-tile-label" style={statusPill?.position === "bottom" ? { marginTop: 8 } : undefined}>{label}</div>
     </>
   );
   if (onClick) {

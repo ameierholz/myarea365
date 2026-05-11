@@ -44,7 +44,7 @@ export type BattleInput = {
     vs_infantry?: number;
     vs_cavalry?: number;
     vs_marksman?: number;
-    vs_mage?: number;
+    vs_siege?: number;
     stun_resist?: number;       // Chance X Stuns zu widerstehen
     debuff_cleanse?: number;    // Chance X pro Runde Debuffs abzuschütteln
     // Keystone-Talente (archetyp-spezifisch, boolean-like — rank>0 = aktiv)
@@ -205,7 +205,7 @@ function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
     if (typ === "infantry") passiveDefBonus = 0.03 * passiveLvl;
     else if (typ === "cavalry") passiveSpdBonus = 0.03 * passiveLvl;
     else if (typ === "marksman") passiveCrit = 0.02 * passiveLvl;
-    else if (typ === "mage") passiveSkillDmg = 0.03 * passiveLvl;
+    else if (typ === "siege") passiveSkillDmg = 0.03 * passiveLvl;
   }
 
   const hpMax = Math.round(pctBonus(t.hp_pct, s.hp + b.hp));
@@ -255,7 +255,7 @@ function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
         infantry: t.vs_infantry ?? 0,
         cavalry:  t.vs_cavalry  ?? 0,
         marksman: t.vs_marksman ?? 0,
-        mage:     t.vs_mage     ?? 0,
+        siege:    t.vs_siege    ?? 0,
       },
       stunResist: t.stun_resist ?? 0,
       debuffCleanse: t.debuff_cleanse ?? 0,
@@ -273,15 +273,15 @@ function buildCombatant(label: "A" | "B", input: BattleInput): Combatant {
   };
 }
 
-/** Rollen-Skill: +X% Schaden gegen bestimmte Typen */
+/** Rollen-Skill: +X% Schaden gegen counter-typ (Türsteher > Schütze > Kurier > Brecher > Türsteher) */
 function roleBonus(attacker: Combatant, defender: Combatant): number {
   const lvl = attacker.skillLvl.role;
   if (lvl === 0 || !attacker.archetypeType || !defender.archetypeType) return 1.0;
-  const per = attacker.archetypeType === "mage" ? 0.02 : 0.03;
-  if (attacker.archetypeType === "infantry" && defender.archetypeType === "cavalry") return 1 + lvl * per;
-  if (attacker.archetypeType === "cavalry" && defender.archetypeType === "marksman") return 1 + lvl * per;
-  if (attacker.archetypeType === "marksman" && defender.archetypeType === "infantry") return 1 + lvl * per;
-  if (attacker.archetypeType === "mage") return 1 + lvl * per;
+  const per = 0.03;
+  if (attacker.archetypeType === "infantry" && defender.archetypeType === "marksman") return 1 + lvl * per;
+  if (attacker.archetypeType === "marksman" && defender.archetypeType === "cavalry") return 1 + lvl * per;
+  if (attacker.archetypeType === "cavalry" && defender.archetypeType === "siege") return 1 + lvl * per;
+  if (attacker.archetypeType === "siege" && defender.archetypeType === "infantry") return 1 + lvl * per;
   return 1.0;
 }
 
