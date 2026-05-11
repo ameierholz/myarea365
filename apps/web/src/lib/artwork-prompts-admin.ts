@@ -1114,9 +1114,9 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
     subject: "a glowing violet mana-crystal charm with 8h time glyph, swirling magic aura" },
   { id: "boost_mana_24h",    category: "boost", name: "Bandbreite-Buff 24 Std",  fallbackEmoji: "\u{1F48E}", accent: "#a855f7", rarity: "epic",
     subject: "an ornate violet mana-crystal charm with 24h time glyph, brilliant magic aura" },
-  { id: "boost_xp_8h",       category: "boost", name: "XP-Buff 8 Std",    fallbackEmoji: "\u{1F4DA}", accent: "#FF2D78", rarity: "rare",
+  { id: "boost_xp_8h",       category: "boost", name: "EP-Buff 8 Std",    fallbackEmoji: "\u{1F4DA}", accent: "#FF2D78", rarity: "rare",
     subject: "a glowing pink star-medal charm with 8h time glyph, XP-burst aura" },
-  { id: "boost_xp_24h",      category: "boost", name: "XP-Buff 24 Std",   fallbackEmoji: "\u{1F4DA}", accent: "#FF2D78", rarity: "epic",
+  { id: "boost_xp_24h",      category: "boost", name: "EP-Buff 24 Std",   fallbackEmoji: "\u{1F4DA}", accent: "#FF2D78", rarity: "epic",
     subject: "an ornate pink star-medal charm with 24h time glyph, brilliant XP aura" },
   // KEYS
   { id: "key_silver", category: "key", name: "Silberner Schlüssel", fallbackEmoji: "\u{1F5DD}", accent: "#C0C0D8", rarity: "rare",
