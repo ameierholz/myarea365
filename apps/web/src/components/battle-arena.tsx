@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { RoundEvent, SideStatus } from "@/lib/battle-engine";
 import type { GuardianArchetype } from "@/lib/guardian";
 import { GuardianAvatar, type AvatarAnimation } from "@/components/guardian-avatar";
+import { WeatherBadge, useCityWeather } from "@/components/weather-badge";
 
 type BAT = ReturnType<typeof useTranslations<"BattleArena">>;
 
@@ -60,6 +61,7 @@ export function CinematicBattleArena({
   const [hpB, setHpB] = useState(sideB.maxHp);
 
   const event: RoundEvent | null = useMemo(() => rounds[idx] ?? null, [rounds, idx]);
+  const weather = useCityWeather(10 * 60_000); // 10-min Polling während Kampf reicht
 
   useEffect(() => {
     if (!event) return;
@@ -275,6 +277,13 @@ export function CinematicBattleArena({
         background: "radial-gradient(ellipse, rgba(255,255,255,0.22), transparent 70%)",
         pointerEvents: "none", zIndex: 1,
       }} />
+
+      {/* Wetter-Pille oben rechts */}
+      {weather && (
+        <div style={{ position: "absolute", top: 6, right: 8, zIndex: 4 }}>
+          <WeatherBadge weather={weather} variant="compact" />
+        </div>
+      )}
 
       {/* HP-Balken oben */}
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, position: "relative", zIndex: 3, marginBottom: 6 }}>

@@ -18,6 +18,12 @@ import { DividendClaimCard } from "@/components/dividend-claim-card";
 import { CrewSynergyCard } from "@/components/crew-synergy-card";
 import { MentorCard } from "@/components/mentor-card";
 import { SeasonPassPill } from "@/components/season-pass-pill";
+import { WeatherBadge, useCityWeather } from "@/components/weather-badge";
+
+function CityWeatherPill() {
+  const w = useCityWeather();
+  return <WeatherBadge weather={w} variant="compact" />;
+}
 import { CrewModal as CrewModalDirect } from "@/components/crew-modal";
 import { RepeaterInfoPopup } from "@/components/repeater-info-popup";
 import { PlaceRepeaterModal as PlaceRepeaterModalDirect, AttackRepeaterModal as AttackRepeaterModalDirect } from "@/components/repeater-modals";
@@ -3476,6 +3482,7 @@ function ProfilTab({
             <DiamantPill />
             <BerlinCoveragePill />
             <SeasonPassPill />
+            <CityWeatherPill />
           </div>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 

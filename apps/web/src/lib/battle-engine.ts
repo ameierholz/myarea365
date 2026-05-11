@@ -12,6 +12,64 @@
 
 import { statsAtLevel, typeCounter, type GuardianArchetype, type GuardianType } from "@/lib/guardian";
 
+export type WeatherCondition = "clear" | "cloud" | "rain" | "snow" | "storm" | "heat" | "fog" | "night";
+
+export type WeatherInput = {
+  condition: WeatherCondition;
+  temperature_c?: number;
+  is_night?: boolean;
+};
+
+/**
+ * Wetter-Modifier auf Combatant-Stats. Applied einmal pre-battle.
+ * Reale Stadt-Wetterlage beeinflusst Schlacht direkt — Skill-over-Wallet-Mechanik.
+ */
+function applyWeatherToStats(c: Combatant, weather: WeatherInput | undefined): { atk: number; def: number; spd: number; note?: string } {
+  if (!weather) return { atk: c.atk, def: c.def, spd: c.spd };
+  const t = c.archetypeType;
+  let atkMult = 1, defMult = 1, spdMult = 1;
+  let note: string | undefined;
+  switch (weather.condition) {
+    case "rain":
+      if (t === "marksman") { atkMult = 0.80; note = "🌧️ Regen — Schützen-Sicht eingeschränkt"; }
+      if (t === "infantry") defMult = 1.10;
+      break;
+    case "storm":
+      if (t === "marksman") { atkMult = 0.70; note = "⛈️ Sturm — Drohnen abgelenkt"; }
+      if (t === "siege") atkMult = 1.10;
+      spdMult = 0.90;
+      break;
+    case "snow":
+      spdMult = 0.75;
+      if (t === "architect") atkMult = 1.10;
+      note = "❄️ Schnee — Marsch verlangsamt";
+      break;
+    case "heat":
+      defMult = 0.90;
+      if (t === "collector") spdMult = 1.10;
+      note = "🔥 Hitze — Erschöpfung";
+      break;
+    case "fog":
+      if (t === "marksman") atkMult = 0.85;
+      if (t === "cavalry") spdMult = 0.85;
+      note = "🌫️ Nebel — Sicht reduziert";
+      break;
+    case "night":
+      if (t === "marksman") atkMult = 0.85;
+      if (t === "cavalry") atkMult = 1.15;
+      note = "🌙 Nacht — Stealth-Vorteil";
+      break;
+    default:
+      break;
+  }
+  return {
+    atk: Math.round(c.atk * atkMult),
+    def: Math.round(c.def * defMult),
+    spd: Math.round(c.spd * spdMult),
+    note,
+  };
+}
+
 export type BattleInput = {
   guardian: {
     id: string;
@@ -520,11 +578,28 @@ function combatSkillRage(c: Combatant, event: "on_crit" | "on_hit" | "per_round"
   return 0;
 }
 
-export function runBattle(a: BattleInput, b: BattleInput, seed: string): BattleResult {
+export function runBattle(a: BattleInput, b: BattleInput, seed: string, weather?: WeatherInput): BattleResult {
   const rng = mulberry32(seedFromString(seed));
   const ca = buildCombatant("A", a);
   const cb = buildCombatant("B", b);
   const rounds: RoundEvent[] = [];
+
+  // Wetter-Modifier vor Rage-Initialisierung anwenden (real-city-mechanic)
+  if (weather) {
+    const wA = applyWeatherToStats(ca, weather);
+    const wB = applyWeatherToStats(cb, weather);
+    ca.atk = wA.atk; ca.def = wA.def; ca.spd = wA.spd;
+    cb.atk = wB.atk; cb.def = wB.def; cb.spd = wB.spd;
+    const note = wA.note ?? wB.note;
+    if (note) {
+      rounds.push({
+        round: 0, actor: "A", action: "special", damage: 0,
+        hp_a_after: ca.hp, hp_b_after: cb.hp,
+        rage_a_after: ca.rage, rage_b_after: cb.rage,
+        note,
+      });
+    }
+  }
 
   // Initiative
   let firstIsA: boolean;
