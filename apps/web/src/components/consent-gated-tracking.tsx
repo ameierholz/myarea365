@@ -7,19 +7,27 @@ import { useEffect, useState } from "react";
 import { onConsentChange } from "@/lib/consent";
 
 /**
- * DSGVO/ePrivacy-konformes Mounten von Tracking-/Werbe-Skripten.
- * Vercel Analytics + Speed-Insights laden nur bei `analytics`-Consent.
- * AdSense lädt nur bei `ads`-Consent.
- * Re-rendert automatisch beim Consent-Change (kein Page-Reload nötig).
+ * Tracking-/Werbe-Skripte mit DSGVO + Consent-Mode-v2-konformem Mounting.
+ *
+ * Wichtige Unterscheidung:
+ *  - Vercel Analytics / Speed-Insights: setzen Cookies → ECHT consent-gated
+ *  - AdSense: lädt IMMER (auch für Anonymous + Crawler), respektiert aber den
+ *    Google-Consent-Mode-v2-State aus layout.tsx (default: ad_storage=denied →
+ *    nur kontextuelle, nicht-personalisierte Anzeigen). Personalisierung wird
+ *    erst nach User-Consent via gtag('consent','update',...) freigeschaltet.
+ *
+ * Warum AdSense nicht gated wird:
+ *  AdSense-Crawler interagiert nicht mit dem Cookie-Banner. Bei strikt-gatedem
+ *  Script bekommt der Crawler `ads=false` → Script lädt nie → AdSense-Site-Review
+ *  schlägt mit "Code not found" fehl. Mit Consent-Mode-v2 ist das Always-On-Loading
+ *  rechtlich sauber (keine Werbe-Cookies bevor Consent, nur das Script-Asset).
  */
 export function ConsentGatedTracking() {
   const [analytics, setAnalytics] = useState(false);
-  const [ads, setAds] = useState(false);
 
   useEffect(() => {
     return onConsentChange((s) => {
       setAnalytics(s.analytics);
-      setAds(s.ads);
     });
   }, []);
 
@@ -27,15 +35,15 @@ export function ConsentGatedTracking() {
     <>
       {analytics && <Analytics />}
       {analytics && <SpeedInsights />}
-      {ads && (
-        <Script
-          id="adsense-script"
-          async
-          strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
-          crossOrigin="anonymous"
-        />
-      )}
+
+      {/* AdSense — IMMER laden (Consent-Mode-v2 regelt Personalisierung). */}
+      <Script
+        id="adsense-script"
+        async
+        strategy="afterInteractive"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
+        crossOrigin="anonymous"
+      />
     </>
   );
 }
