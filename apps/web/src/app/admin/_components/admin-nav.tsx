@@ -41,6 +41,7 @@ const NAV: NavGroup[] = [
       { href: "/admin/banners",           label: "📢 In-App-Banner" },
       { href: "/admin/events",            label: "🎉 Event-Trigger" },
       { href: "/admin/broadcasts",        label: "📣 Broadcasts" },
+      { href: "/admin/inbox-gifts",       label: "🎁 Inbox-Geschenke" },
     ],
   },
   {
