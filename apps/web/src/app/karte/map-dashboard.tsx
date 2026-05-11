@@ -19,6 +19,7 @@ import { CrewSynergyCard } from "@/components/crew-synergy-card";
 import { MentorCard } from "@/components/mentor-card";
 import { SeasonPassPill } from "@/components/season-pass-pill";
 import { WeatherBadge, useCityWeather } from "@/components/weather-badge";
+import { CrewHelpPill } from "@/components/crew-help-pill";
 
 function CityWeatherPill() {
   const w = useCityWeather();
@@ -3483,6 +3484,7 @@ function ProfilTab({
             <BerlinCoveragePill />
             <SeasonPassPill />
             <CityWeatherPill />
+            <CrewHelpPill />
           </div>
           <style>{`@keyframes rankShimmer { 0% { transform: translateX(0); } 100% { transform: translateX(400%); } }`}</style>
 
