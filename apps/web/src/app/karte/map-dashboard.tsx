@@ -455,7 +455,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [mapFeatures, setMapFeatures] = useState<{
     power_zones: Array<{ id: string; name: string; kind: string; center_lat: number; center_lng: number; radius_m: number; color: string; buff_hp: number; buff_atk: number; buff_def: number; buff_spd: number }>;
     boss_raids: Array<{ id: string; name: string; emoji: string; lat: number; lng: number; max_hp: number; current_hp: number; image_url?: string | null; video_url?: string | null }>;
-    sanctuaries: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean }>;
+    sanctuaries: Array<{ id: string; name: string; lat: number; lng: number; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null }>;
     explored_cells: Array<{ cell_x: number; cell_y: number }>;
   } | null>(null);
   const [lorePieces, setLorePieces] = useState<Array<{ piece_id: string; lat: number; lng: number; name: string; set_name?: string }>>([]);
@@ -2742,6 +2742,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               if (data.error === "already_trained_today") { await appAlert(tMD("alreadyTrainedToday")); return; }
               if (data.error === "too_far") { await appAlert(tMD("tooFarTemple", { meters: data.distance_m })); return; }
               if (data.error === "location_required") { await appAlert(tMD("gpsRequired")); return; }
+              if (data.error === "sanctuary_expired") {
+                await appAlert("Dieses Sanctuary ist abgelaufen — gleich rotiert die Karte und es spawnt an einer neuen Stelle.");
+                const r = await fetch("/api/map-features", { cache: "no-store" });
+                if (r.ok) setMapFeatures(await r.json());
+                return;
+              }
               if (data.ok) {
                 await appAlert(`🙏 +${data.xp_gained} Wächter-Erfahrung`);
                 const r = await fetch("/api/map-features", { cache: "no-store" });

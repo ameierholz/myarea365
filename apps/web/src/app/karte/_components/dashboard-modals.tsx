@@ -1,7 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+
+function fmtRemaining(target: string | null | undefined): string | null {
+  if (!target) return null;
+  const ms = new Date(target).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
 /* ═══ Power-Zone Modal ═══ */
 export function PowerZoneModal({ zone, onClose }: {
@@ -152,7 +162,7 @@ export function BossRaidModal({ boss, distM, inRange, onClose, onAttack }: {
 
 /* ═══ Sanctuary Modal ═══ */
 export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: {
-  sanctuary: { id: string; name: string; emoji: string; xp_reward: number; trained_today?: boolean };
+  sanctuary: { id: string; name: string; emoji: string; xp_reward: number; trained_today?: boolean; valid_until?: string | null };
   distM: number | null;
   inRange: boolean;
   onClose: () => void;
@@ -160,6 +170,14 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
 }) {
   const tMD = useTranslations("MapDashboard");
   const [training, setTraining] = useState(false);
+  const [remaining, setRemaining] = useState<string | null>(fmtRemaining(sanctuary.valid_until));
+  useEffect(() => {
+    if (!sanctuary.valid_until) return;
+    const tick = () => setRemaining(fmtRemaining(sanctuary.valid_until));
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [sanctuary.valid_until]);
   const done = !!sanctuary.trained_today;
   const disabled = done || training || !inRange;
   const fmtDist = (m: number) => m < 1000 ? `${m} m` : `${(m/1000).toFixed(1)} km`;
@@ -168,9 +186,14 @@ export function SanctuaryModal({ sanctuary, distM, inRange, onClose, onTrain }: 
       <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 400, width: "100%", maxHeight: "100dvh", overflowY: "auto", background: "linear-gradient(160deg, #002b30 0%, #0F1115 90%)", borderRadius: 14, padding: 10, border: "2px solid rgba(34,209,195,0.6)", color: "#FFF", textAlign: "center", boxShadow: "0 0 30px rgba(34,209,195,0.4)" }}>
         <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>{sanctuary.emoji}</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>{sanctuary.name}</div>
-        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 14, letterSpacing: 0.6 }}>Wächter-SANCTUARY</div>
+        <div style={{ fontSize: 11, color: "#5ddaf0", fontWeight: 800, marginBottom: 10, letterSpacing: 0.6 }}>Wächter-SANCTUARY</div>
+        {remaining && (
+          <div style={{ fontSize: 11, color: "#FFD700", fontWeight: 800, marginBottom: 12, padding: "5px 10px", borderRadius: 999, background: "rgba(255,215,0,0.1)", border: "1px solid rgba(255,215,0,0.35)", display: "inline-block" }}>
+            ⏳ Rotiert in {remaining}
+          </div>
+        )}
         <div style={{ fontSize: 12, color: "#a8b4cf", marginBottom: 14, lineHeight: 1.5 }}>
-          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen.
+          Tägliches Training stärkt deinen Wächter. Komm einmal pro Tag vorbei, um <strong style={{ color: "#22D1C3" }}>+{sanctuary.xp_reward} Wächter-Erfahrung</strong> zu holen. Jede Nacht spawnt das Sanctuary an einem anderen Ort im Bezirk.
         </div>
         {distM !== null && (
           <div style={{
