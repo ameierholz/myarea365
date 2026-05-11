@@ -13,6 +13,8 @@ type CatalogItem = {
   rarity: string;
 };
 type SelectedItem = { catalog_id: string; count: number; name: string; emoji: string };
+type City = { slug: string; name: string };
+type Mode = "ids" | "all" | "city";
 
 const CATEGORY_LABEL: Record<string, string> = {
   chest: "Truhen", speedup: "Beschleuniger", boost: "Boosts", elixir: "Elixiere",
@@ -23,7 +25,12 @@ const RARITY_COLOR: Record<string, string> = {
 };
 
 export function InboxGiftsClient() {
+  const [mode, setMode] = useState<Mode>("ids");
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [citySlug, setCitySlug] = useState<string>("");
+  const [filterCount, setFilterCount] = useState<number | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Recipient[]>([]);
   const [searching, setSearching] = useState(false);
@@ -42,14 +49,30 @@ export function InboxGiftsClient() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
-  // Catalog laden
+  // Catalog + Cities laden
   useEffect(() => {
     let cancelled = false;
     fetch("/api/admin/inbox-gifts").then((r) => r.json()).then((j) => {
       if (!cancelled && j.items) setCatalog(j.items as CatalogItem[]);
     });
+    fetch("/api/admin/inbox-gifts?action=cities").then((r) => r.json()).then((j) => {
+      if (!cancelled && j.cities) setCities(j.cities as City[]);
+    });
     return () => { cancelled = true; };
   }, []);
+
+  // Live-Preview Count (für all/city, bei ids zählen wir lokal)
+  useEffect(() => {
+    if (mode === "ids") { setFilterCount(recipients.length); return; }
+    if (mode === "city" && !citySlug) { setFilterCount(null); return; }
+    let cancelled = false;
+    const qs = new URLSearchParams({ action: "count", mode });
+    if (mode === "city") qs.set("city_slug", citySlug);
+    fetch(`/api/admin/inbox-gifts?${qs}`).then((r) => r.json()).then((j) => {
+      if (!cancelled) setFilterCount(typeof j.count === "number" ? j.count : null);
+    });
+    return () => { cancelled = true; };
+  }, [mode, citySlug, recipients.length]);
 
   // Empfänger-Search (debounced)
   useEffect(() => {
@@ -116,16 +139,28 @@ export function InboxGiftsClient() {
   }, [res, selected]);
 
   async function send() {
-    if (recipients.length === 0) { setResult({ kind: "err", msg: "Mindestens 1 Empfänger wählen" }); return; }
+    if (mode === "ids" && recipients.length === 0) { setResult({ kind: "err", msg: "Mindestens 1 Empfänger wählen" }); return; }
+    if (mode === "city" && !citySlug) { setResult({ kind: "err", msg: "Stadt wählen" }); return; }
     if (!title.trim()) { setResult({ kind: "err", msg: "Title fehlt" }); return; }
     if (!body.trim()) { setResult({ kind: "err", msg: "Body fehlt" }); return; }
     if (!reason.trim()) { setResult({ kind: "err", msg: "Grund (Audit) fehlt" }); return; }
+
+    if (mode !== "ids" && filterCount && filterCount > 50) {
+      const ok = window.confirm(`Wirklich an ${filterCount} Spieler senden?\n\nDas erzeugt ${filterCount} Inbox-Nachrichten und kann nicht rückgängig gemacht werden.`);
+      if (!ok) return;
+    }
+
+    const filter =
+      mode === "ids" ? { mode: "ids" as const, ids: recipients.map((x) => x.id) } :
+      mode === "all" ? { mode: "all" as const } :
+                       { mode: "city" as const, city_slug: citySlug };
+
     setSubmitting(true); setResult(null);
     try {
       const r = await fetch("/api/admin/inbox-gifts", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipient_ids: recipients.map((x) => x.id),
+          filter,
           title: title.trim(),
           body: body.trim(),
           resources: res,
@@ -137,8 +172,8 @@ export function InboxGiftsClient() {
       if (!r.ok || !j.ok) {
         setResult({ kind: "err", msg: j.error ?? "Unbekannter Fehler" });
       } else {
-        setResult({ kind: "ok", msg: `✓ An ${j.sent_count ?? recipients.length} Empfänger gesendet` });
-        // Form reset (Empfänger bleibt, falls noch mehr zu senden)
+        const n = j.recipient_count ?? j.sent_count ?? "?";
+        setResult({ kind: "ok", msg: `✓ An ${n} Empfänger gesendet` });
         setTitle(""); setBody(""); setReason("");
         setRes({ wood: 0, stone: 0, gold: 0, mana: 0, gems: 0, speed_tokens: 0 });
         setSelected([]);
@@ -159,6 +194,40 @@ export function InboxGiftsClient() {
         {/* ── Linke Spalte: Empfänger + Inhalt ── */}
         <Card>
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#8b8fa3] mb-3">1 · Empfänger</div>
+
+          {/* Mode-Switcher */}
+          <div className="flex gap-1 mb-3 bg-white/5 rounded-lg p-1">
+            <ModeBtn active={mode === "ids"} onClick={() => setMode("ids")}>🎯 Direkt</ModeBtn>
+            <ModeBtn active={mode === "all"} onClick={() => setMode("all")}>🌐 Alle Spieler</ModeBtn>
+            <ModeBtn active={mode === "city"} onClick={() => setMode("city")}>🏙️ Pro Stadt</ModeBtn>
+          </div>
+
+          {/* Mode: All */}
+          {mode === "all" && (
+            <div className="mb-3 p-3 rounded-lg bg-[#FF2D78]/10 border border-[#FF2D78]/30 text-xs text-[#FF6B8D]">
+              ⚠️ <strong>Broadcast an alle</strong> aktiven, nicht-banned Spieler.
+              {filterCount !== null && <span className="ml-1">Aktuell <strong>{filterCount}</strong> Empfänger.</span>}
+            </div>
+          )}
+
+          {/* Mode: City */}
+          {mode === "city" && (
+            <div className="mb-3">
+              <Select value={citySlug} onChange={(e) => setCitySlug(e.target.value)} className="w-full">
+                <option value="">— Stadt wählen —</option>
+                {cities.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+              </Select>
+              {citySlug && filterCount !== null && (
+                <div className="text-[11px] text-[#a8b4cf] mt-2">
+                  Wird an <strong className="text-[#22D1C3]">{filterCount}</strong> Spieler in <strong>{cities.find((c) => c.slug === citySlug)?.name ?? citySlug}</strong> gesendet
+                  {filterCount === 0 && <span className="text-[#FF6B8D]"> — niemand zugeordnet</span>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mode: IDs (Search + Chips) */}
+          {mode === "ids" && <>
           <div className="relative mb-3">
             <Input
               placeholder="Nach Username, Display-Name oder E-Mail suchen…"
@@ -190,6 +259,7 @@ export function InboxGiftsClient() {
               </div>
             ))}
           </div>
+          </>}
 
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#8b8fa3] mb-2">2 · Inhalt</div>
           <label className="text-[10px] text-[#8b8fa3]">Title (Pattern: <code className="text-[#22D1C3]">🎁 WAS · WOHER · WARUM</code>)</label>
@@ -292,18 +362,34 @@ export function InboxGiftsClient() {
       {/* ── Submit ── */}
       <div className="mt-4 flex items-center justify-between gap-4">
         <div className="text-xs text-[#8b8fa3]">
-          {recipients.length} Empfänger · {hasAnyReward ? "Belohnung enthalten" : "Info-Nachricht (kein Reward)"}
+          {filterCount ?? "?"} Empfänger · {hasAnyReward ? "Belohnung enthalten" : "Info-Nachricht (kein Reward)"}
         </div>
         <div className="flex items-center gap-3">
           {result && (
             <div className={result.kind === "ok" ? "text-xs text-[#4ade80]" : "text-xs text-[#FF2D78]"}>{result.msg}</div>
           )}
-          <Button onClick={send} disabled={submitting || recipients.length === 0}>
-            {submitting ? "Sende…" : `Senden an ${recipients.length}`}
+          <Button
+            onClick={send}
+            disabled={submitting || (mode === "ids" && recipients.length === 0) || (mode === "city" && !citySlug) || (filterCount === 0)}
+          >
+            {submitting ? "Sende…" : `Senden an ${filterCount ?? "?"}`}
           </Button>
         </div>
       </div>
     </div>
+  );
+}
+
+function ModeBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 px-2 py-1.5 rounded-md text-xs font-bold transition-colors ${
+        active ? "bg-[#22D1C3] text-[#0F1115]" : "text-[#a8b4cf] hover:bg-white/5"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
