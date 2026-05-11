@@ -2757,7 +2757,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                 return;
               }
               if (data.ok) {
-                await appAlert(`🙏 +${data.xp_gained} Wächter-Erfahrung`);
+                const potCount = data.pot_count ?? 5;
+                await appAlert(`🏺 ${potCount}× Großes Erfahrung-Elixier in deiner Inbox — Einsammeln und auf deinen Wächter anwenden.`);
                 const r = await fetch("/api/map-features", { cache: "no-store" });
                 if (r.ok) setMapFeatures(await r.json());
               }
