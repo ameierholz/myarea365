@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useInventoryItemArt } from "@/components/resource-icon";
+import { RecruitmentModal } from "@/components/recruitment-modal";
 
 const PRIMARY = "#22D1C3";
 const GOLD = "#FFD700";
@@ -87,6 +88,7 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recruitTier, setRecruitTier] = useState<"silver" | "gold" | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -308,9 +310,15 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
             onOpenChest={selected.category === "chest" && selected.consumeId
               ? (() => {
                   const kind = (selected.payload?.kind as string | undefined);
-                  if (kind === "random_one") return () => openResourceChest(selected.consumeId!, null);
+                  const id = selected.consumeId!;
+                  if (kind === "random_one") return () => openResourceChest(id, null);
                   if (kind === "choice_one") return undefined; // handled via onChoiceChest below
-                  return () => openChestWithKey(selected.consumeId!);
+                  // chest_silver/gold → CoD-Style Recruitment-Modal (Pity, Hero-Marken)
+                  if (id === "chest_silver" || id === "chest_gold") {
+                    return () => { setRecruitTier(id === "chest_silver" ? "silver" : "gold"); setSelected(null); };
+                  }
+                  // chest_event/legendary → deterministische Truhe (alte Logik)
+                  return () => openChestWithKey(id);
                 })()
               : undefined}
             onChoiceChest={selected.category === "chest" && selected.consumeId && (selected.payload?.kind === "choice_one")
@@ -321,6 +329,13 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
               : undefined}
             busy={busy === selected.consumeId}
             t={t}
+          />
+        )}
+
+        {recruitTier && (
+          <RecruitmentModal
+            initialTier={recruitTier}
+            onClose={() => { setRecruitTier(null); void load(); }}
           />
         )}
       </div>
