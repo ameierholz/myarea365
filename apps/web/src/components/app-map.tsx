@@ -995,8 +995,9 @@ export function AppMap({
     }
 
     // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons
-    // Attribution + Logo nach oben links — unten ist Chat-Widget + QuickAccess-Bar.
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "top-left");
+    // Logo bleibt top-left (Mapbox-Pflicht-Branding), Attribution-Icon nach top-right
+    // damit die zwei Elemente sich nicht überlagern.
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "top-right");
 
     // Wheel-Zoom snappier — Default 1/450 reagiert träge (gefühlte 2-3 Klicks
     // bevor die Karte zoomt), 1/200 macht jeden Wheel-Schritt sofort sichtbar.
