@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { assertSameOrigin } from "@/lib/csrf";
 
-const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/privacy", "/impressum", "/agb", "/terms", "/unsubscribe", "/leaderboard", "/pricing", "/loot-drops", "/support"];
-const PUBLIC_PREFIXES = ["/u/", "/crew/", "/api/share-card/"];
+const PUBLIC_ROUTES = ["/", "/login", "/registrieren", "/registrierung-bestaetigen", "/onboarding", "/datenschutz", "/privacy", "/impressum", "/agb", "/terms", "/unsubscribe", "/leaderboard", "/pricing", "/loot-drops", "/support", "/blog", "/saga", "/kvk"];
+const PUBLIC_PREFIXES = ["/u/", "/crew/", "/api/share-card/", "/blog/"];
 
 // API-Pfade die CSRF-frei sind: Stripe-Webhook (eigene Signatur), Cron (CRON_SECRET).
 const CSRF_SKIP_PREFIXES = ["/api/stripe/webhook", "/api/cron/", "/api/health"];
