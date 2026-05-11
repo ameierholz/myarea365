@@ -1123,11 +1123,7 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
     subject: "an ornate medieval silver skeleton-key with intricate filigree bow, polished silver, soft cool glow, slight ring-loop" },
   { id: "key_gold",   category: "key", name: "Goldener Schlüssel",  fallbackEmoji: "\u{1F5DD}", accent: "#FFD700", rarity: "epic",
     subject: "an ornate medieval gold skeleton-key with intricate dragon-shaped bow, polished brilliant gold, warm radiant glow, gem-inset ring-loop" },
-  // ELIXIRS
-  { id: "elixir_5k",  category: "elixir", name: "Wächter-Elixier (5.000 XP)",  fallbackEmoji: "\u{1F9EA}", accent: "#a855f7", rarity: "rare",
-    subject: "a tall ornate glass elixir bottle with swirling violet liquid and golden bubble caps, a small XP-rune label, magical violet glow" },
-  { id: "elixir_20k", category: "elixir", name: "Wächter-Elixier (20.000 XP)", fallbackEmoji: "\u{1F9EA}", accent: "#FFD700", rarity: "epic",
-    subject: "a regal large ornate glass elixir bottle with swirling gold liquid and prismatic cap, brilliant XP-burst rune label, intense golden god-light" },
+  // ELIXIRS — xp_pot_s/m/l werden über guardian-xp-Tab gepflegt (artwork-targets.ts)
   // TOKENS
   { id: "token_relocate", category: "token", name: "Umsiedlungs-Token", fallbackEmoji: "\u{1F3AB}", accent: "#5ddaf0", rarity: "rare",
     subject: "an ornate hexagonal coin-medallion with a stylized map-pin + arrow emblem, polished cyan-silver finish, soft teleport glow" },
