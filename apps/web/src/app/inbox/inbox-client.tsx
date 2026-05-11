@@ -392,7 +392,7 @@ function MessageDetail({ msg, resourceArt, uiArt, onClose, onDelete, onStar, onC
         {/* Body — entweder strukturierter Renderer oder Plain-Text */}
         {msg.kind === "battle_report" || msg.kind === "rally_report"
           ? <BattleReportView msg={msg} resourceArt={resourceArt} />
-          : msg.kind === "spy_report"
+          : msg.kind === "spy_report" || msg.kind === "spy_warning"
           ? <SpyReportView msg={msg} resourceArt={resourceArt} />
           : msg.reward_payload
           ? <SystemRewardView msg={msg} resourceArt={resourceArt} onClaim={onClaim} />
@@ -419,13 +419,82 @@ function MessageDetail({ msg, resourceArt, uiArt, onClose, onDelete, onStar, onC
   );
 }
 
+// ─── Wächter-Snapshot aus Inbox-Payload ─────────────────────────────
+type GuardianSnap = {
+  archetype_id?: string;
+  name?: string;
+  emoji?: string;
+  rarity?: string;
+  guardian_type?: string;
+  ability_name?: string;
+  ability_desc?: string;
+  level?: number;
+};
+
+const TYPE_LABEL_DE: Record<string, string> = {
+  infantry: "🪖 Türsteher",
+  cavalry: "🏍️ Kurier",
+  marksman: "🚁 Schütze",
+  siege: "💥 Brecher",
+  collector: "🎒 Sammler",
+  architect: "🏗️ Konstrukteur",
+};
+
+const RARITY_COLOR: Record<string, string> = {
+  common: "#8B8FA3", uncommon: "#4ade80", rare: "#22D1C3",
+  epic: "#a855f7", legendary: "#FFD700", mythic: "#FF2D78",
+};
+
+function GuardianCard({ snap, label, accent }: { snap: GuardianSnap | null | undefined; label: string; accent: string }) {
+  if (!snap || !snap.name) return null;
+  const rarityCol = RARITY_COLOR[snap.rarity ?? "common"] ?? "#8B8FA3";
+  return (
+    <div className="rounded-xl p-3 flex flex-col gap-2"
+         style={{ background: `linear-gradient(135deg, ${accent}22, transparent)`, border: `1px solid ${accent}55` }}>
+      <div className="text-[9px] font-black tracking-[1.5px]" style={{ color: accent }}>{label.toUpperCase()}</div>
+      <div className="flex items-center gap-2">
+        <div className="text-2xl">{snap.emoji ?? "🐲"}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-black text-white truncate">{snap.name}</div>
+          <div className="text-[10px] font-black" style={{ color: rarityCol }}>
+            {(snap.rarity ?? "common").toUpperCase()} · Lv {snap.level ?? 1}
+            {snap.guardian_type && <span className="text-white/60 ml-1.5">· {TYPE_LABEL_DE[snap.guardian_type] ?? snap.guardian_type}</span>}
+          </div>
+        </div>
+      </div>
+      {snap.ability_name && (
+        <div className="rounded-lg px-2.5 py-1.5"
+             style={{ background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.25)" }}>
+          <div className="text-[10px] font-black text-[#FFD700]">⚡ {snap.ability_name}</div>
+          {snap.ability_desc && (
+            <div className="text-[10px] text-white/75 leading-snug mt-0.5">{snap.ability_desc}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Renderer: BattleReport ─────────────────────────────────────────
 function BattleReportView({ msg, resourceArt }: { msg: Msg; resourceArt: ReturnType<typeof useResourceArt> }) {
-  // Body ist Klartext — extrahiere Werte heuristisch falls payload fehlt.
+  const p = (msg.payload ?? {}) as {
+    perspective?: "attacker" | "defender";
+    attacker_guardian?: GuardianSnap | null;
+    defender_guardian?: GuardianSnap | null;
+  };
+  const isAttacker = p.perspective !== "defender";
+  const own = isAttacker ? p.attacker_guardian : p.defender_guardian;
+  const enemy = isAttacker ? p.defender_guardian : p.attacker_guardian;
+
   return (
     <div className="space-y-3">
+      {(own || enemy) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <GuardianCard snap={own}   label="Dein Wächter"   accent="#22D1C3" />
+          <GuardianCard snap={enemy} label="Gegner-Wächter" accent="#FF2D78" />
+        </div>
+      )}
       <div className="text-[13px] text-white/85 whitespace-pre-wrap leading-relaxed">{msg.body}</div>
-      {/* Zukünftig: msg.payload mit strukturierten Werten rendern */}
       {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
       {(() => { void resourceArt; return null; })()}
     </div>
@@ -434,8 +503,17 @@ function BattleReportView({ msg, resourceArt }: { msg: Msg; resourceArt: ReturnT
 
 // ─── Renderer: SpyReport ────────────────────────────────────────────
 function SpyReportView({ msg, resourceArt }: { msg: Msg; resourceArt: ReturnType<typeof useResourceArt> }) {
+  const p = (msg.payload ?? {}) as {
+    perspective?: "spy" | "spy_warning";
+    active_guardian?: GuardianSnap | null;
+    attacker_guardian?: GuardianSnap | null;
+  };
+  const guardian = p.perspective === "spy_warning" ? p.attacker_guardian : p.active_guardian;
+  const label    = p.perspective === "spy_warning" ? "Späher-Wächter" : "Gegner-Wächter";
+
   return (
     <div className="space-y-3">
+      {guardian && <GuardianCard snap={guardian} label={label} accent="#a855f7" />}
       <div className="text-[13px] text-white/85 whitespace-pre-wrap leading-relaxed">{msg.body}</div>
       {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
       {(() => { void resourceArt; return null; })()}

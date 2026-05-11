@@ -16,6 +16,7 @@ export type SidePayload = {
     rarity: GuardianArchetype["rarity"];
     image_url?: string | null;
     video_url?: string | null;
+    ability_name?: string | null;
   };
   level: number;
   maxHp: number;
@@ -121,7 +122,13 @@ export function CinematicBattleArena({
     }
 
     // Banner für Specials
-    if (event.note && (event.action === "crit" || event.action === "flame" || event.action === "poison" || event.action === "revive" || event.action === "stunned" || event.action === "special")) {
+    if (event.action === "ult") {
+      // Ult-Banner zeigt echten Skill-Namen statt technische abilityId
+      const skillName = (actor === "A" ? sideA.archetype.ability_name : sideB.archetype.ability_name) ?? event.note ?? "";
+      const guardianName = (actor === "A" ? sideA.name : sideB.name).toUpperCase();
+      setBannerText(`⚡ ${guardianName} · ${skillName}`);
+      setTimeout(() => setBannerText(null), 1600);
+    } else if (event.note && (event.action === "crit" || event.action === "flame" || event.action === "poison" || event.action === "revive" || event.action === "stunned" || event.action === "special")) {
       setBannerText(event.note);
       setTimeout(() => setBannerText(null), 1300);
     }
@@ -271,8 +278,8 @@ export function CinematicBattleArena({
 
       {/* HP-Balken oben */}
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, position: "relative", zIndex: 3, marginBottom: 6 }}>
-        <HpBar side="left"  name={sideA.name} hp={hpA} max={sideA.maxHp} pct={pctA} level={sideA.level} status={event?.status_a} />
-        <HpBar side="right" name={sideB.name} hp={hpB} max={sideB.maxHp} pct={pctB} level={sideB.level} status={event?.status_b} />
+        <HpBar side="left"  name={sideA.name} hp={hpA} max={sideA.maxHp} pct={pctA} level={sideA.level} status={event?.status_a} abilityName={sideA.archetype.ability_name ?? null} />
+        <HpBar side="right" name={sideB.name} hp={hpB} max={sideB.maxHp} pct={pctB} level={sideB.level} status={event?.status_b} abilityName={sideB.archetype.ability_name ?? null} />
       </div>
 
       {/* Arena-Stage mit Avataren */}
@@ -650,8 +657,8 @@ function buildCommentary(t: BAT, event: RoundEvent, actorName: string, victimNam
   }
 }
 
-function HpBar({ side, name, hp, max, pct, level, status }: {
-  side: "left" | "right"; name: string; hp: number; max: number; pct: number; level: number; status?: SideStatus;
+function HpBar({ side, name, hp, max, pct, level, status, abilityName }: {
+  side: "left" | "right"; name: string; hp: number; max: number; pct: number; level: number; status?: SideStatus; abilityName?: string | null;
 }) {
   const t = useTranslations("BattleArena");
   const align = side === "left" ? "flex-start" : "flex-end";
@@ -680,6 +687,16 @@ function HpBar({ side, name, hp, max, pct, level, status }: {
       }}>
         {name} <span style={{ color: "#a8b4cf", fontWeight: 700 }}>· Lv {level}</span>
       </div>
+      {abilityName && (
+        <div style={{
+          fontSize: 9, fontWeight: 900, color: "#FFD700",
+          textAlign: side, textShadow: "0 1px 3px rgba(0,0,0,0.9)",
+          letterSpacing: 0.5, marginTop: 1,
+          maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>
+          ⚡ {abilityName}
+        </div>
+      )}
       <div className={critical ? "hp-bar-crit" : ""} style={{
         width: "100%", height: 12, borderRadius: 6,
         background: "rgba(0,0,0,0.6)",
