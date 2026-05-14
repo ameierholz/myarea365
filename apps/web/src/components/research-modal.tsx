@@ -24,8 +24,8 @@ export function ResearchModal({ open, onClose }: { open: boolean; onClose: () =>
       <ModalHeader title="Forschung" onClose={onClose} accent="primary" />
       <ResourceHeader />
       <ModalBody padding="padded">
-        <div style={{ marginBottom: 8 }}>
-          <WeatherActionHint lever="research" />
+        <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
+          <WeatherActionHint lever="research" compact />
         </div>
         <ResearchTab accent={ACCENT} reload={reload} />
       </ModalBody>

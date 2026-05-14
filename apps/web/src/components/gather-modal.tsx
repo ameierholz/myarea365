@@ -204,72 +204,72 @@ export function GatherModal({
         className="absolute rounded-2xl bg-[#1A1D23] border border-[#FFD700]/50 shadow-2xl flex flex-col overflow-hidden"
         style={{ left, top, width: POPUP_W, maxHeight: maxH, boxShadow: "0 12px 40px rgba(0,0,0,0.55)" }}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center gap-3">
+        {/* Header — kompakt */}
+        <div className="p-3 border-b border-white/10 flex items-center gap-2.5">
           {nodeArt?.video_url ? (
-            <video src={nodeArt.video_url} autoPlay loop muted playsInline className="w-20 h-20 object-contain shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
+            <video src={nodeArt.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-contain shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
           ) : nodeArt?.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={nodeArt.image_url} alt={meta.label} className="w-20 h-20 object-contain shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
+            <img src={nodeArt.image_url} alt={meta.label} className="w-14 h-14 object-contain shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
           ) : (
-            <span className="text-5xl">{meta.emoji}</span>
+            <span className="text-4xl">{meta.emoji}</span>
           )}
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-black tracking-widest text-[#FFD700]">PLÜNDERZUG</div>
-            <div className="text-base font-black text-white truncate">{node.name ?? meta.label} — Lv {node.level}</div>
-            <div className="text-[11px] text-[#a8b4cf] flex items-center gap-1.5">
+            <div className="text-[9px] font-black tracking-widest text-[#FFD700]">PLÜNDERZUG</div>
+            <div className="text-[13px] font-black text-white truncate leading-tight">{node.name ?? meta.label} — Lv {node.level}</div>
+            <div className="text-[10px] text-[#a8b4cf] flex items-center gap-1 mt-0.5">
               {rssArt?.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={rssArt.image_url} alt="" className="w-7 h-7 object-contain inline-block shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
+                <img src={rssArt.image_url} alt="" className="w-5 h-5 object-contain inline-block shrink-0" style={{ filter: "url(#ma365-chroma-black)" }} />
               ) : (
-                <span className="text-base">{meta.resourceEmoji}</span>
+                <span>{meta.resourceEmoji}</span>
               )}
-              <span>{node.current_yield.toLocaleString("de-DE")} {meta.resourceLabel} verfügbar</span>
+              <span>{node.current_yield.toLocaleString("de-DE")} {meta.resourceLabel}</span>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/40 text-white text-lg shrink-0">×</button>
+          <button onClick={onClose} className="w-7 h-7 rounded-full bg-black/40 text-white text-base shrink-0">×</button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Body — kompakt */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
           {/* Distanz / Walk-Zeit */}
-          <div className="rounded-xl bg-white/5 border border-white/10 p-3 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 grid grid-cols-3 gap-2 text-center">
             <div>
-              <div className="text-[9px] font-black tracking-widest text-[#a8b4cf]">DISTANZ</div>
-              <div className="text-sm font-black text-white mt-1">{distM > 1000 ? `${(distM/1000).toFixed(1)} km` : `${Math.round(distM)} m`}</div>
+              <div className="text-[8px] font-black tracking-widest text-[#a8b4cf]">DISTANZ</div>
+              <div className="text-[12px] font-black text-white">{distM > 1000 ? `${(distM/1000).toFixed(1)} km` : `${Math.round(distM)} m`}</div>
             </div>
             <div>
-              <div className="text-[9px] font-black tracking-widest text-[#a8b4cf]">HINWEG</div>
-              <div className="text-sm font-black text-[#22D1C3] mt-1">{fmtDuration(walkS)}</div>
+              <div className="text-[8px] font-black tracking-widest text-[#a8b4cf]">HINWEG</div>
+              <div className="text-[12px] font-black text-[#22D1C3]">{fmtDuration(walkS)}</div>
             </div>
             <div>
-              <div className="text-[9px] font-black tracking-widest text-[#a8b4cf]">GESAMT</div>
-              <div className="text-sm font-black text-[#FFD700] mt-1">{fmtDuration(totalS)}</div>
+              <div className="text-[8px] font-black tracking-widest text-[#a8b4cf]">GESAMT</div>
+              <div className="text-[12px] font-black text-[#FFD700]">{fmtDuration(totalS)}</div>
             </div>
           </div>
 
           {/* Wächter */}
           <div>
-            <div className="text-[10px] font-black tracking-widest text-[#a8b4cf] mb-2">PLÜNDER-BEGLEITER</div>
+            <div className="text-[9px] font-black tracking-widest text-[#a8b4cf] mb-1">PLÜNDER-BEGLEITER</div>
             {guardians.length === 0 ? (
-              <div className="text-[11px] text-[#a8b4cf] py-3 text-center bg-white/5 rounded-lg border border-white/10">
-                Kein aktiver Wächter — aktiviere zuerst einen Wächter.
+              <div className="text-[10px] text-[#a8b4cf] py-1.5 px-2 text-center bg-white/5 rounded-lg border border-white/10">
+                Kein aktiver Wächter — aktiviere zuerst einen.
               </div>
             ) : (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {guardians.map((g) => (
                   <button key={g.id} onClick={() => setSelectedGuardian(g.id)}
-                    className={`shrink-0 w-20 h-24 rounded-lg flex flex-col items-center justify-center text-xs font-black overflow-hidden ${selectedGuardian === g.id ? "bg-[#FFD700]/20 border-2 border-[#FFD700]" : "bg-white/5 border border-white/10"}`}>
+                    className={`shrink-0 w-16 h-20 rounded-lg flex flex-col items-center justify-center overflow-hidden ${selectedGuardian === g.id ? "bg-[#FFD700]/20 border-2 border-[#FFD700]" : "bg-white/5 border border-white/10"}`}>
                     {g.video_url ? (
-                      <video src={g.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
+                      <video src={g.video_url} autoPlay loop muted playsInline className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
                     ) : g.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={g.image_url} alt={g.name} className="w-14 h-14 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
+                      <img src={g.image_url} alt={g.name} className="w-12 h-12 object-cover rounded" style={{ filter: "url(#ma365-chroma-black)" }} />
                     ) : (
-                      <span className="text-2xl">🛡</span>
+                      <span className="text-xl">🛡</span>
                     )}
-                    <span className="text-[9px] text-white truncate w-full px-1 mt-1">{g.name}</span>
-                    <span className="text-[9px] text-[#FFD700]">Lv {g.level}</span>
+                    <span className="text-[8px] text-white truncate w-full px-1 mt-0.5 leading-tight">{g.name}</span>
+                    <span className="text-[8px] text-[#FFD700] leading-tight">Lv {g.level}</span>
                   </button>
                 ))}
               </div>
@@ -278,52 +278,48 @@ export function GatherModal({
 
           {/* Truppen-Slider */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-[10px] font-black tracking-widest text-[#a8b4cf]">TRUPPEN</div>
-              <div className="text-sm font-black text-white">{troopCount.toLocaleString("de-DE")}</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[9px] font-black tracking-widest text-[#a8b4cf]">TRUPPEN</div>
+              <div className="text-[12px] font-black text-white">{troopCount.toLocaleString("de-DE")}</div>
             </div>
             <input
               type="range" min={100} max={2000} step={100} value={troopCount}
               onChange={(e) => setTroopCount(parseInt(e.target.value, 10))}
               className="w-full accent-[#FFD700]"
             />
-            <div className="flex justify-between text-[9px] text-[#6c7590] mt-1">
+            <div className="flex justify-between text-[8px] text-[#6c7590]">
               <span>100</span><span>1000</span><span>2000</span>
             </div>
-            <div className="text-[10px] text-[#a8b4cf] mt-2">
-              Plünderzeit: <span className="text-[#22D1C3] font-black">{fmtDuration(gatherS)}</span> · Mehr Banditen = schneller.
+            <div className="text-[9px] text-[#a8b4cf] mt-1">
+              Plünderzeit: <span className="text-[#22D1C3] font-black">{fmtDuration(gatherS)}</span> · mehr = schneller
             </div>
           </div>
 
           {node.gather_active && (
-            <div className={`text-[12px] rounded p-2 border ${node.gather_mine ? "text-[#4ade80] bg-[#4ade80]/10 border-[#4ade80]/40" : "text-[#FF6B8D] bg-[#FF2D78]/10 border-[#FF2D78]/40"}`}>
-              <div className="font-black">
-                {node.gather_mine ? "🟢 Dein Trupp ist aktiv" : "🔴 Belegt von fremder Crew"}
+            <div className={`text-[11px] rounded p-1.5 border ${node.gather_mine ? "text-[#4ade80] bg-[#4ade80]/10 border-[#4ade80]/40" : "text-[#FF6B8D] bg-[#FF2D78]/10 border-[#FF2D78]/40"}`}>
+              <div className="font-black text-[10px]">
+                {node.gather_mine ? "🟢 Dein Trupp aktiv" : "🔴 Belegt von fremder Crew"}
               </div>
-              <div className="mt-0.5 text-[11px] opacity-90">
-                Plünderer:{" "}
+              <div className="text-[10px] opacity-90">
                 {node.gather_crew_tag && <span className="font-bold">[{node.gather_crew_tag}]</span>}{" "}
                 <span className="font-bold">{node.gather_username ?? "Unbekannt"}</span>
                 {node.gather_someone_gathering && node.gather_finish_at && (
                   <> · fertig in <CountdownText finishAt={node.gather_finish_at} /></>
                 )}
               </div>
-              <div className="mt-0.5 text-[10px] opacity-75">
-                Pro Plünderziel ist nur ein Trupp gleichzeitig erlaubt — warte bis er fertig ist.
-              </div>
             </div>
           )}
-          {err && <div className="text-[12px] text-[#FF6B4A] bg-[#FF6B4A]/10 border border-[#FF6B4A]/30 rounded p-2">{err}</div>}
+          {err && <div className="text-[11px] text-[#FF6B4A] bg-[#FF6B4A]/10 border border-[#FF6B4A]/30 rounded p-1.5">{err}</div>}
 
-          {/* Wetter+Tageszeit-Effekte auf Marsch und Sammel-Yield */}
-          <div className="flex flex-col gap-1.5">
-            <WeatherActionHint lever="movement" />
-            <WeatherActionHint lever="gather" />
+          {/* Wetter+Tageszeit — kompakt zweizeilig */}
+          <div className="flex flex-col gap-1">
+            <WeatherActionHint lever="movement" compact />
+            <WeatherActionHint lever="gather" compact />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/10">
+        <div className="p-2.5 border-t border-white/10">
           <button
             disabled={busy || guardians.length === 0 || !selectedGuardian || !origin || !!node.gather_active}
             onClick={start}

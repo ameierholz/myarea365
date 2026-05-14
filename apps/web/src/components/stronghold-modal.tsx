@@ -97,81 +97,77 @@ export function StrongholdModal({ stronghold, onClose, activeRally, refreshRally
         className="absolute rounded-2xl bg-[#1A1D23] border border-[#FF2D78]/50 shadow-2xl overflow-hidden"
         style={{ left, top, width: POPUP_W, boxShadow: "0 12px 40px rgba(0,0,0,0.55)" }}
       >
-        <div className="relative p-4 bg-gradient-to-br from-[#FF2D78]/20 to-[#FF6B4A]/10 flex items-center gap-3">
-          <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white text-lg z-10" aria-label="Schließen">×</button>
-          <div className="shrink-0 w-20 h-20 flex items-center justify-center">
+        <div className="relative p-3 bg-gradient-to-br from-[#FF2D78]/20 to-[#FF6B4A]/10 flex items-center gap-2.5">
+          <button onClick={onClose} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 text-white text-sm z-10" aria-label="Schließen">×</button>
+          <div className="shrink-0 w-14 h-14 flex items-center justify-center">
             {art?.video_url ? (
-              <video src={art.video_url} autoPlay loop muted playsInline className="w-20 h-20 object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
+              <video src={art.video_url} autoPlay loop muted playsInline className="w-14 h-14 object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
             ) : art?.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={art.image_url} alt={`Wegelager Lv ${stronghold.level}`} className="w-20 h-20 object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
+              <img src={art.image_url} alt={`Wegelager Lv ${stronghold.level}`} className="w-14 h-14 object-contain" style={{ filter: "url(#ma365-chroma-black)" }} />
             ) : (
-              <span className="text-5xl">🏰</span>
+              <span className="text-4xl">🏰</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-black tracking-widest text-[#FF2D78]">WEGELAGER</div>
-            <div className="text-2xl font-black text-white mt-1">Stufe {stronghold.level}</div>
-            <div className="text-[11px] text-[#a8b4cf] mt-1">Crew-Angriff erforderlich</div>
+            <div className="text-[9px] font-black tracking-widest text-[#FF2D78]">WEGELAGER</div>
+            <div className="text-lg font-black text-white leading-tight">Stufe {stronghold.level}</div>
+            <div className="text-[10px] text-[#a8b4cf]">Crew-Angriff erforderlich</div>
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
-          {/* NPC-Banner — Hektor "Der Kassenwart" sagt: "..." */}
+        <div className="p-3 space-y-2.5">
+          {/* NPC-Banner — kompakt */}
           {npc && (
-            <div className="rounded-xl bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/35 p-3">
-              <div className="flex items-start gap-3">
-                <div className="text-3xl shrink-0" aria-hidden>{npc.emoji}</div>
+            <div className="rounded-lg bg-gradient-to-br from-[#FFD700]/15 to-transparent border border-[#FFD700]/35 p-2">
+              <div className="flex items-start gap-2">
+                <div className="text-xl shrink-0" aria-hidden>{npc.emoji}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-black tracking-widest text-[#FFD700]">{npc.archetype.toUpperCase()}</div>
-                  <div className="text-sm font-black text-white mt-0.5">{npc.name}</div>
-                  <div className="text-[12px] italic text-[#FFEEAA] mt-1.5 leading-snug">"{npc.intro_line}"</div>
-                  <div className="text-[10px] text-[#a8b4cf] mt-2 leading-snug">{npc.lore}</div>
+                  <div className="text-[8px] font-black tracking-widest text-[#FFD700]">{npc.archetype.toUpperCase()}</div>
+                  <div className="text-[12px] font-black text-white">{npc.name}</div>
+                  <div className="text-[10px] italic text-[#FFEEAA] mt-0.5 leading-snug">"{npc.intro_line}"</div>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="rounded-xl bg-black/40 border border-white/10 p-3">
+          <div className="rounded-lg bg-black/40 border border-white/10 p-2.5">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black tracking-widest text-[#a8b4cf]">WEGELAGER-ABWEHR</span>
-              <span className="text-[12px] font-black text-white">{stronghold.current_hp.toLocaleString("de-DE")} / {stronghold.total_hp.toLocaleString("de-DE")}</span>
+              <span className="text-[9px] font-black tracking-widest text-[#a8b4cf]">WEGELAGER-ABWEHR</span>
+              <span className="text-[11px] font-black text-white">{stronghold.current_hp.toLocaleString("de-DE")} / {stronghold.total_hp.toLocaleString("de-DE")}</span>
             </div>
-            <div className="h-3 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full bg-gradient-to-r from-[#4ade80] via-[#FFD700] to-[#FF6B4A]" style={{ width: `${stronghold.hp_pct}%` }} />
             </div>
-            <div className="text-[10px] text-[#a8b4cf] mt-2">
-              Empfohlen: <b className="text-white">{(stronghold.total_hp).toLocaleString("de-DE")} Angriff</b> aus deiner Crew. Banditen-Tier {Math.max(1, Math.min(5, Math.ceil(stronghold.level / 2)))}+ empfohlen.
+            <div className="text-[9px] text-[#a8b4cf] mt-1.5">
+              Empfohlen: <b className="text-white">{(stronghold.total_hp).toLocaleString("de-DE")} Angriff</b> · Banditen-Tier {Math.max(1, Math.min(5, Math.ceil(stronghold.level / 2)))}+
             </div>
           </div>
 
-          <div className="rounded-xl bg-black/30 border border-white/5 p-3 text-[11px] text-[#a8b4cf] leading-relaxed">
-            <b className="text-white">Belohnung bei Sieg</b><br/>
-            • <b className="text-[#FFD700]">{stronghold.level * 500}</b> Tech-Schrott + Komponenten + Krypto (anteilig nach Beitrag)<br/>
-            • <b className="text-[#FFD700]">{stronghold.level * 250}</b> Bandbreite<br/>
-            • Wächter-EP × {stronghold.level * 10}<br/>
-            {stronghold.level >= 5 && <>• 🥈 Silber-Truhe (60% bei Lv 5–7)<br/></>}
-            {stronghold.level >= 8 && <>• 🥇 Gold-Truhe (50% bei Lv 8+)<br/></>}
+          <div className="rounded-lg bg-black/30 border border-white/5 p-2 text-[10px] text-[#a8b4cf] leading-snug">
+            <b className="text-white">Belohnung:</b> <b className="text-[#FFD700]">{stronghold.level * 500}</b> RSS · <b className="text-[#FFD700]">{stronghold.level * 250}</b> Bandbreite · Wächter-EP ×{stronghold.level * 10}
+            {stronghold.level >= 5 && <> · 🥈</>}
+            {stronghold.level >= 8 && <> · 🥇</>}
           </div>
 
           {sameTarget && activeRally && (
-            <div className="rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/40 p-3">
-              <div className="text-[11px] font-black text-[#FFD700] mb-1">⚡ AKTIVER CREW-ANGRIFF</div>
-              <div className="text-[12px] text-white">Status: <b>{activeRally.status}</b> · Gesamt-Angriff: <b>{activeRally.total_atk.toLocaleString("de-DE")}</b></div>
-              <button onClick={() => setSetup("join")} className="mt-3 w-full py-2.5 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-sm">
+            <div className="rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/40 p-2">
+              <div className="text-[10px] font-black text-[#FFD700]">⚡ AKTIVER CREW-ANGRIFF</div>
+              <div className="text-[11px] text-white mt-0.5">Status: <b>{activeRally.status}</b> · Angriff: <b>{activeRally.total_atk.toLocaleString("de-DE")}</b></div>
+              <button onClick={() => setSetup("join")} className="mt-2 w-full py-2 rounded-lg bg-gradient-to-r from-[#FFD700] to-[#FF6B4A] text-[#0F1115] font-black text-[12px]">
                 Crew-Angriff beitreten
               </button>
             </div>
           )}
 
           {!sameTarget && activeRally && (
-            <div className="rounded-xl bg-white/5 border border-white/10 p-3 text-[11px] text-[#a8b4cf]">
-              ⚠️ Deine Crew hat bereits einen aktiven Crew-Angriff an einem anderen Wegelager. Erst das abschließen.
+            <div className="rounded-lg bg-white/5 border border-white/10 p-2 text-[10px] text-[#a8b4cf]">
+              ⚠️ Crew hat bereits aktiven Angriff. Erst abschließen.
             </div>
           )}
 
           {canStart && (
-            <button onClick={() => setSetup("setup")} className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF2D78] to-[#FF6B4A] text-white font-black text-sm shadow-lg">
+            <button onClick={() => setSetup("setup")} className="w-full py-2.5 rounded-lg bg-gradient-to-r from-[#FF2D78] to-[#FF6B4A] text-white font-black text-[13px] shadow-lg">
               ⚔️ Crew zusammen rufen
             </button>
           )}

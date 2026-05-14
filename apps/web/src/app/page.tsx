@@ -250,6 +250,66 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── Wetter & Tageszeit ─────────────────────────────── */}
+      <section id="weather" className="relative py-24 px-4 border-t border-border/50 bg-[radial-gradient(ellipse_at_top_left,rgba(34,209,195,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(168,85,247,0.16),transparent_55%)]">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center mb-12">
+            <div className="text-xs font-bold tracking-widest text-primary mb-3">{t("weatherKicker")}</div>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-3">
+              {t("weatherTitle1")} <span className="text-primary">{t("weatherTitleAccent")}</span>{t("weatherTitle2")}
+            </h2>
+            <p className="text-text-muted max-w-2xl mx-auto leading-relaxed">{t("weatherSubtitle")}</p>
+          </div>
+
+          {/* Beispiel-Streifen: aktuelles Wetter als Live-Demo (statische Mock-Werte für die Landing) */}
+          <div className="mb-10 flex flex-wrap justify-center gap-2.5 text-[12px] font-bold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#22D1C3]/40 bg-[#22D1C3]/10 text-[#22D1C3]">
+              <span className="text-base">☀️</span> Klar — Schützen +5 %
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#a8b4cf]/40 bg-[#a8b4cf]/10 text-[#a8b4cf]">
+              <span className="text-base">🌧️</span> Regen — Schützen −20 %, Türsteher +10 % Def
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#a855f7]/40 bg-[#a855f7]/10 text-[#a855f7]">
+              <span className="text-base">⛈️</span> Sturm — Brecher +15 %, Marsch −30 %
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FF6B4A]/40 bg-[#FF6B4A]/10 text-[#FF6B4A]">
+              <span className="text-base">🔥</span> Hitze — Sammeln +10 %, Rüstung −10 %
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#818cf8]/40 bg-[#818cf8]/10 text-[#818cf8]">
+              <span className="text-base">🌙</span> Nacht — Kurier +15 %, Schütze −15 %
+            </span>
+          </div>
+
+          {/* 4 Benefit-Cards */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl border-2 border-[#22D1C3]/30 bg-[#22D1C3]/5">
+              <div className="text-3xl mb-2">🛰️</div>
+              <div className="text-base font-black text-[#22D1C3] mb-1">{t("weatherBenefit1Title")}</div>
+              <div className="text-xs text-text-muted leading-relaxed">{t("weatherBenefit1Desc")}</div>
+            </div>
+            <div className="p-5 rounded-2xl border-2 border-[#FFD700]/30 bg-[#FFD700]/5">
+              <div className="text-3xl mb-2">🌦️</div>
+              <div className="text-base font-black text-[#FFD700] mb-1">{t("weatherBenefit2Title")}</div>
+              <div className="text-xs text-text-muted leading-relaxed">{t("weatherBenefit2Desc")}</div>
+            </div>
+            <div className="p-5 rounded-2xl border-2 border-[#FF6B4A]/30 bg-[#FF6B4A]/5">
+              <div className="text-3xl mb-2">⚔️</div>
+              <div className="text-base font-black text-[#FF6B4A] mb-1">{t("weatherBenefit3Title")}</div>
+              <div className="text-xs text-text-muted leading-relaxed">{t("weatherBenefit3Desc")}</div>
+            </div>
+            <div className="p-5 rounded-2xl border-2 border-[#a855f7]/30 bg-[#a855f7]/5">
+              <div className="text-3xl mb-2">🧥</div>
+              <div className="text-base font-black text-[#a855f7] mb-1">{t("weatherBenefit4Title")}</div>
+              <div className="text-xs text-text-muted leading-relaxed">{t("weatherBenefit4Desc")}</div>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-text-muted mt-8 italic max-w-2xl mx-auto">
+            {t("weatherSpecialty")}
+          </p>
+        </div>
+      </section>
+
       {/* ── Spielstile ─────────────────────────────────────── */}
       <section id="styles" className="relative py-24 px-4 border-t border-border/50 bg-[radial-gradient(ellipse_at_top,rgba(34,209,195,0.14),transparent_55%)]">
         <div className="mx-auto max-w-5xl">

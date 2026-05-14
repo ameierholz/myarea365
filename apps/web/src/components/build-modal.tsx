@@ -1305,6 +1305,9 @@ function BuildingDetail({
               </div>
             </div>
 
+            {/* Wetter+Tageszeit-Effekt auf Bauzeit — klickbar zur Detail-Erklärung */}
+            <WeatherActionHint lever="build" />
+
             </div>
 
             {/* ═══ RECHTS: Name + Stufe + Stats + Anforderungen ═══ */}
@@ -1462,8 +1465,7 @@ function BuildingDetail({
                         }}>{fmtBuildTime(buildTime)}</span>
                       </div>
                     </div>
-                    {/* Wetter+Tageszeit-Hinweis (zeigt wirkliche Auswirkung auf Bauzeit) */}
-                    <WeatherActionHint lever="build" />
+                    {/* Wetter-Hinweis wurde nach links unter das Hero-Bild verschoben */}
                     {/* Speed-Token Buy-Button wenn nicht genug & Max-Upgrade ansteht */}
                     {speedTokenCost > 0 && haveSpeedTokens < speedTokenCost && (
                       <button

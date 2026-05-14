@@ -9,9 +9,10 @@
  *   <WeatherActionHint lever="build" />
  */
 
-import { useEffect, useState } from "react";
-import { TIME_META, WEATHER_META, type TimeOfDay } from "@/components/time-weather-banner";
+import { useEffect, useRef, useState } from "react";
+import { TIME_META, WEATHER_META, getTimeOfDay, type TimeOfDay } from "@/components/time-weather-banner";
 import type { WeatherCondition } from "@/components/weather-badge";
+import { WeatherInfoModal } from "@/components/weather-info-modal";
 
 export type Lever = "build" | "research" | "heal" | "gather" | "movement";
 
@@ -45,13 +46,20 @@ const TOD_ECON: Record<TimeOfDay, Partial<Record<Lever, number>>> = {
 type Bundle = {
   bundle: {
     tod: TimeOfDay;
-    weather: { condition: WeatherCondition } | null;
+    city_slug: string | null;
+    weather: {
+      condition: WeatherCondition;
+      temperature_c: number;
+      wind_kmh: number;
+    } | null;
     mults: Record<string, number>;
   } | null;
 };
 
 export function WeatherActionHint({ lever, compact = false }: { lever: Lever; compact?: boolean }) {
   const [data, setData] = useState<Bundle | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const anchorRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,36 +113,94 @@ export function WeatherActionHint({ lever, compact = false }: { lever: Lever; co
   const overallColor = combinedPlayer >= 0 ? "#22D1C3" : "#FF6B4A";
   const overallSign = combinedPlayer > 0 ? "+" : combinedPlayer < 0 ? "−" : "";
 
+  const openDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setModalOpen(true);
+  };
+
+  // Bundle-Daten als Anker fürs Detail-Modal aufbereiten
+  const detailModal = data?.bundle ? (
+    <WeatherInfoModal
+      open={modalOpen}
+      onClose={() => setModalOpen(false)}
+      anchorRef={anchorRef}
+      currentWeather={data.bundle.weather?.condition ?? null}
+      currentTod={data.bundle.tod ?? getTimeOfDay()}
+      currentTemp={data.bundle.weather?.temperature_c ?? null}
+      currentWind={data.bundle.weather?.wind_kmh ?? null}
+      cityName={data.bundle.city_slug ?? null}
+    />
+  ) : null;
+
   if (compact) {
     return (
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 4,
-        fontSize: 9, fontWeight: 800,
-        padding: "2px 6px", borderRadius: 999,
-        background: `${overallColor}1a`,
-        border: `1px solid ${overallColor}55`,
-        color: overallColor,
-        fontFamily: "Inter,-apple-system,sans-serif",
-        fontVariantNumeric: "tabular-nums",
-      }}>
-        <span>{meta.emoji}</span>
-        <span>{overallSign}{Math.abs(combinedPlayer)} %</span>
-        {sources.map((s) => (
-          <span key={s.label} style={{ fontSize: 10 }}>{s.emoji}</span>
-        ))}
-      </div>
+      <>
+      {detailModal}
+      <button
+        ref={anchorRef}
+        type="button"
+        onClick={openDetails}
+        title="Details öffnen"
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "4px 10px", borderRadius: 8,
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.10)",
+          fontFamily: "Inter,-apple-system,sans-serif",
+          fontVariantNumeric: "tabular-nums",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span style={{ fontSize: 12, opacity: 0.85 }}>{meta.emoji}</span>
+        <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>{meta.label}</span>
+        <span style={{ fontSize: 11, fontWeight: 900, color: overallColor }}>
+          {overallSign}{Math.abs(combinedPlayer)} %
+        </span>
+        <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+        {sources.map((s) => {
+          const c = s.pct >= 0 ? "#9ee5dd" : "#FFB39A";
+          return (
+            <span key={s.label} style={{
+              display: "inline-flex", alignItems: "center", gap: 3,
+              padding: "1px 6px", borderRadius: 999,
+              background: `${s.color}22`,
+              border: `1px solid ${s.color}55`,
+              fontSize: 8, fontWeight: 800,
+              color: c, fontVariantNumeric: "tabular-nums",
+            }}>
+              <span style={{ fontSize: 9 }}>{s.emoji}</span>
+              <span style={{ color: "#FFF" }}>{s.label}</span>
+              <span>{s.pct > 0 ? "+" : "−"}{Math.abs(s.pct)} %</span>
+            </span>
+          );
+        })}
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginLeft: 2 }}>▸ Details</span>
+      </button>
+      </>
     );
   }
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", gap: 4,
-      padding: "6px 8px", borderRadius: 7,
-      background: `${overallColor}14`,
-      border: `1px solid ${overallColor}44`,
-      fontFamily: "Inter,-apple-system,sans-serif",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <>
+    {detailModal}
+    <button
+      ref={anchorRef}
+      type="button"
+      onClick={openDetails}
+      title="Klick: alle Auslöser anzeigen"
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "flex", flexDirection: "column", gap: 4,
+        padding: "6px 8px", borderRadius: 7,
+        background: `${overallColor}14`,
+        border: `1px solid ${overallColor}44`,
+        fontFamily: "Inter,-apple-system,sans-serif",
+      }}
+    >
+      <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         <span style={{ fontSize: 13 }}>{meta.emoji}</span>
         <span style={{ fontSize: 10, fontWeight: 800, color: "#FFF", letterSpacing: 0.3 }}>
           Wetter+Tageszeit auf {meta.label}:
@@ -142,8 +208,11 @@ export function WeatherActionHint({ lever, compact = false }: { lever: Lever; co
         <span style={{ fontSize: 11, fontWeight: 900, color: overallColor, fontVariantNumeric: "tabular-nums" }}>
           {overallSign}{Math.abs(combinedPlayer)} %
         </span>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        <span style={{ marginLeft: "auto", fontSize: 8, color: overallColor, opacity: 0.7, fontWeight: 700 }}>
+          ▸ Details
+        </span>
+      </span>
+      <span style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
         {sources.map((s) => {
           const c = s.pct >= 0 ? "#9ee5dd" : "#FFB39A";
           return (
@@ -162,7 +231,8 @@ export function WeatherActionHint({ lever, compact = false }: { lever: Lever; co
             </span>
           );
         })}
-      </div>
-    </div>
+      </span>
+    </button>
+    </>
   );
 }

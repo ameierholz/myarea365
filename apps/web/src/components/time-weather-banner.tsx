@@ -160,6 +160,14 @@ export function TimeWeatherBanner() {
     return () => clearInterval(id);
   }, []);
 
+  // Globaler Open-Hook: WeatherActionHint in beliebigen Action-Modals kann
+  // den Effekt-Modal öffnen ohne den Banner-Ref durchzureichen.
+  useEffect(() => {
+    const handler = () => setModalOpen(true);
+    window.addEventListener("ma365:open-weather-info", handler);
+    return () => window.removeEventListener("ma365:open-weather-info", handler);
+  }, []);
+
   const t = TIME_META[tod];
   const w = weather ? WEATHER_META[weather.condition] : null;
 
