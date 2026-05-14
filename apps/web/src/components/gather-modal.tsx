@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useResourceNodeArt, useResourceArt } from "@/components/resource-icon";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 type ResourceNode = {
   id: number;
@@ -313,6 +314,12 @@ export function GatherModal({
             </div>
           )}
           {err && <div className="text-[12px] text-[#FF6B4A] bg-[#FF6B4A]/10 border border-[#FF6B4A]/30 rounded p-2">{err}</div>}
+
+          {/* Wetter+Tageszeit-Effekte auf Marsch und Sammel-Yield */}
+          <div className="flex flex-col gap-1.5">
+            <WeatherActionHint lever="movement" />
+            <WeatherActionHint lever="gather" />
+          </div>
         </div>
 
         {/* Footer */}

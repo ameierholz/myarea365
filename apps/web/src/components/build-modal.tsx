@@ -17,6 +17,7 @@ import { LevelTableModal, type LevelRow } from "@/components/level-table-modal";
 import { useRewardFx, getClickPoint } from "@/components/reward-fx";
 import { Modal, Z } from "@/components/ui";
 import { CrewBuildHelpModal } from "@/components/crew-build-help-modal";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 import { fetchBaseMe, invalidateBaseMe } from "@/lib/base-me-cache";
 
 type Building = {
@@ -1461,6 +1462,8 @@ function BuildingDetail({
                         }}>{fmtBuildTime(buildTime)}</span>
                       </div>
                     </div>
+                    {/* Wetter+Tageszeit-Hinweis (zeigt wirkliche Auswirkung auf Bauzeit) */}
+                    <WeatherActionHint lever="build" />
                     {/* Speed-Token Buy-Button wenn nicht genug & Max-Upgrade ansteht */}
                     {speedTokenCost > 0 && haveSpeedTokens < speedTokenCost && (
                       <button

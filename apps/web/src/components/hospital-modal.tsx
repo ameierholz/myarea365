@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 type Injured = { troop_id: string; count: number };
 type QueueRow = { id: string; troop_id: string; count: number; ends_at: string; finished: boolean };
@@ -90,6 +91,9 @@ export function HospitalModal({ catalog, onClose }: { catalog: Catalog[]; onClos
 
         <div className="overflow-y-auto flex-1 p-4 space-y-3 ma365-no-scrollbar" style={{ scrollbarWidth: "none" }}>
           <style>{`.ma365-no-scrollbar::-webkit-scrollbar{display:none}`}</style>
+
+          {/* Wetter+Tageszeit auf Heilzeit */}
+          <WeatherActionHint lever="heal" />
 
           {/* Aktive Heilung */}
           {queue.length > 0 && (

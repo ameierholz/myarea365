@@ -5,6 +5,7 @@ import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
 import { ResearchTab } from "@/components/base-modal/research-tab";
 import { ResourceHeader } from "@/components/base-modal/_resource-header";
 import { fetchBaseMe } from "@/lib/base-me-cache";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 const ACCENT = "#22D1C3";
 
@@ -23,6 +24,9 @@ export function ResearchModal({ open, onClose }: { open: boolean; onClose: () =>
       <ModalHeader title="Forschung" onClose={onClose} accent="primary" />
       <ResourceHeader />
       <ModalBody padding="padded">
+        <div style={{ marginBottom: 8 }}>
+          <WeatherActionHint lever="research" />
+        </div>
         <ResearchTab accent={ACCENT} reload={reload} />
       </ModalBody>
     </Modal>

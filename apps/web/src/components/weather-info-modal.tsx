@@ -246,7 +246,13 @@ export function WeatherInfoModal({
             <>
               <div style={{ height: 8 }} />
               <SectionHeader label="WIRTSCHAFT &amp; BEWEGUNG (AKTIV)" color="#FFD700" />
-              <MultGrid mults={effects.bundle.mults} windKmh={effects.bundle.weather?.wind_kmh ?? null} windDir={effects.bundle.weather?.wind_dir_deg ?? null} />
+              <MultGrid
+                mults={effects.bundle.mults}
+                tod={effects.bundle.tod}
+                weather={effects.bundle.weather?.condition ?? null}
+                windKmh={effects.bundle.weather?.wind_kmh ?? null}
+                windDir={effects.bundle.weather?.wind_dir_deg ?? null}
+              />
             </>
           )}
 
@@ -264,7 +270,7 @@ export function WeatherInfoModal({
             <>
               <div style={{ height: 8 }} />
               <SectionHeader label={`VORHERSAGE · ${forecast.days.length} TAGE`} color="#a855f7" />
-              <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 4 }}>
+              <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 4, justifyContent: "center", flexWrap: "wrap" }}>
                 {forecast.days.map((d) => <ForecastCard key={d.day_offset} day={d} />)}
               </div>
             </>
@@ -365,59 +371,317 @@ function EffectRow({
   );
 }
 
-function MultGrid({ mults, windKmh, windDir }: { mults: WeatherMults; windKmh: number | null; windDir: number | null }) {
-  const rows: Array<{ key: keyof WeatherMults; label: string; emoji: string; goodIsLow: boolean }> = [
-    { key: "movement",   label: "Marsch-Tempo",  emoji: "🚶", goodIsLow: false },
-    { key: "scout",      label: "Spähreichweite", emoji: "🔭", goodIsLow: false },
-    { key: "visibility", label: "Sicht",          emoji: "👁️", goodIsLow: false },
-    { key: "gather",     label: "Sammel-Yield",   emoji: "🌾", goodIsLow: false },
-    { key: "build",      label: "Bauzeit",        emoji: "🔨", goodIsLow: true  },
-    { key: "research",   label: "Forschung",      emoji: "🔬", goodIsLow: true  },
-    { key: "heal",       label: "Lazarett",       emoji: "🏥", goodIsLow: true  },
+type MultRow = {
+  key: keyof WeatherMults;
+  label: string;
+  emoji: string;
+  /** Wenn true: kleinerer Wert = besser (Zeit). Sonst: höherer Wert = besser (Menge). */
+  goodIsLow: boolean;
+  /** Dauer-Erklärung: was steuert dieser Modifier? Immer sichtbar. */
+  description: string;
+  /** Kurzes Verb-Paar — was passiert WIRKLICH gerade. [bei besser, bei schlechter] */
+  verbs: [betterLabel: string, worseLabel: string];
+};
+
+// Mirror der SQL-Helper aus Mig 00367 — damit die UI die Quelle pro Lever
+// anzeigen kann ("kommt aus 🌙 Nacht"). MUSS synchron mit SQL bleiben.
+const WEATHER_ECON: Record<WeatherCondition, Partial<Record<keyof WeatherMults, number>>> = {
+  clear:  { gather: 1.05, build: 0.95, research: 1.02, heal: 0.93, scout: 1.20, visibility: 1.10 },
+  cloud:  {},
+  rain:   { gather: 0.90, build: 1.10, research: 0.93, heal: 1.08, scout: 0.85, visibility: 0.90, movement: 0.92 },
+  snow:   { gather: 0.85, build: 1.20, research: 0.95, heal: 1.10, scout: 0.80, movement: 0.80 },
+  storm:  { gather: 0.75, build: 1.30, research: 0.85, heal: 1.20, scout: 0.70, visibility: 0.75, movement: 0.70 },
+  heat:   { gather: 1.10, build: 1.08, heal: 1.05, movement: 0.90 },
+  fog:    { gather: 0.95, build: 1.05, research: 0.92, scout: 0.60, visibility: 0.50, movement: 0.88 },
+  night:  { scout: 0.75, visibility: 0.80, movement: 1.05 },
+};
+
+const TOD_ECON: Record<TimeOfDay, Partial<Record<keyof WeatherMults, number>>> = {
+  morning: { build: 0.97, research: 0.98, heal: 0.97, gather: 1.05 },
+  day:     { build: 0.95, research: 0.95, heal: 0.95 },
+  evening: {},
+  night:   { build: 1.05, research: 1.03, heal: 1.05, gather: 0.95 },
+};
+
+// Lore: WARUM hat diese Bedingung diesen Effekt? Eine Zeile pro Quelle.
+const SOURCE_REASON: Record<WeatherCondition | TimeOfDay, string> = {
+  clear:   "Klarer Himmel — beste Sicht, präzises Arbeiten, gute Stimmung",
+  cloud:   "Bedeckt — keine besonderen Effekte",
+  rain:    "Regen macht Wege rutschig, dämpft Bogensehnen und Außenarbeit",
+  snow:    "Schnee bremst Bewegung, baut natürliche Verteidigung auf",
+  storm:   "Sturm verwüstet Außenarbeit — Bogenschießen und Reiten leiden",
+  heat:    "Hitze überlastet Rüstungen und Geräte, Sammler sind im Element",
+  fog:     "Nebel raubt die Sicht — Hinterhalt-Vorteil für Defender",
+  night:   "Nacht — Kuriere sind in ihrem Element, Schützen blind",
+  morning: "Morgen — frische Energie, Sammler und Kuriere starten stark",
+  day:     "Tag — beste Arbeitsbedingungen, Akademie und Baustelle laufen heiß",
+  evening: "Abend — neutrales Übergangs-Fenster",
+};
+
+// HINWEIS: 'visibility' wurde aus der UI entfernt — der Map-Fog-of-War-Layer
+// ist noch nicht implementiert. Sobald da, hier wieder einfügen.
+const MULT_ROWS_DEF = (): MultRow[] => [
+    { key: "movement",   label: "Marsch",   emoji: "🚶", goodIsLow: false,
+      description: "Wie schnell deine Truppen über die Karte ziehen",
+      verbs: ["schneller unterwegs", "langsamer unterwegs"] },
+    { key: "scout",      label: "Spähen",   emoji: "🔭", goodIsLow: false,
+      description: "Wie lange dein Späher braucht, um eine Stadt auszuspähen",
+      verbs: ["späht schneller", "späht länger"] },
+    { key: "gather",     label: "Sammeln",  emoji: "🌾", goodIsLow: false,
+      description: "Menge an Ressourcen, die du pro Plünder-Marsch nach Hause bringst",
+      verbs: ["mehr Beute", "weniger Beute"] },
+    { key: "build",      label: "Bauen",    emoji: "🔨", goodIsLow: true,
+      description: "Wie lange neue Gebäude und Upgrades dauern",
+      verbs: ["schneller fertig", "dauert länger"] },
+    { key: "research",   label: "Forschen", emoji: "🔬", goodIsLow: true,
+      description: "Wie lange Akademie-Forschungen brauchen",
+      verbs: ["schneller fertig", "dauert länger"] },
+    { key: "heal",       label: "Heilen",   emoji: "🏥", goodIsLow: true,
+      description: "Wie schnell verwundete Truppen im Lazarett genesen",
+      verbs: ["schneller fertig", "dauert länger"] },
   ];
+
+function MultGrid({ mults, tod, weather, windKmh, windDir }: {
+  mults: WeatherMults;
+  tod: TimeOfDay;
+  weather: WeatherCondition | null;
+  windKmh: number | null;
+  windDir: number | null;
+}) {
+  const rows = MULT_ROWS_DEF();
+  const [detailKey, setDetailKey] = useState<keyof WeatherMults | null>(null);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 5 }}>
-      {rows.map((r) => <MultCard key={r.key} label={r.label} emoji={r.emoji} goodIsLow={r.goodIsLow} value={mults[r.key]} />)}
-      {windKmh != null && windKmh >= 8 && (
-        <div style={{
-          display: "flex", flexDirection: "column", justifyContent: "center",
-          padding: "5px 8px", borderRadius: 7,
-          background: "rgba(168,85,247,0.12)",
-          border: "1px solid rgba(168,85,247,0.35)",
-        }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: "#c084fc", letterSpacing: 0.6 }}>🌬️ WIND</span>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#FFF", fontVariantNumeric: "tabular-nums" }}>
-            {windKmh} km/h{windDir != null ? ` · ${windDir}°` : ""}
-          </span>
-          <span style={{ fontSize: 8, color: "rgba(255,255,255,0.6)" }}>±8 % Marsch-Tempo je Richtung</span>
-        </div>
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 5 }}>
+        {rows.map((r) => (
+          <MultCard
+            key={r.key} row={r} value={mults[r.key]} tod={tod} weather={weather}
+            onShowDetails={(k) => setDetailKey(detailKey === k ? null : k)}
+          />
+        ))}
+        {windKmh != null && windKmh >= 8 && (
+          <div style={{
+            display: "flex", flexDirection: "column", gap: 1,
+            padding: "5px 8px", borderRadius: 7,
+            background: "rgba(168,85,247,0.12)",
+            border: "1px solid rgba(168,85,247,0.35)",
+          }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9, fontWeight: 800, color: "#c084fc", letterSpacing: 0.6 }}>
+              🌬️ WIND
+              <span style={{ color: "#FFF", fontVariantNumeric: "tabular-nums", fontSize: 10 }}>
+                {windKmh} km/h
+              </span>
+              {windDir != null && (
+                <span style={{ color: "rgba(255,255,255,0.6)", fontVariantNumeric: "tabular-nums", fontSize: 9 }}>
+                  aus {windCompass(windDir)}
+                </span>
+              )}
+            </span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.7)" }}>
+              Mit Rückenwind bis +8 % Tempo, gegen den Wind bis −8 %.
+            </span>
+          </div>
+        )}
+      </div>
+      {detailKey && (
+        <AllTriggersDetail rowKey={detailKey} rows={rows} onClose={() => setDetailKey(null)} />
       )}
+    </>
+  );
+}
+
+function MultCard({ row, value, tod, weather, onShowDetails }: {
+  row: MultRow; value: number; tod: TimeOfDay; weather: WeatherCondition | null;
+  onShowDetails: (rowKey: keyof WeatherMults) => void;
+}) {
+  // Prozent-Veränderung für den SPIELER (nicht für die Rohdauer/-zahl).
+  const rawPct = Math.round((value - 1) * 100);
+  const playerPct = row.goodIsLow ? -rawPct : rawPct;
+  const isNeutral = playerPct === 0;
+  const color = isNeutral ? "#8B8FA3" : playerPct > 0 ? "#22D1C3" : "#FF6B4A";
+  const verb = isNeutral ? null : (playerPct > 0 ? row.verbs[0] : row.verbs[1]);
+  const sign = playerPct > 0 ? "+" : playerPct < 0 ? "−" : "";
+
+  // Aktive Quellen (was tut JETZT was)
+  const activeSources: Array<{ key: string; emoji: string; label: string; pct: number; color: string }> = [];
+  const weatherMult = weather ? WEATHER_ECON[weather]?.[row.key] : undefined;
+  if (weatherMult && weatherMult !== 1.0 && weather) {
+    const pct = Math.round((weatherMult - 1) * 100);
+    activeSources.push({
+      key: "w-" + weather,
+      emoji: WEATHER_META[weather].emoji,
+      label: WEATHER_META[weather].label,
+      pct: row.goodIsLow ? -pct : pct,
+      color: WEATHER_META[weather].color,
+    });
+  }
+  const todMult = TOD_ECON[tod]?.[row.key];
+  if (todMult && todMult !== 1.0) {
+    const pct = Math.round((todMult - 1) * 100);
+    activeSources.push({
+      key: "t-" + tod,
+      emoji: TIME_META[tod].emoji,
+      label: TIME_META[tod].label,
+      pct: row.goodIsLow ? -pct : pct,
+      color: TIME_META[tod].color,
+    });
+  }
+
+  return (
+    <button
+      onClick={() => onShowDetails(row.key)}
+      style={{
+        all: "unset",
+        cursor: "pointer",
+        display: "flex", gap: 7,
+        padding: "6px 8px", borderRadius: 7,
+        background: `${color}1a`,
+        border: `1px solid ${color}55`,
+        fontFamily: "Inter,-apple-system,sans-serif",
+      }}
+      title="Klick: alle möglichen Auslöser für diesen Effekt"
+    >
+      <span style={{ fontSize: 17, lineHeight: 1.1, flexShrink: 0 }}>{row.emoji}</span>
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, gap: 2 }}>
+        <span style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: "#FFF", letterSpacing: 0.3 }}>{row.label}</span>
+          <span style={{ fontSize: 11, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>
+            {isNeutral ? "neutral" : `${sign}${Math.abs(playerPct)} %`}
+          </span>
+          {verb && (
+            <span style={{ fontSize: 8, fontWeight: 700, color, opacity: 0.85 }}>
+              · {verb}
+            </span>
+          )}
+          <span style={{ marginLeft: "auto", fontSize: 8, color: "rgba(255,255,255,0.4)", fontWeight: 700 }}>
+            ▸ Details
+          </span>
+        </span>
+        <span style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.6)", lineHeight: 1.3, textAlign: "left" }}>
+          {row.description}
+        </span>
+        {activeSources.length > 0 && (
+          <span style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 2 }}>
+            {activeSources.map((s) => (
+              <SourceChip key={s.key} emoji={s.emoji} label={s.label} pct={s.pct} color={s.color} />
+            ))}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function AllTriggersDetail({ rowKey, rows, onClose }: {
+  rowKey: keyof WeatherMults;
+  rows: MultRow[];
+  onClose: () => void;
+}) {
+  const row = rows.find((r) => r.key === rowKey);
+  if (!row) return null;
+
+  const triggers: Array<{ emoji: string; label: string; pct: number; color: string; reason: string }> = [];
+  (Object.keys(WEATHER_ECON) as WeatherCondition[]).forEach((w) => {
+    const m = WEATHER_ECON[w]?.[rowKey];
+    if (m && m !== 1.0) {
+      const pct = Math.round((m - 1) * 100);
+      triggers.push({
+        emoji: WEATHER_META[w].emoji,
+        label: WEATHER_META[w].label,
+        pct: row.goodIsLow ? -pct : pct,
+        color: WEATHER_META[w].color,
+        reason: SOURCE_REASON[w],
+      });
+    }
+  });
+  (Object.keys(TOD_ECON) as TimeOfDay[]).forEach((t) => {
+    const m = TOD_ECON[t]?.[rowKey];
+    if (m && m !== 1.0) {
+      const pct = Math.round((m - 1) * 100);
+      triggers.push({
+        emoji: TIME_META[t].emoji,
+        label: TIME_META[t].label,
+        pct: row.goodIsLow ? -pct : pct,
+        color: TIME_META[t].color,
+        reason: SOURCE_REASON[t],
+      });
+    }
+  });
+  triggers.sort((a, b) => b.pct - a.pct);
+
+  return (
+    <div style={{
+      marginTop: 5,
+      padding: "8px 10px",
+      borderRadius: 8,
+      background: "rgba(0,0,0,0.35)",
+      border: "1px solid rgba(255,255,255,0.08)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+        <span style={{ fontSize: 14 }}>{row.emoji}</span>
+        <span style={{ fontSize: 11, fontWeight: 900, color: "#FFF", letterSpacing: 0.4 }}>
+          {row.label.toUpperCase()} — alle Auslöser
+        </span>
+        <button
+          onClick={onClose}
+          aria-label="Details schließen"
+          style={{
+            marginLeft: "auto",
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            color: "#8B8FA3", fontSize: 11, cursor: "pointer",
+            width: 20, height: 20, padding: 0, borderRadius: 5,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            lineHeight: 1,
+          }}
+        >×</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 5 }}>
+        {triggers.map((t, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "5px 7px",
+            borderRadius: 6,
+            background: `${t.color}12`,
+            border: `1px solid ${t.color}33`,
+          }}>
+            <SourceChip emoji={t.emoji} label={t.label} pct={t.pct} color={t.color} />
+            <span style={{ fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.7)", lineHeight: 1.4, flex: 1 }}>
+              {t.reason}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function MultCard({ label, emoji, value, goodIsLow }: { label: string; emoji: string; value: number; goodIsLow: boolean }) {
-  const pct = Math.round((value - 1) * 100);
-  const isBuff = goodIsLow ? pct < 0 : pct > 0;
-  const isNeutral = pct === 0;
-  const color = isNeutral ? "#8B8FA3" : isBuff ? "#22D1C3" : "#FF6B4A";
-  const sign = pct > 0 ? "+" : "";
+function SourceChip({ emoji, label, pct, color, title }: {
+  emoji: string; label: string; pct: number; color: string; title?: string;
+}) {
+  const sign = pct > 0 ? "+" : pct < 0 ? "−" : "";
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 6,
-      padding: "5px 8px", borderRadius: 7,
-      background: `${color}1a`,
+    <span title={title} style={{
+      display: "inline-flex", alignItems: "center", gap: 3,
+      padding: "1px 5px", borderRadius: 999,
+      background: `${color}22`,
       border: `1px solid ${color}55`,
+      fontSize: 8, fontWeight: 800,
+      color: pct > 0 ? "#9ee5dd" : "#FFB39A",
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap",
+      flexShrink: 0,
     }}>
-      <span style={{ fontSize: 14, lineHeight: 1 }}>{emoji}</span>
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-        <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.7)", letterSpacing: 0.4 }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 900, color, fontVariantNumeric: "tabular-nums" }}>
-          {isNeutral ? "neutral" : `${sign}${pct} %`}
-        </span>
-      </div>
-    </div>
+      <span style={{ fontSize: 9 }}>{emoji}</span>
+      <span style={{ color: "#FFF" }}>{label}</span>
+      <span>{sign}{Math.abs(pct)} %</span>
+    </span>
   );
+}
+
+function windCompass(deg: number): string {
+  const dirs = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"];
+  return dirs[Math.round(((deg % 360) / 45)) % 8];
 }
 
 function BoostRow({ boost }: { boost: { effect: string; expires_at: string; value_pct: number } }) {
