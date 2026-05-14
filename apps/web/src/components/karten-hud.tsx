@@ -220,18 +220,6 @@ export function KartenHud({
           display: "flex", flexDirection: "column", alignItems: "flex-start",
           pointerEvents: "auto", gap: 1,
         }}>
-          {/* Rang-Name in gold-gradient (RoK-Style) */}
-          <div style={{
-            fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
-            fontFamily: "Inter,-apple-system,sans-serif",
-            background: "linear-gradient(180deg, #FFE07A 0%, #FFD700 50%, #B8860B 100%)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            backgroundClip: "text", color: "transparent",
-            textShadow: "0 1px 2px rgba(0,0,0,0.6)",
-            filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))",
-            whiteSpace: "nowrap",
-          }}>{data?.rank?.name ?? "Straßen-Scout"}</div>
-
           {/* Vertrauen-Wert — Power-Score mit Handshake-Icon davor
               (🤝 ist projektweit das Icon für Vertrauen, siehe base-client). */}
           <div style={{

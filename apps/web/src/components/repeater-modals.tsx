@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt } from "@/components/resource-icon";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 type Troop = { id: string; name: string; emoji: string; troop_class: string; tier: number; base_atk: number; base_def: number; base_hp: number };
 type RepeaterKind = "hq" | "repeater" | "mega";
@@ -377,6 +378,10 @@ export function AttackRepeaterModal({
               </div>
 
               {err && <div className="px-4 pb-2 text-[10px] text-[#FF2D78] font-bold">Fehler: {err}</div>}
+
+              <div className="px-4 pb-2">
+                <WeatherActionHint lever="movement" />
+              </div>
 
               <Footer
                 onClose={onClose}

@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { fetchBaseMe } from "@/lib/base-me-cache";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 // 3D-Modell lazy: spart Bundle-Kosten wenn das Modal nicht offen ist.
 const Waechter3D = dynamic(() => import("@/components/waechter-3d").then((m) => m.Waechter3D), {
@@ -297,6 +298,7 @@ export function SingleEinsatzModal({
           display: "flex", flexDirection: "column", gap: 5, flexShrink: 0,
         }}>
           <MarchInfoLine distanceM={distance} marchSeconds={marchSeconds} />
+          <WeatherActionHint lever="movement" />
           {msg && <div style={{ fontSize: 11, color: msg.startsWith("✅") ? "#4ade80" : "#FF6B4A", textAlign: "center" }}>{msg}</div>}
           <button
             onClick={() => void send()}
@@ -537,6 +539,7 @@ export function MultiEinsatzModal({
           display: "flex", flexDirection: "column", gap: 5, flexShrink: 0,
         }}>
           <MarchInfoLine distanceM={distance} marchSeconds={marchSeconds} />
+          <WeatherActionHint lever="movement" />
           {msg && <div style={{ fontSize: 11, color: msg.startsWith("✅") ? "#4ade80" : "#FF6B4A", textAlign: "center" }}>{msg}</div>}
           <button
             onClick={() => void sendAll()}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStrongholdArt, pickStrongholdArt } from "@/components/resource-icon";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 type Stronghold = {
   id: string; lat: number; lng: number; level: number;
@@ -337,6 +338,9 @@ function RallySetupModal({ mode, stronghold, rallyId, onClose, onSuccess }: {
           </div>
 
           {err && <div className="text-[11px] text-center font-black text-[#FF2D78]">{err}</div>}
+
+          {/* Wetter+Tageszeit auf den Anmarsch */}
+          <WeatherActionHint lever="movement" />
         </div>
 
         <div className="p-4 border-t border-white/10">

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt, useBaseThemeArt, type ResourceArtMap } from "@/components/resource-icon";
+import { WeatherActionHint } from "@/components/weather-action-hint";
 
 type Troop = {
   id: string;
@@ -691,6 +692,8 @@ function RallyPicker({
             {msg}
           </div>
         )}
+        {/* Wetter+Tageszeit auf Marsch — Sumpfboden/Glatteis verlängert den Anmarsch */}
+        <WeatherActionHint lever="movement" />
         <button onClick={launch} disabled={busy || totalCount < 10 || overCap || queueFull}
           className="w-full text-[13px] font-black px-4 py-3 rounded-xl text-white disabled:opacity-40 transition"
           style={{ background: "linear-gradient(135deg, #FF6B4A, #FFD700)", boxShadow: "0 4px 16px rgba(255,107,74,0.4)" }}>
@@ -826,6 +829,8 @@ function AttackPicker({
             {msg}
           </div>
         )}
+        {/* Wetter+Tageszeit auf Marsch — Sumpfboden/Glatteis bremst Angriffstrupp */}
+        <WeatherActionHint lever="movement" />
         <button onClick={launch} disabled={busy || totalCount < 10 || overCap || queueFull}
           className="w-full text-[13px] font-black px-4 py-3 rounded-xl text-white disabled:opacity-40 transition"
           style={{ background: "linear-gradient(135deg, #FF2D78, #FF6B4A)", boxShadow: "0 4px 16px rgba(255,45,120,0.4)" }}>
