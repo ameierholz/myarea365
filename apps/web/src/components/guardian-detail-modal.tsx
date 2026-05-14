@@ -8,6 +8,7 @@ import { GuardianPaperDoll } from "@/components/guardian-paper-doll";
 import { GuardianTalentTree } from "@/components/guardian-talent-tree";
 import { GuardianSkillsPanel } from "@/components/guardian-skills-panel";
 import { GuardianXpItemsPanel } from "@/components/guardian-xp-items-panel";
+import { GuardianWeatherSpecialtyPicker } from "@/components/guardian-weather-specialty-picker";
 import { ForgeModal } from "@/components/forge-modal";
 import { MMR_TIERS } from "@/lib/mmr-tiers";
 import { GUARDIAN_CLASSES, legacyTypeToClass, type GuardianClass } from "@/lib/guardian-classes";
@@ -780,6 +781,13 @@ function ModalContent({ data, tab, setTab, onClose, action, onArena, onSwitch, o
                 awakened={!!g.awakened}
                 sculpts={g.sculpts_collected ?? 0}
                 reload={reload}
+              />
+
+              {/* Wetter-Spezialtalent — pickable 6er-Set, +15 % bei passendem Wetter */}
+              <GuardianWeatherSpecialtyPicker
+                guardianId={g.id}
+                current={(g as unknown as { weather_specialty?: string | null }).weather_specialty ?? null}
+                onChange={reload}
               />
             </div>
           );

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { bumpQuestProgress } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,8 +46,14 @@ export async function POST(req: Request) {
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Quest-Progress: Marsch zur Resource-Node gestartet
-  await bumpQuestProgress(sb, user.id, "marches_started", 1);
+  // Quest-Progress: Marsch zur Resource-Node gestartet — inkl. Wetter-bewusste
+  // Variante (marches_in_<condition>) für Daily-Wetter-Quests.
+  void sb.rpc("bump_quest_with_weather", {
+    p_user_id: user.id,
+    p_base_metric: "marches_started",
+    p_weather_prefix: "marches_in",
+    p_amount: 1,
+  });
 
   return NextResponse.json(data ?? { ok: true });
 }

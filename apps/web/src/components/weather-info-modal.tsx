@@ -66,8 +66,6 @@ type ForecastDay = {
 type ForecastResponse = {
   ok: boolean;
   days: ForecastDay[];
-  isPremium: boolean;
-  totalAvailable: number;
 };
 
 export function WeatherInfoModal({
@@ -265,15 +263,9 @@ export function WeatherInfoModal({
           {forecast && forecast.days.length > 0 && (
             <>
               <div style={{ height: 8 }} />
-              <SectionHeader
-                label={forecast.isPremium ? `VORHERSAGE · ${forecast.days.length} TAGE (PREMIUM)` : `VORHERSAGE · ${forecast.days.length} TAGE`}
-                color="#a855f7"
-              />
+              <SectionHeader label={`VORHERSAGE · ${forecast.days.length} TAGE`} color="#a855f7" />
               <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 4 }}>
                 {forecast.days.map((d) => <ForecastCard key={d.day_offset} day={d} />)}
-                {!forecast.isPremium && forecast.totalAvailable > forecast.days.length && (
-                  <PremiumTeaser />
-                )}
               </div>
             </>
           )}
@@ -487,24 +479,6 @@ function ForecastCard({ day }: { day: ForecastDay }) {
       <span style={{ fontSize: 10, fontWeight: 700, color: "#FFF", fontVariantNumeric: "tabular-nums" }}>
         {day.temp_high_c}° / {day.temp_low_c}°
       </span>
-    </div>
-  );
-}
-
-function PremiumTeaser() {
-  return (
-    <div style={{
-      flex: "0 0 auto",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-      padding: "6px 10px", borderRadius: 8,
-      background: "linear-gradient(135deg, rgba(168,85,247,0.18), rgba(255,45,120,0.14))",
-      border: "1px dashed rgba(168,85,247,0.6)",
-      color: "#c084fc",
-      minWidth: 100,
-    }}>
-      <span style={{ fontSize: 18, lineHeight: 1 }}>🔮</span>
-      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 0.4 }}>PREMIUM</span>
-      <span style={{ fontSize: 8, fontWeight: 700, textAlign: "center" }}>5 Tage Vorhersage freischalten</span>
     </div>
   );
 }
