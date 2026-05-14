@@ -240,7 +240,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                   color: "#0F1115", fontSize: 9, fontWeight: 900, letterSpacing: 0.8,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
                 }}>
-                  {data.banner_status === "pending" ? "⏳ Banner in Prüfung" : "❌ Banner abgelehnt"}
+                  {data.banner_status === "pending" ? "⏳ Namensschild in Prüfung" : "❌ Namensschild abgelehnt"}
                 </div>
               )}
               {canEditBanner && (
@@ -254,7 +254,7 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
                     fontSize: 10, fontWeight: 900, cursor: bannerBusy ? "default" : "pointer",
                     border: `1px solid ${color}88`,
                   }}>
-                    {bannerBusy ? "…" : data.banner_url ? "🖼️ Banner ändern" : "🖼️ Banner hochladen"}
+                    {bannerBusy ? "…" : data.banner_url ? "🖼️ Namensschild ändern" : "🖼️ Namensschild hochladen"}
                     <input type="file" accept="image/*" hidden disabled={bannerBusy}
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) onBannerFile(f); e.target.value = ""; }} />
                   </label>
@@ -282,22 +282,44 @@ export function RunnerStatsModal({ userId, onClose, canEditBanner = false }: { u
               }}>
                 {!data.avatar_url && "👣"}
                 {canEditBanner && (
-                  <label style={{
-                    position: "absolute", inset: 0, borderRadius: 20,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: avatarBusy ? "default" : "pointer",
-                    background: "rgba(0,0,0,0.55)",
-                    opacity: avatarBusy ? 0.8 : 0,
-                    transition: "opacity 0.2s",
-                    color: "#FFF", fontSize: 10, fontWeight: 900, textAlign: "center",
-                  }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    onMouseLeave={(e) => { if (!avatarBusy) e.currentTarget.style.opacity = "0"; }}
-                  >
-                    {avatarBusy ? "…" : (data.avatar_url ? "📸 Ändern" : "📸 Foto hoch")}
-                    <input type="file" accept="image/*" hidden disabled={avatarBusy}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) onAvatarFile(f); e.target.value = ""; }} />
-                  </label>
+                  <>
+                    {/* Hover-Overlay für Desktop */}
+                    <label style={{
+                      position: "absolute", inset: 0, borderRadius: 20,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: avatarBusy ? "default" : "pointer",
+                      background: "rgba(0,0,0,0.55)",
+                      opacity: avatarBusy ? 0.8 : 0,
+                      transition: "opacity 0.2s",
+                      color: "#FFF", fontSize: 10, fontWeight: 900, textAlign: "center",
+                    }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                      onMouseLeave={(e) => { if (!avatarBusy) e.currentTarget.style.opacity = "0"; }}
+                    >
+                      {avatarBusy ? "…" : (data.avatar_url ? "📸 Ändern" : "📸 Foto hoch")}
+                      <input type="file" accept="image/*" hidden disabled={avatarBusy}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) onAvatarFile(f); e.target.value = ""; }} />
+                    </label>
+                    {/* Sichtbarer Kamera-Button unten rechts am Puck — Mobile/Touch-tauglich */}
+                    <label style={{
+                      position: "absolute", bottom: -4, right: -4,
+                      width: 28, height: 28, borderRadius: 14,
+                      background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+                      border: "2px solid #141a2d",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: avatarBusy ? "default" : "pointer",
+                      fontSize: 14, lineHeight: 1,
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
+                      zIndex: 4,
+                    }}
+                      title={data.avatar_url ? "Profil Avatar ändern" : "Profil Avatar hochladen"}
+                      aria-label={data.avatar_url ? "Profil Avatar ändern" : "Profil Avatar hochladen"}
+                    >
+                      📸
+                      <input type="file" accept="image/*" hidden disabled={avatarBusy}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) onAvatarFile(f); e.target.value = ""; }} />
+                    </label>
+                  </>
                 )}
               </div>
               {/* Avatar-Status-Badge fuer Owner */}

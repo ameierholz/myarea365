@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpQuestProgress } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,5 +46,9 @@ export async function POST(req: Request) {
       : null,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Quest-Progress: Marsch zur Resource-Node gestartet
+  await bumpQuestProgress(sb, user.id, "marches_started", 1);
+
   return NextResponse.json(data ?? { ok: true });
 }

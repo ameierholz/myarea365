@@ -168,7 +168,7 @@ export function MapQuickAccess({
   // Fallback-Emoji nur wenn noch kein Artwork hochgeladen ist.
   type Item = { key: string; slot: string; fallback: string; label: string; size: number; offsetX: number; badge?: number; onClick: () => void };
   const items: Item[] = [
-    { key: "base",    slot: "quick_base",    fallback: "🏰", label: "Base",     size: ICON_SIZE.base,    offsetX: ICON_OFFSET_X.base,    badge: baseQueueReady, onClick: onOpenProfile },
+    { key: "base",    slot: "quick_base",    fallback: "🏰", label: "Profilbild", size: ICON_SIZE.base,    offsetX: ICON_OFFSET_X.base,    badge: baseQueueReady, onClick: onOpenProfile },
     { key: "crew",    slot: "quick_crew",    fallback: "👥", label: "Crew",     size: ICON_SIZE.crew,    offsetX: ICON_OFFSET_X.crew,                           onClick: onOpenCrewModal },
     { key: "rally",   slot: "quick_rally",   fallback: "⚔",  label: "Angriffe", size: ICON_SIZE.rally,   offsetX: ICON_OFFSET_X.rally,   badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
     { key: "ranking", slot: "quick_ranking", fallback: "🏆", label: "Ranking",  size: ICON_SIZE.ranking, offsetX: ICON_OFFSET_X.ranking,                        onClick: onOpenRanking },

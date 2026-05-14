@@ -36,11 +36,16 @@ export async function POST(req: Request) {
     const { data: pub } = admin.storage.from("artwork").getPublicUrl(body.path);
     const url = `${pub.publicUrl}?v=${Date.now()}`;
 
-    // KI-Vormoderation
+    // KI-Vormoderation. Bei approved=null (KI nicht konfiguriert, Bild
+    // nicht ladbar, Anthropic-Antwort unparsable etc.) wird der Grund als
+    // Diagnose-Hinweis in media_rejection_reason geschrieben — damit der
+    // Admin sieht WARUM der Avatar noch auf "pending" hängt.
     const { moderateImageUrl } = await import("@/lib/ai-moderation");
     const mod = await moderateImageUrl(url);
     const newStatus = mod.approved === true ? "approved" : mod.approved === false ? "rejected" : "pending";
-    const rejection = mod.approved === false ? `KI-Vorfilter: ${mod.reason ?? "unerlaubter Inhalt"}` : null;
+    let rejection: string | null = null;
+    if (mod.approved === false) rejection = `KI-Vorfilter: ${mod.reason ?? "unerlaubter Inhalt"}`;
+    else if (mod.approved === null) rejection = `KI-Hinweis: ${mod.reason ?? "kein Ergebnis"}`;
 
     const { error } = await sb.from("users").update({
       avatar_url: url, avatar_status: newStatus, media_rejection_reason: rejection,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpQuestProgressBatch } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,5 +23,14 @@ export async function POST(req: Request) {
 
   const { data, error } = await sb.rpc("pull_recruitment", { p_tier: tier });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
+  // Quest-Progress: jede Truhe ist ein Pull + Chest-Open. Bei Silber zusätzlich
+  // den dedizierten Silber-Counter feuern (side_chests_silver_25).
+  await bumpQuestProgressBatch(sb, user.id, [
+    { metric: "recruit_pulls",        amount: 1 },
+    { metric: "chests_opened",        amount: 1 },
+    { metric: tier === "silver" ? "silver_chests_opened" : "gold_chests_opened", amount: 1 },
+  ]);
+
   return NextResponse.json(data);
 }

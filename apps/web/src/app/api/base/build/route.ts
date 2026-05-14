@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpQuestProgress } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,5 +24,9 @@ export async function POST(req: Request) {
     p_position_y:  body.position_y ?? 0,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Quest-Progress: jeder Build/Upgrade-Start zählt für side_buildings_upgraded.
+  await bumpQuestProgress(sb, user.id, "buildings_upgraded", 1);
+
   return NextResponse.json(data);
 }

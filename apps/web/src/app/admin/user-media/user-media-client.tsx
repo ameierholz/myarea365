@@ -29,16 +29,23 @@ export function UserMediaClient() {
   }
   useEffect(() => { reload(); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function act(userId: string, kind: "banner" | "avatar", action: "approve" | "reject" | "delete") {
+  async function act(userId: string, kind: "banner" | "avatar", action: "approve" | "reject" | "delete" | "recheck") {
     const reason = action === "reject"
       ? (prompt(`Grund der Ablehnung (wird dem User angezeigt)?`, "Unangemessener Inhalt") || "Unangemessener Inhalt")
       : undefined;
     setBusy(`${userId}-${kind}-${action}`);
     try {
-      await fetch("/api/admin/user-media", {
+      const r = await fetch("/api/admin/user-media", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ user_id: userId, kind, action, reason }),
       });
+      if (action === "recheck") {
+        const j = await r.json() as { ok?: boolean; status?: string; rejection?: string | null; ai_approved?: boolean | null; ai_reason?: string };
+        if (j.ok) {
+          const ai = j.ai_approved === true ? "✓ KI sagt OK" : j.ai_approved === false ? "❌ KI: abgelehnt" : "⚠ KI ohne Ergebnis";
+          alert(`${ai}\nGrund: ${j.ai_reason ?? "—"}\nStatus jetzt: ${j.status}`);
+        }
+      }
       await reload();
     } finally { setBusy(null); }
   }
@@ -95,6 +102,7 @@ export function UserMediaClient() {
                   onApprove={() => act(u.id, "banner", "approve")}
                   onReject={() => act(u.id, "banner", "reject")}
                   onDelete={() => act(u.id, "banner", "delete")}
+                  onRecheck={() => act(u.id, "banner", "recheck")}
                 />
               )}
               {u.avatar_url && (
@@ -108,6 +116,7 @@ export function UserMediaClient() {
                   onApprove={() => act(u.id, "avatar", "approve")}
                   onReject={() => act(u.id, "avatar", "reject")}
                   onDelete={() => act(u.id, "avatar", "delete")}
+                  onRecheck={() => act(u.id, "avatar", "recheck")}
                 />
               )}
               {u.media_rejection_reason && (
@@ -124,7 +133,7 @@ export function UserMediaClient() {
 }
 
 function MediaBlock({
-  label, url, status, aspectRatio, busyKey, busy, onApprove, onReject, onDelete,
+  label, url, status, aspectRatio, busyKey, busy, onApprove, onReject, onDelete, onRecheck,
 }: {
   label: string;
   url: string;
@@ -135,6 +144,7 @@ function MediaBlock({
   onApprove: () => void;
   onReject: () => void;
   onDelete: () => void;
+  onRecheck: () => void;
 }) {
   const statusColor = status === "pending" ? "#FFD700" : status === "approved" ? "#4ade80" : "#FF2D78";
   const statusLabel = status === "pending" ? "⏳ OFFEN" : status === "approved" ? "✓ FREIGEGEBEN" : "❌ ABGELEHNT";
@@ -155,6 +165,9 @@ function MediaBlock({
         </button>
         <button onClick={onReject} disabled={!!busy} className="flex-1 py-1.5 rounded-lg bg-[#FFD700]/15 border border-[#FFD700]/40 text-[#FFD700] text-xs font-bold disabled:opacity-50">
           {busy === busyKey + "reject" ? "…" : "❌ Ablehnen"}
+        </button>
+        <button onClick={onRecheck} disabled={!!busy} className="py-1.5 px-2 rounded-lg bg-[#22D1C3]/15 border border-[#22D1C3]/40 text-[#22D1C3] text-xs font-bold disabled:opacity-50" title="KI nochmal über dieses Bild laufen lassen">
+          {busy === busyKey + "recheck" ? "…" : "🤖"}
         </button>
         <button onClick={onDelete} disabled={!!busy} className="py-1.5 px-2 rounded-lg bg-[#FF2D78]/15 border border-[#FF2D78]/40 text-[#FF2D78] text-xs font-bold disabled:opacity-50">
           {busy === busyKey + "delete" ? "…" : "🗑️"}

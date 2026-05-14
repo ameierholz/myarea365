@@ -104,13 +104,15 @@ import { MonthlyPackModal as MonthlyPackModalDirect } from "@/components/monthly
 import { LuckyWheelModal as LuckyWheelModalDirect } from "@/components/lucky-wheel-modal";
 import { ForgeOfLightModal as ForgeOfLightModalDirect } from "@/components/forge-of-light-modal";
 import { LootHubModal as LootHubModalDirect, DesktopWebBonusTrigger } from "@/components/loot-hub-modal";
-import { ResourceBar } from "@/components/resource-bar";
+import { KartenHud } from "@/components/karten-hud";
+import { QuestModal as QuestModalDirect } from "@/components/quest-modal";
 import { LoadoutTrio } from "@/components/loadout-trio";
 import { RunnerStatsModal as RunnerStatsModalDirect } from "@/components/runner-stats-modal";
 const OnboardingModal = _IS_PROD ? dynamic(() => import("@/components/onboarding-modal").then(m => m.OnboardingModal)) : OnboardingModalDirect;
 const FaqModal = _IS_PROD ? dynamic(() => import("@/components/faq-modal").then(m => m.FaqModal)) : FaqModalDirect;
 const PotionInventoryModal = _IS_PROD ? dynamic(() => import("@/components/potion-inventory-modal").then(m => m.PotionInventoryModal)) : PotionInventoryModalDirect;
 const RunnerStatsModal = _IS_PROD ? dynamic(() => import("@/components/runner-stats-modal").then(m => m.RunnerStatsModal)) : RunnerStatsModalDirect;
+const QuestModal = _IS_PROD ? dynamic(() => import("@/components/quest-modal").then(m => m.QuestModal)) : QuestModalDirect;
 import { GuardianHelpButton } from "@/components/guardian-help-modal";
 import { GuardianCollectionPanel } from "@/components/guardian-collection";
 import type { GuardianWithArchetype } from "@/lib/guardian";
@@ -461,6 +463,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   } | null>(null);
   const [lorePieces, setLorePieces] = useState<Array<{ piece_id: string; lat: number; lng: number; name: string; set_name?: string }>>([]);
   const [mapGemShopOpen, setMapGemShopOpen] = useState(false);
+  const [questModalOpen, setQuestModalOpen] = useState(false);
+  const [questReloadTick, setQuestReloadTick] = useState(0);
   const [viewingBoss, setViewingBoss] = useState<string | null>(null);
   const [viewingSanctuary, setViewingSanctuary] = useState<string | null>(null);
   const [viewingPowerZone, setViewingPowerZone] = useState<string | null>(null);
@@ -1114,7 +1118,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // ShopDetailModal mehr auf der Map.
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null; base_ring_id?: string | null; base_ring_art?: { image_url: string | null; video_url: string | null } | null };
+  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; owner_avatar_url?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null; base_ring_id?: string | null; base_ring_art?: { image_url: string | null; video_url: string | null } | null };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [inboxModalOpen, setInboxModalOpen] = useState(false);
@@ -1462,12 +1466,12 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       const bbox = [userCenter.lng - dLng, userCenter.lat - dLat, userCenter.lng + dLng, userCenter.lat + dLat].join(",");
       const r = await fetch(`/api/bases/nearby?bbox=${bbox}`, { cache: "no-store" });
       if (!r.ok || cancelled) return;
-      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; owner_username?: string | null; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean; base_ring_id?: string | null }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }> };
+      const j = await r.json() as { ok: boolean; runner: Array<{ id: string; owner_user_id?: string; owner_username?: string | null; owner_avatar_url?: string | null; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean; base_ring_id?: string | null }>; crew: Array<{ id: string; lat: number; lng: number; level: number; theme_id: string; pin_label: string; crew_tag?: string | null; is_own: boolean }> };
       const merged: BasePin[] = [];
       const fb = { pin_emoji: "🏰", pin_color: "#22D1C3" };
       (j.runner ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
-        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, owner_username: b.owner_username, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, base_ring_id: b.base_ring_id, ...t });
+        merged.push({ kind: "runner", id: b.id, owner_user_id: b.owner_user_id, owner_username: b.owner_username, owner_avatar_url: b.owner_avatar_url, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, base_ring_id: b.base_ring_id, ...t });
       });
       (j.crew ?? []).forEach((b) => {
         const t = themeMeta.get(b.theme_id) ?? fb;
@@ -2913,11 +2917,26 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         onClose={() => setShowServerOverview(false)}
       />
 
-      {/* Top-Level Overlays: Pop-Ups, Desktop-Bonus, ResourceBar */}
+      {/* Top-Level Overlays: Pop-Ups, Desktop-Bonus, Karten-HUD-Bar */}
       <PopupOfferGate />
       <DesktopWebBonusTrigger />
-      <ResourceBar onAddGems={() => setMapGemShopOpen(true)} />
+      <KartenHud
+        onProfileClick={() => setProfileModalOpen(true)}
+        onVipClick={() => setProfileModalOpen(true)}
+        onQuestsClick={() => setQuestModalOpen(true)}
+        onGemsClick={() => setMapGemShopOpen(true)}
+        onShopClick={() => setMapGemShopOpen(true)}
+        onDealsClick={() => setMapGemShopOpen(true)}
+        onCvcClick={() => { window.location.href = "/saga"; }}
+        questsOpen={questModalOpen}
+        questReloadKey={questReloadTick}
+      />
       {mapGemShopOpen && <GemShopModal onClose={() => setMapGemShopOpen(false)} />}
+      <QuestModal
+        open={questModalOpen}
+        onClose={() => { setQuestModalOpen(false); setQuestReloadTick((n) => n + 1); }}
+      />
+
       <ActiveSiegeBanner userCenter={userCenter} />
     </div>
   );
@@ -2990,6 +3009,7 @@ function ProfilTab({
   const [showWheel, setShowWheel] = useState(false);
   const [showForge, setShowForge] = useState(false);
   const [showLootHub, setShowLootHub] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
 
   // ═══ Base-Banner-State (eigene Base-Daten für Hero-Banner) ═══
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
@@ -3374,7 +3394,10 @@ function ProfilTab({
                 ? <video src={ringArt.video_url} autoPlay loop muted playsInline style={ringStyle} />
                 : <img src={ringArt.image_url!} alt="" style={ringStyle} />;
             })()}
-            {/* Avatar selbst */}
+            {/* Profil Avatar — rundes Foto des Spielers (avatar_url), Fallback
+                auf Initial des Anzeigenamens. Marker-Artwork (Läufer-Figur)
+                wird hier ABSICHTLICH nicht mehr verwendet — das ist ein anderes
+                Konzept (siehe Memory "avatar-terminology"). */}
             <div style={{
               position: "absolute",
               top: 14, left: 14, right: 14, bottom: 14,
@@ -3383,15 +3406,75 @@ function ProfilTab({
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: `inset 0 0 30px rgba(0,0,0,0.3), 0 0 35px ${currentRankLive.color}40`,
               border: `2px solid ${teamColor}`,
+              overflow: "hidden",
             }}>
               {(() => {
-                const a = markerArt[equippedMarker]?.[equippedMarkerVariant] ?? markerArt[equippedMarker]?.neutral;
+                const avatarUrl = (p as unknown as { avatar_url?: string | null })?.avatar_url;
                 const dropShadow = "drop-shadow(0 4px 14px rgba(0,0,0,0.4))";
-                if (a?.video_url) return <video src={a.video_url} autoPlay loop muted playsInline style={{ width: 110, height: 110, objectFit: "contain", filter: `url(#ma365-chroma-black) ${dropShadow}` }} />;
-                if (a?.image_url) return <img src={a.image_url} alt="" style={{ width: 110, height: 110, objectFit: "contain", filter: `url(#ma365-chroma-black) ${dropShadow}` }} />;
-                return <span style={{ fontSize: 66, filter: dropShadow }}>{currentMarker.icon}</span>;
+                if (avatarUrl) {
+                  // eslint-disable-next-line @next/next/no-img-element
+                  return <img src={avatarUrl} alt="Profil Avatar" style={{ width: "100%", height: "100%", objectFit: "cover", filter: dropShadow }} />;
+                }
+                const initial = (p?.display_name || p?.username || "?").trim().charAt(0).toUpperCase() || "?";
+                return (
+                  <span style={{
+                    color: "#F0F0F0", fontSize: 72, fontWeight: 900,
+                    letterSpacing: 1, fontFamily: "Inter,-apple-system,sans-serif",
+                    textShadow: "0 4px 10px rgba(0,0,0,0.7)",
+                    filter: dropShadow,
+                  }}>{initial}</span>
+                );
               })()}
             </div>
+            {/* Upload-Button — Profil Avatar ändern (oder hochladen) */}
+            <label
+              title="Profil Avatar hochladen / ändern"
+              aria-label="Profil Avatar hochladen / ändern"
+              style={{
+                position: "absolute", bottom: 6, right: 6, zIndex: 4,
+                width: 38, height: 38, borderRadius: 19,
+                background: `linear-gradient(135deg, ${teamColor}, ${teamColor}cc)`,
+                border: "3px solid #141a2d",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: avatarBusy ? "default" : "pointer",
+                fontSize: 18, lineHeight: 1,
+                boxShadow: "0 3px 10px rgba(0,0,0,0.65)",
+              }}
+            >
+              {avatarBusy ? "…" : "📸"}
+              <input
+                type="file" accept="image/*" hidden disabled={avatarBusy}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]; e.currentTarget.value = "";
+                  if (!f || !origP?.id) return;
+                  setAvatarBusy(true);
+                  try {
+                    const { uploadRunnerAvatar } = await import("@/lib/banner-upload");
+                    const r = await uploadRunnerAvatar(f);
+                    if (r.ok) {
+                      const { data } = await supabase.from("users").select("*").eq("id", origP.id).maybeSingle();
+                      if (data) setProfile(data as unknown as Profile);
+                    }
+                  } finally { setAvatarBusy(false); }
+                }}
+              />
+            </label>
+            {/* Status-Badge für Avatar-Moderation */}
+            {(() => {
+              const status = (p as unknown as { avatar_status?: string })?.avatar_status;
+              if (!status || status === "approved") return null;
+              return (
+                <div style={{
+                  position: "absolute", top: 0, right: 0, zIndex: 4,
+                  padding: "3px 8px", borderRadius: 999,
+                  background: status === "pending" ? "#FFD700" : "#FF2D78",
+                  color: "#0F1115", fontSize: 9, fontWeight: 900, letterSpacing: 0.8,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                }}>
+                  {status === "pending" ? "⏳ IN PRÜFUNG" : "❌ ABGELEHNT"}
+                </div>
+              );
+            })()}
 
             {/* Hologramm des equipped Runner-Lights (unten) */}
             <div style={{

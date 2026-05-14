@@ -37,12 +37,34 @@ export async function POST(req: Request) {
   const body = await req.json() as {
     user_id: string;
     kind: "banner" | "avatar";
-    action: "approve" | "reject" | "delete";
+    action: "approve" | "reject" | "delete" | "recheck";
     reason?: string;
   };
 
   const statusCol = body.kind === "banner" ? "banner_status" : "avatar_status";
   const urlCol = body.kind === "banner" ? "banner_url" : "avatar_url";
+
+  if (body.action === "recheck") {
+    // KI nochmal über das bereits hochgeladene Bild laufen lassen — nützlich
+    // wenn beim ersten Upload der ANTHROPIC_API_KEY noch nicht gesetzt war
+    // oder ein temporärer Fehler aufgetreten ist.
+    const { data: row } = await sb.from("users").select(urlCol).eq("id", body.user_id).maybeSingle<Record<string, string | null>>();
+    const url = row?.[urlCol] ?? null;
+    if (!url) return NextResponse.json({ error: "no_image" }, { status: 400 });
+
+    const { moderateImageUrl } = await import("@/lib/ai-moderation");
+    const mod = await moderateImageUrl(url);
+    const newStatus = mod.approved === true ? "approved" : mod.approved === false ? "rejected" : "pending";
+    let rejection: string | null = null;
+    if (mod.approved === false) rejection = `KI-Vorfilter: ${mod.reason ?? "unerlaubter Inhalt"}`;
+    else if (mod.approved === null) rejection = `KI-Hinweis: ${mod.reason ?? "kein Ergebnis"}`;
+
+    const { error } = await sb.from("users").update({
+      [statusCol]: newStatus, media_rejection_reason: rejection,
+    }).eq("id", body.user_id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, status: newStatus, rejection, ai_approved: mod.approved, ai_reason: mod.reason });
+  }
 
   if (body.action === "approve") {
     const { error } = await sb.from("users").update({ [statusCol]: "approved", media_rejection_reason: null }).eq("id", body.user_id);

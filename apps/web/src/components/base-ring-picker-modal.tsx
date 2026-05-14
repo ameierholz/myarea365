@@ -79,9 +79,9 @@ export function BaseRingPickerModal({
       }}>
         <div style={{ padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ color: PRIMARY, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>BASE-RING</div>
+            <div style={{ color: PRIMARY, fontSize: 8, fontWeight: 900, letterSpacing: 1.5 }}>AVATAR RAHMEN</div>
             <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-              Base-Ring wählen ({items.filter((r) => r.owned).length} / {items.length})
+              Avatar Rahmen wählen ({items.filter((r) => r.owned).length} / {items.length})
             </div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#8B8FA3", fontSize: 18, cursor: "pointer", width: 24, height: 24 }}>×</button>

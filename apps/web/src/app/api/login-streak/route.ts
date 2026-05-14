@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpQuestProgress } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,5 +26,9 @@ export async function POST() {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   const j = data as { ok?: boolean };
   if (!j?.ok) return NextResponse.json(j, { status: 400 });
+
+  // Quest-Progress: Login-Tag zählt für daily_login + side_login_30_days.
+  await bumpQuestProgress(sb, user.id, "login_days", 1);
+
   return NextResponse.json(j);
 }

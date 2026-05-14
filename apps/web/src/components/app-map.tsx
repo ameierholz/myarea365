@@ -66,11 +66,6 @@ if (typeof window !== "undefined") {
     .mapboxgl-ctrl-logo:hover { opacity: 1; }
     .mapboxgl-ctrl-attrib.mapboxgl-compact { opacity: 0.55; }
     .mapboxgl-ctrl-attrib.mapboxgl-compact:hover { opacity: 1; }
-    /* Force bottom-Container nach oben — falls Mapbox v3 trotz logoPosition+addControl
-       die Controls unten rendert, fängt diese Regel sie ab und schiebt sie hoch.
-       ToS-konform: Logo+Attribution bleiben voll sichtbar, nur woanders im Layout. */
-    .mapboxgl-ctrl-bottom-left { bottom: auto !important; top: 0 !important; }
-    .mapboxgl-ctrl-bottom-right { bottom: auto !important; top: 0 !important; }
     .mapboxgl-ctrl-top-left, .mapboxgl-ctrl-top-right,
     .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 5; }
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
@@ -672,6 +667,8 @@ interface AppMapProps {
     pin_color: string;
     pin_label: string;
     owner_username?: string | null;
+    /** Profilbild des Owners — wird bei Runner-Bases statt base_theme als Map-Icon angezeigt. */
+    owner_avatar_url?: string | null;
     crew_tag?: string | null;
     is_own: boolean;
     theme_id?: string;
@@ -983,7 +980,7 @@ export function AppMap({
       pitch: slow ? 0 : 52,
       bearing: -20,
       attributionControl: false,
-      logoPosition: "top-left", // raus aus dem Chat-Bereich unten links
+      logoPosition: "bottom-right", // unten rechts, weg vom Karten-HUD oben links
       // Heimat-Stadt-Bounds: erstmal Default (Berlin), wird gleich durch
       // /api/me/city überschrieben sobald die User-Stadt geladen ist.
       maxBounds: DEFAULT_CITY_BOUNDS,
@@ -1001,10 +998,10 @@ export function AppMap({
       m.setMaxPixelRatio?.(1.5);
     }
 
-    // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons
-    // Logo bleibt top-left (Mapbox-Pflicht-Branding), Attribution-Icon nach top-right
-    // damit die zwei Elemente sich nicht überlagern.
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "top-right");
+    // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons.
+    // Logo+Attribution beide unten rechts (Mapbox-Pflicht-Branding bleibt sichtbar),
+    // weg von der HUD-Bar oben links und rechts.
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
     // Wheel-Zoom snappier — Default 1/450 reagiert träge (gefühlte 2-3 Klicks
     // bevor die Karte zoomt), 1/200 macht jeden Wheel-Schritt sofort sichtbar.
@@ -3522,21 +3519,30 @@ export function AppMap({
             ? `<video src="${ringArt.video_url}" autoplay loop muted playsinline style="${ringStyle}"></video>`
             : `<img src="${ringArt.image_url}" alt="" style="${ringStyle}" />`)
         : "";
+      // ── Profil Avatar im Inneren des Runner-Badges
+      // Priorität: hochgeladenes Foto (avatar_url) → Initial des Anzeigenamens.
+      // Map-Icon-Artwork (markerArt) ist hier ABSICHTLICH kein Fallback mehr —
+      // das war früher das equippte Map-Marker-Bild, hat aber nichts mit dem
+      // Profil Avatar zu tun (siehe Memory "avatar-terminology").
+      const badgeInitial = (pin.owner_username || pin.pin_label || "?").trim().charAt(0).toUpperCase() || "?";
+      const badgeInner = pin.owner_avatar_url
+        ? `<img src="${escapeHtml(pin.owner_avatar_url)}" alt="" style="position:relative;z-index:2;width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" />`
+        : `<span style="position:relative;z-index:2;color:#F0F0F0;font-size:${Math.round(AVATAR_SIZE * 0.5)}px;font-weight:900;letter-spacing:1px;font-family:Inter,-apple-system,sans-serif;text-shadow:0 2px 3px rgba(0,0,0,0.7);">${escapeHtml(badgeInitial)}</span>`;
+      // Runner-Badge = der weiße runde Frame um den Profil Avatar.
+      // overflow:hidden gewollt damit der Profil Avatar rund clippt. Der Avatar
+      // Rahmen (ringHtml) sitzt DARAUSSEN — als overlay-Layer auf dem Wrapper.
       const runnerBadge = showRunnerOnBase
-        ? `<div style="
-              position:relative;z-index:3;margin-top:-${AVATAR_LIFT}px;
-              width:${AVATAR_SIZE}px;height:${AVATAR_SIZE}px;border-radius:50%;
+        ? `<div style="position:relative;z-index:3;margin-top:-${AVATAR_LIFT}px;width:${AVATAR_SIZE}px;height:${AVATAR_SIZE}px;">
+            <div style="
+              position:absolute;inset:0;border-radius:50%;
               display:flex;align-items:center;justify-content:center;
               background:radial-gradient(circle at 35% 30%, ${pin.pin_color}, rgba(15,17,21,0.92));
               border:4px solid rgba(255,255,255,0.95);
               box-shadow:0 0 22px ${pin.pin_color}cc, 0 4px 12px rgba(0,0,0,0.65);
-            ">${ringHtml}${
-              markerArt?.video_url
-                ? `<video src="${markerArt.video_url}" autoplay loop muted playsinline style="position:relative;z-index:2;width:${AVATAR_SIZE - 18}px;height:${AVATAR_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);"></video>`
-                : markerArt?.image_url
-                  ? `<img src="${markerArt.image_url}" alt="" style="position:relative;z-index:2;width:${AVATAR_SIZE - 18}px;height:${AVATAR_SIZE - 18}px;object-fit:contain;filter:url(#ma365-chroma-black);" />`
-                  : `<span style="position:relative;z-index:2;font-size:${AVATAR_SIZE - 38}px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.6));">${myEmoji}</span>`
-            }</div>`
+              overflow:hidden;
+            ">${badgeInner}</div>
+            ${ringHtml}
+          </div>`
         : "";
       // Display-Name auf Runner-Pin: owner_username (echter Name) bevorzugt vor pin_label (z.B. "Homebase").
       const rawLabel = (pin.kind === "runner" && pin.owner_username) ? pin.owner_username : pin.pin_label;

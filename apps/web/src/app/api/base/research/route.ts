@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpQuestProgress } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,5 +24,9 @@ export async function POST(req: Request) {
   if (!body.research_id) return NextResponse.json({ error: "missing_research_id" }, { status: 400 });
   const { data, error } = await sb.rpc("start_research", { p_research_id: body.research_id });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Quest-Progress: Forschung gestartet
+  await bumpQuestProgress(sb, user.id, "research_started", 1);
+
   return NextResponse.json(data);
 }

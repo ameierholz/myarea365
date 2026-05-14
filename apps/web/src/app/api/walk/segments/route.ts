@@ -369,6 +369,9 @@ export async function POST(req: Request) {
     { metric: "streak_maintained",     amount: walkKm >= 0.5 ? 1 : 0 },
   ]);
 
+  // KEIN bump_quest_progress hier — Quest-System ist CoD/RoK-Konzept,
+  // Runner-Metriken (segments_total) sind getrennt im runner_legacy-Schema.
+
   // (Saga ist seit dem KvK-Refactoring komplett von der Bewegung entkoppelt.
   //  Spielmechanik läuft rein über Aufgebot + Wächter auf der Saga-Map.)
 

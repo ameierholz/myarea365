@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { bumpQuestProgress } from "@/lib/quests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,5 +30,9 @@ export async function POST(req: Request) {
 
   const { data, error } = await sb.rpc("help_crew_build", { p_queue_id: queueId });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Quest-Progress: Crew-Hilfe geleistet
+  await bumpQuestProgress(sb, user.id, "crew_help_given", 1);
+
   return NextResponse.json(data);
 }
