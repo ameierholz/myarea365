@@ -54,9 +54,8 @@ export function WeatherAtmosphereOverlay() {
         />
       )}
 
-      {/* Wetter-Partikel-Layer (CSS-only) */}
-      {cond === "rain"  && <RainOverlay intensity={1} />}
-      {cond === "storm" && <RainOverlay intensity={2} />}
+      {/* Wetter-Partikel-Layer — Regen/Sturm-Streaks deaktiviert (sahen komisch aus).
+          Schnee+Nebel bleiben aktiv, weil unauffälliger. */}
       {cond === "snow"  && <SnowOverlay />}
       {cond === "fog"   && <FogOverlay />}
 
@@ -65,28 +64,68 @@ export function WeatherAtmosphereOverlay() {
   );
 }
 
-/* ─── Regen / Sturm — vertikale Streifen mit CSS-Animation ──────────────── */
+/* ─── Regen / Sturm — zwei Layer mit unterschiedlichem Speed für Tiefe ──── */
 function RainOverlay({ intensity }: { intensity: 1 | 2 }) {
+  const isStorm = intensity === 2;
+  // Tilt simuliert Wind: Sturm = mehr Schräglage.
+  const tiltFar = isStorm ? 14 : 8;   // hintere Schicht steiler
+  const tiltNear = isStorm ? 22 : 14; // vordere Schicht stärker geneigt
+  // Speeds: hintere Schicht langsamer (Parallax-Effekt = mehr Tiefe).
+  const speedFar = isStorm ? 0.9 : 1.4;
+  const speedNear = isStorm ? 0.5 : 0.8;
+  // Streaks: kürzer, dünner, semi-transparent → echtes Regen-Feeling statt Jalousie.
   return (
     <>
       <style>{`
-        @keyframes ma365-rain-fall {
-          0%   { transform: translateY(-12vh); }
-          100% { transform: translateY(112vh); }
+        @keyframes ma365-rain-fall-far {
+          0%   { background-position: 0 -120vh; }
+          100% { background-position: 0 120vh; }
+        }
+        @keyframes ma365-rain-fall-near {
+          0%   { background-position: 0 -120vh; }
+          100% { background-position: 0 120vh; }
         }
       `}</style>
+      {/* hintere Schicht: feiner Sprühregen, schwach + langsamer */}
+      <div
+        aria-hidden
+        style={{
+          position: "fixed", inset: 0, pointerEvents: "none", zIndex: 11,
+          backgroundImage: `linear-gradient(
+            ${tiltFar}deg,
+            transparent 0,
+            transparent 40%,
+            rgba(180, 210, 230, ${isStorm ? 0.10 : 0.06}) 45%,
+            rgba(180, 210, 230, ${isStorm ? 0.14 : 0.09}) 50%,
+            rgba(180, 210, 230, ${isStorm ? 0.10 : 0.06}) 55%,
+            transparent 60%,
+            transparent 100%
+          )`,
+          backgroundSize: `3px ${isStorm ? 28 : 36}px`,
+          backgroundRepeat: "repeat",
+          animation: `ma365-rain-fall-far ${speedFar}s linear infinite`,
+          opacity: 0.9,
+        }}
+      />
+      {/* vordere Schicht: schnellere, gröbere Tropfen */}
       <div
         aria-hidden
         style={{
           position: "fixed", inset: 0, pointerEvents: "none", zIndex: 12,
-          backgroundImage: `repeating-linear-gradient(
-            ${intensity === 2 ? "115deg" : "100deg"},
+          backgroundImage: `linear-gradient(
+            ${tiltNear}deg,
             transparent 0,
-            transparent ${intensity === 2 ? 8 : 14}px,
-            rgba(120, 200, 240, ${intensity === 2 ? 0.32 : 0.22}) ${intensity === 2 ? 9 : 15}px,
-            transparent ${intensity === 2 ? 10 : 16}px
+            transparent 35%,
+            rgba(200, 220, 240, ${isStorm ? 0.18 : 0.13}) 42%,
+            rgba(220, 235, 250, ${isStorm ? 0.28 : 0.20}) 50%,
+            rgba(200, 220, 240, ${isStorm ? 0.18 : 0.13}) 58%,
+            transparent 65%,
+            transparent 100%
           )`,
-          animation: `ma365-rain-fall ${intensity === 2 ? 0.45 : 0.7}s linear infinite`,
+          backgroundSize: `4px ${isStorm ? 22 : 32}px`,
+          backgroundRepeat: "repeat",
+          animation: `ma365-rain-fall-near ${speedNear}s linear infinite`,
+          mixBlendMode: "screen",
         }}
       />
     </>

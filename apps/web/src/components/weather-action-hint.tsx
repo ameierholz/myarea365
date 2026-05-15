@@ -144,39 +144,51 @@ export function WeatherActionHint({ lever, compact = false }: { lever: Lever; co
         style={{
           all: "unset",
           cursor: "pointer",
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "4px 10px", borderRadius: 8,
+          display: "flex", flexDirection: "column", gap: 2,
+          padding: "4px 10px 3px", borderRadius: 8,
           background: "rgba(255,255,255,0.04)",
           border: "1px solid rgba(255,255,255,0.10)",
           fontFamily: "Inter,-apple-system,sans-serif",
           fontVariantNumeric: "tabular-nums",
-          whiteSpace: "nowrap",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
-        <span style={{ fontSize: 12, opacity: 0.85 }}>{meta.emoji}</span>
-        <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>{meta.label}</span>
-        <span style={{ fontSize: 11, fontWeight: 900, color: overallColor }}>
-          {overallSign}{Math.abs(combinedPlayer)} %
+        {/* Zeile 1: Header + Quellen-Pills — flex-wrap erlaubt Umbruch auf engen Modals */}
+        <span style={{
+          display: "flex", flexWrap: "wrap", alignItems: "center",
+          gap: 6, rowGap: 3,
+        }}>
+          <span style={{ fontSize: 12, opacity: 0.85 }}>{meta.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>{meta.label}</span>
+          <span style={{ fontSize: 11, fontWeight: 900, color: overallColor }}>
+            {overallSign}{Math.abs(combinedPlayer)} %
+          </span>
+          <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.12)" }} />
+          {sources.map((s) => {
+            const c = s.pct >= 0 ? "#9ee5dd" : "#FFB39A";
+            return (
+              <span key={s.label} style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                padding: "1px 6px", borderRadius: 999,
+                background: `${s.color}22`,
+                border: `1px solid ${s.color}55`,
+                fontSize: 8, fontWeight: 800,
+                color: c, fontVariantNumeric: "tabular-nums",
+                whiteSpace: "nowrap",
+              }}>
+                <span style={{ fontSize: 9 }}>{s.emoji}</span>
+                <span style={{ color: "#FFF" }}>{s.label}</span>
+                <span>{s.pct > 0 ? "+" : "−"}{Math.abs(s.pct)} %</span>
+              </span>
+            );
+          })}
         </span>
-        <span style={{ width: 1, height: 12, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
-        {sources.map((s) => {
-          const c = s.pct >= 0 ? "#9ee5dd" : "#FFB39A";
-          return (
-            <span key={s.label} style={{
-              display: "inline-flex", alignItems: "center", gap: 3,
-              padding: "1px 6px", borderRadius: 999,
-              background: `${s.color}22`,
-              border: `1px solid ${s.color}55`,
-              fontSize: 8, fontWeight: 800,
-              color: c, fontVariantNumeric: "tabular-nums",
-            }}>
-              <span style={{ fontSize: 9 }}>{s.emoji}</span>
-              <span style={{ color: "#FFF" }}>{s.label}</span>
-              <span>{s.pct > 0 ? "+" : "−"}{Math.abs(s.pct)} %</span>
-            </span>
-          );
-        })}
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginLeft: 2 }}>▸ Details</span>
+        {/* Zeile 2: Details-Link unter den Badges (rechtsbündig, klein, subtil) */}
+        <span style={{
+          fontSize: 8, color: "rgba(255,255,255,0.5)", fontWeight: 700,
+          textAlign: "right", marginTop: 1,
+        }}>▸ Details</span>
       </button>
       </>
     );

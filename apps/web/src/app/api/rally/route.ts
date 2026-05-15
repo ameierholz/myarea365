@@ -24,6 +24,28 @@ export async function POST(req: Request) {
 
   if (body.action === "start") {
     const { data: { user } } = await sb.auth.getUser();
+    if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+
+    // Kern-Konzept: Aufgebot marschiert über Straßen — Route VOR dem RPC holen.
+    const [{ data: myBase }, { data: sh }] = await Promise.all([
+      sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+      sb.from("strongholds").select("lat, lng").eq("id", body.stronghold_id).maybeSingle<{ lat: number; lng: number }>(),
+    ]);
+    if (!myBase) return NextResponse.json({ error: "no_own_base" }, { status: 400 });
+    if (!sh) return NextResponse.json({ error: "stronghold_not_found" }, { status: 404 });
+
+    const route = await fetchWalkingRoute(myBase.lat, myBase.lng, sh.lat, sh.lng);
+    if (!route) {
+      console.error("[rally] routing_unavailable", {
+        user_id: user.id, from: [myBase.lat, myBase.lng], to: [sh.lat, sh.lng],
+        has_token: !!process.env.MAPBOX_ACCESS_TOKEN,
+      });
+      return NextResponse.json({
+        error: "routing_unavailable",
+        message: "Keine Lauf-Route gefunden — Mapbox antwortet nicht. Versuche es in einem Moment erneut.",
+      }, { status: 503 });
+    }
+
     const { data, error } = await sb.rpc("start_rally", {
       p_stronghold_id: body.stronghold_id,
       p_prep_seconds:  body.prep_seconds,
@@ -33,22 +55,13 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const rallyResult = data as { ok?: boolean; rally_id?: string };
-    if (user && rallyResult?.ok && rallyResult.rally_id) {
-      try {
-        const [{ data: myBase }, { data: sh }] = await Promise.all([
-          sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
-          sb.from("strongholds").select("lat, lng").eq("id", body.stronghold_id).maybeSingle<{ lat: number; lng: number }>(),
-        ]);
-        if (myBase && sh) {
-          const route = await fetchWalkingRoute(myBase.lat, myBase.lng, sh.lat, sh.lng);
-          await sb.rpc("enrich_rally_with_route", {
-            p_kind: "stronghold",
-            p_rally_id: rallyResult.rally_id,
-            p_route_distance_m: route?.distance_m ?? null,
-            p_route_geom_geojson: route?.geometry ?? null,
-          });
-        }
-      } catch { /* enrich optional */ }
+    if (rallyResult?.ok && rallyResult.rally_id) {
+      await sb.rpc("enrich_rally_with_route", {
+        p_kind: "stronghold",
+        p_rally_id: rallyResult.rally_id,
+        p_route_distance_m: route.distance_m,
+        p_route_geom_geojson: route.geometry,
+      });
     }
     return NextResponse.json(data);
   }

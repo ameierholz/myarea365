@@ -106,18 +106,37 @@ export function WeatherInfoModal({
     if (!open) return;
     const update = () => {
       const el = anchorRef?.current;
-      if (!el || typeof window === "undefined") {
+      if (typeof window === "undefined") return;
+      if (!el) {
+        // Fallback: oben zentriert
         setPos({ top: 48, left: window.innerWidth / 2 });
         return;
       }
       const r = el.getBoundingClientRect();
       const centerX = r.left + r.width / 2;
       const actualWidth = Math.min(MODAL_WIDTH, window.innerWidth - 16);
-      // Clamp damit Modal nicht aus dem Viewport rutscht (Modal nutzt translateX(-50%))
       const minLeft = actualWidth / 2 + 8;
       const maxLeft = window.innerWidth - actualWidth / 2 - 8;
       const clampedLeft = Math.max(minLeft, Math.min(maxLeft, centerX));
-      setPos({ top: r.bottom + 2, left: clampedLeft });
+
+      // Smart-Anchor: unter den Button, AUSSER wir hätten weniger als 220px
+      // Platz nach unten — dann positionieren wir über dem Button.
+      const vh = window.innerHeight;
+      const spaceBelow = vh - r.bottom - 12;
+      const spaceAbove = r.top - 12;
+      const MIN_SPACE = 240;
+      let top: number;
+      if (spaceBelow >= MIN_SPACE || spaceBelow >= spaceAbove) {
+        // Unter dem Anchor
+        top = r.bottom + 2;
+      } else {
+        // Über dem Anchor — Modal "wächst" nach oben über das transparente Drumherum.
+        // Damit das Modal mit overflow:auto trotzdem nach UNTEN scrollt, setzen wir
+        // top so dass das Modal max(MIN_SPACE, spaceAbove) hoch ist und genau am Anchor endet.
+        const desiredHeight = Math.min(Math.max(MIN_SPACE, spaceAbove), vh - 16);
+        top = Math.max(8, r.top - desiredHeight - 2);
+      }
+      setPos({ top, left: clampedLeft });
     };
     update();
     window.addEventListener("resize", update);
@@ -163,6 +182,9 @@ export function WeatherInfoModal({
           zIndex: 9400,
           width: `min(${MODAL_WIDTH}px, calc(100vw - 16px))`,
           maxHeight: `calc(100dvh - ${pos.top + 12}px)`,
+          // Mindest-Höhe, damit der Body-Bereich auch bei knappem Platz Scroll-Raum hat.
+          // Wenn der Viewport extrem klein wäre, fällt das natürlich zurück.
+          minHeight: "min(240px, calc(100dvh - 16px))",
           display: "flex", flexDirection: "column",
           background: "linear-gradient(180deg, rgba(15,17,21,0.96), rgba(26,29,35,0.96))",
           border: "1px solid rgba(34,209,195,0.3)",
@@ -224,8 +246,9 @@ export function WeatherInfoModal({
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px 12px 12px" }}>
+        {/* Body — min-height:0 ist nötig damit flex:1 in column-flex tatsächlich shrinks
+            statt sich auf Content-Größe aufzublasen (klassischer Flexbox-Scroll-Bug). */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 12px 12px 12px" }}>
           <SectionHeader label="TAGESZEITEN" color="#FFD700" />
           <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 10 }}>
             {TIME_ORDER.map((k) => {

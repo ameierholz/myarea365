@@ -18,10 +18,18 @@ type Zone = {
   id: string; name: string; zone_kind: "district" | "spawn" | "apex" | "gate";
   ring: number; centroid_lat: number; centroid_lng: number; polygon: number[][];
   owner_crew_id: string | null;
+  camp_crew_id: string | null;
   gate_kind: string | null; gate_phase: number | null; gate_state: string | null;
   resource_bonus_pct: number; resource_kind: string | null;
   is_holy_site: boolean; holy_buff_kind: string | null; holy_buff_pct: number;
   is_gather_tile: boolean; gather_yield_per_hour: number; gather_kind: string | null; gather_remaining: number;
+};
+type CampWall = {
+  id: string; zone_a: string; zone_b: string;
+  wall_kind: "rock" | "ice" | "forest" | "wall" | "river";
+  midpoint_lat: number; midpoint_lng: number;
+  point_a_lat: number; point_a_lng: number;
+  point_b_lat: number; point_b_lng: number;
 };
 type March = {
   id: string; crew_id: string; user_id: string;
@@ -33,6 +41,7 @@ type March = {
 type BracketCrew = {
   crew_id: string; color_hex: string; spawn_zone_id: string | null;
   zones_held: number; buildings_count: number; merits: number; final_rank: number | null;
+  camp_element: string | null; camp_emoji: string | null; camp_name: string | null;
   crews?: { name: string | null; slug: string | null } | null;
 };
 type City = {
@@ -90,6 +99,7 @@ type Snap = {
   active_megas: Array<{ id: string; zone_id: string; hp_remaining: number; hp_total: number; expires_at: string }> | null;
   active_diplomacy: Array<{ id: string; crew_a: string; crew_b: string; pact_kind: string; status: string; expires_at: string | null; proposed_by: string | null }> | null;
   user_positions: Array<UserPosition> | null;
+  camp_walls: CampWall[] | null;
   all_brackets: Bracket[];
 };
 
@@ -136,29 +146,44 @@ export function SagaClient() {
     if (!MAPBOX_TOKEN) return;
 
     const c = snap.city;
+    // RoK-Style: Karte ist auf die Stadt-BBox + leichtes Padding eingesperrt.
+    // Verhindert Wegscrollen + zu weites Reinzoomen (nutzlos) / Rauszoomen.
+    const padPct = 0.08; // 8% Außen-Puffer
+    const padLat = (c.bbox_north - c.bbox_south) * padPct;
+    const padLng = (c.bbox_east - c.bbox_west) * padPct;
     const m = new mapboxgl.Map({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/dark-v11",
       bounds: [[c.bbox_west, c.bbox_south], [c.bbox_east, c.bbox_north]],
       fitBoundsOptions: { padding: 30 },
+      maxBounds: [
+        [c.bbox_west - padLng, c.bbox_south - padLat],
+        [c.bbox_east + padLng, c.bbox_north + padLat],
+      ],
+      minZoom: 10,
+      maxZoom: 17,
     });
     m.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     m.on("load", () => {
-      // Polygone aller Zonen
+      // Polygone aller Zonen + Camp-Color via camp_crew_id Lookup
       const features: GeoJSON.Feature[] = [];
       for (const z of snap.zones!) {
         const coords = (z.polygon ?? []).map(([lat, lng]) => [lng, lat]);
         if (coords.length < 3) continue;
         if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) coords.push(coords[0]);
         const owner = z.owner_crew_id ? snap.bracket_crews?.find((cr) => cr.crew_id === z.owner_crew_id) : null;
+        const camp = z.camp_crew_id ? snap.bracket_crews?.find((cr) => cr.crew_id === z.camp_crew_id) : null;
         features.push({
           type: "Feature", id: z.id,
           properties: {
             id: z.id, name: z.name, kind: z.zone_kind, ring: z.ring,
             owner_color: owner?.color_hex ?? "#444",
+            camp_color: camp?.color_hex ?? "#888",
+            camp_id: z.camp_crew_id ?? "",
             gate_state: z.gate_state, is_holy: z.is_holy_site, is_gather: z.is_gather_tile,
             is_mine: z.owner_crew_id === snap.my_crew_id,
+            in_my_camp: z.camp_crew_id != null && z.camp_crew_id === snap.my_crew_id,
           },
           geometry: { type: "Polygon", coordinates: [coords] },
         });
@@ -166,9 +191,37 @@ export function SagaClient() {
 
       m.addSource("zones", { type: "geojson", data: { type: "FeatureCollection", features } });
 
-      // Layer-Stack
+      // Camp-Tönung — klares, sichtbares Territorium pro Camp wie RoK "Season of Conquest".
+      // Diese Layer ist der primäre Fill für District-Zonen → klar erkennbare Territorien.
+      m.addLayer({
+        id: "zones-camp-tint", type: "fill", source: "zones",
+        filter: ["all",
+          ["!=", ["get", "kind"], "apex"],
+          ["!=", ["get", "kind"], "gate"],
+        ],
+        paint: {
+          "fill-color": ["get", "camp_color"],
+          "fill-opacity": [
+            "case",
+            ["==", ["get", "in_my_camp"], true], 0.65,
+            0.50,
+          ],
+        },
+      });
+      // Bewusst KEINE per-district camp-border mehr — die fragmentiert das
+      // Camp-Territorium optisch. Adjacent districts mit gleichem camp_color
+      // verschmelzen visuell durch identische Fill-Farbe; die Grenze zu anderen
+      // Camps zeigt sich automatisch durch Farbkontrast + die saga_camp_walls-Linien.
+      // Layer-Stack — primärer Fill nur für besessene Zonen + Apex + Gates + Holy/Gather.
       m.addLayer({
         id: "zones-fill", type: "fill", source: "zones",
+        filter: ["any",
+          ["==", ["get", "kind"], "apex"],
+          ["==", ["get", "kind"], "gate"],
+          ["==", ["get", "is_holy"], true],
+          ["==", ["get", "is_gather"], true],
+          ["!=", ["get", "owner_color"], "#444"],
+        ],
         paint: {
           "fill-color": [
             "case",
@@ -179,43 +232,299 @@ export function SagaClient() {
             ["==", ["get", "is_gather"], true], "#5DDAF0",
             ["get", "owner_color"],
           ],
-          "fill-opacity": ["case", ["==", ["get", "is_mine"], true], 0.55, 0.3],
+          "fill-opacity": [
+            "case",
+            ["==", ["get", "kind"], "gate"], 0.85,
+            ["==", ["get", "is_mine"], true], 0.55,
+            ["==", ["get", "kind"], "apex"], 0.45,
+            0.30,
+          ],
+        },
+      });
+      // RoK-Style: Owner-Border in Crew-Farbe (dick, mit Glow). Nur wenn die
+      // Zone tatsächlich einer Crew gehört — sonst überlagert es die districts.
+      m.addLayer({
+        id: "zones-owner-glow", type: "line", source: "zones",
+        filter: ["!=", ["get", "owner_color"], "#444"],
+        paint: {
+          "line-color": ["get", "owner_color"],
+          "line-width": 8,
+          "line-blur": 6,
+          "line-opacity": 0.5,
         },
       });
       m.addLayer({
+        id: "zones-owner-border", type: "line", source: "zones",
+        filter: ["!=", ["get", "owner_color"], "#444"],
+        paint: {
+          "line-color": ["get", "owner_color"],
+          "line-width": 3.5,
+          "line-opacity": 0.95,
+        },
+      });
+      // Nur SPECIAL-Zonen (Spawn/Apex/Holy) bekommen sichtbare Borders — Standard-Districts
+      // bleiben Outline-frei, damit das Camp-Territorium als ein Block wirkt.
+      m.addLayer({
         id: "zones-line", type: "line", source: "zones",
+        filter: ["any",
+          ["==", ["get", "kind"], "spawn"],
+          ["==", ["get", "kind"], "apex"],
+          ["==", ["get", "is_holy"], true],
+        ],
         paint: {
           "line-color": [
             "case",
             ["==", ["get", "kind"], "spawn"], "#FFD700",
             ["==", ["get", "kind"], "apex"], "#FF2D78",
-            ["==", ["get", "kind"], "gate"], "#fff",
+            ["==", ["get", "is_holy"], true], "#FFD700",
             "#888",
           ],
-          "line-width": ["case", ["==", ["get", "kind"], "spawn"], 3, ["==", ["get", "kind"], "apex"], 4, 1],
-          "line-dasharray": ["case", ["==", ["get", "kind"], "gate"], ["literal", [2, 1]], ["literal", [1]]],
+          "line-width": [
+            "case",
+            ["==", ["get", "kind"], "spawn"], 3,
+            ["==", ["get", "kind"], "apex"], 4,
+            ["==", ["get", "is_holy"], true], 2,
+            1,
+          ],
+          "line-opacity": 0.85,
+        },
+      });
+      // Gates: dicke gestrichelte Border in gate-state-Farbe
+      m.addLayer({
+        id: "gates-line", type: "line", source: "zones",
+        filter: ["==", ["get", "kind"], "gate"],
+        paint: {
+          "line-color": [
+            "match", ["get", "gate_state"],
+            "open", "#22c55e",
+            "garrisoned", "#a855f7",
+            "besieged", "#f59e0b",
+            "#ef4444",
+          ],
+          "line-width": 4,
+          "line-dasharray": [2, 1.5],
         },
       });
 
-      // Labels
+      // Labels — Tore und Apex bekommen eigene größere Icon-Layer (s.u.)
       m.addSource("labels", {
         type: "geojson",
         data: {
           type: "FeatureCollection",
           features: snap.zones!.map((z) => ({
             type: "Feature",
-            properties: { name: z.name, kind: z.zone_kind, holy: z.is_holy_site ? "🏛 " : "", gather: z.is_gather_tile ? "📦 " : "" },
+            properties: {
+              name: z.name, kind: z.zone_kind,
+              holy: z.is_holy_site ? "🏛 " : "",
+              gather: z.is_gather_tile ? "📦 " : "",
+            },
             geometry: { type: "Point", coordinates: [Number(z.centroid_lng), Number(z.centroid_lat)] },
           })),
         },
       });
       m.addLayer({
         id: "zone-labels", type: "symbol", source: "labels",
+        // Gate-Labels nicht doppelt zeigen (eigener Tor-Icon-Layer kommt unten)
+        filter: ["!=", ["get", "kind"], "gate"],
         layout: {
           "text-field": ["concat", ["get", "holy"], ["get", "gather"], ["get", "name"]],
           "text-size": 11, "text-allow-overlap": false,
         },
         paint: { "text-color": "#fff", "text-halo-color": "#000", "text-halo-width": 1.5 },
+      });
+
+      // Gate-Icons — groß, immer sichtbar, Farbe matcht den State.
+      // 🌉 für Brücke, 🚇 für Tunnel. Fallback 🚪.
+      const gateFeatures: GeoJSON.Feature[] = snap.zones!
+        .filter((z) => z.zone_kind === "gate")
+        .map((z) => ({
+          type: "Feature",
+          properties: {
+            id: z.id, name: z.name,
+            icon: z.gate_kind === "tunnel" ? "🚇" : z.gate_kind === "bridge" ? "🌉" : "🚪",
+            phase: z.gate_phase ?? 0,
+            phase_label: String(z.gate_phase ?? 0),
+            state: z.gate_state ?? "closed",
+            label_color:
+              z.gate_state === "open" ? "#22c55e"
+              : z.gate_state === "garrisoned" ? "#a855f7"
+              : z.gate_state === "besieged" ? "#f59e0b"
+              : "#ef4444",
+          },
+          geometry: { type: "Point", coordinates: [Number(z.centroid_lng), Number(z.centroid_lat)] },
+        }));
+      m.addSource("gates", { type: "geojson", data: { type: "FeatureCollection", features: gateFeatures } });
+      m.addLayer({
+        id: "gates-icon", type: "symbol", source: "gates",
+        layout: {
+          "text-field": ["get", "icon"],
+          "text-size": 26,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-halo-color": ["get", "label_color"],
+          "text-halo-width": 2,
+        },
+      });
+      m.addLayer({
+        id: "gates-phase-badge", type: "symbol", source: "gates",
+        layout: {
+          "text-field": ["get", "phase_label"],
+          "text-size": 14,
+          "text-offset": [0, -1.2],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+          "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+        },
+        paint: {
+          "text-color": "#fff",
+          "text-halo-color": ["get", "label_color"],
+          "text-halo-width": 3,
+        },
+      });
+      m.addLayer({
+        id: "gates-label", type: "symbol", source: "gates",
+        layout: {
+          "text-field": ["get", "name"],
+          "text-size": 10,
+          "text-offset": [0, 1.6],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+          "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+        },
+        paint: {
+          "text-color": "#fff",
+          "text-halo-color": ["get", "label_color"],
+          "text-halo-width": 2,
+        },
+      });
+
+      // Apex — extra-grosser Marker am Stadtkern.
+      const apexZone = snap.zones!.find((z) => z.zone_kind === "apex");
+      if (apexZone) {
+        m.addSource("apex", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: { name: apexZone.name },
+            geometry: { type: "Point", coordinates: [Number(apexZone.centroid_lng), Number(apexZone.centroid_lat)] },
+          },
+        });
+        m.addLayer({
+          id: "apex-icon", type: "symbol", source: "apex",
+          layout: {
+            "text-field": "👑",
+            "text-size": 36,
+            "text-allow-overlap": true, "text-ignore-placement": true,
+          },
+          paint: { "text-halo-color": "#FFD700", "text-halo-width": 3 },
+        });
+        m.addLayer({
+          id: "apex-label", type: "symbol", source: "apex",
+          layout: {
+            "text-field": ["get", "name"],
+            "text-size": 13,
+            "text-offset": [0, 2],
+            "text-allow-overlap": true,
+            "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+          },
+          paint: { "text-color": "#FFD700", "text-halo-color": "#000", "text-halo-width": 2.5 },
+        });
+      }
+
+      // ── Camp-Banner an jeder Spawn-Zone — großes Camp-Emoji + Name (RoK-Style) ──
+      const campBannerFeatures: GeoJSON.Feature[] = (snap.bracket_crews ?? [])
+        .filter((bc) => bc.spawn_zone_id)
+        .map((bc) => {
+          const spawn = snap.zones!.find((z) => z.id === bc.spawn_zone_id);
+          if (!spawn) return null;
+          return {
+            type: "Feature",
+            properties: {
+              crew_id: bc.crew_id,
+              emoji: (bc as { camp_emoji?: string }).camp_emoji ?? "⚔️",
+              name: (bc as { camp_name?: string }).camp_name ?? bc.crews?.name ?? "Camp",
+              color: bc.color_hex,
+            },
+            geometry: { type: "Point", coordinates: [Number(spawn.centroid_lng), Number(spawn.centroid_lat)] },
+          };
+        })
+        .filter(Boolean) as GeoJSON.Feature[];
+      m.addSource("camp-banners", { type: "geojson", data: { type: "FeatureCollection", features: campBannerFeatures } });
+      m.addLayer({
+        id: "camp-banner-emoji", type: "symbol", source: "camp-banners",
+        layout: {
+          "text-field": ["get", "emoji"],
+          "text-size": 48,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-halo-color": ["get", "color"],
+          "text-halo-width": 3,
+        },
+      });
+      m.addLayer({
+        id: "camp-banner-name", type: "symbol", source: "camp-banners",
+        layout: {
+          "text-field": ["get", "name"],
+          "text-size": 16,
+          "text-offset": [0, 2.0],
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+          "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+          "text-transform": "uppercase",
+          "text-letter-spacing": 0.1,
+        },
+        paint: {
+          "text-color": ["get", "color"],
+          "text-halo-color": "#000",
+          "text-halo-width": 3,
+        },
+      });
+
+      // ── Camp-Walls — Eiswand/Felsen-Linien zwischen verschiedenen Camps ──
+      // Pro Wall: ein kurzes LineString-Segment (perpendicular zum Centroid-Pair).
+      // wall_kind bestimmt Farbe + Pattern (Eis hellblau, Felsen grau, Fluss blau).
+      const wallFeatures: GeoJSON.Feature[] = (snap.camp_walls ?? []).map((w) => ({
+        type: "Feature",
+        properties: {
+          id: w.id, kind: w.wall_kind,
+          color:
+            w.wall_kind === "ice" ? "#A5F3FC" :
+            w.wall_kind === "river" ? "#3B82F6" :
+            w.wall_kind === "forest" ? "#15803D" :
+            w.wall_kind === "rock" ? "#78716C" :
+            "#9CA3AF",
+        },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [Number(w.point_a_lng), Number(w.point_a_lat)],
+            [Number(w.point_b_lng), Number(w.point_b_lat)],
+          ],
+        },
+      }));
+      m.addSource("camp-walls", { type: "geojson", data: { type: "FeatureCollection", features: wallFeatures } });
+      // Wall-Glow + Linie — RoK-Style klare Eiswand/Fluss-Trennung zwischen Camps.
+      m.addLayer({
+        id: "camp-walls-glow", type: "line", source: "camp-walls",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 18,
+          "line-blur": 8,
+          "line-opacity": 0.55,
+        },
+      });
+      m.addLayer({
+        id: "camp-walls-line", type: "line", source: "camp-walls",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 8,
+          "line-opacity": 0.95,
+        },
+        layout: { "line-cap": "round" },
       });
 
       // Buildings als Pins
@@ -327,7 +636,11 @@ export function SagaClient() {
 
     mapRef.current = m;
     return () => { m.remove(); mapRef.current = null; };
-  }, [snap]);
+    // Bewusst NUR auf bracket_id triggern — sonst zerstört jeder 15s-Snap-Refresh
+    // die ganze Karte und baut sie neu (Flicker). Zone/Gate/Owner-Updates fließen
+    // über separate setData-Calls in den Source-Layern.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap?.my_bracket?.id]);
 
   // Animations-Update für Truppen-Position alle 1s
   useEffect(() => {

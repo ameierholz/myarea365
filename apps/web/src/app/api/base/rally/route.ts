@@ -30,6 +30,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
 
+  // Kern-Konzept: Aufgebot marschiert über Straßen — Route VOR dem RPC holen,
+  // damit kein "Geist-Rally" ohne Route entstehen kann.
+  const [{ data: myBase }, { data: defBase }] = await Promise.all([
+    sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+    sb.from("bases").select("lat, lng").eq("owner_user_id", body.defender_user_id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+  ]);
+  if (!myBase) return NextResponse.json({ error: "no_own_base" }, { status: 400 });
+  if (!defBase) return NextResponse.json({ error: "no_target_base" }, { status: 404 });
+
+  const route = await fetchWalkingRoute(myBase.lat, myBase.lng, defBase.lat, defBase.lng);
+  if (!route) {
+    console.error("[base/rally] routing_unavailable", {
+      user_id: user.id, from: [myBase.lat, myBase.lng], to: [defBase.lat, defBase.lng],
+      has_token: !!process.env.MAPBOX_ACCESS_TOKEN,
+    });
+    return NextResponse.json({
+      error: "routing_unavailable",
+      message: "Keine Lauf-Route gefunden — Mapbox antwortet nicht. Versuche es in einem Moment erneut.",
+    }, { status: 503 });
+  }
+
   const { data, error } = await sb.rpc("start_player_base_rally", {
     p_defender_user_id: body.defender_user_id,
     p_prep_seconds: body.prep_seconds,
@@ -40,21 +61,12 @@ export async function POST(req: Request) {
 
   const rallyResult = data as { ok?: boolean; rally_id?: string };
   if (rallyResult?.ok && rallyResult.rally_id) {
-    try {
-      const [{ data: myBase }, { data: defBase }] = await Promise.all([
-        sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
-        sb.from("bases").select("lat, lng").eq("owner_user_id", body.defender_user_id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
-      ]);
-      if (myBase && defBase) {
-        const route = await fetchWalkingRoute(myBase.lat, myBase.lng, defBase.lat, defBase.lng);
-        await sb.rpc("enrich_rally_with_route", {
-          p_kind: "player_base",
-          p_rally_id: rallyResult.rally_id,
-          p_route_distance_m: route?.distance_m ?? null,
-          p_route_geom_geojson: route?.geometry ?? null,
-        });
-      }
-    } catch { /* enrich optional */ }
+    await sb.rpc("enrich_rally_with_route", {
+      p_kind: "player_base",
+      p_rally_id: rallyResult.rally_id,
+      p_route_distance_m: route.distance_m,
+      p_route_geom_geojson: route.geometry,
+    });
   }
   return NextResponse.json(data);
 }

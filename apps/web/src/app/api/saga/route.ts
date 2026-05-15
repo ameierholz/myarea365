@@ -62,18 +62,19 @@ export async function GET() {
   let pendingAttacks = null, recentBattles = null, augurMilestones = null;
   let activeRallies = null, activeMegas = null, activeDiplomacy = null;
   let userPositions = null;
+  let campWalls = null;
 
   if (myBracket) {
-    const [zr, mr, sr, br, cr, pos, bld, inv, mm, mr2, ab, ush, lz, pa, rb, am, rl, mg, dp, up] = await Promise.all([
+    const [zr, mr, sr, br, cr, pos, bld, inv, mm, mr2, ab, ush, lz, pa, rb, am, rl, mg, dp, up, cw] = await Promise.all([
       sb.from("saga_zones")
-        .select("id, name, zone_kind, ring, centroid_lat, centroid_lng, polygon, owner_crew_id, gate_kind, gate_phase, gate_state, resource_bonus_pct, resource_kind, is_holy_site, holy_buff_kind, holy_buff_pct, is_gather_tile, gather_yield_per_hour, gather_kind, gather_remaining")
+        .select("id, name, zone_kind, ring, centroid_lat, centroid_lng, polygon, owner_crew_id, camp_crew_id, gate_kind, gate_phase, gate_state, resource_bonus_pct, resource_kind, is_holy_site, holy_buff_kind, holy_buff_pct, is_gather_tile, gather_yield_per_hour, gather_kind, gather_remaining")
         .eq("bracket_id", myBracket.id),
       sb.from("saga_marches")
         .select("id, crew_id, user_id, origin_zone_id, target_zone_id, target_user_id, march_kind, inf, cav, mark, werk, guardian_id, started_at, arrives_at, status, rally_parent_id")
         .eq("bracket_id", myBracket.id).in("status", ["marching", "arrived"]),
       userId ? sb.from("saga_user_state").select("*").eq("user_id", userId).maybeSingle() : Promise.resolve({ data: null }),
       sb.from("saga_bracket_crews")
-        .select("crew_id, color_hex, spawn_zone_id, auftakt_points, merits, zones_held, buildings_count, troops_killed, troops_lost, final_rank, crews:crew_id(name, slug)")
+        .select("crew_id, color_hex, spawn_zone_id, auftakt_points, merits, zones_held, buildings_count, troops_killed, troops_lost, final_rank, camp_element, camp_emoji, camp_name, crews:crew_id(name, slug)")
         .eq("bracket_id", myBracket.id),
       sb.from("saga_city_pool").select("name, apex_name, apex_lat, apex_lng, apex_emoji, bbox_south, bbox_west, bbox_north, bbox_east").eq("slug", myBracket.city_slug).single(),
       userId ? sb.from("saga_user_positions").select("*").eq("user_id", userId).eq("bracket_id", myBracket.id).maybeSingle() : Promise.resolve({ data: null }),
@@ -91,13 +92,14 @@ export async function GET() {
       sb.from("saga_mega_camps").select("*").eq("bracket_id", myBracket.id).eq("status", "active"),
       sb.from("saga_diplomacy").select("*").eq("bracket_id", myBracket.id).in("status", ["proposed", "active"]),
       sb.from("saga_user_positions").select("user_id, current_zone_id, field_inf, field_cav, field_mark, field_werk, field_guardian_id").eq("bracket_id", myBracket.id),
+      sb.from("saga_camp_walls").select("id, zone_a, zone_b, wall_kind, midpoint_lat, midpoint_lng, point_a_lat, point_a_lng, point_b_lat, point_b_lng").eq("bracket_id", myBracket.id),
     ]);
     zones = zr.data; marches = mr.data; myState = sr.data; bracketCrews = br.data; city = cr.data;
     myPosition = pos.data; buildings = bld.data; myInventory = inv.data; myMerits = mm.data;
     myResources = mr2.data; activeBuffs = ab.data; myShield = ush.data; myLazarett = lz.data;
     pendingAttacks = pa.data; recentBattles = rb.data; augurMilestones = am.data;
     activeRallies = rl.data; activeMegas = mg.data; activeDiplomacy = dp.data;
-    userPositions = up.data;
+    userPositions = up.data; campWalls = cw.data;
   }
 
   // Alle Brackets der Round (für Bracket-Übersicht ohne signup)
@@ -118,6 +120,7 @@ export async function GET() {
     pending_attacks: pendingAttacks, recent_battles: recentBattles, augur_milestones: augurMilestones,
     active_rallies: activeRallies, active_megas: activeMegas, active_diplomacy: activeDiplomacy,
     user_positions: userPositions,
+    camp_walls: campWalls,
     all_brackets: allBrackets ?? [],
   });
 }

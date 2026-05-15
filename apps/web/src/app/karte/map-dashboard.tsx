@@ -170,6 +170,7 @@ const StrongholdModal = _IS_PROD ? dynamic(() => import("@/components/stronghold
 import { CrewTab as CrewTabDirect } from "@/app/karte/_tabs/crew-tab";
 const CrewTab = _IS_PROD ? dynamic(() => import("@/app/karte/_tabs/crew-tab").then(m => m.CrewTab)) : CrewTabDirect;
 import { ActiveMarchesBanner } from "@/components/active-marches-banner";
+import { Mutants } from "@/components/mutants";
 import { HeimatOverlay, HeimatRelocateConfirm } from "@/components/heimat/heimat-overlay";
 import { HeimatMarchMarkers } from "@/components/heimat/heimat-march-markers";
 import { CrewMemberModal } from "@/components/heimat/crew-member-modal";
@@ -1811,7 +1812,10 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onBossClick={setViewingBoss}
               onSanctuaryClick={setViewingSanctuary}
               onPowerZoneClick={setViewingPowerZone}
-              strongholds={strongholdsForMap}
+              // Wegelager-Marker deaktiviert — werden durch Mutant-NPCs ersetzt
+              // (siehe Mutants-Component). API-Polling läuft noch für die
+              // bestehenden Modals/Sieges, nur Map-Render aus.
+              strongholds={[]}
               strongholdArt={strongholdArt}
               onStrongholdClick={(id, x, y) => {
                 const s = strongholds.find((x) => x.id === id);
@@ -2577,6 +2581,19 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {/* Aktive Sammel-Märsche (Banner oben rechts) */}
       {activeMarches.length > 0 && !strongholdModalTarget && !baseModalTarget && !attackTarget && !gatherModalNode && (
         <ActiveMarchesBanner marches={activeMarches} onCancelled={() => { void refreshActiveMarches(); }} />
+      )}
+
+      {/* Mutant-NPCs auf realen OSM-Features (Parks/Industrie/Wald) — Wegelager-Ersatz.
+          Bbox: GPS-Fix bevorzugt (16 km Radius). Ohne GPS Fallback auf ganz DE
+          damit alle 3 Stadt-Server (Berlin/Hamburg/München) sichtbar sind. */}
+      {!strongholdModalTarget && !baseModalTarget && !attackTarget && (
+        <Mutants
+          bbox={
+            userCenter
+              ? [userCenter.lat - 0.15, userCenter.lng - 0.15, userCenter.lat + 0.15, userCenter.lng + 0.15]
+              : [47.0, 8.0, 55.0, 15.0]
+          }
+        />
       )}
 
       {/* Sammel-Modal (Resource-Node-Click) */}

@@ -129,14 +129,15 @@ export function GatherModal({
     if (!origin) { setErr("Setze zuerst deine Base"); return; }
     setBusy(true); setErr(null);
     try {
-      // Echtes Walking-Routing holen (Mapbox Directions). Bei Fehler/Timeout
-      // wird ohne Route gestartet → Fallback auf Luftlinie × 1.4 in der DB.
+      // Echtes Walking-Routing holen (Mapbox Directions). Kein Luftlinie-Fallback
+      // mehr — wenn der Client nichts mitliefert, holt der Server selbst nach.
+      // Schlägt auch das fehl, verweigert der Server den Marsch (Konzept: nur Straßen).
       let routeDistance: number | undefined;
       let routeGeom: { type: "LineString"; coordinates: [number, number][] } | undefined;
       try {
         const rr = await fetch(
           `/api/route?from=${origin.lat},${origin.lng}&to=${node.lat},${node.lng}`,
-          { signal: AbortSignal.timeout(6_000) },
+          { signal: AbortSignal.timeout(12_000) },
         );
         if (rr.ok) {
           const rj = await rr.json() as {
@@ -149,7 +150,7 @@ export function GatherModal({
             routeGeom = rj.geometry;
           }
         }
-      } catch { /* Routing optional, Fallback in RPC */ }
+      } catch { /* Server-Side-Fallback in /api/gather/start fängt das auf */ }
 
       const r = await fetch("/api/gather/start", {
         method: "POST",

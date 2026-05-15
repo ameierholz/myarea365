@@ -47,7 +47,7 @@ const DEFAULT_CITY_BOUNDS: [[number, number], [number, number]] = [
   [13.088, 52.338], // SW: Spandau / Tempelhof
   [13.761, 52.675], // NE: Hohenschönhausen / Marzahn
 ];
-const DEFAULT_CITY_MIN_ZOOM = 11;
+const DEFAULT_CITY_MIN_ZOOM = 8;
 
 // Helper-Functions in eigenes Modul ausgelagert für Bundle-Splitting + Wartbarkeit
 import { rafThrottle, getCurrentLightPreset, pointInGeoJSONPolygon, escapeHtml, zoomWidth, polygonFeature, wrapForZoomScale } from "@/components/app-map/map-helpers";

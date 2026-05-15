@@ -72,7 +72,9 @@ export function KartenHud({
   questReloadKey?: number;
 }) {
   const [data, setData] = useState<HudData | null>(null);
-  const [utc, setUtc] = useState<string>(fmtUtc(new Date()));
+  // Empty on SSR — fmtUtc(new Date()) würde Hydration-Mismatch erzeugen
+  // (Server-Zeit ≠ Client-Zeit beim Re-Hydrate). Wird im useEffect unten gesetzt.
+  const [utc, setUtc] = useState<string>("");
   const resourceArt = useResourceArt();
 
   useEffect(() => {
@@ -220,8 +222,8 @@ export function KartenHud({
           display: "flex", flexDirection: "column", alignItems: "flex-start",
           pointerEvents: "auto", gap: 1,
         }}>
-          {/* Vertrauen-Wert — Power-Score mit Handshake-Icon davor
-              (🤝 ist projektweit das Icon für Vertrauen, siehe base-client). */}
+          {/* Ansehen-Wert — Power-Score mit Ansehen-Icon davor
+              (🌟 ist projektweit das Icon für Ansehen, siehe base-client ScoreCard). */}
           <div style={{
             display: "flex", alignItems: "center", gap: 4,
             color: "#FFFFFF", fontSize: 17, fontWeight: 900,
@@ -230,11 +232,11 @@ export function KartenHud({
             fontVariantNumeric: "tabular-nums",
             textShadow: "0 1px 3px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.7)",
             whiteSpace: "nowrap",
-          }} title="Vertrauen">
+          }} title="Ansehen">
             <span style={{
               fontSize: 14, lineHeight: 1,
               filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))",
-            }}>🤝</span>
+            }}>🌟</span>
             <span>{data ? fmtVertrauen(data.vertrauen) : "…"}</span>
           </div>
 

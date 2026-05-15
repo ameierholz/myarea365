@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { fetchWalkingRoute } from "@/lib/mapbox-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,9 +12,10 @@ type RouteGeom = { type: "LineString"; coordinates: [number, number][] };
  * Body: { node_id, guardian_id, troop_count, user_lat, user_lng,
  *         route_distance_m?, route_geom? }
  *
- * route_distance_m + route_geom: optional, kommen aus /api/route (Mapbox-Walking-
- * Directions). Wenn übergeben, nutzt RPC echte Straßen-Distanz. Sonst Fallback
- * auf Luftlinie × 1.4 (Detour-Faktor).
+ * Kernregel (Konzept): Märsche dürfen NUR Straßen/Wege benutzen — niemals
+ * Luftlinie. Wenn Client keine Route mitliefert, holt der Server selbst über
+ * Mapbox Walking-Directions (mit Postgres-Cache). Schlägt das fehl, wird der
+ * Marsch verweigert statt mit Luftlinie zu starten.
  */
 export async function POST(req: Request) {
   const sb = await createClient();
@@ -27,11 +29,46 @@ export async function POST(req: Request) {
   };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "invalid_json" }, { status: 400 }); }
 
-  const { node_id, guardian_id, troop_count, user_lat, user_lng, route_distance_m, route_geom } = body;
+  const { node_id, guardian_id, troop_count, user_lat, user_lng } = body;
+  let { route_distance_m, route_geom } = body;
   if (typeof node_id !== "number" || typeof guardian_id !== "string" || typeof troop_count !== "number" || typeof user_lat !== "number" || typeof user_lng !== "number") {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
   if (troop_count < 1) return NextResponse.json({ error: "troop_count_min_1" }, { status: 400 });
+
+  // Ziel-Koordinaten aus DB holen (Client-Werte sind nicht trustworthy für Routing)
+  const { data: nodeRow } = await sb
+    .from("resource_nodes")
+    .select("lat, lng")
+    .eq("id", node_id)
+    .maybeSingle<{ lat: number; lng: number }>();
+  if (!nodeRow) return NextResponse.json({ error: "node_not_found" }, { status: 404 });
+
+  // Validate client-provided route (must be a real LineString with >=2 points)
+  const clientRouteValid =
+    route_geom?.type === "LineString" &&
+    Array.isArray(route_geom.coordinates) &&
+    route_geom.coordinates.length >= 2 &&
+    typeof route_distance_m === "number" &&
+    route_distance_m > 0;
+
+  if (!clientRouteValid) {
+    // Server-Side-Fallback: selbst über Mapbox routen
+    const sr = await fetchWalkingRoute(user_lat, user_lng, nodeRow.lat, nodeRow.lng);
+    if (sr) {
+      route_geom = sr.geometry;
+      route_distance_m = sr.distance_m;
+    } else {
+      console.error("[gather/start] routing_unavailable", {
+        user_id: user.id, node_id, from: [user_lat, user_lng], to: [nodeRow.lat, nodeRow.lng],
+        has_token: !!process.env.MAPBOX_ACCESS_TOKEN,
+      });
+      return NextResponse.json({
+        error: "routing_unavailable",
+        message: "Keine Lauf-Route gefunden — Mapbox antwortet nicht. Versuche es in einem Moment erneut.",
+      }, { status: 503 });
+    }
+  }
 
   const { data, error } = await sb.rpc("start_gather_march", {
     p_node_id: node_id,
@@ -39,7 +76,7 @@ export async function POST(req: Request) {
     p_troop_count: troop_count,
     p_user_lat: user_lat,
     p_user_lng: user_lng,
-    p_route_distance_m: typeof route_distance_m === "number" ? route_distance_m : null,
+    p_route_distance_m: route_distance_m ?? null,
     p_route_geom_geojson: route_geom && route_geom.type === "LineString"
       ? JSON.stringify(route_geom)
       : null,

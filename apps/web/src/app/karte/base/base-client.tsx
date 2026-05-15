@@ -392,13 +392,10 @@ export function BaseClient({
               overflow: "hidden",
               zIndex: 2,
             }}>
-              {markerAsset?.video_url ? (
-                <video src={markerAsset.video_url} autoPlay loop muted playsInline
-                  style={{ width: 78, height: 78, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }} />
-              ) : markerAsset?.image_url ? (
+              {profile && s(profile, "avatar_url") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={markerAsset.image_url} alt=""
-                  style={{ width: 78, height: 78, objectFit: "contain", filter: "url(#ma365-chroma-black) drop-shadow(0 4px 10px rgba(0,0,0,0.4))" }} />
+                <img src={s(profile, "avatar_url")!} alt="Profil Avatar"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
                 <span style={{ fontSize: 56, color: "#FFE4B8", fontWeight: 900, textShadow: "0 2px 4px rgba(0,0,0,0.7)", lineHeight: 1 }}>
                   {(name[0] ?? "?").toUpperCase()}

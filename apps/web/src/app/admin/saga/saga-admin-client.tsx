@@ -62,10 +62,79 @@ export function SagaAdminClient() {
     } finally { setBusy(false); }
   }
 
+  /** Admin-Portal: Demo-Round + Bracket + Crew-Setup + Map-Gen in einem Klick → /saga. */
+  async function bootstrapAndOpen(citySlug: string, crewCount: number) {
+    if (!confirm(`Demo-Setup für ${citySlug}? Erstellt Round + Bracket + Crew-Assignments, generiert Map (~30-60s) und öffnet /saga.`)) return;
+    setBusy(true);
+    try {
+      // Schritt 1: Bootstrap (Round/Bracket/Crews)
+      const b = await fetch("/api/admin/saga/bootstrap-demo", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ city_slug: citySlug, crew_count: crewCount }),
+      });
+      const bj = await b.json();
+      if (!bj.ok) { alert("Bootstrap fehlgeschlagen: " + (bj.error ?? "") + (bj.message ? "\n" + bj.message : "")); return; }
+
+      // Schritt 2: Map generieren (falls noch nicht da)
+      if (bj.needs_map_gen) {
+        const g = await fetch("/api/admin/saga/generate-map", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ bracket_id: bj.bracket_id }),
+        });
+        const gj = await g.json();
+        if (!gj.ok) {
+          alert("Map-Generation fehlgeschlagen: " + (gj.error ?? "") + (gj.detail ? "\n" + gj.detail : ""));
+          return;
+        }
+      }
+
+      // Schritt 3: zur Saga-Karte
+      window.location.href = "/saga";
+    } finally { setBusy(false); }
+  }
+
   if (!snap) return <div className="text-text-muted">Lade …</div>;
 
   return (
     <div className="space-y-6">
+      {/* Admin-Portal: Schnellzugriff CvC-Karte */}
+      <div className="rounded-xl border-2 border-primary/40 bg-primary/[0.05] p-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-white font-black text-base flex items-center gap-2">
+              <span>🚀</span> Admin-Portal: CvC-Karte starten
+            </div>
+            <div className="text-text-muted text-xs mt-1">
+              Ein Klick: Demo-Round + Stadt-Bracket + 4 Crews + OSM-Karten-Generation → direkt auf /saga.
+              Idempotent: läuft bestehende Daten nicht doppelt an.
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => bootstrapAndOpen("berlin", 4)}
+              disabled={busy}
+              className="px-4 py-2 rounded-lg bg-primary text-bg-deep font-black text-sm hover:bg-primary-dim disabled:opacity-50"
+            >
+              {busy ? "⏳ Generiere …" : "🏙️ Berlin (4 Crews) → Karte"}
+            </button>
+            <button
+              onClick={() => bootstrapAndOpen("hamburg", 4)}
+              disabled={busy}
+              className="px-4 py-2 rounded-lg bg-white/10 text-white font-bold text-sm hover:bg-white/15 disabled:opacity-50"
+            >
+              {busy ? "⏳" : "Hamburg (4 Crews)"}
+            </button>
+            <button
+              onClick={() => bootstrapAndOpen("muenchen", 4)}
+              disabled={busy}
+              className="px-4 py-2 rounded-lg bg-white/10 text-white font-bold text-sm hover:bg-white/15 disabled:opacity-50"
+            >
+              {busy ? "⏳" : "München (4 Crews)"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Rounds */}
       <Section title={`Saga-Rounds (${snap.rounds.length})`} accent="#22D1C3"
         actions={<button onClick={() => setShowCreate(true)}

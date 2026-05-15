@@ -28,6 +28,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
 
+  // Kern-Konzept: Crew-Aufgebot marschiert über Straßen — Route VOR dem RPC holen.
+  const [{ data: myBase }, { data: rep }] = await Promise.all([
+    sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+    sb.from("crew_repeaters").select("lat, lng").eq("id", body.repeater_id).maybeSingle<{ lat: number; lng: number }>(),
+  ]);
+  if (!myBase) return NextResponse.json({ error: "no_own_base" }, { status: 400 });
+  if (!rep) return NextResponse.json({ error: "repeater_not_found" }, { status: 404 });
+
+  const route = await fetchWalkingRoute(myBase.lat, myBase.lng, rep.lat, rep.lng);
+  if (!route) {
+    console.error("[crews/turf/rally] routing_unavailable", {
+      user_id: user.id, from: [myBase.lat, myBase.lng], to: [rep.lat, rep.lng],
+      has_token: !!process.env.MAPBOX_ACCESS_TOKEN,
+    });
+    return NextResponse.json({
+      error: "routing_unavailable",
+      message: "Keine Lauf-Route gefunden — Mapbox antwortet nicht. Versuche es in einem Moment erneut.",
+    }, { status: 503 });
+  }
+
   const { data, error } = await sb.rpc("start_crew_repeater_rally", {
     p_repeater_id: body.repeater_id,
     p_prep_seconds: body.prep_seconds,
@@ -37,21 +57,12 @@ export async function POST(req: Request) {
 
   const rallyResult = data as { ok?: boolean; rally_id?: string };
   if (rallyResult?.ok && rallyResult.rally_id) {
-    try {
-      const [{ data: myBase }, { data: rep }] = await Promise.all([
-        sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
-        sb.from("crew_repeaters").select("lat, lng").eq("id", body.repeater_id).maybeSingle<{ lat: number; lng: number }>(),
-      ]);
-      if (myBase && rep) {
-        const route = await fetchWalkingRoute(myBase.lat, myBase.lng, rep.lat, rep.lng);
-        await sb.rpc("enrich_rally_with_route", {
-          p_kind: "crew_repeater",
-          p_rally_id: rallyResult.rally_id,
-          p_route_distance_m: route?.distance_m ?? null,
-          p_route_geom_geojson: route?.geometry ?? null,
-        });
-      }
-    } catch { /* enrich optional, fällt auf Luftlinie zurück */ }
+    await sb.rpc("enrich_rally_with_route", {
+      p_kind: "crew_repeater",
+      p_rally_id: rallyResult.rally_id,
+      p_route_distance_m: route.distance_m,
+      p_route_geom_geojson: route.geometry,
+    });
   }
 
   return NextResponse.json(data);
