@@ -359,57 +359,7 @@ function StrongholdIcon({ level, size = 28 }: { level: number; size?: number }) 
   return <span style={{ fontSize: size }}>🏰</span>;
 }
 
-export function ActiveRallyBanner({ rally, onOpen }: {
-  rally: RallyState["rally"];
-  onOpen: () => void;
-}) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
-  if (!rally) return null;
-
-  const target = rally.status === "preparing" ? new Date(rally.prep_ends_at).getTime() : rally.march_ends_at ? new Date(rally.march_ends_at).getTime() : 0;
-  const remain = Math.max(0, target - now);
-  const hh = Math.floor(remain / 3600000);
-  const mm = Math.floor((remain % 3600000) / 60000);
-  const ss = Math.floor((remain % 60000) / 1000);
-  const countdown = hh > 0 ? `${hh}h ${String(mm).padStart(2,"0")}m` : `${mm}:${String(ss).padStart(2,"0")}`;
-
-  const statusColor = rally.status === "preparing" ? "#FFD700" : rally.status === "marching" ? "#FF6B4A" : "#FF2D78";
-  const statusText  = rally.status === "preparing" ? "⏳ Vorbereitung" : rally.status === "marching" ? "🏃 Streifzug" : "⚔️ Kampf";
-
-  return (
-    <RallyBannerInner rally={rally} statusColor={statusColor} statusText={statusText} countdown={countdown} onOpen={onOpen} />
-  );
-}
-
-function RallyBannerInner({ rally, statusColor, statusText, countdown, onOpen }: {
-  rally: NonNullable<RallyState["rally"]>;
-  statusColor: string;
-  statusText: string;
-  countdown: string;
-  onOpen: () => void;
-}) {
-  const strongholdArt = useStrongholdArt();
-  // Wir haben hier nur stronghold_id, nicht das Level — nimm "default" Slot.
-  const art = strongholdArt.default;
-  return (
-    <button onClick={onOpen} className="w-full px-3 py-2 rounded-xl flex items-center gap-2 backdrop-blur" style={{
-      background: `linear-gradient(135deg, ${statusColor}33, rgba(15,17,21,0.85))`,
-      border: `1px solid ${statusColor}77`,
-    }}>
-      {art?.video_url ? (
-        <video src={art.video_url} autoPlay loop muted playsInline style={{ width: 28, height: 28, objectFit: "contain" }} />
-      ) : art?.image_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={art.image_url} alt="stronghold" style={{ width: 28, height: 28, objectFit: "contain" }} />
-      ) : (
-        <span style={{ fontSize: 22 }}>🏰</span>
-      )}
-      <div className="flex-1 text-left">
-        <div className="text-[10px] font-black tracking-widest" style={{ color: statusColor }}>AUFGEBOT · {statusText}</div>
-        <div className="text-[12px] font-black text-white">{countdown} · {rally.total_atk.toLocaleString("de-DE")} Angriff</div>
-      </div>
-      <span className="text-white text-lg">›</span>
-    </button>
-  );
-}
+// ActiveRallyBanner wurde nach components/rally-banner.tsx ausgelagert
+// (genutzt fuer Wegelager + Mutant-Rallies). Re-Export hier fuer
+// Backward-Compatibility, falls Code noch ueber den alten Pfad importiert.
+export { ActiveRallyBanner } from "@/components/rally-banner";

@@ -145,7 +145,8 @@ const EMPTY_SHOPS: never[] = [];
 import { BaseModal as BaseModalDirect } from "@/components/base-modal";
 import { AttackBaseModal as AttackBaseModalDirect } from "@/components/attack-base-modal";
 import { ActivePlayerBaseRallyBanner, JoinPlayerBaseRallyModal, type PlayerBaseRallyState } from "@/components/active-player-base-rally-banner";
-import { StrongholdModal as StrongholdModalDirect, ActiveRallyBanner } from "@/components/stronghold-modal";
+import { StrongholdModal as StrongholdModalDirect } from "@/components/stronghold-modal";
+import { ActiveRallyBanner } from "@/components/rally-banner";
 import { GatherModal as GatherModalDirect } from "@/components/gather-modal";
 import { AppSettingsContent as AppSettingsContentDirect } from "@/components/settings/app-settings-modal";
 import { HealthDashboard as HealthDashboardDirect } from "@/components/health/health-dashboard";
@@ -176,6 +177,7 @@ import { HeimatMarchMarkers } from "@/components/heimat/heimat-march-markers";
 import { CrewMemberModal } from "@/components/heimat/crew-member-modal";
 import { ActiveCrewRallyBanner, type CrewRally } from "@/components/active-crew-rally-banner";
 import { useRealtimeAwareInterval } from "@/lib/use-realtime-aware-interval";
+import { useSupabaseRealtime } from "@/lib/use-supabase-realtime";
 import { ActiveScoutsBanner, type ActiveScout } from "@/components/active-scouts-banner";
 import { LivePaceHud } from "@/components/live-pace-hud";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
@@ -632,8 +634,17 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       } catch { /* network */ }
     };
     load();
-    const stop = setVisibilityAwareInterval(load, 60_000);
-    return () => { cancelled = true; stop(); };
+    // Realtime macht die Hauptarbeit (boss_raids, resource_nodes). Poll 5min
+    // als Fallback fuer power_zones (unbewegliche Stadt-Layer).
+    const stop = setVisibilityAwareInterval(load, 300_000);
+    const reload = () => { void load(); };
+    window.addEventListener("ma365:bosses-changed", reload);
+    window.addEventListener("ma365:nodes-changed", reload);
+    return () => {
+      cancelled = true; stop();
+      window.removeEventListener("ma365:bosses-changed", reload);
+      window.removeEventListener("ma365:nodes-changed", reload);
+    };
   }, []);
 
   // Cell-Tracking waehrend Walks: jedes neue Route-Segment -> cell markieren
@@ -1119,7 +1130,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // ShopDetailModal mehr auf der Map.
 
   // ── Base-System: Pins auf der Karte + Click-Modal ──
-  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; owner_avatar_url?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null; base_ring_id?: string | null; base_ring_art?: { image_url: string | null; video_url: string | null } | null };
+  type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; owner_avatar_url?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null; base_ring_id?: string | null; base_ring_art?: { image_url: string | null; video_url: string | null } | null; is_crew_mate?: boolean; is_crew_founder?: boolean; is_server_don?: boolean };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [inboxModalOpen, setInboxModalOpen] = useState(false);
@@ -1159,6 +1170,8 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   const [ownBaseId, setOwnBaseId] = useState<string | null>(null);
   const [ownBaseHasPos, setOwnBaseHasPos] = useState<boolean>(false);
   const [ownBasePos, setOwnBasePos] = useState<{ lat: number; lng: number } | null>(null);
+  // 3-Stufen Zoom-Cycle: 0=dicht (naechster Klick), 1=mittel, 2=raus. Nutzt ownBasePos als Center.
+  const [zoomCycleIdx, setZoomCycleIdx] = useState<0 | 1 | 2>(0);
   const [ownBaseThemeId, setOwnBaseThemeId] = useState<string | null>(null);
   const [baseModalTarget, setBaseModalTarget] = useState<{ kind: "runner" | "crew"; id: string; is_own: boolean } | null>(null);
   const [attackTarget, setAttackTarget] = useState<{ defenderUserId: string; x: number; y: number } | null>(null);
@@ -1249,8 +1262,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       } catch { /* network blip — ignorieren */ }
     };
     const cancelIdle = deferIdle(() => { void poll(); });
-    const stop = setVisibilityAwareInterval(poll, 20000);
-    return () => { cancelled = true; cancelIdle(); stop(); };
+    // Realtime macht Hauptarbeit; Poll 2min als Fallback.
+    const stop = setVisibilityAwareInterval(poll, 120_000);
+    const onChanged = () => { void poll(); };
+    window.addEventListener("ma365:pb-rally-changed", onChanged);
+    window.addEventListener("ma365:base-attacks-changed", onChanged);
+    return () => {
+      cancelled = true; cancelIdle(); stop();
+      window.removeEventListener("ma365:pb-rally-changed", onChanged);
+      window.removeEventListener("ma365:base-attacks-changed", onChanged);
+    };
   }, []);
   const [placeBaseMode, setPlaceBaseMode] = useState<null | "runner" | "crew">(null);
 
@@ -1289,18 +1310,115 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
     } catch { /* silent */ }
   }, []);
-  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; status: "preparing" | "marching" | "fighting" | "done" | "aborted"; total_atk: number; leader_base_lat?: number | null; leader_base_lng?: number | null; route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold };
+  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; status: "preparing" | "marching" | "fighting" | "done" | "aborted"; total_atk: number; leader_base_lat?: number | null; leader_base_lng?: number | null; route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold; mutant?: { id: number; lat: number; lng: number; loot_tier: string; spawn_terrain: string; hp: number; troop_count: number } | null };
   const [rallyData, setRallyData] = useState<RallyData | null>(null);
+  // Banner-Auto-Hide: zeigt jede neu erkannte Rally nur kurz (~8s) als Info,
+  // danach laeuft die Verwaltung ueber die Crew-Angriffe-Liste. Map verfolgt
+  // pro Rally-Id wann sie zum ersten Mal gesehen wurde.
+  const rallyFirstSeenRef = useRef<Map<string, number>>(new Map());
+  const [bannerVisibleForId, setBannerVisibleForId] = useState<string | null>(null);
   const refreshRally = useCallback(async () => {
     try {
       const r = await fetch("/api/rally", { cache: "no-store" });
-      if (r.ok) setRallyData(await r.json() as RallyData);
+      if (r.ok) {
+        const next = await r.json() as RallyData;
+        setRallyData(next);
+        // Banner-Visibility-Logik: neue Rally erkannt → 8s einblenden, dann ausblenden
+        if (next.rally && (next.rally.status === "preparing" || next.rally.status === "marching")) {
+          if (!rallyFirstSeenRef.current.has(next.rally.id)) {
+            rallyFirstSeenRef.current.set(next.rally.id, Date.now());
+            setBannerVisibleForId(next.rally.id);
+            const targetId = next.rally.id;
+            setTimeout(() => {
+              setBannerVisibleForId((cur) => (cur === targetId ? null : cur));
+            }, 5000);
+          }
+        }
+      }
     } catch { /* silent */ }
   }, []);
   useEffect(() => {
     const cancelIdle = deferIdle(() => { void refreshRally(); });
-    const stop = setVisibilityAwareInterval(refreshRally, 15000);
+    // Realtime macht die Hauptarbeit (Phase 1) — Polling auf 60s als Sicherheitsnetz
+    // falls WebSocket abreisst.
+    const stop = setVisibilityAwareInterval(refreshRally, 60000);
     return () => { cancelIdle(); stop(); };
+  }, [refreshRally]);
+
+  // Debounced Event-Dispatcher: kollabiert mehrere schnelle Realtime-Events
+  // auf einen einzigen Refresh. Verhindert dass z.B. 5 fremde Spieler-Aktionen
+  // 5 Marker-Rebuilds in <1s ausloesen (= flackernde Map).
+  const debounceTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+  const dispatchDebounced = useCallback((eventName: string, delayMs = 600) => {
+    const timers = debounceTimersRef.current;
+    if (timers[eventName]) clearTimeout(timers[eventName] as ReturnType<typeof setTimeout>);
+    timers[eventName] = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent(eventName));
+      timers[eventName] = null;
+    }, delayMs);
+  }, []);
+
+  // Realtime: Rallies-Tabelle abonnieren, refreshRally bei Aenderung (debounced)
+  useSupabaseRealtime({ table: "rallies" }, () => { dispatchDebounced("ma365:rally-changed", 300); });
+  // Realtime: Mutants-Tabelle abonnieren (Spawn, Capture, fight_until-Updates)
+  useSupabaseRealtime({ table: "mutants" }, () => {
+    dispatchDebounced("ma365:mutants-changed", 800);
+  });
+  // Phase 2: Bosse + Resource-Nodes Realtime
+  useSupabaseRealtime({ table: "boss_raids" }, () => {
+    dispatchDebounced("ma365:bosses-changed", 1000);
+  });
+  useSupabaseRealtime({ table: "resource_nodes" }, () => {
+    dispatchDebounced("ma365:nodes-changed", 1000);
+  });
+  // Phase 3: User-State Realtime (Resources, Inbox, Troops). Filter auf eigenen User.
+  useSupabaseRealtime(
+    profile?.id ? { table: "user_resources", filter: `user_id=eq.${profile.id}` } : null,
+    () => { dispatchDebounced("ma365:resources-changed", 300); },
+  );
+  useSupabaseRealtime(
+    profile?.id ? { table: "user_troops", filter: `user_id=eq.${profile.id}` } : null,
+    () => { dispatchDebounced("ma365:troops-changed", 300); },
+  );
+  useSupabaseRealtime(
+    profile?.id ? { table: "user_inbox", filter: `user_id=eq.${profile.id}` } : null,
+    () => { dispatchDebounced("ma365:inbox-changed", 300); },
+  );
+  useSupabaseRealtime(
+    profile?.id ? { table: "treasure_chests", filter: `owner_user_id=eq.${profile.id}` } : null,
+    () => { dispatchDebounced("ma365:chests-changed", 300); },
+  );
+  // Phase 4: Crew + Map Realtime — Bases mit laengerem Debounce damit fremde
+  // Spieler-Aktionen nicht alle 2s die Map flackern lassen.
+  useSupabaseRealtime({ table: "crew_repeater_rallies" }, () => {
+    dispatchDebounced("ma365:crew-rally-changed", 600);
+  });
+  useSupabaseRealtime({ table: "player_base_rallies" }, () => {
+    dispatchDebounced("ma365:pb-rally-changed", 600);
+  });
+  useSupabaseRealtime({ table: "strongholds" }, () => {
+    dispatchDebounced("ma365:strongholds-changed", 1500);
+  });
+  useSupabaseRealtime({ table: "bases" }, () => {
+    dispatchDebounced("ma365:bases-changed", 2000);
+  });
+  useSupabaseRealtime({ table: "base_attacks" }, () => {
+    dispatchDebounced("ma365:base-attacks-changed", 600);
+  });
+  // Phase 5: Achievements + Quests (User-scoped)
+  useSupabaseRealtime(
+    profile?.id ? { table: "user_achievements", filter: `user_id=eq.${profile.id}` } : null,
+    () => { dispatchDebounced("ma365:achievements-changed", 500); },
+  );
+  useSupabaseRealtime(
+    profile?.id ? { table: "user_quests", filter: `user_id=eq.${profile.id}` } : null,
+    () => { dispatchDebounced("ma365:quests-changed", 500); },
+  );
+  // Auch globale Custom-Event-Listener fuer "ma365:rally-changed" -> refresh
+  useEffect(() => {
+    const h = () => { void refreshRally(); };
+    window.addEventListener("ma365:rally-changed", h);
+    return () => window.removeEventListener("ma365:rally-changed", h);
   }, [refreshRally]);
 
   // ─── Event: Wegelager-Modal öffnen (z.B. via Crew-Angriffe-Panel) ──
@@ -1353,8 +1471,14 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     // Erst fetchen wenn User-Center steht — sonst Doppel-Fetch (Default-Berlin + echtes Center).
     if (!userCenter) return;
     const cancelIdle = deferIdle(() => { void fetchStrongholds(userCenter.lat, userCenter.lng); });
-    const stop = setVisibilityAwareInterval(() => void fetchStrongholds(userCenter.lat, userCenter.lng), 60000);
-    return () => { cancelIdle(); stop(); };
+    // Realtime macht Hauptarbeit; Poll 5min als Fallback.
+    const stop = setVisibilityAwareInterval(() => void fetchStrongholds(userCenter.lat, userCenter.lng), 300_000);
+    const onChanged = () => { void fetchStrongholds(userCenter.lat, userCenter.lng); };
+    window.addEventListener("ma365:strongholds-changed", onChanged);
+    return () => {
+      cancelIdle(); stop();
+      window.removeEventListener("ma365:strongholds-changed", onChanged);
+    };
   }, [userCenter, fetchStrongholds]);
 
   // ── Resource-Nodes (Schrottplatz/Fabrik/ATM/Datacenter) ──
@@ -1675,6 +1799,23 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             route_geom_json: rallyData.rally.route_geom_json && rallyData.rally.route_geom_json.type === "LineString" ? rallyData.rally.route_geom_json : null,
           }]
         : []),
+      ...(rallyData?.rally && (rallyData.rally.status === "marching" || rallyData.rally.status === "fighting") && rallyData.mutant
+        ? [{
+            id: `mutant:${rallyData.rally.id}`,
+            kind: "stronghold" as const, // visuell wie Wegelager (gleicher Linien-Stil)
+            status: rallyData.rally.status as "marching" | "fighting",
+            prep_ends_at: rallyData.rally.prep_ends_at,
+            march_ends_at: rallyData.rally.march_ends_at,
+            origin_lat: rallyData.rally.leader_base_lat ?? null,
+            origin_lng: rallyData.rally.leader_base_lng ?? null,
+            target_lat: rallyData.mutant.lat,
+            target_lng: rallyData.mutant.lng,
+            target_label: `Mutant (${rallyData.mutant.loot_tier})`,
+            leader_name: null,
+            crew_tag: null,
+            route_geom_json: rallyData.rally.route_geom_json && rallyData.rally.route_geom_json.type === "LineString" ? rallyData.rally.route_geom_json : null,
+          }]
+        : []),
     ],
     [crewRallies, pbRally, rallyData],
   );
@@ -1723,17 +1864,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         // Saisonale & Spezial-Themes behalten
         halloween: "epic", frost_keep: "epic", night_rose: "legendary",
       };
+      const myTag = (myCrew as unknown as { tag?: string } | null)?.tag ?? null;
       return basePins.map((b) => {
         const rar = b.theme_id ? themeRarity[b.theme_id] : undefined;
         const ringArt = b.base_ring_id
           ? (baseRingArt[b.base_ring_id] ?? null)
           : null;
-        if (!b.is_own) return { ...b, theme_rarity: rar, base_ring_art: ringArt };
+        // Crew-Mate: gleicher crew_tag wie Viewer, nicht eigen — steuert die
+        // Silhouette-Auswahl (base_silhouette_crew_mate) im AppMap.
+        const isCrewMate = !b.is_own && !!myTag && !!b.crew_tag && b.crew_tag === myTag;
+        if (!b.is_own) return { ...b, theme_rarity: rar, base_ring_art: ringArt, is_crew_mate: isCrewMate };
         const np = equippedNameplateId ? (nameplateArt[equippedNameplateId] ?? null) : null;
         return { ...b, theme_rarity: rar, nameplate_art: np, base_ring_art: ringArt };
       });
     },
-    [artworkReady, basePins, baseRingArt, equippedNameplateId, nameplateArt],
+    [artworkReady, basePins, baseRingArt, equippedNameplateId, nameplateArt, myCrew],
   );
 
   return (
@@ -1793,7 +1938,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               claimedStreets={claimedStreets}
               ownedTerritories={ownedTerritories}
               onOwnershipClick={(kind, id) => setOwnershipQuery({ type: kind, id })}
-              powerZones={powerZonesForMap}
+              powerZones={[] /* Power-Zones (Stadtkern/Volkspark/Wuhle) im aktuellen Konzept deaktiviert. */}
               bossRaids={bossRaidsForMap}
               sanctuaries={sanctuariesForMap}
               shadowRoute={shadowRoute}
@@ -2006,6 +2151,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
                   detail: { lng, lat, zoom: 16 },
                 }));
               }}
+              onZoomCycle={() => {
+                // Ausgangswert ist Zoom 17 (Base dicht zentriert).
+                // Klick 1 → 15 (mittel), Klick 2 → 9 (ganz Berlin),
+                // Klick 3 → 17 (zurueck zur Base dicht).
+                const zooms = [15, 9, 17] as const;
+                const map = (window as unknown as { __ma365Map?: import("mapbox-gl").Map }).__ma365Map;
+                if (!map) return;
+                // Klick 3 (cycleIdx 2 → zoom 17 = Base dicht): center auf Base.
+                // Klicks 1+2 (Mittel/Ganz raus): nur zoomen, Center beibehalten.
+                const targetCenter =
+                  zoomCycleIdx === 2 && ownBasePos
+                    ? { lat: ownBasePos.lat, lng: ownBasePos.lng }
+                    : (() => { const c = map.getCenter(); return { lat: c.lat, lng: c.lng }; })();
+                const targetZoom = zooms[zoomCycleIdx];
+                if (targetZoom > map.getMaxZoom()) map.setMaxZoom(targetZoom);
+                if (targetZoom < map.getMinZoom()) map.setMinZoom(targetZoom);
+                map.easeTo({
+                  center: [targetCenter.lng, targetCenter.lat],
+                  zoom: targetZoom,
+                  duration: 700,
+                });
+                setZoomCycleIdx(((zoomCycleIdx + 1) % 3) as 0 | 1 | 2);
+              }}
+              zoomCycleIdx={zoomCycleIdx}
               strongholdsNearby={strongholds.length}
               inboxUnread={inboxUnreadCount}
             />
@@ -2019,15 +2188,28 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               xpBoost={1}
             />
 
-            {/* Active-Rally-Banner — oben auf der Karte wenn Crew eine Versammlung laufen hat */}
-            {rallyData?.rally && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
-              <div style={{ position: "absolute", top: 14, left: 12, right: 12, zIndex: 56 }}>
+            {/* Active-Rally-Banner — kurzlebige Info-Pille ("Spieler X hat Crew-Angriff
+                gestartet"). Wird automatisch nach ~8s ausgeblendet, danach lebt die
+                Rally weiter in der Crew-Angriffe-Liste (Quick-Access-Bar) bis sie
+                resolved ist. */}
+            {rallyData?.rally && bannerVisibleForId === rallyData.rally.id && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
+              <div style={{
+                position: "absolute", top: 40,
+                left: "50%", transform: "translateX(-50%)",
+                maxWidth: 320, width: "calc(100% - 24px)",
+                zIndex: 56,
+              }}>
                 <ActiveRallyBanner
                   rally={rallyData.rally}
+                  onDismiss={() => setBannerVisibleForId(null)}
                   onOpen={async () => {
                     if (rallyData.stronghold) {
-                      // Aufruf via Banner (kein Map-Click) → Popup mittig öffnen
                       setStrongholdModalTarget({ s: rallyData.stronghold, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+                    } else if (rallyData.mutant) {
+                      // Fly-to-Mutant + optional: spaeter ein Mutant-Detail-Modal
+                      window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                        detail: { lat: rallyData.mutant.lat, lng: rallyData.mutant.lng, zoom: 17 },
+                      }));
                     }
                   }}
                 />

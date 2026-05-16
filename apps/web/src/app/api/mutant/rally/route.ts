@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimitSmart, rateLimitResponse } from "@/lib/rate-limit";
+import { fetchWalkingRoute } from "@/lib/mapbox-route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +63,21 @@ export async function POST(req: Request) {
     }
   }
 
+  // Walking-Route Base → Mutant holen BEVOR die Rally angelegt wird (gleiches
+  // Pattern wie Stronghold-Rally). Mit Route kann das Frontend die Marschlinie
+  // animieren und die "Sofort"-Variante durchlaeuft trotzdem den vollen Prozess.
+  const [{ data: myBase }, { data: mut }] = await Promise.all([
+    sb.from("bases").select("lat, lng").eq("owner_user_id", user.id).order("created_at").limit(1).maybeSingle<{ lat: number; lng: number }>(),
+    sb.from("mutants").select("origin_lat, origin_lng").eq("id", mutant_id).maybeSingle<{ origin_lat: number; origin_lng: number }>(),
+  ]);
+  if (!myBase) return NextResponse.json({ error: "no_own_base" }, { status: 400 });
+  if (!mut) return NextResponse.json({ error: "mutant_not_found" }, { status: 404 });
+
+  const route = await fetchWalkingRoute(myBase.lat, myBase.lng, mut.origin_lat, mut.origin_lng);
+  // Route ist optional: wenn Mapbox-Routing fehlschlaegt, faellt der Rally trotzdem
+  // zurueck — nur ohne animierte Marschlinie. Bei Stronghold wird hart gefailt,
+  // Mutant ist toleranter weil der Spawn rein virtuell ist.
+
   const { data, error } = await sb.rpc("start_mutant_rally", {
     p_mutant_id:    mutant_id,
     p_prep_seconds: prep_seconds,
@@ -69,6 +85,16 @@ export async function POST(req: Request) {
     p_troops:       finalTroops,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const rallyResult = data as { ok?: boolean; rally_id?: string };
+  if (route && rallyResult?.ok && rallyResult.rally_id) {
+    await sb.rpc("enrich_rally_with_route", {
+      p_kind: "mutant",
+      p_rally_id: rallyResult.rally_id,
+      p_route_distance_m: route.distance_m,
+      p_route_geom_geojson: route.geometry,
+    });
+  }
 
   return NextResponse.json(data ?? { ok: true });
 }

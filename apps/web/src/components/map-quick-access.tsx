@@ -93,6 +93,8 @@ export function MapQuickAccess({
   onJoinRepeaterRally,
   onJoinBaseRally,
   onFlyTo,
+  onZoomCycle,
+  zoomCycleIdx = 0,
   inboxUnread = 0,
   baseQueueReady = 0,
   achievementsReady = 0,
@@ -107,6 +109,10 @@ export function MapQuickAccess({
   onJoinRepeaterRally: (repeaterId: string) => void;
   onJoinBaseRally: (rallyId: string) => void;
   onFlyTo: (lat: number, lng: number) => void;
+  /** Cycle-Click fuer Base-Zoom: dicht (Zoom 17) -> mittel (Zoom 13) -> raus (Zoom 9). */
+  onZoomCycle?: () => void;
+  /** Aktueller Cycle-Index: 0=dicht (naechster Klick), 1=mittel, 2=raus. */
+  zoomCycleIdx?: 0 | 1 | 2;
   inboxUnread?: number;
   baseQueueReady?: number;
   achievementsReady?: number;
@@ -212,6 +218,9 @@ export function MapQuickAccess({
             onClick={it.onClick}
           />
         ))}
+        {onZoomCycle && (
+          <ZoomCycleButton onClick={onZoomCycle} cycleIdx={zoomCycleIdx} />
+        )}
         <style>{`
           .ma365-qa-bar::-webkit-scrollbar { display: none; }
           .ma365-qa-bar { scrollbar-width: none; }
@@ -664,4 +673,50 @@ function RallyRow({
   );
 }
 
+/**
+ * ZoomCycleButton — runder Glass-Button rechts am Quick-Access-Bar-Ende. Cyclet
+ * bei jedem Klick durch 3 Zoom-Stufen auf der Base: dicht (Zoom 17), mittel
+ * (Zoom 13), raus (Zoom 9). RoK/CoD-Style: anderer Look als die Artwork-Quick-
+ * Buttons — kompakter Kreis mit Glow-Border in Crew-Tuerkis.
+ */
+function ZoomCycleButton({ onClick, cycleIdx = 0 }: { onClick: () => void; cycleIdx?: 0 | 1 | 2 }) {
+  // Icon zeigt den AKTUELLEN Zoom-Zustand (nicht die naechste Aktion).
+  // cycleIdx 0 → Aktuell Zoom 17 (Base dicht) → naechster Klick faehrt zu 15
+  // cycleIdx 1 → Aktuell Zoom 15 (mittel)     → naechster Klick faehrt zu 9
+  // cycleIdx 2 → Aktuell Zoom 9  (ganz raus)  → naechster Klick faehrt zu 17
+  const icon = cycleIdx === 0 ? "🎯" : cycleIdx === 1 ? "🛰" : "🌐";
+  const label = cycleIdx === 0 ? "Etwas rauszoomen" : cycleIdx === 1 ? "Ganz rauszoomen (Berlin)" : "Base dicht zentrieren";
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        // Kein Quick-Button-Stil: kompakter runder Glass-Button, sichtbar
+        // abgesetzt vom Artwork-Stack daneben.
+        width: 44, height: 44, marginLeft: 4, marginRight: 0,
+        flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "rgba(15,17,21,0.6)",
+        border: "1px solid rgba(34,209,195,0.45)",
+        borderRadius: "50%",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.45), inset 0 0 6px rgba(34,209,195,0.18)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        cursor: "pointer",
+        position: "relative",
+        padding: 0,
+        color: "#fff",
+        fontSize: 40,
+        lineHeight: 1,
+      }}
+    >
+      <span style={{
+        filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))",
+        // Welt-Icon (🌐) hat anderen Baseline als 🎯/🛰 — eigenes Offset.
+        transform: cycleIdx === 2 ? "translate(0px, -1px)" : "translate(2px, -3px)",
+      }}>{icon}</span>
+    </button>
+  );
+}
 

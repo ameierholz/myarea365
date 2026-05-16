@@ -68,6 +68,12 @@ if (typeof window !== "undefined") {
     .mapboxgl-ctrl-attrib.mapboxgl-compact:hover { opacity: 1; }
     .mapboxgl-ctrl-top-left, .mapboxgl-ctrl-top-right,
     .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 5; }
+    /* Logo (links unten) + Attribution-i (rechts unten) ohne Innenabstand
+       direkt in die Ecke schieben — kein Padding/Margin zu Rand. */
+    .mapboxgl-ctrl-bottom-left,
+    .mapboxgl-ctrl-bottom-right { padding: 0 !important; }
+    .mapboxgl-ctrl-bottom-left  > .mapboxgl-ctrl,
+    .mapboxgl-ctrl-bottom-right > .mapboxgl-ctrl { margin: 0 !important; }
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
     @keyframes basePinShimmer { 0%,100% { transform: translate(-50%,-45%) scale(1); opacity: 0.7; } 50% { transform: translate(-50%,-45%) scale(1.15); opacity: 1; } }
     @keyframes basePinAuraSpin { to { transform: translate(-50%,-45%) rotate(360deg); } }
@@ -678,6 +684,12 @@ interface AppMapProps {
     nameplate_art?: { image_url: string | null; video_url: string | null } | null;
     /** Optional: equippierter Base-Ring (Halo/Aura um das Badge) */
     base_ring_art?: { image_url: string | null; video_url: string | null } | null;
+    /** Markiert die Base als Sitz des Crew-Gründers (Crew-Burg). */
+    is_crew_founder?: boolean;
+    /** Markiert die Base als aktuellen Don des Stadt-Servers (höchste Stufe). */
+    is_server_don?: boolean;
+    /** Markiert die Base als Sitz eines Crew-Mitglieds (gleicher crew_tag wie Viewer, nicht eigen, nicht Gründer). */
+    is_crew_mate?: boolean;
   }>;
   onBasePinTap?: (pin: { kind: "runner" | "crew"; id: string; is_own: boolean }, screenX: number, screenY: number) => void;
   baseThemeArt?: Record<string, { image_url: string | null; video_url: string | null }>;
@@ -980,7 +992,7 @@ export function AppMap({
       pitch: slow ? 0 : 52,
       bearing: -20,
       attributionControl: false,
-      logoPosition: "bottom-right", // unten rechts, weg vom Karten-HUD oben links
+      logoPosition: "bottom-left", // Logo links unten, Attribution-i rechts unten — nebeneinander statt stacked
       // Heimat-Stadt-Bounds: erstmal Default (Berlin), wird gleich durch
       // /api/me/city überschrieben sobald die User-Stadt geladen ist.
       maxBounds: DEFAULT_CITY_BOUNDS,
@@ -2561,11 +2573,9 @@ export function AppMap({
 
     const applyScale = () => {
       const zoom = map.getZoom();
-      // Bosse bleiben sichtbar auch beim weit rausgezoomten Stadt-Server-Blick.
-      // Ausblenden erst auf Welt-Ebene (zoom < 6 = Kontinent/Welt).
-      // Beim Reinzoomen (z. B. 3D-Stadt-Detail) deutlich größer skalieren,
-      // damit Bosse zwischen 3D-Gebäuden nicht verschwinden.
-      const hide = zoom < 6;
+      // Bosse ausblenden bei zoom < 13 — gleiche Schwelle wie Mutanten + Resource-
+      // Nodes (sonst werden POIs zu kleinen Punkten im rausgezoomten Stadt-Blick).
+      const hide = zoom < 13;
       const scale = Math.max(0.6, Math.min(2.2, (zoom - 10) / 4 + 0.7));
       bossMarkersRef.current.forEach(({ el }) => {
         el.style.transform = `scale(${scale.toFixed(2)})`;
@@ -2755,10 +2765,10 @@ export function AppMap({
     const applyScale = () => {
       const zoom = map.getZoom();
       // 3-stufige LOD wie Gebäude:
-      //   zoom < 12        → komplett versteckt
-      //   12 ≤ zoom < 16   → Silhouette (klein, mono-schwarz, ohne Lv/HP)
+      //   zoom < 13        → komplett versteckt (gleiche Schwelle wie Mutanten/Bosse)
+      //   13 ≤ zoom < 16   → Silhouette (klein, mono-schwarz, ohne Lv/HP)
       //   zoom ≥ 16        → volles Artwork mit Lv-Badge + HP-Bar
-      const hide = zoom < 12;
+      const hide = zoom < 13;
       const silhouette = !hide && zoom < 16;
       // Wegelager kleiner als Bases — sind nur "POIs", keine Hauptbauwerke
       let scale = 1.0;
@@ -3301,10 +3311,29 @@ export function AppMap({
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    basePinMarkersRef.current.forEach((m) => m.marker.remove());
-    basePinMarkersRef.current = [];
+    // Inkrementelles Diff-Update statt Full-Rebuild: bestehende Marker bleiben
+    // unangetastet, nur DIFF (neue/geloescht/verschoben) wird angewendet.
+    // Vermeidet das "Flackern" wenn fremde Spieler-Aktionen die basePins-Liste
+    // updaten — Marker bleiben stabil, nur position-set wird gepatcht.
+    const existingById = new Map<string, typeof basePinMarkersRef.current[number]>();
+    for (const entry of basePinMarkersRef.current) existingById.set((entry as unknown as { pinId: string }).pinId, entry);
+    const incomingIds = new Set(basePins.map((p) => p.id));
+    // Markers entfernen die nicht mehr im neuen Set sind
+    for (const [id, entry] of existingById) {
+      if (!incomingIds.has(id)) {
+        entry.marker.remove();
+        existingById.delete(id);
+      }
+    }
 
     basePins.forEach((pin) => {
+      // Wenn schon vorhanden: nur Position patchen (Theme/Kind etc. aendern sich
+      // im laufenden Spiel nicht — bei Verlegen ist das ein neuer Pin).
+      const cached = existingById.get(pin.id);
+      if (cached) {
+        cached.marker.setLngLat([pin.lng, pin.lat]);
+        return;
+      }
       const el = document.createElement("div");
       el.className = "ma365-base-pin";
       el.setAttribute("data-kind", pin.kind);
@@ -3326,9 +3355,26 @@ export function AppMap({
       // Tower-Silhouette für mid-LOD — Burg-Form (Crew) bzw. Single-Tower (Runner)
       const SVG_CASTLE = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M14 7 L18 7 L18 11 L22 11 L22 8 L25 8 L25 11 L28 11 L28 16 L26 16 L26 36 L18 36 L18 28 L14 28 L14 36 L6 36 L6 16 L4 16 L4 11 L7 11 L7 8 L10 8 L10 11 L14 11 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
       const SVG_RUNNER = `<svg viewBox="0 0 32 38" width="100%" height="100%" preserveAspectRatio="xMidYMax meet"><path d="M16 4 L13 7 L13 11 L11 13 L11 36 L21 36 L21 13 L19 11 L19 7 Z" fill="${ownColor}" stroke="${ownDark}" stroke-width="1.2" stroke-linejoin="round"/><rect x="14" y="18" width="4" height="5" fill="${ownDark}"/></svg>`;
-      // Optionales Silhouette-Artwork (kann via Admin-Tab überschrieben werden)
-      const silSlot = `base_silhouette_${scope}`;
-      const silArt = uiIconArt[silSlot];
+      // Rollen-basierte Silhouette-Auswahl (Migrations silhouette_slots_role_based + silhouette_slot_crew_mate).
+      // Priorität: Don > Crew-Gründer > Eigene > Crew-Mitglied > Gegner.
+      // Crew-Bases (kind=crew) gelten implizit als Crew-Gründer-Sitz, da nur
+      // Gründer Crew-Bases platzieren. Fallback-Kette greift, wenn das
+      // spezifischere Slot-Asset noch nicht hochgeladen wurde — so flackert
+      // kein Pin auf das SVG-Fallback zurück, sobald irgend ein Slot gefüllt ist.
+      const silSlotCandidates: string[] = [];
+      if (pin.is_server_don) silSlotCandidates.push("base_silhouette_server_don");
+      if (pin.is_crew_founder || pin.kind === "crew") silSlotCandidates.push("base_silhouette_crew_founder");
+      if (pin.is_own) silSlotCandidates.push("base_silhouette_own");
+      else if (pin.is_crew_mate) silSlotCandidates.push("base_silhouette_crew_mate");
+      else silSlotCandidates.push("base_silhouette_enemy");
+      // Universal-Fallback (falls Spieler nur ein Slot global befüllt hat).
+      silSlotCandidates.push("base_silhouette_own", "base_silhouette_crew_founder");
+
+      let silArt: { image_url: string | null; video_url: string | null } | undefined;
+      for (const slot of silSlotCandidates) {
+        const candidate = uiIconArt[slot];
+        if (candidate?.image_url || candidate?.video_url) { silArt = candidate; break; }
+      }
       const hasSilArt = !!(silArt?.image_url || silArt?.video_url);
       const silhouetteSvg = pin.kind === "crew" ? SVG_CASTLE : SVG_RUNNER;
 
@@ -3621,7 +3667,7 @@ export function AppMap({
       const cachedStamp = (zw?.children[0] as HTMLElement | undefined) ?? null;
       const cachedSil   = (zw?.children[1] as HTMLElement | undefined) ?? null;
       const cachedFull  = (zw?.children[2] as HTMLElement | undefined) ?? null;
-      basePinMarkersRef.current.push({
+      const newEntry = {
         marker, el,
         stampEl: cachedStamp,
         silEl: cachedSil,
@@ -3629,8 +3675,13 @@ export function AppMap({
         nameplate: (cachedFull?.querySelector("[data-nameplate]") as HTMLElement | null) ?? null,
         nameplateWrap: (cachedFull?.querySelector("[data-nameplate-wrap]") as HTMLElement | null) ?? null,
         levelChip: (cachedFull?.querySelector("[data-levelchip]") as HTMLElement | null) ?? null,
-      });
+      };
+      // pinId fuer Diff-Lookup beim naechsten useEffect-Lauf
+      (newEntry as unknown as { pinId: string }).pinId = pin.id;
+      existingById.set(pin.id, newEntry);
     });
+    // basePinMarkersRef = das aktuelle Set (cached + neu eingefuegt)
+    basePinMarkersRef.current = Array.from(existingById.values());
 
     // 3-Stage LOD wie CoD — KEIN kontinuierliches Skalieren mehr,
     // jeder Stage hat konstante Pixel-Größe:
@@ -3647,7 +3698,7 @@ export function AppMap({
       if (Math.abs(z - lastZ) < 0.005) return;
       lastZ = z;
 
-      const stage = z < 12 ? "hidden" : z < 14 ? "stamp" : z >= 16 ? "full" : "sil";
+      const stage = z < 13 ? "hidden" : z < 14 ? "stamp" : z >= 16 ? "full" : "sil";
       const stageChanged = stage !== lastStage;
 
       // Full-Stage-Scale berechnen (auch wenn Stage gleich, ändert sich Scale)
@@ -3672,11 +3723,13 @@ export function AppMap({
         if (!stampEl || !silEl || !fullEl) return;
         if (stageChanged) {
           if (stage === "hidden") {
+            el.style.display = "none";
             el.style.opacity = "0";
             el.style.visibility = "hidden";
             el.style.pointerEvents = "none";
             return;
           }
+          el.style.display = "";
           el.style.opacity = "1";
           el.style.visibility = "visible";
           el.style.pointerEvents = "auto";
@@ -4519,7 +4572,7 @@ export function AppMap({
       if (Math.abs(z - lastZ) < 0.005) return;
       lastZ = z;
 
-      const stage = z < 12 ? "hidden" : z < 14 ? "stamp" : z >= 16 ? "full" : "sil";
+      const stage = z < 13 ? "hidden" : z < 14 ? "stamp" : z >= 16 ? "full" : "sil";
       const stageChanged = stage !== lastStage;
       let s = 1.0;
       if (stage === "full") {
@@ -4542,11 +4595,13 @@ export function AppMap({
         const banner   = pin.children[3] as HTMLElement | undefined;
         if (!stampEl || !silEl || !artEl) continue;
 
-        if (z < 12) {
+        if (z < 13) {
+          el.style.display = "none";
           el.style.opacity = "0";
           el.style.pointerEvents = "none";
           continue;
         }
+        el.style.display = "";
         el.style.opacity = "1";
         el.style.pointerEvents = "auto";
 

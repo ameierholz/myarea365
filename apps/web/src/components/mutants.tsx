@@ -33,6 +33,14 @@ type Mutant = {
   troop_count: number;
   /** Server-Level beim Spawn (1-30). HP/Truppen × level, Loot × sqrt(level). */
   level: number;
+  /** ISO-Timestamp wann der Kampf VFX-maessig beginnt (= march_ends_at der
+   *  zugehoerigen Rally). Wird beim marching-Uebergang gesetzt, damit der
+   *  Client den Kampfbeginn ohne Cron-Latenz kennt. */
+  fight_starts_at?: string | null;
+  /** ISO-Timestamp wann der Kampf endet (= fight_starts_at + dynamische Dauer).
+   *  VFX-Slash laeuft im Bereich [fight_starts_at, fight_until - 1.5s],
+   *  Explosion in den letzten 1.5s vor fight_until. */
+  fight_until?: string | null;
 };
 
 type AttackResult = {
@@ -169,10 +177,21 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
     const LAYER_ID = "ma365-mutants-layer";
     const BADGE_BG_ID = "ma365-mutants-badge-bg";
     const BADGE_TEXT_ID = "ma365-mutants-badge-text";
+    const SLASH_LAYER_ID = "ma365-mutants-vfx-slash";
+    const EXPLOSION_LAYER_ID = "ma365-mutants-vfx-explosion";
     const FRAME_COUNT = 12;
     const FRAME_SIZE = 128;
+    const SLASH_FRAME_COUNT = 8;
+    const EXPLOSION_FRAME_COUNT = 16;
+    const VFX_FRAME_SIZE = 128;
     const ICON_PREFIX = "ma365-mutant-frame-";
+    const SLASH_PREFIX = "ma365-vfx-slash-";
+    const EXPLOSION_PREFIX = "ma365-vfx-explosion-";
     const iconId = (frame: number) => `${ICON_PREFIX}${frame}`;
+    const slashIconId = (frame: number) => `${SLASH_PREFIX}${frame}`;
+    const explosionIconId = (frame: number) => `${EXPLOSION_PREFIX}${frame}`;
+    // Letzte 1.5s der Fight-Phase: Slash stoppt, Explosion spielt als Climax.
+    const EXPLOSION_TAIL_MS = 1500;
     const TIER_COLOR: Record<string, string> = {
       bronze: "#CD7F32", silver: "#C0C0C0", gold: "#FFD700", platinum: "#22D1C3",
     };
@@ -237,36 +256,52 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
       return ctx.getImageData(0, 0, size, size);
     };
 
+    // Hilfsfunktion: Sprite-Sheet horizontal in einzelne Mapbox-Icons zerlegen.
+    const loadSpriteSheet = async (
+      m: mapboxgl.Map,
+      url: string,
+      frameCount: number,
+      frameSize: number,
+      prefixId: (f: number) => string,
+    ): Promise<void> => {
+      if (m.hasImage(prefixId(0))) return;
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = frameSize;
+            canvas.height = frameSize;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return resolve();
+            for (let f = 0; f < frameCount; f++) {
+              ctx.clearRect(0, 0, frameSize, frameSize);
+              ctx.drawImage(img, f * frameSize, 0, frameSize, frameSize,
+                            0, 0, frameSize, frameSize);
+              const data = ctx.getImageData(0, 0, frameSize, frameSize);
+              if (!m.hasImage(prefixId(f))) m.addImage(prefixId(f), data);
+            }
+            resolve();
+          } catch { resolve(); }
+        };
+        img.onerror = () => resolve();
+        img.src = url;
+      });
+    };
+
     const setupLayer = async (m: mapboxgl.Map) => {
       // Alle 12 Frames aus dem Sprite-Sheet einzeln als Mapbox-Icons registrieren.
       // Animation laeuft dann via setLayoutProperty("icon-image", iconId(currentFrame))
       // — EIN Mapbox-Call schaltet ALLE 600 Mutanten gleichzeitig auf den naechsten
       // Frame. Synchron-animiert, super-performant (WebGL macht den Rest).
-      if (!m.hasImage(iconId(0))) {
-        await new Promise<void>((resolve) => {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => {
-            try {
-              const canvas = document.createElement("canvas");
-              canvas.width = FRAME_SIZE;
-              canvas.height = FRAME_SIZE;
-              const ctx = canvas.getContext("2d");
-              if (!ctx) return resolve();
-              for (let f = 0; f < FRAME_COUNT; f++) {
-                ctx.clearRect(0, 0, FRAME_SIZE, FRAME_SIZE);
-                ctx.drawImage(img, f * FRAME_SIZE, 0, FRAME_SIZE, FRAME_SIZE,
-                              0, 0, FRAME_SIZE, FRAME_SIZE);
-                const data = ctx.getImageData(0, 0, FRAME_SIZE, FRAME_SIZE);
-                if (!m.hasImage(iconId(f))) m.addImage(iconId(f), data);
-              }
-              resolve();
-            } catch { resolve(); }
-          };
-          img.onerror = () => resolve();
-          img.src = "/sprites/mutant_idle_12x128.png";
-        });
-      }
+      await loadSpriteSheet(m, "/sprites/mutant_idle_12x128.png", FRAME_COUNT, FRAME_SIZE, iconId);
+
+      // VFX-Sprites: Slash (8 Frames, loopt waehrend Fight) + Explosion (16 Frames,
+      // spielt in den letzten 1.5s als Climax). Beide werden parallel von Blender
+      // gerendert (scripts/sprites/render_vfx_sprites.py).
+      await loadSpriteSheet(m, "/sprites/vfx_slash_8x128.png", SLASH_FRAME_COUNT, VFX_FRAME_SIZE, slashIconId);
+      await loadSpriteSheet(m, "/sprites/vfx_explosion_16x128.png", EXPLOSION_FRAME_COUNT, VFX_FRAME_SIZE, explosionIconId);
 
       if (!m.getSource(SOURCE_ID)) {
         m.addSource(SOURCE_ID, {
@@ -300,6 +335,10 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
         m.on("click", LAYER_ID, (e) => {
           const f = e.features?.[0];
           if (!f) return;
+          // Verhindert dass der Map-Klick-Handler (Heimat-Tap-Card) gleichzeitig
+          // feuert — Mapbox-Layer-Click feuert immer durch zur Map.
+          e.originalEvent.preventDefault();
+          e.preventDefault();
           const id = (f.properties?.id ?? 0) as number;
           const mutant = mutantsById.get(id);
           if (mutant) setSelected(mutant);
@@ -366,22 +405,106 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
           },
         });
       }
+
+      // VFX-Layer Slash: nur sichtbar bei `vfx == 'slash'`. Sitzt mittig auf dem
+      // Mutant, etwas groesser als der Sprite damit man den Bogenschlag drumherum
+      // sieht. icon-image wird zentral via setLayoutProperty zyklisch durchgeschaltet.
+      if (!m.getLayer(SLASH_LAYER_ID)) {
+        m.addLayer({
+          id: SLASH_LAYER_ID,
+          type: "symbol",
+          source: SOURCE_ID,
+          minzoom: 13,
+          filter: ["==", ["get", "vfx"], "slash"],
+          layout: {
+            "icon-image": slashIconId(0),
+            "icon-size": [
+              "interpolate", ["linear"], ["zoom"],
+              13, 0.45,
+              16, 0.75,
+              18, 1.0,
+            ],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+            "icon-anchor": "center",
+            "icon-offset": [0, -40],
+            "icon-rotate": ["get", "vfx_rotate"],
+          },
+        });
+      }
+
+      // VFX-Layer Explosion: gleicher Mechanismus, andere Frame-Sequenz, leicht
+      // groesser fuer den "Climax"-Punch. Wird in den letzten 1.5s vor Fight-Ende
+      // aktiviert (slash deaktiviert sich dann gleichzeitig).
+      if (!m.getLayer(EXPLOSION_LAYER_ID)) {
+        m.addLayer({
+          id: EXPLOSION_LAYER_ID,
+          type: "symbol",
+          source: SOURCE_ID,
+          minzoom: 13,
+          filter: ["==", ["get", "vfx"], "explosion"],
+          layout: {
+            "icon-image": explosionIconId(0),
+            "icon-size": [
+              "interpolate", ["linear"], ["zoom"],
+              13, 0.55,
+              16, 0.9,
+              18, 1.2,
+            ],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+            "icon-anchor": "center",
+            "icon-offset": [0, -40],
+          },
+        });
+      }
     };
 
+    // Letzter VFX-State pro Mutant — vermeidet setData wenn nichts geaendert hat.
+    // Ohne diesen Cache rief der 500ms-Tick setData jedes Mal auf, was Mapbox
+    // zwang Label-Collisions neu zu berechnen -> Hausnummern flackerten.
+    let lastSourceFingerprint = "";
     const updateSource = () => {
       if (!map) return;
       const src = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
       if (!src) return;
-      const features = Array.from(mutantsById.values()).map((m) => ({
-        type: "Feature" as const,
-        geometry: { type: "Point" as const, coordinates: [m.origin_lng, m.origin_lat] },
-        properties: {
-          id: m.id,
-          tier: m.loot_tier,
-          level: m.level,
-          tierColor: TIER_COLOR[m.loot_tier] ?? "#CD7F32",
-        },
-      }));
+      const now = Date.now();
+      const features = Array.from(mutantsById.values()).map((m) => {
+        const fightStartsAt = m.fight_starts_at ? new Date(m.fight_starts_at).getTime() : 0;
+        const fightEndsAt = m.fight_until ? new Date(m.fight_until).getTime() : 0;
+        // VFX-Aktiv: zwischen fight_starts_at (= Ende des Marsches) und fight_until.
+        // Vor fight_starts_at sind die Truppen noch unterwegs — kein Kampf-VFX.
+        const fightActive = fightStartsAt > 0 && fightStartsAt <= now && now < fightEndsAt;
+        const inExplosionTail = fightActive && (fightEndsAt - now) <= EXPLOSION_TAIL_MS;
+        // VFX-Phasen: slash (Hauptkampf) → explosion (letzte 1.5s) → none
+        const vfx: "slash" | "explosion" | "none" = inExplosionTail
+          ? "explosion"
+          : fightActive
+            ? "slash"
+            : "none";
+        // Slash leicht rotieren je nach Mutant-id (Pseudo-Random), damit nicht
+        // alle gleichzeitig in dieselbe Richtung schwingen.
+        const vfxRotate = ((m.id * 37) % 360);
+        return {
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [m.origin_lng, m.origin_lat] },
+          properties: {
+            id: m.id,
+            tier: m.loot_tier,
+            level: m.level,
+            tierColor: TIER_COLOR[m.loot_tier] ?? "#CD7F32",
+            vfx,
+            vfx_rotate: vfxRotate,
+          },
+        };
+      });
+      // Fingerprint nur ueber Felder die das visuelle Rendering aendern.
+      // Wenn identisch -> setData skippen (kein Re-Layout / kein Label-Flicker).
+      const fp = features
+        .map((f) => `${f.properties.id}:${f.properties.vfx}:${f.geometry.coordinates[0].toFixed(5)},${f.geometry.coordinates[1].toFixed(5)}`)
+        .join("|");
+      if (fp === lastSourceFingerprint) return;
+      lastSourceFingerprint = fp;
       src.setData({ type: "FeatureCollection", features });
     };
 
@@ -421,17 +544,39 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
     }, 500);
     window.addEventListener("ma365:map-ready", tryStart);
 
-    const refreshIv = setInterval(() => { void refresh(); }, 30_000);
+    // Realtime macht die Hauptarbeit (Supabase Channel auf mutants-Tabelle).
+    // Poll 60s als Fallback falls WebSocket abreisst.
+    const refreshIv = setInterval(() => { void refresh(); }, 60_000);
+    const onChanged = () => { void refresh(); };
+    window.addEventListener("ma365:mutants-changed", onChanged);
+    window.addEventListener("ma365:rally-changed", onChanged);
+
+    // Source-Refresh 500ms — schreibt nur die VFX-Properties neu (slash/explosion/
+    // none) anhand der lokalen Zeit. So sieht der Spieler den Phasen-Wechsel
+    // slash → explosion → off in Echtzeit, ohne auf den 5s-API-Refresh zu warten.
+    const sourceTickIv = setInterval(() => { updateSource(); }, 500);
 
     // Frame-Cycle: schaltet alle 600 Mutanten gleichzeitig auf naechsten Sprite-
     // Frame. 12 Frames × 120ms = 1.44s pro Idle-Loop. 1 Mapbox-Layer-Update pro
     // Tick, kein DOM-Touch — laeuft auch bei 600 Markern ohne Performance-Issue.
+    // Parallel werden Slash (8 Frames × 120ms = 960ms loop) und Explosion (16
+    // Frames × 120ms = 1.92s loop) ueber denselben Tick fortgeschaltet.
     let currentFrame = 0;
+    let currentSlashFrame = 0;
+    let currentExplosionFrame = 0;
     const frameIv = setInterval(() => {
       if (!map || !map.getLayer(LAYER_ID)) return;
       currentFrame = (currentFrame + 1) % FRAME_COUNT;
+      currentSlashFrame = (currentSlashFrame + 1) % SLASH_FRAME_COUNT;
+      currentExplosionFrame = (currentExplosionFrame + 1) % EXPLOSION_FRAME_COUNT;
       try {
         map.setLayoutProperty(LAYER_ID, "icon-image", iconId(currentFrame));
+        if (map.getLayer(SLASH_LAYER_ID)) {
+          map.setLayoutProperty(SLASH_LAYER_ID, "icon-image", slashIconId(currentSlashFrame));
+        }
+        if (map.getLayer(EXPLOSION_LAYER_ID)) {
+          map.setLayoutProperty(EXPLOSION_LAYER_ID, "icon-image", explosionIconId(currentExplosionFrame));
+        }
       } catch { /* layer may have been removed */ }
     }, 120);
 
@@ -439,9 +584,14 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
       cancelled = true;
       clearInterval(mapPoller);
       clearInterval(refreshIv);
+      clearInterval(sourceTickIv);
       clearInterval(frameIv);
       window.removeEventListener("ma365:map-ready", tryStart);
+      window.removeEventListener("ma365:mutants-changed", onChanged);
+      window.removeEventListener("ma365:rally-changed", onChanged);
       if (map) {
+        try { if (map.getLayer(EXPLOSION_LAYER_ID)) map.removeLayer(EXPLOSION_LAYER_ID); } catch { /* ignore */ }
+        try { if (map.getLayer(SLASH_LAYER_ID)) map.removeLayer(SLASH_LAYER_ID); } catch { /* ignore */ }
         try { if (map.getLayer(BADGE_TEXT_ID)) map.removeLayer(BADGE_TEXT_ID); } catch { /* ignore */ }
         try { if (map.getLayer(BADGE_BG_ID)) map.removeLayer(BADGE_BG_ID); } catch { /* ignore */ }
         try { if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID); } catch { /* ignore */ }
@@ -513,7 +663,7 @@ function MutantAttackModal({
   // Crew-Angriff-Form-State — direkt im Modal (kein 2. Modal mehr)
   const recommended = Math.ceil(mutant.hp / 9);
   const [totalTroops, setTotalTroops] = useState<number>(recommended);
-  const [prepSeconds, setPrepSeconds] = useState<number>(180);
+  const [prepSeconds, setPrepSeconds] = useState<number>(5);
   const [guardians, setGuardians] = useState<GuardianRow[]>([]);
   const [selectedGuardian, setSelectedGuardian] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -568,6 +718,8 @@ function MutantAttackModal({
       }
       if (j.rally_id && j.prep_ends_at) {
         setDone({ rally_id: j.rally_id, prep_ends_at: j.prep_ends_at });
+        // Realtime-Trigger: map-dashboard refresht Rally-State + Map sofort.
+        window.dispatchEvent(new CustomEvent("ma365:rally-changed"));
       }
     } catch {
       setErr("Netzwerkfehler");
@@ -634,9 +786,8 @@ function MutantAttackModal({
         className="rounded-xl bg-[#1A1D23] border shadow-2xl overflow-hidden"
         style={{ width: "min(300px, 100%)", borderColor: `${meta.color}80`, boxShadow: "0 12px 30px rgba(0,0,0,0.55)" }}
       >
-        {/* Header — kompakt: Sprite + Title in 2 Reihen */}
-        <div className="relative px-2.5 py-2 flex items-center gap-2" style={{ background: `linear-gradient(135deg, ${meta.color}33, ${meta.color}10)` }}>
-          <button onClick={onClose} className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 text-white text-sm z-10 leading-none" aria-label="Schließen">×</button>
+        {/* Header — kompakt: Sprite + Title + Action-Buttons + Close in einer Zeile */}
+        <div className="px-2.5 py-2 flex items-center gap-2" style={{ background: `linear-gradient(135deg, ${meta.color}33, ${meta.color}10)` }}>
           <div className="shrink-0 w-12 h-12 overflow-hidden">
             <div style={{
               width: 48, height: 48,
@@ -649,42 +800,47 @@ function MutantAttackModal({
               animation: "ma365MutantIdle48 1.4s steps(12) infinite",
             }} />
           </div>
-          <div className="flex-1 min-w-0 pr-6">
+          <div className="flex-1 min-w-0">
             <div className="text-[8px] font-black tracking-widest" style={{ color: meta.color }}>MUTANT · {meta.label.toUpperCase()} · STUFE {level}</div>
             <div className="text-[11px] text-[#a8b4cf]">Spawn: {terrainLabel}</div>
             <div className={`text-[9px] font-black tracking-wide leading-tight ${despawnUrgent ? "text-[#FF6B8D]" : "text-[#FFD700]"}`}>
               ⏱ Verschwindet in {despawnLabel}
             </div>
           </div>
+          {/* Close oben, darunter 3 Mini-Action-Buttons (Speichern/Teilen/Markieren) */}
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            <button
+              onClick={onClose}
+              className="w-6 h-6 rounded-full bg-black/40 text-white text-sm leading-none"
+              aria-label="Schließen"
+            >×</button>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => setOpenMarker("personal")}
+                title="Speichern"
+                className="w-4 h-4 rounded-full bg-black/30 border border-[#FFD700]/60 text-[#FFD700] flex items-center justify-center hover:bg-[#FFD700]/20 transition-all"
+              >
+                <Star size={8} strokeWidth={2.5} fill="currentColor" />
+              </button>
+              <button
+                onClick={() => setOpenMarker("share")}
+                title="Im Chat teilen"
+                className="w-4 h-4 rounded-full bg-black/30 border border-[#22D1C3]/60 text-[#22D1C3] flex items-center justify-center hover:bg-[#22D1C3]/20 transition-all"
+              >
+                <Share2 size={8} strokeWidth={2.5} />
+              </button>
+              <button
+                onClick={() => setOpenMarker("crew")}
+                title="Crew-Markierung"
+                className="w-4 h-4 rounded-full bg-black/30 border border-[#FF2D78]/60 text-[#FF2D78] flex items-center justify-center hover:bg-[#FF2D78]/20 transition-all"
+              >
+                <Flag size={8} strokeWidth={2.5} fill="currentColor" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="p-2.5 space-y-2 max-h-[80dvh] overflow-y-auto">
-          {/* Side-Action-Buttons (Speichern/Teilen/Markieren) — kompakte
-              icon-row rechtsbuendig direkt unter dem Header. */}
-          <div className="flex justify-end gap-1.5 -mt-0.5">
-            <button
-              onClick={() => setOpenMarker("personal")}
-              title="Speichern"
-              className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-md border border-[#FFD700]/50 text-[#FFD700] flex items-center justify-center shadow-[0_2px_6px_rgba(255,215,0,0.2)] hover:bg-[#FFD700]/20 hover:scale-110 transition-all"
-            >
-              <Star size={12} strokeWidth={2.5} fill="currentColor" />
-            </button>
-            <button
-              onClick={() => setOpenMarker("share")}
-              title="Im Chat teilen"
-              className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-md border border-[#22D1C3]/50 text-[#22D1C3] flex items-center justify-center shadow-[0_2px_6px_rgba(34,209,195,0.2)] hover:bg-[#22D1C3]/20 hover:scale-110 transition-all"
-            >
-              <Share2 size={12} strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={() => setOpenMarker("crew")}
-              title="Crew-Markierung"
-              className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-md border border-[#FF2D78]/50 text-[#FF2D78] flex items-center justify-center shadow-[0_2px_6px_rgba(255,45,120,0.2)] hover:bg-[#FF2D78]/20 hover:scale-110 transition-all"
-            >
-              <Flag size={12} strokeWidth={2.5} fill="currentColor" />
-            </button>
-          </div>
-
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md bg-black/40 border border-white/10 p-2">
               <div className="text-[8px] font-black tracking-widest text-[#a8b4cf]">VERTEIDIGUNG</div>
@@ -868,10 +1024,12 @@ function MutantAttackModal({
 }
 
 const PREP_OPTIONS: Array<{ s: number; label: string }> = [
+  // "Sofort" = 5s prep, fuer Solo-Angriff ohne Warten auf Crew-Beitritte.
+  // Laengere Optionen geben anderen Crew-Mitgliedern Zeit beizutreten.
+  { s: 5,      label: "Sofort" },
   { s: 180,    label: "3 Min" },
   { s: 480,    label: "8 Min" },
   { s: 1680,   label: "28 Min" },
-  { s: 28680,  label: "7h 58m" },
 ];
 
 type GuardianRow = {

@@ -88,8 +88,18 @@ export function KartenHud({
       } catch { /* silent */ }
     };
     void load();
-    const id = setInterval(load, 30_000);
-    return () => { cancelled = true; clearInterval(id); };
+    // Realtime: refresh on resource/inbox/troop/quest events; Poll 2min als Fallback.
+    const id = setInterval(load, 120_000);
+    const reload = () => { void load(); };
+    window.addEventListener("ma365:resources-changed", reload);
+    window.addEventListener("ma365:inbox-changed", reload);
+    window.addEventListener("ma365:troops-changed", reload);
+    return () => {
+      cancelled = true; clearInterval(id);
+      window.removeEventListener("ma365:resources-changed", reload);
+      window.removeEventListener("ma365:inbox-changed", reload);
+      window.removeEventListener("ma365:troops-changed", reload);
+    };
   }, []);
 
   useEffect(() => {

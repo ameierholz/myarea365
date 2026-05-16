@@ -187,31 +187,21 @@ export function TimeWeatherBanner() {
           zIndex: 9050,
           pointerEvents: "auto",
           fontFamily: "Inter,-apple-system,sans-serif",
-          // KEIN maxWidth — sonst staucht der Constraint die Badge auf engen
-          // Viewports und das Zentrieren wird visuell verzerrt.
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-          padding: "3px 6px 4px 6px", borderRadius: 10,
-          background: "rgba(15,17,21,0.55)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          // Hoehe + Padding identisch zur RSS-Bar oben rechts: padding 0 1px,
+          // borderRadius 8, Inhalte sitzen auf ~22-24px Hoehe.
+          display: "flex", alignItems: "center",
+          padding: "0 4px", borderRadius: 8,
+          background: "rgba(15,17,21,0.45)",
+          border: "1px solid rgba(255,255,255,0.08)",
           backdropFilter: "blur(6px)",
           WebkitBackdropFilter: "blur(6px)",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
           cursor: "pointer",
           color: "inherit",
           whiteSpace: "nowrap",
         }}
       >
-        {/* Titel-Label oben */}
-        <span style={{
-          fontSize: 7, fontWeight: 900, letterSpacing: 1.2,
-          color: "#22D1C3",
-          textShadow: "0 1px 2px rgba(0,0,0,0.6)",
-          whiteSpace: "nowrap",
-        }}>
-          TAGESZEITEN- &amp; WETTERBUFFS
-        </span>
-
-        {/* Untere Zeile: Tageszeit + Wetter + Aufklapp-Indikator */}
+        {/* Einzelne Zeile: Tageszeit + Wetter + Aufklapp-Indikator */}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
           {/* Tageszeit-Badge */}
           <span style={{

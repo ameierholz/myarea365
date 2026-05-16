@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     // Fallback: einfacher Centroid-Filter ohne PostGIS, langsamer aber portabler
     const fb = await sb
       .from("mutants")
-      .select("id, city_slug, npc_kind, spawn_terrain, origin_lat, origin_lng, target_lat, target_lng, started_at, finishes_at, status, loot_tier, hp, troop_count")
+      .select("id, city_slug, npc_kind, spawn_terrain, origin_lat, origin_lng, target_lat, target_lng, started_at, finishes_at, status, loot_tier, hp, troop_count, level, fight_starts_at, fight_until")
       .eq("status", "walking")
       .gte("origin_lat", south).lte("origin_lat", north)
       .gte("origin_lng", west).lte("origin_lng", east)
