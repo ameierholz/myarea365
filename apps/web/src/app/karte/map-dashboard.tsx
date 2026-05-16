@@ -1405,6 +1405,13 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   useSupabaseRealtime({ table: "base_attacks" }, () => {
     dispatchDebounced("ma365:base-attacks-changed", 600);
   });
+  // Crew-Repeater + Crew-Gebäude: statische Bauwerke, brauchen kein Polling.
+  useSupabaseRealtime({ table: "crew_repeaters" }, () => {
+    dispatchDebounced("ma365:crew-turf-changed", 1500);
+  });
+  useSupabaseRealtime({ table: "crew_buildings" }, () => {
+    dispatchDebounced("ma365:crew-turf-changed", 1500);
+  });
   // Phase 5: Achievements + Quests (User-scoped)
   useSupabaseRealtime(
     profile?.id ? { table: "user_achievements", filter: `user_id=eq.${profile.id}` } : null,
@@ -1581,7 +1588,11 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     })();
   }, []);
 
-  // Nearby-Bases laden (5km bbox um userCenter, alle 30s)
+  // Nearby-Bases laden — Bases sind statisch (ändern sich nur bei Platzierung,
+  // Verlegung, Level-Up). Primäre Aktualisierung läuft über das Realtime-Event
+  // ma365:bases-changed (siehe useSupabaseRealtime auf table=bases). Polling
+  // ist auf 5min Safety-Net heruntergesetzt, falls die WebSocket-Verbindung
+  // mal ausfällt und ein Update verpasst wird.
   useEffect(() => {
     if (!userCenter) return;
     let cancelled = false;
@@ -1605,11 +1616,21 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       setBasePins(merged);
     };
     void load();
-    const stop = setVisibilityAwareInterval(load, 30000);
-    return () => { cancelled = true; stop(); };
+    const stop = setVisibilityAwareInterval(load, 300_000); // 5min Safety-Net
+    const onChanged = () => { void load(); };
+    window.addEventListener("ma365:bases-changed", onChanged);
+    return () => {
+      cancelled = true;
+      stop();
+      window.removeEventListener("ma365:bases-changed", onChanged);
+    };
   }, [userCenter, themeMeta, cosmeticVersion]);
 
-  // Crew-Turf laden (Repeater + Polygons in 10km bbox, alle 30s)
+  // Crew-Turf laden (Repeater + Polygons in 10km bbox).
+  // Repeater + Crew-Gebäude sind statisch, ändern sich nur bei Platzierung/
+  // Übernahme/Abriss. Primäre Aktualisierung läuft über Realtime-Events
+  // ma365:crew-turf-changed (siehe useSupabaseRealtime auf crew_repeaters +
+  // crew_buildings). Polling auf 5min Safety-Net.
   useEffect(() => {
     if (!userCenter) return;
     let cancelled = false;
@@ -1626,15 +1647,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       setCrewBuildings(j.buildings ?? []);
     };
     void load();
-    const stop = setVisibilityAwareInterval(load, 30000);
-    // Custom-Event: andere Komponenten (z.B. Crew-Farb-Picker) können ein
-    // sofortiges Refresh anfordern statt auf den 30s-Tick zu warten.
+    const stop = setVisibilityAwareInterval(load, 300_000); // 5min Safety-Net
     const onRefreshEvent = () => { void load(); };
     window.addEventListener("ma365:refresh-turf", onRefreshEvent);
+    window.addEventListener("ma365:crew-turf-changed", onRefreshEvent);
     return () => {
       cancelled = true;
       stop();
       window.removeEventListener("ma365:refresh-turf", onRefreshEvent);
+      window.removeEventListener("ma365:crew-turf-changed", onRefreshEvent);
     };
   }, [userCenter]);
 

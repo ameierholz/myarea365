@@ -68,12 +68,12 @@ if (typeof window !== "undefined") {
     .mapboxgl-ctrl-attrib.mapboxgl-compact:hover { opacity: 1; }
     .mapboxgl-ctrl-top-left, .mapboxgl-ctrl-top-right,
     .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 5; }
-    /* Logo (links unten) + Attribution-i (rechts unten) ohne Innenabstand
+    /* Logo (links unten) + Attribution-i (links oben) ohne Innenabstand
        direkt in die Ecke schieben — kein Padding/Margin zu Rand. */
     .mapboxgl-ctrl-bottom-left,
-    .mapboxgl-ctrl-bottom-right { padding: 0 !important; }
+    .mapboxgl-ctrl-top-left { padding: 0 !important; }
     .mapboxgl-ctrl-bottom-left  > .mapboxgl-ctrl,
-    .mapboxgl-ctrl-bottom-right > .mapboxgl-ctrl { margin: 0 !important; }
+    .mapboxgl-ctrl-top-left     > .mapboxgl-ctrl { margin: 0 !important; }
     @keyframes selfPulse { 0%,100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(1.15); opacity: 0.5; } }
     @keyframes basePinShimmer { 0%,100% { transform: translate(-50%,-45%) scale(1); opacity: 0.7; } 50% { transform: translate(-50%,-45%) scale(1.15); opacity: 1; } }
     @keyframes basePinAuraSpin { to { transform: translate(-50%,-45%) rotate(360deg); } }
@@ -1011,9 +1011,10 @@ export function AppMap({
     }
 
     // NavigationControl (Zoom +/-, Kompass) entfernt - eigene Controls via MapIconButtons.
-    // Logo+Attribution beide unten rechts (Mapbox-Pflicht-Branding bleibt sichtbar),
-    // weg von der HUD-Bar oben links und rechts.
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+    // Mapbox-Pflicht-Branding: Logo bleibt unten-links, Attribution-i wandert
+    // nach oben-links damit der ZoomCycle-Button rechts neben den Quick-Access-
+    // Icons nicht vom (i) überlagert wird.
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), "top-left");
 
     // Wheel-Zoom snappier — Default 1/450 reagiert träge (gefühlte 2-3 Klicks
     // bevor die Karte zoomt), 1/200 macht jeden Wheel-Schritt sofort sichtbar.
@@ -3382,7 +3383,7 @@ export function AppMap({
 
       // ── Stage 1: STAMP — Mini-SVG-Silhouette (oder Mini-Artwork falls vorhanden)
       const stampEl = document.createElement("div");
-      const stampSize = pin.kind === "crew" ? 22 : 18;
+      const stampSize = pin.kind === "crew" ? 48 : 40;
       stampEl.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${stampSize}px;height:${Math.round(stampSize * 1.18)}px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6));cursor:pointer;pointer-events:auto;`;
       if (hasSilArt && silArt?.image_url) {
         stampEl.innerHTML = `<img src="${silArt.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;filter:url(#ma365-chroma-black)"/>`;
@@ -3397,7 +3398,7 @@ export function AppMap({
 
       // ── Stage 2: SILHOUETTE — flacher Tower + LV-Chip + Name-Banner
       const silWrap = document.createElement("div");
-      const silTowerSize = pin.kind === "crew" ? 52 : 44;
+      const silTowerSize = pin.kind === "crew" ? 48 : 40;
       silWrap.dataset.size = String(silTowerSize);
       silWrap.style.cssText = `position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:1px;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.45));`;
       const silTower = document.createElement("div");
@@ -5801,10 +5802,17 @@ export function AppMap({
         }
       }
 
+      // Hash auf ~1km Granularität (toFixed(2)). Dieser Source hat einen
+      // SYMBOL-Layer angehängt (LYR_LINE + "-arrows" = ▶-Pfeile entlang der
+      // Linie). Jeder setData triggert Mapbox' globalen Symbol-Collision-
+      // Recompute → Basemap-Hausnummern springen sichtbar. Bei einem
+      // mehrere km langen Marsch reicht ein Line-Update alle ~1km — die
+      // Sprite-Position selbst läuft per DOM-Marker (setLngLat, kein Symbol-
+      // Layer-Refresh) und bleibt smooth.
       const hash = lineFeatures.map((f) => {
         const c = (f.geometry as unknown as { coordinates: [number, number][] }).coordinates;
         const props = f.properties as { id: string };
-        return `${props.id}:${c.length}:${c[0]?.[0].toFixed(3)}:${c[0]?.[1].toFixed(3)}`;
+        return `${props.id}:${c.length}:${c[0]?.[0].toFixed(2)}:${c[0]?.[1].toFixed(2)}`;
       }).join("|");
       if (hash !== lastHash) {
         lastHash = hash;

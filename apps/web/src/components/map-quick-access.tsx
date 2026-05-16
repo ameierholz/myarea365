@@ -121,6 +121,19 @@ export function MapQuickAccess({
   const [enabled, setEnabled] = useState(true);
   const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [], stronghold: [] });
   const [openRallyList, setOpenRallyList] = useState(false);
+  // Collapsed-State persistiert in localStorage damit die Map-View bei
+  // schmalen Mobile-Viewports nicht jedes Mal mit voller Toolbar startet.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("ma365:qa-collapsed") === "1";
+  });
+  const toggleCollapsed = () => {
+    setCollapsed((v) => {
+      const next = !v;
+      try { window.localStorage.setItem("ma365:qa-collapsed", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const uiArt = useUiIconArt();
   const [, setTick] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
@@ -184,19 +197,21 @@ export function MapQuickAccess({
 
   return (
     <>
-      {/* Quickaccess-Bar: rechts unten, dicht am Bildschirmrand. Mapbox-Controls
-          sind links unten unter dem Chat-Widget — rechts ist hier komplett frei. */}
+      {/* Quickaccess-Bar: nur Icons. Bei collapsed komplett ausgeblendet.
+          right-Offset 82px = ZoomCycle (56) + Gap (8) + Trigger (14) + Gap (4),
+          damit die Icons direkt am Trigger anschließen ohne Padding. */}
       <div
         ref={barRef}
         className="ma365-qa-bar"
         style={{
           position: "absolute",
-          right: 8,
+          right: 82,
           bottom: 0,
           zIndex: 9001,
-          display: "flex", flexDirection: "row",
+          display: collapsed ? "none" : "flex",
+          flexDirection: "row", alignItems: "center",
           gap: 0, padding: 0,
-          maxWidth: "calc(100vw - 16px)", overflowX: "auto",
+          maxWidth: "calc(100vw - 98px)", overflowX: "auto",
           background: "transparent",
           border: "none",
           boxShadow: "none",
@@ -218,14 +233,59 @@ export function MapQuickAccess({
             onClick={it.onClick}
           />
         ))}
-        {onZoomCycle && (
-          <ZoomCycleButton onClick={onZoomCycle} cycleIdx={zoomCycleIdx} />
-        )}
         <style>{`
           .ma365-qa-bar::-webkit-scrollbar { display: none; }
           .ma365-qa-bar { scrollbar-width: none; }
         `}</style>
       </div>
+
+      {/* Collapse-Trigger: schlanke vertikale Pille (Drawer-Handle-Style).
+          Kompakter als ein Kreis, klar als Schubladen-Griff erkennbar. */}
+      <button
+        onClick={toggleCollapsed}
+        aria-label={collapsed ? "Aktions-Leiste einblenden" : "Aktions-Leiste ausblenden"}
+        title={collapsed ? "Einblenden" : "Ausblenden"}
+        style={{
+          position: "absolute",
+          right: 68,         // links neben ZoomCycle: 8 + 56 + 4 gap = 68
+          bottom: 10,        // bottom 10 + height/2 (18) = 28 = ZoomCycle-Mitte
+          zIndex: 9002,
+          width: 14, height: 36,
+          padding: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(15,17,21,0.65)",
+          border: "1px solid rgba(34,209,195,0.45)",
+          borderRadius: 7,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.45), inset 0 0 4px rgba(34,209,195,0.18)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          cursor: "pointer",
+          color: "#22D1C3",
+          fontSize: 11,
+          lineHeight: 1,
+        }}
+      >
+        <span style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.6))" }}>
+          {collapsed ? "◀" : "▶"}
+        </span>
+      </button>
+
+      {/* ZoomCycle bleibt IMMER sichtbar — unabhängig vom Collapse-Zustand
+          der Quick-Access-Bar. Sitzt direkt links neben dem Mapbox-Info-(i),
+          oben rechts daneben der Collapse-Toggle wenn ausgeklappt. */}
+      {onZoomCycle && (
+        <div
+          style={{
+            position: "absolute",
+            right: 8,
+            bottom: 0,
+            zIndex: 9001,
+            pointerEvents: "auto",
+          }}
+        >
+          <ZoomCycleButton onClick={onZoomCycle} cycleIdx={zoomCycleIdx} />
+        </div>
+      )}
 
       {openRallyList && (
         <div
@@ -694,7 +754,7 @@ function ZoomCycleButton({ onClick, cycleIdx = 0 }: { onClick: () => void; cycle
       style={{
         // Kein Quick-Button-Stil: kompakter runder Glass-Button, sichtbar
         // abgesetzt vom Artwork-Stack daneben.
-        width: 44, height: 44, marginLeft: 4, marginRight: 0,
+        width: 56, height: 56, marginLeft: 4, marginRight: 0,
         flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "rgba(15,17,21,0.6)",
@@ -707,14 +767,14 @@ function ZoomCycleButton({ onClick, cycleIdx = 0 }: { onClick: () => void; cycle
         position: "relative",
         padding: 0,
         color: "#fff",
-        fontSize: 40,
+        fontSize: 52,
         lineHeight: 1,
       }}
     >
       <span style={{
         filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.7))",
         // Welt-Icon (🌐) hat anderen Baseline als 🎯/🛰 — eigenes Offset.
-        transform: cycleIdx === 2 ? "translate(0px, -1px)" : "translate(2px, -3px)",
+        transform: cycleIdx === 2 ? "translate(1px, 0px)" : "translate(2px, -3px)",
       }}>{icon}</span>
     </button>
   );

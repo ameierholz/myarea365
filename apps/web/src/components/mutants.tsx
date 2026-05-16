@@ -317,12 +317,15 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
           minzoom: 13,
           layout: {
             "icon-image": iconId(0),
-            // Zoom-skalierte Pixel-Groesse — Mutant schrumpft beim Rauszoomen
-            // und waechst beim Reinzoomen. Vorher konstant: wirkte zu gross
-            // bei niedrigen Zooms weil Map relativ klein wurde.
+            // Harte Step-Funktion (KEINE Interpolation):
+            //   z < 16 → 0.30 (klein, konstant in Silhouetten-Range)
+            //   z >= 16 → 0.6 (groß, Full-Stage)
+            //   z >= 18 → 0.85 (sehr nahe)
+            // Nur 1 Schwelle bei z=16 synchron mit Base-LOD. Bei Rauszoomen
+            // wird's einmal kleiner und bleibt dann konstant.
             "icon-size": [
-              "interpolate", ["linear"], ["zoom"],
-              13, 0.35,
+              "step", ["zoom"],
+              0.30,
               16, 0.6,
               18, 0.85,
             ],
@@ -368,8 +371,8 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
           layout: {
             "icon-image": ["concat", "badge-", ["get", "tier"]],
             "icon-size": [
-              "interpolate", ["linear"], ["zoom"],
-              13, 0.35,
+              "step", ["zoom"],
+              0.28,
               16, 0.5,
               18, 0.7,
             ],
@@ -388,8 +391,8 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
           layout: {
             "text-field": ["to-string", ["get", "level"]],
             "text-size": [
-              "interpolate", ["linear"], ["zoom"],
-              13, 8,
+              "step", ["zoom"],
+              8,
               16, 11,
               18, 15,
             ],
@@ -405,6 +408,29 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
           },
         });
       }
+
+      // Sofort-Patch bestehender Layer (HMR-Safe): die addLayer-Aufrufe oben
+      // sind durch !getLayer-Guards geschützt → bei Code-Änderungen würden die
+      // neuen icon-size-Werte sonst nicht greifen weil der Layer schon
+      // existiert. setLayoutProperty zwingt den aktuellen Wert rein, ohne
+      // Layer zu zerstören oder Daten zu verlieren.
+      // Harte Step-Funktion: z=16 ist die einzige Übergangs-Schwelle
+      // (synchron mit Base-LOD). Keine Interpolation = kein Mausrad-Klick
+      // landet in einer Misch-Größe.
+      const MUTANT_ICON_SIZE: mapboxgl.ExpressionSpecification = [
+        "step", ["zoom"], 0.30, 16, 0.6, 18, 0.85,
+      ];
+      const BADGE_ICON_SIZE: mapboxgl.ExpressionSpecification = [
+        "step", ["zoom"], 0.28, 16, 0.5, 18, 0.7,
+      ];
+      const BADGE_TEXT_SIZE: mapboxgl.ExpressionSpecification = [
+        "step", ["zoom"], 8, 16, 11, 18, 15,
+      ];
+      try {
+        m.setLayoutProperty(LAYER_ID, "icon-size", MUTANT_ICON_SIZE);
+        m.setLayoutProperty(BADGE_BG_ID, "icon-size", BADGE_ICON_SIZE);
+        m.setLayoutProperty(BADGE_TEXT_ID, "text-size", BADGE_TEXT_SIZE);
+      } catch { /* layer may not exist yet */ }
 
       // VFX-Layer Slash: nur sichtbar bei `vfx == 'slash'`. Sitzt mittig auf dem
       // Mutant, etwas groesser als der Sprite damit man den Bogenschlag drumherum
