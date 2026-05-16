@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       .eq("user_id", user.id)
       .gt("count", 0);
     type Row = { troop_id: string; count: number; troops_catalog: { tier: number; base_atk: number } | null };
-    const rows = (userTroops ?? []) as Row[];
+    const rows = (userTroops ?? []) as unknown as Row[];
     rows.sort((a, b) => (b.troops_catalog?.base_atk ?? 0) - (a.troops_catalog?.base_atk ?? 0));
     let need = total_troops;
     finalTroops = {};
