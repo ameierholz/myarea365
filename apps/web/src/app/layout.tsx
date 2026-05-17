@@ -85,7 +85,11 @@ export default async function RootLayout({
   const dir = getDir(locale);
   return (
     <html lang={locale} dir={dir} className={`dark h-full ${bebas.variable} ${inter.variable}`}>
-      <head>
+      {/* suppressHydrationWarning auf <head>: AdSense's adsbygoogle.js injiziert
+          dynamisch eigene <script>-Tags in den <head> BEVOR React hydratisiert.
+          Ohne diesen Hint vergleicht React SSR-Head vs Client-Head und meldet
+          Mismatch (Position der Scripts verschoben). Funktional ist alles ok. */}
+      <head suppressHydrationWarning>
         {/* WCAG 1.4.4: Pinch-Zoom muss erlaubt sein → kein maximum-scale. */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="mobile-web-app-capable" content="yes" />
