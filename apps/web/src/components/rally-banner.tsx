@@ -17,7 +17,11 @@ export type ActiveRally = {
   id: string;
   prep_ends_at: string;
   march_ends_at: string | null;
-  status: "preparing" | "marching" | "fighting" | "done" | "aborted";
+  /** Mutant-Rally: Ende der Fight-Phase (= Start des Rückwegs). */
+  fight_ends_at?: string | null;
+  /** Mutant-Rally: Ende des Rückwegs (50% Speed-Boost). */
+  return_ends_at?: string | null;
+  status: "preparing" | "marching" | "fighting" | "returning" | "done" | "aborted";
   total_atk: number;
 };
 
@@ -34,12 +38,18 @@ export function ActiveRallyBanner({ rally, onOpen, onDismiss }: {
   }, []);
   if (!rally) return null;
 
+  // Countdown-Target je Phase — bei Mutanten zusätzlich fight_ends_at und
+  // return_ends_at, damit Kampf-/Rückweg-Phase eigene Restzeit anzeigen.
   const target =
     rally.status === "preparing"
       ? new Date(rally.prep_ends_at).getTime()
-      : rally.march_ends_at
-        ? new Date(rally.march_ends_at).getTime()
-        : 0;
+      : rally.status === "fighting" && rally.fight_ends_at
+        ? new Date(rally.fight_ends_at).getTime()
+        : rally.status === "returning" && rally.return_ends_at
+          ? new Date(rally.return_ends_at).getTime()
+          : rally.march_ends_at
+            ? new Date(rally.march_ends_at).getTime()
+            : 0;
   const remain = Math.max(0, target - now);
   const hh = Math.floor(remain / 3600000);
   const mm = Math.floor((remain % 3600000) / 60000);
@@ -51,10 +61,12 @@ export function ActiveRallyBanner({ rally, onOpen, onDismiss }: {
   const statusColor =
     rally.status === "preparing" ? "#FFD700"
     : rally.status === "marching" ? "#FF6B4A"
+    : rally.status === "returning" ? "#22D1C3"
     : "#FF2D78";
   const statusText =
     rally.status === "preparing" ? "⏳ Vorbereitung"
     : rally.status === "marching" ? "🏃 Streifzug"
+    : rally.status === "returning" ? "🏠 Rückweg (Speed-Boost)"
     : "⚔️ Kampf";
 
   return (

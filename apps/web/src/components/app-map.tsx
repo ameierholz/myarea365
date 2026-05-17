@@ -652,8 +652,12 @@ interface AppMapProps {
   activeRallyMarches?: Array<{
     id: string;
     kind: "crew_repeater" | "player_base" | "stronghold";
-    status: "preparing" | "marching" | "fighting";
+    status: "preparing" | "marching" | "fighting" | "returning";
     prep_ends_at: string; march_ends_at: string | null;
+    /** Bei Mutant-Rallies: timestamp wann Kampf endet (= Start der Returning-Phase). */
+    fight_ends_at?: string | null;
+    /** Bei Mutant-Rallies: timestamp wann Rückweg endet (50% Speed-Boost). */
+    return_ends_at?: string | null;
     origin_lat: number | null; origin_lng: number | null;
     target_lat: number; target_lng: number;
     target_label?: string | null;
@@ -1001,6 +1005,26 @@ export function AppMap({
       maxTileCacheSize: slow ? 30 : 100,
       // Mapbox v3: cooperativeGestures nicht hier — wir steuern Gestures selbst.
     });
+
+    // Mapbox-Standard-Style benutzt Style-Imports (Basemap-Fragments). In Dev
+    // mit HMR / Fast-Refresh schlagen die gelegentlich fehl ("Failed to load
+    // imports") — non-fatal, Style läuft weiter. Ohne eigenen Error-Handler
+    // schreibt Mapbox `console.error` und Next.js zeigt eine Error-Overlay.
+    map.on("error", (e: { error?: { message?: string } }) => {
+      const msg = e?.error?.message ?? "";
+      if (msg.includes("Failed to load imports") || msg.includes("style imports")) {
+        // Stiller Warn-Log statt Error → kein Next.js-Dev-Overlay.
+        if (process.env.NODE_ENV !== "production") {
+          // eslint-disable-next-line no-console
+          console.warn("[mapbox] non-fatal style-import error:", msg);
+        }
+        return;
+      }
+      // andere Fehler ganz normal weiterreichen
+      // eslint-disable-next-line no-console
+      console.error("[mapbox]", e?.error ?? e);
+    });
+
     // Bandbreite + GPU sparen: auf High-DPI-Screens (z.B. Pixel 7 = DPR 2.625)
     // rendert Mapbox sonst 7× mehr Pixel als nötig. 1.5 ist sweet-spot zwischen
     // Schärfe und Ladezeit auf 4G.
@@ -1573,6 +1597,11 @@ export function AppMap({
           "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 16, 13, 18, 15],
           "text-offset": [0, 1.0],
           "text-anchor": "top",
+          // Aus dem globalen Mapbox-Label-Collision rausnehmen: setData auf
+          // dieser Quelle löste sonst eine Neu-Plazierung ALLER Labels
+          // (inkl. Hausnummern/Straßennamen) aus → Flackern.
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
         },
         paint: {
           "text-color": "#FFF",
@@ -2278,7 +2307,10 @@ export function AppMap({
           "text-font": ["Open Sans Bold", "Arial Unicode MS Bold"],
           "text-size": ["interpolate", ["linear"], ["zoom"], 13, 0, 14, 10, 17, 13],
           "text-anchor": "center",
-          "text-allow-overlap": false,
+          // Aus dem Mapbox-Collision-System rausnehmen, sonst löst jeder
+          // setData auf power-zones eine Neu-Plazierung der Hausnummern aus.
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
         },
         paint: {
           "text-color": ["get", "color"],
@@ -2364,21 +2396,30 @@ export function AppMap({
           "circle-stroke-opacity": 0.8,
         },
       });
-      // Pulse via RAF
+      // Pulse via RAF — auf ~3 Hz gedrosselt (alle 20 Frames). 60 Hz
+      // setPaintProperty löste Mapbox-Symbol-Recompute aus → Hausnummern
+      // flackerten konstant. Bei 3 Hz wirkt der Puls weicher und bleibt
+      // sichtbar, aber Mapbox layoutet die Labels nicht mehr durchgehend neu.
       let cancelled = false;
       let t = 0;
+      let frame = 0;
+      const PULSE_EVERY_N_FRAMES = 20;
       const pulse = () => {
         if (cancelled) return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!(map as any).style) { cancelled = true; return; }
-        t += 1;
-        const p = (Math.sin(t * 0.05) + 1) / 2; // 0..1
-        try {
-          if (map.getLayer(layerId)) {
-            map.setPaintProperty(layerId, "circle-opacity", 0.06 + p * 0.14);
-            map.setPaintProperty(layerId, "circle-stroke-opacity", 0.6 + p * 0.35);
-          }
-        } catch { cancelled = true; return; }
+        frame++;
+        if (frame >= PULSE_EVERY_N_FRAMES) {
+          frame = 0;
+          t += 1;
+          const p = (Math.sin(t * 0.6) + 1) / 2; // 0..1 — schnellere Sinus-Frequenz, weil seltener gesampelt
+          try {
+            if (map.getLayer(layerId)) {
+              map.setPaintProperty(layerId, "circle-opacity", 0.06 + p * 0.14);
+              map.setPaintProperty(layerId, "circle-stroke-opacity", 0.6 + p * 0.35);
+            }
+          } catch { cancelled = true; return; }
+        }
         requestAnimationFrame(pulse);
       };
       requestAnimationFrame(pulse);
@@ -5037,13 +5078,10 @@ export function AppMap({
       }
     };
 
-    // "Marching Ants" — Dash-Phase shiftet jeden Frame, Linie wirkt sich bewegend
-    const dashSequence: Array<[number, number, number] | [number, number, number, number]> = [
-      [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5], [3, 4, 0],
-      [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
-    ];
-    let dashIdx = 0;
-    let dashFrameCount = 0;
+    // Marching-Ants-Animation entfernt — siehe Kommentar im renderFrame. Die
+    // Linie behält ihr statisches dasharray aus addLayer; Bewegung kommt
+    // ausschließlich vom Cart-Sprite (sodass Mapbox keine Symbol-Layer-
+    // Recompute braucht und Hausnummern nicht mehr flackern).
     let lastLineHash = ""; // verhindert redundante setData-Calls (= Label-Flicker)
 
     const fetchRoute = async (marchId: number, from: [number, number], to: [number, number]) => {
@@ -5311,17 +5349,12 @@ export function AppMap({
         if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
       }
 
-      // Marching-Ants: deutlich seltener animieren (4 Hz statt 15 Hz)
-      // setPaintProperty triggert Mapbox-Re-Layout der Label-Layer → Flicker.
-      // 4 Hz wirkt subtiler aber bleibt erkennbar.
-      dashFrameCount++;
-      if (dashFrameCount >= 15 && lineFeatures.length > 0) {
-        dashFrameCount = 0;
-        dashIdx = (dashIdx + 1) % dashSequence.length;
-        try {
-          map.setPaintProperty(LYR_LINE, "line-dasharray", dashSequence[dashIdx]);
-        } catch { /* layer evtl. weg */ }
-      }
+      // Marching-Ants-Animation entfernt: jeder setPaintProperty auf
+      // line-dasharray triggert ein globales Mapbox-Symbol-Re-Layout →
+      // Hausnummern flackerten selbst bei 4 Hz noch sichtbar. Der Cart-
+      // Sprite und Glow-Effekt zeigen die Bewegung bereits eindeutig.
+      // dashFrameCount/dashIdx bleiben unbenutzt; static dasharray ist in
+      // addLayer gesetzt.
 
       // Karren entfernen für Märsche die nicht mehr aktiv sind
       const activeIds = new Set(gatherMarches.map((m) => m.id));
@@ -5735,10 +5768,8 @@ export function AppMap({
 
     let raf = 0;
     let lastHash = "";
-    const dashSeq: Array<[number, number, number]> = [
-      [0, 4, 3], [1, 4, 2], [2, 4, 1], [3, 4, 0],
-    ];
-    let dashIdx = 0; let dashFrameCount = 0;
+    // Marching-Ants-Animation entfernt (s. renderFrame-Kommentar). Static
+    // dasharray bleibt am Layer hängen, kein setPaintProperty mehr im RAF.
 
     const renderFrame = () => {
       const now = Date.now();
@@ -5746,7 +5777,7 @@ export function AppMap({
       const marches = activeRallyMarchesRef.current ?? [];
 
       for (const m of marches) {
-        if (m.status !== "marching" && m.status !== "fighting") continue;
+        if (m.status !== "marching" && m.status !== "fighting" && m.status !== "returning") continue;
         if (m.origin_lat == null || m.origin_lng == null) continue;
         const from: [number, number] = [m.origin_lat, m.origin_lng];
         const to:   [number, number] = [m.target_lat, m.target_lng];
@@ -5772,16 +5803,36 @@ export function AppMap({
           const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
           progress = t;
           pos = interpolate(rt, t);
+        } else if (m.status === "returning" && m.fight_ends_at && m.return_ends_at) {
+          // Rückweg: Sprite läuft von target zurück zum origin. Wir interpolieren
+          // die Route rückwärts — t=0 bei fight_ends_at (= Ziel), t=1 bei
+          // return_ends_at (= Basis erreicht). progress hier ist der zurück-
+          // gelegte Anteil — für die Line-Trim-Logik unten brauchen wir den
+          // verbleibenden-zum-Ziel-Anteil, also (1-t) statt t.
+          const start = new Date(m.fight_ends_at).getTime();
+          const end = new Date(m.return_ends_at).getTime();
+          const t = Math.max(0, Math.min(1, (now - start) / Math.max(1, end - start)));
+          // Sprite-Position: rückwärts entlang der Route. interpolate erwartet
+          // t in [0,1] vom Origin-Ende — für Rückweg also (1-t).
+          pos = interpolate(rt, 1 - t);
+          progress = t;
         } else {
           progress = 1;
           pos = { lng: rt.coords[rt.coords.length - 1][0], lat: rt.coords[rt.coords.length - 1][1], bearing: 0 };
         }
         if (!pos) continue;
 
-        // Linie: vom Sprite bis zum Ziel
-        const cutoffDist = progress * rt.total;
+        // Linie: vom Sprite bis zum Ziel (bei returning: bis zur Base = umgedreht)
+        // Bei returning rendern wir die Linie vom Sprite zurück zur ORIGIN-Seite.
+        const isReturning = m.status === "returning";
+        const cutoffDist = isReturning ? (1 - progress) * rt.total : progress * rt.total;
         const lineCoords: [number, number][] = [[pos.lng, pos.lat]];
-        for (let i = 0; i < rt.coords.length; i++) if (rt.cumDist[i] > cutoffDist) lineCoords.push(rt.coords[i]);
+        if (isReturning) {
+          // Linie vom Sprite rückwärts zur Basis (rt.coords[0])
+          for (let i = rt.coords.length - 1; i >= 0; i--) if (rt.cumDist[i] < cutoffDist) lineCoords.push(rt.coords[i]);
+        } else {
+          for (let i = 0; i < rt.coords.length; i++) if (rt.cumDist[i] > cutoffDist) lineCoords.push(rt.coords[i]);
+        }
         if (lineCoords.length >= 2) {
           lineFeatures.push({
             type: "Feature",
@@ -5820,14 +5871,13 @@ export function AppMap({
         if (src) src.setData({ type: "FeatureCollection", features: lineFeatures });
       }
 
-      dashFrameCount++;
-      if (dashFrameCount >= 18 && lineFeatures.length > 0) {
-        dashFrameCount = 0;
-        dashIdx = (dashIdx + 1) % dashSeq.length;
-        try { map.setPaintProperty(LYR_LINE, "line-dasharray", dashSeq[dashIdx]); } catch { /* layer evtl. weg */ }
-      }
+      // Marching-Ants-Animation entfernt — siehe gleichen Kommentar im
+      // Gather-RAF: setPaintProperty(line-dasharray) löst Mapbox-weites
+      // Symbol-Re-Layout aus und ließ Hausnummern flackern. Static dasharray
+      // wird beim addLayer einmalig gesetzt; das Cart/Sprite zeigt die
+      // Bewegung.
 
-      const activeIds = new Set(marches.filter((x) => x.status === "marching" || x.status === "fighting").map((x) => x.id));
+      const activeIds = new Set(marches.filter((x) => x.status === "marching" || x.status === "fighting" || x.status === "returning").map((x) => x.id));
       for (const [id, mk] of markers) {
         if (!activeIds.has(id)) { mk.remove(); markers.delete(id); }
       }

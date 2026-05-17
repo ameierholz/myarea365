@@ -180,6 +180,8 @@ import { useRealtimeAwareInterval } from "@/lib/use-realtime-aware-interval";
 import { useSupabaseRealtime } from "@/lib/use-supabase-realtime";
 import { ActiveScoutsBanner, type ActiveScout } from "@/components/active-scouts-banner";
 import { LivePaceHud } from "@/components/live-pace-hud";
+import { MarchSlotsBar } from "@/components/march-slots-bar";
+import { MarchManagementModal } from "@/components/march-management-modal";
 import { cellOf, demoShadowRoute } from "@/lib/map-features";
 import { snapToRoads } from "@/lib/snap-to-roads";
 import { appAlert, appConfirm } from "@/components/app-dialog";
@@ -1132,6 +1134,24 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   // ── Base-System: Pins auf der Karte + Click-Modal ──
   type BasePin = { kind: "runner" | "crew"; id: string; owner_user_id?: string; owner_username?: string | null; owner_avatar_url?: string | null; lat: number; lng: number; level: number; pin_emoji: string; pin_color: string; pin_label: string; crew_tag?: string | null; is_own: boolean; theme_id?: string; theme_rarity?: "advanced" | "epic" | "legendary"; nameplate_art?: { image_url: string | null; video_url: string | null } | null; base_ring_id?: string | null; base_ring_art?: { image_url: string | null; video_url: string | null } | null; is_crew_mate?: boolean; is_crew_founder?: boolean; is_server_don?: boolean };
   const [basePins, setBasePins] = useState<BasePin[]>([]);
+  // Content-Hash der zuletzt angewendeten Pins — verhindert dass identische
+  // Realtime-Refetches die State-Referenz wechseln. Ohne diesen Filter triggert
+  // jeder Realtime-Event auf der bases-Tabelle einen kompletten Base-Pin-
+  // Marker-Rebuild in app-map.tsx (= Hausnummern flackern, Pins poppen kurz weg).
+  const lastBasePinsHashRef = useRef<string>("");
+  const computeBasePinsHash = useCallback((arr: BasePin[]): string => {
+    // Felder die die DOM-Marker-Identität/Position bestimmen:
+    return arr
+      .map((p) => `${p.id}|${p.lat.toFixed(6)}|${p.lng.toFixed(6)}|${p.level}|${p.kind}|${p.is_own ? 1 : 0}|${p.theme_id ?? ""}|${p.crew_tag ?? ""}|${p.base_ring_id ?? ""}|${p.is_crew_founder ? 1 : 0}|${p.is_server_don ? 1 : 0}`)
+      .sort()
+      .join("\n");
+  }, []);
+  const setBasePinsIfChanged = useCallback((next: BasePin[]) => {
+    const hash = computeBasePinsHash(next);
+    if (hash === lastBasePinsHashRef.current) return;
+    lastBasePinsHashRef.current = hash;
+    setBasePins(next);
+  }, [computeBasePinsHash]);
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [inboxModalOpen, setInboxModalOpen] = useState(false);
   const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
@@ -1310,13 +1330,16 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       }
     } catch { /* silent */ }
   }, []);
-  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; status: "preparing" | "marching" | "fighting" | "done" | "aborted"; total_atk: number; leader_base_lat?: number | null; leader_base_lng?: number | null; route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold; mutant?: { id: number; lat: number; lng: number; loot_tier: string; spawn_terrain: string; hp: number; troop_count: number } | null };
+  type RallyData = { ok: boolean; rally: { id: string; leader_user_id: string; crew_id: string; stronghold_id: string; prep_ends_at: string; march_ends_at: string | null; fight_ends_at?: string | null; return_ends_at?: string | null; status: "preparing" | "marching" | "fighting" | "returning" | "done" | "aborted"; total_atk: number; leader_base_lat?: number | null; leader_base_lng?: number | null; route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null } | null; i_joined?: boolean; participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>; stronghold?: Stronghold; mutant?: { id: number; lat: number; lng: number; loot_tier: string; spawn_terrain: string; hp: number; troop_count: number } | null };
   const [rallyData, setRallyData] = useState<RallyData | null>(null);
   // Banner-Auto-Hide: zeigt jede neu erkannte Rally nur kurz (~8s) als Info,
   // danach laeuft die Verwaltung ueber die Crew-Angriffe-Liste. Map verfolgt
   // pro Rally-Id wann sie zum ersten Mal gesehen wurde.
   const rallyFirstSeenRef = useRef<Map<string, number>>(new Map());
   const [bannerVisibleForId, setBannerVisibleForId] = useState<string | null>(null);
+  // Vom User manuell weggeklickte Rallies — bleiben dauerhaft versteckt, auch
+  // wenn sie später noch durch Phasen-Wechsel (z.B. returning) gehen.
+  const [dismissedRallyIds, setDismissedRallyIds] = useState<Set<string>>(new Set());
   const refreshRally = useCallback(async () => {
     try {
       const r = await fetch("/api/rally", { cache: "no-store" });
@@ -1613,7 +1636,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
         const t = themeMeta.get(b.theme_id) ?? fb;
         merged.push({ kind: "crew", id: b.id, lat: b.lat, lng: b.lng, level: b.level, pin_label: b.pin_label, crew_tag: b.crew_tag, is_own: b.is_own, theme_id: b.theme_id, ...t });
       });
-      setBasePins(merged);
+      setBasePinsIfChanged(merged);
     };
     void load();
     const stop = setVisibilityAwareInterval(load, 300_000); // 5min Safety-Net
@@ -1682,7 +1705,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             const t = themeMeta.get(b.theme_id ?? "") ?? fb;
             merged.push({ ...b, kind: "crew", ...t });
           });
-          setBasePins(merged);
+          setBasePinsIfChanged(merged);
         }
       }
     }
@@ -1820,13 +1843,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
             route_geom_json: rallyData.rally.route_geom_json && rallyData.rally.route_geom_json.type === "LineString" ? rallyData.rally.route_geom_json : null,
           }]
         : []),
-      ...(rallyData?.rally && (rallyData.rally.status === "marching" || rallyData.rally.status === "fighting") && rallyData.mutant
+      ...(rallyData?.rally && (rallyData.rally.status === "marching" || rallyData.rally.status === "fighting" || rallyData.rally.status === "returning") && rallyData.mutant
         ? [{
             id: `mutant:${rallyData.rally.id}`,
             kind: "stronghold" as const, // visuell wie Wegelager (gleicher Linien-Stil)
-            status: rallyData.rally.status as "marching" | "fighting",
+            status: rallyData.rally.status as "marching" | "fighting" | "returning",
             prep_ends_at: rallyData.rally.prep_ends_at,
             march_ends_at: rallyData.rally.march_ends_at,
+            fight_ends_at: (rallyData.rally as { fight_ends_at?: string | null }).fight_ends_at ?? null,
+            return_ends_at: (rallyData.rally as { return_ends_at?: string | null }).return_ends_at ?? null,
             origin_lat: rallyData.rally.leader_base_lat ?? null,
             origin_lng: rallyData.rally.leader_base_lng ?? null,
             target_lat: rallyData.mutant.lat,
@@ -1840,6 +1865,217 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
     ],
     [crewRallies, pbRally, rallyData],
   );
+
+  // Legions-Verwaltung-Modal: zeigt alle aktiven Märsche mit Rückruf-Buttons.
+  const [legionsModalOpen, setLegionsModalOpen] = useState(false);
+
+  // ActiveGuardian-State — wird in marchSlots-Aggregator referenziert (Avatar
+  // + Click-to-Guardian). Fetch direkt hier in MapDashboard, separat vom
+  // ProfilTab-Effect (der hat seinen eigenen identischen State).
+  type ActiveGuardian = {
+    id: string; level: number; wins: number; losses: number;
+    current_hp_pct: number;
+    archetype: { id: string; name: string; emoji: string; rarity: string; guardian_type: string | null; image_url: string | null; video_url: string | null } | null;
+    siegel_count: number;
+  };
+  const [activeGuardian, setActiveGuardian] = useState<ActiveGuardian | null>(null);
+  const [teaserDetailOpen, setTeaserDetailOpen] = useState(false);
+  useEffect(() => {
+    if (!p?.id) return;
+    let cancelled = false;
+    void (async () => {
+      const sb = createClient();
+      const { data: g } = await sb.from("user_guardians")
+        .select("id, level, wins, losses, current_hp_pct, archetype:archetype_id(id, name, emoji, rarity, guardian_type, image_url, video_url)")
+        .eq("user_id", p.id).eq("is_active", true).maybeSingle();
+      if (cancelled || !g) { setActiveGuardian(null); return; }
+      const arch = Array.isArray((g as { archetype?: unknown }).archetype)
+        ? ((g as { archetype: unknown[] }).archetype[0] as ActiveGuardian["archetype"])
+        : ((g as { archetype: unknown }).archetype as ActiveGuardian["archetype"]);
+      setActiveGuardian({
+        id: (g as { id: string }).id,
+        level: (g as { level: number }).level,
+        wins: (g as { wins: number }).wins,
+        losses: (g as { losses: number }).losses,
+        current_hp_pct: (g as { current_hp_pct: number }).current_hp_pct,
+        archetype: arch,
+        siegel_count: 0,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [p?.id]);
+
+  // ─── Marsch-Slots (RoK/CoD-Stil rechts am Rand) ─────────────────────
+  // Aggregiert alle aktiven Märsche des Users in ein einheitliches Slot-Array.
+  // Bis zu 5 Slots gleichzeitig möglich (Standard-Konvention). Phasen-spezi-
+  // fisches Countdown-Ende: gather hat returns_at als letzte Phase, rally
+  // hat fight_ends_at / return_ends_at / march_ends_at.
+  // Avatar = Wächter-Artwork (aus activeGuardian). Klick auf Slot → öffnet
+  // Wächter-Detail (zeigt welcher Wächter den Marsch anführt).
+  const marchSlots = useMemo(() => {
+    const slots: import("@/components/march-slots-bar").MarchSlot[] = [];
+    const myUserId = p?.id;
+    const guardianAvatar = activeGuardian?.archetype?.image_url ?? null;
+    const guardianVideo = activeGuardian?.archetype?.video_url ?? null;
+    const guardianEmoji = activeGuardian?.archetype?.emoji ?? null;
+    const guardianId = activeGuardian?.id ?? null;
+    // Slot-Avatar zeigt IMMER den Wächter (der den Marsch anführt) — nicht
+    // den Status (Haus/Pickel/etc.). Status wird über `kind`-Farbe + Ring kodiert.
+    const wKundenEmoji = guardianEmoji ?? "⚔";
+
+    // 1) Sammel-Märsche (eigene)
+    for (const m of activeMarches) {
+      const endsAt = m.status === "returning" ? m.returns_at
+        : m.status === "gathering" ? m.finishes_at
+        : m.arrives_at;
+      // started_at je Phase: marching von started_at→arrives_at, gathering von
+      // arrives_at→finishes_at, returning von finishes_at→returns_at.
+      const phaseStart = m.status === "returning" ? m.finishes_at
+        : m.status === "gathering" ? m.arrives_at
+        : m.started_at;
+      const nodeKindLabel = m.node?.kind === "scrapyard" ? "Tech-Schrott"
+        : m.node?.kind === "factory" ? "Komponenten"
+        : m.node?.kind === "atm" ? "Krypto"
+        : m.node?.kind === "datacenter" ? "Bandbreite"
+        : "Sammel-Ziel";
+      const targetLabel = m.node
+        ? `${nodeKindLabel} · Lv ${m.node.level}`
+        : null;
+      slots.push({
+        id: `gather:${m.id}`,
+        kind: m.status === "returning" ? "returning" : "gather",
+        emoji: wKundenEmoji,
+        ends_at: endsAt,
+        started_at: phaseStart,
+        target_lat: m.node?.lat ?? null,
+        target_lng: m.node?.lng ?? null,
+        avatar_url: guardianAvatar,
+        avatar_video_url: guardianVideo,
+        guardian_id: guardianId,
+        leader_name: m.guardian_name ?? activeGuardian?.archetype?.name ?? null,
+        power: m.troop_count,
+        target_label: targetLabel,
+      });
+    }
+
+    // 2) Späher
+    for (const sc of activeScouts) {
+      const endsAt = (sc as unknown as { phase?: string; returns_at?: string; arrives_at?: string }).phase === "returning"
+        ? (sc as unknown as { returns_at: string }).returns_at
+        : (sc as unknown as { arrives_at: string }).arrives_at;
+      if (!endsAt) continue;
+      slots.push({
+        id: `scout:${(sc as unknown as { id: string }).id}`,
+        kind: "scout",
+        emoji: wKundenEmoji,
+        ends_at: endsAt,
+        target_lat: (sc as unknown as { defender_lat?: number | null }).defender_lat ?? null,
+        target_lng: (sc as unknown as { defender_lng?: number | null }).defender_lng ?? null,
+        avatar_url: guardianAvatar,
+        avatar_video_url: guardianVideo,
+        guardian_id: guardianId,
+      });
+    }
+
+    // 3) Crew-Repeater-Rallies (wo User Leader ODER Teilnehmer ist)
+    for (const cr of crewRallies) {
+      if (cr.status !== "preparing" && cr.status !== "marching" && cr.status !== "fighting") continue;
+      const endsAt = cr.status === "preparing" ? cr.prep_ends_at : cr.march_ends_at;
+      if (!endsAt) continue;
+      const isMine = cr.leader_user_id === myUserId || cr.is_attacker || cr.is_defender;
+      if (!isMine) continue;
+      const phaseStart = cr.status === "preparing" ? cr.created_at : cr.prep_ends_at;
+      const targetLabel = cr.repeater_label
+        ? `${cr.repeater_kind === "hq" ? "Crew-HQ" : cr.repeater_kind === "mega" ? "Mega-Funk" : "Funk"} · ${cr.repeater_label}`
+        : (cr.repeater_kind === "hq" ? "Crew-HQ" : cr.repeater_kind === "mega" ? "Mega-Funk" : "Crew-Funk");
+      slots.push({
+        id: `crew_repeater:${cr.id}`,
+        kind: "crew_repeater",
+        emoji: wKundenEmoji,
+        ends_at: endsAt,
+        started_at: phaseStart,
+        target_lat: cr.repeater_lat,
+        target_lng: cr.repeater_lng,
+        avatar_url: guardianAvatar,
+        avatar_video_url: guardianVideo,
+        guardian_id: guardianId,
+        leader_name: cr.leader_name,
+        power: cr.total_atk,
+        target_label: targetLabel,
+      });
+    }
+
+    // 4) Player-Base-Rally (eigene Crew gegen Spieler-Base)
+    if (pbRally && (pbRally.status === "preparing" || pbRally.status === "marching" || pbRally.status === "fighting")) {
+      const endsAt = pbRally.status === "preparing" ? pbRally.prep_ends_at : pbRally.march_ends_at;
+      if (endsAt) {
+        slots.push({
+          id: `pb:${pbRally.rally_id}`,
+          kind: "player_base",
+          emoji: wKundenEmoji,
+          ends_at: endsAt,
+          // Player-Base-Rally hat keinen exakten Phase-Start im State —
+          // marching: prep_ends_at, preparing: unbekannt (kein created_at).
+          started_at: pbRally.status === "preparing" ? null : pbRally.prep_ends_at,
+          target_lat: pbRally.defender_lat,
+          target_lng: pbRally.defender_lng,
+          avatar_url: guardianAvatar,
+          avatar_video_url: guardianVideo,
+          guardian_id: guardianId,
+          leader_name: pbRally.leader_name,
+          power: pbRally.total_atk,
+          target_label: `Spieler-Base · ${pbRally.defender_name}`,
+        });
+      }
+    }
+
+    // 5) Stronghold/Mutant-Rally (eigene Crew, durchlebt 4 Phasen bei Mutanten)
+    if (rallyData?.rally && rallyData.rally.status !== "done" && rallyData.rally.status !== "aborted") {
+      const r = rallyData.rally;
+      const isMutant = !!rallyData.mutant;
+      const endsAt =
+        r.status === "preparing" ? r.prep_ends_at
+        : r.status === "fighting" ? r.fight_ends_at
+        : r.status === "returning" ? r.return_ends_at
+        : r.march_ends_at;
+      // Phase-Start für Progress-Bar:
+      // preparing  → null (kein created_at im Type), marching → prep_ends_at,
+      // fighting   → march_ends_at, returning → fight_ends_at ?? march_ends_at
+      const phaseStart =
+        r.status === "preparing" ? null
+        : r.status === "fighting" ? r.march_ends_at
+        : r.status === "returning" ? (r.fight_ends_at ?? r.march_ends_at)
+        : r.prep_ends_at;
+      const targetLabel = isMutant
+        ? `Mutant · Loot ${rallyData.mutant!.loot_tier}`
+        : rallyData.stronghold
+          ? `Wegelager · Lv ${(rallyData.stronghold as unknown as { level?: number }).level ?? "?"}`
+          : null;
+      if (endsAt) {
+        slots.push({
+          id: `rally:${r.id}`,
+          kind: r.status === "returning" ? "returning"
+            : isMutant ? "mutant" : "stronghold",
+          emoji: wKundenEmoji,
+          ends_at: endsAt,
+          started_at: phaseStart,
+          target_lat: isMutant ? rallyData.mutant!.lat : rallyData.stronghold?.lat ?? null,
+          target_lng: isMutant ? rallyData.mutant!.lng : rallyData.stronghold?.lng ?? null,
+          avatar_url: guardianAvatar,
+          avatar_video_url: guardianVideo,
+          guardian_id: guardianId,
+          power: r.total_atk,
+          target_label: targetLabel,
+          // Boost nur während marching möglich (vor Fight) — apply_march_boost-RPC
+          // weigert sich für andere Phasen.
+          boost_rally_id: r.status === "marching" && r.leader_user_id === myUserId ? r.id : null,
+        });
+      }
+    }
+
+    return slots;
+  }, [activeMarches, activeScouts, crewRallies, pbRally, rallyData, p?.id, activeGuardian]);
+
   const equippedNameplateId = (p as unknown as { equipped_nameplate_id?: string | null })?.equipped_nameplate_id ?? null;
 
   // Pre-decode der eigenen Base-Bilder (Theme-Pin + Banner + Ring + Nameplate)
@@ -2209,11 +2445,30 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               xpBoost={1}
             />
 
+            {/* RoK-Style Marsch-Slots — rechts am Rand, nur belegte Slots
+                sichtbar. Klick auf Slot → Fly-To-Ziel. Listen-Icon unten
+                öffnet die Legionsverwaltung als Right-Drawer. */}
+            <MarchSlotsBar
+              slots={marchSlots}
+              onSlotClick={(slot) => {
+                if (slot.target_lat != null && slot.target_lng != null) {
+                  window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                    detail: { lat: slot.target_lat, lng: slot.target_lng, zoom: 17 },
+                  }));
+                }
+              }}
+              onOpenManagement={() => setLegionsModalOpen(true)}
+            />
+
             {/* Active-Rally-Banner — kurzlebige Info-Pille ("Spieler X hat Crew-Angriff
                 gestartet"). Wird automatisch nach ~8s ausgeblendet, danach lebt die
                 Rally weiter in der Crew-Angriffe-Liste (Quick-Access-Bar) bis sie
                 resolved ist. */}
-            {rallyData?.rally && bannerVisibleForId === rallyData.rally.id && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
+            {rallyData?.rally && !dismissedRallyIds.has(rallyData.rally.id) && (
+              bannerVisibleForId === rallyData.rally.id
+              || rallyData.rally.status === "fighting"
+              || rallyData.rally.status === "returning"
+            ) && !strongholdModalTarget && !baseModalTarget && !attackTarget && !pbRally && (
               <div style={{
                 position: "absolute", top: 40,
                 left: "50%", transform: "translateX(-50%)",
@@ -2222,7 +2477,15 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               }}>
                 <ActiveRallyBanner
                   rally={rallyData.rally}
-                  onDismiss={() => setBannerVisibleForId(null)}
+                  onDismiss={() => {
+                    setBannerVisibleForId(null);
+                    if (rallyData.rally) {
+                      const rid = rallyData.rally.id;
+                      setDismissedRallyIds((prev) => {
+                        const next = new Set(prev); next.add(rid); return next;
+                      });
+                    }
+                  }}
                   onOpen={async () => {
                     if (rallyData.stronghold) {
                       setStrongholdModalTarget({ s: rallyData.stronghold, x: window.innerWidth / 2, y: window.innerHeight / 2 });
@@ -2506,6 +2769,34 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       {/* Base-Modal (eigenes oder fremdes Pin) */}
       {baseModalTarget && (
         <BaseModal target={baseModalTarget} onClose={() => setBaseModalTarget(null)} />
+      )}
+
+      {/* Legionsverwaltung-Modal — Liste aller aktiven Märsche mit Rückruf-
+          Buttons + Boost-Item-Picker. Öffnet sich beim Klick auf einen Slot. */}
+      {legionsModalOpen && (
+        <MarchManagementModal
+          slots={marchSlots}
+          onClose={() => setLegionsModalOpen(false)}
+          onSlotClick={(slot) => {
+            setLegionsModalOpen(false);
+            if (slot.target_lat != null && slot.target_lng != null) {
+              window.dispatchEvent(new CustomEvent("ma365:fly-to-coords", {
+                detail: { lat: slot.target_lat, lng: slot.target_lng, zoom: 17 },
+              }));
+            }
+          }}
+          onBoostApplied={(rallyId, newMarchEndsAt) => {
+            // INSTANT: rallyData lokal patchen, damit marchSlots-Memo sofort
+            // den kürzeren Countdown liefert — kein Warten auf Server/Realtime.
+            setRallyData((prev) => {
+              if (!prev?.rally || prev.rally.id !== rallyId) return prev;
+              return { ...prev, rally: { ...prev.rally, march_ends_at: newMarchEndsAt } };
+            });
+            // Server-Wahrheit im Hintergrund nachziehen (Realtime macht das auch,
+            // aber dieser Refresh ist als Backup für den Fehlerfall).
+            void refreshRally();
+          }}
+        />
       )}
 
       {/* Profil-Modal: Dashboard-Karten (Base/Wächter/Crew) als Overlay über der Map */}
@@ -3395,6 +3686,7 @@ function ProfilTab({
   }, [p?.id, supabase]);
 
   // Aktiver Wächter für den Profil-Teaser-Block
+  // ActiveGuardian-State (lokal in ProfilTab — separat von MapDashboard).
   type ActiveGuardian = {
     id: string; level: number; wins: number; losses: number;
     current_hp_pct: number;

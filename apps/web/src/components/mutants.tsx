@@ -582,28 +582,50 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
     // slash → explosion → off in Echtzeit, ohne auf den 5s-API-Refresh zu warten.
     const sourceTickIv = setInterval(() => { updateSource(); }, 500);
 
-    // Frame-Cycle: schaltet alle 600 Mutanten gleichzeitig auf naechsten Sprite-
-    // Frame. 12 Frames × 120ms = 1.44s pro Idle-Loop. 1 Mapbox-Layer-Update pro
-    // Tick, kein DOM-Touch — laeuft auch bei 600 Markern ohne Performance-Issue.
-    // Parallel werden Slash (8 Frames × 120ms = 960ms loop) und Explosion (16
-    // Frames × 120ms = 1.92s loop) ueber denselben Tick fortgeschaltet.
-    let currentFrame = 0;
+    // Frame-Cycle — KRITISCHER FLICKER-FIX:
+    //
+    // setLayoutProperty(symbol-layer, "icon-image", ...) zwingt Mapbox bei
+    // JEDEM Call die gesamte Symbol-Collision-Pipeline neu durchlaufen zu
+    // lassen (für ALLE Labels, inkl. Mapbox-Standard-Hausnummern). Auch eine
+    // Throttle auf 2 Hz war noch sichtbar als Hausnummer-"Springen auf und ab".
+    //
+    // Daher: **idle wird NICHT mehr animiert**. Mutant bleibt auf Frame 0
+    // stehen — sieht statisch aus, dafür stehen Hausnummern still. Slash und
+    // Explosion bleiben animiert (kurze Combat-Momente, akzeptabler Trade-off).
     let currentSlashFrame = 0;
     let currentExplosionFrame = 0;
     const frameIv = setInterval(() => {
       if (!map || !map.getLayer(LAYER_ID)) return;
-      currentFrame = (currentFrame + 1) % FRAME_COUNT;
-      currentSlashFrame = (currentSlashFrame + 1) % SLASH_FRAME_COUNT;
-      currentExplosionFrame = (currentExplosionFrame + 1) % EXPLOSION_FRAME_COUNT;
-      try {
-        map.setLayoutProperty(LAYER_ID, "icon-image", iconId(currentFrame));
-        if (map.getLayer(SLASH_LAYER_ID)) {
-          map.setLayoutProperty(SLASH_LAYER_ID, "icon-image", slashIconId(currentSlashFrame));
+      if (mutantsById.size === 0) return;
+
+      const now = Date.now();
+      let anySlash = false;
+      let anyExplosion = false;
+      for (const m of mutantsById.values()) {
+        const fightStartsAt = m.fight_starts_at ? new Date(m.fight_starts_at).getTime() : 0;
+        const fightEndsAt = m.fight_until ? new Date(m.fight_until).getTime() : 0;
+        if (fightStartsAt > 0 && fightStartsAt <= now && now < fightEndsAt) {
+          if ((fightEndsAt - now) <= EXPLOSION_TAIL_MS) anyExplosion = true;
+          else anySlash = true;
+          if (anySlash && anyExplosion) break;
         }
-        if (map.getLayer(EXPLOSION_LAYER_ID)) {
-          map.setLayoutProperty(EXPLOSION_LAYER_ID, "icon-image", explosionIconId(currentExplosionFrame));
-        }
-      } catch { /* layer may have been removed */ }
+      }
+      if (anySlash) {
+        currentSlashFrame = (currentSlashFrame + 1) % SLASH_FRAME_COUNT;
+        try {
+          if (map.getLayer(SLASH_LAYER_ID)) {
+            map.setLayoutProperty(SLASH_LAYER_ID, "icon-image", slashIconId(currentSlashFrame));
+          }
+        } catch { /* layer evtl. weg */ }
+      }
+      if (anyExplosion) {
+        currentExplosionFrame = (currentExplosionFrame + 1) % EXPLOSION_FRAME_COUNT;
+        try {
+          if (map.getLayer(EXPLOSION_LAYER_ID)) {
+            map.setLayoutProperty(EXPLOSION_LAYER_ID, "icon-image", explosionIconId(currentExplosionFrame));
+          }
+        } catch { /* layer evtl. weg */ }
+      }
     }, 120);
 
     return () => {
@@ -1050,9 +1072,12 @@ function MutantAttackModal({
 }
 
 const PREP_OPTIONS: Array<{ s: number; label: string }> = [
-  // "Sofort" = 5s prep, fuer Solo-Angriff ohne Warten auf Crew-Beitritte.
+  // "Alleine" = 5s prep, fuer Solo-Angriff ohne Warten auf Crew-Beitritte.
+  // Marsch/Kampf-Mechanik bleibt identisch (Strassen-Pfad + reale Lauf-Zeit +
+  // FDX im Kampf + 50%-Speed-Rueckweg). Einziger Unterschied: kein Beitreten-
+  // Fenster, der Angriff startet quasi sofort und allein.
   // Laengere Optionen geben anderen Crew-Mitgliedern Zeit beizutreten.
-  { s: 5,      label: "Sofort" },
+  { s: 5,      label: "Alleine" },
   { s: 180,    label: "3 Min" },
   { s: 480,    label: "8 Min" },
   { s: 1680,   label: "28 Min" },

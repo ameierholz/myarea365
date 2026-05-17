@@ -1085,6 +1085,15 @@ export const INVENTORY_ITEMS_ART: InventoryItemArt[] = [
     subject: 'epic engraved hourglass with red heart-cross medical crest, swirling violet-and-green epic-tier particles, with a LARGE BOLD READABLE white text label "12h" prominently displayed across the lower part of the hourglass' },
   { id: "speedup_heal_24h",  category: "speedup", name: "Heilungs-Speedup 24 Std",  fallbackEmoji: "❤", accent: "#FFD700", rarity: "legendary",
     subject: 'legendary golden hourglass with red heart-cross medical crest, brilliant gold legendary-tier beams with green healing aura, with a LARGE BOLD READABLE white text label "24h" prominently displayed across the lower part of the hourglass' },
+  // SPEEDUPS - Marsch (Geschwindigkeits-Boost auf die reale Lauf-Zeit, % = Speed-Multiplier)
+  { id: "speedup_march_50",  category: "speedup", name: "Marsch-Boost 50%",  fallbackEmoji: "💨", accent: "#9ba8c7", rarity: "common",
+    subject: 'a small glowing winged-boot icon with motion trails, blue-grey common-tier glow, with a LARGE BOLD READABLE white text label "+50%" prominently displayed across the lower part of the icon' },
+  { id: "speedup_march_100", category: "speedup", name: "Marsch-Boost 100%", fallbackEmoji: "💨", accent: "#5ddaf0", rarity: "rare",
+    subject: 'an ornate winged-boot icon with energetic cyan speed-streaks, vivid cyan rare-tier glow, with a LARGE BOLD READABLE white text label "+100%" prominently displayed across the lower part of the icon' },
+  { id: "speedup_march_250", category: "speedup", name: "Marsch-Boost 250%", fallbackEmoji: "💨", accent: "#a855f7", rarity: "epic",
+    subject: 'epic engraved winged-boot icon with violet lightning bolts and motion blur, swirling violet epic-tier particles, with a LARGE BOLD READABLE white text label "+250%" prominently displayed across the lower part of the icon' },
+  { id: "speedup_march_500", category: "speedup", name: "Marsch-Boost 500%", fallbackEmoji: "💨", accent: "#FFD700", rarity: "legendary",
+    subject: 'legendary golden winged-boot icon with blazing fire trails and shockwave aura, brilliant gold legendary-tier beams, with a LARGE BOLD READABLE white text label "+500%" prominently displayed across the lower part of the icon' },
   // BOOSTS
   { id: "boost_shield_2k",   category: "boost", name: "Schild 2.000",  fallbackEmoji: "\u{1F6E1}", accent: "#5ddaf0", rarity: "rare",
     subject: "a glowing cyan crystal shield with a small 2K rune, energy barrier swirling around it" },

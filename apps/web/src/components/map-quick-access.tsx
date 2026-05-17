@@ -65,7 +65,23 @@ type StrongholdRally = {
   total_atk: number; participants: number;
   i_joined: boolean; is_leader: boolean;
 };
-type Joinable = { repeater: RepeaterRally[]; base: BaseRally[]; stronghold: StrongholdRally[] };
+type MutantRally = {
+  rally_id: string; kind: "mutant";
+  // mutant-rallies haben 4 phasen: preparing → marching → fighting → returning
+  status: "preparing" | "marching" | "fighting" | "returning";
+  mutant_id: number;
+  leader_name: string; target_label: string | null;
+  target_lat: number; target_lng: number;
+  target_level?: number | null;
+  loot_tier: "bronze" | "silver" | "gold" | "platinum";
+  prep_ends_at: string;
+  march_ends_at: string | null;
+  fight_ends_at: string | null;
+  return_ends_at: string | null;
+  total_atk: number; participants: number;
+  i_joined: boolean; is_leader: boolean;
+};
+type Joinable = { repeater: RepeaterRally[]; base: BaseRally[]; stronghold: StrongholdRally[]; mutant: MutantRally[] };
 
 function fmtCountdown(iso: string | null): string {
   if (!iso) return "—";
@@ -119,7 +135,7 @@ export function MapQuickAccess({
   strongholdsNearby?: number;
 }) {
   const [enabled, setEnabled] = useState(true);
-  const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [], stronghold: [] });
+  const [rallies, setRallies] = useState<Joinable>({ repeater: [], base: [], stronghold: [], mutant: [] });
   const [openRallyList, setOpenRallyList] = useState(false);
   // Collapsed-State persistiert in localStorage damit die Map-View bei
   // schmalen Mobile-Viewports nicht jedes Mal mit voller Toolbar startet.
@@ -181,7 +197,7 @@ export function MapQuickAccess({
 
   if (!enabled) return null;
 
-  const rallyTotal = rallies.repeater.length + rallies.base.length + rallies.stronghold.length;
+  const rallyTotal = rallies.repeater.length + rallies.base.length + rallies.stronghold.length + rallies.mutant.length;
 
   // Artwork-basierte Icons (cosmetic_artwork kind=ui_icon, slot=quick_*).
   // Fallback-Emoji nur wenn noch kein Artwork hochgeladen ist.
@@ -216,8 +232,12 @@ export function MapQuickAccess({
           border: "none",
           boxShadow: "none",
           pointerEvents: "auto",
-          WebkitMaskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
-          maskImage: "linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%)",
+          // KEIN Fade-Out-Mask — verschluckte das Inbox-Badge auf dem rechten
+          // Icon (1-Indikator). Overflow-Scroll bleibt aktiv falls die Bar
+          // breiter als der Viewport ist.
+          // overflowY visible damit das Badge oben/rechts aus dem Icon raus-
+          // ragen darf (sonst clippt scroll-container).
+          overflowY: "visible",
         }}
       >
         {items.map((it) => (
@@ -292,12 +312,14 @@ export function MapQuickAccess({
           onClick={(e) => e.stopPropagation()}
           style={{
             position: "fixed",
-            left: barRect?.left ?? 8,
-            width: barRect?.width ?? undefined,
-            right: barRect ? undefined : 58,
+            // CoD-Style: breites Modal-artiges Panel statt schmaler Pille rechts.
+            // Bei Mobile passt es sich mit calc-Padding an, bei Desktop max 720px.
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "min(720px, calc(100vw - 24px))",
             bottom: 110,
             zIndex: 9002,
-            maxHeight: "60vh",
+            maxHeight: "70vh",
             overflowY: "auto",
             background: "rgba(15,17,21,0.55)",
             border: "1px solid rgba(255,45,120,0.35)",
@@ -415,13 +437,48 @@ export function MapQuickAccess({
                 isLeader={r.is_leader}
                 onJoin={r.status === "preparing" && !r.i_joined
                   ? () => {
-                      // Map-Dashboard fängt das Event und öffnet das Stronghold-Modal
                       window.dispatchEvent(new CustomEvent("ma365:open-stronghold", {
                         detail: { strongholdId: r.stronghold_id, lat: r.target_lat, lng: r.target_lng },
                       }));
                       setOpenRallyList(false);
                     }
                   : undefined}
+                onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
+                onCancel={r.is_leader && r.status === "preparing"
+                  ? async () => {
+                      await fetch(`/api/rally/${r.rally_id}/cancel`, { method: "POST" });
+                      const sb = createClient();
+                      const { data } = await sb.rpc("get_joinable_rallies");
+                      if (data) setRallies(data as Joinable);
+                    }
+                  : undefined}
+              />
+            );
+          })}
+          {rallies.mutant.map((r) => {
+            const countdownIso =
+              r.status === "preparing" ? r.prep_ends_at
+              : r.status === "fighting" ? r.fight_ends_at
+              : r.status === "returning" ? r.return_ends_at
+              : r.march_ends_at;
+            return (
+              <RallyRow
+                key={r.rally_id}
+                rallyId={r.rally_id}
+                slot={`mutant_${r.loot_tier}`}
+                fallback="👹"
+                art={uiArt}
+                // Mutant-Sprite-Sheet: erster Frame als Avatar via CSS-Background-
+                // Trick — Sheet ist 12×128 px breit, wir zeigen nur den ersten Frame.
+                spriteSheet="/sprites/mutant_idle_12x128.png"
+                title={`${r.target_label ?? "Mutant"}`}
+                leaderName={r.leader_name}
+                participants={r.participants}
+                totalAtk={r.total_atk}
+                countdown={fmtCountdown(countdownIso)}
+                status={r.status}
+                joined={r.i_joined}
+                isLeader={r.is_leader}
                 onShow={() => { onFlyTo(r.target_lat, r.target_lng); setOpenRallyList(false); }}
                 onCancel={r.is_leader && r.status === "preparing"
                   ? async () => {
@@ -513,14 +570,17 @@ type Participant = {
 };
 
 function RallyRow({
-  rallyId, slot, fallback, art, avatarUrl, title, leaderName, participants, totalAtk, countdown,
+  rallyId, slot, fallback, art, avatarUrl, spriteSheet, title, leaderName, participants, totalAtk, countdown,
   status, joined, isLeader, onJoin, onShow, onCancel,
 }: {
   rallyId: string;
   slot: string; fallback: string; art: ResourceArtMap;
   avatarUrl?: string | null;
+  /** Optional: Sprite-Sheet (z. B. Mutant) — wir zeigen Frame 0 als Avatar.
+      Sheet muss 12 Frames horizontal x 128px sein (mutant_idle_12x128.png-Format). */
+  spriteSheet?: string;
   title: string; leaderName: string; participants: number; totalAtk: number; countdown: string;
-  status: "preparing" | "marching" | "fighting";
+  status: "preparing" | "marching" | "fighting" | "returning";
   joined: boolean; isLeader: boolean;
   onJoin?: () => void; onShow: () => void; onCancel?: () => void | Promise<void>;
 }) {
@@ -566,6 +626,7 @@ function RallyRow({
   const statusBadge =
     status === "preparing" ? { label: "SAMMELN",  color: "#FFD700" } :
     status === "marching"  ? { label: "ANMARSCH", color: "#FF6B4A" } :
+    status === "returning" ? { label: "RÜCKWEG",  color: "#22D1C3" } :
                               { label: "KAMPF",    color: "#FF2D78" };
 
   return (
@@ -576,7 +637,20 @@ function RallyRow({
       {/* Icon links, Title+Info-Spalte mitte, Atk-Block rechts (volle Höhe) */}
       <div style={{ display: "flex", alignItems: "stretch", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 64, flexShrink: 0, marginLeft: -20, marginTop: -6 }}>
-          {avatarUrl ? (
+          {spriteSheet ? (
+            // Sprite-Sheet-Frame 0: Sheet ist 1536×128 (12 Frames × 128 px).
+            // background-size 672×56 → jeder Frame wird 56×56, position 0,0 = erster Frame.
+            <div
+              style={{
+                width: 56, height: 56, borderRadius: "50%",
+                border: `2px solid ${ACCENT}66`,
+                boxShadow: `0 0 8px ${ACCENT}55`,
+                background: `url(${spriteSheet}) 0 0 / 672px 56px no-repeat, rgba(15,17,21,0.6)`,
+                backgroundBlendMode: "normal",
+              }}
+              aria-label="Mutant"
+            />
+          ) : avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" style={{
               width: 56, height: 56, borderRadius: "50%", objectFit: "cover",
@@ -587,58 +661,55 @@ function RallyRow({
             <UiIcon slot={slot} fallback={fallback} art={art} size={56} />
           )}
         </div>
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5 }}>
-          {/* Zeile 1: Titel + ZUM-ZIEL + Angriffskraft */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ minWidth: 0, color: TEXT, fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3 }}>
+          {/* Zeile 1: Titel + Countdown + Status — alles in einer Zeile, kein Wrap */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, color: TEXT, fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {title}
             </div>
-            <button
-              onClick={onShow}
-              style={{
-                padding: "2px 6px", borderRadius: 4,
-                background: `${PRIMARY}1f`,
-                border: `1px solid ${PRIMARY}55`,
-                color: PRIMARY,
-                fontSize: 9, fontWeight: 900, letterSpacing: 0.6, cursor: "pointer",
-                whiteSpace: "nowrap", flexShrink: 0, lineHeight: 1.4,
-              }}
-              title="Karte zentrieren"
-            >📍 ZUM ZIEL</button>
             <span style={{
-              padding: "2px 6px", borderRadius: 4,
-              background: "rgba(255,107,74,0.12)",
-              border: "1px solid rgba(255,107,74,0.45)",
-              color: "#FF6B4A",
-              fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
-              whiteSpace: "nowrap", flexShrink: 0, lineHeight: 1.4,
-              fontVariantNumeric: "tabular-nums",
-            }} title="Gesamt-Angriffskraft des Trupps">⚔ {totalAtk.toLocaleString("de-DE")}</span>
-          </div>
-          {/* Zeile 2: Leader · N dabei · Countdown · Status */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: MUTED, fontSize: 11, flexWrap: "wrap" }}>
-            <span style={{ color: TEXT, fontWeight: 700 }}>{leaderName}</span>
-            <span>·</span>
-            <button
-              onClick={() => setExpanded((e) => !e)}
-              style={{
-                background: "transparent", border: "none", padding: 0,
-                color: PRIMARY, fontSize: 11, fontWeight: 700, cursor: "pointer",
-                textDecoration: "underline", textUnderlineOffset: 2,
-              }}
-              title={expanded ? "Zuklappen" : "Teilnehmer anzeigen"}
-            >
-              {participants} dabei {expanded ? "▲" : "▼"}
-            </button>
-            <span>·</span>
-            <span style={{ color: TEXT, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>⏱ {countdown}</span>
+              color: TEXT, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+              fontSize: 11, flexShrink: 0,
+            }}>⏱ {countdown}</span>
             <span style={{
               fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
               color: statusBadge.color,
               padding: "2px 6px", borderRadius: 4,
               background: `${statusBadge.color}1f`, border: `1px solid ${statusBadge.color}55`,
-              whiteSpace: "nowrap", lineHeight: 1.4,
+              whiteSpace: "nowrap", lineHeight: 1.4, flexShrink: 0,
             }}>{statusBadge.label}</span>
+          </div>
+          {/* Zeile 2: Leader · N dabei · Angriffskraft + Action-Buttons rechts */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: MUTED, fontSize: 11, minWidth: 0 }}>
+            <span style={{ color: TEXT, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 1, minWidth: 0 }}>
+              {leaderName}
+            </span>
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              style={{
+                background: "transparent", border: "none", padding: 0,
+                color: PRIMARY, fontSize: 11, fontWeight: 700, cursor: "pointer",
+                flexShrink: 0,
+              }}
+              title={expanded ? "Zuklappen" : "Teilnehmer anzeigen"}
+            >
+              · {participants} {expanded ? "▲" : "▼"}
+            </button>
+            <span style={{
+              color: "#FF6B4A", fontWeight: 800, fontVariantNumeric: "tabular-nums",
+              fontSize: 10, flexShrink: 0,
+            }} title="Gesamt-Angriffskraft">⚔ {totalAtk.toLocaleString("de-DE")}</span>
+            <span style={{ flex: 1 }} />
+            <button
+              onClick={onShow}
+              style={{
+                padding: "2px 6px", borderRadius: 4,
+                background: `${PRIMARY}1f`, border: `1px solid ${PRIMARY}55`,
+                color: PRIMARY, fontSize: 9, fontWeight: 900, letterSpacing: 0.4,
+                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, lineHeight: 1.4,
+              }}
+              title="Karte zentrieren"
+            >📍</button>
             {onCancel && (
               <button
                 onClick={async () => {
@@ -648,19 +719,17 @@ function RallyRow({
                   try { await onCancel(); } finally { setBusyCancel(false); setConfirmCancel(false); }
                 }}
                 disabled={busyCancel}
-                title={confirmCancel ? "Nochmal klicken zum Bestätigen" : "Trupp abbrechen (Truppen zurück)"}
+                title={confirmCancel ? "Nochmal klicken zum Bestätigen" : "Trupp abbrechen"}
                 style={{
-                  fontSize: 9, fontWeight: 900, letterSpacing: 0.6,
+                  fontSize: 9, fontWeight: 900, letterSpacing: 0.4,
                   color: confirmCancel ? "#FFF" : "#FF6B9A",
                   padding: "2px 6px", borderRadius: 4,
                   background: confirmCancel ? "rgba(255,45,120,0.85)" : "rgba(255,45,120,0.12)",
                   border: `1px solid ${confirmCancel ? "rgba(255,45,120,1)" : "rgba(255,45,120,0.5)"}`,
                   whiteSpace: "nowrap", cursor: busyCancel ? "wait" : "pointer",
-                  opacity: busyCancel ? 0.5 : 1, lineHeight: 1.4,
-                  boxShadow: confirmCancel ? "0 0 8px rgba(255,45,120,0.6)" : "none",
-                  transition: "background 0.15s, color 0.15s, box-shadow 0.15s",
+                  opacity: busyCancel ? 0.5 : 1, lineHeight: 1.4, flexShrink: 0,
                 }}
-              >{busyCancel ? "…" : confirmCancel ? "✕ BESTÄTIGEN?" : "✕ ABBRECHEN"}</button>
+              >{busyCancel ? "…" : confirmCancel ? "?" : "✕"}</button>
             )}
           </div>
         </div>

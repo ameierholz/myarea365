@@ -17,13 +17,24 @@ type RallyState = {
   ok: boolean;
   rally: null | {
     id: string; leader_user_id: string; crew_id: string; stronghold_id: string;
+    target_kind?: "mutant" | "stronghold";
+    target_mutant_id?: number | null;
     prep_ends_at: string; march_ends_at: string | null;
-    status: "preparing" | "marching" | "fighting" | "done" | "aborted";
+    /** Mutant-Rally: Ende der Fight-Phase (= Start des Rückwegs). */
+    fight_ends_at?: string | null;
+    /** Mutant-Rally: Ende des Rückwegs (50% Speed-Boost gegenüber Hinmarsch). */
+    return_ends_at?: string | null;
+    /** Route-Geometrie als GeoJSON LineString (vom Mapbox-Walking-API). */
+    route_geom_json?: { type: "LineString"; coordinates: [number, number][] } | null;
+    leader_base_lat?: number | null;
+    leader_base_lng?: number | null;
+    status: "preparing" | "marching" | "fighting" | "returning" | "done" | "aborted";
     total_atk: number;
   };
   i_joined?: boolean;
   participants?: Array<{ user_id: string; guardian_id: string | null; troops: Record<string, number>; atk_contribution: number }>;
   stronghold?: Stronghold;
+  mutant?: { id: number; lat: number; lng: number; loot_tier: string; spawn_terrain: string; hp: number; troop_count: number };
 };
 
 const PREP_OPTIONS: Array<{ s: number; label: string }> = [
