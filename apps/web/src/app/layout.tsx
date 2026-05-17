@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Inter } from "next/font/google";
+import Script from "next/script";
 import { ConsentGatedTracking } from "@/components/consent-gated-tracking";
 
 // Display-Schrift für Headlines, Stats, Badges, Crew-Tags — urbaner Graffiti-Vibe.
@@ -91,19 +92,12 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#1b2436" />
-        {/* Google AdSense — Verifikation + Ad-Serving.
-            Meta-Tag deklariert Site-Ownership. Das Script-Tag MUSS im SSR-HTML
-            stehen, damit AdSense-Crawler (= kein JS-Execute) es findet —
-            sonst Status "Nicht gefunden" trotz korrekter Konfiguration.
-            ConsentGatedTracking im body lädt das Script zusätzlich client-seitig
-            mit dem next/script-Strategy-Handling; doppelter Tag ist harmlos
-            (adsbygoogle.js dedupliziert sich selbst). */}
+        {/* Google AdSense — Meta-Tag deklariert Site-Ownership. Das eigentliche
+            adsbygoogle.js-Script wird unten via <Script strategy="beforeInteractive">
+            geladen — das ist die einzige next/script-Strategy die das Tag SSR
+            in den HTML-<head> rendert (raw <script async> wird vom App-Router
+            sonst zu <link rel="preload"> optimiert → AdSense-Crawler fand nix). */}
         <meta name="google-adsense-account" content="ca-pub-9799640580685030" />
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
-          crossOrigin="anonymous"
-        />
         {/*
           Google Consent Mode v2 — Default-Deny BEVOR irgendein Tracker laedt.
           Nach User-Entscheidung im Cookie-Banner wird via gtag('consent','update',...)
@@ -193,6 +187,16 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-bg text-text antialiased font-sans h-full">
+        {/* AdSense adsbygoogle.js — beforeInteractive rendert das <script>-Tag
+            ins initial SSR-HTML (vor jeglichem Next.js-Client-Code), damit der
+            AdSense-Crawler (kein JS-Execute) den Code findet. Muss laut Next.js-
+            Doku Child von <html>/<body> sein, nicht von <head>. */}
+        <Script
+          id="adsbygoogle-js"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
+          strategy="beforeInteractive"
+          crossOrigin="anonymous"
+        />
         <PrefsBoot />
         <ServiceWorkerRegister />
         <OfflineOutboxBoot />
