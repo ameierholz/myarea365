@@ -91,8 +91,19 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#1b2436" />
-        {/* Google AdSense — bestaetigt Site-Ownership + aktiviert Ad-Serving. */}
+        {/* Google AdSense — Verifikation + Ad-Serving.
+            Meta-Tag deklariert Site-Ownership. Das Script-Tag MUSS im SSR-HTML
+            stehen, damit AdSense-Crawler (= kein JS-Execute) es findet —
+            sonst Status "Nicht gefunden" trotz korrekter Konfiguration.
+            ConsentGatedTracking im body lädt das Script zusätzlich client-seitig
+            mit dem next/script-Strategy-Handling; doppelter Tag ist harmlos
+            (adsbygoogle.js dedupliziert sich selbst). */}
         <meta name="google-adsense-account" content="ca-pub-9799640580685030" />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9799640580685030"
+          crossOrigin="anonymous"
+        />
         {/*
           Google Consent Mode v2 — Default-Deny BEVOR irgendein Tracker laedt.
           Nach User-Entscheidung im Cookie-Banner wird via gtag('consent','update',...)
