@@ -16,6 +16,7 @@ import { ResourceIcon, useResourceArt, UiIcon, useUiIconArt, type ResourceKind, 
 import { QuestTeaser } from "@/components/quest-teaser";
 import { TimeWeatherBanner } from "@/components/time-weather-banner";
 import { WeatherAtmosphereOverlay } from "@/components/weather-atmosphere-overlay";
+import { useHudHidden } from "@/lib/modal-stack";
 
 type HudData = {
   ok: boolean;
@@ -112,6 +113,11 @@ export function KartenHud({
 
   const buffCount = data?.buffs?.length ?? 0;
   const questClaimable = data?.quests?.claimable ?? 0;
+
+  // FullscreenFrame offen (Crew/Inventar/Shop/etc.)? Dann HUD ganz aus,
+  // sonst überlagert die HUD-Bar (z 9050) das Modal (z 9000).
+  const hudHidden = useHudHidden();
+  if (hudHidden) return null;
 
   return (
     <>

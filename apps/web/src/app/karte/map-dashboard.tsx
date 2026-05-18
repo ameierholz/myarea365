@@ -10,6 +10,7 @@ import { claimIntensity } from "@/lib/claim-intensity";
 import { fetchBaseMe } from "@/lib/base-me-cache";
 import { setVisibilityAwareInterval } from "@/lib/visibility-interval";
 import { pushFullscreenLayer, popFullscreenLayer } from "@/lib/modal-stack";
+import { FullscreenFrame } from "@/app/karte/_components/fullscreen-frame";
 import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
@@ -2893,53 +2894,39 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
           (alle 12 Subtabs: Übersicht/Feed/Mitglieder/Wächter/Challenges/Events/Chat/
           Forschung/Bauwerke/Kopfgelder/Lagerhaus/Einstellungen) */}
       {mapCrewModalOpen && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 9100,
-          background: "rgba(0,0,0,0.78)",
-          display: "flex", alignItems: "stretch", justifyContent: "center",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-        }}>
-          <div style={{
-            width: "100%", maxWidth: 960, height: "100%",
-            background: "linear-gradient(180deg, #0F1115 0%, #14181f 100%)",
-            position: "relative", overflowY: "auto",
-            borderLeft: "1px solid rgba(255,255,255,0.08)",
-            borderRight: "1px solid rgba(255,255,255,0.08)",
-          }}>
-            <button
-              onClick={() => setMapCrewModalOpen(false)}
-              style={{
-                position: "absolute", top: 8, right: 8,
-                width: 36, height: 36, borderRadius: 18,
-                background: "rgba(15,17,21,0.92)",
-                border: "1px solid rgba(255,255,255,0.18)",
-                color: "#fff", fontSize: 18, fontWeight: 900,
-                cursor: "pointer", zIndex: 5,
-              }}
-              aria-label={tMD("ariaClose")}
-            >×</button>
-            <div style={{ padding: "0 0 80px" }}>
-              <CrewTab
-                profile={p}
-                myCrew={myCrew}
-                setMyCrew={setMyCrew}
-                setProfile={setProfile}
-                onOpenRanking={() => { setMapCrewModalOpen(false); setActiveTab("ranking"); }}
-                onPlaceBuilding={(kind) => {
-                  setMapCrewModalOpen(false);
-                  if (kind === "hq" || kind === "mega" || kind === "repeater") {
-                    setRepeaterPlaceMode({ kind });
-                    setRepeaterPlaceCursor(userCenter);
-                  } else {
-                    setBuildingPlaceMode({ kind });
-                    setRepeaterPlaceCursor(userCenter);
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <FullscreenFrame
+          title="Crew-Verwaltung"
+          theme="urban"
+          bgSlot="karte_crew_bg"
+          flushContent
+          onClose={() => {
+            // CrewTab kann das Schließen abfangen wenn in Feature-Detail-View
+            // (X wirkt dann als Back-Button). cancelable Event → CrewTab
+            // ruft preventDefault, dann bleibt das Modal offen.
+            const ev = new CustomEvent("ma365:crew-modal-close-intent", { cancelable: true });
+            const allowed = window.dispatchEvent(ev);
+            if (allowed) setMapCrewModalOpen(false);
+          }}
+        >
+          <CrewTab
+            profile={p}
+            myCrew={myCrew}
+            setMyCrew={setMyCrew}
+            setProfile={setProfile}
+            onClose={() => setMapCrewModalOpen(false)}
+            onOpenRanking={() => { setMapCrewModalOpen(false); setActiveTab("ranking"); }}
+            onPlaceBuilding={(kind) => {
+              setMapCrewModalOpen(false);
+              if (kind === "hq" || kind === "mega" || kind === "repeater") {
+                setRepeaterPlaceMode({ kind });
+                setRepeaterPlaceCursor(userCenter);
+              } else {
+                setBuildingPlaceMode({ kind });
+                setRepeaterPlaceCursor(userCenter);
+              }
+            }}
+          />
+        </FullscreenFrame>
       )}
 
       {/* Repeater-Info-Popup — schwebt direkt neben dem Pin, kein Backdrop.

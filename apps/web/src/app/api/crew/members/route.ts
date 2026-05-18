@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await sb
     .from("crew_members")
-    .select("user_id, role, joined_at, user:user_id(id, username, display_name, avatar_url, level, xp, wegemuenzen, gebietsruf, sessionehre, team_color, last_seen_at, streak_days)")
+    .select("user_id, role, joined_at, user:user_id(id, username, display_name, avatar_url, level, xp, wegemuenzen, gebietsruf, ansehen, sessionehre, team_color, streak_days, equipped_base_ring_id, equipped_marker_id, equipped_marker_variant)")
     .eq("crew_id", crewId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -20,8 +20,11 @@ export async function GET(req: NextRequest) {
   type UserShape = {
     id: string; username: string | null; display_name: string | null; avatar_url: string | null;
     level: number | null; xp: number | null;
-    wegemuenzen: number | null; gebietsruf: number | null; sessionehre: number | null;
-    team_color: string | null; last_seen_at: string | null; streak_days: number | null;
+    wegemuenzen: number | null; gebietsruf: number | null; ansehen: number | null; sessionehre: number | null;
+    team_color: string | null; streak_days: number | null;
+    equipped_base_ring_id: string | null;
+    equipped_marker_id: string | null;
+    equipped_marker_variant: string | null;
   };
   type Row = {
     user_id: string; role: string; joined_at: string | null;
@@ -40,12 +43,15 @@ export async function GET(req: NextRequest) {
       xp: u?.xp ?? 0,
       wegemuenzen: u?.wegemuenzen ?? 0,
       gebietsruf:  u?.gebietsruf ?? 0,
+      ansehen:     u?.ansehen ?? 0,
       sessionehre: u?.sessionehre ?? 0,
       team_color: u?.team_color ?? null,
-      last_seen_at: u?.last_seen_at ?? null,
       streak_days: u?.streak_days ?? 0,
+      equipped_base_ring_id: u?.equipped_base_ring_id ?? null,
+      equipped_marker_id: u?.equipped_marker_id ?? null,
+      equipped_marker_variant: u?.equipped_marker_variant ?? null,
     };
-  }).sort((a, b) => (b.gebietsruf ?? 0) - (a.gebietsruf ?? 0));
+  }).sort((a, b) => (b.ansehen ?? b.gebietsruf ?? 0) - (a.ansehen ?? a.gebietsruf ?? 0));
 
   return NextResponse.json({ members });
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { UiIcon, useUiIconArt, useArtworkReady, type ResourceArtMap } from "@/components/resource-icon";
+import { useHudHidden } from "@/lib/modal-stack";
 
 const PRIMARY = "#22D1C3";
 const ACCENT = "#FF2D78";
@@ -201,7 +202,37 @@ export function MapQuickAccess({
     return () => clearInterval(iv);
   }, [openRallyList]);
 
+  // Externes Öffnen der Rally-Liste (z. B. aus Crew-Verwaltung Tile "Angriffe")
+  useEffect(() => {
+    const onOpen = () => setOpenRallyList(true);
+    window.addEventListener("ma365:open-rally-list", onOpen);
+    return () => window.removeEventListener("ma365:open-rally-list", onOpen);
+  }, []);
+
+  // Pending Crew-Gifts — wird in den Crew-Badge gemerged (Quick-Bar-Mirror-Regel)
+  const [pendingGifts, setPendingGifts] = useState<number>(0);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await fetch("/api/crews/gifts/count", { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const j = await r.json() as { total?: number };
+        if (alive) setPendingGifts(j.total ?? 0);
+      } catch { /* noop */ }
+    };
+    void load();
+    const iv = setInterval(load, 20000);
+    return () => { alive = false; clearInterval(iv); };
+  }, []);
+
+  // Bei offenem FullscreenFrame (Crew/Inventar/Shop/etc.) komplett ausblenden,
+  // damit die Quick-Bar nicht durchs Modal-BG schimmert.
+  const hudHidden = useHudHidden();
   if (!enabled) return null;
+  // Wichtig: bei hudHidden (Crew/Base-Modal offen) NUR die Bar verstecken —
+  // das Rally-Popover muss weiter renderbar bleiben, damit das Angriffe-Tile
+  // innerhalb der Crew-Verwaltung den Rally-Stream rechts neben dem Chat öffnet.
 
   const rallyTotal = rallies.repeater.length + rallies.base.length + rallies.stronghold.length + rallies.mutant.length;
 
@@ -211,10 +242,11 @@ export function MapQuickAccess({
   // Shop ist NICHT mehr in der Quick-Access-Bar — er sitzt jetzt prominent
   // im oberen HUD (siehe karten-hud.tsx). Quick-Access bleibt für Gameplay-
   // nahe Aktionen (Base/Crew/Angriffe/Ranking/Inbox/Inventar).
+  // Angriffe sind aus der Quick-Bar entfernt — sie werden jetzt aus der
+  // Crew-Verwaltung (Tile "Angriffe") via Custom-Event geöffnet.
   const items: Item[] = [
     { key: "base",      slot: "quick_base",      fallback: "🏰", label: "Profilbild", size: ICON_SIZE.base,      offsetX: ICON_OFFSET_X.base,      badge: baseQueueReady, pendingRss: basePendingRss, onClick: onOpenProfile },
-    { key: "crew",      slot: "quick_crew",      fallback: "👥", label: "Crew",     size: ICON_SIZE.crew,      offsetX: ICON_OFFSET_X.crew,                             onClick: onOpenCrewModal },
-    { key: "rally",     slot: "quick_rally",     fallback: "⚔",  label: "Angriffe", size: ICON_SIZE.rally,     offsetX: ICON_OFFSET_X.rally,     badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
+    { key: "crew",      slot: "quick_crew",      fallback: "👥", label: "Crew",     size: ICON_SIZE.crew,      offsetX: ICON_OFFSET_X.crew,      badge: rallyTotal + pendingGifts, onClick: onOpenCrewModal },
     { key: "ranking",   slot: "quick_ranking",   fallback: "🏆", label: "Ranking",  size: ICON_SIZE.ranking,   offsetX: ICON_OFFSET_X.ranking,                          onClick: onOpenRanking },
     { key: "inbox",     slot: "quick_inbox",     fallback: "📬", label: "Inbox",    size: ICON_SIZE.inbox,     offsetX: ICON_OFFSET_X.inbox,     badge: inboxUnread,    onClick: onOpenInbox },
     { key: "inventory", slot: "quick_inventory", fallback: "🎒", label: "Inventar", size: ICON_SIZE.inventory, offsetX: ICON_OFFSET_X.inventory,                        onClick: onOpenInventory },
@@ -222,6 +254,8 @@ export function MapQuickAccess({
 
   return (
     <>
+      {!hudHidden && (
+      <>
       {/* Quickaccess-Bar: nur Icons. Bei collapsed komplett ausgeblendet.
           right-Offset 82px = ZoomCycle (56) + Gap (8) + Trigger (14) + Gap (4),
           damit die Icons direkt am Trigger anschließen ohne Padding. */}
@@ -316,20 +350,22 @@ export function MapQuickAccess({
           <ZoomCycleButton onClick={onZoomCycle} cycleIdx={zoomCycleIdx} />
         </div>
       )}
+      </>
+      )}
 
       {openRallyList && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
             position: "fixed",
-            // CoD-Style: breites Modal-artiges Panel statt schmaler Pille rechts.
-            // Bei Mobile passt es sich mit calc-Padding an, bei Desktop max 720px.
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "min(720px, calc(100vw - 24px))",
-            bottom: 110,
-            zIndex: 9002,
-            maxHeight: "70vh",
+            // Bei offenem Crew-Modal: deckungsgleich mit der rechten Content-Spalte
+            // (Botschaft-Editor). Chat-Reserve 340px + Grid-Gap 12px = left 352,
+            // pr-3 (12px) = right 12, FullscreenFrame-Header ~52px = top 60.
+            // Ohne Modal: zentriertes Panel rechts vom Chat-Widget.
+            ...(hudHidden
+              ? { left: 352, right: 12, top: 60, bottom: 12 }
+              : { left: "max(360px, calc(50vw - 360px))", right: 12, bottom: 110, maxHeight: "70vh" }),
+            zIndex: 9100,
             overflowY: "auto",
             background: "rgba(15,17,21,0.55)",
             border: "1px solid rgba(255,45,120,0.35)",

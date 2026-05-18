@@ -70,3 +70,36 @@ export function useFullscreenLayerOpen(): boolean {
   }, []);
   return depth > 0;
 }
+
+// ════════════════════════════════════════════════════════════════════
+// HUD-HIDE (separat von Fullscreen-Layer)
+//
+// Für Modals, die zwar den globalen Karten-HUD verstecken müssen
+// (Crew-Modal, Inventar, Shop, etc.) — aber den Chat-Hub SICHTBAR
+// lassen sollen, weil das Modal "um den Chat herum" gebaut ist.
+// KartenHud reagiert via useHudHidden() und entfernt sich.
+// ════════════════════════════════════════════════════════════════════
+
+let _hudHideDepth = 0;
+const _hudHideListeners = new Set<(d: number) => void>();
+
+export function pushHudHide(): void {
+  _hudHideDepth++;
+  _hudHideListeners.forEach((l) => l(_hudHideDepth));
+}
+
+export function popHudHide(): void {
+  _hudHideDepth = Math.max(0, _hudHideDepth - 1);
+  _hudHideListeners.forEach((l) => l(_hudHideDepth));
+}
+
+export function useHudHidden(): boolean {
+  const [depth, setDepth] = useState(0);
+  useEffect(() => {
+    setDepth(_hudHideDepth);
+    const sub = (d: number) => setDepth(d);
+    _hudHideListeners.add(sub);
+    return () => { _hudHideListeners.delete(sub); };
+  }, []);
+  return depth > 0;
+}

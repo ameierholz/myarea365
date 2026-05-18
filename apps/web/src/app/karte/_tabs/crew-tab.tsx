@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { getDateLocale } from "@/i18n/config";
 import { TabTech, TabBauwerke, TabKopfgelder, TabShop, type BuildingKind } from "@/components/crew-modal";
@@ -14,6 +14,7 @@ import { RunRouteModal } from "@/components/run-route-modal";
 import { CrewLiveHub } from "@/components/crew-live-hub";
 import { DemoBadge } from "@/components/demo-badge";
 import { useRankArt, RankBadge, rankIdByName } from "@/components/rank-badge";
+import { useBaseRingArt, UiIcon, useUiIconArt, useInventoryItemArt } from "@/components/resource-icon";
 import { appAlert, appConfirm } from "@/components/app-dialog";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -46,6 +47,7 @@ import {
   type CrewTypeId,
   type CrewPrivacy,
   type NearbyCrew,
+  type CrewMember,
 } from "@/lib/game-config";
 import {
   type Profile,
@@ -78,7 +80,7 @@ import {
 // ───────────────────────────────────────────────────────────────
 const CARD = "rgba(41, 51, 73, 0.55)";
 
-type CrewSubTab = "overview" | "feed" | "members" | "guardians" | "challenges" | "events" | "chat" | "tech" | "buildings" | "bounties" | "shop" | "settings";
+type CrewSubTab = "overview" | "feed" | "members" | "guardians" | "challenges" | "events" | "chat" | "tech" | "buildings" | "bounties" | "shop" | "settings" | "attacks" | "help" | "lager" | "territories" | "gifts";
 
 export function CrewTab({
   profile: p,
@@ -87,6 +89,7 @@ export function CrewTab({
   setProfile,
   onOpenRanking,
   onPlaceBuilding,
+  onClose,
 }: {
   profile: Profile | null;
   myCrew: Crew | null;
@@ -94,6 +97,8 @@ export function CrewTab({
   setProfile: (p: Profile) => void;
   onOpenRanking: () => void;
   onPlaceBuilding?: (kind: BuildingKind) => void;
+  /** Schließt das Crew-Modal — wird in den Hero-Header eingebaut wenn in einem Modal-Frame. */
+  onClose?: () => void;
 }) {
   const supabase = createClient();
   const tC = useTranslations("Crew");
@@ -178,7 +183,18 @@ export function CrewTab({
         setSubTab={setSubTab}
         onLeave={handleLeave}
         onPlaceBuilding={onPlaceBuilding}
+        onClose={onClose}
       />
+    );
+  }
+
+  // ═══ Profil hat current_crew_id, myCrew lädt noch → Loading statt Onboarding ═══
+  // Verhindert den Freelancer-Flash beim Öffnen des Crew-Modals.
+  if (p?.current_crew_id) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: "#8B8FA3", fontSize: 12 }}>
+        Lade Crew-Verwaltung…
+      </div>
     );
   }
 
@@ -1652,10 +1668,15 @@ function mottoForType(t: CrewTypeId, tMD: (key: string) => string): string {
 }
 
 /* ═══════════════════════════════════════════════════════
- * MY CREW VIEW — Dashboard + Tabs
+ * MY CREW VIEW — Crew-Hub im "Meine Base"-Stil
+ * Background-Image fülltt den ganzen Modal-Body; Hero-Info-Card
+ * + Feature-Button-Grid liegen als Overlays drauf. Klick auf eine
+ * Feature-Kachel öffnet das Sub-View (Mitglieder/Wächter/Bauwerke
+ * etc.) mit Back-Button. Walking-Ära-Stats (km/Liga/Saison) komplett
+ * raus — Crew ist ein RoK/CoD-System mit Ansehen/Bauen/Trupps.
  * ═══════════════════════════════════════════════════════ */
 function MyCrewView({
-  crew, profile, subTab, setSubTab, onLeave, onPlaceBuilding,
+  crew, profile, subTab, setSubTab, onLeave, onPlaceBuilding, onClose,
 }: {
   crew: Crew;
   profile: Profile | null;
@@ -1663,200 +1684,1719 @@ function MyCrewView({
   setSubTab: (t: CrewSubTab) => void;
   onLeave: () => void;
   onPlaceBuilding?: (kind: BuildingKind) => void;
+  onClose?: () => void;
 }) {
   const tC = useTranslations("Crew");
   const isAdmin = profile?.id === crew.owner_id;
-  const tier = leagueTierFor(DEMO_CREW_STATS.weekly_km);
-  const nextTier = nextLeagueTier(tier);
-  const tierProgress = nextTier
-    ? Math.min(1, (DEMO_CREW_STATS.weekly_km - tier.minWeeklyKm) / (nextTier.minWeeklyKm - tier.minWeeklyKm))
-    : 1;
+  // Background-Artwork (karte_crew_bg) wird vom äußeren FullscreenFrame geladen — hier nur Akzent.
+  const accent = crew.color;
+  const uiIconArt = useUiIconArt();
+
+  // ─── Crew-Stats (CoD/RoK-Konzept) ───
+  // Ansehen = Summe aller Mitglieder-Ansehen (keine Crew-Stufen, kein Vertrauen).
+  // Werte: aktuell aus dem crew-Objekt + DEMO-Set. Sobald die Crew-RPCs live
+  // sind (ansehen_total/repeater_count/cvc_wins), springen die Werte ein.
+  const ansehen = (crew as unknown as { ansehen_total?: number }).ansehen_total ?? 0;
+  const memberCount = DEMO_CREW_MEMBERS.length;
+  const territoryCount = DEMO_CREW_STATS.total_territories ?? 0;
+  const cvcWins = (crew as unknown as { cvc_wins?: number }).cvc_wins ?? 0;
+  const repeaterCount = (crew as unknown as { repeater_count?: number }).repeater_count ?? 0;
+  const crewPower = ansehen + memberCount * 1000 + territoryCount * 500;
+
+  // Pending-Counts für Tile-Badges (Geschenke: häufig+selten). Wird per
+  // /api/crews/gifts/count alle 20s aktualisiert.
+  const [giftCount, setGiftCount] = useState<{ common: number; rare: number; total: number }>({ common: 0, rare: 0, total: 0 });
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await fetch("/api/crews/gifts/count", { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const j = await r.json() as { common?: number; rare?: number; total?: number };
+        if (alive) setGiftCount({ common: j.common ?? 0, rare: j.rare ?? 0, total: j.total ?? 0 });
+      } catch { /* noop */ }
+    };
+    void load();
+    const iv = setInterval(load, 20000);
+    return () => { alive = false; clearInterval(iv); };
+  }, []);
+
+  // Top-Tabs sind die 3 Main-Views (analog RoK-Pattern, aber neutralere Namen
+  // damit man nicht direkt an RoK denkt):
+  //   "overview"  → "Lage"        (Dashboard mit Tile-Grid)
+  //   "members"   → "Mitglieder"  (Mitglieder-Liste, Officer-Roster, etc.)
+  //   "settings"  → "Hausregeln"  (Crew-Einstellungen)
+  // Tile-Klick öffnet eine Feature-Detail-View (inFeature = true) — die hat
+  // einen Back-Button und blendet die Top-Tabs solange aus.
+  const isMainView = subTab === "overview" || subTab === "members" || subTab === "settings";
+  const inFeature = !isMainView;
+
+  // X-Close-Button oben rechts (FullscreenFrame) wirkt dynamisch als Back-Knopf:
+  // Wenn wir in einer Feature-Detail-View sind, schließen wir nur die Detail-
+  // View (zurück zu "overview"); der Klick auf X schließt nicht das Crew-Modal.
+  // Der Frame dispatchet ein cancelable Event vor dem onClose-Call.
+  useEffect(() => {
+    const onIntent = (e: Event) => {
+      if (inFeature) {
+        e.preventDefault();
+        setSubTab("overview");
+      }
+    };
+    window.addEventListener("ma365:crew-modal-close-intent", onIntent);
+    return () => window.removeEventListener("ma365:crew-modal-close-intent", onIntent);
+  }, [inFeature, setSubTab]);
+
+  type Feature = { id: CrewSubTab; label: string; icon: string; slot?: string; badge?: number };
+  // 7 Crew-Funktionen im Tile-Grid. NICHT enthalten:
+  //   - Bauwerke + Events (gibt es nicht als Crew-Feature)
+  //   - Wächter, Crew-Chat, Lagerhaus, Kopfgelder, Challenges, Crew-Kriege
+  //   - Mitglieder + Einstellungen (Top-Tabs)
+  // `slot` referenziert cosmetic_artwork.kind='ui_icon' → Admin-Artwork
+  // überschreibt den Emoji-Fallback (siehe artwork-prompts-admin.ts).
+  const features: Feature[] = [
+    { id: "tech",        label: "Forschung",   icon: "🧪", slot: "crew_tile_forschung" },
+    { id: "lager",       label: "Lager",       icon: "📦", slot: "crew_tile_lager" },
+    { id: "shop",        label: "Shop",        icon: "🛒", slot: "crew_tile_shop" },
+    { id: "attacks",     label: "Angriffe",    icon: "⚔",  slot: "crew_tile_angriffe" },
+    { id: "territories", label: "Gebiete",     icon: "🗺", slot: "crew_tile_gebiete" },
+    { id: "help",        label: "Hilfe",       icon: "🤝", slot: "crew_tile_hilfe" },
+    { id: "gifts",       label: "Crew-Beute",  icon: "🎁", slot: "crew_tile_beute", badge: giftCount.total },
+  ];
+
+  type TopTab = { id: "overview" | "members" | "settings"; label: string; icon: string; slot: string };
+  const topTabs: TopTab[] = [
+    { id: "overview", label: "Übersicht",  icon: "📋", slot: "crew_tab_uebersicht" },
+    { id: "members",  label: "Mitglieder", icon: "👥", slot: "crew_tab_mitglieder" },
+    { id: "settings", label: "Hausregeln", icon: "⚙",  slot: "crew_tab_hausregeln" },
+  ];
+
+  // Officer-Rollen (CoD-Pattern: King/Diplomacy/Warmaster/RoW/Territory).
+  // Aktuell Placeholder — sobald Crew-Offizier-RPCs live sind, ziehen wir
+  // die Inhaber aus der DB. "::FREI::" für unbesetzte Slots.
+  const officers: { role: string; holder: string }[] = [
+    { role: "Don",                holder: (crew as unknown as { leader_name?: string }).leader_name ?? "—" },
+    { role: "Innere Angelegenheiten", holder: "::FREI::" },
+    { role: "Diplomatie",         holder: "::FREI::" },
+    { role: "Kriegsmeister",      holder: "::FREI::" },
+    { role: "Event-Management",   holder: "::FREI::" },
+    { role: "Turf-Management",    holder: "::FREI::" },
+  ];
+
+  // Per-Tile-Akzentfarbe (für transparente Tiles mit feiner Akzent-Linie).
+  // Jede Funktion bekommt einen eigenen Hauch — kein Neon, nur als feiner Indikator.
+  const TILE_ACCENT: Record<string, string> = {
+    buildings:   "#FFD700",
+    tech:        "#A855F7",
+    lager:       "#FF6B4A",
+    shop:        "#FFB13A",
+    attacks:     "#FF2D78",
+    territories: "#A855F7",
+    help:        "#22D1C3",
+    gifts:       "#FF6B9D",
+    events:      "#22D1C3",
+  };
+
+  // Chamfered Octagon-Clip-Path — sci-fi/blueprint Look, klar anders als Base-Rounded.
+  const TILE_CLIP = "polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px)";
+
+  // Chat-Reservierung: Chat-Widget sitzt bottom-left fixed.
+  // Wenn collapsed ~340×60, expanded bis ~340×300. Wir reservieren konservativ
+  // die KOMPLETTE linke Spalte (340 breit, volle Höhe) — dort wird KEIN Modal-Inhalt
+  // gerendert, weder Banner noch Tile. Banner spannt nur die rechte Spalte.
+  const CHAT_RESERVE_WIDTH = 340;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", paddingBottom: 40 }}>
-      {/* Crew-Cover mit dynamischem Gradient */}
-      <div style={{
-        height: 120, position: "relative",
-        background: `linear-gradient(135deg, ${crew.color}cc 0%, ${crew.color}44 50%, ${BG_DEEP} 100%)`,
-        borderBottom: `1px solid ${BORDER}`,
-      }}>
-        {/* Radial-Muster für Textur */}
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `radial-gradient(circle at 20% 30%, ${crew.color}44 0%, transparent 40%), radial-gradient(circle at 80% 70%, ${crew.color}33 0%, transparent 50%)`,
-        }} />
-        {/* Top-right actions */}
-        {isAdmin && (
-          <button
-            onClick={() => setSubTab("settings")}
-            style={{
-              position: "absolute", top: 12, right: 12,
-              background: "rgba(0,0,0,0.4)", border: `1px solid ${BORDER}`,
-              borderRadius: 10, padding: "6px 10px", color: "#FFF",
-              fontSize: 11, fontWeight: 800, cursor: "pointer",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            {tC("myCoverChange")}
-          </button>
-        )}
-      </div>
+    <div className="flex flex-col h-full relative overflow-hidden" style={{ color: "#F0F0F0" }}>
+      {!inFeature && (
+        <div
+          className="grid h-full gap-3"
+          style={{
+            gridTemplateColumns: `${CHAT_RESERVE_WIDTH}px 1fr`,
+            gridTemplateRows: "1fr",
+          }}
+        >
+          {/* LINKE SPALTE — Banner oben, Top-Tabs darunter (über dem Chat),
+              dann Chat-Zone. */}
+          <div className="flex flex-col min-w-0">
+            <CrewBanner
+              crew={crew}
+              isAdmin={isAdmin}
+              ansehen={ansehen}
+              memberCount={memberCount}
+              territoryCount={territoryCount}
+              leaderName={(crew as unknown as { leader_name?: string }).leader_name ?? "—"}
+              accent={accent}
+            />
 
-      {/* Crew-Header */}
-      <div style={{
-        background: CARD, padding: "0 20px 18px",
-        borderBottom: `1px solid ${BORDER}`,
-      }}>
-       <div style={{ maxWidth: 960, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, marginTop: -32 }}>
-          {/* Wappen */}
-          <div style={{
-            width: 72, height: 72, borderRadius: 18,
-            background: `linear-gradient(135deg, ${crew.color} 0%, ${crew.color}aa 100%)`,
-            color: BG_DEEP,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 32, fontWeight: 900,
-            boxShadow: `0 4px 18px ${crew.color}88, 0 0 0 3px ${BG_DEEP}`,
-            position: "relative",
-          }}>
-            {crew.name.charAt(0).toUpperCase()}
-            <span style={{
-              position: "absolute", bottom: -4, right: -4,
-              background: BG_DEEP, borderRadius: 10, padding: "2px 4px",
-              fontSize: 14, border: `1px solid ${crew.color}`,
-            }}>🎉</span>
+            {/* ═══ TOP-TABS ═══ — Parallelogramm-Form via clip-path (KEIN skew-Transform
+                damit der Text gestochen scharf rendert, Sub-pixel-Antialiasing erhalten). */}
+            <div className="shrink-0 mt-2 flex items-stretch gap-1 pr-2">
+              {topTabs.map((t) => {
+                const active = subTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setSubTab(t.id)}
+                    className="relative flex items-center justify-center transition flex-1"
+                    style={{
+                      // Kein clip-path/Filter auf dem Button — sonst greyscale-AA → unscharf.
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#FFF",
+                      height: 44,
+                      padding: 0,
+                    }}
+                  >
+                    {/* Slant-BG als separater Layer; Text bleibt un-geclippt scharf. */}
+                    <span
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        clipPath: "polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%)",
+                        background: active
+                          ? "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(10,14,22,0.80) 100%)"
+                          : "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(10,14,22,0.78) 100%)",
+                        boxShadow: active
+                          ? `inset 0 0 0 1px rgba(255,255,255,0.18), inset 0 -2px 0 0 ${accent}aa`
+                          : "inset 0 0 0 1px rgba(255,255,255,0.08)",
+                        pointerEvents: "none",
+                      }}
+                    />
+                    <span className="relative flex items-center gap-2 px-3" style={{ zIndex: 1 }}>
+                      <span
+                        style={{
+                          fontSize: 17,
+                          lineHeight: 1,
+                          filter: active ? "none" : "grayscale(40%) brightness(0.8)",
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <UiIcon slot={t.slot} fallback={t.icon} art={uiIconArt} size={20} />
+                      </span>
+                      <span
+                        className="font-black uppercase truncate"
+                        style={{
+                          color: active ? "#FFF" : "rgba(205,212,227,0.78)",
+                          fontFamily: "var(--font-display-stack)",
+                          fontSize: 13,
+                          letterSpacing: 1.1,
+                          textShadow: active ? "0 1px 0 rgba(0,0,0,0.55)" : "0 1px 0 rgba(0,0,0,0.4)",
+                          WebkitFontSmoothing: "antialiased",
+                          MozOsxFontSmoothing: "grayscale",
+                        }}
+                      >
+                        {t.label}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Rest der linken Spalte: leer. Chat-Widget liegt drüber. */}
+            <div className="flex-1" aria-hidden style={{ pointerEvents: "none" }} />
           </div>
-          <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <div style={{ color: "#FFF", fontSize: 22, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {crew.name}
+
+          {/* RECHTE SPALTE — Content abhängig vom aktiven Top-Tab */}
+          <div className="flex flex-col h-full min-w-0 overflow-hidden pr-3">
+            {/* ═══ MAIN-CONTENT ═══ — Tile-Grid / Mitglieder / Hausregeln */}
+            {subTab === "overview" && (
+              <div className="flex-1 min-h-0 flex flex-col gap-2">
+                {/* Crew-Botschaft — größerer editierbarer Bereich */}
+                <CrewMessageEditor crewId={crew.id} accent={accent} canEdit={isAdmin} />
+                {/* Tile-Grid: 3×3, kompakter — Tiles nicht über volle Breite,
+                    sondern auf max 360px begrenzt damit Icons enger zusammenrücken. */}
+                <div
+                  className="flex-1 min-h-0 grid mx-auto"
+                  style={{
+                    gridTemplateColumns: "repeat(4, minmax(100px, 130px))",
+                    gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+                    gap: 0,
+                    width: "100%",
+                    maxWidth: 520,
+                  }}
+                >
+                  {features.map((f) => (
+                    <TileButton
+                      key={f.id}
+                      onClick={() => {
+                        // Angriffe öffnet die globale Rally-Liste über Custom-Event,
+                        // OHNE das Crew-Modal zu schließen. Das Popover positioniert
+                        // sich rechts vom Chat-Bereich (left:360px) und liegt z-9100
+                        // über dem Modal-Content.
+                        if (f.id === "attacks") {
+                          window.dispatchEvent(new CustomEvent("ma365:open-rally-list"));
+                          return;
+                        }
+                        setSubTab(f.id);
+                      }}
+                      icon={f.icon}
+                      slot={f.slot}
+                      label={f.label}
+                      accent={TILE_ACCENT[f.id] ?? accent}
+                      clip={TILE_CLIP}
+                      badge={f.badge}
+                    />
+                  ))}
+                </div>
               </div>
-              <LeagueBadge weeklyKm={DEMO_CREW_STATS.weekly_km} size="md" />
-              <LastSeasonBadge tierId={DEMO_LAST_SEASON_TIER_ID} />
-            </div>
-            <div style={{ color: MUTED, fontSize: 12, marginTop: 3 }}>
-              {tC("myMembersZipSeason", { members: DEMO_CREW_MEMBERS.length, zip: crew.zip ?? "", season: currentSeason().label, daysLeft: currentSeason().daysLeft })}
-            </div>
+            )}
+
+            {subTab === "members" && (
+              <div
+                className="flex-1 min-h-0 rounded-xl overflow-y-auto pt-7 px-3 pb-3"
+                style={{
+                  background: "rgba(15,17,21,0.55)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                }}
+              >
+                <CrewMembers crew={crew} profile={profile} isAdmin={isAdmin} />
+              </div>
+            )}
+
+            {subTab === "settings" && (
+              <div
+                className="flex-1 min-h-0 rounded-xl overflow-y-auto p-3"
+                style={{
+                  background: "rgba(15,17,21,0.55)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                }}
+              >
+                <CrewSettings crew={crew} isAdmin={isAdmin} />
+              </div>
+            )}
           </div>
-          {isAdmin && <span style={{
-            fontSize: 10, fontWeight: 900, background: `${PRIMARY}22`,
-            color: PRIMARY, padding: "3px 8px", borderRadius: 10,
-            border: `1px solid ${PRIMARY}55`, alignSelf: "flex-start",
-          }}>{tC("myAdminBadge")}</span>}
         </div>
+      )}
 
-        {/* Tier-Progress */}
-        {nextTier && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: MUTED, marginBottom: 3 }}>
-              <span style={{ color: tier.color, fontWeight: 800 }}>{tier.icon} {tier.name}</span>
-              <span>{tC("myTierProgress", { km: (nextTier.minWeeklyKm - DEMO_CREW_STATS.weekly_km).toFixed(0), nextIcon: nextTier.icon, nextName: nextTier.name })}</span>
-            </div>
-            <div style={{ height: 6, background: "rgba(0,0,0,0.35)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{
-                height: "100%", width: `${tierProgress * 100}%`,
-                background: `linear-gradient(90deg, ${tier.color}, ${nextTier.color})`,
-                boxShadow: `0 0 8px ${tier.color}88`,
-                transition: "width 1s cubic-bezier(0.2, 0.8, 0.2, 1)",
-              }} />
-            </div>
-          </div>
-        )}
-
-        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-          <CrewStat label={tC("myStatWeekKm")}      value={`${DEMO_CREW_STATS.weekly_km}`} accent={crew.color} />
-          <CrewStat label={tC("myStatTerritories")} value={`${DEMO_CREW_STATS.total_territories}`} accent="#FFD700" />
-          <CrewStat label={tC("myStatRankCity")}    value={`#${DEMO_CREW_STATS.weekly_rank_city}`} accent={PRIMARY} />
-        </div>
-       </div>
-      </div>
-
-      {/* Sub-Tabs */}
-      <div style={{
-        display: "flex", gap: 4, padding: "12px 12px 0", overflowX: "auto",
-        borderBottom: `1px solid ${BORDER}`, scrollbarWidth: "none",
-        maxWidth: 960, margin: "0 auto", width: "100%",
-      }}>
-        {([
-          { id: "overview",   label: tC("myTabOverview"),   icon: "🏠" },
-          { id: "feed",       label: tC("myTabFeed"),       icon: "📰" },
-          { id: "members",    label: tC("myTabMembers"),    icon: "👥" },
-          { id: "guardians",  label: tC("myTabGuardians"),  icon: "🛡️" },
-          { id: "challenges", label: tC("myTabChallenges"), icon: "🏆" },
-          { id: "events",     label: tC("myTabEvents"),     icon: "📅" },
-          { id: "chat",       label: tC("myTabChat"),       icon: "💬" },
-          { id: "tech",       label: "Forschung",           icon: "🧪" },
-          { id: "buildings",  label: "Bauwerke",            icon: "🏗️" },
-          { id: "bounties",   label: "Kopfgelder",          icon: "🎯" },
-          { id: "shop",       label: "Lagerhaus",           icon: "📦" },
-          { id: "settings",   label: tC("myTabSettings"),   icon: "⚙️" },
-        ] as { id: CrewSubTab; label: string; icon: string }[]).map((t) => {
-          const active = subTab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setSubTab(t.id)}
-              style={{
-                padding: "10px 14px", borderRadius: "12px 12px 0 0",
-                background: active ? CARD : "transparent",
-                border: "none", borderBottom: active ? `2px solid ${crew.color}` : "2px solid transparent",
-                color: active ? "#FFF" : MUTED,
-                fontSize: 12, fontWeight: 800, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
-              }}
-            >
-              <span>{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content */}
-      <div style={{ padding: "18px 20px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
-        {/* Live-Zentrale: echte Daten aus DB (Members, Duelle, Challenges, Events, Chat, Feed, Shop).
-            Nur auf der Übersicht — sonst dupliziert sich die Pill-Row mit den Haupt-Tabs. */}
-        {subTab === "overview" && profile?.id && (
-          <CrewLiveHub
-            crew={{ id: crew.id, name: crew.name, color: crew.color, owner_id: crew.owner_id, invite_code: crew.invite_code ?? null }}
-            userId={profile.id}
-            isAdmin={isAdmin}
-          />
-        )}
-
-        {subTab === "overview" && (
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent("ma365:open-war-modal"))}
+      {/* ═══ FEATURE-DETAIL: Sub-View. KEIN Back-Button — X-Schließen oben
+          rechts vom FullscreenFrame fungiert dynamisch als Back-Knopf wenn
+          inFeature (siehe Close-Intent-Event-Listener weiter oben). ═══ */}
+      {inFeature && (
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div
+            className={`flex-1 min-h-0 rounded-xl p-3 ${subTab === "gifts" ? "overflow-hidden" : "overflow-y-auto"}`}
             style={{
-              marginBottom: 12, width: "100%", padding: "12px 14px", borderRadius: 12,
-              background: "linear-gradient(135deg, rgba(255,45,120,0.18), rgba(255,107,74,0.18))",
-              border: "1px solid rgba(255,45,120,0.35)",
-              color: "#FF2D78",
-              fontSize: 13, fontWeight: 900, letterSpacing: 0.6, textTransform: "uppercase",
-              fontFamily: "var(--font-display-stack)",
-              cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              background: "rgba(15,17,21,0.78)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
             }}
           >
-            <span style={{ fontSize: 16 }}>⚔️</span>
-            Crew-Kriege verwalten
-          </button>
+            {subTab === "feed"        && <CrewFeed color={crew.color} />}
+            {subTab === "guardians"   && <CrewGuardians crewId={crew.id} crewColor={crew.color} />}
+            {subTab === "challenges"  && <CrewChallenges color={crew.color} />}
+            {subTab === "events"      && <CrewEvents color={crew.color} />}
+            {subTab === "chat"        && <CrewChat color={crew.color} meUsername={profile?.username || "me"} />}
+            {subTab === "tech"        && <TabTech />}
+            {subTab === "buildings"   && <TabBauwerke onPlaceBuilding={onPlaceBuilding} />}
+            {subTab === "bounties"    && <TabKopfgelder crewId={crew.id} />}
+            {subTab === "shop"        && <TabShop />}
+            {subTab === "attacks"     && <ComingSoonStub title="Angriffe" hint="Crew-Angriffs-Logs werden hier bald angezeigt." />}
+            {subTab === "help"        && <ComingSoonStub title="Hilfe" hint="Bau-/Forschungs-Hilfen anderer Crew-Mitglieder werden hier sichtbar." />}
+            {subTab === "lager"       && <ComingSoonStub title="Lager" hint="Crew-Lager mit gemeinsamen Resourcen kommt bald." />}
+            {subTab === "territories" && <ComingSoonStub title="Gebiete" hint="Eroberte Crew-Gebiete und Repeater-Statusfunktionen folgen." />}
+            {subTab === "gifts"       && <CrewGiftsView accent={accent} />}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Crew-Banner mit Wappen (Image-Upload für Admins) + 5 Stats.
+   Schrift bewusst ohne backdrop-blur und mit 0-Blur-Shadow → keine "verschwommene" Optik. */
+function CrewBanner({
+  crew, isAdmin, ansehen, memberCount, territoryCount, leaderName, accent,
+}: {
+  crew: Crew;
+  isAdmin: boolean;
+  ansehen: number;
+  memberCount: number;
+  territoryCount: number;
+  leaderName: string;
+  accent: string;
+}) {
+  const logoUrl = (crew as unknown as { custom_logo_url?: string | null }).custom_logo_url ?? null;
+  const [currentLogo, setCurrentLogo] = useState<string | null>(logoUrl);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    try {
+      // Step 1: Sign upload URL
+      const signRes = await fetch("/api/crew/media", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "sign", kind: "logo", crew_id: crew.id, file_name: file.name, content_type: file.type }),
+      });
+      if (!signRes.ok) throw new Error("Sign fehlgeschlagen");
+      const { upload_url, path } = await signRes.json() as { upload_url: string; path: string };
+
+      // Step 2: PUT direkt zur Signed-URL
+      const putRes = await fetch(upload_url, { method: "PUT", body: file, headers: { "content-type": file.type } });
+      if (!putRes.ok) throw new Error("Upload fehlgeschlagen");
+
+      // Step 3: Finalize → DB update + Public-URL zurück
+      const finRes = await fetch("/api/crew/media", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "finalize", kind: "logo", crew_id: crew.id, path }),
+      });
+      if (!finRes.ok) throw new Error("Finalize fehlgeschlagen");
+      const fin = await finRes.json() as { ok: boolean; url: string };
+      setCurrentLogo(fin.url);
+    } catch (e) {
+      console.error(e);
+      alert(`Logo-Upload fehlgeschlagen: ${e instanceof Error ? e.message : "unbekannt"}`);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div
+      className="shrink-0 p-2.5 flex items-center gap-2.5"
+      style={{
+        // Banner und Chat starten beide bei viewport-x=0 (FullscreenFrame
+        // läuft mit flushContent ohne Padding). Volle Chat-Breite.
+        width: "min(340px, 60vw)",
+        // Links flach (am Modal-Rand) — nur rechts abgerundet.
+        borderRadius: "0 12px 12px 0",
+        background: "rgba(15,17,21,0.65)",
+        border: `1px solid ${accent}44`,
+        borderLeft: "none",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+      }}
+    >
+      {/* Crew-Wappen — Image-Upload für Admin, sonst Buchstabe */}
+      <button
+        type="button"
+        disabled={!isAdmin || uploading}
+        onClick={() => fileRef.current?.click()}
+        className="shrink-0 relative group"
+        style={{
+          width: 64, height: 64,
+          borderRadius: "50%",
+          border: `2px solid ${accent}`,
+          background: currentLogo ? "transparent" : `linear-gradient(160deg, ${accent}, ${accent}aa)`,
+          overflow: "hidden",
+          cursor: isAdmin ? "pointer" : "default",
+          padding: 0,
+        }}
+        title={isAdmin ? "Wappen hochladen" : crew.name}
+      >
+        {currentLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={currentLogo} alt="Crew-Wappen" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span
+            className="flex items-center justify-center w-full h-full"
+            style={{
+              color: BG_DEEP,
+              fontSize: 30, fontWeight: 900,
+              fontFamily: "var(--font-display-stack)",
+            }}
+          >
+            {crew.name.charAt(0).toUpperCase()}
+          </span>
         )}
-        {subTab === "overview"   && <CrewOverview crew={crew} isAdmin={isAdmin} onLeave={onLeave} />}
-        {subTab === "feed"       && <CrewFeed color={crew.color} />}
-        {subTab === "members"    && <CrewMembers color={crew.color} isAdmin={isAdmin} />}
-        {subTab === "guardians"  && <CrewGuardians crewId={crew.id} crewColor={crew.color} />}
-        {subTab === "challenges" && <CrewChallenges color={crew.color} />}
-        {subTab === "events"     && <CrewEvents color={crew.color} />}
-        {subTab === "chat"       && <CrewChat color={crew.color} meUsername={profile?.username || "me"} />}
-        {subTab === "tech"       && <TabTech />}
-        {subTab === "buildings"  && <TabBauwerke onPlaceBuilding={onPlaceBuilding} />}
-        {subTab === "bounties"   && <TabKopfgelder crewId={crew.id} />}
-        {subTab === "shop"       && <TabShop />}
-        {subTab === "settings"   && <CrewSettings crew={crew} isAdmin={isAdmin} />}
+        {isAdmin && (
+          <span
+            className="absolute inset-0 flex items-center justify-center text-white text-[20px] transition opacity-0 group-hover:opacity-100"
+            style={{ background: "rgba(0,0,0,0.6)" }}
+          >
+            {uploading ? "…" : "📷"}
+          </span>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleFile(f);
+            if (fileRef.current) fileRef.current.value = "";
+          }}
+        />
+      </button>
+
+      {/* Identity + Stats */}
+      <div className="flex-1 min-w-0">
+        {/* Name + Tag — items-center auf einer Box von gleicher Höhe.
+            Beide Spans bekommen exakt dieselbe Höhe (cap-Höhe des Display-Fonts ≈ 14px
+            bei 16px font-size), dann zentrieren sie visuell sauber zueinander. */}
+        <div className="flex items-center gap-2 min-w-0" style={{ height: 18 }}>
+          <span
+            className="text-[16px] font-black truncate inline-flex items-center"
+            style={{
+              color: "#FFF",
+              fontFamily: "var(--font-display-stack)",
+              letterSpacing: 0.3,
+              lineHeight: 1,
+              height: "100%",
+            }}
+          >
+            {crew.name}
+          </span>
+          <span
+            className="shrink-0 rounded text-[10px] font-black inline-flex items-center"
+            style={{
+              color: accent,
+              background: "rgba(0,0,0,0.4)",
+              border: `1px solid ${accent}88`,
+              letterSpacing: 0.6,
+              padding: "0 6px",
+              height: "100%",
+              lineHeight: 1,
+              transform: "translateY(-2px)",
+            }}
+          >
+            [{(crew as unknown as { tag?: string }).tag ?? crew.name.slice(0, 4).toUpperCase()}]
+          </span>
+        </div>
+
+        {/* Ansehen prominent */}
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[10.5px] font-black uppercase tracking-wider" style={{ color: "#FFD700" }}>⚜ Ansehen</span>
+          <span className="text-[17px] font-black tabular-nums" style={{ color: "#FFD700", fontFamily: "var(--font-display-stack)", letterSpacing: -0.3, lineHeight: 1 }}>
+            {ansehen.toLocaleString("de-DE")}
+          </span>
+        </div>
+
+        {/* Anführer — eigene Zeile, full-width (Name kann lang sein) */}
+        <div className="mt-1">
+          <BannerStat label="Anführer" value={leaderName} />
+        </div>
+
+        {/* Heimat + Gebiete nebeneinander */}
+        <div className="grid grid-cols-2 gap-x-3 mt-0.5">
+          <BannerStat label="Heimat"  value={cityNameFromZip(crew.zip)} />
+          <BannerStat label="Gebiete" value={territoryCount.toLocaleString("de-DE")} />
+        </div>
+
+        {/* Mitglieder + Geschenkestufe darunter */}
+        <div className="grid grid-cols-2 gap-x-3 mt-0.5">
+          <BannerStat label="Mitglieder"    value={`${memberCount}/50`} />
+          <BannerStat label="Geschenkestufe" value={String((crew as unknown as { gift_tier?: number }).gift_tier ?? 1)} />
+        </div>
       </div>
     </div>
   );
+}
+
+/* Crew-Botschaft — Boss kann formatieren (Fett, Kursiv, Größe, Farbe).
+   Speichert in localStorage (key: crewMessage:{crewId}) — Backend folgt später.
+   Members sehen den Text read-only. */
+function CrewMessageEditor({ crewId, accent, canEdit }: { crewId: string; accent: string; canEdit: boolean }) {
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const storageKey = `ma365:crewMessage:${crewId}`;
+  const [editing, setEditing] = useState(false);
+  const [html, setHtml] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(storageKey) ?? "";
+  });
+  const [translated, setTranslated] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [trErr, setTrErr] = useState(false);
+
+  // Plain-Text aus dem aktuellen HTML (für Übersetzungs-API)
+  const plainText = useMemo(() => {
+    if (typeof window === "undefined" || !html) return "";
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return (tmp.textContent ?? "").trim();
+  }, [html]);
+
+  async function translate() {
+    if (translating) return;
+    // Toggle: wenn schon übersetzt, zurück zum Original
+    if (translated) { setTranslated(null); return; }
+    if (plainText.length < 2) return;
+    setTranslating(true); setTrErr(false);
+    const target = typeof navigator !== "undefined" ? navigator.language.slice(0, 2) : "de";
+    try {
+      const r = await fetch("/api/chat/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: plainText, target }),
+      });
+      if (!r.ok) { setTrErr(true); return; }
+      const j = await r.json() as { text?: string };
+      if (j.text && j.text.trim() !== plainText) setTranslated(j.text);
+      else setTranslated(plainText);
+    } catch { setTrErr(true); } finally { setTranslating(false); }
+  }
+
+  function exec(cmd: string, value?: string) {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    document.execCommand(cmd, false, value);
+  }
+
+  function save() {
+    const next = editorRef.current?.innerHTML ?? "";
+    setHtml(next);
+    localStorage.setItem(storageKey, next);
+    setEditing(false);
+  }
+
+  function cancel() {
+    if (editorRef.current) editorRef.current.innerHTML = html;
+    setEditing(false);
+  }
+
+  return (
+    <div
+      className="shrink-0 rounded-xl p-2"
+      style={{
+        background: "rgba(15,17,21,0.55)",
+        border: `1px solid ${accent}33`,
+      }}
+    >
+      {/* Toolbar — nur sichtbar im Edit-Mode */}
+      {editing && (
+        <div className="flex items-center gap-1 mb-1.5 flex-wrap">
+          <ToolbarBtn label="B" onClick={() => exec("bold")} bold />
+          <ToolbarBtn label="I" onClick={() => exec("italic")} italic />
+          <ToolbarBtn label="U" onClick={() => exec("underline")} underline />
+          <select
+            onChange={(e) => exec("fontSize", e.target.value)}
+            defaultValue=""
+            className="text-[10px] font-black bg-black/40 text-white border border-white/20 rounded px-1 py-0.5"
+          >
+            <option value="" disabled>Größe</option>
+            <option value="2">Klein</option>
+            <option value="3">Normal</option>
+            <option value="5">Groß</option>
+            <option value="6">XL</option>
+          </select>
+          <input
+            type="color"
+            onChange={(e) => exec("foreColor", e.target.value)}
+            defaultValue={accent}
+            className="w-6 h-6 rounded border border-white/20 bg-transparent cursor-pointer"
+            title="Textfarbe"
+          />
+          <div className="flex-1" />
+          <button
+            onClick={save}
+            className="px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-wider"
+            style={{ background: accent, color: BG_DEEP }}
+          >Speichern</button>
+          <button
+            onClick={cancel}
+            className="px-2 py-0.5 text-[10px] font-black text-white rounded uppercase tracking-wider"
+            style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+          >Abbruch</button>
+        </div>
+      )}
+
+      {/* Content-Area — zeigt entweder Original (HTML) ODER Übersetzung (plain).
+          Beim Editieren immer Original. Sobald Übersetzung aktiv ist, wird die
+          Box mit Accent-Border markiert damit man sieht "das ist gerade übersetzt". */}
+      <div
+        ref={editorRef}
+        contentEditable={editing}
+        suppressContentEditableWarning
+        className="text-[12px] text-white outline-none overflow-y-auto"
+        style={{
+          lineHeight: 1.5,
+          minHeight: 140,
+          maxHeight: 200,
+          padding: "4px 2px",
+          ...(translated && !editing ? {
+            background: `${accent}11`,
+            border: `1px dashed ${accent}66`,
+            borderRadius: 6,
+          } : {}),
+        }}
+        {...(translated && !editing
+          ? { children: translated }
+          : { dangerouslySetInnerHTML: { __html: html || (canEdit ? `<span style="color:#8B8FA3;font-style:italic">Klicke auf Bearbeiten um eine Botschaft an die Crew zu schreiben…</span>` : `<span style="color:#8B8FA3;font-style:italic">Keine Botschaft vom Crew-Anführer.</span>`) } })}
+      />
+
+      {/* Action-Row: Übersetzen (für alle) + Bearbeiten (nur Boss) */}
+      {!editing && (
+        <div className="flex justify-end items-center gap-1 mt-1">
+          <button
+            onClick={translate}
+            disabled={translating || (!translated && plainText.length < 2)}
+            title={
+              plainText.length < 2 ? "Keine Botschaft zum Übersetzen"
+              : translated ? "Original anzeigen"
+              : trErr ? "Fehler — nochmal" : "Übersetzen"
+            }
+            className="text-[11px] px-2 py-0.5 rounded inline-flex items-center justify-center transition"
+            style={{
+              color: translated ? accent : "#C8CDD9",
+              background: "rgba(0,0,0,0.4)",
+              border: `1px solid ${translated ? accent : "rgba(255,255,255,0.18)"}`,
+              opacity: plainText.length < 2 ? 0.4 : (translated ? 1 : 0.85),
+              lineHeight: 1,
+              cursor: plainText.length < 2 ? "not-allowed" : "pointer",
+            }}
+          >
+            {translating ? "⏳" : translated ? "✓" : "🌐"}
+          </button>
+          {canEdit && (
+          <button
+            onClick={() => { setEditing(true); setTimeout(() => editorRef.current?.focus(), 0); }}
+            className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider"
+            style={{ color: accent, background: "rgba(0,0,0,0.4)", border: `1px solid ${accent}66` }}
+          >
+            ✎ Bearbeiten
+          </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ToolbarBtn({ label, onClick, bold, italic, underline }: { label: string; onClick: () => void; bold?: boolean; italic?: boolean; underline?: boolean }) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      className="w-6 h-6 rounded inline-flex items-center justify-center text-[12px] text-white"
+      style={{
+        background: "rgba(255,255,255,0.08)",
+        border: "1px solid rgba(255,255,255,0.18)",
+        fontWeight: bold ? 900 : 700,
+        fontStyle: italic ? "italic" : "normal",
+        textDecoration: underline ? "underline" : "none",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function BannerStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5 min-w-0 leading-tight">
+      <span className="text-[#9ba4ba] uppercase tracking-wider font-black shrink-0 text-[10px]">{label}</span>
+      <span className="text-white font-bold truncate tabular-nums text-[11.5px]">{value}</span>
+    </div>
+  );
+}
+
+/* Platzhalter für noch nicht implementierte Crew-Features (Angriffe, Hilfe,
+   Lager, Gebiete). Zeigt sauber an, was als Nächstes kommt. */
+function ComingSoonStub({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center py-10 gap-3">
+      <div className="text-3xl">🚧</div>
+      <div className="text-base font-black text-white" style={{ letterSpacing: 0.4 }}>{title}</div>
+      <div className="text-[11px] text-[#cdd4e3] max-w-xs leading-snug">{hint}</div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// CrewGiftsView — Allianzgeschenke-Klon (Mig 00397/00398)
+// ════════════════════════════════════════════════════════════════════════
+
+type GiftPending = {
+  gift_id: string;
+  rarity: "common" | "rare";
+  source: "mutant" | "shop";
+  mutant_level: number | null;
+  mutant_tier: string | null;
+  title: string;
+  created_at: string;
+  expires_at: string;
+  drop_item_id: string | null;
+  drop_item_qty: number;
+  drop_key_points: number;
+  drop_crystal_points: number;
+  drop_item_name: string | null;
+  drop_item_emoji: string | null;
+  donor_name: string | null;
+};
+type GiftsPayload = {
+  pending: GiftPending[];
+  claimed_recent: Array<{ gift_id: string; title: string; rarity: string; mutant_level: number | null; claimed_at: string }>;
+  segenstruhe: {
+    level: number; key_points: number; crystal_points: number;
+    opened_count: number; upgraded_count: number;
+    open_cost: number; upgrade_cost: number;
+    is_max_level: boolean;
+    next_level_preview: string;
+  };
+  donation_limits: {
+    weekly_limit: number;
+    elite_used: number; elite_remaining: number;
+    mega_used: number;  mega_remaining: number;
+  };
+};
+
+function CrewGiftsView({ accent }: { accent: string }) {
+  const [data, setData] = useState<GiftsPayload | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [tab, setTab] = useState<"common" | "rare">("common");
+  const [showDropPool, setShowDropPool] = useState(false);
+  const uiIconArt = useUiIconArt();
+  const inventoryArt = useInventoryItemArt();
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/crews/gifts", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json() as GiftsPayload;
+      setData(j);
+    } catch { /* noop */ }
+  }, []);
+
+  useEffect(() => {
+    void load();
+    const iv = setInterval(load, 30000);
+    return () => clearInterval(iv);
+  }, [load]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  async function claimOne(giftId: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/crews/gifts/claim", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gift_id: giftId }),
+      });
+      if (r.ok) {
+        const j = await r.json() as { item_qty?: number; key_points?: number; crystal_points?: number; auto_upgrades?: number };
+        setToast(`+${j.key_points ?? 0} 🔓 · +${j.crystal_points ?? 0} 💠`
+          + (j.item_qty ? ` · +${j.item_qty} Item` : "")
+          + (j.auto_upgrades && j.auto_upgrades > 0 ? ` · 🆙 ${j.auto_upgrades} Stufe(n)` : ""));
+        void load();
+      }
+    } finally { setBusy(false); }
+  }
+  async function claimAll() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/crews/gifts/claim", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+      });
+      if (r.ok) {
+        const j = await r.json() as { items?: number; key_points?: number; crystal_points?: number; auto_upgrades?: number };
+        setToast(`Alle: +${j.key_points ?? 0} 🔓 · +${j.crystal_points ?? 0} 💠 · +${j.items ?? 0} Items`
+          + (j.auto_upgrades && j.auto_upgrades > 0 ? ` · 🆙 ${j.auto_upgrades} Stufe(n)` : ""));
+        void load();
+      }
+    } finally { setBusy(false); }
+  }
+  async function donate(cost: number) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/crews/gifts/donate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cost }),
+      });
+      const j = await r.json() as { error?: string; gems_spent?: number; tier_remaining?: number; tier?: string };
+      if (!r.ok) {
+        setToast(j.error === "not_enough_gems" ? "Nicht genug Diamanten"
+              : j.error === "not_in_crew" ? "Keine Crew gefunden"
+              : j.error === "tier_limit_reached" ? "Limit erreicht (4×/Woche pro Paket)"
+              : "Fehler: " + (j.error ?? "unbekannt"));
+      } else {
+        const left = j.tier_remaining ?? 0;
+        const tierLabel = j.tier === "mega" ? "Mega" : "Elite";
+        setToast(`${tierLabel} gespendet — −${j.gems_spent ?? cost} 💎 · noch ${left}× ${tierLabel} diese Woche`);
+        void load();
+      }
+    } finally { setBusy(false); }
+  }
+  async function tresorAction(action: "open") {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/crews/gifts/segenstruhe", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const j = await r.json() as { error?: string; item_id?: string; item_qty?: number };
+      if (!r.ok) {
+        setToast(j.error === "not_enough_key_points" ? "Nicht genug Bypass-Codes"
+              : "Fehler: " + (j.error ?? "unbekannt"));
+      } else {
+        setToast(`Tresor geknackt — +${j.item_qty ?? 0} ${j.item_id ?? ""}`);
+      }
+      void load();
+    } finally { setBusy(false); }
+  }
+
+  const filteredGifts = useMemo(() => {
+    if (!data) return [] as GiftPending[];
+    return data.pending.filter((g) => (tab === "common" ? g.rarity === "common" : g.rarity === "rare"));
+  }, [data, tab]);
+
+  const seg = data?.segenstruhe;
+  const segPct = seg ? Math.min(100, Math.round((seg.key_points / Math.max(1, seg.open_cost)) * 100)) : 0;
+
+  const segPctUpgrade = seg ? Math.min(100, Math.round((seg.crystal_points / Math.max(1, seg.upgrade_cost)) * 100)) : 0;
+  const canOpen = !!seg && seg.key_points >= seg.open_cost;
+
+  return (
+    <div
+      style={{
+        color: "#F0F0F0",
+        display: "grid",
+        gridTemplateColumns: "340px 1fr",
+        gap: 12,
+        // Volle Höhe; nur die RECHTE Spalte hat overflow für Scroll.
+        // Outer NICHT overflow-hidden, sonst clippt der Tresor-Inhalt.
+        height: "100%",
+        minHeight: 0,
+      }}
+    >
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/*  LINKE SPALTE — Crew-Tresor sitzt oben, Chat liegt fixed darunter.  */}
+      {/*  KEIN overflow-clip hier (sonst wird Tresor abgeschnitten). Die      */}
+      {/*  Spalte ist nicht-scrollend; die Card hat ihre eigene natürliche    */}
+      {/*  Höhe. Chat-Widget überlagert die unteren ~320 px der Spalte.       */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col min-w-0">
+        {seg && (
+          <div
+            className="rounded-2xl p-2 relative overflow-hidden"
+            style={{
+              background: `
+                radial-gradient(ellipse at 50% 30%, rgba(255,215,0,0.16) 0%, transparent 55%),
+                linear-gradient(180deg, rgba(15,17,21,0.92) 0%, rgba(10,12,16,0.95) 100%)
+              `,
+              border: `1px solid ${accent}55`,
+              boxShadow: `0 6px 24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)`,
+            }}
+          >
+            {/* Header: Tresor-Label + Info-Button + Stufe-Pill */}
+            <div className="relative flex items-center justify-between mb-1 gap-1">
+              <div
+                className="text-[9px] font-black uppercase"
+                style={{ color: "#FFD700", letterSpacing: 2 }}
+              >Crew-Tresor</div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowDropPool(true)}
+                  className="text-[10px] font-black px-1.5 py-0.5 rounded transition"
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#FFD700",
+                    border: "1px solid rgba(255,215,0,0.4)",
+                    cursor: "pointer",
+                    lineHeight: 1,
+                  }}
+                  title="Drop-Pool anzeigen"
+                >ℹ️ Drops</button>
+                <div className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
+                  style={{ background: `${accent}33`, color: "#FFF", letterSpacing: 1 }}>
+                  Stufe {seg.level}{seg.is_max_level ? " · MAX" : ""}
+                </div>
+              </div>
+            </div>
+
+            {/* Kompakter Layout: Ring links + Werte rechts, statt vertikal stacked.
+                Spart ~80 px Höhe und macht den Tresor garantiert kleiner als 220 px. */}
+            <div className="relative flex items-center gap-2 my-1">
+              {/* Ring + Icon — 76 px */}
+              <div className="relative shrink-0" style={{ width: 76, height: 76 }}>
+                <div aria-hidden style={{
+                  position: "absolute", inset: 0, borderRadius: "50%",
+                  border: "3px solid rgba(255,255,255,0.08)",
+                }} />
+                <div aria-hidden style={{
+                  position: "absolute", inset: 0, borderRadius: "50%",
+                  background: `conic-gradient(#FFD700 ${segPct * 3.6}deg, transparent ${segPct * 3.6}deg 360deg)`,
+                  WebkitMask: "radial-gradient(circle, transparent 34px, #000 36px, #000 38px, transparent 40px)",
+                  mask: "radial-gradient(circle, transparent 34px, #000 36px, #000 38px, transparent 40px)",
+                  filter: "drop-shadow(0 0 6px rgba(255,215,0,0.4))",
+                }} />
+                <div className="absolute inset-0 flex items-center justify-center" style={{ filter: "drop-shadow(0 2px 6px rgba(255,215,0,0.3))" }}>
+                  <UiIcon slot="crew_tresor" fallback="🗄" art={uiIconArt} size={44} />
+                </div>
+              </div>
+              {/* Werte rechts vom Ring */}
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                <div className="text-[10px] flex items-center justify-between">
+                  <span className="font-black uppercase inline-flex items-center gap-1" style={{ color: "#FFD700", letterSpacing: 1 }}>
+                    <UiIcon slot="crew_bypass_code" fallback="🔓" art={uiIconArt} size={11} />
+                    Bypass
+                  </span>
+                  <span className="tabular-nums font-black text-white text-[10px]">
+                    {seg.key_points.toLocaleString("de-DE")}/{seg.open_cost.toLocaleString("de-DE")}
+                  </span>
+                </div>
+                <div className="text-[10px] flex items-center justify-between">
+                  <span className="font-black uppercase inline-flex items-center gap-1" style={{ color: accent, letterSpacing: 1 }}>
+                    <UiIcon slot="crew_mikrochip" fallback="💠" art={uiIconArt} size={11} />
+                    Chips
+                  </span>
+                  <span className="tabular-nums font-black text-white text-[10px]">
+                    {seg.crystal_points.toLocaleString("de-DE")}/{seg.upgrade_cost.toLocaleString("de-DE")}
+                  </span>
+                </div>
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                  <div style={{ width: `${segPctUpgrade}%`, height: "100%", background: `linear-gradient(90deg, ${accent}, ${accent}AA)`, transition: "width 0.3s" }} />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => tresorAction("open")}
+              disabled={busy || !canOpen}
+              className="relative w-full px-2 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition mt-1"
+              style={{
+                background: canOpen ? "linear-gradient(135deg, #FFD700, #FFB13A)" : "rgba(255,255,255,0.06)",
+                color: canOpen ? "#0F1115" : "#666",
+                cursor: canOpen ? "pointer" : "not-allowed",
+                border: "1px solid rgba(255,215,0,0.4)",
+              }}
+            >Tresor knacken</button>
+
+            {/* Inline-Footer ein-zeilig */}
+            <div className="relative mt-1 text-[8.5px] text-[#8B8FA3] flex items-center justify-between gap-2">
+              <span className="whitespace-nowrap">🔨 {seg.opened_count}× · 🆙 {seg.upgraded_count}×</span>
+              <span className="truncate text-right" style={{ color: "#cdd4e3" }}>
+                {seg.next_level_preview}
+              </span>
+            </div>
+          </div>
+        )}
+        {/* Spacer unten — Chat-Widget (fixed bottom-left) liegt hier drüber */}
+        <div className="flex-1" aria-hidden />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/*  RECHTE SPALTE — Tabs Häufig/Selten + Gift-Cards                    */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col min-w-0 gap-2 overflow-hidden">
+        {/* Tab-Bar Häufig / Selten */}
+        <div className="flex gap-1 shrink-0">
+          {(["common", "rare"] as const).map((t) => {
+            const active = tab === t;
+            const cnt = data ? data.pending.filter((g) => g.rarity === t).length : 0;
+            const label = t === "common" ? "Häufig" : "Selten";
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className="flex-1 px-3 py-2 rounded text-[12px] font-black uppercase tracking-wider transition"
+                style={{
+                  background: active ? `${accent}33` : "rgba(255,255,255,0.05)",
+                  color: active ? "#FFF" : "rgba(205,212,227,0.7)",
+                  border: `1px solid ${active ? accent : "rgba(255,255,255,0.1)"}`,
+                }}
+              >
+                {label} {cnt > 0 && <span style={{ color: "#FF2D78" }}>({cnt})</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* SPENDE-SEKTION (Selten): Text spannt sich ÜBER alle drei Bereiche.
+            Darunter: Elite-Pill + Mega-Pill + Alle-einsammeln nebeneinander. */}
+        {tab === "rare" && (
+          <div
+            className="shrink-0 rounded-lg p-2 flex flex-col gap-1.5"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,45,120,0.06) 0%, rgba(255,215,0,0.06) 100%)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+            }}
+          >
+            {/* Motivations-Text — über volle Breite, 2-zeilig */}
+            <div className="text-[10px] font-bold leading-snug" style={{ lineHeight: 1.35 }}>
+              <span className="inline-flex items-center align-middle gap-1" style={{ color: "#FFD700" }}>
+                <UiIcon slot="crew_donate_diamond" fallback="💎" art={uiIconArt} size={12} />
+                Spende für deine Crew
+              </span>
+              <span className="text-white"> — jede Einzahlung versorgt </span><b className="text-white">ALLE Mitglieder</b>
+              <span className="text-white"> mit Premium-Speedups, Tresor-Bypässen und einem Auto-Upgrade-Schub für die ganze Crew.</span>
+            </div>
+            {/* Drei Spalten: Elite · Mega · Alle einsammeln nebeneinander */}
+            <div className="flex items-stretch gap-2">
+              <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                <DonatePill
+                  label="Elite"
+                  cost={500}
+                  description="1× 12h zufällig"
+                  description2="500🔓 · 250💠"
+                  bgStart="#FF2D78"
+                  bgEnd="#FF6B9D"
+                  textColor="#FFF"
+                  starSlot="crew_donate_star_elite"
+                  onClick={() => donate(500)}
+                  disabled={busy || (data?.donation_limits.elite_remaining ?? 4) <= 0}
+                />
+                <TierCounterBadge
+                  remaining={data?.donation_limits.elite_remaining ?? 4}
+                  limit={data?.donation_limits.weekly_limit ?? 4}
+                  activeColor="#FF6B9D"
+                />
+              </div>
+              <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                <DonatePill
+                  label="Mega"
+                  cost={1000}
+                  description="1× 24h zufällig"
+                  description2="1.500🔓 · 750💠"
+                  bgStart="#FFD700"
+                  bgEnd="#FFB13A"
+                  textColor="#0F1115"
+                  starSlot="crew_donate_star_mega"
+                  onClick={() => donate(1000)}
+                  disabled={busy || (data?.donation_limits.mega_remaining ?? 4) <= 0}
+                />
+                <TierCounterBadge
+                  remaining={data?.donation_limits.mega_remaining ?? 4}
+                  limit={data?.donation_limits.weekly_limit ?? 4}
+                  activeColor="#FFD700"
+                />
+              </div>
+              {filteredGifts.length > 0 && (
+                <button
+                  onClick={claimAll}
+                  disabled={busy}
+                  className="shrink-0 px-3 rounded text-[10px] font-black uppercase tracking-wider transition"
+                  style={{
+                    background: `linear-gradient(135deg, ${accent}, ${accent}AA)`,
+                    color: "#0F1115",
+                    border: `1px solid ${accent}`,
+                    cursor: "pointer",
+                    width: 84, lineHeight: 1.15,
+                    // KEIN alignSelf — Button stretcht auf gleiche Höhe wie Pill+Counter daneben
+                  }}
+                >Alle ein­sammeln</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Im Häufig-Tab steht "Alle einsammeln" außerhalb der Spende-Sektion (rechts) */}
+        {tab === "common" && filteredGifts.length > 0 && (
+          <div className="shrink-0 flex justify-end">
+            <button
+              onClick={claimAll}
+              disabled={busy}
+              className="px-3 py-2 rounded text-[10px] font-black uppercase tracking-wider transition"
+              style={{
+                background: `linear-gradient(135deg, ${accent}, ${accent}AA)`,
+                color: "#0F1115",
+                border: `1px solid ${accent}`,
+                cursor: "pointer",
+                width: 88, lineHeight: 1.15,
+              }}
+            >Alle ein­sammeln</button>
+          </div>
+        )}
+
+        {/* Gift-Liste — scrollbar */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {filteredGifts.length === 0 ? (
+            <div className="text-center py-10 text-[12px] text-[#8B8FA3] leading-snug px-4">
+              {tab === "common"
+                ? "Aktuell keine offene Crew-Beute. Besiegt zusammen Mutanten, um Beute zu sichern."
+                : "Noch keine Elite-Drops aktiv — spende oben 💎 und versorge die ganze Crew mit Premium-Speedups."}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {filteredGifts.map((g) => (
+                <GiftCard key={g.gift_id} gift={g} accent={accent} onClaim={() => claimOne(g.gift_id)} disabled={busy} inventoryArt={inventoryArt} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Toast — oberhalb des Chat-Widgets, rechts angedockt */}
+      {toast && (
+        <div
+          className="fixed px-4 py-2 rounded text-[12px] font-bold z-[9200]"
+          style={{
+            bottom: 80, right: 24,
+            background: "rgba(15,17,21,0.95)",
+            color: accent,
+            border: `1px solid ${accent}AA`,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          }}
+        >{toast}</div>
+      )}
+
+      {/* Drop-Pool-Preview Modal */}
+      {showDropPool && seg && (
+        <TresorDropPoolModal
+          level={seg.level}
+          accent={accent}
+          inventoryArt={inventoryArt}
+          onClose={() => setShowDropPool(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function GiftCard({ gift, accent, onClaim, disabled, inventoryArt }: {
+  gift: GiftPending; accent: string; onClaim: () => void; disabled: boolean;
+  inventoryArt: Record<string, { image_url?: string | null; video_url?: string | null } | undefined>;
+}) {
+  const expiresIn = Math.max(0, Math.floor((new Date(gift.expires_at).getTime() - Date.now()) / 60000));
+  const isRare = gift.rarity === "rare";
+  const isMega = isRare && gift.title.includes("MEGA");
+  const art = gift.drop_item_id ? inventoryArt[gift.drop_item_id] : undefined;
+  const artUrl = art?.image_url ?? art?.video_url ?? null;
+
+  // Tier-spezifische Farbschemata — Mega (gold) markanter als Elite (pink),
+  // beide deutlich markanter als Common-Drops (schlicht dark).
+  const palette = isMega ? {
+    bg: "linear-gradient(135deg, rgba(255,215,0,0.18) 0%, rgba(75,55,10,0.92) 100%)",
+    border: "rgba(255,215,0,0.65)",
+    glow: "0 0 16px rgba(255,215,0,0.30), inset 0 1px 0 rgba(255,255,255,0.10)",
+    frameBg: "rgba(255,215,0,0.10)",
+    frameBorder: "rgba(255,215,0,0.45)",
+    btnBg: "linear-gradient(135deg, #FFD700, #FFB13A)",
+    btnColor: "#0F1115",
+    btnBorder: "rgba(255,215,0,0.7)",
+    qtyBg: "rgba(255,215,0,0.90)",
+    qtyColor: "#0F1115",
+    donorColor: "#FFE9A8",
+  } : isRare ? {
+    bg: "linear-gradient(135deg, rgba(255,45,120,0.16) 0%, rgba(70,15,40,0.92) 100%)",
+    border: "rgba(255,45,120,0.6)",
+    glow: "0 0 14px rgba(255,45,120,0.28), inset 0 1px 0 rgba(255,255,255,0.08)",
+    frameBg: "rgba(255,45,120,0.10)",
+    frameBorder: "rgba(255,45,120,0.40)",
+    btnBg: "linear-gradient(135deg, #FF2D78, #FF6B9D)",
+    btnColor: "#FFF",
+    btnBorder: "rgba(255,45,120,0.7)",
+    qtyBg: "rgba(255,45,120,0.90)",
+    qtyColor: "#FFF",
+    donorColor: "#FFB3D9",
+  } : {
+    bg: "rgba(15,17,21,0.7)",
+    border: "rgba(255,255,255,0.1)",
+    glow: undefined,
+    frameBg: "rgba(255,255,255,0.04)",
+    frameBorder: "rgba(255,255,255,0.1)",
+    btnBg: accent,
+    btnColor: "#0F1115",
+    btnBorder: accent,
+    qtyBg: "rgba(15,17,21,0.85)",
+    qtyColor: "#FFF",
+    donorColor: "#cdd4e3",
+  };
+
+  // Donor-Name aus title parsen wenn vorhanden (Fallback) — vorzugsweise donor_name aus DB
+  const donorName = gift.donor_name ?? (() => {
+    const m = gift.title.match(/von (.+)$/);
+    return m ? m[1] : null;
+  })();
+  const tierLabel = isMega ? "MEGA-DROP" : isRare ? "ELITE-DROP" : null;
+
+  return (
+    <div
+      className="rounded-lg p-2 flex items-center gap-3 relative"
+      style={{
+        background: palette.bg,
+        border: `1px solid ${palette.border}`,
+        boxShadow: palette.glow,
+      }}
+    >
+      {/* Item-Artwork — quadratischer Frame, qty als schlanke Zahl rechts unten */}
+      <div
+        className="shrink-0 relative flex items-center justify-center overflow-hidden"
+        style={{
+          width: 48, height: 48, borderRadius: 8,
+          background: palette.frameBg,
+          border: `1px solid ${palette.frameBorder}`,
+        }}
+      >
+        {artUrl ? (
+          art?.video_url ? (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video src={artUrl} autoPlay loop muted playsInline style={{ width: "100%", height: "100%", objectFit: "contain", filter: "url(#ma365-chroma-soft)" }} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={artUrl} alt={gift.drop_item_name ?? ""} style={{ width: "100%", height: "100%", objectFit: "contain", filter: "url(#ma365-chroma-soft)" }} />
+          )
+        ) : (
+          <span style={{ fontSize: 28, lineHeight: 1 }}>{gift.drop_item_emoji ?? (isRare ? "💎" : "🎁")}</span>
+        )}
+        {/* Qty-Zahl: minimal, kein ×, kleine fette Zahl rechts unten */}
+        {gift.drop_item_qty > 1 && (
+          <span
+            style={{
+              position: "absolute", bottom: 1, right: 3,
+              fontSize: 11, fontWeight: 900,
+              color: "#FFF",
+              textShadow: "0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.85)",
+              lineHeight: 1,
+              letterSpacing: -0.3,
+            }}
+          >{gift.drop_item_qty}</span>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        {/* Header-Zeile: Tier-Tag + Donor-Name prominent. Bei common: Mutant-Title */}
+        {isRare ? (
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span
+              className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0"
+              style={{
+                background: "rgba(0,0,0,0.4)", color: palette.donorColor,
+                letterSpacing: 1.3, border: `1px solid ${palette.border}`,
+              }}
+            >★ {tierLabel}</span>
+            <span className="text-[11px] font-black truncate" style={{ color: "#FFF", textShadow: `0 0 8px ${palette.donorColor}33` }}>
+              von <span style={{ color: palette.donorColor }}>{donorName ?? "?"}</span>
+            </span>
+          </div>
+        ) : (
+          <div className="text-[11px] font-black text-white truncate mb-0.5">{gift.title}</div>
+        )}
+        {/* Item + Punkte */}
+        <div className="text-[10px] text-[#cdd4e3] truncate">
+          {gift.drop_item_name && <><b className="text-white">{gift.drop_item_qty}× {gift.drop_item_name}</b> · </>}
+          <span style={{ color: "#FFD700" }}>🔓 {gift.drop_key_points}</span> · <span style={{ color: "#22D1C3" }}>💠 {gift.drop_crystal_points}</span>
+        </div>
+        <div className="text-[9px] text-[#8B8FA3]">Läuft in {expiresIn < 60 ? `${expiresIn}m` : `${Math.floor(expiresIn / 60)}h ${expiresIn % 60}m`} ab</div>
+      </div>
+      <button
+        onClick={onClaim}
+        disabled={disabled}
+        className="shrink-0 px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wider"
+        style={{
+          background: palette.btnBg,
+          color: palette.btnColor,
+          border: `1px solid ${palette.btnBorder}`,
+          cursor: disabled ? "not-allowed" : "pointer",
+          opacity: disabled ? 0.5 : 1,
+        }}
+      >Sammeln</button>
+    </div>
+  );
+}
+
+/** Tresor-Drop-Pool-Preview — zeigt alle möglichen Drops einer Stufe mit Wahrscheinlichkeit. */
+type DropPoolEntry = {
+  item_id: string;
+  item_qty: number;
+  weight: number;
+  pct: number;
+  item_name: string | null;
+  item_emoji: string | null;
+  item_rarity: string | null;
+};
+function TresorDropPoolModal({
+  level, accent, inventoryArt, onClose,
+}: {
+  level: number;
+  accent: string;
+  inventoryArt: Record<string, { image_url?: string | null; video_url?: string | null } | undefined>;
+  onClose: () => void;
+}) {
+  const [pool, setPool] = useState<DropPoolEntry[]>([]);
+  const [previewLevel, setPreviewLevel] = useState(level);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const r = await fetch(`/api/crews/gifts/pool?level=${previewLevel}`, { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const j = await r.json() as { pool?: DropPoolEntry[] };
+        if (alive) setPool(j.pool ?? []);
+      } catch { /* noop */ }
+    })();
+    return () => { alive = false; };
+  }, [previewLevel]);
+
+  const rarityColor = (r: string | null) =>
+    r === "legendary" ? "#FFD700" : r === "epic" ? "#A855F7" : r === "rare" ? "#22D1C3" : "#9CA3AF";
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ zIndex: 9300, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="rounded-2xl flex flex-col"
+        style={{
+          width: "min(520px, calc(100vw - 32px))",
+          maxHeight: "calc(100vh - 64px)",
+          background: "linear-gradient(180deg, rgba(20,22,28,0.98) 0%, rgba(10,12,16,0.98) 100%)",
+          border: `1px solid ${accent}66`,
+          boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b" style={{ borderColor: `${accent}33` }}>
+          <div>
+            <div className="text-[10px] font-black uppercase" style={{ color: "#FFD700", letterSpacing: 2 }}>
+              Crew-Tresor · Drop-Pool
+            </div>
+            <div className="text-[14px] font-black text-white" style={{ fontFamily: "var(--font-display-stack)" }}>
+              Stufe {previewLevel}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center transition text-[#F0F0F0] font-bold"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", cursor: "pointer" }}
+            aria-label="Schließen"
+          >✕</button>
+        </div>
+
+        {/* Stufe-Slider/Buttons */}
+        <div className="flex items-center gap-1 px-3 py-2 border-b text-[9px] font-black uppercase" style={{ borderColor: "rgba(255,255,255,0.06)", letterSpacing: 1 }}>
+          <span className="text-[#8B8FA3] mr-1">Stufen-Pool:</span>
+          {[5, 15, 25, 35, 45].map((lv) => (
+            <button
+              key={lv}
+              onClick={() => setPreviewLevel(lv)}
+              className="px-2 py-0.5 rounded transition"
+              style={{
+                background: previewLevel === lv ? `${accent}33` : "rgba(255,255,255,0.05)",
+                color: previewLevel === lv ? "#FFF" : "#cdd4e3",
+                border: `1px solid ${previewLevel === lv ? accent : "rgba(255,255,255,0.1)"}`,
+                cursor: "pointer",
+              }}
+            >{lv}</button>
+          ))}
+          <button
+            onClick={() => setPreviewLevel(level)}
+            className="ml-auto px-2 py-0.5 rounded text-[9px] font-bold"
+            style={{ background: `${accent}55`, color: "#FFF", cursor: "pointer", border: `1px solid ${accent}` }}
+          >Meine ({level})</button>
+        </div>
+
+        {/* Item-Liste */}
+        <div className="flex-1 overflow-y-auto p-2">
+          {pool.length === 0 ? (
+            <div className="text-center py-10 text-[12px] text-[#8B8FA3]">Lade Drop-Pool…</div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {pool.map((e) => {
+                const art = inventoryArt[e.item_id];
+                const artUrl = art?.image_url ?? art?.video_url ?? null;
+                const rColor = rarityColor(e.item_rarity);
+                return (
+                  <div
+                    key={e.item_id}
+                    className="rounded-lg p-1.5 flex items-center gap-2"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <div
+                      className="shrink-0 relative flex items-center justify-center overflow-hidden"
+                      style={{
+                        width: 36, height: 36, borderRadius: 6,
+                        background: `${rColor}11`,
+                        border: `1px solid ${rColor}66`,
+                      }}
+                    >
+                      {artUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={artUrl} alt={e.item_name ?? ""} style={{ width: "100%", height: "100%", objectFit: "contain", filter: "url(#ma365-chroma-soft)" }} />
+                      ) : (
+                        <span style={{ fontSize: 22 }}>{e.item_emoji ?? "📦"}</span>
+                      )}
+                      {e.item_qty > 1 && (
+                        <span
+                          style={{
+                            position: "absolute", bottom: 0, right: 2,
+                            fontSize: 10, fontWeight: 900, color: "#FFF",
+                            textShadow: "0 1px 2px rgba(0,0,0,0.95)",
+                            lineHeight: 1,
+                          }}
+                        >{e.item_qty}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-black truncate" style={{ color: rColor }}>
+                        {e.item_name ?? e.item_id}
+                      </div>
+                      <div className="text-[9px] text-[#8B8FA3]">{e.item_qty}× pro Drop</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[14px] font-black tabular-nums" style={{ color: "#FFD700" }}>{e.pct.toFixed(1)}%</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="px-3 py-2 text-[9px] text-[#8B8FA3] border-t" style={{ borderColor: "rgba(255,255,255,0.06)", lineHeight: 1.35 }}>
+          Pro „Tresor knacken" wird genau 1 zufälliger Drop aus diesem Pool gezogen. Mit steigender Tresor-Stufe wächst der Pool und höhere Items werden wahrscheinlicher.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Mini-Counter unter einer Spende-Pille: "X / 4 diese Woche". */
+function TierCounterBadge({ remaining, limit, activeColor }: { remaining: number; limit: number; activeColor: string }) {
+  const empty = remaining <= 0;
+  return (
+    <div
+      className="text-[8px] font-black uppercase tracking-wider text-center"
+      style={{
+        color: empty ? "#FF6B6B" : activeColor,
+        letterSpacing: 1,
+        opacity: 0.9,
+      }}
+    >
+      {empty ? "Limit erreicht" : `${remaining} / ${limit} diese Woche`}
+    </div>
+  );
+}
+
+/**
+ * Kompakte Spende-Pille — Single-Row-Button mit Tier · Preis · Mini-Beschreibung.
+ * Sitzt direkt in der Action-Zeile neben "Alle einsammeln".
+ */
+function DonatePill({
+  label, cost, description, description2, bgStart, bgEnd, textColor, onClick, disabled, starSlot,
+}: {
+  label: string; cost: number; description: string; description2?: string;
+  bgStart: string; bgEnd: string; textColor: string;
+  onClick: () => void; disabled: boolean;
+  /** Slot fürs Tier-Star-Icon (crew_donate_star_elite/mega). */
+  starSlot?: string;
+}) {
+  const uiIconArt = useUiIconArt();
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex-1 rounded text-left px-2.5 py-1.5 transition relative overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, ${bgStart}, ${bgEnd})`,
+        color: textColor,
+        border: `1px solid ${bgStart}AA`,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        boxShadow: `0 2px 8px ${bgStart}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
+        minWidth: 0,
+      }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-black uppercase tracking-wider truncate inline-flex items-center gap-1" style={{ letterSpacing: 1.2 }}>
+          {starSlot ? <UiIcon slot={starSlot} fallback="★" art={uiIconArt} size={12} /> : <span>★</span>}
+          {label}
+        </div>
+        <div className="text-[12px] font-black tabular-nums whitespace-nowrap inline-flex items-center gap-0.5" style={{ textShadow: "0 1px 1px rgba(0,0,0,0.3)" }}>
+          {cost.toLocaleString("de-DE")}
+          <UiIcon slot="crew_donate_diamond" fallback="💎" art={uiIconArt} size={12} />
+        </div>
+      </div>
+      <div className="text-[9px] font-bold leading-tight mt-0.5 truncate opacity-95 inline-flex items-center gap-0.5">
+        <UiIcon slot="crew_speedup_build" fallback="🏗️" art={uiIconArt} size={11} />
+        <UiIcon slot="crew_speedup_research" fallback="🔬" art={uiIconArt} size={11} />
+        <UiIcon slot="crew_speedup_universal" fallback="⚡" art={uiIconArt} size={11} />
+        <UiIcon slot="crew_speedup_march" fallback="🏃" art={uiIconArt} size={11} />
+        <span className="ml-1">{description}</span>
+      </div>
+      {description2 && (
+        <div className="text-[8.5px] font-bold leading-tight truncate opacity-80 tabular-nums">
+          {description2}
+        </div>
+      )}
+    </button>
+  );
+}
+
+function PremiumDropCard({
+  tier, cost, accentBg, borderColor, glowColor, labelColor, buttonBg, buttonColor,
+  title, subline, items, points, onDonate, busy,
+}: {
+  tier: "elite" | "mega";
+  cost: number;
+  accentBg: string; borderColor: string; glowColor: string; labelColor: string;
+  buttonBg: string; buttonColor: string;
+  title: string; subline: string; items: string;
+  points: { bypass: number; chip: number };
+  onDonate: () => void; busy: boolean;
+}) {
+  return (
+    <div
+      className="rounded-lg p-2 flex flex-col gap-1.5 relative overflow-hidden"
+      style={{
+        background: accentBg,
+        border: `1px solid ${borderColor}`,
+        boxShadow: `0 0 14px ${glowColor}, inset 0 1px 0 rgba(255,255,255,0.08)`,
+      }}
+    >
+      {/* Sub-Header mit Tier + Preis */}
+      <div className="flex items-center justify-between">
+        <div
+          className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
+          style={{ background: "rgba(0,0,0,0.4)", color: labelColor, letterSpacing: 1.5, border: `1px solid ${borderColor}` }}
+        >
+          {tier === "mega" ? "★ MEGA" : "★ ELITE"}
+        </div>
+        <div className="text-[14px] font-black text-white tabular-nums" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}>
+          {cost.toLocaleString("de-DE")}💎
+        </div>
+      </div>
+
+      {/* Title */}
+      <div className="text-[13px] font-black text-white leading-tight" style={{ fontFamily: "var(--font-display-stack)", letterSpacing: 0.3 }}>
+        {title}
+      </div>
+
+      {/* Sub-Liste */}
+      <div className="text-[9px] text-[#cdd4e3] leading-snug">{subline}</div>
+
+      {/* Items & Punkte */}
+      <div className="text-[10px] text-white flex items-center justify-between mt-0.5">
+        <span><b>{items}</b></span>
+      </div>
+      <div className="text-[10px] flex items-center gap-3" style={{ color: "#cdd4e3" }}>
+        <span><b style={{ color: "#FFD700" }}>🔓 +{points.bypass}</b></span>
+        <span><b style={{ color: "#22D1C3" }}>💠 +{points.chip}</b></span>
+      </div>
+
+      {/* CTA */}
+      <button
+        onClick={onDonate}
+        disabled={busy}
+        className="mt-1 px-2 py-1.5 rounded text-[10px] font-black uppercase tracking-wider"
+        style={{
+          background: buttonBg, color: buttonColor,
+          border: `1px solid ${borderColor}`,
+          cursor: busy ? "not-allowed" : "pointer",
+          opacity: busy ? 0.5 : 1,
+          boxShadow: `0 2px 8px ${glowColor}`,
+          letterSpacing: 0.8,
+        }}
+      >Jetzt spenden</button>
+    </div>
+  );
+}
+
+/* Crew-Hub Tile — komplett ohne Ränder/Hintergrund.
+   Nur Icon + Label, schwebt direkt auf dem Artwork.
+   Hover gibt einen sehr dezenten Akzent-Schimmer als Feedback. */
+function TileButton({
+  onClick, icon, slot, label, accent, hero = false, hint, badge,
+}: {
+  onClick: () => void;
+  icon: string;
+  /** Artwork-Slot (cosmetic_artwork kind=ui_icon). Wenn Artwork hochgeladen ist, überschreibt es den Emoji-Fallback. */
+  slot?: string;
+  label: string;
+  accent: string;
+  clip?: string;
+  hero?: boolean;
+  hint?: string;
+  /** Roter Indikator-Count oben rechts. 0/undefined → kein Badge. */
+  badge?: number;
+}) {
+  const [hover, setHover] = useState(false);
+  const uiIconArt = useUiIconArt();
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className="relative flex flex-col items-center justify-center transition active:scale-95"
+      style={{
+        background: hover ? `${accent}1A` : "transparent",
+        borderRadius: 8,
+        minWidth: 0,
+        cursor: "pointer",
+        padding: "2px 4px",
+        gap: 0,
+      }}
+      title={hint ? `${label} — ${hint}` : label}
+    >
+      {badge !== undefined && badge > 0 && (
+        <span
+          aria-hidden
+          style={{
+            position: "absolute", top: 2, right: 4,
+            minWidth: 18, height: 18, padding: "0 4px",
+            borderRadius: 999,
+            background: "#FF2D78",
+            color: "#FFF",
+            fontSize: 10, fontWeight: 900,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.5), 0 0 8px rgba(255,45,120,0.6)",
+            border: "1px solid rgba(255,255,255,0.3)",
+            lineHeight: 1,
+          }}
+        >{badge > 99 ? "99+" : badge}</span>
+      )}
+      <span style={{ fontSize: 28, lineHeight: 1, textShadow: "0 2px 4px rgba(0,0,0,0.95)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        {slot ? <UiIcon slot={slot} fallback={icon} art={uiIconArt} size={32} /> : icon}
+      </span>
+      <span
+        className="text-[10px] font-black text-white text-center truncate w-full px-1"
+        style={{
+          letterSpacing: 0.3,
+          textShadow: "0 1px 3px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,0.85)",
+          marginTop: 1,
+        }}
+      >
+        {label}
+      </span>
+      {hint && (
+        <span
+          className="text-[8px] font-bold"
+          style={{ color: "#FFF", letterSpacing: 0.3, textShadow: "0 1px 2px rgba(0,0,0,0.95)" }}
+        >
+          {hint}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// Heimat-Stadt aus PLZ ableiten (Crews werden city-server-zugeordnet, nicht PLZ-spezifisch).
+// Mapping basiert auf PLZ-Präfixen der 3 aktiven Städte (siehe cities-Tabelle).
+function cityNameFromZip(zip: string | null | undefined): string {
+  if (!zip) return "—";
+  const z = zip.trim();
+  if (!z) return "—";
+  // Berlin: 10xxx–14xxx
+  if (/^1[0-4]/.test(z)) return "Berlin";
+  // Hamburg: 20xxx–22xxx
+  if (/^2[012]/.test(z)) return "Hamburg";
+  // München: 80xxx–85xxx (vor allem 80/81)
+  if (/^8[0-5]/.test(z)) return "München";
+  // Fallback: PLZ behalten, aber als Hinweis dass die Stadt nicht erkannt wurde
+  return `PLZ ${z}`;
+}
+
+function compactCrewNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return n.toLocaleString("de-DE");
 }
 
 /* Widget zeigt wo die eigene Crew steht — weltweit, Kontinent, Land, Stadt */
@@ -1958,12 +3498,32 @@ function LeagueStandingsWidget({ crew }: { crew: Crew }) {
 
 function CrewStat({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div style={{
-      background: "rgba(0,0,0,0.25)", borderRadius: 12, padding: "10px 8px",
-      textAlign: "center", border: `1px solid ${BORDER}`,
-    }}>
-      <div style={{ color: accent, fontSize: 18, fontWeight: 900, textShadow: `0 0 10px ${accent}66` }}>{value}</div>
-      <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, marginTop: 2, letterSpacing: 0.5 }}>
+    <div
+      style={{
+        background: "rgba(0,0,0,0.45)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        borderRadius: 12,
+        padding: "10px 8px",
+        textAlign: "center",
+        border: `1px solid ${accent}55`,
+        boxShadow: `0 0 14px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
+      }}
+    >
+      <div
+        style={{
+          color: accent,
+          fontSize: 20,
+          fontWeight: 900,
+          fontFamily: "var(--font-display-stack)",
+          letterSpacing: 0.4,
+          textShadow: `0 0 12px ${accent}88, 0 2px 4px rgba(0,0,0,0.5)`,
+          lineHeight: 1,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ color: "#cdd4e3", fontSize: 9, fontWeight: 800, marginTop: 4, letterSpacing: 0.6 }}>
         {label.toUpperCase()}
       </div>
     </div>
@@ -2432,106 +3992,582 @@ function MiniKpi({ label, value, color }: { label: string; value: string; color:
   );
 }
 
-function CrewMembers({ color, isAdmin }: { color: string; isAdmin: boolean }) {
+type LiveMember = {
+  user_id: string;
+  role: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  ansehen: number;
+  gebietsruf: number;
+  level: number;
+  equipped_base_ring_id: string | null;
+};
+
+// Demo-Member-Pool — wird nach dem API-Fetch eingespielt damit man UI-mäßig
+// sieht wie's mit voller Crew aussieht. ID-Präfix "demo-" als Marker.
+const DEMO_LIVE_MEMBERS: LiveMember[] = [
+  { user_id: "demo-r4-1", role: "captain", display_name: "Marek Voss",       username: "marek_v",   avatar_url: null, ansehen: 1820_000, gebietsruf: 0, level: 22, equipped_base_ring_id: null },
+  { user_id: "demo-r4-2", role: "captain", display_name: "Yuki Nakamura",    username: "yuki_n",    avatar_url: null, ansehen: 1410_000, gebietsruf: 0, level: 20, equipped_base_ring_id: null },
+  { user_id: "demo-r4-3", role: "captain", display_name: "Salim Bekiri",     username: "salim_b",   avatar_url: null, ansehen: 1230_000, gebietsruf: 0, level: 19, equipped_base_ring_id: null },
+  { user_id: "demo-r3-1", role: "member",  display_name: "Anouk Lefèvre",    username: "anouk_l",   avatar_url: null, ansehen:  980_000, gebietsruf: 0, level: 17, equipped_base_ring_id: null },
+  { user_id: "demo-r3-2", role: "member",  display_name: "Tomek Wojcik",     username: "tomek_w",   avatar_url: null, ansehen:  720_000, gebietsruf: 0, level: 16, equipped_base_ring_id: null },
+  { user_id: "demo-r3-3", role: "member",  display_name: "Aylin Şahin",      username: "aylin_s",   avatar_url: null, ansehen:  540_000, gebietsruf: 0, level: 14, equipped_base_ring_id: null },
+  { user_id: "demo-r3-4", role: "member",  display_name: "Dario Costa",      username: "dario_c",   avatar_url: null, ansehen:  380_000, gebietsruf: 0, level: 12, equipped_base_ring_id: null },
+];
+
+function CrewMembers({ crew, profile, isAdmin }: { crew: Crew; profile: Profile | null; isAdmin: boolean }) {
   const tCrew = useTranslations("Crew");
-  const rankArt = useRankArt();
-  const inactive = DEMO_CREW_MEMBERS.filter((m) => m.weekly_km < 5);
+  const baseRingArt = useBaseRingArt();
+  const uiIconArt = useUiIconArt();
+
+  // ─── Live-Members aus API ───
+  const [liveMembers, setLiveMembers] = useState<LiveMember[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/crew/members?crew_id=${encodeURIComponent(crew.id)}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json() as { members?: LiveMember[] };
+        if (!cancelled) {
+          const real = j.members ?? [];
+          // Demo-Members hinten dran — visualisiert wie's mit voller Crew aussieht
+          setLiveMembers([...real, ...DEMO_LIVE_MEMBERS]);
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [crew.id]);
+
+  // ─── Anführer (owner) ───
+  const leader = useMemo<LiveMember | null>(() => {
+    if (!liveMembers) return null;
+    return liveMembers.find((m) => m.user_id === crew.owner_id) ?? liveMembers.find((m) => m.role === "admin" || m.role === "owner") ?? null;
+  }, [liveMembers, crew.owner_id]);
+
+  // ─── Restliche Mitglieder (ohne Anführer) ───
+  const restMembers = useMemo(() => {
+    if (!liveMembers) return [];
+    return liveMembers.filter((m) => m.user_id !== leader?.user_id);
+  }, [liveMembers, leader]);
+
+  // ─── Suche ───
+  const [memberSearch, setMemberSearch] = useState("");
+  const filteredRest = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    if (!q) return restMembers;
+    return restMembers.filter((m) =>
+      (m.display_name?.toLowerCase().includes(q) ?? false) ||
+      (m.username?.toLowerCase().includes(q) ?? false),
+    );
+  }, [restMembers, memberSearch]);
+
+  // ─── Rang-Gruppen für Rest (R4 Offiziere, R3 Mitglieder) ───
+  type RankGroup = { id: string; label: string; tag: string; color: string; members: LiveMember[] };
+  const groups: RankGroup[] = useMemo(() => {
+    const all: RankGroup[] = [
+      { id: "r4", label: "Veteranen",  tag: "R4", color: "#FF6B4A", members: filteredRest.filter((m) => m.role === "captain" || m.role === "officer") },
+      { id: "r3", label: "Mitglieder", tag: "R3", color: "#22D1C3", members: filteredRest.filter((m) => m.role !== "captain" && m.role !== "officer" && m.role !== "admin" && m.role !== "owner") },
+    ];
+    return all.filter((x) => x.members.length > 0);
+  }, [filteredRest]);
+
+  // ─── Collapse-State ───
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (id: string) => setCollapsed((p) => ({ ...p, [id]: !p[id] }));
+
+  // Leader-Display-Name fallback: bei eigener Crew nutzt profile, sonst leader.display_name
+  const leaderRing = leader?.equipped_base_ring_id;
+  const leaderName = leader?.display_name || leader?.username || "—";
+  const leaderAvatar = leader?.avatar_url ?? null;
+  const leaderAnsehen = leader?.ansehen ?? 0;
+  const ringAsset = leaderRing && leaderRing !== "default" ? baseRingArt[leaderRing] : null;
+  const GOLD = "#FFD700";
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <DemoBadge hint={tCrew("memDemoHint")} />
-      </div>
-      {inactive.length > 0 && (
-        <div style={{
-          background: "rgba(239, 113, 105, 0.12)", borderRadius: 12,
-          padding: 12, border: `1px solid #ef716955`,
-          fontSize: 12, color: TEXT_SOFT,
-        }}>
-          {tCrew.rich(inactive.length === 1 ? "memInactiveWarningOne" : "memInactiveWarningMany", {
-            count: inactive.length,
-            b: (chunks) => <b>{chunks}</b>,
-          })}
-          {isAdmin && (
-            <button
-              onClick={() => appAlert(tCrew("memReminderAlert"))}
+    <div className="flex flex-col gap-2">
+      {/* ═══ DON-BANNER ═══ — Avatar+Rahmen größer und überlappt die Banner-Kante.
+          overflow NICHT hidden (Avatar darf raus); Stripes haben einen eigenen
+          inneren overflow-hidden-Layer damit sie sauber geklippt bleiben. */}
+      <div
+        className="relative"
+        style={{
+          background: "linear-gradient(120deg, rgba(15,17,21,0.95) 0%, rgba(15,17,21,0.82) 45%, rgba(15,17,21,0.7) 100%)",
+          borderRadius: 4,
+          padding: "12px 14px 12px 12px",
+          boxShadow: `0 6px 20px rgba(0,0,0,0.5), inset 0 0 0 1px ${crew.color}44`,
+        }}
+      >
+        {/* Clipping-Layer für Streifen — hier overflow:hidden, NICHT auf dem ganzen Banner */}
+        <div
+          aria-hidden
+          className="absolute inset-0 overflow-hidden pointer-events-none"
+          style={{ borderRadius: 4 }}
+        >
+          {/* Diagonale Akzent-Streifen (Crew-Farbe) — die "DNA" dieses Banners */}
+          <span
+            style={{
+              position: "absolute",
+              top: -8, bottom: -8, right: 84,
+              width: 3,
+              background: crew.color,
+              opacity: 0.55,
+              transform: "skewX(-22deg)",
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              top: -8, bottom: -8, right: 96,
+              width: 1.5,
+              background: crew.color,
+              opacity: 0.3,
+              transform: "skewX(-22deg)",
+            }}
+          />
+          {/* Goldener Top-Stripe (Anführer-Glanz) */}
+          <span
+            style={{
+              position: "absolute", top: 0, left: 0, right: 0, height: 2,
+              background: `linear-gradient(90deg, ${GOLD}99 0%, ${GOLD} 30%, transparent 80%)`,
+            }}
+          />
+        </div>
+
+        <div className="relative flex items-center gap-3">
+          {/* Avatar mit Rahmen — 132×132, negative Margins damit's deutlich über
+              den Banner-Rand hinausragt ohne die Banner-Höhe zu vergrößern. */}
+          <div
+            className="shrink-0 relative"
+            style={{
+              width: 132, height: 132,
+              marginTop: -38, marginBottom: -38, marginLeft: -12,
+              zIndex: 3,
+            }}
+          >
+            {ringAsset?.image_url || ringAsset?.video_url ? (
+              ringAsset.video_url ? (
+                <video
+                  src={ringAsset.video_url}
+                  autoPlay loop muted playsInline
+                  style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 132, height: 132, objectFit: "contain",
+                    filter: `url(#ma365-chroma-black) drop-shadow(0 3px 14px ${GOLD}99)`,
+                    pointerEvents: "none", zIndex: 1,
+                  }}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={ringAsset.image_url!}
+                  alt=""
+                  style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: 132, height: 132, objectFit: "contain",
+                    filter: `url(#ma365-chroma-black) drop-shadow(0 3px 14px ${GOLD}99)`,
+                    pointerEvents: "none", zIndex: 1,
+                  }}
+                />
+              )
+            ) : (
+              <div
+                style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: 122, height: 122,
+                  borderRadius: "50%",
+                  border: `4px solid ${GOLD}`,
+                  boxShadow: `0 0 20px ${GOLD}88, inset 0 0 8px ${GOLD}44`,
+                }}
+              />
+            )}
+            <div
               style={{
-                marginLeft: 8, background: "transparent", border: "none",
-                color: ACCENT, fontWeight: 800, cursor: "pointer", fontSize: 12,
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: 92, height: 92,
+                borderRadius: "50%",
+                background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), rgba(70,82,122,0.6))",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "inset 0 0 12px rgba(0,0,0,0.45)",
+                overflow: "hidden",
+                zIndex: 2,
               }}
             >
-              {tCrew("memReminderBtn")}
-            </button>
-          )}
+              {leaderAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={leaderAvatar} alt="Profil Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 42, color: "#FFE4B8", fontWeight: 900, textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}>
+                  {(leaderName[0] ?? "?").toUpperCase()}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Name + Sub-Label + Ansehen */}
+          <div className="flex-1 min-w-0">
+            {/* Sub-Label — "DER DON" über dem Namen */}
+            <div
+              className="text-[8.5px] font-black uppercase"
+              style={{
+                color: GOLD,
+                letterSpacing: 3,
+                textShadow: `0 0 6px ${GOLD}44`,
+                fontFamily: "var(--font-display-stack)",
+              }}
+            >
+              ★ Der Don
+            </div>
+            {/* Name groß im Display-Font */}
+            <div
+              className="text-[18px] font-black uppercase truncate"
+              style={{
+                color: "#FFF",
+                fontFamily: "var(--font-display-stack)",
+                letterSpacing: 0.6,
+                textShadow: `0 2px 6px rgba(0,0,0,0.85), 0 0 14px ${crew.color}33`,
+                lineHeight: 1.05,
+                marginTop: 1,
+              }}
+            >
+              {leaderName}
+            </div>
+            {/* Ansehen-Reihe — Icon via UiIcon (Artwork wenn vorhanden, sonst ⚜).
+                Identisches Rendering wie base-client ScoreCard: inline span ohne
+                Flex-Wrapping damit der Emoji-Glyph genauso aussieht. */}
+            <div className="flex items-baseline gap-2 mt-1.5">
+              <span style={{ fontSize: 16, lineHeight: 1, color: GOLD }}>
+                <UiIcon slot="stat_ansehen" fallback="🌟" art={uiIconArt} size={16} />
+              </span>
+              <span
+                className="text-[15px] font-black uppercase tracking-wider"
+                style={{ color: "#cdd4e3", letterSpacing: 1.5 }}
+              >
+                Ansehen
+              </span>
+              <span
+                className="text-[20px] font-black tabular-nums ml-1"
+                style={{
+                  color: GOLD,
+                  fontFamily: "var(--font-display-stack)",
+                  lineHeight: 1,
+                  letterSpacing: -0.3,
+                  textShadow: `0 1px 2px rgba(0,0,0,0.7)`,
+                }}
+              >
+                {leaderAnsehen.toLocaleString("de-DE")}
+              </span>
+            </div>
+          </div>
+
+          {/* R5-Wachs-Siegel rechts — Stempel-Optik mit Doppelring */}
+          <div className="shrink-0 relative" style={{ width: 56, height: 56 }}>
+            {/* Outer ornamental ring */}
+            <div
+              style={{
+                position: "absolute", inset: 0,
+                borderRadius: "50%",
+                border: `2px dashed ${GOLD}88`,
+                animation: "ma365LeaderSeal 18s linear infinite",
+              }}
+            />
+            {/* Inner solid medallion */}
+            <div
+              className="absolute flex items-center justify-center"
+              style={{
+                inset: 6,
+                borderRadius: "50%",
+                background: `radial-gradient(circle at 35% 30%, ${GOLD} 0%, ${GOLD}cc 50%, #B8860B 100%)`,
+                border: `2px solid ${GOLD}`,
+                boxShadow: `0 2px 8px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3)`,
+              }}
+            >
+              <span
+                style={{
+                  color: BG_DEEP,
+                  fontSize: 18,
+                  fontWeight: 900,
+                  fontFamily: "var(--font-display-stack)",
+                  letterSpacing: 0.5,
+                  textShadow: "0 1px 0 rgba(255,255,255,0.4)",
+                }}
+              >
+                R5
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom-Akzent in Crew-Farbe */}
+        <span
+          aria-hidden
+          style={{
+            position: "absolute", bottom: 0, left: 0, right: 0, height: 2,
+            background: `linear-gradient(90deg, transparent, ${crew.color}aa 30%, ${crew.color} 60%, ${crew.color}aa 80%, transparent)`,
+          }}
+        />
+      </div>
+
+      <style>{`
+        @keyframes ma365LeaderSeal {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* ═══ SUCHE ═══ — schmal, mit Abstand zum Anführer-Banner */}
+      <div className="relative mt-4">
+        <input
+          type="text"
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+          placeholder="Mitglied suchen…"
+          className="w-full pl-8 pr-3 py-1.5 rounded-md text-[11px] text-white outline-none"
+          style={{
+            background: "rgba(15,17,21,0.55)",
+            border: `1px solid ${crew.color}22`,
+          }}
+        />
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px]" style={{ color: crew.color }}>🔍</span>
+        {memberSearch && (
+          <button
+            onClick={() => setMemberSearch("")}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded text-white text-[10px]"
+            style={{ background: "rgba(255,255,255,0.1)" }}
+          >✕</button>
+        )}
+      </div>
+
+      {/* Loading-State */}
+      {!liveMembers && (
+        <div style={{ padding: 20, textAlign: "center", color: MUTED, fontSize: 12 }}>
+          Lade Mitglieder…
         </div>
       )}
-      <div style={{ color: MUTED, fontSize: 11, marginBottom: 2 }}>
-        {tCrew("memSortHint", { count: DEMO_CREW_MEMBERS.length })}
-      </div>
-      {DEMO_CREW_MEMBERS.map((m, idx) => (
-        <div key={m.id} style={{
-          background: "rgba(70, 82, 122, 0.45)", borderRadius: 14,
-          padding: "10px 12px", display: "flex", alignItems: "center", gap: 10,
-          border: `1px solid ${BORDER}`,
-          opacity: m.weekly_km < 5 ? 0.6 : 1,
-        }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 18,
-            background: `${color}22`, border: `1px solid ${color}55`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, position: "relative",
-          }}>
-            {m.avatar_emoji}
-            {m.online && <span style={{
-              position: "absolute", bottom: -2, right: -2,
-              width: 10, height: 10, borderRadius: 5,
-              background: "#4ade80", border: "2px solid #1a1f2e",
-            }} />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>{m.display_name}</div>
-              {m.role === "admin" && <Badge color={PRIMARY}>{tCrew("memBadgeAdmin")}</Badge>}
-              {m.role === "captain" && <Badge color="#FFD700">{tCrew("memBadgeCaptain")}</Badge>}
-              {idx === 0 && <Badge color="#FFD700">{tCrew("memBadgeWeekChamp")}</Badge>}
-              {m.weekly_km < 5 && <Badge color="#ef7169">{tCrew("memBadgeInactive")}</Badge>}
-            </div>
-            <div style={{ color: MUTED, fontSize: 11, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
-              {(() => {
-                const rId = rankIdByName(m.rank_name);
-                const rColor = RUNNER_RANKS.find((x) => x.id === rId)?.color ?? color;
-                return rId ? <RankBadge rankId={rId} color={rColor} size={16} rankArt={rankArt} /> : null;
-              })()}
-              <span>{m.rank_name} · @{m.username}</span>
-            </div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ color: "#FFF", fontSize: 13, fontWeight: 900 }}>
-              {tCrew("memMemberKm", { km: m.weekly_km })}
-            </div>
-            <div style={{ color: MUTED, fontSize: 10 }}>{tCrew("memMemberXp", { xp: m.weekly_xp })}</div>
-          </div>
-          {isAdmin && (
+
+      {liveMembers && filteredRest.length === 0 && memberSearch && (
+        <div style={{ padding: 16, textAlign: "center", color: MUTED, fontSize: 12 }}>
+          Keine Mitglieder gefunden für „{memberSearch}".
+        </div>
+      )}
+
+      {/* ═══ RANG-GRUPPEN ═══ — R4 + R3 (R5 ist jetzt der Banner oben) */}
+      {liveMembers && groups.map((grp) => {
+        const isOpen = !collapsed[grp.id];
+        return (
+          <div key={grp.id} className="flex flex-col gap-1.5">
             <button
-              onClick={() => appAlert(tCrew("memActionsAlert", { name: m.display_name }))}
+              onClick={() => toggle(grp.id)}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition hover:brightness-110"
               style={{
-                background: "transparent", border: `1px solid ${BORDER}`,
-                borderRadius: 8, padding: "4px 8px", color: MUTED,
-                fontSize: 12, cursor: "pointer",
+                background: `linear-gradient(90deg, ${grp.color}22, ${grp.color}08 70%, transparent)`,
+                border: `1px solid ${grp.color}44`,
+                cursor: "pointer",
               }}
-              aria-label={tCrew("memMoreActionsAria")}
-            >⋯</button>
-          )}
+            >
+              <span
+                className="shrink-0 inline-flex items-center justify-center font-black"
+                style={{
+                  width: 26, height: 26,
+                  background: `linear-gradient(135deg, ${grp.color}, ${grp.color}aa)`,
+                  color: BG_DEEP,
+                  borderRadius: 5,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                  border: `1.5px solid ${grp.color}`,
+                  fontFamily: "var(--font-display-stack)",
+                }}
+              >
+                {grp.tag}
+              </span>
+              <span
+                className="flex-1 text-left text-[12px] font-black uppercase tracking-wider truncate text-white"
+                style={{ letterSpacing: 1.2, textShadow: "0 1px 2px rgba(0,0,0,0.7)" }}
+              >
+                {grp.label}
+              </span>
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-black tabular-nums"
+                style={{ color: grp.color }}
+              >
+                <span style={{ fontSize: 12 }}>👥</span>
+                {grp.members.length}
+              </span>
+              <span
+                className="ml-1 text-[12px] transition"
+                style={{ color: grp.color, transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+              >
+                ▼
+              </span>
+            </button>
+            {isOpen && (
+              <div className="grid grid-cols-2 gap-1.5">
+                {grp.members.map((m) => (
+                  <LiveCrewMemberCard
+                    key={m.user_id}
+                    member={m}
+                    rankColor={grp.color}
+                    crewColor={crew.color}
+                    uiIconArt={uiIconArt}
+                    canManage={isAdmin}
+                    onMore={() => appAlert(tCrew("memActionsAlert", { name: m.display_name || m.username || "Mitglied" }))}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+    </div>
+  );
+}
+
+/* Member-Card für Live-Daten (mit avatar_url) */
+function LiveCrewMemberCard({ member: m, rankColor, crewColor, uiIconArt, canManage, onMore }: {
+  member: LiveMember;
+  rankColor: string;
+  crewColor: string;
+  uiIconArt: ReturnType<typeof useUiIconArt>;
+  canManage: boolean;
+  onMore: () => void;
+}) {
+  const name = m.display_name || m.username || "Mitglied";
+  return (
+    <div
+      className="flex items-center gap-2 p-2 rounded-lg relative overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(15,17,21,0.65) 100%)",
+        border: `1px solid ${rankColor}33`,
+        minHeight: 52,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          position: "absolute", top: 0, bottom: 0, left: 0, width: 3,
+          background: `linear-gradient(180deg, ${rankColor}, ${rankColor}66)`,
+        }}
+      />
+      <div
+        className="shrink-0 relative inline-flex items-center justify-center overflow-hidden"
+        style={{
+          width: 36, height: 36,
+          borderRadius: "50%",
+          background: `${crewColor}22`,
+          border: `2px solid ${crewColor}88`,
+        }}
+      >
+        {m.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={m.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span style={{ fontSize: 18, color: "#FFE4B8", fontWeight: 900 }}>{name[0]?.toUpperCase() ?? "?"}</span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[12px] font-black text-white truncate" style={{ letterSpacing: 0.2, lineHeight: 1.15 }}>
+          {name}
         </div>
-      ))}
-      {isAdmin && (
-        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-          <button style={outlineBtnStyle()}>
-            {tCrew("memInviteMember")}
-          </button>
-          <button style={outlineBtnStyle()} onClick={() => appAlert(tCrew("memRolesAlert"))}>
-            {tCrew("memManageRoles")}
-          </button>
+        <div className="inline-flex items-center gap-1 text-[10px] font-bold tabular-nums truncate" style={{ color: "#FFD700", lineHeight: 1.2 }}>
+          <UiIcon slot="stat_ansehen" fallback="🌟" art={uiIconArt} size={12} />
+          {(m.ansehen ?? 0).toLocaleString("de-DE")}
         </div>
+      </div>
+      {canManage && (
+        <button
+          onClick={onMore}
+          className="shrink-0 w-6 h-6 rounded text-[12px] text-white"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.15)",
+          }}
+        >⋯</button>
+      )}
+    </div>
+  );
+}
+
+/* Einzelne Mitglieder-Card im RoK-Stil — Avatar links mit farbigem Ring,
+   Name + Ansehen rechts, dezenter Rang-Akzent in der Border. */
+function CrewMemberCard({ member: m, rankColor, crewColor, canManage, onMore }: {
+  member: CrewMember;
+  rankColor: string;
+  crewColor: string;
+  canManage: boolean;
+  onMore: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2 p-2 rounded-lg relative overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(15,17,21,0.65) 100%)",
+        border: `1px solid ${rankColor}33`,
+        minHeight: 56,
+      }}
+    >
+      {/* Akzent-Linie links — Rang-Farbe */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute", top: 0, bottom: 0, left: 0, width: 3,
+          background: `linear-gradient(180deg, ${rankColor}, ${rankColor}66)`,
+        }}
+      />
+      {/* Avatar mit Ring */}
+      <div
+        className="shrink-0 relative inline-flex items-center justify-center"
+        style={{
+          width: 40, height: 40,
+          borderRadius: "50%",
+          background: `${crewColor}22`,
+          border: `2px solid ${crewColor}88`,
+          fontSize: 22,
+        }}
+      >
+        {m.avatar_emoji}
+        {m.online && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute", bottom: -1, right: -1,
+              width: 11, height: 11, borderRadius: "50%",
+              background: "#4ade80",
+              border: "2px solid rgba(15,17,21,1)",
+            }}
+          />
+        )}
+      </div>
+      {/* Name + Ansehen */}
+      <div className="flex-1 min-w-0">
+        <div
+          className="text-[12px] font-black text-white truncate"
+          style={{ letterSpacing: 0.2, lineHeight: 1.15 }}
+        >
+          {m.display_name}
+        </div>
+        <div
+          className="text-[10.5px] font-bold tabular-nums truncate"
+          style={{ color: "#FFD700", lineHeight: 1.2 }}
+        >
+          ⚜ {m.weekly_xp.toLocaleString("de-DE")}
+        </div>
+      </div>
+      {/* Optional: Aktionen-Menü */}
+      {canManage && (
+        <button
+          onClick={onMore}
+          className="shrink-0 w-6 h-6 rounded text-[12px] text-white"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.15)",
+          }}
+        >⋯</button>
       )}
     </div>
   );

@@ -1433,6 +1433,7 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
   const s = input.slot;
 
   const SUBJECT: Record<string, string> = {
+    stat_ansehen:   "golden radiant fleur-de-lis emblem on dark plate, prestige/reputation icon, ornate metallic gold with subtle highlights, sun-like rays around the crest, sharp clean game-ui style",
     stat_troops:    "crossed sword and shield silhouette emblem, troop count icon, militant",
     stat_attack:    "single longsword diagonal with red glow, sharp blade, attack icon",
     stat_defense:   "tower shield emblem with steel rim, glowing crest center, defense icon",
@@ -1492,6 +1493,30 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
     quick_inventory: "stylized urban backpack icon — chunky rugged messenger pack with gold #FFD700 buckles, magenta #FF2D78 stitching glow, teal #22D1C3 zipper accent, single bold silhouette, gritty street-loot vibe, vibrant inventory/loot icon",
     quick_achieve:   "five-pointed star medal with red ribbon, golden #FFD700 polished metal, shining center, achievement badge",
     quick_wegelager: "weathered urban barricade-pile silhouette with crossed crowbars on top, single skull stencil graffitied across, ambush/highway-robbery icon",
+    crew_tresor:     "heavy reinforced urban safe / vault icon with cyberpunk lock interface, gold #FFD700 dial in center, teal #22D1C3 LED indicator lights, weathered metal panels, slight 3D perspective, gritty heist-vault aesthetic, single bold silhouette readable at 64px",
+    crew_bypass_code:"glowing cyber-key / hex bypass-code chip silhouette, neon gold #FFD700 fill with a small teal #22D1C3 LED dot, sharp clean pictogram for an unlock/access-token icon",
+    crew_mikrochip:  "stylized cyber microchip square with circuit traces in teal #22D1C3 and a single bright magenta #FF2D78 core dot, slight 3D bevel, sharp clean pictogram for an upgrade-resource icon",
+    // Tile-Icons im Crew-Verwaltungs-Grid (7 Hauptfunktionen)
+    crew_tile_forschung: "stylized urban tech-lab icon: glowing teal #22D1C3 erlenmeyer flask with cyberpunk circuit lines and a small magenta #FF2D78 spark inside, slight 3D tilt, sharp clean pictogram for a research/tech-tree feature",
+    crew_tile_lager:     "rugged warehouse / storage container icon: stacked metal crates with gold #FFD700 reinforced corners and a small teal #22D1C3 indicator LED, gritty urban-warehouse vibe, sharp pictogram",
+    crew_tile_shop:      "neon-lit cyberpunk shop kiosk icon: minimalist storefront with magenta #FF2D78 awning and a small gold #FFD700 'open' sign, single bold silhouette, vibrant shopping icon",
+    crew_tile_angriffe:  "two crossed urban combat blades in an X, magenta #FF2D78 and teal #22D1C3 energy edges, sharp clean attack/rally emblem (clearly different from quick_rally — more aggressive, edge-glow)",
+    crew_tile_gebiete:   "stylized urban district map icon: hexagonal city tile fragments with teal #22D1C3 streets and a magenta #FF2D78 territory marker pin, top-down map pictogram",
+    crew_tile_hilfe:     "two clasped urban hands silhouette making a help/support gesture, gold #FFD700 wristbands, teal #22D1C3 spark between the palms, bold pictogram for crew-help feature",
+    crew_tile_beute:     "ornate treasure-loot crate icon: weathered wooden chest with gold #FFD700 hinges and a magenta #FF2D78 padlock, slight perspective, vibrant gritty loot-chest vibe (clearly distinct from quick_shop gift-box)",
+    // Top-Tabs in der Crew-Verwaltung
+    crew_tab_uebersicht: "stylized urban clipboard icon with a teal #22D1C3 checklist and gold #FFD700 accent corner, sharp clean overview/dashboard pictogram",
+    crew_tab_mitglieder: "three overlapping urban-crew silhouettes (head + shoulders), gold #FFD700 outline on the centered figure, sharp pictogram for a member-list/roster feature",
+    crew_tab_hausregeln: "stylized urban rule-book / settings cogwheel hybrid: a gear made of subway-tile patterns with a small teal #22D1C3 LED in the center, gritty settings icon",
+    // Speedup-Typ-Icons (verwendet in Spende-Pill-Beschreibung 1× 12h zufällig)
+    crew_speedup_build:    "stylized urban construction-hammer icon: gold #FFD700 sledgehammer with a teal #22D1C3 spark on the head, gritty build/construction pictogram",
+    crew_speedup_research: "stylized cyberpunk microscope icon: teal #22D1C3 chrome lens with a magenta #FF2D78 specimen glow underneath, sharp research pictogram",
+    crew_speedup_universal:"stylized energy-bolt icon: gold #FFD700 jagged lightning with a teal #22D1C3 inner glow and magenta #FF2D78 spark tail, vibrant universal-speedup pictogram",
+    crew_speedup_march:    "stylized urban running-boot silhouette with teal #22D1C3 motion lines trailing behind and a gold #FFD700 lace highlight, gritty march/speed pictogram",
+    // Spende-Sektion
+    crew_donate_diamond:   "stylized cyberpunk diamond / gem icon: magenta #FF2D78 and teal #22D1C3 facets with a bright white core, slight 3D rotation, vibrant premium-currency pictogram",
+    crew_donate_star_elite:"stylized 5-point cyber-star icon with magenta #FF2D78 inner glow and a teal #22D1C3 outer rim, sharp clean elite-tier emblem",
+    crew_donate_star_mega: "stylized 5-point cyber-star icon with gold #FFD700 inner glow and a glowing white core, slightly larger/heavier outline than crew_donate_star_elite — premium mega-tier emblem",
   };
 
   const subject = SUBJECT[s.id] ?? `iconic single-subject illustration representing "${s.name}" — ${s.description}`;

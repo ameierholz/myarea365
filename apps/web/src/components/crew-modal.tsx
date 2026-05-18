@@ -1,15 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import { UiIcon, useUiIconArt } from "@/components/resource-icon";
-import { Modal, ModalHeader, ModalBody, Z } from "@/components/ui";
+import { UiIcon, useUiIconArt, useResourceArt, useModalBackgroundArt, ResourceIcon, type ResourceArtMap } from "@/components/resource-icon";
 
 const PRIMARY = "#22D1C3";
 const BG = "#0F1115";
 const TEXT = "#F0F0F0";
 const MUTED = "#8B8FA3";
+
+// Crew-Level-Schwellen (vereinfacht, falls noch nicht in DB): Ansehen-Total
+// dient als XP-Proxy für die Crew-Stufe. Schwellen wachsen exponentiell.
+function computeCrewLevel(ansehen: number): { level: number; pct: number; nextAt: number } {
+  const thresholds = [0, 500, 1500, 3500, 7500, 15000, 30000, 60000, 120000, 250000, 500000];
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (ansehen >= thresholds[i]) {
+      const next = thresholds[i + 1] ?? thresholds[i] * 2;
+      const span = next - thresholds[i];
+      const into = ansehen - thresholds[i];
+      return { level: i + 1, pct: span > 0 ? Math.min(100, (into / span) * 100) : 100, nextAt: next };
+    }
+  }
+  return { level: 1, pct: 0, nextAt: thresholds[1] };
+}
 
 type Tab = "uebersicht" | "mitglieder" | "tech" | "bauwerke" | "kopfgelder" | "shop" | "hilfe" | "diplomatie" | "nachrichten" | "einstellungen";
 
@@ -31,6 +45,7 @@ export function CrewModal({ onClose, onPlaceBuilding, onOpenWar }: { onClose: ()
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const uiArt = useUiIconArt();
+  const resourceArt = useResourceArt();
 
   useEffect(() => {
     const sb = createClient();
@@ -43,104 +58,257 @@ export function CrewModal({ onClose, onPlaceBuilding, onOpenWar }: { onClose: ()
     })();
   }, []);
 
-  const headerRight = onOpenWar ? (
-    <button
-      onClick={onOpenWar}
-      style={{
-        padding: "6px 12px", borderRadius: 8,
-        background: "rgba(255,45,120,0.18)",
-        border: "1px solid rgba(255,45,120,0.45)",
-        color: "#FF2D78", fontSize: 11, fontWeight: 900, letterSpacing: 0.5,
-        cursor: "pointer", textTransform: "uppercase",
-      }}
+  // ESC schließt
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[9100] bg-black/75 backdrop-blur-md flex items-stretch justify-center p-1.5 sm:p-6"
+      style={{ maxHeight: "100dvh" }}
     >
-      ⚔ Kriege
-    </button>
-  ) : undefined;
-
-  return (
-    <Modal open={true} onClose={onClose} size="xl" zIndex={Z.modal}>
-      <ModalHeader
-        title={
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <UiIcon slot="quick_crew" fallback="⚔" art={uiArt} size={22} />
-            {t("title")}
-          </span>
-        }
-        onClose={onClose}
-        accent="primary"
-        right={headerRight}
-      />
-      <ModalBody padding="flush">
-        {error && (
-          <div style={{ padding: 18, color: "#FF6B4A" }}>{t("errorPrefix", { msg: error })}</div>
-        )}
-        {!error && !overview && (
-          <div style={{ padding: 18, color: MUTED }}>{t("loading")}</div>
-        )}
-        {!error && overview && (
-          <>
-            <Header overview={overview} />
-
-            <Tabs tab={tab} onChange={setTab} uiArt={uiArt} />
-
-            <div style={{ padding: 16 }}>
-              {tab === "uebersicht"   && <TabUebersicht overview={overview} />}
-              {tab === "mitglieder"   && <TabMitglieder crewId={overview.crew.id} />}
-              {tab === "tech"         && <TabTech />}
-              {tab === "bauwerke"     && <TabBauwerke onPlaceBuilding={(kind) => { onPlaceBuilding?.(kind); onClose(); }} />}
-              {tab === "kopfgelder"   && <TabKopfgelder crewId={overview.crew.id} />}
-              {tab === "shop"         && <TabShop />}
-              {tab === "hilfe"        && <TabHilfe />}
-              {tab === "diplomatie"   && <TabDiplomatie crewId={overview.crew.id} />}
-              {tab === "nachrichten"  && <TabNachrichten />}
-              {tab === "einstellungen"&& <TabEinstellungen />}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl flex flex-col min-h-0"
+        style={{ maxHeight: "100dvh" }}
+      >
+        <div className="bg-[#0F1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col flex-1 min-h-0">
+          {error && (
+            <div className="p-5 text-[#FF6B4A] text-sm font-bold">
+              {t("errorPrefix", { msg: error })}
             </div>
-          </>
-        )}
-      </ModalBody>
-    </Modal>
-  );
-}
+          )}
+          {!error && !overview && (
+            <div className="p-5 text-[#8B8FA3] text-sm">{t("loading")}</div>
+          )}
+          {!error && overview && (
+            <>
+              <Header
+                overview={overview}
+                onClose={onClose}
+                onOpenWar={onOpenWar}
+                onOpenSettings={() => setTab("einstellungen")}
+                showResourceHud={tab !== "uebersicht" && tab !== "einstellungen"}
+                resourceArt={resourceArt}
+              />
 
-function Header({ overview }: { overview: Overview }) {
-  const t = useTranslations("CrewModal");
-  const { crew, leader, stats } = overview;
-  const uiArt = useUiIconArt();
-  return (
-    <div style={{
-      padding: "20px 18px",
-      background: `linear-gradient(135deg, ${crew.color}22, transparent)`,
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
-      display: "flex", gap: 16, alignItems: "center",
-    }}>
-      <div style={{
-        width: 64, height: 64, borderRadius: 16,
-        background: `linear-gradient(135deg, ${crew.color}, ${crew.color}aa)`,
-        color: BG, display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 28, fontWeight: 900, boxShadow: `0 0 18px ${crew.color}88`,
-      }}>{crew.tag.charAt(0)}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: TEXT, fontSize: 28, fontWeight: 400, fontFamily: "var(--font-display-stack)", letterSpacing: 0.6, lineHeight: 1 }}>
-          [{crew.tag}] {crew.name}
+              <Tabs tab={tab} onChange={setTab} uiArt={uiArt} accent={overview.crew.color} />
+
+              <div className="p-4 overflow-y-auto flex-1 ma365-no-scrollbar" style={{ scrollbarWidth: "none" }}>
+                <style>{`.ma365-no-scrollbar::-webkit-scrollbar{display:none}`}</style>
+                {tab === "uebersicht"   && <TabUebersicht overview={overview} />}
+                {tab === "mitglieder"   && <TabMitglieder crewId={overview.crew.id} />}
+                {tab === "tech"         && <TabTech />}
+                {tab === "bauwerke"     && <TabBauwerke onPlaceBuilding={(kind) => { onPlaceBuilding?.(kind); onClose(); }} />}
+                {tab === "kopfgelder"   && <TabKopfgelder crewId={overview.crew.id} />}
+                {tab === "shop"         && <TabShop />}
+                {tab === "hilfe"        && <TabHilfe />}
+                {tab === "diplomatie"   && <TabDiplomatie crewId={overview.crew.id} />}
+                {tab === "nachrichten"  && <TabNachrichten />}
+                {tab === "einstellungen"&& <TabEinstellungen />}
+              </div>
+            </>
+          )}
         </div>
-        <div style={{ color: MUTED, fontSize: 12, marginTop: 4 }}>
-          {t("leaderLabel")} <span style={{ color: TEXT, fontWeight: 700 }}>{leader?.name ?? t("noLeader")}</span> · {t("zipPrefix", { zip: crew.zip })}
-        </div>
-      </div>
-      <div style={{ textAlign: "right" }}>
-        <div style={{ color: "#FFD700", fontSize: 26, fontWeight: 400, fontFamily: "var(--font-display-stack)", letterSpacing: 0.4, lineHeight: 1, display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
-          <UiIcon slot="stat_ansehen" fallback="⚜" art={uiArt} size={22} />
-          {stats.ansehen_total.toLocaleString()}
-        </div>
-        <div style={{ color: MUTED, fontSize: 11 }}>{t("ansehenLabel")}</div>
       </div>
     </div>
   );
 }
 
-function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; uiArt: ReturnType<typeof useUiIconArt> }) {
+function Header({
+  overview,
+  onClose,
+  onOpenWar,
+  onOpenSettings,
+  showResourceHud,
+  resourceArt,
+}: {
+  overview: Overview;
+  onClose: () => void;
+  onOpenWar?: () => void;
+  onOpenSettings: () => void;
+  showResourceHud: boolean;
+  resourceArt: ResourceArtMap;
+}) {
+  const t = useTranslations("CrewModal");
+  const { crew, leader, stats, resources } = overview;
+  const uiArt = useUiIconArt();
+  const bgArt = useModalBackgroundArt();
+  const accent = crew.color;
+  const { level, pct, nextAt } = computeCrewLevel(stats.ansehen_total);
+
+  // Crew-Zentrum-Artwork als Header-Background (slot karte_crew_bg).
+  // Liegt unter mehreren Layern: Image → dunkler Veil → Akzent-Gradient → Content.
+  const crewBg = bgArt["karte_crew_bg"];
+  const bgImageUrl = crewBg?.image_url ?? null;
+  const bgVideoUrl = crewBg?.video_url ?? null;
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Background-Layer: Crew-Zentrum-Artwork (Image oder Video) */}
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={bgImageUrl}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: "saturate(1.1) contrast(1.05)" }}
+        />
+      )}
+      {!bgImageUrl && bgVideoUrl && (
+        <video
+          src={bgVideoUrl}
+          autoPlay loop muted playsInline
+          aria-hidden
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: "saturate(1.1) contrast(1.05)" }}
+        />
+      )}
+      {/* Dark-Veil + Akzent-Gradient drüber für Lesbarkeit + Crew-Branding */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            linear-gradient(135deg, ${accent}55 0%, ${accent}22 45%, rgba(15,17,21,0.85) 100%),
+            linear-gradient(180deg, rgba(15,17,21,0.45) 0%, rgba(15,17,21,0.78) 100%)
+          `,
+        }}
+      />
+      {/* Akzent-Strip oben */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${accent}, ${accent}, transparent)`,
+          boxShadow: `0 0 12px ${accent}aa`,
+        }}
+      />
+
+      {/* Content */}
+      <div className="relative px-3 pt-3 pb-3 flex items-start gap-3">
+        {/* Crew-Avatar-Tile mit Radial-Glow */}
+        <div
+          className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+          style={{
+            background: `radial-gradient(circle at 50% 30%, ${accent}cc, ${accent}55 50%, rgba(15,17,21,0.7))`,
+            border: `2px solid ${accent}`,
+            boxShadow: `0 0 18px ${accent}88, inset 0 1px 0 rgba(255,255,255,0.2)`,
+            color: "#0F1115",
+            fontSize: 26, fontWeight: 900,
+            fontFamily: "var(--font-display-stack)",
+            letterSpacing: 0.5,
+            textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+          }}
+        >
+          {crew.tag.charAt(0)}
+        </div>
+
+        {/* Titel + Leader + Crew-Level-XP */}
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-black tracking-widest uppercase" style={{ color: accent, textShadow: `0 0 8px ${accent}55` }}>
+            [{crew.tag}] · {t("zipPrefix", { zip: crew.zip })}
+          </div>
+          <div
+            className="text-base sm:text-xl font-black text-white truncate mt-0.5"
+            style={{ fontFamily: "var(--font-display-stack)", letterSpacing: 0.4, textShadow: "0 2px 6px rgba(0,0,0,0.6)" }}
+          >
+            {crew.name}
+          </div>
+          <div className="mt-1.5">
+            <div className="flex justify-between text-[9px] text-[#cdd4e3] font-black mb-1">
+              <span>STUFE {level} · {t("leaderLabel")} <span style={{ color: "#FFF" }}>{leader?.name ?? t("noLeader")}</span></span>
+              <span>{level < 10 ? `→ ${nextAt.toLocaleString()}` : "MAX"}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-black/40 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${pct}%`,
+                  background: `linear-gradient(90deg, ${accent}, ${accent}cc)`,
+                  boxShadow: `0 0 8px ${accent}`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Ansehen-Total + Action-Cluster */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex items-center gap-1">
+            {onOpenWar && (
+              <button
+                onClick={onOpenWar}
+                className="w-7 h-7 rounded-md bg-black/40 hover:bg-black/60 text-[#FF2D78] hover:text-white text-sm font-black transition-colors flex items-center justify-center"
+                style={{ border: "1px solid rgba(255,45,120,0.45)" }}
+                title="Kriege"
+                aria-label="Kriege"
+              >
+                ⚔
+              </button>
+            )}
+            <button
+              onClick={onOpenSettings}
+              className="w-7 h-7 rounded-md bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-sm font-black transition-colors flex items-center justify-center"
+              title="Einstellungen"
+              aria-label="Einstellungen"
+            >
+              ⚙
+            </button>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-md bg-black/40 hover:bg-black/60 text-white/80 hover:text-white text-base font-black transition-colors flex items-center justify-center"
+              title="Schließen"
+              aria-label="Schließen"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/45 backdrop-blur-sm" style={{ border: `1px solid #FFD70066`, boxShadow: "0 0 10px rgba(255,215,0,0.25)" }}>
+            <UiIcon slot="stat_ansehen" fallback="⚜" art={uiArt} size={16} />
+            <span style={{ color: "#FFD700", fontSize: 14, fontWeight: 900, fontFamily: "var(--font-display-stack)", letterSpacing: 0.3 }}>
+              {stats.ansehen_total.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Resource-HUD direkt unter Header (nur außerhalb von Übersicht/Settings) */}
+      {showResourceHud && resources && (
+        <div className="relative px-3 pb-3 grid grid-cols-4 gap-1.5">
+          {(["wood", "stone", "gold", "mana"] as const).map((k) => (
+            <div key={k} className="rounded-lg bg-black/45 backdrop-blur-sm px-2 py-1.5 text-center" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="leading-none flex items-center justify-center" style={{ height: 32 }}>
+                <ResourceIcon kind={k} size={32} fallback={k === "wood" ? "🔩" : k === "stone" ? "⚙️" : k === "gold" ? "💰" : "📡"} art={resourceArt} />
+              </div>
+              <div className="text-[11px] font-black mt-0.5" style={{ color: k === "gold" ? "#FFD700" : k === "mana" ? "#22D1C3" : "#FFF" }}>
+                {compactNum(resources[k] ?? 0)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// kompakter Zahl-Formatter wie im base-modal
+function compactNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return n.toLocaleString();
+}
+
+function Tabs({ tab, onChange, uiArt, accent }: { tab: Tab; onChange: (t: Tab) => void; uiArt: ReturnType<typeof useUiIconArt>; accent: string }) {
   const tt = useTranslations("CrewModal");
+  // Settings ist im Header als ⚙-Button — fliegt aus der Tab-Bar raus,
+  // damit es nicht doppelt erreichbar ist (Pattern wie base-modal).
   const tabs: Array<{ id: Tab; label: string; slot: string; fallback: string }> = [
     { id: "uebersicht",    label: tt("tabOverview"),  slot: "crew_tab_overview", fallback: "📋" },
     { id: "mitglieder",    label: tt("tabMembers"),   slot: "crew_tab_members",  fallback: "👥" },
@@ -151,72 +319,176 @@ function Tabs({ tab, onChange, uiArt }: { tab: Tab; onChange: (t: Tab) => void; 
     { id: "hilfe",         label: "Hilfe",            slot: "crew_tab_help",     fallback: "🤝" },
     { id: "diplomatie",    label: "Diplomatie",       slot: "crew_tab_diplomacy", fallback: "🤝" },
     { id: "nachrichten",   label: "Nachrichten",      slot: "crew_tab_mail",     fallback: "✉" },
-    { id: "einstellungen", label: tt("tabSettings"),  slot: "crew_tab_settings", fallback: "⚙" },
   ];
   return (
-    <div style={{
-      display: "flex", overflowX: "auto", gap: 4, padding: "10px 12px",
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
-    }}>
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          style={{
-            padding: "11px 14px", borderRadius: 10, whiteSpace: "nowrap",
-            background: tab === t.id ? `${PRIMARY}22` : "transparent",
-            border: tab === t.id ? `1px solid ${PRIMARY}` : "1px solid transparent",
-            color: tab === t.id ? PRIMARY : MUTED,
-            fontSize: 12, fontWeight: 800, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 6,
-            minHeight: 40,
-          }}
-        >
-          <UiIcon slot={t.slot} fallback={t.fallback} art={uiArt} size={16} />
-          {t.label}
-        </button>
-      ))}
+    <div
+      className="flex border-y border-white/10 text-[10px] font-black tracking-wider bg-[#0F1115] shrink-0 overflow-x-auto"
+      style={{ scrollbarWidth: "none" }}
+    >
+      <style>{`.crew-tabs-row::-webkit-scrollbar{display:none}`}</style>
+      <div className="crew-tabs-row flex w-full">
+        {tabs.map((tt) => {
+          const active = tab === tt.id;
+          return (
+            <button
+              key={tt.id}
+              onClick={() => onChange(tt.id)}
+              title={tt.label}
+              className={`flex-1 min-w-[68px] py-2 px-2 whitespace-nowrap transition-colors inline-flex items-center justify-center gap-1.5 ${active ? "text-white" : "text-[#a8b4cf] hover:text-white"}`}
+              style={
+                active
+                  ? { borderBottom: `2px solid ${accent}`, marginBottom: "-1px", background: `${accent}11`, boxShadow: `inset 0 -8px 16px -8px ${accent}55` }
+                  : undefined
+              }
+            >
+              <UiIcon slot={tt.slot} fallback={tt.fallback} art={uiArt} size={14} />
+              <span>{tt.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function TabUebersicht({ overview }: { overview: Overview }) {
   const t = useTranslations("CrewModal");
-  const { stats, resources } = overview;
+  const { crew, stats, resources } = overview;
+  const accent = crew.color;
+  const resourceArt = useResourceArt();
+  const { level, pct, nextAt } = computeCrewLevel(stats.ansehen_total);
+
   return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-        <StatCard label={t("statMembers")} value={stats.member_count.toString()} />
-        <StatCard label={t("statRepeaters")} value={stats.repeater_count.toString()} />
-        <StatCard label={t("statTerritories")} value={stats.territory_count.toString()} />
-        <StatCard label={t("statAnsehen")} value={stats.ansehen_total.toLocaleString()} accent="#FFD700" />
+    <div className="space-y-3">
+      {/* Quick-Stats Grid — 4 hauptmetriken mit Progress wo sinnvoll */}
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard
+          icon="⚜"
+          label={t("statAnsehen")}
+          value={compactNum(stats.ansehen_total)}
+          sub={level < 10 ? `STUFE ${level} → ${compactNum(nextAt)}` : `STUFE ${level} · MAX`}
+          accent="#FFD700"
+          progress={pct}
+        />
+        <StatCard
+          icon="👥"
+          label={t("statMembers")}
+          value={stats.member_count.toString()}
+          sub={`${stats.member_count}/50`}
+          accent={accent}
+          progress={(stats.member_count / 50) * 100}
+        />
+        <StatCard
+          icon="📡"
+          label={t("statRepeaters")}
+          value={stats.repeater_count.toString()}
+          sub={stats.repeater_count > 0 ? "im Einsatz" : "Kein Repeater"}
+          accent="#22D1C3"
+        />
+        <StatCard
+          icon="🗺"
+          label={t("statTerritories")}
+          value={stats.territory_count.toString()}
+          sub={stats.territory_count > 0 ? "Crew-Turfs" : "Erobere Turf"}
+          accent="#FF6B4A"
+        />
       </div>
+
+      {/* Crew-Schatzkammer (RSS) — modernes Grid mit Icons */}
       {resources && (
-        <>
-          <div style={{ color: MUTED, fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginTop: 18, marginBottom: 8 }}>
+        <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
+          <div className="text-[10px] font-black tracking-widest uppercase text-[#a8b4cf] mb-2">
             {t("rssHeader")}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-            <StatCard label={t("rssWood")}  value={resources.wood.toLocaleString()} />
-            <StatCard label={t("rssStone")} value={resources.stone.toLocaleString()} />
-            <StatCard label={t("rssGold")}  value={resources.gold.toLocaleString()} />
-            <StatCard label={t("rssMana")}  value={resources.mana.toLocaleString()} />
+          <div className="grid grid-cols-4 gap-2">
+            {([
+              { k: "wood",  label: t("rssWood"),  fb: "🔩", color: "#FFF" },
+              { k: "stone", label: t("rssStone"), fb: "⚙️", color: "#FFF" },
+              { k: "gold",  label: t("rssGold"),  fb: "💰", color: "#FFD700" },
+              { k: "mana",  label: t("rssMana"),  fb: "📡", color: "#22D1C3" },
+            ] as const).map((r) => (
+              <div
+                key={r.k}
+                className="rounded-lg bg-black/30 px-2 py-2 text-center"
+                style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <div className="flex items-center justify-center" style={{ height: 32 }}>
+                  <ResourceIcon kind={r.k} size={32} fallback={r.fb} art={resourceArt} />
+                </div>
+                <div className="text-[12px] font-black mt-0.5" style={{ color: r.color }}>
+                  {compactNum(resources[r.k] ?? 0)}
+                </div>
+                <div className="text-[8px] uppercase tracking-wider mt-0.5 text-[#8B8FA3] truncate">
+                  {r.label}
+                </div>
+              </div>
+            ))}
           </div>
-        </>
+        </div>
       )}
+
+      {/* Quick-Info-Card: Crew-Daten */}
+      <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3 text-[11px] text-[#cdd4e3]">
+        <div className="flex items-center justify-between">
+          <span className="text-[#8B8FA3]">Crew-Tag</span>
+          <span className="font-black" style={{ color: accent }}>[{crew.tag}]</span>
+        </div>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[#8B8FA3]">Heimat-PLZ</span>
+          <span className="font-bold text-white">{crew.zip}</span>
+        </div>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[#8B8FA3]">Gegründet</span>
+          <span className="font-bold text-white">{new Date(crew.created_at).toLocaleDateString("de-DE")}</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  accent,
+  progress,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  accent: string;
+  progress?: number;
+}) {
   return (
-    <div style={{
-      padding: 12, borderRadius: 12,
-      background: "rgba(255,255,255,0.04)",
-      border: "1px solid rgba(255,255,255,0.08)",
-    }}>
-      <div style={{ color: accent ?? TEXT, fontSize: 18, fontWeight: 900 }}>{value}</div>
-      <div style={{ color: MUTED, fontSize: 11, marginTop: 2 }}>{label}</div>
+    <div className="rounded-xl bg-[#1A1D23] border border-white/10 p-3">
+      <div className="flex items-center gap-2">
+        {typeof icon === "string" ? (
+          <span className="text-2xl shrink-0" style={{ filter: `drop-shadow(0 0 8px ${accent}55)` }}>{icon}</span>
+        ) : (
+          <span className="flex items-center justify-center shrink-0" style={{ width: 40, height: 40 }}>{icon}</span>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-[9px] font-black tracking-wider text-[#a8b4cf] uppercase truncate">{label}</div>
+          <div className="text-lg font-black truncate" style={{ color: accent, fontFamily: "var(--font-display-stack)", letterSpacing: 0.3 }}>
+            {value}
+          </div>
+        </div>
+      </div>
+      {sub && <div className="text-[9px] text-[#a8b4cf] mt-1 truncate">{sub}</div>}
+      {typeof progress === "number" && (
+        <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.min(100, Math.max(0, progress))}%`,
+              background: `linear-gradient(90deg, ${accent}, ${accent}aa)`,
+              boxShadow: `0 0 6px ${accent}88`,
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

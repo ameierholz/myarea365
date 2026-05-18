@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useModalBackgroundArt, useArtworkReady } from "@/components/resource-icon";
+import { pushHudHide, popHudHide } from "@/lib/modal-stack";
 
 /**
  * Wiederverwendbarer Fullscreen-Modal-Frame für die Tab-Routen
@@ -31,8 +32,11 @@ export function FullscreenFrame({
   bgSlot,
   children,
   onClose,
+  flushContent = false,
 }: {
   title: string;
+  /** Wenn true, entfernt das Content-Padding (12px 14px) — Inhalt geht bis Modal-Rand. */
+  flushContent?: boolean;
   subtitle?: string;
   theme?: FrameTheme;
   /** Slot-ID für Modal-Background-Artwork (z.B. "karte_base_bg"). Wenn vorhanden überschreibt es den Theme-Gradient. */
@@ -59,6 +63,13 @@ export function FullscreenFrame({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [router, onClose]);
+
+  // HUD-Hide-Stack: KartenHud (z 9050) muss weg, sonst überlagert es das Modal.
+  // Chat-Widget bleibt SICHTBAR — das Modal ist um den Chat herum gebaut.
+  useEffect(() => {
+    pushHudHide();
+    return () => { popHudHide(); };
+  }, []);
 
   const handleClose = () => {
     if (onClose) onClose();
@@ -154,6 +165,9 @@ export function FullscreenFrame({
           padding: 12px 14px max(20px, env(safe-area-inset-bottom));
           -webkit-overflow-scrolling: touch;
         }
+        .ma365-frame-content.ma365-frame-content--flush {
+          padding: 12px 0 max(20px, env(safe-area-inset-bottom));
+        }
       `}</style>
 
       {/* Modal-Background-Artwork (Image oder MP4-Video) — überschreibt den Theme-Gradient wenn hochgeladen */}
@@ -192,7 +206,7 @@ export function FullscreenFrame({
         </button>
       </div>
 
-      <div className="ma365-frame-content">{children}</div>
+      <div className={`ma365-frame-content${flushContent ? " ma365-frame-content--flush" : ""}`}>{children}</div>
     </div>
   );
 }

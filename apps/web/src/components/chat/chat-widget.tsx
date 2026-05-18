@@ -157,7 +157,6 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
         }
       } catch { /* noop */ }
       try { await fetch("/api/chat/cvc", { method: "POST" }); } catch { /* noop */ }
-      try { await fetch("/api/chat/saved", { method: "POST" }); } catch { /* noop */ }
       void refreshRooms();
     })();
   }, [open, refreshRooms]);
@@ -165,7 +164,7 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
   const filteredRooms = useMemo(() => {
     if (tab === "heimat") return rooms.filter((r) => r.kind === "heimat_bezirk" || r.kind === "heimat_stadt");
     if (tab === "crew") return rooms.filter((r) => r.kind === "crew");
-    if (tab === "dm") return rooms.filter((r) => r.kind === "pm" || r.kind === "group" || r.kind === "saved");
+    if (tab === "dm") return rooms.filter((r) => r.kind === "pm" || r.kind === "group");
     if (tab === "cvc") return rooms.filter((r) => r.kind === "cvc");
     return [];
   }, [rooms, tab]);
@@ -262,9 +261,9 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {rooms.filter(r => r.kind !== "world").length === 0 ? (
+          {rooms.filter(r => r.kind !== "world" && r.kind !== "saved").length === 0 ? (
             <span className="text-[9px] text-[#8B8FA3] px-2 py-0.5">Keine Räume</span>
-          ) : rooms.filter(r => r.kind !== "world").map((r) => {
+          ) : rooms.filter(r => r.kind !== "world" && r.kind !== "saved").map((r) => {
             const isActive = activePreview?.room_id === r.room_id;
             const labelKind = r.kind === "saved" ? "📝" : r.kind === "pm" ? "💬" : r.kind === "group" ? "👥" : r.kind === "crew" ? "🛡" : r.kind === "cvc" ? "⚔" : r.kind === "world" ? "🌍" : r.kind === "heimat_plz" ? "📍" : r.kind === "heimat_bezirk" ? "🏘" : "🏙";
             return (
@@ -419,6 +418,7 @@ type PreviewMsg = {
 };
 function ChatPreviewStream({ roomId }: { roomId: string; cosmeticArt?: CosmeticArt }) {
   const [msgs, setMsgs] = useState<PreviewMsg[]>([]);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -435,6 +435,11 @@ function ChatPreviewStream({ roomId }: { roomId: string; cosmeticArt?: CosmeticA
     return () => { alive = false; clearInterval(id); };
   }, [roomId]);
 
+  // Auto-Scroll auf neueste Nachricht (immer ans Ende)
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [msgs]);
+
   if (msgs.length === 0) {
     return (
       <div className="text-[9px] text-[#8B8FA3] text-center py-3 px-3" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>
@@ -444,7 +449,7 @@ function ChatPreviewStream({ roomId }: { roomId: string; cosmeticArt?: CosmeticA
   }
 
   return (
-    <div className="overflow-y-auto" style={{ maxHeight: 112, padding: "2px 6px" }}>
+    <div ref={scrollRef} className="overflow-y-auto" style={{ maxHeight: 112, padding: "2px 6px" }}>
       {msgs.map((m) => {
         const name = m.author?.display_name || m.author?.username || "—";
         const tag = m.author?.crew_tag;
