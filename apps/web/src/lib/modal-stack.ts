@@ -37,3 +37,36 @@ export function useModalStackDepth(): number {
   }, []);
   return depth;
 }
+
+// ════════════════════════════════════════════════════════════════════
+// FULLSCREEN-LAYER (separat vom Modal-Stack)
+//
+// Für vollflächige Overlays (FullscreenMapModal), die — anders als die
+// rechtsbündigen ui/Modal-basierten Sheets — keinen Platz für den
+// Chat-Hub links unten lassen. ChatWidget liest diesen Counter und
+// versteckt sich, solange ein Fullscreen-Layer offen ist.
+// ════════════════════════════════════════════════════════════════════
+
+let _fsDepth = 0;
+const _fsListeners = new Set<(d: number) => void>();
+
+export function pushFullscreenLayer(): void {
+  _fsDepth++;
+  _fsListeners.forEach((l) => l(_fsDepth));
+}
+
+export function popFullscreenLayer(): void {
+  _fsDepth = Math.max(0, _fsDepth - 1);
+  _fsListeners.forEach((l) => l(_fsDepth));
+}
+
+export function useFullscreenLayerOpen(): boolean {
+  const [depth, setDepth] = useState(0);
+  useEffect(() => {
+    setDepth(_fsDepth);
+    const sub = (d: number) => setDepth(d);
+    _fsListeners.add(sub);
+    return () => { _fsListeners.delete(sub); };
+  }, []);
+  return depth > 0;
+}

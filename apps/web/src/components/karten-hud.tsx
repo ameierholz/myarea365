@@ -12,7 +12,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
-import { ResourceIcon, useResourceArt, type ResourceKind, type ResourceArtMap } from "@/components/resource-icon";
+import { ResourceIcon, useResourceArt, UiIcon, useUiIconArt, type ResourceKind, type ResourceArtMap } from "@/components/resource-icon";
 import { QuestTeaser } from "@/components/quest-teaser";
 import { TimeWeatherBanner } from "@/components/time-weather-banner";
 import { WeatherAtmosphereOverlay } from "@/components/weather-atmosphere-overlay";
@@ -76,6 +76,7 @@ export function KartenHud({
   // (Server-Zeit ≠ Client-Zeit beim Re-Hydrate). Wird im useEffect unten gesetzt.
   const [utc, setUtc] = useState<string>("");
   const resourceArt = useResourceArt();
+  const uiIconArt = useUiIconArt();
 
   useEffect(() => {
     let cancelled = false;
@@ -365,8 +366,12 @@ export function KartenHud({
 
         {/* Aktions-Buttons */}
         <div style={{ display: "flex", gap: 4, pointerEvents: "auto" }}>
-          <HudActionBtn icon="🎁" label="Angebote" color="#FF2D78" onClick={onDealsClick} />
-          <HudActionBtn icon="🛒" label="Shop" color="#22D1C3" onClick={onShopClick} />
+          {/* Shop — prominent: nutzt das quick_shop-Artwork (Geschenk-Box mit
+              gold/magenta-Schleife) aus der ehemaligen Quick-Access-Bar. Etwas
+              größer als die anderen HUD-Buttons, weil der zentrale Monetisierungs-
+              Hook. onDealsClick + onShopClick gehen ohnehin beide in denselben
+              Gem-Shop, darum nur noch ein Eintrag. */}
+          <HudActionBtn icon="🎁" label="Shop" color="#FF2D78" onClick={onShopClick ?? onDealsClick} slot="quick_shop" art={uiIconArt} size={52} />
           <HudActionBtn icon="⚔️" label="CvC" color="#FFD700" onClick={onCvcClick} />
         </div>
       </div>
@@ -411,14 +416,25 @@ function ResChip({ art, kind, fallback, value, title, color }: { art: ResourceAr
   );
 }
 
-function HudActionBtn({ icon, label, color, onClick }: { icon: string; label: string; color: string; onClick?: () => void }): ReactNode {
+function HudActionBtn({ icon, label, color, onClick, slot, art, size = 44 }: {
+  icon: string;
+  label: string;
+  color: string;
+  onClick?: () => void;
+  /** Optional: cosmetic_artwork-Slot (z.B. "quick_shop"). Wenn Artwork vorhanden,
+   *  wird es statt des Emoji-Icons gerendert. */
+  slot?: string;
+  art?: import("@/components/resource-icon").ResourceArtMap;
+  size?: number;
+}): ReactNode {
+  const hasArt = !!(slot && art && (art[slot]?.image_url || art[slot]?.video_url));
   return (
     <button
       onClick={onClick}
       style={{
         ...btnReset,
         display: "flex", alignItems: "center", justifyContent: "center",
-        width: 44, height: 44,
+        width: size, height: size,
         background: "transparent",
         border: "none",
         cursor: "pointer", color,
@@ -427,7 +443,11 @@ function HudActionBtn({ icon, label, color, onClick }: { icon: string; label: st
       aria-label={label}
       title={label}
     >
-      <span style={{ fontSize: 26, lineHeight: 1 }}>{icon}</span>
+      {hasArt && slot ? (
+        <UiIcon slot={slot} fallback={icon} art={art!} size={size} />
+      ) : (
+        <span style={{ fontSize: Math.round(size * 0.59), lineHeight: 1 }}>{icon}</span>
+      )}
     </button>
   );
 }

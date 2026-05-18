@@ -110,6 +110,7 @@ export default async function RootLayout({
           eine vorhandene Entscheidung aus localStorage greifen kann.
         */}
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function(){
@@ -144,6 +145,7 @@ export default async function RootLayout({
           }}
         />
         <script
+          suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({

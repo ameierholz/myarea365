@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResourceArt, ResourceIcon, useUiIconArt, UiIcon, useInventoryItemArt } from "@/components/resource-icon";
 import { TranslateButton } from "@/components/translate-button";
 
@@ -54,14 +54,39 @@ export function InboxClient() {
     if (r.ok) { const j = await r.json(); setCounts(j.counts ?? {}); }
   }, []);
 
+  // Request-Counter + AbortController gegen stale Fetches: schnelle Tab-Klicks
+  // (personal → report → crew) feuern parallele Requests; nur das Ergebnis des
+  // ZULETZT gestarteten Calls darf den UI-State überschreiben, sonst überschreibt
+  // ein langsamerer Vorgänger den frischen Treffer mit leerem Array.
+  const reqIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
   const reloadMessages = useCallback(async () => {
+    const myReqId = ++reqIdRef.current;
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     setLoading(true);
     const params = new URLSearchParams({ category });
     if (subcategory) params.set("subcategory", subcategory);
     if (showStarred) params.set("starred", "1");
-    const r = await fetch(`/api/inbox?${params}`, { cache: "no-store" });
-    if (r.ok) { const j = await r.json(); setMessages(j.messages ?? []); }
-    setLoading(false);
+    try {
+      const r = await fetch(`/api/inbox?${params}`, { cache: "no-store", signal: ac.signal });
+      if (myReqId !== reqIdRef.current) return; // Stale — neuerer Call läuft schon
+      if (r.ok) {
+        const j = await r.json() as { messages?: Msg[] };
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[inbox] reload", { category, subcategory, count: j.messages?.length ?? 0 });
+        }
+        setMessages(j.messages ?? []);
+      } else if (process.env.NODE_ENV !== "production") {
+        console.warn("[inbox] reload failed", { status: r.status, category, subcategory });
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return; // erwarteter Abbruch
+      if (process.env.NODE_ENV !== "production") console.error("[inbox] fetch error", e);
+    } finally {
+      if (myReqId === reqIdRef.current) setLoading(false);
+    }
   }, [category, subcategory, showStarred]);
 
   useEffect(() => { void reloadCounts(); }, [reloadCounts]);
@@ -220,8 +245,9 @@ export function InboxClient() {
 
       {/* Hauptbereich — zeigt Liste ODER Detail (nicht beides, da Modal-Breite begrenzt) */}
       <section className={`${selected ? "hidden" : "flex"} flex-1 min-w-0 bg-[#0F1115] flex-col max-h-screen min-h-0`}>
-        {/* Header mit Sub-Kategorien */}
-        <div className="p-3 border-b border-white/10 shrink-0">
+        {/* Header mit Sub-Kategorien — pr-14 reserviert Platz für den floating
+            Close-X-Button des FullscreenMapModal-Wrappers (w-9 + right-3 ≈ 48px) */}
+        <div className="p-3 pr-14 border-b border-white/10 shrink-0">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[12px] font-black text-white">{CATEGORY_META[category].label}</div>
             <button onClick={() => setShowStarred((v) => !v)}

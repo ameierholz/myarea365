@@ -177,20 +177,14 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
     const LAYER_ID = "ma365-mutants-layer";
     const BADGE_BG_ID = "ma365-mutants-badge-bg";
     const BADGE_TEXT_ID = "ma365-mutants-badge-text";
-    const SLASH_LAYER_ID = "ma365-mutants-vfx-slash";
-    const EXPLOSION_LAYER_ID = "ma365-mutants-vfx-explosion";
+    const PARTICLES_SOURCE_ID = "ma365-mutants-particles-source";
+    const PARTICLES_LAYER_ID = "ma365-mutants-particles-layer";
     const FRAME_COUNT = 12;
     const FRAME_SIZE = 128;
-    const SLASH_FRAME_COUNT = 8;
-    const EXPLOSION_FRAME_COUNT = 16;
-    const VFX_FRAME_SIZE = 128;
     const ICON_PREFIX = "ma365-mutant-frame-";
-    const SLASH_PREFIX = "ma365-vfx-slash-";
-    const EXPLOSION_PREFIX = "ma365-vfx-explosion-";
     const iconId = (frame: number) => `${ICON_PREFIX}${frame}`;
-    const slashIconId = (frame: number) => `${SLASH_PREFIX}${frame}`;
-    const explosionIconId = (frame: number) => `${EXPLOSION_PREFIX}${frame}`;
-    // Letzte 1.5s der Fight-Phase: Slash stoppt, Explosion spielt als Climax.
+    // Letzte 1.5s der Fight-Phase: Slash-Spawn stoppt, ein Burst (~40 Particles)
+    // detoniert als Explosion-Climax, dann verblasst alles.
     const EXPLOSION_TAIL_MS = 1500;
     const TIER_COLOR: Record<string, string> = {
       bronze: "#CD7F32", silver: "#C0C0C0", gold: "#FFD700", platinum: "#22D1C3",
@@ -297,11 +291,11 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
       // Frame. Synchron-animiert, super-performant (WebGL macht den Rest).
       await loadSpriteSheet(m, "/sprites/mutant_idle_12x128.png", FRAME_COUNT, FRAME_SIZE, iconId);
 
-      // VFX-Sprites: Slash (8 Frames, loopt waehrend Fight) + Explosion (16 Frames,
-      // spielt in den letzten 1.5s als Climax). Beide werden parallel von Blender
-      // gerendert (scripts/sprites/render_vfx_sprites.py).
-      await loadSpriteSheet(m, "/sprites/vfx_slash_8x128.png", SLASH_FRAME_COUNT, VFX_FRAME_SIZE, slashIconId);
-      await loadSpriteSheet(m, "/sprites/vfx_explosion_16x128.png", EXPLOSION_FRAME_COUNT, VFX_FRAME_SIZE, explosionIconId);
+      // KEINE Sprite-VFX mehr — Combat-Effekte werden programmatisch als
+      // GPU-gerenderte Circle-Particles erzeugt (siehe Particle-System unten).
+      // Vorteile: keine Sprite-Frame-Cycles → kein Symbol-Collision-Relayout
+      // → keine Hausnummer-Flicker; sauberer Funken-Look, dynamisch in Farbe
+      // und Größe.
 
       if (!m.getSource(SOURCE_ID)) {
         m.addSource(SOURCE_ID, {
@@ -432,55 +426,62 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
         m.setLayoutProperty(BADGE_TEXT_ID, "text-size", BADGE_TEXT_SIZE);
       } catch { /* layer may not exist yet */ }
 
-      // VFX-Layer Slash: nur sichtbar bei `vfx == 'slash'`. Sitzt mittig auf dem
-      // Mutant, etwas groesser als der Sprite damit man den Bogenschlag drumherum
-      // sieht. icon-image wird zentral via setLayoutProperty zyklisch durchgeschaltet.
-      if (!m.getLayer(SLASH_LAYER_ID)) {
-        m.addLayer({
-          id: SLASH_LAYER_ID,
-          type: "symbol",
-          source: SOURCE_ID,
-          minzoom: 13,
-          filter: ["==", ["get", "vfx"], "slash"],
-          layout: {
-            "icon-image": slashIconId(0),
-            "icon-size": [
-              "interpolate", ["linear"], ["zoom"],
-              13, 0.45,
-              16, 0.75,
-              18, 1.0,
-            ],
-            "icon-allow-overlap": true,
-            "icon-ignore-placement": true,
-            "icon-anchor": "center",
-            "icon-offset": [0, -40],
-            "icon-rotate": ["get", "vfx_rotate"],
-          },
+      // ─── Particle-System: Source + Circle-Layer ─────────────────────
+      // Funkenflug-Effekt während des Kampfes. Jeder Particle ist ein Circle-
+      // Feature mit Properties (ageT, size, color), die Mapbox data-driven
+      // ausliest. setData wird ~30fps aufgerufen — Circle-Layer hat KEIN
+      // Symbol-Collision (Symbol-Layer schon), daher kein Hausnummer-Flicker.
+      if (!m.getSource(PARTICLES_SOURCE_ID)) {
+        m.addSource(PARTICLES_SOURCE_ID, {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
         });
       }
-
-      // VFX-Layer Explosion: gleicher Mechanismus, andere Frame-Sequenz, leicht
-      // groesser fuer den "Climax"-Punch. Wird in den letzten 1.5s vor Fight-Ende
-      // aktiviert (slash deaktiviert sich dann gleichzeitig).
-      if (!m.getLayer(EXPLOSION_LAYER_ID)) {
+      if (!m.getLayer(PARTICLES_LAYER_ID)) {
         m.addLayer({
-          id: EXPLOSION_LAYER_ID,
-          type: "symbol",
-          source: SOURCE_ID,
+          id: PARTICLES_LAYER_ID,
+          type: "circle",
+          source: PARTICLES_SOURCE_ID,
           minzoom: 13,
-          filter: ["==", ["get", "vfx"], "explosion"],
-          layout: {
-            "icon-image": explosionIconId(0),
-            "icon-size": [
+          paint: {
+            // Größe pro Particle (eigene Property) × Zoom-Skalierung.
+            // Mapbox erlaubt "zoom" nur als Top-Level-Input einer interpolate-/step-
+            // Expression — Multiplikation muss INSIDE der Stops passieren, nicht außen.
+            "circle-radius": [
               "interpolate", ["linear"], ["zoom"],
-              13, 0.55,
-              16, 0.9,
-              18, 1.2,
+              13, ["*", ["get", "size"], 0.5],
+              16, ["*", ["get", "size"], 0.85],
+              18, ["*", ["get", "size"], 1.2],
             ],
-            "icon-allow-overlap": true,
-            "icon-ignore-placement": true,
-            "icon-anchor": "center",
-            "icon-offset": [0, -40],
+            // Farbe wandert über Lebenszeit: Gelb-Weiß → Orange → Tiefrot
+            "circle-color": [
+              "interpolate", ["linear"], ["get", "ageT"],
+              0.0, "#FFF1A8",
+              0.3, "#FFD700",
+              0.6, "#FF6B4A",
+              1.0, "#FF2D78",
+            ],
+            // Opacity verblasst zum Ende: voll bis 70%, dann schnell auf 0
+            "circle-opacity": [
+              "interpolate", ["linear"], ["get", "ageT"],
+              0.0, 1.0,
+              0.7, 0.85,
+              1.0, 0.0,
+            ],
+            // Glow: außenrum weicher Schein
+            "circle-blur": 0.6,
+            // Heller, glühender Außenrand
+            "circle-stroke-color": "#FFF1A8",
+            "circle-stroke-width": [
+              "interpolate", ["linear"], ["get", "ageT"],
+              0.0, 0.8,
+              1.0, 0.0,
+            ],
+            "circle-stroke-opacity": [
+              "interpolate", ["linear"], ["get", "ageT"],
+              0.0, 0.9,
+              1.0, 0.0,
+            ],
           },
         });
       }
@@ -494,40 +495,21 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
       if (!map) return;
       const src = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
       if (!src) return;
-      const now = Date.now();
-      const features = Array.from(mutantsById.values()).map((m) => {
-        const fightStartsAt = m.fight_starts_at ? new Date(m.fight_starts_at).getTime() : 0;
-        const fightEndsAt = m.fight_until ? new Date(m.fight_until).getTime() : 0;
-        // VFX-Aktiv: zwischen fight_starts_at (= Ende des Marsches) und fight_until.
-        // Vor fight_starts_at sind die Truppen noch unterwegs — kein Kampf-VFX.
-        const fightActive = fightStartsAt > 0 && fightStartsAt <= now && now < fightEndsAt;
-        const inExplosionTail = fightActive && (fightEndsAt - now) <= EXPLOSION_TAIL_MS;
-        // VFX-Phasen: slash (Hauptkampf) → explosion (letzte 1.5s) → none
-        const vfx: "slash" | "explosion" | "none" = inExplosionTail
-          ? "explosion"
-          : fightActive
-            ? "slash"
-            : "none";
-        // Slash leicht rotieren je nach Mutant-id (Pseudo-Random), damit nicht
-        // alle gleichzeitig in dieselbe Richtung schwingen.
-        const vfxRotate = ((m.id * 37) % 360);
-        return {
-          type: "Feature" as const,
-          geometry: { type: "Point" as const, coordinates: [m.origin_lng, m.origin_lat] },
-          properties: {
-            id: m.id,
-            tier: m.loot_tier,
-            level: m.level,
-            tierColor: TIER_COLOR[m.loot_tier] ?? "#CD7F32",
-            vfx,
-            vfx_rotate: vfxRotate,
-          },
-        };
-      });
+      const features = Array.from(mutantsById.values()).map((m) => ({
+        type: "Feature" as const,
+        geometry: { type: "Point" as const, coordinates: [m.origin_lng, m.origin_lat] },
+        properties: {
+          id: m.id,
+          tier: m.loot_tier,
+          level: m.level,
+          tierColor: TIER_COLOR[m.loot_tier] ?? "#CD7F32",
+        },
+      }));
       // Fingerprint nur ueber Felder die das visuelle Rendering aendern.
-      // Wenn identisch -> setData skippen (kein Re-Layout / kein Label-Flicker).
+      // (Combat-Phase steckt jetzt im Particle-Loop, nicht mehr in den Mutant-
+      // Feature-Properties — deshalb fingerprint stabil über die Fight-Phasen.)
       const fp = features
-        .map((f) => `${f.properties.id}:${f.properties.vfx}:${f.geometry.coordinates[0].toFixed(5)},${f.geometry.coordinates[1].toFixed(5)}`)
+        .map((f) => `${f.properties.id}:${f.geometry.coordinates[0].toFixed(5)},${f.geometry.coordinates[1].toFixed(5)}`)
         .join("|");
       if (fp === lastSourceFingerprint) return;
       lastSourceFingerprint = fp;
@@ -577,69 +559,151 @@ export function Mutants(_props: { bbox: [number, number, number, number] | null 
     window.addEventListener("ma365:mutants-changed", onChanged);
     window.addEventListener("ma365:rally-changed", onChanged);
 
-    // Source-Refresh 500ms — schreibt nur die VFX-Properties neu (slash/explosion/
-    // none) anhand der lokalen Zeit. So sieht der Spieler den Phasen-Wechsel
-    // slash → explosion → off in Echtzeit, ohne auf den 5s-API-Refresh zu warten.
-    const sourceTickIv = setInterval(() => { updateSource(); }, 500);
+    // Mutant-Source wird nur bei tatsächlichen Daten-Changes (Realtime/Refresh)
+    // aktualisiert — Combat-VFX läuft separat im RAF-Particle-Loop unten.
+    // Kein 500ms-Tick mehr nötig.
 
-    // Frame-Cycle — KRITISCHER FLICKER-FIX:
+    // ════════════════════════════════════════════════════════════════
+    // PARTICLE-SYSTEM (Combat-VFX)
+    // ════════════════════════════════════════════════════════════════
+    // Funkenflug während des Kampfes. Pro fightender Mutant werden
+    // Particles gespawnt, die in Pixel-Space ausfliegen, altern und
+    // verblassen. Color-Cycle + Glow data-driven vom Mapbox-Layer.
     //
-    // setLayoutProperty(symbol-layer, "icon-image", ...) zwingt Mapbox bei
-    // JEDEM Call die gesamte Symbol-Collision-Pipeline neu durchlaufen zu
-    // lassen (für ALLE Labels, inkl. Mapbox-Standard-Hausnummern). Auch eine
-    // Throttle auf 2 Hz war noch sichtbar als Hausnummer-"Springen auf und ab".
-    //
-    // Daher: **idle wird NICHT mehr animiert**. Mutant bleibt auf Frame 0
-    // stehen — sieht statisch aus, dafür stehen Hausnummern still. Slash und
-    // Explosion bleiben animiert (kurze Combat-Momente, akzeptabler Trade-off).
-    let currentSlashFrame = 0;
-    let currentExplosionFrame = 0;
-    const frameIv = setInterval(() => {
-      if (!map || !map.getLayer(LAYER_ID)) return;
-      if (mutantsById.size === 0) return;
+    // Performance: setData ~30fps auf Circle-Source (kein Symbol-Layer
+    // → kein Collision-Relayout → keine Hausnummer-Flicker). Pool-Cap
+    // bei 600 Particles total verhindert RAM-Drift.
+    // ────────────────────────────────────────────────────────────────
+    type Particle = {
+      mutantId: number;
+      originLng: number;
+      originLat: number;
+      px: number;       // px-Offset vom Origin (rechts+)
+      py: number;       // px-Offset (unten+, Screen-Space)
+      vx: number;       // px/s
+      vy: number;
+      ageMs: number;
+      maxAgeMs: number;
+      size: number;     // Base-Radius vor Zoom-Skalierung
+    };
+    const particles: Particle[] = [];
+    const PARTICLE_CAP = 600;
+    // Spawn-Accumulators pro Mutant: Spawn-Raten sind float, wir akkumulieren
+    // bis ≥1 und spawnen dann ganze Particles ohne Rounding-Drift.
+    const spawnAcc = new Map<number, number>();
+    // Explosion-Burst-Tracking: pro Mutant darf der Climax-Burst nur 1× feuern.
+    const burstFired = new Set<number>();
+
+    const spawnParticle = (mutant: Mutant, isExplosion: boolean) => {
+      if (particles.length >= PARTICLE_CAP) return;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = isExplosion
+        ? 90 + Math.random() * 110         // explosion: 90-200 px/s
+        : 70 + Math.random() * 80;         // slash: 70-150 px/s
+      const size = isExplosion
+        ? 5 + Math.random() * 5            // 5-10 px
+        : 2.5 + Math.random() * 3;         // 2.5-5.5 px
+      const maxAge = isExplosion
+        ? 700 + Math.random() * 400        // 700-1100 ms
+        : 380 + Math.random() * 280;       // 380-660 ms
+      particles.push({
+        mutantId: mutant.id,
+        originLng: mutant.origin_lng,
+        originLat: mutant.origin_lat,
+        px: (Math.random() - 0.5) * 6,     // kleine Streuung um Origin
+        py: -8 + (Math.random() - 0.5) * 6, // leichter Aufwärts-Offset (Mutant-Top)
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 30,  // leichter Aufwärts-Drift
+        ageMs: 0,
+        maxAgeMs: maxAge,
+        size,
+      });
+    };
+
+    // RAF-Loop für Particles. Läuft 60fps wenn nichts zu tun → früher Exit.
+    let lastFrameTime = performance.now();
+    let rafHandle: number | null = null;
+    const particleFrame = (nowTs: number) => {
+      rafHandle = requestAnimationFrame(particleFrame);
+      const dt = Math.min(0.05, (nowTs - lastFrameTime) / 1000); // Cap auf 50ms (träger Tab)
+      lastFrameTime = nowTs;
+      if (!map || cancelled) return;
+      const src = map.getSource(PARTICLES_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+      if (!src) return;
 
       const now = Date.now();
-      let anySlash = false;
-      let anyExplosion = false;
+
+      // 1) Pro Mutant entscheiden, ob spawnen + wieviel
       for (const m of mutantsById.values()) {
         const fightStartsAt = m.fight_starts_at ? new Date(m.fight_starts_at).getTime() : 0;
         const fightEndsAt = m.fight_until ? new Date(m.fight_until).getTime() : 0;
-        if (fightStartsAt > 0 && fightStartsAt <= now && now < fightEndsAt) {
-          if ((fightEndsAt - now) <= EXPLOSION_TAIL_MS) anyExplosion = true;
-          else anySlash = true;
-          if (anySlash && anyExplosion) break;
+        const active = fightStartsAt > 0 && fightStartsAt <= now && now < fightEndsAt;
+        if (!active) {
+          spawnAcc.delete(m.id);
+          burstFired.delete(m.id);
+          continue;
         }
+        const inExplosion = (fightEndsAt - now) <= EXPLOSION_TAIL_MS;
+
+        // Explosion-Burst: 40 Particles in einem Schwung beim Phasenwechsel
+        if (inExplosion && !burstFired.has(m.id)) {
+          burstFired.add(m.id);
+          for (let i = 0; i < 40; i++) spawnParticle(m, true);
+        }
+
+        // Kontinuierlicher Spawn: slash ~14/s, explosion ~22/s (zusätzlich zum Burst)
+        const rate = inExplosion ? 22 : 14;
+        const acc = (spawnAcc.get(m.id) ?? 0) + rate * dt;
+        const toSpawn = Math.floor(acc);
+        spawnAcc.set(m.id, acc - toSpawn);
+        for (let i = 0; i < toSpawn; i++) spawnParticle(m, inExplosion);
       }
-      if (anySlash) {
-        currentSlashFrame = (currentSlashFrame + 1) % SLASH_FRAME_COUNT;
-        try {
-          if (map.getLayer(SLASH_LAYER_ID)) {
-            map.setLayoutProperty(SLASH_LAYER_ID, "icon-image", slashIconId(currentSlashFrame));
-          }
-        } catch { /* layer evtl. weg */ }
+
+      // 2) Particles altern + Position aktualisieren + GeoJSON bauen
+      const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.ageMs += dt * 1000;
+        if (p.ageMs >= p.maxAgeMs) {
+          particles.splice(i, 1);
+          continue;
+        }
+        // Gravity / Verlangsamung — Particles fallen leicht + bremsen ab
+        p.vy += 60 * dt;          // schwache "Gravity" in Screen-Y
+        p.vx *= 1 - 0.6 * dt;     // 60%/s Luft-Reibung
+        p.vy *= 1 - 0.6 * dt;
+        p.px += p.vx * dt;
+        p.py += p.vy * dt;
+
+        // Pixel → Lng/Lat: origin in Pixel projizieren, Offset addieren, zurück
+        // konvertieren. Damit fliegt der Funke unabhängig vom Zoom konsistent.
+        const originPx = map.project([p.originLng, p.originLat]);
+        const targetPx = { x: originPx.x + p.px, y: originPx.y + p.py };
+        const ll = map.unproject([targetPx.x, targetPx.y]);
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [ll.lng, ll.lat] },
+          properties: {
+            ageT: p.ageMs / p.maxAgeMs,
+            size: p.size,
+          },
+        });
       }
-      if (anyExplosion) {
-        currentExplosionFrame = (currentExplosionFrame + 1) % EXPLOSION_FRAME_COUNT;
-        try {
-          if (map.getLayer(EXPLOSION_LAYER_ID)) {
-            map.setLayoutProperty(EXPLOSION_LAYER_ID, "icon-image", explosionIconId(currentExplosionFrame));
-          }
-        } catch { /* layer evtl. weg */ }
-      }
-    }, 120);
+      src.setData({ type: "FeatureCollection", features });
+    };
+    rafHandle = requestAnimationFrame(particleFrame);
 
     return () => {
       cancelled = true;
       clearInterval(mapPoller);
       clearInterval(refreshIv);
-      clearInterval(sourceTickIv);
-      clearInterval(frameIv);
+      if (rafHandle !== null) cancelAnimationFrame(rafHandle);
       window.removeEventListener("ma365:map-ready", tryStart);
       window.removeEventListener("ma365:mutants-changed", onChanged);
       window.removeEventListener("ma365:rally-changed", onChanged);
       if (map) {
-        try { if (map.getLayer(EXPLOSION_LAYER_ID)) map.removeLayer(EXPLOSION_LAYER_ID); } catch { /* ignore */ }
-        try { if (map.getLayer(SLASH_LAYER_ID)) map.removeLayer(SLASH_LAYER_ID); } catch { /* ignore */ }
+        try { if (map.getLayer(PARTICLES_LAYER_ID)) map.removeLayer(PARTICLES_LAYER_ID); } catch { /* ignore */ }
+        try { if (map.getSource(PARTICLES_SOURCE_ID)) map.removeSource(PARTICLES_SOURCE_ID); } catch { /* ignore */ }
         try { if (map.getLayer(BADGE_TEXT_ID)) map.removeLayer(BADGE_TEXT_ID); } catch { /* ignore */ }
         try { if (map.getLayer(BADGE_BG_ID)) map.removeLayer(BADGE_BG_ID); } catch { /* ignore */ }
         try { if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID); } catch { /* ignore */ }

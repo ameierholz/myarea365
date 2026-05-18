@@ -29,7 +29,7 @@ import { useChatRealtime } from "./use-chat-realtime";
 import { Z } from "@/lib/z-index";
 import { useMarkerArt, useBaseRingArt } from "@/components/resource-icon";
 import { fetchBaseMe } from "@/lib/base-me-cache";
-import { useModalStackDepth } from "@/lib/modal-stack";
+import { useModalStackDepth, useFullscreenLayerOpen } from "@/lib/modal-stack";
 
 // ════════════════════════════════════════════════════════════════════
 // TYPES
@@ -187,9 +187,12 @@ export function ChatWidget({ currentUserId }: { currentUserId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  // Chat bleibt sichtbar auch wenn Modal offen — Modal ist rechtsbündig, Chat hat links Platz.
-  // (modalDepth wird trotzdem getrackt, falls wir später wieder hide-bei-deep-nested brauchen)
+  // Chat bleibt sichtbar bei rechtsbündigen ui/Modal-Sheets (die nutzen reserveLeftSpace).
+  // Fullscreen-Modals (FullscreenMapModal: Inbox/Shops/Deals/Ranking) lassen aber keinen
+  // Platz auf der linken Seite — dort komplett ausblenden.
+  const fullscreenOpen = useFullscreenLayerOpen();
   void hiddenByModal;
+  if (fullscreenOpen) return null;
 
   if (!open) {
     return (

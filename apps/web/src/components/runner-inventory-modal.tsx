@@ -78,7 +78,12 @@ type DetailItem = {
   payload?: Record<string, unknown>;
 };
 
-export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
+export function RunnerInventoryModal({ onClose, embedded = false }: {
+  onClose: () => void;
+  /** Wenn true: kein eigener Backdrop/Header — wird in einem äußeren Frame
+   *  (z.B. FullscreenMapModal mit Karten-Backdrop) gerendert. */
+  embedded?: boolean;
+}) {
   const t = useTranslations("RunnerInventory");
   const tCommon = useTranslations("Common");
   const inventoryItemArt = useInventoryItemArt();
@@ -206,40 +211,34 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
     { id: "other",      icon: "🎁",  labelKey: "tabOther",      color: PINK },
   ];
 
-  return (
-    <div onClick={onClose} style={{
-      position: "fixed", inset: 0, zIndex: 9100,
-      background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
-    }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
-        width: "100%", maxWidth: 760, maxHeight: "100dvh",
-        display: "flex", flexDirection: "column",
-        background: `linear-gradient(180deg, ${PRIMARY}1f 0%, #141a2d 100%)`,
-        borderRadius: 14, border: `1px solid ${PRIMARY}66`,
-        boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-        color: "#F0F0F0", overflow: "hidden",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "6px 10px", display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
-          background: "rgba(0,0,0,0.3)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 16 }}>📦</span>
-            <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.4 }}>{t("title")}</span>
+  // Inner-Body: Tabs + Content. Wird entweder in einem eigenen Modal-Frame
+  // (default) ODER eingebettet ins äußere FullscreenMapModal gerendert.
+  const body = (
+    <>
+        {/* Header — nur im Standalone-Modus, im embedded gibt's einen äußeren Header
+            (FullscreenMapModal liefert title + close-Button) */}
+        {!embedded && (
+          <div style={{
+            padding: "6px 10px", display: "flex", alignItems: "center", justifyContent: "space-between",
+            borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
+            background: "rgba(0,0,0,0.3)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 16 }}>📦</span>
+              <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.4 }}>{t("title")}</span>
+            </div>
+            <button onClick={onClose} style={{
+              width: 24, height: 24, borderRadius: 12,
+              background: "rgba(0,0,0,0.55)", border: "none",
+              color: "#FFF", fontSize: 14, fontWeight: 900, cursor: "pointer",
+            }} aria-label={tCommon("close")}>×</button>
           </div>
-          <button onClick={onClose} style={{
-            width: 24, height: 24, borderRadius: 12,
-            background: "rgba(0,0,0,0.55)", border: "none",
-            color: "#FFF", fontSize: 14, fontWeight: 900, cursor: "pointer",
-          }} aria-label={tCommon("close")}>×</button>
-        </div>
+        )}
 
-        {/* Tabs (horizontal scrollable on mobile) */}
+        {/* Tabs (horizontal scrollable on mobile) — paddingRight im embedded-Modus
+            reserviert Platz für den floating Close-X-Button des FullscreenMapModal. */}
         <div style={{
-          display: "flex", gap: 3, padding: "5px 8px",
+          display: "flex", gap: 3, padding: embedded ? "5px 56px 5px 8px" : "5px 8px",
           overflowX: "auto", scrollbarWidth: "none",
           borderBottom: `1px solid ${BORDER}`, flexShrink: 0,
           background: "rgba(0,0,0,0.2)",
@@ -338,6 +337,39 @@ export function RunnerInventoryModal({ onClose }: { onClose: () => void }) {
             onClose={() => { setRecruitTier(null); void load(); }}
           />
         )}
+    </>
+  );
+
+  // Embedded: nur Inhalt rendern — der äußere Frame (FullscreenMapModal) kümmert
+  // sich um Backdrop, Header, Close-Button.
+  if (embedded) {
+    return (
+      <div style={{
+        display: "flex", flexDirection: "column",
+        minHeight: "100%",
+        color: "#F0F0F0", position: "relative",
+      }}>
+        {body}
+      </div>
+    );
+  }
+
+  // Standalone: eigene Modal-Hülle wie bisher.
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 9100,
+      background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 760, maxHeight: "100dvh",
+        display: "flex", flexDirection: "column",
+        background: `linear-gradient(180deg, ${PRIMARY}1f 0%, #141a2d 100%)`,
+        borderRadius: 14, border: `1px solid ${PRIMARY}66`,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+        color: "#F0F0F0", overflow: "hidden",
+      }}>
+        {body}
       </div>
     </div>
   );

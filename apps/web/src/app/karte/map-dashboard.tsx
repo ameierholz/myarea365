@@ -9,6 +9,7 @@ import { openLegalModal } from "@/components/legal-modal";
 import { claimIntensity } from "@/lib/claim-intensity";
 import { fetchBaseMe } from "@/lib/base-me-cache";
 import { setVisibilityAwareInterval } from "@/lib/visibility-interval";
+import { pushFullscreenLayer, popFullscreenLayer } from "@/lib/modal-stack";
 import { InboxContent } from "./inbox-content";
 import { InboxClient } from "../inbox/inbox-client";
 import { MapQuickAccess } from "@/components/map-quick-access";
@@ -1154,6 +1155,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
   }, [computeBasePinsHash]);
   const [mapCrewModalOpen, setMapCrewModalOpen] = useState(false);
   const [inboxModalOpen, setInboxModalOpen] = useState(false);
+  const [mapInventoryOpen, setMapInventoryOpen] = useState(false);
   const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
   // Unread-Counts laden + Realtime-Update bei neuen Inbox-Einträgen
   useEffect(() => {
@@ -1610,6 +1612,34 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
       setThemeMeta(map);
     })();
   }, []);
+
+  // ── Pending-RSS-Indikator am Quick-Access-Base-Icon ────────────────
+  // Sammelbares RSS aus _per_hour-Buildings live anzeigen. Event-driven,
+  // KEIN Polling: refetch nur bei (1) Mount, (2) Collect-Event vom build-modal,
+  // (3) Realtime-Change auf base_buildings (neue Buildings, Level-Up, Collect
+  // von anderer Stelle). So bleibt der Badge "instant" ohne 30s-Wartezeit.
+  const [basePendingRss, setBasePendingRss] = useState(0);
+  const refetchBasePendingRss = useCallback(async () => {
+    try {
+      const r = await fetch("/api/base/pending-rss", { cache: "no-store" });
+      if (!r.ok) return;
+      const j = await r.json() as { total?: number };
+      setBasePendingRss(j.total ?? 0);
+    } catch { /* noop */ }
+  }, []);
+  useEffect(() => {
+    void refetchBasePendingRss();
+    const onCollected = () => { void refetchBasePendingRss(); };
+    window.addEventListener("ma365:base-collected", onCollected);
+    return () => { window.removeEventListener("ma365:base-collected", onCollected); };
+  }, [refetchBasePendingRss]);
+  // Realtime: jeder Insert/Update auf base_buildings der eigenen Base triggert
+  // Refetch (Level-Up, neue Buildings, Collect anderswo). RLS sorgt dafür dass
+  // nur eigene Buildings im Channel landen.
+  useSupabaseRealtime(
+    ownBaseId ? { table: "base_buildings", filter: `base_id=eq.${ownBaseId}` } : null,
+    () => { void refetchBasePendingRss(); },
+  );
 
   // Nearby-Bases laden — Bases sind statisch (ändern sich nur bei Platzierung,
   // Verlegung, Level-Up). Primäre Aktualisierung läuft über das Realtime-Event
@@ -2392,6 +2422,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               onOpenProfile={() => { router.push("/karte/base"); }}
               onOpenCrewModal={() => setMapCrewModalOpen(true)}
               onOpenInbox={() => setInboxModalOpen(true)}
+              onOpenInventory={() => setMapInventoryOpen(true)}
               onOpenAchievements={() => setActiveTab("profil")}
               onOpenRanking={() => setRankingModalOpen(true)}
               onJoinRepeaterRally={(repeaterId) => {
@@ -2434,6 +2465,7 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
               zoomCycleIdx={zoomCycleIdx}
               strongholdsNearby={strongholds.length}
               inboxUnread={inboxUnreadCount}
+              basePendingRss={basePendingRss}
             />
 
             <LivePaceHud
@@ -3092,16 +3124,43 @@ export function MapDashboard({ profile: initialProfile }: { profile: Profile | n
 
       {/* Sammel-Modal (Resource-Node-Click) */}
 
-      {/* Inbox-Modal */}
+      {/* Inbox-Modal — eigenes Sidebar-Branding mit "POSTEINGANG"-Header,
+          darum hideTitle=true gegen doppelte Headlines */}
       {inboxModalOpen && (
-        <FullscreenMapModal title={tMD("labelInbox")} onClose={() => setInboxModalOpen(false)}>
+        <FullscreenMapModal
+          title={tMD("labelInbox")}
+          onClose={() => setInboxModalOpen(false)}
+          accent="#22D1C3"
+          icon="📬"
+          hideTitle
+        >
           <InboxClient />
+        </FullscreenMapModal>
+      )}
+
+      {/* Inventar-Modal — vom Quick-Access ausgelöst (separater State vom Profil-Hub-Inventar).
+          Rahmen via FullscreenMapModal: echter Stadtplan-Backdrop + Akzent-Glow (Gold),
+          eigene Header-Bar wird ausgeblendet (hideTitle), Inhalt im embedded-Modus. */}
+      {mapInventoryOpen && (
+        <FullscreenMapModal
+          title="Inventar"
+          onClose={() => setMapInventoryOpen(false)}
+          accent="#FFD700"
+          icon="🎒"
+          hideTitle
+        >
+          <RunnerInventoryModal onClose={() => setMapInventoryOpen(false)} embedded />
         </FullscreenMapModal>
       )}
 
       {/* Ranking-Modal */}
       {rankingModalOpen && (
-        <FullscreenMapModal title={tMD("labelLeaderboard")} onClose={() => setRankingModalOpen(false)}>
+        <FullscreenMapModal
+          title={tMD("labelLeaderboard")}
+          onClose={() => setRankingModalOpen(false)}
+          accent="#FFD700"
+          icon="🏆"
+        >
           <RankingTab profile={p} leaderboard={leaderboard} initialMode={rankingInitialMode} />
         </FullscreenMapModal>
       )}
@@ -7387,15 +7446,207 @@ function actionBtnStyle(): React.CSSProperties {
 /* ═══════════════════════════════════════════════════════
  * Generischer Vollbild-Map-Modal-Wrapper
  * Wird benutzt für Shops/Deals/Inbox/Ranking — Tabs als Modals.
+ * Backdrop = echter Mapbox-Stadtplan deiner Heimat-Koords (Dark-Style),
+ * mit Akzentfarben-Vignette → "du schaust durch das Modal auf deine Stadt".
  * ═══════════════════════════════════════════════════════ */
-function FullscreenMapModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function FullscreenMapModal({
+  title,
+  onClose,
+  children,
+  accent = "#FFD700",
+  icon,
+  hideTitle = false,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  /** Akzentfarbe für Rahmen, Header-Strip + Map-Vignette */
+  accent?: string;
+  /** Icon im Header (z.B. "📬") */
+  icon?: string;
+  /** Header-Strip ausblenden — nur floating Close-Button. Nutzen wenn der Inhalt
+      bereits einen eigenen Titel hat (z.B. Inbox-Sidebar). */
+  hideTitle?: boolean;
+}) {
+  useEffect(() => {
+    pushFullscreenLayer();
+    return () => { popFullscreenLayer(); };
+  }, []);
+
+  // Mapbox-Static-Image deiner Heimat-Koords laden — echte Welt als Backdrop.
+  // Browser cached die URL → kein erneuter API-Hit beim nächsten Modal-Open.
+  const [mapUrl, setMapUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        if (!token) return;
+        const b = await fetchBaseMe() as { base?: { lat?: number; lng?: number } } | null;
+        // Fallback: Frankfurt (Vercel-Region fra1) — neutral, nicht-personenbezogen
+        const lat = b?.base?.lat ?? 50.1109;
+        const lng = b?.base?.lng ?? 8.6821;
+        const w = typeof window !== "undefined" ? Math.min(window.innerWidth, 1600) : 1280;
+        const h = typeof window !== "undefined" ? Math.min(window.innerHeight, 1000) : 800;
+        // dark-v11 Style + Pitch 30° für leichte 3D-Tiefe, Zoom 14 = Stadtteil-Niveau.
+        // attribution=false&logo=false: Mapbox/OSM-Attribution würde sonst groß im
+        // Backdrop erscheinen — ist auf der Haupt-Karte ohnehin sichtbar (Mapbox-ToS-konform).
+        const url = `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${lng},${lat},14,0,30/${Math.round(w / 2)}x${Math.round(h / 2)}@2x?access_token=${token}&attribution=false&logo=false`;
+        if (alive) setMapUrl(url);
+      } catch { /* Fallback: nur Gradient, kein Crash */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[9100] bg-black/85 backdrop-blur-md flex items-stretch justify-center sm:items-center sm:p-4">
-      <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-3xl sm:rounded-2xl bg-[#0F1115] sm:border sm:border-white/10 shadow-2xl flex flex-col max-h-[100vh] sm:max-h-[92vh] overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 sticky top-0 bg-[#0F1115] z-10">
-          <div className="text-[11px] font-black tracking-widest text-[#FFD700]">{title}</div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-black/40 text-white text-xl leading-none">×</button>
-        </div>
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[9100] flex items-stretch justify-center sm:items-center sm:p-4 md:p-6 lg:p-10"
+      style={{
+        // Fallback-Background falls Mapbox lädt / Token fehlt
+        background: "linear-gradient(180deg, rgba(8,11,18,0.97) 0%, rgba(15,17,21,0.97) 100%)",
+        backdropFilter: "blur(10px) saturate(1.15)",
+        WebkitBackdropFilter: "blur(10px) saturate(1.15)",
+      }}
+    >
+      {/* Echter Stadtplan als Backdrop — Mapbox Static deiner Heimat.
+          Hell genug damit man Straßen + Blocks erkennt, dezent genug fürs Modal. */}
+      {mapUrl && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${mapUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.95,
+            filter: "blur(0.5px) brightness(0.85) contrast(1.1) saturate(1.05)",
+          }}
+        />
+      )}
+
+      {/* Akzent-Tönung über der Karte — färbt sie in die Modal-Farbe ein
+          (multiplikativ-ähnlich via mix-blend-mode), damit Stadtplan + Modal
+          eine optische Einheit bilden. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `linear-gradient(180deg, ${accent}30 0%, ${accent}1A 100%)`,
+          mixBlendMode: "color",
+        }}
+      />
+
+      {/* Akzent-Glow an den Rändern + leichte Mitte-Abdunklung für Modal-Lesbarkeit */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 50% 70% at 0% 50%, ${accent}40 0%, transparent 50%),
+            radial-gradient(ellipse 50% 70% at 100% 50%, ${accent}40 0%, transparent 50%),
+            radial-gradient(ellipse 70% 50% at 50% 50%, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 100%)
+          `,
+        }}
+      />
+
+      {/* Stadt-Smog am unteren Rand — Akzent-Schimmer wie Straßenlampen-Reflex */}
+      <div
+        aria-hidden
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{
+          height: "35%",
+          background: `linear-gradient(180deg, transparent 0%, ${accent}1A 60%, ${accent}33 100%)`,
+        }}
+      />
+
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full sm:max-w-3xl sm:rounded-2xl flex flex-col max-h-[100dvh] sm:max-h-[92dvh] overflow-hidden relative"
+        style={{
+          background: "linear-gradient(180deg, rgba(15,17,21,0.985) 0%, rgba(10,12,16,0.99) 100%)",
+          border: `1px solid ${accent}55`,
+          boxShadow: `
+            0 24px 80px rgba(0,0,0,0.6),
+            0 0 0 1px rgba(255,255,255,0.03),
+            0 0 60px ${accent}33
+          `,
+        }}
+      >
+        {/* Akzent-Strip oben — wie ein "Banner" über dem Card-Top */}
+        <div
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-20"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${accent}, ${accent}, transparent)`,
+            boxShadow: `0 0 16px ${accent}88`,
+          }}
+        />
+        {hideTitle ? (
+          // Kein Header-Strip — nur floating Close-Button in der Ecke.
+          // Wird genutzt wenn der Content selbst einen Titel hat (z.B. Inbox-Sidebar)
+          // und ein doppelter Header gestört hätte.
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full text-white text-xl leading-none transition hover:scale-105 active:scale-95 z-20"
+            style={{
+              background: "rgba(0,0,0,0.65)",
+              border: `1px solid ${accent}55`,
+              boxShadow: `0 0 12px ${accent}33, 0 2px 8px rgba(0,0,0,0.5)`,
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+            }}
+            aria-label={`${title} schließen`}
+          >
+            ×
+          </button>
+        ) : (
+          <div
+            className="flex items-center justify-between px-5 py-3.5 border-b sticky top-0 z-10"
+            style={{
+              background: `linear-gradient(180deg, ${accent}1A 0%, transparent 100%), rgba(15,17,21,0.96)`,
+              borderColor: `${accent}33`,
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              {icon && (
+                <span
+                  style={{
+                    fontSize: 20,
+                    filter: `drop-shadow(0 0 10px ${accent}aa)`,
+                    lineHeight: 1,
+                  }}
+                >
+                  {icon}
+                </span>
+              )}
+              <div
+                className="text-[11px] font-black tracking-[0.2em] uppercase"
+                style={{
+                  color: accent,
+                  textShadow: `0 0 12px ${accent}66`,
+                  fontFamily: "var(--font-display-stack)",
+                }}
+              >
+                {title}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full text-white text-xl leading-none transition hover:scale-105 active:scale-95"
+              style={{
+                background: "rgba(0,0,0,0.55)",
+                border: `1px solid ${accent}55`,
+                boxShadow: `0 0 12px ${accent}33`,
+              }}
+              aria-label="Schließen"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
     </div>

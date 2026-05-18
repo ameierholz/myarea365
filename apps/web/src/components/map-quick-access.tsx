@@ -16,20 +16,20 @@ const MUTED = "#8B8FA3";
 // OFFSET_X = Verschiebung in X (negativ = nach links, positiv = nach rechts).
 // ════════════════════════════════════════════════════════════════════
 const ICON_SIZE: Record<string, number> = {
-  base:    55,
-  crew:    55,
-  rally:   55,
-  ranking: 52,
-  shop:    57,
-  inbox:   55,
+  base:      55,
+  crew:      55,
+  rally:     55,
+  ranking:   52,
+  inbox:     55,
+  inventory: 55,
 };
 const ICON_OFFSET_X: Record<string, number> = {
-  base:    -4,
-  crew:     0,
-  rally:    0,
-  ranking:  0,
-  shop:     0,
-  inbox:    0,
+  base:      -4,
+  crew:       0,
+  rally:      0,
+  ranking:    0,
+  inbox:      0,
+  inventory:  0,
 };
 
 type RallyStatus = "preparing" | "marching" | "fighting";
@@ -104,6 +104,7 @@ export function MapQuickAccess({
   onOpenProfile,
   onOpenCrewModal,
   onOpenInbox,
+  onOpenInventory,
   onOpenAchievements,
   onOpenRanking,
   onJoinRepeaterRally,
@@ -113,6 +114,7 @@ export function MapQuickAccess({
   zoomCycleIdx = 0,
   inboxUnread = 0,
   baseQueueReady = 0,
+  basePendingRss = 0,
   achievementsReady = 0,
   strongholdsNearby = 0,
 }: {
@@ -120,6 +122,7 @@ export function MapQuickAccess({
   onOpenProfile: () => void;
   onOpenCrewModal: () => void;
   onOpenInbox: () => void;
+  onOpenInventory: () => void;
   onOpenAchievements: () => void;
   onOpenRanking: () => void;
   onJoinRepeaterRally: (repeaterId: string) => void;
@@ -131,6 +134,9 @@ export function MapQuickAccess({
   zoomCycleIdx?: 0 | 1 | 2;
   inboxUnread?: number;
   baseQueueReady?: number;
+  /** Sammelbares RSS (Summe Wood+Stone+Gold+Mana) aus _per_hour-Buildings.
+   *  Wenn > 0, erscheint ein pulsierender Gold-Coin-Badge unten-links am Base-Icon. */
+  basePendingRss?: number;
   achievementsReady?: number;
   strongholdsNearby?: number;
 }) {
@@ -201,14 +207,17 @@ export function MapQuickAccess({
 
   // Artwork-basierte Icons (cosmetic_artwork kind=ui_icon, slot=quick_*).
   // Fallback-Emoji nur wenn noch kein Artwork hochgeladen ist.
-  type Item = { key: string; slot: string; fallback: string; label: string; size: number; offsetX: number; badge?: number; onClick: () => void };
+  type Item = { key: string; slot: string; fallback: string; label: string; size: number; offsetX: number; badge?: number; pendingRss?: number; onClick: () => void };
+  // Shop ist NICHT mehr in der Quick-Access-Bar — er sitzt jetzt prominent
+  // im oberen HUD (siehe karten-hud.tsx). Quick-Access bleibt für Gameplay-
+  // nahe Aktionen (Base/Crew/Angriffe/Ranking/Inbox/Inventar).
   const items: Item[] = [
-    { key: "base",    slot: "quick_base",    fallback: "🏰", label: "Profilbild", size: ICON_SIZE.base,    offsetX: ICON_OFFSET_X.base,    badge: baseQueueReady, onClick: onOpenProfile },
-    { key: "crew",    slot: "quick_crew",    fallback: "👥", label: "Crew",     size: ICON_SIZE.crew,    offsetX: ICON_OFFSET_X.crew,                           onClick: onOpenCrewModal },
-    { key: "rally",   slot: "quick_rally",   fallback: "⚔",  label: "Angriffe", size: ICON_SIZE.rally,   offsetX: ICON_OFFSET_X.rally,   badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
-    { key: "ranking", slot: "quick_ranking", fallback: "🏆", label: "Ranking",  size: ICON_SIZE.ranking, offsetX: ICON_OFFSET_X.ranking,                        onClick: onOpenRanking },
-    { key: "shop",    slot: "quick_shop",    fallback: "🎁", label: "Shop",     size: ICON_SIZE.shop,    offsetX: ICON_OFFSET_X.shop,                           onClick: () => window.dispatchEvent(new CustomEvent("ma365:open-deals-shop")) },
-    { key: "inbox",   slot: "quick_inbox",   fallback: "📬", label: "Inbox",    size: ICON_SIZE.inbox,   offsetX: ICON_OFFSET_X.inbox,   badge: inboxUnread,    onClick: onOpenInbox },
+    { key: "base",      slot: "quick_base",      fallback: "🏰", label: "Profilbild", size: ICON_SIZE.base,      offsetX: ICON_OFFSET_X.base,      badge: baseQueueReady, pendingRss: basePendingRss, onClick: onOpenProfile },
+    { key: "crew",      slot: "quick_crew",      fallback: "👥", label: "Crew",     size: ICON_SIZE.crew,      offsetX: ICON_OFFSET_X.crew,                             onClick: onOpenCrewModal },
+    { key: "rally",     slot: "quick_rally",     fallback: "⚔",  label: "Angriffe", size: ICON_SIZE.rally,     offsetX: ICON_OFFSET_X.rally,     badge: rallyTotal,     onClick: () => setOpenRallyList(!openRallyList) },
+    { key: "ranking",   slot: "quick_ranking",   fallback: "🏆", label: "Ranking",  size: ICON_SIZE.ranking,   offsetX: ICON_OFFSET_X.ranking,                          onClick: onOpenRanking },
+    { key: "inbox",     slot: "quick_inbox",     fallback: "📬", label: "Inbox",    size: ICON_SIZE.inbox,     offsetX: ICON_OFFSET_X.inbox,     badge: inboxUnread,    onClick: onOpenInbox },
+    { key: "inventory", slot: "quick_inventory", fallback: "🎒", label: "Inventar", size: ICON_SIZE.inventory, offsetX: ICON_OFFSET_X.inventory,                        onClick: onOpenInventory },
   ];
 
   return (
@@ -248,6 +257,7 @@ export function MapQuickAccess({
             art={uiArt}
             label={it.label}
             badge={it.badge}
+            pendingRss={it.pendingRss}
             size={it.size}
             offsetX={it.offsetX}
             onClick={it.onClick}
@@ -498,18 +508,26 @@ export function MapQuickAccess({
 }
 
 function QuickButton({
-  slot, fallback, art, label, badge, onClick, size, offsetX = 0,
+  slot, fallback, art, label, badge, pendingRss, onClick, size, offsetX = 0,
 }: {
   slot: string; fallback: string; art: ResourceArtMap;
-  label: string; badge?: number; onClick: () => void; size: number; offsetX?: number;
+  label: string; badge?: number; pendingRss?: number; onClick: () => void; size: number; offsetX?: number;
 }) {
   const hasBadge = (badge ?? 0) > 0;
+  const hasPending = (pendingRss ?? 0) > 0;
+  // Kompakter Zahl-Formatter: 1.2k / 850 / 12k
+  const fmtPending = (n: number): string => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 10_000) return `${Math.round(n / 1000)}k`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n);
+  };
   // Bild = Button-Größe (kein Padding — Artwork füllt den ganzen Button)
   const iconSize = size;
   return (
     <button
       onClick={onClick}
-      title={label}
+      title={hasPending ? `${label} · ${pendingRss} Resources zum Einsammeln` : label}
       aria-label={label}
       style={{
         position: "relative",
@@ -538,6 +556,25 @@ function QuickButton({
           zIndex: 2,
         }}>
           {badge! > 99 ? "99+" : badge}
+        </span>
+      )}
+      {hasPending && (
+        <span style={{
+          position: "absolute", bottom: -2, left: -2,
+          minWidth: 22, height: 16, borderRadius: 8,
+          padding: "0 5px 0 3px",
+          display: "inline-flex", alignItems: "center", gap: 2,
+          background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+          color: "#0F1115",
+          fontSize: 9, fontWeight: 900, letterSpacing: 0.3,
+          fontFamily: "var(--font-display-stack)",
+          boxShadow: "0 1px 4px rgba(255,165,0,0.55), 0 0 10px rgba(255,215,0,0.6), inset 0 1px 0 rgba(255,255,255,0.45)",
+          border: "1px solid #5a3f10",
+          animation: "ma365-pending-pulse 1.6s ease-in-out infinite",
+          zIndex: 2,
+        }}>
+          <span style={{ fontSize: 10, lineHeight: 1 }}>🪙</span>
+          <span>{fmtPending(pendingRss!)}</span>
         </span>
       )}
     </button>

@@ -432,6 +432,8 @@ export function BuildModal({
         // bei max 8 Coins). 1600ms gibt minimalen Puffer und hält die Bar bis zum Pulse stabil.
         await new Promise((res) => setTimeout(res, 1600));
       }
+      // Pending-RSS-Indikator auf der Karte direkt neu rechnen lassen
+      window.dispatchEvent(new CustomEvent("ma365:base-collected"));
       await reload();
     } finally { setBusy(null); }
   }

@@ -1489,6 +1489,7 @@ export function buildUiIconPrompt(input: { slot: UiIconSlotInput; mode: "image" 
     quick_ranking:   "tall ornate trophy cup with handles, gold #FFD700 metal with red gem in front, sitting on a small podium base, crown-tipped top, ranking icon",
     quick_shop:      "wrapped gift box with magenta #FF2D78 ribbon and bold gold #FFD700 bow, slight 3D tilt, vibrant shopping/deals icon",
     quick_inbox:     "stylized envelope with wax seal in teal #22D1C3, slight perspective, soft inner glow, modern messaging icon",
+    quick_inventory: "stylized urban backpack icon — chunky rugged messenger pack with gold #FFD700 buckles, magenta #FF2D78 stitching glow, teal #22D1C3 zipper accent, single bold silhouette, gritty street-loot vibe, vibrant inventory/loot icon",
     quick_achieve:   "five-pointed star medal with red ribbon, golden #FFD700 polished metal, shining center, achievement badge",
     quick_wegelager: "weathered urban barricade-pile silhouette with crossed crowbars on top, single skull stencil graffitied across, ambush/highway-robbery icon",
   };

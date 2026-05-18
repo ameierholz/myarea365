@@ -78,6 +78,10 @@
 @keyframes ma365-drawer-in    { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes ma365-tooltip-in   { from { opacity: 0; transform: translateY(4px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes ma365-pulse-glow   { 0%, 100% { box-shadow: 0 0 0 0 var(--color-primary-glow); } 50% { box-shadow: 0 0 0 8px transparent; } }
+@keyframes ma365-pending-pulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 2px 8px rgba(255,165,0,0.45), 0 0 16px rgba(255,215,0,0.6), inset 0 1px 0 rgba(255,255,255,0.5); }
+  50%      { transform: scale(1.08); box-shadow: 0 2px 10px rgba(255,165,0,0.65), 0 0 24px rgba(255,215,0,0.85), inset 0 1px 0 rgba(255,255,255,0.5); }
+}
 
 /* Display-Schrift (Bebas Neue via next/font) für Headlines, Stats, Badges, Crew-Tags.
    Body-Text bleibt System-Sans für Lesbarkeit. */
